@@ -55,6 +55,33 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertEqual(features["count"], 1)
         self.assertTrue(features["truncated"])
 
+    def test_body_inspection_includes_approximate_bounding_box(self):
+        class Body:
+            Name = "Boss-Extrude1"
+            GetType = 0
+            Visible = True
+            GetFaceCount = 6
+            GetEdgeCount = 12
+
+            def GetBodyBox(self):
+                return (-0.05, -0.025, 0.0, 0.05, 0.025, 0.02)
+
+        class Document:
+            GetType = 1
+
+            def GetBodies2(self, body_type, visible_only):
+                self.arguments = (body_type, visible_only)
+                return (Body(),)
+
+        document = Document()
+        bodies = windows_documents._inspect_bodies(document)
+
+        self.assertEqual(document.arguments, (-1, False))
+        self.assertEqual(bodies["count"], 1)
+        box = bodies["items"][0]["approximate_bounding_box"]
+        self.assertEqual(box["size_mm"], {"x": 100.0, "y": 50.0, "z": 20.0})
+        self.assertEqual(box["accuracy"], "approximate")
+
 
 if __name__ == "__main__":
     unittest.main()

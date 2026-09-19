@@ -95,8 +95,10 @@ COM call result is not mistaken for a valid model.
 
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level
-diagnosis, native save, and body inspection all succeed. Public dimensions
-carry explicit units; the Windows adapter alone converts them to API meters.
+diagnosis, body inspection and geometry smoke verification, and native save all
+succeed. Approximate SOLIDWORKS body boxes may reject obviously wrong geometry
+but are not precision metrology. Public dimensions carry explicit units; the
+Windows adapter alone converts them to API meters.
 
 The late-bound Windows adapter may choose a simpler compatible API overload
 when pywin32 cannot marshal optional COM interface parameters. Such fallbacks

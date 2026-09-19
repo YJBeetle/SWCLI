@@ -228,6 +228,24 @@ def _inspect_bodies(document: Any) -> Dict[str, Any]:
     items = []
     for body in bodies:
         body_type = int(_com_value(body, "GetType"))
+        raw_box = list(_com_value(body, "GetBodyBox") or ())
+        approximate_bounding_box = None
+        if len(raw_box) == 6:
+            minimum = [float(value) for value in raw_box[:3]]
+            maximum = [float(value) for value in raw_box[3:]]
+            size_m = [upper - lower for lower, upper in zip(minimum, maximum)]
+            approximate_bounding_box = {
+                "coordinate_system": "model",
+                "unit": "meter",
+                "minimum": {"x": minimum[0], "y": minimum[1], "z": minimum[2]},
+                "maximum": {"x": maximum[0], "y": maximum[1], "z": maximum[2]},
+                "size_mm": {
+                    "x": size_m[0] * 1000.0,
+                    "y": size_m[1] * 1000.0,
+                    "z": size_m[2] * 1000.0,
+                },
+                "accuracy": "approximate",
+            }
         items.append(
             {
                 "name": str(_com_value(body, "Name")),
@@ -238,6 +256,7 @@ def _inspect_bodies(document: Any) -> Dict[str, Any]:
                 "visible": bool(_com_value(body, "Visible")),
                 "face_count": int(_com_value(body, "GetFaceCount")),
                 "edge_count": int(_com_value(body, "GetEdgeCount")),
+                "approximate_bounding_box": approximate_bounding_box,
             }
         )
     return {"applicable": True, "items": items, "count": len(items)}

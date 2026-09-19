@@ -81,8 +81,11 @@ bounded diagnostic structure so agents can compare pre- and post-action state.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
-part, and returns body topology evidence. CLI dimensions are explicit
-millimeters and are converted to SOLIDWORKS system units internally.
+part, and returns body topology plus an axis-aligned approximate bounding box.
+The requested dimensions are checked against that box with a small smoke-test
+tolerance before the file is saved. CLI dimensions are explicit millimeters
+and are converted to SOLIDWORKS system units internally. SOLIDWORKS documents
+body boxes as approximate, so this evidence is not a precision measurement.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

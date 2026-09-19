@@ -13,6 +13,7 @@ from .windows_documents import _diagnose_features, _inspect_bodies
 
 _SAVE_CURRENT_VERSION = 0
 _SAVE_SILENT = 1
+_BOX_VERIFICATION_TOLERANCE_MM = 0.1
 
 
 def _invalid(message: str) -> Dict[str, Any]:
@@ -36,6 +37,43 @@ def _validate_box_arguments(
         if not math.isfinite(value) or value <= 0:
             return _invalid(f"{name} must be a positive finite number")
     return None
+
+
+def _verify_box_geometry(
+    bodies: Dict[str, Any], width_mm: float, height_mm: float, depth_mm: float
+) -> Dict[str, Any]:
+    expected = {"x": width_mm, "y": height_mm, "z": depth_mm}
+    solid_bodies = [
+        body
+        for body in bodies.get("items", [])
+        if body.get("type", {}).get("name") == "solid"
+    ]
+    actual = None
+    if len(solid_bodies) == 1:
+        bounding_box = solid_bodies[0].get("approximate_bounding_box")
+        if bounding_box is not None:
+            actual = bounding_box.get("size_mm")
+
+    passed = actual is not None and all(
+        math.isclose(
+            float(actual[axis]),
+            expected[axis],
+            rel_tol=1e-6,
+            abs_tol=_BOX_VERIFICATION_TOLERANCE_MM,
+        )
+        for axis in ("x", "y", "z")
+    )
+    return {
+        "passed": passed,
+        "method": "axis-aligned-approximate-body-box",
+        "expected_size_mm": expected,
+        "actual_size_mm": actual,
+        "absolute_tolerance_mm": _BOX_VERIFICATION_TOLERANCE_MM,
+        "note": (
+            "SOLIDWORKS body boxes are approximate; this is a modeling smoke "
+            "check, not a precision metrology result"
+        ),
+    }
 
 
 def create_box_part_windows(
@@ -181,6 +219,19 @@ def create_box_part_windows(
             }
             return result
 
+        bodies = _inspect_bodies(document)
+        geometry_verification = _verify_box_geometry(
+            bodies, width_mm, height_mm, depth_mm
+        )
+        result["bodies"] = bodies
+        result["geometry_verification"] = geometry_verification
+        if not geometry_verification["passed"]:
+            result["error"] = {
+                "type": "GeometryVerificationFailed",
+                "message": "created body did not match the requested box dimensions",
+            }
+            return result
+
         document.ClearSelection2(True)
         # ModelDocExtension.SaveAs3 has two optional COM object parameters that
         # dynamic pywin32 Dispatch cannot marshal as null on the tested host.
@@ -202,7 +253,6 @@ def create_box_part_windows(
             return result
 
         result["document"] = _describe_document(document)
-        result["bodies"] = _inspect_bodies(document)
         result["feature"] = {
             "name": str(_com_value(feature, "Name")),
             "type": str(_com_value(feature, "GetTypeName2")),

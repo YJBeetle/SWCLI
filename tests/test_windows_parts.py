@@ -26,6 +26,39 @@ class WindowsPartTests(unittest.TestCase):
 
         self.assertEqual(result["error"]["type"], "UnsupportedPlatform")
 
+    def test_box_geometry_verification_accepts_small_body_box_error(self):
+        bodies = {
+            "items": [
+                {
+                    "type": {"name": "solid"},
+                    "approximate_bounding_box": {
+                        "size_mm": {"x": 100.02, "y": 49.98, "z": 20.01}
+                    },
+                }
+            ]
+        }
+
+        verification = windows_parts._verify_box_geometry(bodies, 100, 50, 20)
+
+        self.assertTrue(verification["passed"])
+        self.assertEqual(verification["method"], "axis-aligned-approximate-body-box")
+
+    def test_box_geometry_verification_rejects_wrong_dimensions(self):
+        bodies = {
+            "items": [
+                {
+                    "type": {"name": "solid"},
+                    "approximate_bounding_box": {
+                        "size_mm": {"x": 100.0, "y": 50.0, "z": 19.0}
+                    },
+                }
+            ]
+        }
+
+        verification = windows_parts._verify_box_geometry(bodies, 100, 50, 20)
+
+        self.assertFalse(verification["passed"])
+
 
 if __name__ == "__main__":
     unittest.main()
