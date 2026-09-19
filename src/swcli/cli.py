@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
@@ -30,6 +31,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sw-cli",
         description="Cross-platform SOLIDWORKS automation client",
+    )
+    parser.add_argument(
+        "--endpoint",
+        default=os.environ.get("SWCLI_ENDPOINT"),
+        help="send typed operations to a running swclid HOST:PORT endpoint",
+    )
+    parser.add_argument(
+        "--request-timeout",
+        type=float,
+        default=600.0,
+        help="daemon request timeout in seconds",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -185,6 +197,40 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
 
+    remote = _remote_operation(args)
+    if remote is not None:
+        operation, parameters, as_json = remote
+        from .daemon.client import call_daemon
+
+        try:
+            response = call_daemon(
+                operation,
+                parameters,
+                endpoint=args.endpoint,
+                timeout_seconds=args.request_timeout,
+            )
+        except Exception as exc:
+            payload = {
+                "ok": False,
+                "action": operation,
+                "error": {"type": type(exc).__name__, "message": str(exc)},
+            }
+        else:
+            payload = response.get("result") or {
+                "ok": False,
+                "action": operation,
+                "error": {
+                    "type": (response.get("error") or {}).get(
+                        "code", "DaemonError"
+                    ),
+                    "message": (response.get("error") or {}).get(
+                        "message", "swclid request failed"
+                    ),
+                },
+            }
+        _print_action_result(payload, as_json)
+        return 0 if payload.get("ok") else 1
+
     if args.command == "host" and args.host_command == "probe":
         payload = probe_windows_host()
         if args.as_json:
@@ -291,6 +337,94 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0 if payload["ok"] else 1
 
     return 2
+
+
+def _remote_operation(
+    args: argparse.Namespace,
+) -> Optional[Tuple[str, Dict[str, Any], bool]]:
+    """Map typed CLI arguments to the versioned daemon protocol."""
+
+    if not args.endpoint:
+        return None
+    if args.command == "document":
+        command = args.document_command
+        if command == "open":
+            return (
+                "document.open",
+                {
+                    "path": args.path,
+                    "read_only": args.read_only,
+                    "configuration": args.configuration,
+                },
+                args.as_json,
+            )
+        if command == "inspect":
+            return (
+                "document.inspect",
+                {"detail": args.detail, "max_features": args.max_features},
+                args.as_json,
+            )
+        if command == "close":
+            return "document.close", {"discard": args.discard}, args.as_json
+        if command == "diagnose":
+            return (
+                "document.diagnose",
+                {"max_features": args.max_features},
+                args.as_json,
+            )
+        if command == "rebuild":
+            return (
+                "document.rebuild",
+                {
+                    "force": args.force,
+                    "top_only": args.top_only,
+                    "max_features": args.max_features,
+                },
+                args.as_json,
+            )
+        if command == "render":
+            return (
+                "document.render",
+                {
+                    "output": args.output,
+                    "width": args.width,
+                    "height": args.height,
+                    "view": args.view,
+                    "fit": args.fit,
+                    "overwrite": args.overwrite,
+                },
+                args.as_json,
+            )
+        if command == "export":
+            return (
+                "document.export",
+                {"output": args.output, "overwrite": args.overwrite},
+                args.as_json,
+            )
+    if args.command == "part" and args.part_command == "create-box":
+        return (
+            "part.create-box",
+            {
+                "output": args.output,
+                "width_mm": args.width_mm,
+                "height_mm": args.height_mm,
+                "depth_mm": args.depth_mm,
+                "overwrite": args.overwrite,
+            },
+            args.as_json,
+        )
+    if args.command == "batch" and args.batch_command == "export":
+        return (
+            "batch.export",
+            {
+                "manifest": args.manifest,
+                "workspace": args.workspace,
+                "outdir": args.outdir,
+                "overwrite": args.overwrite,
+            },
+            args.as_json,
+        )
+    return None
 
 
 def _configure_output() -> None:

@@ -69,6 +69,31 @@ that startup add-ins are loaded and the host is ready for calls such as
 document is open. `host stop --force` is an explicit, potentially destructive
 escape hatch that terminates the SOLIDWORKS process tree.
 
+## Resident service
+
+Start `swclid` when multiple CLI invocations should share one SOLIDWORKS
+instance:
+
+```powershell
+swclid serve
+```
+
+The service binds to `127.0.0.1:18495` by default. Its supervisor accepts
+versioned local JSON requests while one spawned COM worker owns the
+`SldWorks.Application` instance and executes operations serially on a single
+COM apartment. `swclid status` reports the worker and host state; `swclid stop`
+requests a graceful shutdown. A timed-out operation causes the worker and its
+SOLIDWORKS process tree to be replaced.
+
+`sw-export` is a client of this service. Use `--endpoint HOST:PORT` or the
+`SWCLI_ENDPOINT` environment variable when the service uses a non-default
+endpoint.
+
+Current typed `sw-cli` document, part, and batch commands use the same service
+when `--endpoint HOST:PORT` is placed before the command, or when
+`SWCLI_ENDPOINT` is set. Without an endpoint they retain direct native-Windows
+operation for diagnostics and development.
+
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
 active document's type, path, title, and modified state. JSON output is always

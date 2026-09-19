@@ -296,6 +296,46 @@ class CliTests(unittest.TestCase):
             overwrite=True,
         )
 
+    @mock.patch("swcli.cli.open_windows_document")
+    @mock.patch("swcli.daemon.client.call_daemon")
+    def test_typed_command_uses_daemon_when_endpoint_is_selected(
+        self, call_daemon, open_windows_document
+    ):
+        call_daemon.return_value = {
+            "success": True,
+            "result": {
+                "ok": True,
+                "action": "document.open",
+                "document": {"title": "sample.SLDPRT"},
+            },
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "--endpoint",
+                    "127.0.0.1:18495",
+                    "document",
+                    "open",
+                    "sample.SLDPRT",
+                    "--read-only",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        call_daemon.assert_called_once_with(
+            "document.open",
+            {
+                "path": "sample.SLDPRT",
+                "read_only": True,
+                "configuration": "",
+            },
+            endpoint="127.0.0.1:18495",
+            timeout_seconds=600.0,
+        )
+        open_windows_document.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

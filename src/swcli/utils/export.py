@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -260,10 +262,72 @@ def batch_export_windows(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    from ..cli import main as swcli_main
+    from ..daemon.client import DEFAULT_ENDPOINT, call_daemon
 
-    arguments = list(sys.argv[1:] if argv is None else argv)
-    return swcli_main(["batch", "export", *arguments])
+    parser = argparse.ArgumentParser(
+        prog="sw-export", description="Export a manifest through swclid"
+    )
+    parser.add_argument("--list", required=True, dest="manifest")
+    parser.add_argument("--workspace", required=True)
+    parser.add_argument("--outdir")
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--endpoint",
+        default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT),
+    )
+    parser.add_argument("--timeout", type=float, default=600.0)
+    parser.add_argument("--json", action="store_true", dest="as_json")
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+
+    try:
+        response = call_daemon(
+            "batch.export",
+            {
+                "manifest": args.manifest,
+                "workspace": args.workspace,
+                "outdir": args.outdir,
+                "overwrite": args.overwrite,
+            },
+            endpoint=args.endpoint,
+            timeout_seconds=args.timeout,
+        )
+    except Exception as exc:
+        response = {
+            "success": False,
+            "error": {"code": type(exc).__name__, "message": str(exc)},
+        }
+
+    payload = response.get("result") or {
+        "ok": False,
+        "action": "batch.export",
+        "error": {
+            "type": (response.get("error") or {}).get("code", "DaemonError"),
+            "message": (response.get("error") or {}).get(
+                "message", "swclid request failed"
+            ),
+        },
+    }
+    if args.as_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        for artifact in payload.get("artifacts", []):
+            print(
+                f"[OK] {artifact['format']}: {artifact['path']} "
+                f"({artifact['size_bytes']} bytes)"
+            )
+        print(
+            "[SWCLI SUMMARY] "
+            f"success: {payload.get('ok_count', 0)}, "
+            f"failed: {payload.get('failed_count', 0)}"
+        )
+        if not payload.get("ok"):
+            error = payload.get("error") or {}
+            print(
+                f"[ERROR] {error.get('type', 'ExportFailed')}: "
+                f"{error.get('message', 'unknown error')}",
+                file=sys.stderr,
+            )
+    return 0 if response.get("success") and payload.get("ok") else 1
 
 
 if __name__ == "__main__":
