@@ -14,19 +14,45 @@ SOLIDWORKS is usable, not the host operating system alone.
 `.github/workflows/windows-hosted-media-probe.yml` is a manual feasibility
 probe for disposable GitHub-hosted Windows runners. It can remove optional
 preinstalled SDK payloads, mounts Google Drive through rclone and WinFsp, then
-mounts the SOLIDWORKS ISO and reads the core MSI. It deliberately does not
-install or execute SOLIDWORKS: the standard hosted image is Windows Server and
-does not provide a supported, persistent interactive desktop environment for
-the SOLIDWORKS client.
+selectively extracts the core MSI from the SOLIDWORKS ISO. It deliberately does not
+install or execute SOLIDWORKS, so media/cache failures remain separate from
+installer and COM failures.
 
 The probe records disk capacity before cleanup, after cleanup, and after the
-ISO access. It also records the actual rclone VFS cache size. This distinguishes
-the ISO's logical size from the bytes fetched on demand.
+ISO access. It also records the actual rclone VFS cache size. `Mount-DiskImage`
+cannot attach an ISO through a WinFsp-backed path on the hosted runner, so the
+workflow uses 7-Zip path-selective extraction through the rclone VFS instead.
+This still distinguishes the ISO's logical size from the bytes fetched on
+demand and avoids an unconditional full ISO copy.
 
 Required repository secret:
 
 - `RCLONE_CONFIG_B64`: base64-encoded rclone configuration containing a
   `gdrive:` remote. The decoded file exists only for the duration of the job.
+
+## Disposable hosted installation smoke
+
+`.github/workflows/windows-hosted-solidworks.yml` is a manual integration test,
+not a release pipeline or a declaration that Windows Server is an officially
+supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where it
+also applies to native Windows:
+
+1. stream the official ISO and selectively extract the required installer
+   directories;
+2. install the VC++ prerequisite, Login Manager, and core MSI;
+3. import `sw2025_network_serials_licensing.reg` immediately before the main
+   MSI performs AppSearch;
+4. apply the private test-only program overlay;
+5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
+6. use the current SWCLI checkout for a real model, render, and STEP export.
+
+The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
+used on native Windows. Only SWCLI-created model/export evidence and disk/cache
+measurements are uploaded. The workflow never uploads official installation
+media, installed SOLIDWORKS files, private overlays, registry files, FlexNet
+files, or installer/license logs. All private inputs and the rclone credential
+are removed in an unconditional cleanup step; the hosted VM is then discarded
+by GitHub.
 
 ## Native SOLIDWORKS E2E
 

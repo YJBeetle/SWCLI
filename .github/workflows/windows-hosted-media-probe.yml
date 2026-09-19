@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   probe:
-    name: Stream and mount SOLIDWORKS ISO
+    name: Stream and inspect SOLIDWORKS ISO
     runs-on: windows-2025
     timeout-minutes: 45
     env:
@@ -101,9 +101,12 @@ jobs:
             -LogPath $env:RCLONE_LOG_FILE `
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
-      - name: Mount and inspect SOLIDWORKS ISO
+      - name: Selectively read SOLIDWORKS ISO
         shell: powershell
-        run: scripts/ci/windows/inspect-solidworks-iso.ps1 -ImagePath "R:\$env:SW_MEDIA_PATH"
+        run: |
+          scripts/ci/windows/inspect-solidworks-iso.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -OutputDirectory "$env:PROBE_ROOT\media-probe"
 
       - name: Measure streamed data and remaining disk
         if: always()

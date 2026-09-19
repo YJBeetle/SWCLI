@@ -37,6 +37,27 @@ jobs:
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
+      - name: Parse Windows CI scripts
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem scripts/ci/windows -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object {
+                Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)"
+              }
+            }
+          }
+          if ($failed) { throw "PowerShell parser rejected one or more Windows CI scripts" }
+
       - name: Verify installed commands and schemas
         shell: powershell
         run: |
