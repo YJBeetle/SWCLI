@@ -64,12 +64,9 @@ jobs:
           "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
           "SW_CACHE_STATE=$env:RUNNER_TEMP\swcli-solidworks-cache-state" >> $env:GITHUB_ENV
 
-      - name: Measure and free disposable runner disk
+      - name: Measure disposable runner disk
         shell: powershell
-        run: |
-          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
-          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'aggressive' }}"
-          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
 
       - name: Restore clean SOLIDWORKS installation cache
         id: solidworks-cache
@@ -84,6 +81,15 @@ jobs:
             C:\SWData
             ${{ runner.temp }}\swcli-solidworks-cache-state
             ${{ runner.temp }}\swcli-private-runtime\assets
+
+      - name: Free disposable runner disk for installation
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
+        shell: powershell
+        run: scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'aggressive' }}"
+
+      - name: Measure disk after cache decision
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
       - name: Install rclone, WinFsp, and ImDisk
         if: steps.solidworks-cache.outputs.cache-hit != 'true'

@@ -100,7 +100,9 @@ not enabled for pull requests; trusted push and manual runs use GitHub's default
 cache-write access.
 
 On a hit, the workflow restores the program and shared directories, template
-data, the clean registry snapshot, and the private test inputs. Cache restoration
+data, the clean registry snapshot, and the private test inputs. It also skips
+the multi-minute aggressive runner cleanup because the initial free space is
+sufficient for restoring the approximately 7 GB installation. Cache restoration
 is never sufficient evidence on its own: the same real SWCLI model, render, and
 export smoke still has to pass before the run is successful. Installer logs,
 mounted media, rclone credentials, and generated smoke outputs remain outside
