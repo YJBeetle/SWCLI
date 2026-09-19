@@ -101,12 +101,12 @@ jobs:
             -LogPath $env:RCLONE_LOG_FILE `
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
-      - name: Selectively read SOLIDWORKS ISO
+      - name: Mount streamed ISO with WinCDEmu
         shell: powershell
         run: |
-          scripts/ci/windows/inspect-solidworks-iso.ps1 `
+          scripts/ci/windows/probe-wincdemu.ps1 `
             -ImagePath "R:\$env:SW_MEDIA_PATH" `
-            -OutputDirectory "$env:PROBE_ROOT\media-probe"
+            -StateDirectory "$env:PROBE_ROOT\wincdemu"
 
       - name: Measure streamed data and remaining disk
         if: always()
@@ -123,6 +123,13 @@ jobs:
         if: always()
         shell: powershell
         run: |
+          $batchMounterPath = "$env:PROBE_ROOT\wincdemu\batchmnt-path.txt"
+          if (Test-Path -LiteralPath $batchMounterPath) {
+            $batchMounter = (Get-Content -LiteralPath $batchMounterPath -Raw -Encoding utf8).Trim()
+            if (Test-Path -LiteralPath $batchMounter -PathType Leaf) {
+              & $batchMounter /unmountall | Out-Null
+            }
+          }
           if (Test-Path "$env:PROBE_ROOT\rclone.pid") {
             $mountPid = [int](Get-Content "$env:PROBE_ROOT\rclone.pid" -Raw)
             Stop-Process -Id $mountPid -Force -ErrorAction SilentlyContinue

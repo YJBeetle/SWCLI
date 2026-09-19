@@ -56,3 +56,4 @@ if ($Profile -eq "aggressive") {
 
 $systemDrive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$env:SystemDrive'"
 Write-Host ("[disk] Free space after cleanup: {0:N2} GiB" -f ($systemDrive.FreeSpace / 1GB))
+exit 0
