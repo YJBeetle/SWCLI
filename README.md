@@ -120,7 +120,7 @@ the whole document is exported, refuses overwrite by default, preserves the
 active document identity and dirty state, and verifies the resulting file
 signature and non-empty content. Some SOLIDWORKS drawing exporters mark the
 source dirty even when only creating an artifact; callers must explicitly use
-`--allow-source-modification` to accept that isolated dirty-flag transition.
+`--allow-source-dirty` to accept that isolated dirty-flag transition.
 This core operation selects format only from the explicit output extension and
 does not interpret source naming conventions.
 

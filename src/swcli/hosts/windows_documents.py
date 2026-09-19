@@ -506,7 +506,7 @@ def export_active_windows_document(
     output: str,
     *,
     overwrite: bool = False,
-    allow_source_modification: bool = False,
+    allow_source_dirty: bool = False,
     app: Any = None,
 ) -> Dict[str, Any]:
     """Export the active document to a verified neutral or drawing format."""
@@ -608,7 +608,7 @@ def export_active_windows_document(
             } == {key: value for key, value in before.items() if key != "modified"}
             became_modified = not before["modified"] and after["modified"]
             if not (
-                allow_source_modification and only_modified and became_modified
+                allow_source_dirty and only_modified and became_modified
             ):
                 result["error"] = {
                     "type": "DocumentStateChanged",

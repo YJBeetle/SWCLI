@@ -157,7 +157,7 @@ class WindowsDocumentTests(unittest.TestCase):
                 ),
             ):
                 result = windows_documents.export_active_windows_document(
-                    str(output), allow_source_modification=True, app=app
+                    str(output), allow_source_dirty=True, app=app
                 )
 
         self.assertTrue(result["ok"])
