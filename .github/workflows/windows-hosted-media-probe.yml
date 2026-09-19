@@ -1,0 +1,139 @@
+name: Windows hosted media probe
+
+on:
+  push:
+    branches: [codex/windows-ci]
+  workflow_dispatch:
+    inputs:
+      media_path:
+        description: Google Drive path to the SOLIDWORKS ISO
+        required: true
+        default: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
+        type: string
+      cleanup_profile:
+        description: Disk cleanup level for the disposable hosted runner
+        required: true
+        default: conservative
+        type: choice
+        options:
+          - none
+          - conservative
+          - aggressive
+      vfs_cache_gib:
+        description: Maximum local rclone VFS cache size
+        required: true
+        default: "6"
+        type: choice
+        options:
+          - "4"
+          - "6"
+          - "8"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Stream and mount SOLIDWORKS ISO
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Initialize probe paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-windows-media" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-windows-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-windows-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-windows-media\vfs-cache" >> $env:GITHUB_ENV
+
+      - name: Measure runner before cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      - name: Free disposable runner disk space
+        if: (inputs.cleanup_profile || 'conservative') != 'none'
+        shell: powershell
+        run: scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'conservative' }}"
+
+      - name: Measure runner after cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone and WinFsp
+        shell: powershell
+        run: |
+          choco install rclone winfsp --yes --no-progress
+          rclone version
+          Get-Service -Name WinFsp.Launcher -ErrorAction SilentlyContinue | Format-List *
+
+      - name: Prepare protected Google Drive configuration
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          $bytes = [Convert]::FromBase64String($env:RCLONE_CONFIG_B64)
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, $bytes)
+          rclone --config $env:RCLONE_CONFIG_FILE listremotes |
+            Select-String -SimpleMatch "gdrive:" -Quiet |
+            ForEach-Object { if (-not $_) { throw "gdrive: remote is unavailable" } }
+
+      - name: Stream Google Drive through WinFsp
+        id: rclone
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '6' }} * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount and inspect SOLIDWORKS ISO
+        shell: powershell
+        run: scripts/ci/windows/inspect-solidworks-iso.ps1 -ImagePath "R:\$env:SW_MEDIA_PATH"
+
+      - name: Measure streamed data and remaining disk
+        if: always()
+        shell: powershell
+        run: |
+          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-mount.json"
+          $cacheBytes = (Get-ChildItem $env:RCLONE_CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue |
+            Measure-Object Length -Sum).Sum
+          if ($null -eq $cacheBytes) { $cacheBytes = 0 }
+          "Rclone VFS cache: {0:N2} GiB" -f ($cacheBytes / 1GB) |
+            Tee-Object -FilePath "$env:PROBE_ROOT\cache-size.txt"
+
+      - name: Stop rclone and remove credentials
+        if: always()
+        shell: powershell
+        run: |
+          if (Test-Path "$env:PROBE_ROOT\rclone.pid") {
+            $mountPid = [int](Get-Content "$env:PROBE_ROOT\rclone.pid" -Raw)
+            Stop-Process -Id $mountPid -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item $env:RCLONE_CONFIG_FILE -Force -ErrorAction SilentlyContinue
+
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-hosted-media-probe
+          path: |
+            ${{ runner.temp }}\swcli-windows-media\*.json
+            ${{ runner.temp }}\swcli-windows-media\*.log
+            ${{ runner.temp }}\swcli-windows-media\*.txt
+          if-no-files-found: warn
+          retention-days: 14

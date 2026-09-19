@@ -126,3 +126,11 @@ execution model.
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+CI runs the unit suite on Windows and builds distributions on Linux without
+claiming either job proves Wine compatibility. Native SOLIDWORKS modeling is
+verified separately on an interactive self-hosted Windows runner; patched Wine
+integration remains the responsibility of DockerSW and MacSW. A manual
+GitHub-hosted probe measures disk cleanup and streamed Google Drive ISO access
+without claiming that Windows Server is a supported SOLIDWORKS client
+environment. See [Windows CI](docs/windows-ci.md).
