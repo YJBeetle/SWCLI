@@ -1,15 +1,15 @@
 import unittest
 from unittest import mock
 
-from swcli import export_cli
+from swcli.utils import export
 
 
 class ExportCliTests(unittest.TestCase):
-    @mock.patch("swcli.export_cli.swcli_main")
-    def test_compatibility_entry_point_delegates_to_batch_export(self, swcli_main):
+    @mock.patch("swcli.cli.main")
+    def test_utility_entry_point_delegates_to_batch_export(self, swcli_main):
         swcli_main.return_value = 0
 
-        exit_code = export_cli.main(
+        exit_code = export.main(
             ["--list", "files.txt", "--workspace", "workspace"]
         )
 

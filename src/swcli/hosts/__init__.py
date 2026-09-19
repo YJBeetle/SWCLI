@@ -1,6 +1,5 @@
 """Host discovery and automation adapters."""
 
-from .windows_batch import batch_export_windows
 from .windows import probe_windows_host, start_windows_host, stop_windows_host
 from .windows_documents import (
     RENDER_VIEWS,
@@ -15,7 +14,6 @@ from .windows_documents import (
 from .windows_parts import create_box_part_windows
 
 __all__ = [
-    "batch_export_windows",
     "RENDER_VIEWS",
     "close_active_windows_document",
     "create_box_part_windows",

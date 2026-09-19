@@ -3,13 +3,13 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from swcli.hosts import windows_batch
+from swcli.utils import export
 
 
 class WindowsBatchTests(unittest.TestCase):
     def test_manifest_parser_ignores_comments_and_blank_lines(self):
         self.assertEqual(
-            windows_batch._parse_manifest_lines(
+            export._parse_manifest_lines(
                 ["", "# comment", " part.SLDPRT # trailing ", "drawing.SLDDRW"]
             ),
             ["part.SLDPRT", "drawing.SLDDRW"],
@@ -18,15 +18,15 @@ class WindowsBatchTests(unittest.TestCase):
     def test_batch_targets_match_dockersw_contract(self):
         outdir = Path("output")
         self.assertEqual(
-            windows_batch._batch_targets(Path("part.SLDPRT"), outdir),
+            export._batch_targets(Path("part.SLDPRT"), outdir),
             [outdir / "part.STEP"],
         )
         self.assertEqual(
-            windows_batch._batch_targets(Path("drawing.SLDDRW"), outdir),
+            export._batch_targets(Path("drawing.SLDDRW"), outdir),
             [outdir / "drawing.PDF", outdir / "drawing.DWG"],
         )
         self.assertEqual(
-            windows_batch._batch_targets(Path("scene.REND.SLDASM"), outdir),
+            export._batch_targets(Path("scene.REND.SLDASM"), outdir),
             [outdir / "scene.REND.GLB"],
         )
 
@@ -40,7 +40,7 @@ class WindowsBatchTests(unittest.TestCase):
             (first / "same.SLDPRT").touch()
             (second / "same.SLDASM").touch()
 
-            plans, issues = windows_batch._plan_batch(
+            plans, issues = export._plan_batch(
                 ["one/same.SLDPRT", "two/same.SLDASM"],
                 workspace,
                 workspace / "output",
@@ -57,10 +57,10 @@ class WindowsBatchTests(unittest.TestCase):
             (workspace / "part.SLDPRT").touch()
             (output / "part.STEP").touch()
 
-            plans, issues = windows_batch._plan_batch(
+            plans, issues = export._plan_batch(
                 ["part.SLDPRT"], workspace, output
             )
-            overwrite_plans, overwrite_issues = windows_batch._plan_batch(
+            overwrite_plans, overwrite_issues = export._plan_batch(
                 ["part.SLDPRT"], workspace, output, overwrite=True
             )
 
@@ -70,8 +70,8 @@ class WindowsBatchTests(unittest.TestCase):
         self.assertEqual(overwrite_issues, [])
 
     def test_batch_export_is_rejected_off_windows(self):
-        with mock.patch.object(windows_batch.sys, "platform", "darwin"):
-            result = windows_batch.batch_export_windows(
+        with mock.patch.object(export.sys, "platform", "darwin"):
+            result = export.batch_export_windows(
                 "list.txt", workspace="workspace"
             )
 

@@ -10,7 +10,6 @@ from typing import Optional, Sequence
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     RENDER_VIEWS,
-    batch_export_windows,
     close_active_windows_document,
     create_box_part_windows,
     diagnose_active_windows_document,
@@ -24,6 +23,7 @@ from .hosts import (
     stop_windows_host,
 )
 from .protocol import SCHEMA_NAMES, load_schema
+from .utils.export import batch_export_windows
 
 
 def build_parser() -> argparse.ArgumentParser:

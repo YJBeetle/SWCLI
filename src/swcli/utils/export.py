@@ -1,13 +1,14 @@
-"""Batch export orchestration for native Windows and Wine hosts."""
+"""Manifest-driven export utility built from typed SWCLI operations."""
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from .windows import PROG_ID, _com_value, _error
-from .windows_documents import (
+from ..hosts.windows import PROG_ID, _com_value, _error
+from ..hosts.windows_documents import (
     close_active_windows_document,
     export_active_windows_document,
     open_windows_document,
@@ -249,3 +250,14 @@ def batch_export_windows(
             "message": "one or more batch export items failed",
         }
     return result
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    from ..cli import main as swcli_main
+
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    return swcli_main(["batch", "export", *arguments])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

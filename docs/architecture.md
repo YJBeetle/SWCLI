@@ -107,8 +107,9 @@ file signature, and unchanged active-document state.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
 explicit output extension and active document type. Source-file naming policy
-belongs to higher-level utilities; the compatibility batch planner, for
-example, maps DockerSW `.REND.SLDASM` inputs to GLB.
+belongs to higher-level utilities in `swcli.utils`; the `sw-export` planner,
+for example, maps DockerSW `.REND.SLDASM` inputs to GLB. Additional optional
+workflows can be added beside it without expanding the typed host core.
 
 Batch export composes the typed document lifecycle instead of executing an
 arbitrary user script. It performs a complete preflight before opening any

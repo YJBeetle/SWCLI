@@ -98,13 +98,14 @@ active document identity and dirty state, and verifies the resulting file
 signature and non-empty content. This core operation selects format only from
 the explicit output extension and does not interpret source naming conventions.
 
-`batch export` preflights a UTF-8 manifest before touching SOLIDWORKS, rejects
+`sw-export` lives in the `swcli.utils` package with other optional, high-level
+workflows. It preflights a UTF-8 manifest before touching SOLIDWORKS, rejects
 missing inputs and output-name collisions, then applies the same typed
 open/export/close lifecycle to every document. Parts and assemblies produce
-STEP; drawings produce PDF and DWG. The installed `sw-export` command is a
-compatibility entry point for the same bounded workflow. Its utility-level
-planning preserves the DockerSW convention that `.REND.SLDASM` inputs produce
-GLB, while ordinary assemblies produce STEP.
+STEP; drawings produce PDF and DWG. Its utility-level planning preserves the
+DockerSW convention that `.REND.SLDASM` inputs produce GLB, while ordinary
+assemblies produce STEP. The core `document export` operation remains unaware
+of source-file naming conventions.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
