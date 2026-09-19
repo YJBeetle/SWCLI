@@ -106,11 +106,17 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
         )
     if operation == "document.export":
         values = _parameters(
-            operation, parameters, {"output", "overwrite"}, {"output"}
+            operation,
+            parameters,
+            {"output", "overwrite", "allow_source_modification"},
+            {"output"},
         )
         return export_active_windows_document(
             str(values["output"]),
             overwrite=bool(values.get("overwrite", False)),
+            allow_source_modification=bool(
+                values.get("allow_source_modification", False)
+            ),
             app=app,
         )
     if operation == "part.create-box":

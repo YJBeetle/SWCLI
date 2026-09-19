@@ -118,8 +118,11 @@ orientation; the default `current` preserves the active UI orientation.
 assembly to GLB, or the active drawing to PDF or DWG. It clears selections so
 the whole document is exported, refuses overwrite by default, preserves the
 active document identity and dirty state, and verifies the resulting file
-signature and non-empty content. This core operation selects format only from
-the explicit output extension and does not interpret source naming conventions.
+signature and non-empty content. Some SOLIDWORKS drawing exporters mark the
+source dirty even when only creating an artifact; callers must explicitly use
+`--allow-source-modification` to accept that isolated dirty-flag transition.
+This core operation selects format only from the explicit output extension and
+does not interpret source naming conventions.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

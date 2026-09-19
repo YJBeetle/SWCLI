@@ -105,6 +105,29 @@ class DaemonProtocolTests(unittest.TestCase):
             app=app,
         )
 
+    @mock.patch("swcli.daemon.operations.export_active_windows_document")
+    def test_export_can_explicitly_allow_source_dirty_state(self, export_document):
+        app = object()
+        export_document.return_value = {"ok": True}
+
+        result = operations.execute_operation(
+            app,
+            "document.export",
+            {
+                "output": "C:\\drawing.DWG",
+                "overwrite": True,
+                "allow_source_modification": True,
+            },
+        )
+
+        self.assertEqual(result, {"ok": True})
+        export_document.assert_called_once_with(
+            "C:\\drawing.DWG",
+            overwrite=True,
+            allow_source_modification=True,
+            app=app,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

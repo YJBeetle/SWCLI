@@ -138,6 +138,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     export_parser.add_argument("output")
     export_parser.add_argument("--overwrite", action="store_true")
+    export_parser.add_argument(
+        "--allow-source-modification",
+        action="store_true",
+        help="accept an export that only changes the source document's dirty flag",
+    )
     export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
@@ -299,7 +304,11 @@ def _typed_operation(
         if command == "export":
             return (
                 "document.export",
-                {"output": args.output, "overwrite": args.overwrite},
+                {
+                    "output": args.output,
+                    "overwrite": args.overwrite,
+                    "allow_source_modification": args.allow_source_modification,
+                },
                 args.as_json,
             )
     if args.command == "part" and args.part_command == "create-box":

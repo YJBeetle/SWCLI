@@ -101,9 +101,16 @@ class CliTests(unittest.TestCase):
                 },
             ),
             (
-                ["document", "export", "part.STEP", "--overwrite", "--json"],
+                [
+                    "document", "export", "part.STEP", "--overwrite",
+                    "--allow-source-modification", "--json",
+                ],
                 "document.export",
-                {"output": "part.STEP", "overwrite": True},
+                {
+                    "output": "part.STEP",
+                    "overwrite": True,
+                    "allow_source_modification": True,
+                },
             ),
             (
                 [
