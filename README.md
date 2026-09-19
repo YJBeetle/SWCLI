@@ -42,6 +42,7 @@ python -m swcli host start --json
 python -m swcli host stop --json
 python -m swcli document open model.SLDPRT --read-only --json
 python -m swcli document inspect --json
+python -m swcli document inspect --detail structure --json
 python -m swcli document close --json
 ```
 
@@ -62,6 +63,12 @@ active document's type, path, title, and modified state. JSON output is always
 UTF-8 so paths and model names remain machine-readable across remote runners.
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
+
+Structural inspection adds the active configuration and all configuration
+names, explicit document units, a bounded top-level feature traversal in model
+definition order, and part-body topology summaries. Feature names are reported
+for humans but feature type is the machine-facing discriminator; callers must
+not assume names or positions remain stable after edits.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

@@ -75,6 +75,10 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser = document_commands.add_parser(
         "inspect", help="inspect the active SOLIDWORKS document"
     )
+    inspect_parser.add_argument(
+        "--detail", choices=("summary", "structure"), default="summary"
+    )
+    inspect_parser.add_argument("--max-features", type=int, default=500)
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     close_parser = document_commands.add_parser(
         "close", help="close the active SOLIDWORKS document"
@@ -152,7 +156,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0 if payload["ok"] else 1
 
     if args.command == "document" and args.document_command == "inspect":
-        payload = inspect_active_windows_document()
+        payload = inspect_active_windows_document(
+            detail=args.detail, max_features=args.max_features
+        )
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 

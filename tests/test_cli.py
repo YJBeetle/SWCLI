@@ -99,6 +99,35 @@ class CliTests(unittest.TestCase):
         self.assertEqual(
             json.loads(output.getvalue())["error"]["type"], "NoActiveDocument"
         )
+        inspect_active_windows_document.assert_called_once_with(
+            detail="summary", max_features=500
+        )
+
+    @mock.patch("swcli.cli.inspect_active_windows_document")
+    def test_document_inspect_structure(self, inspect_active_windows_document):
+        inspect_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.inspect",
+            "structure": {"features": {"count": 1}},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "document",
+                    "inspect",
+                    "--detail",
+                    "structure",
+                    "--max-features",
+                    "25",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        inspect_active_windows_document.assert_called_once_with(
+            detail="structure", max_features=25
+        )
 
     @mock.patch("swcli.cli.close_active_windows_document")
     def test_document_close_discard(self, close_active_windows_document):

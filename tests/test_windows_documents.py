@@ -24,6 +24,33 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertEqual(inspected["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(closed["error"]["type"], "UnsupportedPlatform")
 
+    def test_units_are_named_and_preserve_codes(self):
+        class Document:
+            GetUnits = (0, 1, 8, 2, 0)
+
+        units = windows_documents._inspect_units(Document())
+        self.assertEqual(units["length"], {"code": 0, "name": "millimeter"})
+        self.assertEqual(units["significant_digits"], 2)
+
+    def test_feature_traversal_is_bounded(self):
+        class Feature:
+            Visible = 1
+
+            def __init__(self, name, next_feature=None):
+                self.Name = name
+                self.GetTypeName2 = "Extrusion"
+                self.GetNextFeature = next_feature
+
+        second = Feature("second")
+        first = Feature("first", second)
+
+        class Document:
+            FirstFeature = first
+
+        features = windows_documents._inspect_features(Document(), 1)
+        self.assertEqual(features["count"], 1)
+        self.assertTrue(features["truncated"])
+
 
 if __name__ == "__main__":
     unittest.main()

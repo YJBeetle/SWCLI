@@ -81,3 +81,9 @@ Document operations preserve the SOLIDWORKS API's error and warning bitmasks
 instead of reducing them to a boolean. The Windows adapter owns pywin32 details
 such as typed `VT_BYREF | VT_I4` arguments required by `OpenDoc6`; these details
 must not leak into the public protocol.
+
+Structural inspection distinguishes stable semantics from display details.
+Feature traversal reports `GetTypeName2` and explicitly labels its order as
+model-definition order; names and indices are observational and must not be
+used as persistent identifiers. Traversals are bounded so malformed or very
+large models cannot produce unbounded agent context.
