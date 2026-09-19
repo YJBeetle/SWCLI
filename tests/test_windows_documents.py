@@ -19,10 +19,14 @@ class WindowsDocumentTests(unittest.TestCase):
             opened = windows_documents.open_windows_document("part.SLDPRT")
             inspected = windows_documents.inspect_active_windows_document()
             closed = windows_documents.close_active_windows_document()
+            diagnosed = windows_documents.diagnose_active_windows_document()
+            rebuilt = windows_documents.rebuild_active_windows_document()
 
         self.assertEqual(opened["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(inspected["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(closed["error"]["type"], "UnsupportedPlatform")
+        self.assertEqual(diagnosed["error"]["type"], "UnsupportedPlatform")
+        self.assertEqual(rebuilt["error"]["type"], "UnsupportedPlatform")
 
     def test_units_are_named_and_preserve_codes(self):
         class Document:

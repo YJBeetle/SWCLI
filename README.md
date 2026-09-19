@@ -44,6 +44,8 @@ python -m swcli document open model.SLDPRT --read-only --json
 python -m swcli document inspect --json
 python -m swcli document inspect --detail structure --json
 python -m swcli document close --json
+python -m swcli document diagnose --json
+python -m swcli document rebuild --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -69,6 +71,11 @@ names, explicit document units, a bounded top-level feature traversal in model
 definition order, and part-body topology summaries. Feature names are reported
 for humans but feature type is the machine-facing discriminator; callers must
 not assume names or positions remain stable after edits.
+
+`document diagnose` is read-only and reports `NeedsRebuild2` plus non-zero
+per-feature `GetErrorCode2` results. `document rebuild` rebuilds only dirty
+features by default; `--force` invokes a full rebuild. Both return the same
+bounded diagnostic structure so agents can compare pre- and post-action state.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

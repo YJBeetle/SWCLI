@@ -10,9 +10,11 @@ from typing import Optional, Sequence
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     close_active_windows_document,
+    diagnose_active_windows_document,
     inspect_active_windows_document,
     open_windows_document,
     probe_windows_host,
+    rebuild_active_windows_document,
     start_windows_host,
     stop_windows_host,
 )
@@ -89,6 +91,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="discard modifications instead of refusing to close",
     )
     close_parser.add_argument("--json", action="store_true", dest="as_json")
+    diagnose_parser = document_commands.add_parser(
+        "diagnose", help="report rebuild state and feature errors"
+    )
+    diagnose_parser.add_argument("--max-features", type=int, default=500)
+    diagnose_parser.add_argument("--json", action="store_true", dest="as_json")
+    rebuild_parser = document_commands.add_parser(
+        "rebuild", help="rebuild the active SOLIDWORKS document"
+    )
+    rebuild_parser.add_argument("--force", action="store_true")
+    rebuild_parser.add_argument(
+        "--top-only",
+        action="store_true",
+        help="with --force, rebuild only top-level assembly features",
+    )
+    rebuild_parser.add_argument("--max-features", type=int, default=500)
+    rebuild_parser.add_argument("--json", action="store_true", dest="as_json")
 
     return parser
 
@@ -164,6 +182,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "document" and args.document_command == "close":
         payload = close_active_windows_document(discard=args.discard)
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "diagnose":
+        payload = diagnose_active_windows_document(max_features=args.max_features)
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "rebuild":
+        payload = rebuild_active_windows_document(
+            force=args.force,
+            top_only=args.top_only,
+            max_features=args.max_features,
+        )
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 

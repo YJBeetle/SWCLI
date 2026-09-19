@@ -186,6 +186,40 @@ def _inspect_features(document: Any, max_features: int) -> Dict[str, Any]:
     }
 
 
+def _diagnose_features(document: Any, max_features: int) -> Dict[str, Any]:
+    import pythoncom
+    import win32com.client
+
+    issues = []
+    scanned = 0
+    feature = _com_value(document, "FirstFeature")
+    while feature is not None and scanned < max_features:
+        warning = win32com.client.VARIANT(
+            pythoncom.VT_BYREF | pythoncom.VT_BOOL, False
+        )
+        code = int(feature.GetErrorCode2(warning))
+        if code != 0:
+            issues.append(
+                {
+                    "index": scanned,
+                    "name": str(_com_value(feature, "Name")),
+                    "type": str(_com_value(feature, "GetTypeName2")),
+                    "code": code,
+                    "severity": "warning" if bool(warning.value) else "error",
+                }
+            )
+        scanned += 1
+        feature = _com_value(feature, "GetNextFeature")
+    return {
+        "healthy": not issues,
+        "issues": issues,
+        "issue_count": len(issues),
+        "scanned_feature_count": scanned,
+        "truncated": feature is not None,
+        "limit": max_features,
+    }
+
+
 def _inspect_bodies(document: Any) -> Dict[str, Any]:
     if int(_com_value(document, "GetType")) != 1:
         return {"applicable": False, "items": [], "count": 0}
@@ -304,6 +338,116 @@ def close_active_windows_document(*, discard: bool = False) -> Dict[str, Any]:
 
         app.CloseDoc(snapshot["title"])
         result.update({"ok": True, "closed": True})
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def diagnose_active_windows_document(*, max_features: int = 500) -> Dict[str, Any]:
+    """Report rebuild state and per-feature errors without modifying the model."""
+
+    if sys.platform != "win32":
+        return _unsupported("document.diagnose")
+
+    import pythoncom
+    import win32com.client
+
+    result: Dict[str, Any] = {"ok": False, "action": "document.diagnose"}
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception as exc:
+            result["error"] = {
+                "type": "HostNotRunning",
+                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                "cause": _error(exc),
+            }
+            return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        extension = _com_value(document, "Extension")
+        result["document"] = _describe_document(document)
+        result["needs_rebuild"] = int(_com_value(extension, "NeedsRebuild2"))
+        result["diagnostics"] = _diagnose_features(document, max_features)
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def rebuild_active_windows_document(
+    *, force: bool = False, top_only: bool = False, max_features: int = 500
+) -> Dict[str, Any]:
+    """Rebuild the active configuration and return post-rebuild diagnostics."""
+
+    if sys.platform != "win32":
+        return _unsupported("document.rebuild")
+
+    import pythoncom
+    import win32com.client
+
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "document.rebuild",
+        "force": force,
+        "top_only": top_only,
+    }
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception as exc:
+            result["error"] = {
+                "type": "HostNotRunning",
+                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                "cause": _error(exc),
+            }
+            return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        extension = _com_value(document, "Extension")
+        result["needs_rebuild_before"] = int(
+            _com_value(extension, "NeedsRebuild2")
+        )
+        if force:
+            rebuilt = bool(document.ForceRebuild3(top_only))
+        else:
+            rebuilt = bool(_com_value(document, "EditRebuild3"))
+        result["rebuilt"] = rebuilt
+        result["needs_rebuild_after"] = int(
+            _com_value(extension, "NeedsRebuild2")
+        )
+        result["document"] = _describe_document(document)
+        result["diagnostics"] = _diagnose_features(document, max_features)
+        if not rebuilt:
+            result["error"] = {
+                "type": "RebuildFailed",
+                "message": "SOLIDWORKS reported rebuild errors",
+            }
+            return result
+
+        result["ok"] = True
         return result
     except Exception as exc:
         result["error"] = _error(exc)

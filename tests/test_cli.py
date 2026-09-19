@@ -143,6 +143,40 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         close_active_windows_document.assert_called_once_with(discard=True)
 
+    @mock.patch("swcli.cli.diagnose_active_windows_document")
+    def test_document_diagnose(self, diagnose_active_windows_document):
+        diagnose_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.diagnose",
+            "diagnostics": {"healthy": True},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                ["document", "diagnose", "--max-features", "25", "--json"]
+            )
+
+        self.assertEqual(exit_code, 0)
+        diagnose_active_windows_document.assert_called_once_with(max_features=25)
+
+    @mock.patch("swcli.cli.rebuild_active_windows_document")
+    def test_document_force_rebuild(self, rebuild_active_windows_document):
+        rebuild_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.rebuild",
+            "rebuilt": True,
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                ["document", "rebuild", "--force", "--top-only", "--json"]
+            )
+
+        self.assertEqual(exit_code, 0)
+        rebuild_active_windows_document.assert_called_once_with(
+            force=True, top_only=True, max_features=500
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

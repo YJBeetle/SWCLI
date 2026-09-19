@@ -87,3 +87,8 @@ Feature traversal reports `GetTypeName2` and explicitly labels its order as
 model-definition order; names and indices are observational and must not be
 used as persistent identifiers. Traversals are bounded so malformed or very
 large models cannot produce unbounded agent context.
+
+Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild
+state and feature error codes without changing the model. Rebuild is explicit,
+never saves implicitly, and always returns post-rebuild diagnostics so a true
+COM call result is not mistaken for a valid model.
