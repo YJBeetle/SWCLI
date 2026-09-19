@@ -100,6 +100,20 @@ class CliTests(unittest.TestCase):
             json.loads(output.getvalue())["error"]["type"], "NoActiveDocument"
         )
 
+    @mock.patch("swcli.cli.close_active_windows_document")
+    def test_document_close_discard(self, close_active_windows_document):
+        close_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.close",
+            "closed": True,
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["document", "close", "--discard", "--json"])
+
+        self.assertEqual(exit_code, 0)
+        close_active_windows_document.assert_called_once_with(discard=True)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,6 +42,7 @@ python -m swcli host start --json
 python -m swcli host stop --json
 python -m swcli document open model.SLDPRT --read-only --json
 python -m swcli document inspect --json
+python -m swcli document close --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -59,6 +60,8 @@ escape hatch that terminates the SOLIDWORKS process tree.
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
 active document's type, path, title, and modified state. JSON output is always
 UTF-8 so paths and model names remain machine-readable across remote runners.
+`document close` refuses to close a modified document unless `--discard` is
+explicitly supplied, matching the CLI's conservative lifecycle policy.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

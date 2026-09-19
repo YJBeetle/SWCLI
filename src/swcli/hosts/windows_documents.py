@@ -151,3 +151,57 @@ def inspect_active_windows_document() -> Dict[str, Any]:
         return result
     finally:
         pythoncom.CoUninitialize()
+
+
+def close_active_windows_document(*, discard: bool = False) -> Dict[str, Any]:
+    """Close the active document, refusing to discard modifications by default."""
+
+    if sys.platform != "win32":
+        return _unsupported("document.close")
+
+    import pythoncom
+    import win32com.client
+
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "document.close",
+        "discard": discard,
+        "closed": False,
+    }
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception as exc:
+            result["error"] = {
+                "type": "HostNotRunning",
+                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                "cause": _error(exc),
+            }
+            return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        snapshot = _describe_document(document)
+        result["document"] = snapshot
+        if snapshot["modified"] and not discard:
+            result["error"] = {
+                "type": "ModifiedDocument",
+                "message": "refusing to discard modifications; save the document or use --discard",
+            }
+            return result
+
+        app.CloseDoc(snapshot["title"])
+        result.update({"ok": True, "closed": True})
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()

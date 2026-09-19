@@ -18,9 +18,11 @@ class WindowsDocumentTests(unittest.TestCase):
         with mock.patch.object(windows_documents.sys, "platform", "darwin"):
             opened = windows_documents.open_windows_document("part.SLDPRT")
             inspected = windows_documents.inspect_active_windows_document()
+            closed = windows_documents.close_active_windows_document()
 
         self.assertEqual(opened["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(inspected["error"]["type"], "UnsupportedPlatform")
+        self.assertEqual(closed["error"]["type"], "UnsupportedPlatform")
 
 
 if __name__ == "__main__":

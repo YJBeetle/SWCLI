@@ -9,6 +9,7 @@ from typing import Optional, Sequence
 
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
+    close_active_windows_document,
     inspect_active_windows_document,
     open_windows_document,
     probe_windows_host,
@@ -75,6 +76,15 @@ def build_parser() -> argparse.ArgumentParser:
         "inspect", help="inspect the active SOLIDWORKS document"
     )
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+    close_parser = document_commands.add_parser(
+        "close", help="close the active SOLIDWORKS document"
+    )
+    close_parser.add_argument(
+        "--discard",
+        action="store_true",
+        help="discard modifications instead of refusing to close",
+    )
+    close_parser.add_argument("--json", action="store_true", dest="as_json")
 
     return parser
 
@@ -143,6 +153,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "document" and args.document_command == "inspect":
         payload = inspect_active_windows_document()
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "close":
+        payload = close_active_windows_document(discard=args.discard)
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 
