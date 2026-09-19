@@ -47,36 +47,6 @@ function Invoke-Installer {
     }
 }
 
-function Get-MsiProductVersion {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    $installer = New-Object -ComObject WindowsInstaller.Installer
-    $database = $installer.OpenDatabase($Path, 0)
-    $view = $database.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductVersion'")
-    $view.Execute()
-    $record = $view.Fetch()
-    if ($null -eq $record) {
-        throw "SOLIDWORKS MSI has no ProductVersion"
-    }
-    return [string]$record.StringData(1)
-}
-
-$productVersion = Get-MsiProductVersion -Path $coreMsi
-$versionParts = $productVersion.Split(".")
-if ($versionParts.Count -lt 2) {
-    throw "Unsupported SOLIDWORKS ProductVersion: $productVersion"
-}
-$productYear = [int]$versionParts[0] + 1992
-$servicePackCode = [int]$versionParts[1] - 100
-if ($productYear -lt 2000 -or $productYear -gt 2100 -or $servicePackCode -lt 0 -or $servicePackCode -gt 99) {
-    throw "Unsupported SOLIDWORKS ProductVersion: $productVersion"
-}
-$servicePack = "{0}.{1}" -f [math]::Floor($servicePackCode / 10), ($servicePackCode % 10)
-$eulaKey = "HKCU:\Software\SolidWorks\IM\$productYear\Setup"
-New-Item -Path $eulaKey -Force | Out-Null
-New-ItemProperty -Path $eulaKey -Name "EULA Accepted SP$servicePack" -PropertyType DWord -Value 1 -Force | Out-Null
-Write-Host "[install] Recorded EULA acceptance for SOLIDWORKS $productYear SP$servicePack"
-
 $loginLog = Join-Path $LogDirectory "login-manager-install.log"
 Invoke-Installer -Name "SOLIDWORKS Login Manager" -FilePath "msiexec.exe" -Arguments @(
     "/i", ('"{0}"' -f $loginManagerMsi), "/qn", "/norestart", "DISABLEROLLBACK=1",
