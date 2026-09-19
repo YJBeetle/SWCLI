@@ -264,6 +264,38 @@ class CliTests(unittest.TestCase):
             overwrite=False,
         )
 
+    @mock.patch("swcli.cli.batch_export_windows")
+    def test_batch_export(self, batch_export_windows):
+        batch_export_windows.return_value = {
+            "ok": True,
+            "action": "batch.export",
+            "artifacts": [],
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "batch",
+                    "export",
+                    "--list",
+                    "files.txt",
+                    "--workspace",
+                    "workspace",
+                    "--outdir",
+                    "dist",
+                    "--overwrite",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        batch_export_windows.assert_called_once_with(
+            "files.txt",
+            workspace="workspace",
+            outdir="dist",
+            overwrite=True,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -105,6 +105,12 @@ are constrained by active document type, selection is cleared before export,
 and success requires a native zero error code, a non-empty output, a matching
 file signature, and unchanged active-document state.
 
+Batch export composes the typed document lifecycle instead of executing an
+arbitrary user script. It performs a complete preflight before opening any
+document, including input existence, supported conversion rules, and output
+collision detection. A close failure aborts the remaining batch so automation
+does not accumulate unknown active-document state.
+
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level
 diagnosis, body inspection and geometry smoke verification, and native save all

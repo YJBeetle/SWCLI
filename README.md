@@ -51,6 +51,8 @@ python -m swcli document render view.bmp --view isometric \
 python -m swcli document export model.step --json
 python -m swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
+python -m swcli batch export --list files.txt \
+  --workspace workspace --outdir dist --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -93,6 +95,13 @@ orientation; the default `current` preserves the active UI orientation.
 drawing to PDF or DWG. It clears selections so the whole document is exported,
 refuses overwrite by default, preserves the active document identity and dirty
 state, and verifies the resulting file signature and non-empty content.
+
+`batch export` preflights a UTF-8 manifest before touching SOLIDWORKS, rejects
+missing inputs and output-name collisions, then applies the same typed
+open/export/close lifecycle to every document. Parts and assemblies produce
+STEP; drawings produce PDF and DWG. The installed `sw-export` command is a
+compatibility entry point for the same bounded workflow. GLB remains explicit
+future work rather than silently falling back to another format.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
