@@ -25,7 +25,6 @@ windows = [
 
 [project.scripts]
 sw-cli = "swcli.cli:main"
-sw-export = "swcli.utils.export:main"
 swclid = "swcli.daemon:main"
 
 [tool.setuptools]

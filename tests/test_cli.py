@@ -116,17 +116,6 @@ class CliTests(unittest.TestCase):
                     "height_mm": 50.0, "depth_mm": 20.0, "overwrite": False,
                 },
             ),
-            (
-                [
-                    "batch", "export", "--list", "files.txt", "--workspace",
-                    "workspace", "--outdir", "dist", "--overwrite", "--json",
-                ],
-                "batch.export",
-                {
-                    "manifest": "files.txt", "workspace": "workspace",
-                    "outdir": "dist", "overwrite": True,
-                },
-            ),
         )
         parser = build_parser()
         for arguments, operation, parameters in cases:

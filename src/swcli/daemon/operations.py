@@ -14,7 +14,6 @@ from ..hosts.windows_documents import (
     render_active_windows_document,
 )
 from ..hosts.windows_parts import create_box_part_windows
-from ..utils.export import batch_export_windows
 
 
 OPERATIONS = (
@@ -26,7 +25,6 @@ OPERATIONS = (
     "document.render",
     "document.export",
     "part.create-box",
-    "batch.export",
 )
 
 
@@ -127,24 +125,6 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
             width_mm=float(values["width_mm"]),
             height_mm=float(values["height_mm"]),
             depth_mm=float(values["depth_mm"]),
-            overwrite=bool(values.get("overwrite", False)),
-            app=app,
-        )
-    if operation == "batch.export":
-        values = _parameters(
-            operation,
-            parameters,
-            {"manifest", "workspace", "outdir", "overwrite"},
-            {"manifest", "workspace"},
-        )
-        return batch_export_windows(
-            str(values["manifest"]),
-            workspace=str(values["workspace"]),
-            outdir=(
-                str(values["outdir"])
-                if values.get("outdir") is not None
-                else None
-            ),
             overwrite=bool(values.get("overwrite", False)),
             app=app,
         )

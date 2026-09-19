@@ -82,31 +82,6 @@ class DaemonProtocolTests(unittest.TestCase):
                 }
             )
 
-    @mock.patch("swcli.daemon.operations.batch_export_windows")
-    def test_batch_operation_reuses_worker_owned_app(self, batch_export_windows):
-        app = object()
-        batch_export_windows.return_value = {"ok": True}
-
-        result = operations.execute_operation(
-            app,
-            "batch.export",
-            {
-                "manifest": "C:\\list.txt",
-                "workspace": "C:\\",
-                "outdir": "Z:\\output",
-                "overwrite": True,
-            },
-        )
-
-        self.assertEqual(result, {"ok": True})
-        batch_export_windows.assert_called_once_with(
-            "C:\\list.txt",
-            workspace="C:\\",
-            outdir="Z:\\output",
-            overwrite=True,
-            app=app,
-        )
-
     @mock.patch("swcli.daemon.operations.open_windows_document")
     def test_document_operation_reuses_worker_owned_app(self, open_document):
         app = object()

@@ -135,16 +135,10 @@ and success requires a native zero error code, a non-empty output, a matching
 file signature, and unchanged active-document state.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
-explicit output extension and active document type. Source-file naming policy
-belongs to higher-level utilities in `swcli.utils`; the `sw-export` planner,
-for example, maps DockerSW `.REND.SLDASM` inputs to GLB. Additional optional
-workflows can be added beside it without expanding the typed host core.
-
-Batch export composes the typed document lifecycle instead of executing an
-arbitrary user script. It performs a complete preflight before opening any
-document, including input existence, supported conversion rules, and output
-collision detection. A close failure aborts the remaining batch so automation
-does not accumulate unknown active-document state.
+explicit output extension and active document type. Source-file naming and
+batch policy belong to the consuming CI job, which composes explicit typed
+open, export, and close operations. SWCLI does not ship a policy-specific
+manifest exporter.
 
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level

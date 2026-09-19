@@ -152,17 +152,6 @@ def build_parser() -> argparse.ArgumentParser:
     box_parser.add_argument("--overwrite", action="store_true")
     box_parser.add_argument("--json", action="store_true", dest="as_json")
 
-    batch_parser = subcommands.add_parser("batch", help="run bounded batch workflows")
-    batch_commands = batch_parser.add_subparsers(dest="batch_command", required=True)
-    batch_export_parser = batch_commands.add_parser(
-        "export", help="export a manifest of SOLIDWORKS documents"
-    )
-    batch_export_parser.add_argument("--list", required=True, dest="manifest")
-    batch_export_parser.add_argument("--workspace", required=True)
-    batch_export_parser.add_argument("--outdir")
-    batch_export_parser.add_argument("--overwrite", action="store_true")
-    batch_export_parser.add_argument("--json", action="store_true", dest="as_json")
-
     return parser
 
 
@@ -321,17 +310,6 @@ def _typed_operation(
                 "width_mm": args.width_mm,
                 "height_mm": args.height_mm,
                 "depth_mm": args.depth_mm,
-                "overwrite": args.overwrite,
-            },
-            args.as_json,
-        )
-    if args.command == "batch" and args.batch_command == "export":
-        return (
-            "batch.export",
-            {
-                "manifest": args.manifest,
-                "workspace": args.workspace,
-                "outdir": args.outdir,
                 "overwrite": args.overwrite,
             },
             args.as_json,
