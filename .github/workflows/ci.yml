@@ -41,10 +41,8 @@ jobs:
         shell: powershell
         run: |
           sw-cli version --json
-          sw-cli protocol show request > request.schema.json
-          sw-cli protocol show response > response.schema.json
-          python -m json.tool request.schema.json > $null
-          python -m json.tool response.schema.json > $null
+          sw-cli protocol show request | ConvertFrom-Json | Out-Null
+          sw-cli protocol show response | ConvertFrom-Json | Out-Null
 
   package:
     name: Build wheel

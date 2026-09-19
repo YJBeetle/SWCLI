@@ -23,7 +23,13 @@ function Remove-OptionalPath {
 }
 
 if (Get-Command docker -ErrorAction SilentlyContinue) {
-    docker system prune --all --force 2>$null | Write-Host
+    & cmd.exe /d /c "docker info >nul 2>&1"
+    if ($LASTEXITCODE -eq 0) {
+        & cmd.exe /d /c "docker system prune --all --force"
+    }
+    else {
+        Write-Host "[disk] Docker CLI is installed but its daemon is unavailable; skipping prune."
+    }
 }
 
 $conservativePaths = @(
