@@ -89,6 +89,10 @@ function Invoke-SwCliJson {
         Start-Sleep -Seconds 1
         $process.Refresh()
     }
+    # With redirected streams, WaitForExit() is still required after HasExited
+    # becomes true so PowerShell populates ExitCode and flushes both files.
+    $process.WaitForExit()
+    $process.Refresh()
     if ($process.ExitCode -ne 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
         throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
