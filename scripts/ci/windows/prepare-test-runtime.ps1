@@ -31,8 +31,62 @@ if (-not (Test-Path -LiteralPath $solidworksExe -PathType Leaf)) {
     throw "Registered SLDWORKS.exe is unavailable: $solidworksExe"
 }
 
+function Get-InstalledSolidWorksProcesses {
+    $installPrefix = [IO.Path]::GetFullPath($solidworksDirectory).TrimEnd("\") + "\"
+    $candidateNames = @("SLDWORKS.exe", "sldworks_fs.exe")
+    return @(
+        Get-CimInstance Win32_Process -ErrorAction Stop |
+            Where-Object { $candidateNames -contains $_.Name } |
+            ForEach-Object {
+                if (-not [string]::IsNullOrWhiteSpace($_.ExecutablePath)) {
+                    $resolvedExecutable = (Get-Item -LiteralPath $_.ExecutablePath -ErrorAction Stop).FullName
+                    if ($resolvedExecutable.StartsWith($installPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+                        $_
+                    }
+                }
+            }
+    )
+}
+
+# The core MSI can leave SOLIDWORKS Fast Start resident with program DLLs
+# loaded. An overlay is equivalent to a program-file patch, so wait briefly for
+# natural installer teardown and then stop only the SOLIDWORKS executables from
+# this exact installation directory.
+for ($attempt = 1; $attempt -le 10; $attempt++) {
+    $installedProcesses = @(Get-InstalledSolidWorksProcesses)
+    if ($installedProcesses.Count -eq 0) { break }
+    if ($attempt -eq 1) {
+        $installedProcesses | Select-Object ProcessId, Name, ExecutablePath | Format-Table -AutoSize
+        Write-Host "[runtime] Waiting for post-install SOLIDWORKS processes to release program files"
+    }
+    Start-Sleep -Seconds 1
+}
+$installedProcesses = @(Get-InstalledSolidWorksProcesses)
+foreach ($process in $installedProcesses) {
+    Write-Host "[runtime] Stopping $($process.Name) (PID $($process.ProcessId)) before overlay"
+    & taskkill.exe /PID $process.ProcessId /T /F | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not stop $($process.Name) before applying the private overlay"
+    }
+}
+
 Write-Host "[runtime] Applying the private test-only program overlay"
-Copy-Item -Path (Join-Path $overlaySource "*") -Destination $solidworksDirectory -Recurse -Force
+$overlayApplied = $false
+for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try {
+        Copy-Item -Path (Join-Path $overlaySource "*") -Destination $solidworksDirectory -Recurse -Force
+        $overlayApplied = $true
+        break
+    }
+    catch [IO.IOException] {
+        if ($attempt -eq 5) { throw }
+        Write-Host "[runtime] Program file is still busy; retrying overlay ($attempt/5)"
+        Start-Sleep -Seconds 2
+    }
+}
+if (-not $overlayApplied) {
+    throw "Private runtime overlay was not applied"
+}
 
 $registryProcess = Start-Process -FilePath "reg.exe" -ArgumentList @(
     "import", ('"{0}"' -f $registryFile)
