@@ -58,6 +58,12 @@ If an operation exceeds its request timeout, the supervisor terminates the
 worker and its SOLIDWORKS process tree rather than reusing unknown COM state.
 The following request starts a fresh worker automatically.
 
+Typed public CLI commands are daemon-only. The COM adapter remains an internal
+worker backend and a direct unit/integration-test seam, but it is not a second
+public execution mode. Host discovery and activation probes remain explicit
+local diagnostics so daemon startup failures can be investigated without
+silently changing document or modeling semantics.
+
 ## Modeling loop
 
 The first stable vertical slice will implement:

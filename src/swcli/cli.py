@@ -11,20 +11,12 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     RENDER_VIEWS,
-    close_active_windows_document,
-    create_box_part_windows,
-    diagnose_active_windows_document,
-    export_active_windows_document,
-    inspect_active_windows_document,
-    open_windows_document,
     probe_windows_host,
-    render_active_windows_document,
-    rebuild_active_windows_document,
     start_windows_host,
     stop_windows_host,
 )
 from .protocol import SCHEMA_NAMES, load_schema
-from .utils.export import batch_export_windows
+from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,8 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--endpoint",
-        default=os.environ.get("SWCLI_ENDPOINT"),
-        help="send typed operations to a running swclid HOST:PORT endpoint",
+        default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT),
+        help="swclid HOST:PORT endpoint for all typed operations",
     )
     parser.add_argument(
         "--request-timeout",
@@ -197,11 +189,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
 
-    remote = _remote_operation(args)
-    if remote is not None:
-        operation, parameters, as_json = remote
-        from .daemon.client import call_daemon
-
+    typed = _typed_operation(args)
+    if typed is not None:
+        operation, parameters, as_json = typed
         try:
             response = call_daemon(
                 operation,
@@ -261,91 +251,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 
-    if args.command == "document" and args.document_command == "open":
-        payload = open_windows_document(
-            args.path,
-            read_only=args.read_only,
-            configuration=args.configuration,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "inspect":
-        payload = inspect_active_windows_document(
-            detail=args.detail, max_features=args.max_features
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "close":
-        payload = close_active_windows_document(discard=args.discard)
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "diagnose":
-        payload = diagnose_active_windows_document(max_features=args.max_features)
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "rebuild":
-        payload = rebuild_active_windows_document(
-            force=args.force,
-            top_only=args.top_only,
-            max_features=args.max_features,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "render":
-        payload = render_active_windows_document(
-            args.output,
-            width=args.width,
-            height=args.height,
-            view=args.view,
-            fit=args.fit,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "export":
-        payload = export_active_windows_document(
-            args.output, overwrite=args.overwrite
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "part" and args.part_command == "create-box":
-        payload = create_box_part_windows(
-            args.output,
-            width_mm=args.width_mm,
-            height_mm=args.height_mm,
-            depth_mm=args.depth_mm,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "batch" and args.batch_command == "export":
-        payload = batch_export_windows(
-            args.manifest,
-            workspace=args.workspace,
-            outdir=args.outdir,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
     return 2
 
 
-def _remote_operation(
+def _typed_operation(
     args: argparse.Namespace,
 ) -> Optional[Tuple[str, Dict[str, Any], bool]]:
-    """Map typed CLI arguments to the versioned daemon protocol."""
-
-    if not args.endpoint:
-        return None
+    """Map public typed CLI arguments to the daemon-only protocol surface."""
     if args.command == "document":
         command = args.document_command
         if command == "open":

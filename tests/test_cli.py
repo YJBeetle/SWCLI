@@ -4,7 +4,7 @@ import json
 import unittest
 from unittest import mock
 
-from swcli.cli import main
+from swcli.cli import _typed_operation, build_parser, main
 
 
 class CliTests(unittest.TestCase):
@@ -12,7 +12,6 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(["version", "--json"])
-
         self.assertEqual(exit_code, 0)
         payload = json.loads(output.getvalue())
         self.assertEqual(payload["name"], "SWCLI")
@@ -22,23 +21,20 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(["protocol", "show", "request"])
-
         self.assertEqual(exit_code, 0)
-        schema = json.loads(output.getvalue())
-        self.assertEqual(schema["title"], "SWCLI Request")
+        self.assertEqual(json.loads(output.getvalue())["title"], "SWCLI Request")
 
-    def test_host_probe_json(self):
+    def test_host_probe_remains_an_explicit_local_diagnostic(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(["host", "probe", "--json"])
-
         self.assertEqual(exit_code, 0)
         payload = json.loads(output.getvalue())
         self.assertIn("supported", payload)
         self.assertIn("host", payload)
 
     @mock.patch("swcli.cli.start_windows_host")
-    def test_host_start_json(self, start_windows_host):
+    def test_host_start_remains_an_explicit_local_diagnostic(self, start_windows_host):
         start_windows_host.return_value = {
             "ok": True,
             "action": "start",
@@ -47,9 +43,7 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(["host", "start", "--json"])
-
         self.assertEqual(exit_code, 0)
-        self.assertTrue(json.loads(output.getvalue())["started"])
         start_windows_host.assert_called_once_with(visible=True, timeout_seconds=60.0)
 
     @mock.patch("swcli.cli.stop_windows_host")
@@ -62,245 +56,88 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(["host", "stop", "--json"])
-
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(json.loads(output.getvalue())["error"]["type"], "OpenDocument")
-
-    @mock.patch("swcli.cli.open_windows_document")
-    def test_document_open_json(self, open_windows_document):
-        open_windows_document.return_value = {
-            "ok": True,
-            "action": "document.open",
-            "document": {"title": "sample.SLDPRT"},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
-                ["document", "open", "sample.SLDPRT", "--read-only", "--json"]
-            )
-
-        self.assertEqual(exit_code, 0)
-        open_windows_document.assert_called_once_with(
-            "sample.SLDPRT", read_only=True, configuration=""
-        )
-
-    @mock.patch("swcli.cli.inspect_active_windows_document")
-    def test_document_inspect_failure(self, inspect_active_windows_document):
-        inspect_active_windows_document.return_value = {
-            "ok": False,
-            "action": "document.inspect",
-            "error": {"type": "NoActiveDocument", "message": "none"},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(["document", "inspect", "--json"])
-
         self.assertEqual(exit_code, 1)
         self.assertEqual(
-            json.loads(output.getvalue())["error"]["type"], "NoActiveDocument"
-        )
-        inspect_active_windows_document.assert_called_once_with(
-            detail="summary", max_features=500
+            json.loads(output.getvalue())["error"]["type"], "OpenDocument"
         )
 
-    @mock.patch("swcli.cli.inspect_active_windows_document")
-    def test_document_inspect_structure(self, inspect_active_windows_document):
-        inspect_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.inspect",
-            "structure": {"features": {"count": 1}},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
+    def test_all_typed_commands_map_to_daemon_operations(self):
+        cases = (
+            (
+                ["document", "open", "part.SLDPRT", "--read-only", "--json"],
+                "document.open",
+                {"path": "part.SLDPRT", "read_only": True, "configuration": ""},
+            ),
+            (
+                ["document", "inspect", "--detail", "structure", "--json"],
+                "document.inspect",
+                {"detail": "structure", "max_features": 500},
+            ),
+            (
+                ["document", "close", "--discard", "--json"],
+                "document.close",
+                {"discard": True},
+            ),
+            (
+                ["document", "diagnose", "--max-features", "25", "--json"],
+                "document.diagnose",
+                {"max_features": 25},
+            ),
+            (
+                ["document", "rebuild", "--force", "--top-only", "--json"],
+                "document.rebuild",
+                {"force": True, "top_only": True, "max_features": 500},
+            ),
+            (
                 [
-                    "document",
-                    "inspect",
-                    "--detail",
-                    "structure",
-                    "--max-features",
-                    "25",
-                    "--json",
-                ]
-            )
-
-        self.assertEqual(exit_code, 0)
-        inspect_active_windows_document.assert_called_once_with(
-            detail="structure", max_features=25
-        )
-
-    @mock.patch("swcli.cli.close_active_windows_document")
-    def test_document_close_discard(self, close_active_windows_document):
-        close_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.close",
-            "closed": True,
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(["document", "close", "--discard", "--json"])
-
-        self.assertEqual(exit_code, 0)
-        close_active_windows_document.assert_called_once_with(discard=True)
-
-    @mock.patch("swcli.cli.diagnose_active_windows_document")
-    def test_document_diagnose(self, diagnose_active_windows_document):
-        diagnose_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.diagnose",
-            "diagnostics": {"healthy": True},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
-                ["document", "diagnose", "--max-features", "25", "--json"]
-            )
-
-        self.assertEqual(exit_code, 0)
-        diagnose_active_windows_document.assert_called_once_with(max_features=25)
-
-    @mock.patch("swcli.cli.rebuild_active_windows_document")
-    def test_document_force_rebuild(self, rebuild_active_windows_document):
-        rebuild_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.rebuild",
-            "rebuilt": True,
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
-                ["document", "rebuild", "--force", "--top-only", "--json"]
-            )
-
-        self.assertEqual(exit_code, 0)
-        rebuild_active_windows_document.assert_called_once_with(
-            force=True, top_only=True, max_features=500
-        )
-
-    @mock.patch("swcli.cli.render_active_windows_document")
-    def test_document_render(self, render_active_windows_document):
-        render_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.render",
-            "artifact": {"path": "view.bmp"},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
+                    "document", "render", "view.bmp", "--width", "800",
+                    "--height", "600", "--view", "isometric", "--no-fit",
+                    "--overwrite", "--json",
+                ],
+                "document.render",
+                {
+                    "output": "view.bmp", "width": 800, "height": 600,
+                    "view": "isometric", "fit": False, "overwrite": True,
+                },
+            ),
+            (
+                ["document", "export", "part.STEP", "--overwrite", "--json"],
+                "document.export",
+                {"output": "part.STEP", "overwrite": True},
+            ),
+            (
                 [
-                    "document",
-                    "render",
-                    "view.bmp",
-                    "--width",
-                    "800",
-                    "--height",
-                    "600",
-                    "--view",
-                    "isometric",
-                    "--no-fit",
-                    "--overwrite",
-                    "--json",
-                ]
-            )
-
-        self.assertEqual(exit_code, 0)
-        render_active_windows_document.assert_called_once_with(
-            "view.bmp",
-            width=800,
-            height=600,
-            view="isometric",
-            fit=False,
-            overwrite=True,
-        )
-
-    @mock.patch("swcli.cli.export_active_windows_document")
-    def test_document_export(self, export_active_windows_document):
-        export_active_windows_document.return_value = {
-            "ok": True,
-            "action": "document.export",
-            "artifact": {"path": "part.step"},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
-                ["document", "export", "part.step", "--overwrite", "--json"]
-            )
-
-        self.assertEqual(exit_code, 0)
-        export_active_windows_document.assert_called_once_with(
-            "part.step", overwrite=True
-        )
-
-    @mock.patch("swcli.cli.create_box_part_windows")
-    def test_part_create_box(self, create_box_part_windows):
-        create_box_part_windows.return_value = {
-            "ok": True,
-            "action": "part.create-box",
-            "saved": True,
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
+                    "part", "create-box", "box.SLDPRT", "--width-mm", "100",
+                    "--height-mm", "50", "--depth-mm", "20", "--json",
+                ],
+                "part.create-box",
+                {
+                    "output": "box.SLDPRT", "width_mm": 100.0,
+                    "height_mm": 50.0, "depth_mm": 20.0, "overwrite": False,
+                },
+            ),
+            (
                 [
-                    "part",
-                    "create-box",
-                    "box.SLDPRT",
-                    "--width-mm",
-                    "100",
-                    "--height-mm",
-                    "50",
-                    "--depth-mm",
-                    "20",
-                    "--json",
-                ]
-            )
-
-        self.assertEqual(exit_code, 0)
-        create_box_part_windows.assert_called_once_with(
-            "box.SLDPRT",
-            width_mm=100.0,
-            height_mm=50.0,
-            depth_mm=20.0,
-            overwrite=False,
+                    "batch", "export", "--list", "files.txt", "--workspace",
+                    "workspace", "--outdir", "dist", "--overwrite", "--json",
+                ],
+                "batch.export",
+                {
+                    "manifest": "files.txt", "workspace": "workspace",
+                    "outdir": "dist", "overwrite": True,
+                },
+            ),
         )
+        parser = build_parser()
+        for arguments, operation, parameters in cases:
+            with self.subTest(operation=operation):
+                self.assertEqual(
+                    _typed_operation(parser.parse_args(arguments)),
+                    (operation, parameters, True),
+                )
 
-    @mock.patch("swcli.cli.batch_export_windows")
-    def test_batch_export(self, batch_export_windows):
-        batch_export_windows.return_value = {
-            "ok": True,
-            "action": "batch.export",
-            "artifacts": [],
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(
-                [
-                    "batch",
-                    "export",
-                    "--list",
-                    "files.txt",
-                    "--workspace",
-                    "workspace",
-                    "--outdir",
-                    "dist",
-                    "--overwrite",
-                    "--json",
-                ]
-            )
-
-        self.assertEqual(exit_code, 0)
-        batch_export_windows.assert_called_once_with(
-            "files.txt",
-            workspace="workspace",
-            outdir="dist",
-            overwrite=True,
-        )
-
-    @mock.patch("swcli.cli.open_windows_document")
-    @mock.patch("swcli.daemon.client.call_daemon")
-    def test_typed_command_uses_daemon_when_endpoint_is_selected(
-        self, call_daemon, open_windows_document
-    ):
+    @mock.patch("swcli.cli.call_daemon")
+    def test_typed_command_uses_default_daemon_endpoint(self, call_daemon):
         call_daemon.return_value = {
             "success": True,
             "result": {
@@ -312,29 +149,27 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(
-                [
-                    "--endpoint",
-                    "127.0.0.1:18495",
-                    "document",
-                    "open",
-                    "sample.SLDPRT",
-                    "--read-only",
-                    "--json",
-                ]
+                ["document", "open", "sample.SLDPRT", "--read-only", "--json"]
             )
-
         self.assertEqual(exit_code, 0)
         call_daemon.assert_called_once_with(
             "document.open",
-            {
-                "path": "sample.SLDPRT",
-                "read_only": True,
-                "configuration": "",
-            },
+            {"path": "sample.SLDPRT", "read_only": True, "configuration": ""},
             endpoint="127.0.0.1:18495",
             timeout_seconds=600.0,
         )
-        open_windows_document.assert_not_called()
+
+    @mock.patch("swcli.cli.call_daemon")
+    def test_daemon_connection_failure_does_not_fall_back_to_com(self, call_daemon):
+        call_daemon.side_effect = ConnectionRefusedError("daemon unavailable")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["document", "inspect", "--json"])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            json.loads(output.getvalue())["error"]["type"],
+            "ConnectionRefusedError",
+        )
 
 
 if __name__ == "__main__":

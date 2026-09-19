@@ -89,10 +89,11 @@ SOLIDWORKS process tree to be replaced.
 `SWCLI_ENDPOINT` environment variable when the service uses a non-default
 endpoint.
 
-Current typed `sw-cli` document, part, and batch commands use the same service
-when `--endpoint HOST:PORT` is placed before the command, or when
-`SWCLI_ENDPOINT` is set. Without an endpoint they retain direct native-Windows
-operation for diagnostics and development.
+All typed `sw-cli` document, part, and batch commands use this service. The
+default endpoint is `127.0.0.1:18495`; select another daemon with
+`--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
+error and never falls back to a second direct-COM execution mode. Explicit
+`host` commands remain available as low-level local diagnostics.
 
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
