@@ -93,13 +93,24 @@ function Invoke-SwCliJson {
     # becomes true so PowerShell populates ExitCode and flushes both files.
     $process.WaitForExit()
     $process.Refresh()
-    if ($process.ExitCode -ne 0) {
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf) -or
+        (Get-Item -LiteralPath $outputPath).Length -eq 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
-        throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
+        throw "sw-cli $Name exited without a JSON result (exit code $($process.ExitCode))`n$stderr"
     }
-    $payload = Get-Content $outputPath -Raw -Encoding utf8 | ConvertFrom-Json
+    try {
+        $payload = Get-Content $outputPath -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    catch {
+        $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
+        throw "sw-cli $Name returned invalid JSON (exit code $($process.ExitCode))`n$stderr"
+    }
     if ($payload.PSObject.Properties.Name -contains "ok" -and -not $payload.ok) {
         throw "sw-cli $Name returned ok=false"
+    }
+    if ($null -ne $process.ExitCode -and $process.ExitCode -ne 0) {
+        $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
+        throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
     }
     return $payload
 }
