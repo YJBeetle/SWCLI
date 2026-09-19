@@ -9,6 +9,7 @@ from typing import Optional, Sequence
 
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
+    RENDER_VIEWS,
     close_active_windows_document,
     create_box_part_windows,
     diagnose_active_windows_document,
@@ -115,6 +116,12 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("output")
     render_parser.add_argument("--width", type=int, default=1024)
     render_parser.add_argument("--height", type=int, default=768)
+    render_parser.add_argument(
+        "--view",
+        choices=RENDER_VIEWS,
+        default="current",
+        help="use the current orientation or a locale-independent standard view",
+    )
     render_parser.add_argument(
         "--no-fit", action="store_false", dest="fit", help="preserve the current zoom"
     )
@@ -229,6 +236,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             args.output,
             width=args.width,
             height=args.height,
+            view=args.view,
             fit=args.fit,
             overwrite=args.overwrite,
         )

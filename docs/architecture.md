@@ -96,7 +96,9 @@ COM call result is not mistaken for a valid model.
 Rendering is an artifact-producing operation rather than a model save. The
 Windows adapter fits the active view, requests an explicit pixel size, and
 verifies the resulting bitmap signature and dimensions before exposing it to
-an agent. Overwrite remains opt-in.
+an agent. Standard orientations use numeric SOLIDWORKS view IDs rather than
+localized names, so rendered comparisons remain stable across host languages.
+Overwrite remains opt-in.
 
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level

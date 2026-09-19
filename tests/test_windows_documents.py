@@ -6,6 +6,22 @@ from swcli.hosts import windows_documents
 
 
 class WindowsDocumentTests(unittest.TestCase):
+    def test_standard_view_ids_match_solidworks_enum(self):
+        self.assertEqual(
+            windows_documents.STANDARD_VIEW_IDS,
+            {
+                "front": 1,
+                "back": 2,
+                "left": 3,
+                "right": 4,
+                "top": 5,
+                "bottom": 6,
+                "isometric": 7,
+                "trimetric": 8,
+                "dimetric": 9,
+            },
+        )
+
     def test_document_type_is_case_insensitive(self):
         self.assertEqual(windows_documents._document_type(Path("part.SLDPRT")), 1)
         self.assertEqual(windows_documents._document_type(Path("assembly.sldasm")), 2)
@@ -16,18 +32,26 @@ class WindowsDocumentTests(unittest.TestCase):
 
     def test_render_arguments_require_bmp_and_positive_dimensions(self):
         self.assertIsNone(
-            windows_documents._validate_render_arguments("view.BMP", 1024, 768)
+            windows_documents._validate_render_arguments(
+                "view.BMP", 1024, 768, "isometric"
+            )
         )
         self.assertEqual(
-            windows_documents._validate_render_arguments("view.png", 1024, 768)[
-                "type"
-            ],
+            windows_documents._validate_render_arguments(
+                "view.png", 1024, 768, "current"
+            )["type"],
             "InvalidArgument",
         )
         self.assertEqual(
-            windows_documents._validate_render_arguments("view.bmp", 0, 768)[
-                "type"
-            ],
+            windows_documents._validate_render_arguments(
+                "view.bmp", 0, 768, "current"
+            )["type"],
+            "InvalidArgument",
+        )
+        self.assertEqual(
+            windows_documents._validate_render_arguments(
+                "view.bmp", 1024, 768, "perspective"
+            )["type"],
             "InvalidArgument",
         )
 

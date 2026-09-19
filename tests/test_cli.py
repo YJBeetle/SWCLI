@@ -195,6 +195,8 @@ class CliTests(unittest.TestCase):
                     "800",
                     "--height",
                     "600",
+                    "--view",
+                    "isometric",
                     "--no-fit",
                     "--overwrite",
                     "--json",
@@ -203,7 +205,12 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         render_active_windows_document.assert_called_once_with(
-            "view.bmp", width=800, height=600, fit=False, overwrite=True
+            "view.bmp",
+            width=800,
+            height=600,
+            view="isometric",
+            fit=False,
+            overwrite=True,
         )
 
     @mock.patch("swcli.cli.create_box_part_windows")

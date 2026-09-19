@@ -2,6 +2,7 @@
 
 from .windows import probe_windows_host, start_windows_host, stop_windows_host
 from .windows_documents import (
+    RENDER_VIEWS,
     close_active_windows_document,
     diagnose_active_windows_document,
     inspect_active_windows_document,
@@ -12,6 +13,7 @@ from .windows_documents import (
 from .windows_parts import create_box_part_windows
 
 __all__ = [
+    "RENDER_VIEWS",
     "close_active_windows_document",
     "create_box_part_windows",
     "diagnose_active_windows_document",

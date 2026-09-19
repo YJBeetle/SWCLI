@@ -46,7 +46,8 @@ python -m swcli document inspect --detail structure --json
 python -m swcli document close --json
 python -m swcli document diagnose --json
 python -m swcli document rebuild --json
-python -m swcli document render view.bmp --width 1024 --height 768 --json
+python -m swcli document render view.bmp --view isometric \
+  --width 1024 --height 768 --json
 python -m swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
 ```
@@ -83,6 +84,9 @@ bounded diagnostic structure so agents can compare pre- and post-action state.
 `document render` fits the active model in the current view and exports a BMP
 at explicit pixel dimensions. It refuses to overwrite by default and verifies
 the generated bitmap header and dimensions before returning an image artifact.
+Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
+`isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
+orientation; the default `current` preserves the active UI orientation.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

@@ -40,6 +40,18 @@ _BODY_TYPES = {
     6: "mesh",
     7: "graphics",
 }
+STANDARD_VIEW_IDS = {
+    "front": 1,
+    "back": 2,
+    "left": 3,
+    "right": 4,
+    "top": 5,
+    "bottom": 6,
+    "isometric": 7,
+    "trimetric": 8,
+    "dimetric": 9,
+}
+RENDER_VIEWS = ("current", *STANDARD_VIEW_IDS)
 
 
 def _unsupported(action: str) -> Dict[str, Any]:
@@ -58,7 +70,7 @@ def _document_type(path: Path) -> Optional[int]:
 
 
 def _validate_render_arguments(
-    output: str, width: int, height: int
+    output: str, width: int, height: int, view: str
 ) -> Optional[Dict[str, Any]]:
     if Path(output).suffix.casefold() != ".bmp":
         return {
@@ -69,6 +81,11 @@ def _validate_render_arguments(
         return {
             "type": "InvalidArgument",
             "message": "render width and height must be positive pixel counts",
+        }
+    if view not in RENDER_VIEWS:
+        return {
+            "type": "InvalidArgument",
+            "message": f"unsupported render view: {view}",
         }
     return None
 
@@ -342,12 +359,13 @@ def render_active_windows_document(
     *,
     width: int = 1024,
     height: int = 768,
+    view: str = "current",
     fit: bool = True,
     overwrite: bool = False,
 ) -> Dict[str, Any]:
     """Render the active SOLIDWORKS view to a verified bitmap artifact."""
 
-    invalid = _validate_render_arguments(output, width, height)
+    invalid = _validate_render_arguments(output, width, height, view)
     if invalid is not None:
         return {"ok": False, "action": "document.render", "error": invalid}
     if sys.platform != "win32":
@@ -359,6 +377,10 @@ def render_active_windows_document(
         "action": "document.render",
         "output": str(output_path),
         "requested_size": {"width": width, "height": height, "unit": "pixel"},
+        "view": {
+            "name": view,
+            "standard_id": STANDARD_VIEW_IDS.get(view),
+        },
         "fit": fit,
     }
     if not output_path.parent.is_dir():
@@ -398,6 +420,9 @@ def render_active_windows_document(
             return result
 
         result["document"] = _describe_document(document)
+        standard_view_id = STANDARD_VIEW_IDS.get(view)
+        if standard_view_id is not None:
+            document.ShowNamedView2("", standard_view_id)
         if fit:
             _com_value(document, "ViewZoomtofit2")
         saved = bool(document.SaveBMP(str(output_path), width, height))
