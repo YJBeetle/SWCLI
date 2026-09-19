@@ -66,6 +66,40 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertEqual(json.loads(output.getvalue())["error"]["type"], "OpenDocument")
 
+    @mock.patch("swcli.cli.open_windows_document")
+    def test_document_open_json(self, open_windows_document):
+        open_windows_document.return_value = {
+            "ok": True,
+            "action": "document.open",
+            "document": {"title": "sample.SLDPRT"},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                ["document", "open", "sample.SLDPRT", "--read-only", "--json"]
+            )
+
+        self.assertEqual(exit_code, 0)
+        open_windows_document.assert_called_once_with(
+            "sample.SLDPRT", read_only=True, configuration=""
+        )
+
+    @mock.patch("swcli.cli.inspect_active_windows_document")
+    def test_document_inspect_failure(self, inspect_active_windows_document):
+        inspect_active_windows_document.return_value = {
+            "ok": False,
+            "action": "document.inspect",
+            "error": {"type": "NoActiveDocument", "message": "none"},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["document", "inspect", "--json"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            json.loads(output.getvalue())["error"]["type"], "NoActiveDocument"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

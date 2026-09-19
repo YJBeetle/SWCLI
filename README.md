@@ -40,6 +40,8 @@ python -m swcli protocol show request
 python -m swcli host probe --json
 python -m swcli host start --json
 python -m swcli host stop --json
+python -m swcli document open model.SLDPRT --read-only --json
+python -m swcli document inspect --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -52,6 +54,11 @@ session visible by default; pass `--hidden` for an automation-only session.
 `host stop` uses the SOLIDWORKS `ExitApp` API and refuses to exit while a
 document is open. `host stop --force` is an explicit, potentially destructive
 escape hatch that terminates the SOLIDWORKS process tree.
+
+`document open` supports native part, assembly, and drawing files and returns
+the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
+active document's type, path, title, and modified state. JSON output is always
+UTF-8 so paths and model names remain machine-readable across remote runners.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

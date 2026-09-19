@@ -178,6 +178,15 @@ def _com_value(obj: Any, name: str) -> Any:
     return value() if callable(value) else value
 
 
+def _describe_document(document: Any) -> Dict[str, Any]:
+    return {
+        "title": str(_com_value(document, "GetTitle")),
+        "path": str(_com_value(document, "GetPathName")),
+        "type": int(_com_value(document, "GetType")),
+        "modified": bool(_com_value(document, "GetSaveFlag")),
+    }
+
+
 def _describe_com_app(app: Any) -> Dict[str, Any]:
     result: Dict[str, Any] = {
         "attached": True,
@@ -188,11 +197,7 @@ def _describe_com_app(app: Any) -> Dict[str, Any]:
     }
     document = _com_value(app, "ActiveDoc")
     if document is not None:
-        result["active_document"] = {
-            "title": str(_com_value(document, "GetTitle")),
-            "path": str(_com_value(document, "GetPathName")),
-            "type": int(_com_value(document, "GetType")),
-        }
+        result["active_document"] = _describe_document(document)
     return result
 
 

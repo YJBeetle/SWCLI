@@ -4,10 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from typing import Optional, Sequence
 
 from . import PROTOCOL_VERSION, __version__
-from .hosts import probe_windows_host, start_windows_host, stop_windows_host
+from .hosts import (
+    inspect_active_windows_document,
+    open_windows_document,
+    probe_windows_host,
+    start_windows_host,
+    stop_windows_host,
+)
 from .protocol import SCHEMA_NAMES, load_schema
 
 
@@ -51,10 +58,29 @@ def build_parser() -> argparse.ArgumentParser:
     stop_parser.add_argument("--timeout", type=float, default=30.0)
     stop_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    document_parser = subcommands.add_parser(
+        "document", help="open and inspect SOLIDWORKS documents"
+    )
+    document_commands = document_parser.add_subparsers(
+        dest="document_command", required=True
+    )
+    open_parser = document_commands.add_parser(
+        "open", help="open a SOLIDWORKS document silently"
+    )
+    open_parser.add_argument("path")
+    open_parser.add_argument("--read-only", action="store_true")
+    open_parser.add_argument("--configuration", default="")
+    open_parser.add_argument("--json", action="store_true", dest="as_json")
+    inspect_parser = document_commands.add_parser(
+        "inspect", help="inspect the active SOLIDWORKS document"
+    )
+    inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    _configure_output()
     args = build_parser().parse_args(argv)
 
     if args.command == "version":
@@ -96,24 +122,44 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         payload = start_windows_host(
             visible=not args.hidden, timeout_seconds=args.timeout
         )
-        _print_lifecycle_result(payload, args.as_json)
+        _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 
     if args.command == "host" and args.host_command == "stop":
         payload = stop_windows_host(
             force=args.force, timeout_seconds=args.timeout
         )
-        _print_lifecycle_result(payload, args.as_json)
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "open":
+        payload = open_windows_document(
+            args.path,
+            read_only=args.read_only,
+            configuration=args.configuration,
+        )
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "inspect":
+        payload = inspect_active_windows_document()
+        _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 
     return 2
 
 
-def _print_lifecycle_result(payload: dict, as_json: bool) -> None:
+def _configure_output() -> None:
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8")
+
+
+def _print_action_result(payload: dict, as_json: bool) -> None:
     if as_json:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         return
     state = "ok" if payload["ok"] else "failed"
-    print(f"SOLIDWORKS host {payload['action']}: {state}")
+    print(f"SWCLI {payload['action']}: {state}")
     if payload.get("error"):
         print(f"{payload['error']['type']}: {payload['error']['message']}")

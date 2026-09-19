@@ -76,3 +76,8 @@ operations and remain separate from the read-only host probe.
 The default lifecycle policy is conservative: `start` creates a visible,
 user-controlled session, while `stop` refuses to exit if a document is open.
 Forced termination must be explicitly requested and may discard unsaved work.
+
+Document operations preserve the SOLIDWORKS API's error and warning bitmasks
+instead of reducing them to a boolean. The Windows adapter owns pywin32 details
+such as typed `VT_BYREF | VT_I4` arguments required by `OpenDoc6`; these details
+must not leak into the public protocol.
