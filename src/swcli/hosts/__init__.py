@@ -8,9 +8,11 @@ from .windows_documents import (
     open_windows_document,
     rebuild_active_windows_document,
 )
+from .windows_parts import create_box_part_windows
 
 __all__ = [
     "close_active_windows_document",
+    "create_box_part_windows",
     "diagnose_active_windows_document",
     "inspect_active_windows_document",
     "open_windows_document",

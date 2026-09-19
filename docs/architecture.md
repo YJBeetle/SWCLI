@@ -92,3 +92,8 @@ Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild
 state and feature error codes without changing the model. Rebuild is explicit,
 never saves implicitly, and always returns post-rebuild diagnostics so a true
 COM call result is not mistaken for a valid model.
+
+Typed modeling operations own their complete verification boundary. A create
+operation is successful only after feature creation, rebuild, feature-level
+diagnosis, native save, and body inspection all succeed. Public dimensions
+carry explicit units; the Windows adapter alone converts them to API meters.

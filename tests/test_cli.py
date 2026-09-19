@@ -177,6 +177,39 @@ class CliTests(unittest.TestCase):
             force=True, top_only=True, max_features=500
         )
 
+    @mock.patch("swcli.cli.create_box_part_windows")
+    def test_part_create_box(self, create_box_part_windows):
+        create_box_part_windows.return_value = {
+            "ok": True,
+            "action": "part.create-box",
+            "saved": True,
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "part",
+                    "create-box",
+                    "box.SLDPRT",
+                    "--width-mm",
+                    "100",
+                    "--height-mm",
+                    "50",
+                    "--depth-mm",
+                    "20",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        create_box_part_windows.assert_called_once_with(
+            "box.SLDPRT",
+            width_mm=100.0,
+            height_mm=50.0,
+            depth_mm=20.0,
+            overwrite=False,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,6 +46,8 @@ python -m swcli document inspect --detail structure --json
 python -m swcli document close --json
 python -m swcli document diagnose --json
 python -m swcli document rebuild --json
+python -m swcli part create-box box.SLDPRT \
+  --width-mm 100 --height-mm 50 --depth-mm 20 --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -76,6 +78,11 @@ not assume names or positions remain stable after edits.
 per-feature `GetErrorCode2` results. `document rebuild` rebuilds only dirty
 features by default; `--force` invokes a full rebuild. Both return the same
 bounded diagnostic structure so agents can compare pre- and post-action state.
+
+`part create-box` is the first typed modeling operation. It creates a centered
+rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
+part, and returns body topology evidence. CLI dimensions are explicit
+millimeters and are converted to SOLIDWORKS system units internally.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

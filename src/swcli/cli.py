@@ -10,6 +10,7 @@ from typing import Optional, Sequence
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     close_active_windows_document,
+    create_box_part_windows,
     diagnose_active_windows_document,
     inspect_active_windows_document,
     open_windows_document,
@@ -108,6 +109,18 @@ def build_parser() -> argparse.ArgumentParser:
     rebuild_parser.add_argument("--max-features", type=int, default=500)
     rebuild_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    part_parser = subcommands.add_parser("part", help="create and modify part models")
+    part_commands = part_parser.add_subparsers(dest="part_command", required=True)
+    box_parser = part_commands.add_parser(
+        "create-box", help="create a centered rectangular extrusion"
+    )
+    box_parser.add_argument("output")
+    box_parser.add_argument("--width-mm", type=float, required=True)
+    box_parser.add_argument("--height-mm", type=float, required=True)
+    box_parser.add_argument("--depth-mm", type=float, required=True)
+    box_parser.add_argument("--overwrite", action="store_true")
+    box_parser.add_argument("--json", action="store_true", dest="as_json")
+
     return parser
 
 
@@ -195,6 +208,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             force=args.force,
             top_only=args.top_only,
             max_features=args.max_features,
+        )
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "part" and args.part_command == "create-box":
+        payload = create_box_part_windows(
+            args.output,
+            width_mm=args.width_mm,
+            height_mm=args.height_mm,
+            depth_mm=args.depth_mm,
+            overwrite=args.overwrite,
         )
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
