@@ -115,12 +115,14 @@ class CliTests(unittest.TestCase):
             (
                 [
                     "part", "create-box", "box.SLDPRT", "--width-mm", "100",
-                    "--height-mm", "50", "--depth-mm", "20", "--json",
+                    "--height-mm", "50", "--depth-mm", "20",
+                    "--template", "Part.prtdot", "--json",
                 ],
                 "part.create-box",
                 {
                     "output": "box.SLDPRT", "width_mm": 100.0,
-                    "height_mm": 50.0, "depth_mm": 20.0, "overwrite": False,
+                    "height_mm": 50.0, "depth_mm": 20.0,
+                    "template": "Part.prtdot", "overwrite": False,
                 },
             ),
         )

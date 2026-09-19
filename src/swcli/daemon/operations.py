@@ -123,7 +123,14 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
         values = _parameters(
             operation,
             parameters,
-            {"output", "width_mm", "height_mm", "depth_mm", "overwrite"},
+            {
+                "output",
+                "width_mm",
+                "height_mm",
+                "depth_mm",
+                "template",
+                "overwrite",
+            },
             {"output", "width_mm", "height_mm", "depth_mm"},
         )
         return create_box_part_windows(
@@ -131,6 +138,9 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
             width_mm=float(values["width_mm"]),
             height_mm=float(values["height_mm"]),
             depth_mm=float(values["depth_mm"]),
+            template=(
+                str(values["template"]) if values.get("template") is not None else None
+            ),
             overwrite=bool(values.get("overwrite", False)),
             app=app,
         )

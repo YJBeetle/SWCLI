@@ -66,12 +66,29 @@ function Invoke-SwCliJson {
     $python = (Get-Command python -ErrorAction Stop).Source
     $process = Start-Process `
         -FilePath $python `
-        -ArgumentList (@("-m", "swcli") + $Arguments) `
+        -ArgumentList (@("-m", "swcli", "--request-timeout", "120") + $Arguments) `
         -RedirectStandardOutput $outputPath `
         -RedirectStandardError $stderrPath `
         -NoNewWindow `
-        -Wait `
         -PassThru
+    $startedAt = Get-Date
+    $captured = @{}
+    while (-not $process.HasExited) {
+        $elapsedSeconds = [int][Math]::Floor(((Get-Date) - $startedAt).TotalSeconds)
+        foreach ($threshold in @(15, 60, 110)) {
+            if ($elapsedSeconds -ge $threshold -and -not $captured.ContainsKey($threshold)) {
+                Save-DesktopDiagnostic -Name ("desktop-{0}-wait-{1:D3}" -f $Name, $threshold)
+                $captured[$threshold] = $true
+            }
+        }
+        if ($elapsedSeconds -ge 135) {
+            Save-DesktopDiagnostic -Name ("desktop-{0}-timeout" -f $Name)
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "sw-cli $Name did not exit within 135 seconds"
+        }
+        Start-Sleep -Seconds 1
+        $process.Refresh()
+    }
     if ($process.ExitCode -ne 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
         throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
@@ -93,7 +110,7 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemon = Start-Process `
     -FilePath $python `
-    -ArgumentList @("-m", "swcli.daemon", "serve", "--startup-timeout", "120") `
+    -ArgumentList @("-m", "swcli.daemon", "serve", "--visible", "--startup-timeout", "120") `
     -RedirectStandardOutput $daemonStdout `
     -RedirectStandardError $daemonStderr `
     -NoNewWindow `
@@ -174,7 +191,7 @@ catch {
 }
 finally {
     if ($started) {
-        & python -m swcli document close --discard --json 2>&1 |
+        & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
         & python -m swcli.daemon stop --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-daemon-stop.log") -Encoding utf8

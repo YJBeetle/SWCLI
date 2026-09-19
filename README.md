@@ -127,6 +127,11 @@ does not interpret source naming conventions.
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
 part, and returns body topology plus an axis-aligned approximate bounding box.
+It creates the document with an explicit `.PRTDOT` path instead of invoking the
+interactive `NewPart` command: `--template` takes precedence, followed by the
+configured default and deterministic discovery below the installed SOLIDWORKS
+roots. If no usable template exists, it returns a structured error without
+waiting on a hidden template-selection dialog.
 The requested dimensions are checked against that box with a small smoke-test
 tolerance before the file is saved. CLI dimensions are explicit millimeters
 and are converted to SOLIDWORKS system units internally. SOLIDWORKS documents

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -13,6 +14,7 @@ from .windows_documents import _diagnose_features, _inspect_bodies
 
 _SAVE_CURRENT_VERSION = 0
 _SAVE_SILENT = 1
+_SW_DEFAULT_TEMPLATE_PART = 8
 _BOX_VERIFICATION_TOLERANCE_MM = 0.1
 
 
@@ -76,12 +78,88 @@ def _verify_box_geometry(
     }
 
 
+def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
+    """Resolve a real part template without opening SOLIDWORKS template UI."""
+
+    configured = ""
+    if template is not None:
+        candidate = Path(template).expanduser().resolve()
+        source = "explicit"
+    else:
+        try:
+            configured = str(
+                app.GetUserPreferenceStringValue(_SW_DEFAULT_TEMPLATE_PART) or ""
+            ).strip()
+        except Exception:
+            configured = ""
+        candidate = Path(configured).expanduser().resolve() if configured else None
+        source = "solidworks-default"
+
+    if candidate is not None and candidate.suffix.casefold() != ".prtdot":
+        return {
+            "ok": False,
+            "error": {
+                "type": "InvalidPartTemplate",
+                "message": "part template path must use the .PRTDOT extension",
+            },
+            "path": str(candidate),
+            "source": source,
+        }
+    if candidate is not None and candidate.is_file():
+        return {"ok": True, "path": str(candidate), "source": source}
+
+    searched_roots = []
+    if template is None:
+        roots = []
+        for variable in ("PROGRAMDATA", "ProgramFiles", "ProgramFiles(x86)"):
+            value = os.environ.get(variable)
+            if value:
+                root = Path(value) / "SOLIDWORKS"
+                if root not in roots:
+                    roots.append(root)
+        for root in roots:
+            searched_roots.append(str(root))
+            if not root.is_dir():
+                continue
+            try:
+                discovered = sorted(
+                    path.resolve()
+                    for path in root.rglob("*.prtdot")
+                    if path.is_file()
+                )
+            except OSError:
+                continue
+            if discovered:
+                return {
+                    "ok": True,
+                    "path": str(discovered[0]),
+                    "source": "installed-template-discovery",
+                    "configured_path": configured or None,
+                }
+
+    return {
+        "ok": False,
+        "error": {
+            "type": "PartTemplateUnavailable",
+            "message": (
+                "no usable SOLIDWORKS part template was found; pass --template "
+                "with an existing .PRTDOT file"
+            ),
+        },
+        "path": str(candidate) if candidate is not None else None,
+        "source": source,
+        "configured_path": configured or None,
+        "searched_roots": searched_roots,
+    }
+
+
 def create_box_part_windows(
     output: str,
     *,
     width_mm: float,
     height_mm: float,
     depth_mm: float,
+    template: Optional[str] = None,
     overwrite: bool = False,
     app: Any = None,
 ) -> Dict[str, Any]:
@@ -150,11 +228,19 @@ def create_box_part_windows(
             }
             return result
 
-        document = _com_value(app, "NewPart")
+        template_result = _resolve_part_template(app, template)
+        result["template"] = {
+            key: value for key, value in template_result.items() if key != "error"
+        }
+        if not template_result["ok"]:
+            result["error"] = template_result["error"]
+            return result
+
+        document = app.NewDocument(template_result["path"], 0, 0.0, 0.0)
         if document is None:
             result["error"] = {
-                "type": "NewPartFailed",
-                "message": "SOLIDWORKS could not create a part from the default template",
+                "type": "NewDocumentFailed",
+                "message": "SOLIDWORKS could not create a part from the resolved template",
             }
             return result
 

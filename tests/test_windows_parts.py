@@ -1,11 +1,63 @@
 import math
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from swcli.hosts import windows_parts
 
 
 class WindowsPartTests(unittest.TestCase):
+    def test_explicit_part_template_takes_precedence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            template = Path(directory) / "Custom.PRTDOT"
+            template.touch()
+            app = mock.Mock()
+
+            result = windows_parts._resolve_part_template(app, str(template))
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["source"], "explicit")
+        app.GetUserPreferenceStringValue.assert_not_called()
+
+    def test_configured_part_template_is_used_when_available(self):
+        with tempfile.TemporaryDirectory() as directory:
+            template = Path(directory) / "Part.prtdot"
+            template.touch()
+            app = mock.Mock()
+            app.GetUserPreferenceStringValue.return_value = str(template)
+
+            result = windows_parts._resolve_part_template(app, None)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["source"], "solidworks-default")
+        app.GetUserPreferenceStringValue.assert_called_once_with(8)
+
+    def test_missing_explicit_part_template_fails_without_ui(self):
+        result = windows_parts._resolve_part_template(
+            mock.Mock(), "missing-template.prtdot"
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "PartTemplateUnavailable")
+
+    def test_installed_part_template_is_discovered_when_default_is_missing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            template = Path(directory) / "SOLIDWORKS" / "templates" / "Part.prtdot"
+            template.parent.mkdir(parents=True)
+            template.touch()
+            app = mock.Mock()
+            app.GetUserPreferenceStringValue.return_value = ""
+            with mock.patch.dict(
+                windows_parts.os.environ,
+                {"PROGRAMDATA": directory, "ProgramFiles": "", "ProgramFiles(x86)": ""},
+            ):
+                result = windows_parts._resolve_part_template(app, None)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["source"], "installed-template-discovery")
+        self.assertEqual(result["path"], str(template.resolve()))
+
     def test_box_arguments_require_sldprt_output(self):
         result = windows_parts._validate_box_arguments("box.step", 10, 20, 30)
         self.assertEqual(result["error"]["type"], "InvalidArgument")

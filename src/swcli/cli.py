@@ -154,6 +154,10 @@ def build_parser() -> argparse.ArgumentParser:
     box_parser.add_argument("--width-mm", type=float, required=True)
     box_parser.add_argument("--height-mm", type=float, required=True)
     box_parser.add_argument("--depth-mm", type=float, required=True)
+    box_parser.add_argument(
+        "--template",
+        help="existing .PRTDOT file; otherwise resolve the configured or installed default",
+    )
     box_parser.add_argument("--overwrite", action="store_true")
     box_parser.add_argument("--json", action="store_true", dest="as_json")
 
@@ -319,6 +323,7 @@ def _typed_operation(
                 "width_mm": args.width_mm,
                 "height_mm": args.height_mm,
                 "depth_mm": args.depth_mm,
+                "template": args.template,
                 "overwrite": args.overwrite,
             },
             args.as_json,
