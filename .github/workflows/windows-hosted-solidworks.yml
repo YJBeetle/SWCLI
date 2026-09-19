@@ -62,6 +62,7 @@ jobs:
           "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
           "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
           "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+          "SW_CACHE_STATE=$env:RUNNER_TEMP\swcli-solidworks-cache-state" >> $env:GITHUB_ENV
 
       - name: Measure and free disposable runner disk
         shell: powershell
@@ -70,11 +71,27 @@ jobs:
           scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'aggressive' }}"
           scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
+      - name: Restore clean SOLIDWORKS installation cache
+        id: solidworks-cache
+        uses: actions/cache/restore@v6
+        with:
+          key: windows-2025-solidworks-2025-sp5-core-v1
+          path: |
+            C:\Program Files\SOLIDWORKS
+            C:\Program Files\Common Files\SOLIDWORKS Shared
+            C:\Program Files (x86)\Common Files\SOLIDWORKS Shared
+            C:\ProgramData\SOLIDWORKS
+            C:\SWData
+            ${{ runner.temp }}\swcli-solidworks-cache-state
+            ${{ runner.temp }}\swcli-private-runtime\assets
+
       - name: Install rclone, WinFsp, and ImDisk
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         run: choco install rclone winfsp imdisk --yes --no-progress
 
       - name: Prepare protected Google Drive configuration
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         env:
           RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
@@ -89,6 +106,7 @@ jobs:
           }
 
       - name: Stream Google Drive through WinFsp
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
@@ -102,6 +120,7 @@ jobs:
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
       - name: Mount complete streamed ISO with ImDisk proxy
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           scripts/ci/windows/probe-imdisk.ps1 `
@@ -110,6 +129,7 @@ jobs:
             -DriveLetter S
 
       - name: Fetch private smoke-test runtime
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           $assets = "$env:PRIVATE_ROOT\assets"
@@ -131,12 +151,37 @@ jobs:
           }
 
       - name: Install native SOLIDWORKS
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           scripts/ci/windows/install-solidworks.ps1 `
             -MediaRoot $env:SW_MEDIA_ROOT `
             -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
             -LogDirectory "$env:PRIVATE_ROOT\install-logs"
+
+      - name: Prepare clean installation cache state
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
+        shell: powershell
+        run: scripts/ci/windows/export-solidworks-cache-state.ps1 -StateDirectory $env:SW_CACHE_STATE
+
+      - name: Save clean SOLIDWORKS installation cache
+        if: steps.solidworks-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          key: ${{ steps.solidworks-cache.outputs.cache-primary-key }}
+          path: |
+            C:\Program Files\SOLIDWORKS
+            C:\Program Files\Common Files\SOLIDWORKS Shared
+            C:\Program Files (x86)\Common Files\SOLIDWORKS Shared
+            C:\ProgramData\SOLIDWORKS
+            C:\SWData
+            ${{ runner.temp }}\swcli-solidworks-cache-state
+            ${{ runner.temp }}\swcli-private-runtime\assets
+
+      - name: Restore cached SOLIDWORKS registry state
+        if: steps.solidworks-cache.outputs.cache-hit == 'true'
+        shell: powershell
+        run: scripts/ci/windows/restore-solidworks-cache-state.ps1 -StateDirectory $env:SW_CACHE_STATE
 
       - name: Apply private runtime overlay and start test license service
         shell: powershell

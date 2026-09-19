@@ -88,10 +88,20 @@ can be enabled for protected `main` pushes, scheduled runs, and releases.
 
 ## Installation cache boundary
 
-The first complete hosted installation run establishes the exact native file
-and registry footprint. A later cache layer may store that clean installed
-baseline together with an explicit registry export, then validate restored COM
-activation before the private runtime overlay is applied. Cache restoration is
-never sufficient evidence on its own: the real SWCLI model/render/export smoke
-must still pass. Private overlays, FlexNet files, logs, media, and credentials
-remain outside the cache.
+The hosted workflow restores and saves a versioned repository Actions cache.
+On a miss, it streams the ISO, installs the two MSI packages, stops Fast Start,
+exports the required SOLIDWORKS registry keys, and saves the clean installation
+before applying the program overlay. The cache also contains the private test
+overlay, FlexNet files, and licensing registry input so an exact hit can skip
+rclone, WinFsp, ImDisk, ISO access, and both MSI packages entirely. These
+private inputs remain confined to the repository cache: they are never uploaded
+as artifacts or published as release contents. The workflow is intentionally
+not enabled for pull requests; trusted push and manual runs use GitHub's default
+cache-write access.
+
+On a hit, the workflow restores the program and shared directories, template
+data, the clean registry snapshot, and the private test inputs. Cache restoration
+is never sufficient evidence on its own: the same real SWCLI model, render, and
+export smoke still has to pass before the run is successful. Installer logs,
+mounted media, rclone credentials, and generated smoke outputs remain outside
+the installation cache.
