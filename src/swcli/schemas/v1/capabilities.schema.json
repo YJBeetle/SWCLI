@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://swcli.dev/schema/v1/capabilities.schema.json",
+  "title": "SWCLI Capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_versions", "server_version", "host", "operations"],
+  "properties": {
+    "protocol_versions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "server_version": {"type": "string"},
+    "host": {
+      "type": "object",
+      "required": ["platform"],
+      "properties": {
+        "platform": {"enum": ["windows", "macos-wine", "linux-wine"]},
+        "solidworks_revision": {"type": "string"}
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    }
+  }
+}

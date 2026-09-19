@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://swcli.dev/schema/v1/request.schema.json",
+  "title": "SWCLI Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "request_id", "operation", "parameters"],
+  "properties": {
+    "api_version": {"const": "swcli/v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "session_id": {"type": "string", "minLength": 1},
+    "document_id": {"type": "string", "minLength": 1},
+    "operation": {"type": "string", "minLength": 1},
+    "parameters": {"type": "object"},
+    "timeout_ms": {"type": "integer", "minimum": 1}
+  }
+}
