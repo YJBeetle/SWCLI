@@ -167,12 +167,21 @@ jobs:
           "Rclone VFS cache: {0:N2} GiB" -f ($cacheBytes / 1GB) |
             Tee-Object -FilePath "$env:PROBE_ROOT\cache-size.txt"
 
+      - name: Upload private installer logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-install-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}\swcli-private-runtime\install-logs
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Remove private test inputs and stop services
         if: always()
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
 
-      - name: Upload SWCLI-generated smoke evidence only
+      - name: Upload SWCLI-generated smoke evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:

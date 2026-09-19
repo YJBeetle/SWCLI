@@ -57,11 +57,14 @@ The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
 measurements are uploaded. The workflow never uploads official installation
 media, installed SOLIDWORKS files, private overlays, registry files, FlexNet
-files, or installer/license logs. Desktop screenshots and visible-window
-metadata from the first-start smoke are retained with the SWCLI-generated
-evidence so modal startup failures remain diagnosable when COM never becomes
-ready. All private inputs and the rclone credential are removed in an
-unconditional cleanup step; the hosted VM is then discarded by GitHub.
+files, or license-server logs. On failure, the two MSI verbose logs are uploaded
+for 14 days before cleanup, matching DockerSW's diagnostic boundary; those logs
+can contain installer properties and are therefore treated as private CI
+evidence. Desktop screenshots and visible-window metadata from the first-start
+smoke are retained with the SWCLI-generated evidence so modal startup failures
+remain diagnosable when COM never becomes ready. All other private inputs and
+the rclone credential are removed in an unconditional cleanup step; the hosted
+VM is then discarded by GitHub.
 
 ## Native SOLIDWORKS E2E
 
