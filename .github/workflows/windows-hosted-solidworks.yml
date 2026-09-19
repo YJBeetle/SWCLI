@@ -72,7 +72,7 @@ jobs:
         id: solidworks-cache
         uses: actions/cache/restore@v6
         with:
-          key: windows-2025-solidworks-2025-sp5-core-v2
+          key: windows-2025-solidworks-2025-sp5-core-v3
           path: |
             C:\Program Files\SOLIDWORKS
             C:\Program Files\Common Files\SOLIDWORKS Shared
@@ -171,7 +171,7 @@ jobs:
         run: |
           scripts/ci/windows/export-solidworks-cache-state.ps1 `
             -StateDirectory $env:SW_CACHE_STATE `
-            -LoginManagerMsi "$env:SW_MEDIA_ROOT\swloginmgr\SOLIDWORKS Login Manager.msi"
+            -LoginManagerSourceDirectory "$env:SW_MEDIA_ROOT\swloginmgr"
 
       - name: Save clean SOLIDWORKS installation cache
         if: steps.solidworks-cache.outputs.cache-hit != 'true'

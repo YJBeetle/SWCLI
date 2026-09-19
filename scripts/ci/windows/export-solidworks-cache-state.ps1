@@ -4,7 +4,7 @@ param(
     [string]$StateDirectory,
 
     [Parameter(Mandatory = $true)]
-    [string]$LoginManagerMsi,
+    [string]$LoginManagerSourceDirectory,
 
     [string]$InstallDirectory = "C:\Program Files\SOLIDWORKS"
 )
@@ -35,11 +35,17 @@ foreach ($process in $installedProcesses) {
 
 Remove-Item -LiteralPath $StateDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $StateDirectory | Out-Null
-if (-not (Test-Path -LiteralPath $LoginManagerMsi -PathType Leaf)) {
-    throw "SOLIDWORKS Login Manager MSI is unavailable: $LoginManagerMsi"
+if (-not (Test-Path -LiteralPath $LoginManagerSourceDirectory -PathType Container)) {
+    throw "SOLIDWORKS Login Manager media is unavailable: $LoginManagerSourceDirectory"
 }
-$cachedLoginManagerMsi = Join-Path $StateDirectory "SOLIDWORKS Login Manager.msi"
-Copy-Item -LiteralPath $LoginManagerMsi -Destination $cachedLoginManagerMsi -Force
+$sourceLoginManagerMsi = Join-Path $LoginManagerSourceDirectory "SOLIDWORKS Login Manager.msi"
+if (-not (Test-Path -LiteralPath $sourceLoginManagerMsi -PathType Leaf)) {
+    throw "SOLIDWORKS Login Manager MSI is unavailable: $sourceLoginManagerMsi"
+}
+$cachedLoginManagerMedia = Join-Path $StateDirectory "login-manager-media"
+New-Item -ItemType Directory -Force -Path $cachedLoginManagerMedia | Out-Null
+Copy-Item -Path (Join-Path $LoginManagerSourceDirectory "*") -Destination $cachedLoginManagerMedia -Recurse -Force
+$cachedLoginManagerMsi = Join-Path $cachedLoginManagerMedia "SOLIDWORKS Login Manager.msi"
 
 $registryKeys = [ordered]@{
     "hklm-solidworks.reg" = "HKLM\SOFTWARE\SolidWorks"
@@ -81,7 +87,7 @@ $manifest = [ordered]@{
     format = 1
     install_directory = $InstallDirectory
     solidworks_executable = $solidworksExe
-    login_manager_installer = (Split-Path -Leaf $cachedLoginManagerMsi)
+    login_manager_installer = "login-manager-media\SOLIDWORKS Login Manager.msi"
     versioned_progid = $versionedProgId
     application_clsid = $applicationClsid
     registry_exports = $exported
