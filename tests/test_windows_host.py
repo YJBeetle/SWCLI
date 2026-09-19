@@ -54,6 +54,34 @@ class WindowsHostTests(unittest.TestCase):
         self.assertFalse(stop["ok"])
         self.assertEqual(start["error"]["type"], "UnsupportedPlatform")
 
+    def test_wait_windows_host_ready_polls_until_startup_completes(self):
+        class App:
+            def __init__(self):
+                self.values = iter((False, True))
+
+            @property
+            def StartupProcessCompleted(self):
+                return next(self.values)
+
+        with mock.patch.object(
+            windows.time, "monotonic", side_effect=[10.0, 10.1, 10.2]
+        ), mock.patch.object(windows.time, "sleep") as sleep:
+            elapsed = windows.wait_windows_host_ready(
+                App(), timeout_seconds=5.0, poll_interval_seconds=0.25
+            )
+
+        self.assertAlmostEqual(elapsed, 0.2)
+        sleep.assert_called_once_with(0.25)
+
+    def test_wait_windows_host_ready_times_out(self):
+        app = mock.Mock(StartupProcessCompleted=False)
+
+        with mock.patch.object(
+            windows.time, "monotonic", side_effect=[10.0, 12.0]
+        ):
+            with self.assertRaisesRegex(TimeoutError, "within 1s"):
+                windows.wait_windows_host_ready(app, timeout_seconds=1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

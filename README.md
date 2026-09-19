@@ -62,6 +62,9 @@ read-only and does not open a SOLIDWORKS instance.
 
 `host start` uses the registered `LocalServer32` executable and makes the
 session visible by default; pass `--hidden` for an automation-only session.
+It succeeds only after the official `StartupProcessCompleted` state confirms
+that startup add-ins are loaded and the host is ready for calls such as
+`OpenDoc6`; `--timeout` covers both COM discovery and this readiness wait.
 `host stop` uses the SOLIDWORKS `ExitApp` API and refuses to exit while a
 document is open. `host stop --force` is an explicit, potentially destructive
 escape hatch that terminates the SOLIDWORKS process tree.

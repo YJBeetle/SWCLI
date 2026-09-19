@@ -73,6 +73,12 @@ than assuming a fixed installation directory or SOLIDWORKS release:
 Starting, stopping, and replacing a SOLIDWORKS process are explicit lifecycle
 operations and remain separate from the read-only host probe.
 
+Host startup is not complete merely because the COM object can be attached.
+The lifecycle adapter waits for the official `StartupProcessCompleted` state
+before reporting success, using one timeout budget for process launch, COM
+discovery, and startup add-in loading. This contract applies equally to native
+Windows and Wine hosts.
+
 The default lifecycle policy is conservative: `start` creates a visible,
 user-controlled session, while `stop` refuses to exit if a document is open.
 Forced termination must be explicitly requested and may discard unsaved work.

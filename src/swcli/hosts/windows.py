@@ -275,6 +275,23 @@ def _unsupported_lifecycle(action: str) -> Dict[str, Any]:
     }
 
 
+def wait_windows_host_ready(
+    app: Any, *, timeout_seconds: float = 60.0, poll_interval_seconds: float = 0.25
+) -> float:
+    """Wait until SOLIDWORKS has loaded its startup add-ins and accepts API work."""
+
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
+    while not bool(_com_value(app, "StartupProcessCompleted")):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(
+                f"SOLIDWORKS startup did not complete within {timeout_seconds:g}s"
+            )
+        time.sleep(min(poll_interval_seconds, remaining))
+    return time.monotonic() - started_at
+
+
 def start_windows_host(
     *, visible: bool = True, timeout_seconds: float = 60.0
 ) -> Dict[str, Any]:
@@ -306,6 +323,8 @@ def start_windows_host(
         "started": False,
         "registration": registration,
     }
+    started_at = time.monotonic()
+    deadline = started_at + timeout_seconds
     pythoncom.CoInitialize()
     try:
         try:
@@ -313,7 +332,6 @@ def start_windows_host(
         except Exception:
             process = subprocess.Popen([executable])
             result["launcher_process_id"] = process.pid
-            deadline = time.monotonic() + timeout_seconds
             app = None
             last_error: Optional[BaseException] = None
             while time.monotonic() < deadline:
@@ -333,11 +351,22 @@ def start_windows_host(
                 return result
             result["started"] = True
 
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(
+                f"SOLIDWORKS startup did not complete within {timeout_seconds:g}s"
+            )
+        result["startup_wait_seconds"] = wait_windows_host_ready(
+            app, timeout_seconds=remaining
+        )
         app.Visible = visible
         if visible:
             app.UserControl = True
         result["com"] = _describe_com_app(app)
         result["ok"] = True
+        return result
+    except TimeoutError as exc:
+        result["error"] = {"type": "StartupTimeout", "message": str(exc)}
         return result
     except Exception as exc:
         result["error"] = _error(exc)
