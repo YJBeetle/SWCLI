@@ -65,12 +65,13 @@ jobs:
         shell: powershell
         run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
-      - name: Install rclone and WinFsp
+      - name: Install rclone, WinFsp, and ImDisk
         shell: powershell
         run: |
-          choco install rclone winfsp --yes --no-progress
+          choco install rclone winfsp imdisk --yes --no-progress
           rclone version
           Get-Service -Name WinFsp.Launcher -ErrorAction SilentlyContinue | Format-List *
+          Get-Command imdisk.exe, devio.exe | Format-Table Name, Source
 
       - name: Prepare protected Google Drive configuration
         shell: powershell
@@ -101,12 +102,13 @@ jobs:
             -LogPath $env:RCLONE_LOG_FILE `
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
-      - name: Mount streamed ISO with WinCDEmu
+      - name: Mount streamed ISO with ImDisk proxy
         shell: powershell
         run: |
-          scripts/ci/windows/probe-wincdemu.ps1 `
+          scripts/ci/windows/probe-imdisk.ps1 `
             -ImagePath "R:\$env:SW_MEDIA_PATH" `
-            -StateDirectory "$env:PROBE_ROOT\wincdemu"
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
 
       - name: Measure streamed data and remaining disk
         if: always()
@@ -123,12 +125,15 @@ jobs:
         if: always()
         shell: powershell
         run: |
-          $batchMounterPath = "$env:PROBE_ROOT\wincdemu\batchmnt-path.txt"
-          if (Test-Path -LiteralPath $batchMounterPath) {
-            $batchMounter = (Get-Content -LiteralPath $batchMounterPath -Raw -Encoding utf8).Trim()
-            if (Test-Path -LiteralPath $batchMounter -PathType Leaf) {
-              & $batchMounter /unmountall | Out-Null
-            }
+          $mountPointPath = "$env:PROBE_ROOT\imdisk\mount-point.txt"
+          if (Test-Path -LiteralPath $mountPointPath) {
+            $mountPoint = (Get-Content -LiteralPath $mountPointPath -Raw -Encoding utf8).Trim()
+            & imdisk.exe -d -m $mountPoint 2>$null | Out-Null
+          }
+          $devioPidPath = "$env:PROBE_ROOT\imdisk\devio.pid"
+          if (Test-Path -LiteralPath $devioPidPath) {
+            $devioPid = [int](Get-Content -LiteralPath $devioPidPath -Raw)
+            Stop-Process -Id $devioPid -Force -ErrorAction SilentlyContinue
           }
           if (Test-Path "$env:PROBE_ROOT\rclone.pid") {
             $mountPid = [int](Get-Content "$env:PROBE_ROOT\rclone.pid" -Raw)

@@ -14,17 +14,18 @@ SOLIDWORKS is usable, not the host operating system alone.
 `.github/workflows/windows-hosted-media-probe.yml` is a manual feasibility
 probe for disposable GitHub-hosted Windows runners. It can remove optional
 preinstalled SDK payloads, mounts Google Drive through rclone and WinFsp, then
-uses a pinned WinCDEmu 4.1 driver to expose the streamed ISO as a virtual optical
-drive. It deliberately does not install or execute SOLIDWORKS, so media/cache
-and virtual-driver failures remain separate from installer and COM failures.
+uses ImDisk's `devio` shared-memory proxy to expose the streamed ISO as a
+read-only virtual optical drive. It deliberately does not install or execute
+SOLIDWORKS, so media/cache and virtual-driver failures remain separate from
+installer and COM failures.
 
 The probe records disk capacity before cleanup, after cleanup, and after the
 ISO access. It also records the actual rclone VFS cache size. Windows'
 `Mount-DiskImage` cannot attach an ISO through a WinFsp-backed path on the
-hosted runner. WinCDEmu is tested because its user-mode tooling explicitly
-supports network-backed images while presenting a virtual optical drive to the
-installer. The package URL and SHA-256 are pinned, and the optical volume is
-unmounted before rclone is stopped.
+hosted runner, and WinCDEmu 4.1 cannot complete its unattended driver install on
+Windows Server 2025. With ImDisk, the user-mode `devio` process owns the remote
+file handle while the kernel driver receives block reads through shared memory.
+The optical volume is detached before `devio` and rclone are stopped.
 
 Required repository secret:
 
