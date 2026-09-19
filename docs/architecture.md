@@ -41,6 +41,23 @@ The supervisor remains responsive while a command is executing and can replace
 the COM worker if SOLIDWORKS becomes blocked. All SOLIDWORKS COM calls execute
 on the worker's owning STA thread.
 
+`swclid` exposes the versioned request/response protocol over newline-delimited
+JSON on a loopback TCP endpoint. TCP is used instead of a Windows named pipe so
+the same client and supervisor contract works on native Windows and Wine. The
+default endpoint is never externally bound; remote access and authentication
+are outside the initial local-service boundary.
+
+The COM worker is a spawned child process. It creates one exclusive
+`SldWorks.Application` through `DispatchEx`, waits for
+`StartupProcessCompleted`, and serializes every operation against that object.
+The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
+`UserControl=True` for a visible foreground host, or
+`UserControlBackground=True` for a hidden background host. The daemon remains
+the explicit owner and shuts the instance down through `ExitApp`.
+If an operation exceeds its request timeout, the supervisor terminates the
+worker and its SOLIDWORKS process tree rather than reusing unknown COM state.
+The following request starts a fresh worker automatically.
+
 ## Modeling loop
 
 The first stable vertical slice will implement:

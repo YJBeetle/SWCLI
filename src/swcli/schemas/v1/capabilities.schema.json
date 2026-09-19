@@ -4,7 +4,13 @@
   "title": "SWCLI Capabilities",
   "type": "object",
   "additionalProperties": false,
-  "required": ["protocol_versions", "server_version", "host", "operations"],
+  "required": [
+    "protocol_versions",
+    "server_version",
+    "host",
+    "operations",
+    "worker_alive"
+  ],
   "properties": {
     "protocol_versions": {
       "type": "array",
@@ -25,6 +31,7 @@
       "type": "array",
       "items": {"type": "string"},
       "uniqueItems": true
-    }
+    },
+    "worker_alive": {"type": "boolean"}
   }
 }
