@@ -1,6 +1,8 @@
 name: Windows hosted SOLIDWORKS smoke test
 
 on:
+  push:
+    branches: [codex/windows-ci]
   workflow_dispatch:
     inputs:
       media_path:
