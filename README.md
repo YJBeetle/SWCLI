@@ -30,14 +30,20 @@ export workflows.
 
 ## Current status
 
-SWCLI is in its initial protocol-design phase. The repository currently
-contains the package skeleton, versioned protocol schemas, and architecture
-boundaries. Modeling operations and host adapters will be added incrementally.
+SWCLI is in its initial host-discovery and protocol-design phase. The first
+native Windows probe discovers SOLIDWORKS through the registry and attaches to
+an already-running COM server without starting or stopping the application.
 
 ```bash
 python -m swcli version --json
 python -m swcli protocol show request
+python -m swcli host probe --json
 ```
+
+On Windows, `host probe` reports the Python architecture, registered
+SOLIDWORKS version and executable, installed versions, pywin32 availability,
+and details from the active `SldWorks.Application` COM object. The command is
+read-only and does not open a SOLIDWORKS instance.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

@@ -58,3 +58,16 @@ Protocol and host implementation versions are independent. Clients discover
 server capabilities before submitting operations. Length and angle units are
 explicit at the protocol boundary; host adapters convert them to the units
 expected by the SOLIDWORKS API.
+
+## Host discovery
+
+Native Windows discovery follows the operating system's registration rather
+than assuming a fixed installation directory or SOLIDWORKS release:
+
+1. resolve the version-independent `SldWorks.Application` ProgID;
+2. follow its `CurVer`, `CLSID`, and `LocalServer32` registration;
+3. enumerate installed SOLIDWORKS release keys for diagnostics;
+4. attach to the active COM object only when one already exists.
+
+Starting, stopping, and replacing a SOLIDWORKS process are explicit lifecycle
+operations and remain separate from the read-only host probe.

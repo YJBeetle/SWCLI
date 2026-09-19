@@ -26,6 +26,16 @@ class CliTests(unittest.TestCase):
         schema = json.loads(output.getvalue())
         self.assertEqual(schema["title"], "SWCLI Request")
 
+    def test_host_probe_json(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["host", "probe", "--json"])
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(output.getvalue())
+        self.assertIn("supported", payload)
+        self.assertIn("host", payload)
+
 
 if __name__ == "__main__":
     unittest.main()
