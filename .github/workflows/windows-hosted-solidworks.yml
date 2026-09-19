@@ -68,9 +68,9 @@ jobs:
           scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile }}"
           scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
-      - name: Install rclone and WinFsp
+      - name: Install rclone, WinFsp, and ImDisk
         shell: powershell
-        run: choco install rclone winfsp --yes --no-progress
+        run: choco install rclone winfsp imdisk --yes --no-progress
 
       - name: Prepare protected Google Drive configuration
         shell: powershell
@@ -99,12 +99,13 @@ jobs:
             -LogPath $env:RCLONE_LOG_FILE `
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
-      - name: Prepare selected official SOLIDWORKS installer payload
+      - name: Mount complete streamed ISO with ImDisk proxy
         shell: powershell
         run: |
-          scripts/ci/windows/prepare-solidworks-media.ps1 `
+          scripts/ci/windows/probe-imdisk.ps1 `
             -ImagePath "R:\$env:SW_MEDIA_PATH" `
-            -Destination "$env:PRIVATE_ROOT\media"
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
 
       - name: Fetch private smoke-test runtime
         shell: powershell

@@ -16,6 +16,18 @@ if (Test-Path -LiteralPath $lmgrdPidPath) {
     & taskkill.exe /PID $licensePid /T /F 2>$null | Out-Null
 }
 
+$imdiskState = Join-Path $ProbeRoot "imdisk"
+$mountPointPath = Join-Path $imdiskState "mount-point.txt"
+if (Test-Path -LiteralPath $mountPointPath) {
+    $mountPoint = (Get-Content -LiteralPath $mountPointPath -Raw -Encoding utf8).Trim()
+    & imdisk.exe -d -m $mountPoint 2>$null | Out-Null
+}
+$devioPidPath = Join-Path $imdiskState "devio.pid"
+if (Test-Path -LiteralPath $devioPidPath) {
+    $devioPid = [int](Get-Content -LiteralPath $devioPidPath -Raw)
+    Stop-Process -Id $devioPid -Force -ErrorAction SilentlyContinue
+}
+
 $rclonePidPath = Join-Path $ProbeRoot "rclone.pid"
 if (Test-Path -LiteralPath $rclonePidPath) {
     $mountPid = [int](Get-Content -LiteralPath $rclonePidPath -Raw)

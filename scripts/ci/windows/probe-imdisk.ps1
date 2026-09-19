@@ -65,6 +65,9 @@ try {
         if (Test-Path -LiteralPath $coreMsi -PathType Leaf) {
             $msi = Get-Item -LiteralPath $coreMsi
             Write-Host "[imdisk] SOLIDWORKS core MSI is readable ($($msi.Length) bytes)"
+            if ($env:GITHUB_ENV) {
+                "SW_MEDIA_ROOT=${DriveLetter}:\" >> $env:GITHUB_ENV
+            }
             exit 0
         }
         Start-Sleep -Seconds 1

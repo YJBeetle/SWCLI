@@ -40,9 +40,11 @@ not a release pipeline or a declaration that Windows Server is an officially
 supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where it
 also applies to native Windows:
 
-1. stream the official ISO and selectively extract the required installer
-   directories;
-2. install the VC++ prerequisite, Login Manager, and core MSI;
+1. stream the complete official ISO and expose it through ImDisk as a read-only
+   optical volume, without selectively extracting an assumed dependency set;
+2. install only the official Login Manager MSI and core MSI, explicitly
+   targeting `C:\Program Files\SOLIDWORKS` for the main program; Login Manager
+   keeps its own `Common Files\SOLIDWORKS Shared` layout;
 3. import `sw2025_network_serials_licensing.reg` immediately before the main
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
@@ -79,9 +81,10 @@ can be enabled for protected `main` pushes, scheduled runs, and releases.
 
 ## Installation cache boundary
 
-Do not store an installed SOLIDWORKS tree in `actions/cache`. A working native
-installation includes registry state, COM registration, shared components,
-services, and licensing state in addition to files. Preserve it with the
-self-hosted runner disk or a Parallels golden snapshot. The ISO may remain on
-Google Drive: rclone VFS caching can fetch only the ranges read by the selected
-MSI features while bounding local cache usage.
+The first complete hosted installation run establishes the exact native file
+and registry footprint. A later cache layer may store that clean installed
+baseline together with an explicit registry export, then validate restored COM
+activation before the private runtime overlay is applied. Cache restoration is
+never sufficient evidence on its own: the real SWCLI model/render/export smoke
+must still pass. Private overlays, FlexNet files, logs, media, and credentials
+remain outside the cache.

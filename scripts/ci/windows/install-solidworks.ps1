@@ -9,6 +9,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LogDirectory,
 
+    [string]$InstallDirectory = "C:\Program Files\SOLIDWORKS",
+
     [int]$TimeoutSeconds = 3600
 )
 
@@ -18,9 +20,8 @@ if ($TimeoutSeconds -le 0) {
 }
 
 $coreMsi = Join-Path $MediaRoot "swwi\data\solidworks.msi"
-$vcInstaller = Join-Path $MediaRoot "PreReqs\VCRedist17\VC_redist.x64.exe"
 $loginManagerMsi = Join-Path $MediaRoot "swloginmgr\SOLIDWORKS Login Manager.msi"
-foreach ($requiredFile in @($coreMsi, $vcInstaller, $loginManagerMsi, $LicensingRegistryFile)) {
+foreach ($requiredFile in @($coreMsi, $loginManagerMsi, $LicensingRegistryFile)) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required private installation input is unavailable: $requiredFile"
     }
@@ -76,11 +77,6 @@ New-Item -Path $eulaKey -Force | Out-Null
 New-ItemProperty -Path $eulaKey -Name "EULA Accepted SP$servicePack" -PropertyType DWord -Value 1 -Force | Out-Null
 Write-Host "[install] Recorded EULA acceptance for SOLIDWORKS $productYear SP$servicePack"
 
-$vcLog = Join-Path $LogDirectory "vcredist-x64.log"
-Invoke-Installer -Name "Microsoft VC++ x64 prerequisite" -FilePath $vcInstaller -Arguments @(
-    "/install", "/quiet", "/norestart", "/log", ('"{0}"' -f $vcLog)
-) -SuccessCodes @(0, 1638, 1641, 3010)
-
 $loginLog = Join-Path $LogDirectory "login-manager-install.log"
 Invoke-Installer -Name "SOLIDWORKS Login Manager" -FilePath "msiexec.exe" -Arguments @(
     "/i", ('"{0}"' -f $loginManagerMsi), "/qn", "/norestart", "DISABLEROLLBACK=1",
@@ -97,12 +93,19 @@ if ($registryProcess.ExitCode -ne 0) {
 
 $msiLog = Join-Path $LogDirectory "solidworks-msi.log"
 $features = "SolidWorks,ProgramFiles,i386_ProgramFiles,i386_ThirdPtyFiles,i386_DCubeFiles,i386_SWFiles,i386_VistaFiles"
+Write-Host "[install] Installing the core MSI into $InstallDirectory"
 Invoke-Installer -Name "SOLIDWORKS core MSI" -FilePath "msiexec.exe" -Arguments @(
     "/i", ('"{0}"' -f $coreMsi), "/qb", "/norestart", "DISABLEROLLBACK=1",
     "ENABLEPERFORMANCE=0", "OFFICEOPTION=3", "INSTALLLEVEL=100", "ADDLOCAL=$features",
+    ('INSTALLDIR="{0}"' -f $InstallDirectory),
     "TOOLBOXFOLDER=C:\SWData", "SERVERLIST=25734@127.0.0.1",
     "/l*v", ('"{0}"' -f $msiLog)
 )
+
+$solidworksExe = Join-Path $InstallDirectory "SLDWORKS.exe"
+if (-not (Test-Path -LiteralPath $solidworksExe -PathType Leaf)) {
+    throw "SOLIDWORKS MSI completed but the expected executable is missing: $solidworksExe"
+}
 
 $progid = Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\SldWorks.Application\CLSID" -ErrorAction Stop
 $applicationClsid = $progid.'(default)'
@@ -111,7 +114,22 @@ if ([string]::IsNullOrWhiteSpace($applicationClsid)) {
 }
 $server = Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\CLSID\$applicationClsid\LocalServer32" -ErrorAction Stop
 $serverCommand = [string]$server.'(default)'
-if ($serverCommand -notmatch '(?i)SLDWORKS\.exe') {
+$serverMatch = [regex]::Match(
+    $serverCommand,
+    '^\s*"(?<quoted>[^"]+SLDWORKS\.exe)"|^\s*(?<plain>.+?SLDWORKS\.exe)',
+    'IgnoreCase'
+)
+if (-not $serverMatch.Success) {
     throw "SOLIDWORKS COM LocalServer32 does not point to SLDWORKS.exe"
+}
+$registeredExe = if ($serverMatch.Groups['quoted'].Success) {
+    $serverMatch.Groups['quoted'].Value
+} else {
+    $serverMatch.Groups['plain'].Value
+}
+$registeredItem = Get-Item -LiteralPath $registeredExe -ErrorAction Stop
+$expectedItem = Get-Item -LiteralPath $solidworksExe -ErrorAction Stop
+if ($registeredItem.FullName -ne $expectedItem.FullName) {
+    throw "SOLIDWORKS COM registration points to an unexpected installation: $registeredExe"
 }
 Write-Host "[install] Verified native SOLIDWORKS COM registration"
