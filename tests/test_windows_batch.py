@@ -25,8 +25,9 @@ class WindowsBatchTests(unittest.TestCase):
             windows_batch._batch_targets(Path("drawing.SLDDRW"), outdir),
             [outdir / "drawing.PDF", outdir / "drawing.DWG"],
         )
-        self.assertIsNone(
-            windows_batch._batch_targets(Path("scene.REND.SLDASM"), outdir)
+        self.assertEqual(
+            windows_batch._batch_targets(Path("scene.REND.SLDASM"), outdir),
+            [outdir / "scene.REND.GLB"],
         )
 
     def test_preflight_rejects_output_collisions(self):

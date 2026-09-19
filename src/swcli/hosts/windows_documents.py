@@ -54,7 +54,7 @@ STANDARD_VIEW_IDS = {
 RENDER_VIEWS = ("current", *STANDARD_VIEW_IDS)
 _EXPORT_FORMATS = {
     1: {".step", ".stp"},
-    2: {".step", ".stp"},
+    2: {".step", ".stp", ".glb"},
     3: {".pdf", ".dwg"},
 }
 
@@ -119,6 +119,8 @@ def _export_signature_valid(export_format: str, header: bytes) -> bool:
         return header.startswith(b"AC10")
     if export_format in {"STEP", "STP"}:
         return b"ISO-10303-21;" in header
+    if export_format == "GLB":
+        return header.startswith(b"glTF\x02\x00\x00\x00")
     return False
 
 

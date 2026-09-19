@@ -75,6 +75,9 @@ class WindowsDocumentTests(unittest.TestCase):
             windows_documents._export_format(2, Path("assembly.stp")), "STP"
         )
         self.assertEqual(
+            windows_documents._export_format(2, Path("assembly.glb")), "GLB"
+        )
+        self.assertEqual(
             windows_documents._export_format(3, Path("drawing.PDF")), "PDF"
         )
         self.assertEqual(
@@ -98,6 +101,11 @@ class WindowsDocumentTests(unittest.TestCase):
         )
         self.assertTrue(
             windows_documents._export_signature_valid("DWG", b"AC1032")
+        )
+        self.assertTrue(
+            windows_documents._export_signature_valid(
+                "GLB", b"glTF\x02\x00\x00\x00\x10\x00\x00\x00"
+            )
         )
         self.assertFalse(
             windows_documents._export_signature_valid("PDF", b"empty")

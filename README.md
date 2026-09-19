@@ -91,17 +91,20 @@ Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
 `isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
 orientation; the default `current` preserves the active UI orientation.
 
-`document export` converts the active part or assembly to STEP, or the active
-drawing to PDF or DWG. It clears selections so the whole document is exported,
-refuses overwrite by default, preserves the active document identity and dirty
-state, and verifies the resulting file signature and non-empty content.
+`document export` converts the active part or assembly to STEP, an active
+assembly to GLB, or the active drawing to PDF or DWG. It clears selections so
+the whole document is exported, refuses overwrite by default, preserves the
+active document identity and dirty state, and verifies the resulting file
+signature and non-empty content. This core operation selects format only from
+the explicit output extension and does not interpret source naming conventions.
 
 `batch export` preflights a UTF-8 manifest before touching SOLIDWORKS, rejects
 missing inputs and output-name collisions, then applies the same typed
 open/export/close lifecycle to every document. Parts and assemblies produce
 STEP; drawings produce PDF and DWG. The installed `sw-export` command is a
-compatibility entry point for the same bounded workflow. GLB remains explicit
-future work rather than silently falling back to another format.
+compatibility entry point for the same bounded workflow. Its utility-level
+planning preserves the DockerSW convention that `.REND.SLDASM` inputs produce
+GLB, while ordinary assemblies produce STEP.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

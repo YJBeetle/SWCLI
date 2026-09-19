@@ -105,6 +105,11 @@ are constrained by active document type, selection is cleared before export,
 and success requires a native zero error code, a non-empty output, a matching
 file signature, and unchanged active-document state.
 
+The core export primitive selects STEP, GLB, PDF, or DWG solely from the
+explicit output extension and active document type. Source-file naming policy
+belongs to higher-level utilities; the compatibility batch planner, for
+example, maps DockerSW `.REND.SLDASM` inputs to GLB.
+
 Batch export composes the typed document lifecycle instead of executing an
 arbitrary user script. It performs a complete preflight before opening any
 document, including input existence, supported conversion rules, and output

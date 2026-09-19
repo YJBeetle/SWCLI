@@ -31,11 +31,11 @@ def _resolve_manifest_item(workspace: Path, item: str) -> Path:
     return path.resolve()
 
 
-def _batch_targets(source: Path, outdir: Path) -> Optional[List[Path]]:
+def _batch_targets(source: Path, outdir: Path) -> List[Path]:
     name = source.name.casefold()
     extension = source.suffix.casefold()
     if name.endswith(".rend.sldasm"):
-        return None
+        return [outdir / f"{source.stem}.GLB"]
     if extension in {".sldprt", ".sldasm"}:
         return [outdir / f"{source.stem}.STEP"]
     if extension == ".slddrw":
@@ -58,15 +58,6 @@ def _plan_batch(
         if not source.is_file():
             issues.append(
                 {"item": item, "type": "FileNotFound", "path": str(source)}
-            )
-            continue
-        if targets is None:
-            issues.append(
-                {
-                    "item": item,
-                    "type": "UnsupportedExportFormat",
-                    "message": "GLB export is not implemented yet",
-                }
             )
             continue
         if not targets:
