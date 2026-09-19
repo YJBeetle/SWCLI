@@ -72,7 +72,7 @@ jobs:
         id: solidworks-cache
         uses: actions/cache/restore@v6
         with:
-          key: windows-2025-solidworks-2025-sp5-core-v1
+          key: windows-2025-solidworks-2025-sp5-core-v2
           path: |
             C:\Program Files\SOLIDWORKS
             C:\Program Files\Common Files\SOLIDWORKS Shared
@@ -168,7 +168,10 @@ jobs:
       - name: Prepare clean installation cache state
         if: steps.solidworks-cache.outputs.cache-hit != 'true'
         shell: powershell
-        run: scripts/ci/windows/export-solidworks-cache-state.ps1 -StateDirectory $env:SW_CACHE_STATE
+        run: |
+          scripts/ci/windows/export-solidworks-cache-state.ps1 `
+            -StateDirectory $env:SW_CACHE_STATE `
+            -LoginManagerMsi "$env:SW_MEDIA_ROOT\swloginmgr\SOLIDWORKS Login Manager.msi"
 
       - name: Save clean SOLIDWORKS installation cache
         if: steps.solidworks-cache.outputs.cache-hit != 'true'
@@ -184,10 +187,13 @@ jobs:
             ${{ runner.temp }}\swcli-solidworks-cache-state
             ${{ runner.temp }}\swcli-private-runtime\assets
 
-      - name: Restore cached SOLIDWORKS registry state
+      - name: Restore cached SOLIDWORKS registry and Login Manager state
         if: steps.solidworks-cache.outputs.cache-hit == 'true'
         shell: powershell
-        run: scripts/ci/windows/restore-solidworks-cache-state.ps1 -StateDirectory $env:SW_CACHE_STATE
+        run: |
+          scripts/ci/windows/restore-solidworks-cache-state.ps1 `
+            -StateDirectory $env:SW_CACHE_STATE `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs"
 
       - name: Apply private runtime overlay and start test license service
         shell: powershell

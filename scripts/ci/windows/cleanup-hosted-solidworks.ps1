@@ -46,3 +46,4 @@ if (Test-Path -LiteralPath $rclonePidPath) {
 Remove-Item -LiteralPath $PrivateRoot -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path $ProbeRoot "rclone.conf") -Force -ErrorAction SilentlyContinue
 Write-Host "[cleanup] Removed private installer inputs, logs, and credentials from the disposable runner"
+exit 0

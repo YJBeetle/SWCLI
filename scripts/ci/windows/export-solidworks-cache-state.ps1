@@ -3,6 +3,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$StateDirectory,
 
+    [Parameter(Mandatory = $true)]
+    [string]$LoginManagerMsi,
+
     [string]$InstallDirectory = "C:\Program Files\SOLIDWORKS"
 )
 
@@ -32,6 +35,11 @@ foreach ($process in $installedProcesses) {
 
 Remove-Item -LiteralPath $StateDirectory -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $StateDirectory | Out-Null
+if (-not (Test-Path -LiteralPath $LoginManagerMsi -PathType Leaf)) {
+    throw "SOLIDWORKS Login Manager MSI is unavailable: $LoginManagerMsi"
+}
+$cachedLoginManagerMsi = Join-Path $StateDirectory "SOLIDWORKS Login Manager.msi"
+Copy-Item -LiteralPath $LoginManagerMsi -Destination $cachedLoginManagerMsi -Force
 
 $registryKeys = [ordered]@{
     "hklm-solidworks.reg" = "HKLM\SOFTWARE\SolidWorks"
@@ -73,6 +81,7 @@ $manifest = [ordered]@{
     format = 1
     install_directory = $InstallDirectory
     solidworks_executable = $solidworksExe
+    login_manager_installer = (Split-Path -Leaf $cachedLoginManagerMsi)
     versioned_progid = $versionedProgId
     application_clsid = $applicationClsid
     registry_exports = $exported
