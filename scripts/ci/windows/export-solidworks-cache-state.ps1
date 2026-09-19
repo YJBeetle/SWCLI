@@ -40,17 +40,19 @@ $registryKeys = [ordered]@{
     "classes-sldworks.reg" = "HKLM\SOFTWARE\Classes\SldWorks.Application"
 }
 
-$curVer = (Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\SldWorks.Application\CurVer" -ErrorAction Stop).'(default)'
-if ([string]::IsNullOrWhiteSpace($curVer)) {
-    throw "SldWorks.Application CurVer is unavailable"
-}
-$registryKeys["classes-sldworks-version.reg"] = "HKLM\SOFTWARE\Classes\$curVer"
-
 $applicationClsid = (Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\SldWorks.Application\CLSID" -ErrorAction Stop).'(default)'
 if ([string]::IsNullOrWhiteSpace($applicationClsid)) {
     throw "SldWorks.Application CLSID is unavailable"
 }
 $registryKeys["classes-sldworks-clsid.reg"] = "HKLM\SOFTWARE\Classes\CLSID\$applicationClsid"
+
+# A direct core-MSI installation registers the versioned ProgID below the
+# CLSID, but does not necessarily create SldWorks.Application\CurVer.
+$versionedProgId = (Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\CLSID\$applicationClsid\ProgID" -ErrorAction Stop).'(default)'
+if ([string]::IsNullOrWhiteSpace($versionedProgId)) {
+    throw "Versioned SOLIDWORKS ProgID is unavailable"
+}
+$registryKeys["classes-sldworks-version.reg"] = "HKLM\SOFTWARE\Classes\$versionedProgId"
 
 $exported = @()
 foreach ($entry in $registryKeys.GetEnumerator()) {
@@ -71,7 +73,7 @@ $manifest = [ordered]@{
     format = 1
     install_directory = $InstallDirectory
     solidworks_executable = $solidworksExe
-    curver = $curVer
+    versioned_progid = $versionedProgId
     application_clsid = $applicationClsid
     registry_exports = $exported
 }
