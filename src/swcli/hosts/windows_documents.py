@@ -338,7 +338,7 @@ def _inspect_bodies(document: Any) -> Dict[str, Any]:
 
 
 def inspect_active_windows_document(
-    *, detail: str = "summary", max_features: int = 500
+    *, detail: str = "summary", max_features: int = 500, app: Any = None
 ) -> Dict[str, Any]:
     """Describe the active SOLIDWORKS document without modifying it."""
 
@@ -349,17 +349,20 @@ def inspect_active_windows_document(
     import win32com.client
 
     result: Dict[str, Any] = {"ok": False, "action": "document.inspect"}
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -383,7 +386,8 @@ def inspect_active_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
 def render_active_windows_document(
@@ -394,6 +398,7 @@ def render_active_windows_document(
     view: str = "current",
     fit: bool = True,
     overwrite: bool = False,
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Render the active SOLIDWORKS view to a verified bitmap artifact."""
 
@@ -431,17 +436,20 @@ def render_active_windows_document(
     import pythoncom
     import win32com.client
 
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -490,7 +498,8 @@ def render_active_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
 def export_active_windows_document(
@@ -684,7 +693,9 @@ def close_active_windows_document(
             pythoncom.CoUninitialize()
 
 
-def diagnose_active_windows_document(*, max_features: int = 500) -> Dict[str, Any]:
+def diagnose_active_windows_document(
+    *, max_features: int = 500, app: Any = None
+) -> Dict[str, Any]:
     """Report rebuild state and per-feature errors without modifying the model."""
 
     if sys.platform != "win32":
@@ -694,17 +705,20 @@ def diagnose_active_windows_document(*, max_features: int = 500) -> Dict[str, An
     import win32com.client
 
     result: Dict[str, Any] = {"ok": False, "action": "document.diagnose"}
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -724,11 +738,16 @@ def diagnose_active_windows_document(*, max_features: int = 500) -> Dict[str, An
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
 def rebuild_active_windows_document(
-    *, force: bool = False, top_only: bool = False, max_features: int = 500
+    *,
+    force: bool = False,
+    top_only: bool = False,
+    max_features: int = 500,
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Rebuild the active configuration and return post-rebuild diagnostics."""
 
@@ -744,17 +763,20 @@ def rebuild_active_windows_document(
         "force": force,
         "top_only": top_only,
     }
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -791,4 +813,5 @@ def rebuild_active_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()

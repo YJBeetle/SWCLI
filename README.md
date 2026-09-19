@@ -51,8 +51,6 @@ python -m swcli document render view.bmp --view isometric \
 python -m swcli document export model.step --json
 python -m swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
-python -m swcli batch export --list files.txt \
-  --workspace workspace --outdir dist --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
@@ -68,6 +66,28 @@ that startup add-ins are loaded and the host is ready for calls such as
 `host stop` uses the SOLIDWORKS `ExitApp` API and refuses to exit while a
 document is open. `host stop --force` is an explicit, potentially destructive
 escape hatch that terminates the SOLIDWORKS process tree.
+
+## Resident service
+
+Start `swclid` when multiple CLI invocations should share one SOLIDWORKS
+instance:
+
+```powershell
+swclid serve
+```
+
+The service binds to `127.0.0.1:18495` by default. Its supervisor accepts
+versioned local JSON requests while one spawned COM worker owns the
+`SldWorks.Application` instance and executes operations serially on a single
+COM apartment. `swclid status` reports the worker and host state; `swclid stop`
+requests a graceful shutdown. A timed-out operation causes the worker and its
+SOLIDWORKS process tree to be replaced.
+
+All typed `sw-cli` document and part commands use this service. The
+default endpoint is `127.0.0.1:18495`; select another daemon with
+`--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
+error and never falls back to a second direct-COM execution mode. Explicit
+`host` commands remain available as low-level local diagnostics.
 
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
@@ -98,17 +118,11 @@ orientation; the default `current` preserves the active UI orientation.
 assembly to GLB, or the active drawing to PDF or DWG. It clears selections so
 the whole document is exported, refuses overwrite by default, preserves the
 active document identity and dirty state, and verifies the resulting file
-signature and non-empty content. This core operation selects format only from
-the explicit output extension and does not interpret source naming conventions.
-
-`sw-export` lives in the `swcli.utils` package with other optional, high-level
-workflows. It preflights a UTF-8 manifest before touching SOLIDWORKS, rejects
-missing inputs and output-name collisions, then applies the same typed
-open/export/close lifecycle to every document. Parts and assemblies produce
-STEP; drawings produce PDF and DWG. Its utility-level planning preserves the
-DockerSW convention that `.REND.SLDASM` inputs produce GLB, while ordinary
-assemblies produce STEP. The core `document export` operation remains unaware
-of source-file naming conventions.
+signature and non-empty content. Some SOLIDWORKS drawing exporters mark the
+source dirty even when only creating an artifact; callers must explicitly use
+`--allow-source-modification` to accept that isolated dirty-flag transition.
+This core operation selects format only from the explicit output extension and
+does not interpret source naming conventions.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

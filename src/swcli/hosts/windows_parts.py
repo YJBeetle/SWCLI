@@ -83,6 +83,7 @@ def create_box_part_windows(
     height_mm: float,
     depth_mm: float,
     overwrite: bool = False,
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Create, rebuild, diagnose, and save a centered rectangular extrusion."""
 
@@ -127,17 +128,20 @@ def create_box_part_windows(
     import pythoncom
     import win32com.client
 
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         if _com_value(app, "ActiveDoc") is not None:
             result["error"] = {
@@ -263,4 +267,5 @@ def create_box_part_windows(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()

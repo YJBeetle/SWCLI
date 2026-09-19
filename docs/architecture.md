@@ -41,6 +41,29 @@ The supervisor remains responsive while a command is executing and can replace
 the COM worker if SOLIDWORKS becomes blocked. All SOLIDWORKS COM calls execute
 on the worker's owning STA thread.
 
+`swclid` exposes the versioned request/response protocol over newline-delimited
+JSON on a loopback TCP endpoint. TCP is used instead of a Windows named pipe so
+the same client and supervisor contract works on native Windows and Wine. The
+default endpoint is never externally bound; remote access and authentication
+are outside the initial local-service boundary.
+
+The COM worker is a spawned child process. It creates one exclusive
+`SldWorks.Application` through `DispatchEx`, waits for
+`StartupProcessCompleted`, and serializes every operation against that object.
+The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
+`UserControl=True` for a visible foreground host, or
+`UserControlBackground=True` for a hidden background host. The daemon remains
+the explicit owner and shuts the instance down through `ExitApp`.
+If an operation exceeds its request timeout, the supervisor terminates the
+worker and its SOLIDWORKS process tree rather than reusing unknown COM state.
+The following request starts a fresh worker automatically.
+
+Typed public CLI commands are daemon-only. The COM adapter remains an internal
+worker backend and a direct unit/integration-test seam, but it is not a second
+public execution mode. Host discovery and activation probes remain explicit
+local diagnostics so daemon startup failures can be investigated without
+silently changing document or modeling semantics.
+
 ## Modeling loop
 
 The first stable vertical slice will implement:
@@ -112,16 +135,10 @@ and success requires a native zero error code, a non-empty output, a matching
 file signature, and unchanged active-document state.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
-explicit output extension and active document type. Source-file naming policy
-belongs to higher-level utilities in `swcli.utils`; the `sw-export` planner,
-for example, maps DockerSW `.REND.SLDASM` inputs to GLB. Additional optional
-workflows can be added beside it without expanding the typed host core.
-
-Batch export composes the typed document lifecycle instead of executing an
-arbitrary user script. It performs a complete preflight before opening any
-document, including input existence, supported conversion rules, and output
-collision detection. A close failure aborts the remaining batch so automation
-does not accumulate unknown active-document state.
+explicit output extension and active document type. Source-file naming and
+batch policy belong to the consuming CI job, which composes explicit typed
+open, export, and close operations. SWCLI does not ship a policy-specific
+manifest exporter.
 
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level

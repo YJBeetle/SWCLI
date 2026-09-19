@@ -4,32 +4,36 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     RENDER_VIEWS,
-    close_active_windows_document,
-    create_box_part_windows,
-    diagnose_active_windows_document,
-    export_active_windows_document,
-    inspect_active_windows_document,
-    open_windows_document,
     probe_windows_host,
-    render_active_windows_document,
-    rebuild_active_windows_document,
     start_windows_host,
     stop_windows_host,
 )
 from .protocol import SCHEMA_NAMES, load_schema
-from .utils.export import batch_export_windows
+from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sw-cli",
         description="Cross-platform SOLIDWORKS automation client",
+    )
+    parser.add_argument(
+        "--endpoint",
+        default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT),
+        help="swclid HOST:PORT endpoint for all typed operations",
+    )
+    parser.add_argument(
+        "--request-timeout",
+        type=float,
+        default=600.0,
+        help="daemon request timeout in seconds",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -134,6 +138,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     export_parser.add_argument("output")
     export_parser.add_argument("--overwrite", action="store_true")
+    export_parser.add_argument(
+        "--allow-source-modification",
+        action="store_true",
+        help="accept an export that only changes the source document's dirty flag",
+    )
     export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
@@ -147,17 +156,6 @@ def build_parser() -> argparse.ArgumentParser:
     box_parser.add_argument("--depth-mm", type=float, required=True)
     box_parser.add_argument("--overwrite", action="store_true")
     box_parser.add_argument("--json", action="store_true", dest="as_json")
-
-    batch_parser = subcommands.add_parser("batch", help="run bounded batch workflows")
-    batch_commands = batch_parser.add_subparsers(dest="batch_command", required=True)
-    batch_export_parser = batch_commands.add_parser(
-        "export", help="export a manifest of SOLIDWORKS documents"
-    )
-    batch_export_parser.add_argument("--list", required=True, dest="manifest")
-    batch_export_parser.add_argument("--workspace", required=True)
-    batch_export_parser.add_argument("--outdir")
-    batch_export_parser.add_argument("--overwrite", action="store_true")
-    batch_export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     return parser
 
@@ -184,6 +182,38 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "protocol" and args.protocol_command == "show":
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
+
+    typed = _typed_operation(args)
+    if typed is not None:
+        operation, parameters, as_json = typed
+        try:
+            response = call_daemon(
+                operation,
+                parameters,
+                endpoint=args.endpoint,
+                timeout_seconds=args.request_timeout,
+            )
+        except Exception as exc:
+            payload = {
+                "ok": False,
+                "action": operation,
+                "error": {"type": type(exc).__name__, "message": str(exc)},
+            }
+        else:
+            payload = response.get("result") or {
+                "ok": False,
+                "action": operation,
+                "error": {
+                    "type": (response.get("error") or {}).get(
+                        "code", "DaemonError"
+                    ),
+                    "message": (response.get("error") or {}).get(
+                        "message", "swclid request failed"
+                    ),
+                },
+            }
+        _print_action_result(payload, as_json)
+        return 0 if payload.get("ok") else 1
 
     if args.command == "host" and args.host_command == "probe":
         payload = probe_windows_host()
@@ -215,82 +245,85 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1
 
-    if args.command == "document" and args.document_command == "open":
-        payload = open_windows_document(
-            args.path,
-            read_only=args.read_only,
-            configuration=args.configuration,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "inspect":
-        payload = inspect_active_windows_document(
-            detail=args.detail, max_features=args.max_features
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "close":
-        payload = close_active_windows_document(discard=args.discard)
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "diagnose":
-        payload = diagnose_active_windows_document(max_features=args.max_features)
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "rebuild":
-        payload = rebuild_active_windows_document(
-            force=args.force,
-            top_only=args.top_only,
-            max_features=args.max_features,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "render":
-        payload = render_active_windows_document(
-            args.output,
-            width=args.width,
-            height=args.height,
-            view=args.view,
-            fit=args.fit,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "document" and args.document_command == "export":
-        payload = export_active_windows_document(
-            args.output, overwrite=args.overwrite
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "part" and args.part_command == "create-box":
-        payload = create_box_part_windows(
-            args.output,
-            width_mm=args.width_mm,
-            height_mm=args.height_mm,
-            depth_mm=args.depth_mm,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "batch" and args.batch_command == "export":
-        payload = batch_export_windows(
-            args.manifest,
-            workspace=args.workspace,
-            outdir=args.outdir,
-            overwrite=args.overwrite,
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
     return 2
+
+
+def _typed_operation(
+    args: argparse.Namespace,
+) -> Optional[Tuple[str, Dict[str, Any], bool]]:
+    """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "document":
+        command = args.document_command
+        if command == "open":
+            return (
+                "document.open",
+                {
+                    "path": args.path,
+                    "read_only": args.read_only,
+                    "configuration": args.configuration,
+                },
+                args.as_json,
+            )
+        if command == "inspect":
+            return (
+                "document.inspect",
+                {"detail": args.detail, "max_features": args.max_features},
+                args.as_json,
+            )
+        if command == "close":
+            return "document.close", {"discard": args.discard}, args.as_json
+        if command == "diagnose":
+            return (
+                "document.diagnose",
+                {"max_features": args.max_features},
+                args.as_json,
+            )
+        if command == "rebuild":
+            return (
+                "document.rebuild",
+                {
+                    "force": args.force,
+                    "top_only": args.top_only,
+                    "max_features": args.max_features,
+                },
+                args.as_json,
+            )
+        if command == "render":
+            return (
+                "document.render",
+                {
+                    "output": args.output,
+                    "width": args.width,
+                    "height": args.height,
+                    "view": args.view,
+                    "fit": args.fit,
+                    "overwrite": args.overwrite,
+                },
+                args.as_json,
+            )
+        if command == "export":
+            return (
+                "document.export",
+                {
+                    "output": args.output,
+                    "overwrite": args.overwrite,
+                    "allow_source_modification": args.allow_source_modification,
+                },
+                args.as_json,
+            )
+    if args.command == "part" and args.part_command == "create-box":
+        return (
+            "part.create-box",
+            {
+                "output": args.output,
+                "width_mm": args.width_mm,
+                "height_mm": args.height_mm,
+                "depth_mm": args.depth_mm,
+                "overwrite": args.overwrite,
+            },
+            args.as_json,
+        )
+    return None
 
 
 def _configure_output() -> None:
