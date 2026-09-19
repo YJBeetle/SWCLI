@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 from swcli.utils import export
@@ -76,6 +77,71 @@ class WindowsBatchTests(unittest.TestCase):
             )
 
         self.assertEqual(result["error"]["type"], "UnsupportedPlatform")
+
+    def test_batch_reuses_provided_app_without_owning_com_apartment(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com_client.GetActiveObject = mock.Mock()
+        win32com.client = win32com_client
+        app = mock.Mock(ActiveDoc=None)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            workspace = Path(temporary_directory)
+            source = workspace / "part.SLDPRT"
+            manifest = workspace / "list.txt"
+            outdir = workspace / "output"
+            source.touch()
+            manifest.write_text("part.SLDPRT\n", encoding="utf-8")
+            artifact = {"path": str(outdir / "part.STEP"), "size": 123}
+
+            with (
+                mock.patch.object(export.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    export,
+                    "open_windows_document",
+                    return_value={"ok": True},
+                ) as opened,
+                mock.patch.object(
+                    export,
+                    "export_active_windows_document",
+                    return_value={"ok": True, "artifact": artifact},
+                ) as exported,
+                mock.patch.object(
+                    export,
+                    "close_active_windows_document",
+                    return_value={"ok": True},
+                ) as closed,
+            ):
+                result = export.batch_export_windows(
+                    str(manifest),
+                    workspace=str(workspace),
+                    outdir=str(outdir),
+                    app=app,
+                )
+
+        self.assertTrue(result["ok"])
+        pythoncom.CoInitialize.assert_not_called()
+        pythoncom.CoUninitialize.assert_not_called()
+        win32com_client.GetActiveObject.assert_not_called()
+        opened.assert_called_once_with(str(source.resolve()), app=app)
+        exported.assert_called_once_with(
+            str((outdir / "part.STEP").resolve()),
+            overwrite=False,
+            allow_source_modification=True,
+            app=app,
+        )
+        closed.assert_called_once_with(discard=True, app=app)
 
 
 if __name__ == "__main__":

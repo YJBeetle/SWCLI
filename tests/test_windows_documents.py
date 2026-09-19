@@ -1,5 +1,7 @@
+import tempfile
 import unittest
 from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 from swcli.hosts import windows_documents
@@ -110,6 +112,59 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertFalse(
             windows_documents._export_signature_valid("PDF", b"empty")
         )
+
+    def test_export_can_explicitly_accept_only_modified_flag_change(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Document:
+            def ClearSelection2(self, clear_all):
+                self.clear_all = clear_all
+
+            def SaveAs3(self, path, version, options):
+                Path(path).write_bytes(b"%PDF-1.7\n")
+                return 0
+
+        app = mock.Mock(ActiveDoc=Document())
+        before = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": False,
+        }
+        after = {**before, "modified": True}
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "drawing.PDF"
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    side_effect=[before, after],
+                ),
+            ):
+                result = windows_documents.export_active_windows_document(
+                    str(output), allow_source_modification=True, app=app
+                )
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["source_modified_by_export"])
+        self.assertEqual(result["artifact"]["format"], "PDF")
+        pythoncom.CoInitialize.assert_not_called()
+        pythoncom.CoUninitialize.assert_not_called()
 
     def test_operations_are_rejected_off_windows(self):
         with mock.patch.object(windows_documents.sys, "platform", "darwin"):

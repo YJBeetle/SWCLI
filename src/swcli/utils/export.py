@@ -113,6 +113,7 @@ def batch_export_windows(
     workspace: str,
     outdir: Optional[str] = None,
     overwrite: bool = False,
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Export every manifest item using the typed document lifecycle."""
 
@@ -183,60 +184,66 @@ def batch_export_windows(
     import pythoncom
     import win32com.client
 
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
         if _com_value(app, "ActiveDoc") is not None:
             result["error"] = {
                 "type": "ActiveDocument",
                 "message": "close the active document before batch export",
             }
             return result
-    finally:
-        pythoncom.CoUninitialize()
-
-    item_results = []
-    artifacts = []
-    failed_count = 0
-    for plan in plans:
-        item_result: Dict[str, Any] = {
-            "item": plan["item"],
-            "source": str(plan["source"]),
-            "ok": False,
-            "exports": [],
-        }
-        opened = open_windows_document(str(plan["source"]))
-        item_result["open"] = opened
-        if opened["ok"]:
-            for target in plan["targets"]:
-                exported = export_active_windows_document(
-                    str(target), overwrite=overwrite
+        item_results = []
+        artifacts = []
+        failed_count = 0
+        for plan in plans:
+            item_result: Dict[str, Any] = {
+                "item": plan["item"],
+                "source": str(plan["source"]),
+                "ok": False,
+                "exports": [],
+            }
+            opened = open_windows_document(str(plan["source"]), app=app)
+            item_result["open"] = opened
+            if opened["ok"]:
+                for target in plan["targets"]:
+                    exported = export_active_windows_document(
+                        str(target),
+                        overwrite=overwrite,
+                        allow_source_modification=True,
+                        app=app,
+                    )
+                    item_result["exports"].append(exported)
+                    if exported["ok"]:
+                        artifacts.append(exported["artifact"])
+                closed = close_active_windows_document(discard=True, app=app)
+                item_result["close"] = closed
+                item_result["ok"] = (
+                    all(exported["ok"] for exported in item_result["exports"])
+                    and closed["ok"]
                 )
-                item_result["exports"].append(exported)
-                if exported["ok"]:
-                    artifacts.append(exported["artifact"])
-            closed = close_active_windows_document()
-            item_result["close"] = closed
-            item_result["ok"] = (
-                all(exported["ok"] for exported in item_result["exports"])
-                and closed["ok"]
-            )
-        if not item_result["ok"]:
-            failed_count += 1
-        item_results.append(item_result)
+            if not item_result["ok"]:
+                failed_count += 1
+            item_results.append(item_result)
 
-        close_result = item_result.get("close")
-        if close_result is not None and not close_result["ok"]:
-            result["aborted"] = True
-            break
+            close_result = item_result.get("close")
+            if close_result is not None and not close_result["ok"]:
+                result["aborted"] = True
+                break
+    finally:
+        if owns_com:
+            pythoncom.CoUninitialize()
 
     result["results"] = item_results
     result["artifacts"] = artifacts

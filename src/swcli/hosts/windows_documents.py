@@ -125,7 +125,11 @@ def _export_signature_valid(export_format: str, header: bytes) -> bool:
 
 
 def open_windows_document(
-    path: str, *, read_only: bool = False, configuration: str = ""
+    path: str,
+    *,
+    read_only: bool = False,
+    configuration: str = "",
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Open a native SOLIDWORKS document silently and report API status codes."""
 
@@ -158,17 +162,20 @@ def open_windows_document(
     import pythoncom
     import win32com.client
 
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         errors = win32com.client.VARIANT(
             pythoncom.VT_BYREF | pythoncom.VT_I4, 0
@@ -201,7 +208,8 @@ def open_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
 def _inspect_configurations(document: Any) -> Dict[str, Any]:
@@ -486,7 +494,11 @@ def render_active_windows_document(
 
 
 def export_active_windows_document(
-    output: str, *, overwrite: bool = False
+    output: str,
+    *,
+    overwrite: bool = False,
+    allow_source_modification: bool = False,
+    app: Any = None,
 ) -> Dict[str, Any]:
     """Export the active document to a verified neutral or drawing format."""
 
@@ -515,17 +527,20 @@ def export_active_windows_document(
     import pythoncom
     import win32com.client
 
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -579,11 +594,19 @@ def export_active_windows_document(
         after = _describe_document(document)
         result["document_after"] = after
         if after != before:
-            result["error"] = {
-                "type": "DocumentStateChanged",
-                "message": "export unexpectedly changed the active document state",
-            }
-            return result
+            only_modified = {
+                key: value for key, value in after.items() if key != "modified"
+            } == {key: value for key, value in before.items() if key != "modified"}
+            became_modified = not before["modified"] and after["modified"]
+            if not (
+                allow_source_modification and only_modified and became_modified
+            ):
+                result["error"] = {
+                    "type": "DocumentStateChanged",
+                    "message": "export unexpectedly changed the active document state",
+                }
+                return result
+            result["source_modified_by_export"] = True
 
         result["artifact"] = {
             "kind": "cad-export",
@@ -597,10 +620,13 @@ def export_active_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
-def close_active_windows_document(*, discard: bool = False) -> Dict[str, Any]:
+def close_active_windows_document(
+    *, discard: bool = False, app: Any = None
+) -> Dict[str, Any]:
     """Close the active document, refusing to discard modifications by default."""
 
     if sys.platform != "win32":
@@ -615,17 +641,20 @@ def close_active_windows_document(*, discard: bool = False) -> Dict[str, Any]:
         "discard": discard,
         "closed": False,
     }
-    pythoncom.CoInitialize()
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
     try:
-        try:
-            app = win32com.client.GetActiveObject(PROG_ID)
-        except Exception as exc:
-            result["error"] = {
-                "type": "HostNotRunning",
-                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
-                "cause": _error(exc),
-            }
-            return result
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
 
         document = _com_value(app, "ActiveDoc")
         if document is None:
@@ -651,7 +680,8 @@ def close_active_windows_document(*, discard: bool = False) -> Dict[str, Any]:
         result["error"] = _error(exc)
         return result
     finally:
-        pythoncom.CoUninitialize()
+        if owns_com:
+            pythoncom.CoUninitialize()
 
 
 def diagnose_active_windows_document(*, max_features: int = 500) -> Dict[str, Any]:
