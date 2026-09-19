@@ -46,8 +46,8 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 120
     env:
-      SW_MEDIA_PATH: ${{ inputs.media_path }}
-      SW_ASSETS_PATH: ${{ inputs.assets_path }}
+      SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
+      SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
 
     steps:
       - name: Check out repository
@@ -67,7 +67,7 @@ jobs:
         shell: powershell
         run: |
           scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
-          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile }}"
+          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'aggressive' }}"
           scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
       - name: Install rclone, WinFsp, and ImDisk
@@ -91,7 +91,7 @@ jobs:
       - name: Stream Google Drive through WinFsp
         shell: powershell
         run: |
-          $cacheBytes = [int64]${{ inputs.vfs_cache_gib }} * 1GB
+          $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
           scripts/ci/windows/mount-google-drive.ps1 `
             -ConfigPath $env:RCLONE_CONFIG_FILE `
             -RemotePath "gdrive:" `
