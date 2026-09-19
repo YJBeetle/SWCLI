@@ -38,12 +38,20 @@ an already-running COM server without starting or stopping the application.
 python -m swcli version --json
 python -m swcli protocol show request
 python -m swcli host probe --json
+python -m swcli host start --json
+python -m swcli host stop --json
 ```
 
 On Windows, `host probe` reports the Python architecture, registered
 SOLIDWORKS version and executable, installed versions, pywin32 availability,
 and details from the active `SldWorks.Application` COM object. The command is
 read-only and does not open a SOLIDWORKS instance.
+
+`host start` uses the registered `LocalServer32` executable and makes the
+session visible by default; pass `--hidden` for an automation-only session.
+`host stop` uses the SOLIDWORKS `ExitApp` API and refuses to exit while a
+document is open. `host stop --force` is an explicit, potentially destructive
+escape hatch that terminates the SOLIDWORKS process tree.
 
 See [Architecture](docs/architecture.md) for the project boundary and planned
 execution model.

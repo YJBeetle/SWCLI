@@ -72,3 +72,7 @@ than assuming a fixed installation directory or SOLIDWORKS release:
 
 Starting, stopping, and replacing a SOLIDWORKS process are explicit lifecycle
 operations and remain separate from the read-only host probe.
+
+The default lifecycle policy is conservative: `start` creates a visible,
+user-controlled session, while `stop` refuses to exit if a document is open.
+Forced termination must be explicitly requested and may discard unsaved work.

@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 import platform
 import re
+import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -174,6 +176,24 @@ def _com_value(obj: Any, name: str) -> Any:
     return value() if callable(value) else value
 
 
+def _describe_com_app(app: Any) -> Dict[str, Any]:
+    result: Dict[str, Any] = {
+        "attached": True,
+        "revision": str(_com_value(app, "RevisionNumber")),
+        "process_id": int(_com_value(app, "GetProcessID")),
+        "visible": bool(_com_value(app, "Visible")),
+        "active_document": None,
+    }
+    document = _com_value(app, "ActiveDoc")
+    if document is not None:
+        result["active_document"] = {
+            "title": str(_com_value(document, "GetTitle")),
+            "path": str(_com_value(document, "GetPathName")),
+            "type": int(_com_value(document, "GetType")),
+        }
+    return result
+
+
 def _probe_active_com() -> Dict[str, Any]:
     result: Dict[str, Any] = {
         "pywin32_available": False,
@@ -194,19 +214,8 @@ def _probe_active_com() -> Dict[str, Any]:
     pythoncom.CoInitialize()
     try:
         app = win32com.client.GetActiveObject(PROG_ID)
-        result["attached"] = True
-        result["revision"] = str(_com_value(app, "RevisionNumber"))
-        result["process_id"] = int(_com_value(app, "GetProcessID"))
-        result["visible"] = bool(_com_value(app, "Visible"))
-
-        document = _com_value(app, "ActiveDoc")
-        if document is not None:
-            result["active_document"] = {
-                "title": str(_com_value(document, "GetTitle")),
-                "path": str(_com_value(document, "GetPathName")),
-                "type": int(_com_value(document, "GetType")),
-            }
-    except BaseException as exc:
+        result.update(_describe_com_app(app))
+    except Exception as exc:
         result["error"] = _error(exc)
     finally:
         pythoncom.CoUninitialize()
@@ -246,3 +255,158 @@ def probe_windows_host() -> Dict[str, Any]:
     result["installations"] = _discover_installations(winreg)
     result["com"] = _probe_active_com()
     return result
+
+
+def _unsupported_lifecycle(action: str) -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "action": action,
+        "error": {
+            "type": "UnsupportedPlatform",
+            "message": "native Windows lifecycle operations require Windows",
+        },
+    }
+
+
+def start_windows_host(
+    *, visible: bool = True, timeout_seconds: float = 60.0
+) -> Dict[str, Any]:
+    """Start SOLIDWORKS from its COM registration, or reuse the active instance."""
+
+    if sys.platform != "win32":
+        return _unsupported_lifecycle("start")
+
+    import pythoncom
+    import win32com.client
+    import winreg
+
+    registration = _discover_com_registration(winreg)
+    executable = registration.get("local_server")
+    if not executable or not registration.get("local_server_exists"):
+        return {
+            "ok": False,
+            "action": "start",
+            "registration": registration,
+            "error": {
+                "type": "InstallationNotFound",
+                "message": "registered SOLIDWORKS LocalServer32 was not found",
+            },
+        }
+
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "start",
+        "started": False,
+        "registration": registration,
+    }
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception:
+            process = subprocess.Popen([executable])
+            result["launcher_process_id"] = process.pid
+            deadline = time.monotonic() + timeout_seconds
+            app = None
+            last_error: Optional[BaseException] = None
+            while time.monotonic() < deadline:
+                try:
+                    app = win32com.client.GetActiveObject(PROG_ID)
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    time.sleep(0.25)
+            if app is None:
+                result["error"] = {
+                    "type": "StartupTimeout",
+                    "message": f"SOLIDWORKS COM server was not ready after {timeout_seconds:g}s",
+                }
+                if last_error is not None:
+                    result["error"]["cause"] = _error(last_error)
+                return result
+            result["started"] = True
+
+        app.Visible = visible
+        if visible:
+            app.UserControl = True
+        result["com"] = _describe_com_app(app)
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def stop_windows_host(
+    *, force: bool = False, timeout_seconds: float = 30.0
+) -> Dict[str, Any]:
+    """Stop the active SOLIDWORKS instance, protecting open documents by default."""
+
+    if sys.platform != "win32":
+        return _unsupported_lifecycle("stop")
+
+    import pythoncom
+    import win32com.client
+
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "stop",
+        "forced": force,
+        "stopped": False,
+    }
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception:
+            result.update({"ok": True, "stopped": True, "already_stopped": True})
+            return result
+
+        snapshot = _describe_com_app(app)
+        result["previous_com"] = snapshot
+        if snapshot["active_document"] is not None and not force:
+            result["error"] = {
+                "type": "OpenDocument",
+                "message": "refusing to stop SOLIDWORKS while a document is open; close it or use --force",
+            }
+            return result
+
+        if force:
+            completed = subprocess.run(
+                ["taskkill", "/PID", str(snapshot["process_id"]), "/T", "/F"],
+                capture_output=True,
+                text=True,
+                errors="replace",
+                check=False,
+            )
+            if completed.returncode != 0:
+                result["error"] = {
+                    "type": "ProcessTerminationFailed",
+                    "message": completed.stderr.strip() or completed.stdout.strip(),
+                }
+                return result
+        else:
+            _com_value(app, "ExitApp")
+
+        app = None
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            try:
+                win32com.client.GetActiveObject(PROG_ID)
+            except Exception:
+                result.update({"ok": True, "stopped": True})
+                return result
+            time.sleep(0.25)
+
+        result["error"] = {
+            "type": "ShutdownTimeout",
+            "message": f"SOLIDWORKS COM server remained active after {timeout_seconds:g}s",
+        }
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()

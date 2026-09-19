@@ -37,6 +37,15 @@ class WindowsHostTests(unittest.TestCase):
         self.assertEqual(windows._com_value(example, "property_value"), "property")
         self.assertEqual(windows._com_value(example, "method_value"), "method")
 
+    def test_lifecycle_is_rejected_off_windows(self):
+        with mock.patch.object(windows.sys, "platform", "darwin"):
+            start = windows.start_windows_host()
+            stop = windows.stop_windows_host()
+
+        self.assertFalse(start["ok"])
+        self.assertFalse(stop["ok"])
+        self.assertEqual(start["error"]["type"], "UnsupportedPlatform")
+
 
 if __name__ == "__main__":
     unittest.main()

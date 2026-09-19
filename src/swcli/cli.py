@@ -7,7 +7,7 @@ import json
 from typing import Optional, Sequence
 
 from . import PROTOCOL_VERSION, __version__
-from .hosts import probe_windows_host
+from .hosts import probe_windows_host, start_windows_host, stop_windows_host
 from .protocol import SCHEMA_NAMES, load_schema
 
 
@@ -36,6 +36,20 @@ def build_parser() -> argparse.ArgumentParser:
         "probe", help="probe Windows and the active SOLIDWORKS COM server"
     )
     probe_parser.add_argument("--json", action="store_true", dest="as_json")
+    start_parser = host_commands.add_parser(
+        "start", help="start SOLIDWORKS or reuse the active instance"
+    )
+    start_parser.add_argument("--hidden", action="store_true")
+    start_parser.add_argument("--timeout", type=float, default=60.0)
+    start_parser.add_argument("--json", action="store_true", dest="as_json")
+    stop_parser = host_commands.add_parser("stop", help="stop the active SOLIDWORKS instance")
+    stop_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="terminate the process tree even when a document is open",
+    )
+    stop_parser.add_argument("--timeout", type=float, default=30.0)
+    stop_parser.add_argument("--json", action="store_true", dest="as_json")
 
     return parser
 
@@ -78,4 +92,28 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 print(f"SOLIDWORKS revision: {com['revision']}")
         return 0
 
+    if args.command == "host" and args.host_command == "start":
+        payload = start_windows_host(
+            visible=not args.hidden, timeout_seconds=args.timeout
+        )
+        _print_lifecycle_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "host" and args.host_command == "stop":
+        payload = stop_windows_host(
+            force=args.force, timeout_seconds=args.timeout
+        )
+        _print_lifecycle_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
     return 2
+
+
+def _print_lifecycle_result(payload: dict, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        return
+    state = "ok" if payload["ok"] else "failed"
+    print(f"SOLIDWORKS host {payload['action']}: {state}")
+    if payload.get("error"):
+        print(f"{payload['error']['type']}: {payload['error']['message']}")
