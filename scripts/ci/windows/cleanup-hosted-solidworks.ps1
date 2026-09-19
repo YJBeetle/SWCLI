@@ -8,6 +8,15 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
+$daemonPidPath = if ($env:SWCLI_SMOKE_ROOT) {
+    Join-Path $env:SWCLI_SMOKE_ROOT "swclid.pid"
+} else {
+    $null
+}
+if ($daemonPidPath -and (Test-Path -LiteralPath $daemonPidPath)) {
+    $daemonPid = [int](Get-Content -LiteralPath $daemonPidPath -Raw)
+    & taskkill.exe /PID $daemonPid /T /F 2>$null | Out-Null
+}
 Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 $lmgrdPidPath = Join-Path $PrivateRoot "state\lmgrd.pid"

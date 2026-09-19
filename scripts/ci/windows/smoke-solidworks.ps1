@@ -43,7 +43,41 @@ Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
-$started = $false
+$python = (Get-Command python -ErrorAction Stop).Source
+$daemonStdout = Join-Path $Workspace "swclid.stdout.log"
+$daemonStderr = Join-Path $Workspace "swclid.stderr.log"
+$daemon = Start-Process `
+    -FilePath $python `
+    -ArgumentList @("-m", "swcli.daemon", "serve", "--startup-timeout", "120") `
+    -RedirectStandardOutput $daemonStdout `
+    -RedirectStandardError $daemonStderr `
+    -NoNewWindow `
+    -PassThru
+[IO.File]::WriteAllText(
+    (Join-Path $Workspace "swclid.pid"),
+    [string]$daemon.Id,
+    [Text.UTF8Encoding]::new($false)
+)
+
+$daemonReady = $false
+for ($attempt = 1; $attempt -le 180; $attempt++) {
+    $daemon.Refresh()
+    if ($daemon.HasExited) {
+        $stderr = Get-Content $daemonStderr -Raw -ErrorAction SilentlyContinue
+        throw "swclid exited during startup with code $($daemon.ExitCode)`n$stderr"
+    }
+    if ((Test-Path -LiteralPath $daemonStdout) -and
+        (Select-String -LiteralPath $daemonStdout -SimpleMatch '"action": "daemon.serve"' -Quiet)) {
+        $daemonReady = $true
+        break
+    }
+    Start-Sleep -Seconds 1
+}
+if (-not $daemonReady) {
+    throw "swclid did not become ready within 180 seconds"
+}
+
+$started = $true
 try {
     $probe = Invoke-SwCliJson -Name "host-probe-before" -Arguments @("host", "probe", "--json")
     if (-not $probe.supported) {
@@ -53,8 +87,6 @@ try {
         throw "SOLIDWORKS LocalServer32 registration is missing or points to a missing executable"
     }
 
-    Invoke-SwCliJson -Name "host-start" -Arguments @("host", "start", "--hidden", "--timeout", "120", "--json") | Out-Null
-    $started = $true
     Invoke-SwCliJson -Name "part-create-box" -Arguments @(
         "part", "create-box", $partPath,
         "--width-mm", "100", "--height-mm", "50", "--depth-mm", "20", "--json"
@@ -67,7 +99,13 @@ try {
     ) | Out-Null
     Invoke-SwCliJson -Name "document-export" -Arguments @("document", "export", $stepPath, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-close" -Arguments @("document", "close", "--discard", "--json") | Out-Null
-    Invoke-SwCliJson -Name "host-stop" -Arguments @("host", "stop", "--timeout", "60", "--json") | Out-Null
+    & $python -m swcli.daemon stop --json | Set-Content -Path (Join-Path $Workspace "swclid-stop.json") -Encoding utf8
+    if ($LASTEXITCODE -ne 0) {
+        throw "swclid graceful shutdown failed with exit code $LASTEXITCODE"
+    }
+    if (-not $daemon.WaitForExit(30000)) {
+        throw "swclid did not exit within 30 seconds after shutdown"
+    }
     $started = $false
 
     foreach ($artifact in @($partPath, $stepPath, $renderPath)) {
@@ -82,7 +120,10 @@ finally {
     if ($started) {
         & python -m swcli document close --discard --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
-        & python -m swcli host stop --force --timeout 30 --json 2>&1 |
-            Set-Content -Path (Join-Path $Workspace "cleanup-stop.log") -Encoding utf8
+        & python -m swcli.daemon stop --json 2>&1 |
+            Set-Content -Path (Join-Path $Workspace "cleanup-daemon-stop.log") -Encoding utf8
+        if (-not $daemon.HasExited) {
+            Stop-Process -Id $daemon.Id -Force -ErrorAction SilentlyContinue
+        }
     }
 }

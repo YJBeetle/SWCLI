@@ -49,7 +49,8 @@ also applies to native Windows:
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. use the current SWCLI checkout for a real model, render, and STEP export.
+6. start the current checkout's resident `swclid`, then use typed CLI requests
+   against its single COM worker for a real model, render, and STEP export.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
