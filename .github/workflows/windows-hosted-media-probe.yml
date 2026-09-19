@@ -71,7 +71,7 @@ jobs:
           choco install rclone winfsp imdisk --yes --no-progress
           rclone version
           Get-Service -Name WinFsp.Launcher -ErrorAction SilentlyContinue | Format-List *
-          Get-Command imdisk.exe, devio.exe | Format-Table Name, Source
+          Get-Command imdisk.exe | Format-Table Name, Source
 
       - name: Prepare protected Google Drive configuration
         shell: powershell

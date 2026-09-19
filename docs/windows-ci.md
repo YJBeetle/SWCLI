@@ -25,7 +25,8 @@ ISO access. It also records the actual rclone VFS cache size. Windows'
 hosted runner, and WinCDEmu 4.1 cannot complete its unattended driver install on
 Windows Server 2025. With ImDisk, the user-mode `devio` process owns the remote
 file handle while the kernel driver receives block reads through shared memory.
-The optical volume is detached before `devio` and rclone are stopped.
+The official standalone `devio.exe` URL and SHA-256 are pinned. The optical
+volume is detached before `devio` and rclone are stopped.
 
 Required repository secret:
 

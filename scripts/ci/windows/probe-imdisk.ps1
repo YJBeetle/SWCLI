@@ -14,19 +14,26 @@ $ErrorActionPreference = "Stop"
 if (-not (Test-Path -LiteralPath $ImagePath -PathType Leaf)) {
     throw "SOLIDWORKS ISO is unavailable: $ImagePath"
 }
-foreach ($commandName in @("devio.exe", "imdisk.exe")) {
-    if (-not (Get-Command $commandName -ErrorAction SilentlyContinue)) {
-        throw "Required ImDisk command is unavailable: $commandName"
-    }
+if (-not (Get-Command "imdisk.exe" -ErrorAction SilentlyContinue)) {
+    throw "Required ImDisk command is unavailable: imdisk.exe"
 }
 if (Test-Path "${DriveLetter}:\") {
     throw "Drive ${DriveLetter}: is already in use"
 }
 
 New-Item -ItemType Directory -Force -Path $StateDirectory | Out-Null
+$devioUri = "https://www.ltr-data.se/files/devio.exe"
+$devioSha256 = "c99f78ef1896d016bc05e9f08f10122f36c2cc33f99d3f816961579d08185902"
+$devioPath = Join-Path $StateDirectory "devio.exe"
+Invoke-WebRequest -Uri $devioUri -OutFile $devioPath
+$actualDevioSha256 = (Get-FileHash -LiteralPath $devioPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualDevioSha256 -ne $devioSha256) {
+    throw "devio.exe SHA-256 mismatch"
+}
+
 $proxyName = "swcli_iso_$PID"
 Write-Host "[imdisk] Starting user-mode read-only ISO proxy"
-$devio = Start-Process -FilePath "devio.exe" -ArgumentList @(
+$devio = Start-Process -FilePath $devioPath -ArgumentList @(
     "-r", "shm:$proxyName", ('"{0}"' -f $ImagePath)
 ) -PassThru -WindowStyle Hidden
 [IO.File]::WriteAllText(
