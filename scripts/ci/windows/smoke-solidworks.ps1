@@ -10,6 +10,50 @@ $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
 $stepPath = Join-Path $Workspace "swcli-box-100x50x20.STEP"
 $renderPath = Join-Path $Workspace "swcli-box-isometric-800x600.bmp"
 
+function Save-DesktopDiagnostic {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $screenshotPath = Join-Path $Workspace "$Name.png"
+    $windowsPath = Join-Path $Workspace "$Name-windows.json"
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Drawing
+        $bounds = [System.Windows.Forms.SystemInformation]::VirtualScreen
+        if ($bounds.Width -le 0 -or $bounds.Height -le 0) {
+            throw "Interactive desktop has invalid dimensions: $($bounds.Width)x$($bounds.Height)"
+        }
+        $bitmap = $null
+        $graphics = $null
+        try {
+            $bitmap = [System.Drawing.Bitmap]::new([int]$bounds.Width, [int]$bounds.Height)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.X, $bounds.Y, 0, 0, $bounds.Size)
+            $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
+        }
+        finally {
+            if ($null -ne $graphics) { $graphics.Dispose() }
+            if ($null -ne $bitmap) { $bitmap.Dispose() }
+        }
+    }
+    catch {
+        $_ | Out-String | Set-Content -Path (Join-Path $Workspace "$Name-screenshot-error.txt") -Encoding utf8
+    }
+
+    try {
+        $visibleWindows = @(
+            Get-Process -ErrorAction SilentlyContinue |
+                Where-Object { $_.MainWindowHandle -ne 0 } |
+                Sort-Object ProcessName, Id |
+                Select-Object Id, ProcessName, MainWindowTitle
+        )
+        ConvertTo-Json -InputObject $visibleWindows -Depth 3 |
+            Set-Content -Path $windowsPath -Encoding utf8
+    }
+    catch {
+        $_ | Out-String | Set-Content -Path (Join-Path $Workspace "$Name-windows-error.txt") -Encoding utf8
+    }
+}
+
 function Invoke-SwCliJson {
     param(
         [Parameter(Mandatory = $true)]
@@ -42,6 +86,7 @@ function Invoke-SwCliJson {
 Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
+Save-DesktopDiagnostic -Name "desktop-before-swclid"
 
 $python = (Get-Command python -ErrorAction Stop).Source
 $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
@@ -63,6 +108,7 @@ $daemonReady = $false
 for ($attempt = 1; $attempt -le 180; $attempt++) {
     $daemon.Refresh()
     if ($daemon.HasExited) {
+        Save-DesktopDiagnostic -Name "desktop-swclid-exited"
         $stderr = Get-Content $daemonStderr -Raw -ErrorAction SilentlyContinue
         throw "swclid exited during startup with code $($daemon.ExitCode)`n$stderr"
     }
@@ -71,11 +117,16 @@ for ($attempt = 1; $attempt -le 180; $attempt++) {
         $daemonReady = $true
         break
     }
+    if ($attempt -in @(30, 90, 150)) {
+        Save-DesktopDiagnostic -Name ("desktop-swclid-wait-{0:D3}" -f $attempt)
+    }
     Start-Sleep -Seconds 1
 }
 if (-not $daemonReady) {
+    Save-DesktopDiagnostic -Name "desktop-swclid-timeout"
     throw "swclid did not become ready within 180 seconds"
 }
+Save-DesktopDiagnostic -Name "desktop-swclid-ready"
 
 $started = $true
 try {
@@ -115,6 +166,11 @@ try {
         }
         Write-Host "[artifact] $($item.Name): $($item.Length) bytes"
     }
+    Save-DesktopDiagnostic -Name "desktop-after-export"
+}
+catch {
+    Save-DesktopDiagnostic -Name "desktop-smoke-failure"
+    throw
 }
 finally {
     if ($started) {

@@ -49,16 +49,19 @@ also applies to native Windows:
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. start the current checkout's resident `swclid`, then use typed CLI requests
-   against its single COM worker for a real model, render, and STEP export.
+6. start the current checkout's resident `swclid`, capture desktop/window
+   diagnostics around first startup, then use typed CLI requests against its
+   single COM worker for a real model, render, and STEP export.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
 measurements are uploaded. The workflow never uploads official installation
 media, installed SOLIDWORKS files, private overlays, registry files, FlexNet
-files, or installer/license logs. All private inputs and the rclone credential
-are removed in an unconditional cleanup step; the hosted VM is then discarded
-by GitHub.
+files, or installer/license logs. Desktop screenshots and visible-window
+metadata from the first-start smoke are retained with the SWCLI-generated
+evidence so modal startup failures remain diagnosable when COM never becomes
+ready. All private inputs and the rclone credential are removed in an
+unconditional cleanup step; the hosted VM is then discarded by GitHub.
 
 ## Native SOLIDWORKS E2E
 
