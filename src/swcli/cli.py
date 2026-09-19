@@ -13,6 +13,7 @@ from .hosts import (
     close_active_windows_document,
     create_box_part_windows,
     diagnose_active_windows_document,
+    export_active_windows_document,
     inspect_active_windows_document,
     open_windows_document,
     probe_windows_host,
@@ -127,6 +128,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render_parser.add_argument("--overwrite", action="store_true")
     render_parser.add_argument("--json", action="store_true", dest="as_json")
+    export_parser = document_commands.add_parser(
+        "export", help="export the active document to STEP, PDF, or DWG"
+    )
+    export_parser.add_argument("output")
+    export_parser.add_argument("--overwrite", action="store_true")
+    export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
@@ -239,6 +246,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             view=args.view,
             fit=args.fit,
             overwrite=args.overwrite,
+        )
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "export":
+        payload = export_active_windows_document(
+            args.output, overwrite=args.overwrite
         )
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1

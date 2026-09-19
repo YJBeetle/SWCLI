@@ -48,6 +48,7 @@ python -m swcli document diagnose --json
 python -m swcli document rebuild --json
 python -m swcli document render view.bmp --view isometric \
   --width 1024 --height 768 --json
+python -m swcli document export model.step --json
 python -m swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
 ```
@@ -87,6 +88,11 @@ the generated bitmap header and dimensions before returning an image artifact.
 Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
 `isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
 orientation; the default `current` preserves the active UI orientation.
+
+`document export` converts the active part or assembly to STEP, or the active
+drawing to PDF or DWG. It clears selections so the whole document is exported,
+refuses overwrite by default, preserves the active document identity and dirty
+state, and verifies the resulting file signature and non-empty content.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

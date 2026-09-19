@@ -100,6 +100,11 @@ an agent. Standard orientations use numeric SOLIDWORKS view IDs rather than
 localized names, so rendered comparisons remain stable across host languages.
 Overwrite remains opt-in.
 
+Neutral and drawing exports are explicit artifact operations. Format choices
+are constrained by active document type, selection is cleared before export,
+and success requires a native zero error code, a non-empty output, a matching
+file signature, and unchanged active-document state.
+
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level
 diagnosis, body inspection and geometry smoke verification, and native save all

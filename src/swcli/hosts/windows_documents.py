@@ -52,6 +52,11 @@ STANDARD_VIEW_IDS = {
     "dimetric": 9,
 }
 RENDER_VIEWS = ("current", *STANDARD_VIEW_IDS)
+_EXPORT_FORMATS = {
+    1: {".step", ".stp"},
+    2: {".step", ".stp"},
+    3: {".pdf", ".dwg"},
+}
 
 
 def _unsupported(action: str) -> Dict[str, Any]:
@@ -98,6 +103,23 @@ def _parse_bmp_dimensions(header: bytes) -> Optional[Dict[str, int]]:
     if width <= 0 or height == 0:
         return None
     return {"width": width, "height": abs(height)}
+
+
+def _export_format(document_type: int, output: Path) -> Optional[str]:
+    extension = output.suffix.casefold()
+    if extension not in _EXPORT_FORMATS.get(document_type, set()):
+        return None
+    return extension.removeprefix(".").upper()
+
+
+def _export_signature_valid(export_format: str, header: bytes) -> bool:
+    if export_format == "PDF":
+        return header.startswith(b"%PDF-")
+    if export_format == "DWG":
+        return header.startswith(b"AC10")
+    if export_format in {"STEP", "STP"}:
+        return b"ISO-10303-21;" in header
+    return False
 
 
 def open_windows_document(
@@ -451,6 +473,121 @@ def render_active_windows_document(
             "media_type": "image/bmp",
             "path": str(output_path),
             "size_bytes": output_path.stat().st_size,
+        }
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def export_active_windows_document(
+    output: str, *, overwrite: bool = False
+) -> Dict[str, Any]:
+    """Export the active document to a verified neutral or drawing format."""
+
+    if sys.platform != "win32":
+        return _unsupported("document.export")
+
+    output_path = Path(output).expanduser().resolve()
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "document.export",
+        "output": str(output_path),
+    }
+    if not output_path.parent.is_dir():
+        result["error"] = {
+            "type": "ParentDirectoryNotFound",
+            "message": f"output directory does not exist: {output_path.parent}",
+        }
+        return result
+    if output_path.exists() and not overwrite:
+        result["error"] = {
+            "type": "OutputExists",
+            "message": "output already exists; use --overwrite to replace it",
+        }
+        return result
+
+    import pythoncom
+    import win32com.client
+
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception as exc:
+            result["error"] = {
+                "type": "HostNotRunning",
+                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                "cause": _error(exc),
+            }
+            return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        before = _describe_document(document)
+        export_format = _export_format(before["type"], output_path)
+        result["document"] = before
+        result["format"] = export_format
+        if export_format is None:
+            allowed = sorted(_EXPORT_FORMATS.get(before["type"], set()))
+            result["error"] = {
+                "type": "UnsupportedExportFormat",
+                "message": (
+                    f"unsupported output extension for document type {before['type']}; "
+                    f"allowed: {', '.join(allowed) or 'none'}"
+                ),
+            }
+            return result
+
+        document.ClearSelection2(True)
+        save_error = int(document.SaveAs3(str(output_path), 0, 1))
+        result["save_errors"] = save_error
+        if save_error != 0 or not output_path.is_file():
+            result["error"] = {
+                "type": "ExportFailed",
+                "message": "SOLIDWORKS failed to export the active document",
+            }
+            return result
+
+        size_bytes = output_path.stat().st_size
+        with output_path.open("rb") as exported_file:
+            signature_valid = _export_signature_valid(
+                export_format, exported_file.read(128)
+            )
+        result["verification"] = {
+            "non_empty": size_bytes > 0,
+            "signature_valid": signature_valid,
+        }
+        if size_bytes <= 0 or not signature_valid:
+            result["error"] = {
+                "type": "ExportVerificationFailed",
+                "message": "exported file did not pass content verification",
+            }
+            return result
+
+        after = _describe_document(document)
+        result["document_after"] = after
+        if after != before:
+            result["error"] = {
+                "type": "DocumentStateChanged",
+                "message": "export unexpectedly changed the active document state",
+            }
+            return result
+
+        result["artifact"] = {
+            "kind": "cad-export",
+            "format": export_format,
+            "path": str(output_path),
+            "size_bytes": size_bytes,
         }
         result["ok"] = True
         return result

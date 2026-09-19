@@ -67,12 +67,49 @@ class WindowsDocumentTests(unittest.TestCase):
         )
         self.assertIsNone(windows_documents._parse_bmp_dimensions(b"not-a-bitmap"))
 
+    def test_export_formats_are_constrained_by_document_type(self):
+        self.assertEqual(
+            windows_documents._export_format(1, Path("part.STEP")), "STEP"
+        )
+        self.assertEqual(
+            windows_documents._export_format(2, Path("assembly.stp")), "STP"
+        )
+        self.assertEqual(
+            windows_documents._export_format(3, Path("drawing.PDF")), "PDF"
+        )
+        self.assertEqual(
+            windows_documents._export_format(3, Path("drawing.dwg")), "DWG"
+        )
+        self.assertIsNone(
+            windows_documents._export_format(1, Path("part.pdf"))
+        )
+        self.assertIsNone(
+            windows_documents._export_format(3, Path("drawing.step"))
+        )
+
+    def test_export_signatures_are_verified(self):
+        self.assertTrue(
+            windows_documents._export_signature_valid(
+                "STEP", b"ISO-10303-21;\nHEADER;"
+            )
+        )
+        self.assertTrue(
+            windows_documents._export_signature_valid("PDF", b"%PDF-1.7")
+        )
+        self.assertTrue(
+            windows_documents._export_signature_valid("DWG", b"AC1032")
+        )
+        self.assertFalse(
+            windows_documents._export_signature_valid("PDF", b"empty")
+        )
+
     def test_operations_are_rejected_off_windows(self):
         with mock.patch.object(windows_documents.sys, "platform", "darwin"):
             opened = windows_documents.open_windows_document("part.SLDPRT")
             inspected = windows_documents.inspect_active_windows_document()
             closed = windows_documents.close_active_windows_document()
             diagnosed = windows_documents.diagnose_active_windows_document()
+            exported = windows_documents.export_active_windows_document("model.step")
             rebuilt = windows_documents.rebuild_active_windows_document()
             rendered = windows_documents.render_active_windows_document("view.bmp")
 
@@ -80,6 +117,7 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertEqual(inspected["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(closed["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(diagnosed["error"]["type"], "UnsupportedPlatform")
+        self.assertEqual(exported["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(rebuilt["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(rendered["error"]["type"], "UnsupportedPlatform")
 

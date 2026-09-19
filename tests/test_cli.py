@@ -213,6 +213,24 @@ class CliTests(unittest.TestCase):
             overwrite=True,
         )
 
+    @mock.patch("swcli.cli.export_active_windows_document")
+    def test_document_export(self, export_active_windows_document):
+        export_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.export",
+            "artifact": {"path": "part.step"},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                ["document", "export", "part.step", "--overwrite", "--json"]
+            )
+
+        self.assertEqual(exit_code, 0)
+        export_active_windows_document.assert_called_once_with(
+            "part.step", overwrite=True
+        )
+
     @mock.patch("swcli.cli.create_box_part_windows")
     def test_part_create_box(self, create_box_part_windows):
         create_box_part_windows.return_value = {
