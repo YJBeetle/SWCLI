@@ -182,26 +182,17 @@ def create_box_part_windows(
             return result
 
         document.ClearSelection2(True)
-        extension = _com_value(document, "Extension")
-        save_errors = win32com.client.VARIANT(
-            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
-        )
-        save_warnings = win32com.client.VARIANT(
-            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
-        )
-        saved = bool(
-            extension.SaveAs3(
-                str(output_path),
-                _SAVE_CURRENT_VERSION,
-                _SAVE_SILENT,
-                None,
-                None,
-                save_errors,
-                save_warnings,
+        # ModelDocExtension.SaveAs3 has two optional COM object parameters that
+        # dynamic pywin32 Dispatch cannot marshal as null on the tested host.
+        # ModelDoc2.SaveAs3 is scalar-only and returns the swFileSaveError_e code.
+        save_error = int(
+            document.SaveAs3(
+                str(output_path), _SAVE_CURRENT_VERSION, _SAVE_SILENT
             )
         )
-        result["save_errors"] = int(save_errors.value)
-        result["save_warnings"] = int(save_warnings.value)
+        saved = save_error == 0 and output_path.is_file()
+        result["save_errors"] = save_error
+        result["save_warnings"] = None
         result["saved"] = saved
         if not saved:
             result["error"] = {
