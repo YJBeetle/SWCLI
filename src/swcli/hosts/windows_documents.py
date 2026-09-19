@@ -57,6 +57,32 @@ def _document_type(path: Path) -> Optional[int]:
     return DOCUMENT_TYPES.get(path.suffix.casefold())
 
 
+def _validate_render_arguments(
+    output: str, width: int, height: int
+) -> Optional[Dict[str, Any]]:
+    if Path(output).suffix.casefold() != ".bmp":
+        return {
+            "type": "InvalidArgument",
+            "message": "render output path must use the .bmp extension",
+        }
+    if width <= 0 or height <= 0:
+        return {
+            "type": "InvalidArgument",
+            "message": "render width and height must be positive pixel counts",
+        }
+    return None
+
+
+def _parse_bmp_dimensions(header: bytes) -> Optional[Dict[str, int]]:
+    if len(header) < 26 or header[:2] != b"BM":
+        return None
+    width = int.from_bytes(header[18:22], "little", signed=True)
+    height = int.from_bytes(header[22:26], "little", signed=True)
+    if width <= 0 or height == 0:
+        return None
+    return {"width": width, "height": abs(height)}
+
+
 def open_windows_document(
     path: str, *, read_only: bool = False, configuration: str = ""
 ) -> Dict[str, Any]:
@@ -302,6 +328,105 @@ def inspect_active_windows_document(
                 "features": _inspect_features(document, max_features),
                 "bodies": _inspect_bodies(document),
             }
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        pythoncom.CoUninitialize()
+
+
+def render_active_windows_document(
+    output: str,
+    *,
+    width: int = 1024,
+    height: int = 768,
+    fit: bool = True,
+    overwrite: bool = False,
+) -> Dict[str, Any]:
+    """Render the active SOLIDWORKS view to a verified bitmap artifact."""
+
+    invalid = _validate_render_arguments(output, width, height)
+    if invalid is not None:
+        return {"ok": False, "action": "document.render", "error": invalid}
+    if sys.platform != "win32":
+        return _unsupported("document.render")
+
+    output_path = Path(output).expanduser().resolve()
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "document.render",
+        "output": str(output_path),
+        "requested_size": {"width": width, "height": height, "unit": "pixel"},
+        "fit": fit,
+    }
+    if not output_path.parent.is_dir():
+        result["error"] = {
+            "type": "ParentDirectoryNotFound",
+            "message": f"output directory does not exist: {output_path.parent}",
+        }
+        return result
+    if output_path.exists() and not overwrite:
+        result["error"] = {
+            "type": "OutputExists",
+            "message": "output already exists; use --overwrite to replace it",
+        }
+        return result
+
+    import pythoncom
+    import win32com.client
+
+    pythoncom.CoInitialize()
+    try:
+        try:
+            app = win32com.client.GetActiveObject(PROG_ID)
+        except Exception as exc:
+            result["error"] = {
+                "type": "HostNotRunning",
+                "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                "cause": _error(exc),
+            }
+            return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        result["document"] = _describe_document(document)
+        if fit:
+            _com_value(document, "ViewZoomtofit2")
+        saved = bool(document.SaveBMP(str(output_path), width, height))
+        result["api_saved"] = saved
+        if not saved or not output_path.is_file():
+            result["error"] = {
+                "type": "RenderFailed",
+                "message": "SOLIDWORKS failed to create the bitmap",
+            }
+            return result
+
+        with output_path.open("rb") as bitmap:
+            actual_size = _parse_bmp_dimensions(bitmap.read(26))
+        result["actual_size"] = (
+            {**actual_size, "unit": "pixel"} if actual_size is not None else None
+        )
+        if actual_size != {"width": width, "height": height}:
+            result["error"] = {
+                "type": "RenderVerificationFailed",
+                "message": "bitmap dimensions did not match the requested size",
+            }
+            return result
+
+        result["artifact"] = {
+            "kind": "image",
+            "media_type": "image/bmp",
+            "path": str(output_path),
+            "size_bytes": output_path.stat().st_size,
+        }
         result["ok"] = True
         return result
     except Exception as exc:

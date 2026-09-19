@@ -177,6 +177,35 @@ class CliTests(unittest.TestCase):
             force=True, top_only=True, max_features=500
         )
 
+    @mock.patch("swcli.cli.render_active_windows_document")
+    def test_document_render(self, render_active_windows_document):
+        render_active_windows_document.return_value = {
+            "ok": True,
+            "action": "document.render",
+            "artifact": {"path": "view.bmp"},
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(
+                [
+                    "document",
+                    "render",
+                    "view.bmp",
+                    "--width",
+                    "800",
+                    "--height",
+                    "600",
+                    "--no-fit",
+                    "--overwrite",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        render_active_windows_document.assert_called_once_with(
+            "view.bmp", width=800, height=600, fit=False, overwrite=True
+        )
+
     @mock.patch("swcli.cli.create_box_part_windows")
     def test_part_create_box(self, create_box_part_windows):
         create_box_part_windows.return_value = {

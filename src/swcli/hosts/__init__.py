@@ -6,6 +6,7 @@ from .windows_documents import (
     diagnose_active_windows_document,
     inspect_active_windows_document,
     open_windows_document,
+    render_active_windows_document,
     rebuild_active_windows_document,
 )
 from .windows_parts import create_box_part_windows
@@ -17,6 +18,7 @@ __all__ = [
     "inspect_active_windows_document",
     "open_windows_document",
     "probe_windows_host",
+    "render_active_windows_document",
     "rebuild_active_windows_document",
     "start_windows_host",
     "stop_windows_host",

@@ -15,6 +15,7 @@ from .hosts import (
     inspect_active_windows_document,
     open_windows_document,
     probe_windows_host,
+    render_active_windows_document,
     rebuild_active_windows_document,
     start_windows_host,
     stop_windows_host,
@@ -108,6 +109,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rebuild_parser.add_argument("--max-features", type=int, default=500)
     rebuild_parser.add_argument("--json", action="store_true", dest="as_json")
+    render_parser = document_commands.add_parser(
+        "render", help="render the active view to a BMP image"
+    )
+    render_parser.add_argument("output")
+    render_parser.add_argument("--width", type=int, default=1024)
+    render_parser.add_argument("--height", type=int, default=768)
+    render_parser.add_argument(
+        "--no-fit", action="store_false", dest="fit", help="preserve the current zoom"
+    )
+    render_parser.add_argument("--overwrite", action="store_true")
+    render_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
@@ -208,6 +220,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             force=args.force,
             top_only=args.top_only,
             max_features=args.max_features,
+        )
+        _print_action_result(payload, args.as_json)
+        return 0 if payload["ok"] else 1
+
+    if args.command == "document" and args.document_command == "render":
+        payload = render_active_windows_document(
+            args.output,
+            width=args.width,
+            height=args.height,
+            fit=args.fit,
+            overwrite=args.overwrite,
         )
         _print_action_result(payload, args.as_json)
         return 0 if payload["ok"] else 1

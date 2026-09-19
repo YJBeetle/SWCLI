@@ -93,6 +93,11 @@ state and feature error codes without changing the model. Rebuild is explicit,
 never saves implicitly, and always returns post-rebuild diagnostics so a true
 COM call result is not mistaken for a valid model.
 
+Rendering is an artifact-producing operation rather than a model save. The
+Windows adapter fits the active view, requests an explicit pixel size, and
+verifies the resulting bitmap signature and dimensions before exposing it to
+an agent. Overwrite remains opt-in.
+
 Typed modeling operations own their complete verification boundary. A create
 operation is successful only after feature creation, rebuild, feature-level
 diagnosis, body inspection and geometry smoke verification, and native save all
