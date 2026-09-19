@@ -65,7 +65,8 @@ Native Windows discovery follows the operating system's registration rather
 than assuming a fixed installation directory or SOLIDWORKS release:
 
 1. resolve the version-independent `SldWorks.Application` ProgID;
-2. follow its `CurVer`, `CLSID`, and `LocalServer32` registration;
+2. follow its `CLSID` and `LocalServer32` registration, using `CurVer` when
+   present and the CLSID's versioned ProgID as a fallback;
 3. enumerate installed SOLIDWORKS release keys for diagnostics;
 4. attach to the active COM object only when one already exists.
 

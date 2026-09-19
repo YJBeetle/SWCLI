@@ -71,9 +71,6 @@ def _discover_com_registration(winreg: Any) -> Dict[str, Any]:
 
     for view_name, view in _registry_views(winreg):
         try:
-            current_version = _read_value(
-                winreg, winreg.HKEY_CLASSES_ROOT, f"{PROG_ID}\\CurVer", view
-            )
             clsid = _read_value(
                 winreg, winreg.HKEY_CLASSES_ROOT, f"{PROG_ID}\\CLSID", view
             )
@@ -86,6 +83,21 @@ def _discover_com_registration(winreg: Any) -> Dict[str, Any]:
         except OSError as exc:
             errors.append({"registry_view": view_name, **_error(exc)})
             continue
+
+        try:
+            current_version = _read_value(
+                winreg, winreg.HKEY_CLASSES_ROOT, f"{PROG_ID}\\CurVer", view
+            )
+        except OSError:
+            try:
+                current_version = _read_value(
+                    winreg,
+                    winreg.HKEY_CLASSES_ROOT,
+                    f"CLSID\\{clsid}\\ProgID",
+                    view,
+                )
+            except OSError:
+                current_version = None
 
         executable = _command_executable(os.path.expandvars(str(command)))
         result.update(
@@ -135,7 +147,7 @@ def _discover_installations(winreg: Any) -> List[Dict[str, Any]]:
                         break
                     except OSError:
                         continue
-                identity = (name.casefold(), str(install_path).casefold())
+                identity = name.casefold()
                 if identity in seen:
                     continue
                 seen.add(identity)
@@ -153,6 +165,13 @@ def _discover_installations(winreg: Any) -> List[Dict[str, Any]]:
 
     installations.sort(key=lambda item: item["year"], reverse=True)
     return installations
+
+
+def _com_value(obj: Any, name: str) -> Any:
+    """Read a COM member exposed by pywin32 as either a property or method."""
+
+    value = getattr(obj, name)
+    return value() if callable(value) else value
 
 
 def _probe_active_com() -> Dict[str, Any]:
@@ -176,16 +195,16 @@ def _probe_active_com() -> Dict[str, Any]:
     try:
         app = win32com.client.GetActiveObject(PROG_ID)
         result["attached"] = True
-        result["revision"] = str(app.RevisionNumber())
-        result["process_id"] = int(app.GetProcessID())
-        result["visible"] = bool(app.Visible)
+        result["revision"] = str(_com_value(app, "RevisionNumber"))
+        result["process_id"] = int(_com_value(app, "GetProcessID"))
+        result["visible"] = bool(_com_value(app, "Visible"))
 
-        document = app.ActiveDoc
+        document = _com_value(app, "ActiveDoc")
         if document is not None:
             result["active_document"] = {
-                "title": str(document.GetTitle()),
-                "path": str(document.GetPathName()),
-                "type": int(document.GetType()),
+                "title": str(_com_value(document, "GetTitle")),
+                "path": str(_com_value(document, "GetPathName")),
+                "type": int(_com_value(document, "GetType")),
             }
     except BaseException as exc:
         result["error"] = _error(exc)

@@ -26,6 +26,17 @@ class WindowsHostTests(unittest.TestCase):
         self.assertEqual(result["error"]["type"], "UnsupportedPlatform")
         self.assertIsNone(result["registration"])
 
+    def test_com_value_accepts_property_or_method(self):
+        class Example:
+            property_value = "property"
+
+            def method_value(self):
+                return "method"
+
+        example = Example()
+        self.assertEqual(windows._com_value(example, "property_value"), "property")
+        self.assertEqual(windows._com_value(example, "method_value"), "method")
+
 
 if __name__ == "__main__":
     unittest.main()
