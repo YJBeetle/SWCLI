@@ -27,8 +27,15 @@ class WindowsHostTests(unittest.TestCase):
         self.assertIsNone(result["registration"])
 
     def test_com_value_accepts_property_or_method(self):
+        class ComObject:
+            _oleobj_ = object()
+
+            def __call__(self):
+                raise AssertionError("COM object properties must not be invoked")
+
         class Example:
             property_value = "property"
+            object_value = ComObject()
 
             def method_value(self):
                 return "method"
@@ -36,6 +43,7 @@ class WindowsHostTests(unittest.TestCase):
         example = Example()
         self.assertEqual(windows._com_value(example, "property_value"), "property")
         self.assertEqual(windows._com_value(example, "method_value"), "method")
+        self.assertIs(windows._com_value(example, "object_value"), example.object_value)
 
     def test_lifecycle_is_rejected_off_windows(self):
         with mock.patch.object(windows.sys, "platform", "darwin"):

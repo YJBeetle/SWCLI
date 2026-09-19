@@ -173,6 +173,8 @@ def _com_value(obj: Any, name: str) -> Any:
     """Read a COM member exposed by pywin32 as either a property or method."""
 
     value = getattr(obj, name)
+    if hasattr(value, "_oleobj_"):
+        return value
     return value() if callable(value) else value
 
 
