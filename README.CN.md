@@ -155,7 +155,7 @@ sw-cli daemon start --attach-existing
 
 TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及时启动，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
-所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此不要把 daemon 直接暴露到不可信网络。`doctor` 始终是只读操作。
+所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
 
 ## 文档操作
 

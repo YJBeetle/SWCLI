@@ -48,8 +48,9 @@ on the worker's owning STA thread.
 JSON on a TCP endpoint. TCP is used instead of a Windows named pipe so the same
 client and supervisor contract works on native Windows and Wine. It binds to
 `127.0.0.1:18495` by default. The current protocol has no transport
-authentication; a non-loopback bind must therefore be protected by a trusted
-network boundary or tunnel.
+authentication, so non-loopback binds are rejected unless the operator passes
+`--allow-remote`. That opt-in adds no authentication; such a listener must still
+be protected by a trusted network boundary or authenticated tunnel.
 
 The COM worker is a spawned child process. By default it refuses to start when
 an active SOLIDWORKS COM host already exists. Otherwise it creates one exclusive

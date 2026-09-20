@@ -211,7 +211,9 @@ error and never falls back to a second direct-COM execution mode. On native
 Windows, a typed command automatically uses the same background-start logic as
 `sw-cli daemon start` when its selected local endpoint is not running. Remote
 endpoints are never started implicitly. The protocol currently has no transport
-authentication, so do not expose the daemon directly to an untrusted network.
+authentication. `daemon serve` therefore refuses non-loopback listeners unless
+`--allow-remote` is explicitly supplied; that flag adds no authentication and
+must only be used behind a trusted network boundary or authenticated tunnel.
 `doctor` remains read-only.
 
 ### Host path translation

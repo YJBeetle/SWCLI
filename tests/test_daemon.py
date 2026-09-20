@@ -12,7 +12,11 @@ from swcli.daemon.documents import (
     DocumentRegistry,
     NoCurrentDocument,
 )
-from swcli.daemon.main import _read_startup_failure, start_daemon
+from swcli.daemon.main import (
+    _read_startup_failure,
+    require_remote_bind_opt_in,
+    start_daemon,
+)
 
 
 class DaemonProtocolTests(unittest.TestCase):
@@ -380,6 +384,18 @@ class DaemonProtocolTests(unittest.TestCase):
             client.parse_endpoint("18495")
         with self.assertRaisesRegex(ValueError, "between 1 and 65535"):
             client.parse_endpoint("127.0.0.1:70000")
+
+    def test_non_loopback_daemon_bind_requires_explicit_opt_in(self):
+        for host in ("0.0.0.0", "192.168.1.10", "cad-host.local"):
+            with self.subTest(host=host), self.assertRaisesRegex(
+                SystemExit, "--allow-remote"
+            ):
+                require_remote_bind_opt_in(host, allow_remote=False)
+
+        for host in ("127.0.0.1", "127.0.0.2", "::1", "localhost"):
+            with self.subTest(host=host):
+                require_remote_bind_opt_in(host, allow_remote=False)
+        require_remote_bind_opt_in("0.0.0.0", allow_remote=True)
 
     def test_client_sends_versioned_request_and_checks_request_id(self):
         response = {

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import ipaddress
 import json
 import os
 import subprocess
@@ -25,6 +26,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     serve = commands.add_parser("serve", help="run the local protocol service")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=18495)
+    serve.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="explicitly allow an unauthenticated non-loopback listener",
+    )
     serve.add_argument("--visible", action="store_true")
     serve.add_argument(
         "--attach-existing",
@@ -73,6 +79,23 @@ def is_local_endpoint(endpoint: str) -> bool:
     except (TypeError, ValueError):
         return False
     return host.casefold() in {"127.0.0.1", "localhost"}
+
+
+def require_remote_bind_opt_in(host: str, *, allow_remote: bool) -> None:
+    """Reject unauthenticated non-loopback listeners unless explicitly allowed."""
+
+    if host.casefold() == "localhost":
+        return
+    try:
+        if ipaddress.ip_address(host).is_loopback:
+            return
+    except ValueError:
+        pass
+    if not allow_remote:
+        raise SystemExit(
+            "sw-cli daemon serve: refusing unauthenticated non-loopback bind; "
+            "pass --allow-remote only behind a trusted network boundary or tunnel"
+        )
 
 
 def is_local_daemon_unreachable_error(exc: BaseException) -> bool:
@@ -262,6 +285,7 @@ def run(args: argparse.Namespace) -> int:
     if command == "serve":
         if not 1 <= args.port <= 65535:
             raise SystemExit("sw-cli daemon serve: port must be between 1 and 65535")
+        require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote)
         server = SwclidServer((args.host, args.port))
         manager = None
         exit_code = 0
