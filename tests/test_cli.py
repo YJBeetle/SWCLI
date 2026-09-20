@@ -268,7 +268,7 @@ class CliTests(unittest.TestCase):
             with self.subTest(operation=operation):
                 self.assertEqual(
                     _typed_operation(parser.parse_args(arguments)),
-                    (operation, parameters, True, document_id),
+                    (operation, parameters, True, document_id, None),
                 )
 
     def test_document_selector_and_session_are_mapped_separately(self):
@@ -293,7 +293,26 @@ class CliTests(unittest.TestCase):
                 {"detail": "summary", "max_features": 500},
                 True,
                 "active",
+                None,
             ),
+        )
+
+    def test_document_update_stamp_precondition_is_mapped_separately(self):
+        args = build_parser().parse_args(
+            [
+                "document",
+                "save",
+                "--document",
+                "d-k7m2q9",
+                "--if-update-stamp",
+                "106",
+                "--json",
+            ]
+        )
+
+        self.assertEqual(
+            _typed_operation(args),
+            ("document.save", {}, True, "d-k7m2q9", 106),
         )
 
     @mock.patch("swcli.cli.call_daemon")
@@ -320,6 +339,7 @@ class CliTests(unittest.TestCase):
             connect_timeout_seconds=3.0,
             session_id=None,
             document_id=None,
+            expected_update_stamp=None,
         )
 
     @mock.patch("swcli.cli.call_daemon")

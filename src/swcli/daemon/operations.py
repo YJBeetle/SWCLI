@@ -32,6 +32,26 @@ OPERATIONS = (
     "part.create-box",
 )
 
+UPDATE_STAMP_OPERATIONS = frozenset(
+    {
+        "document.inspect",
+        "document.close",
+        "document.save",
+        "document.diagnose",
+        "document.rebuild",
+        "document.render",
+        "document.export",
+    }
+)
+
+
+class DocumentUpdateConflict(RuntimeError):
+    """The selected document changed after the caller last observed it."""
+
+
+class DocumentUpdateStampUnavailable(RuntimeError):
+    """The selected host cannot provide a native document update stamp."""
+
 
 def _parameters(
     operation: str, parameters: Dict[str, Any], allowed: set[str], required: set[str]
@@ -79,7 +99,15 @@ def execute_operation(
     documents: Optional[DocumentRegistry] = None,
     session_id: str = DEFAULT_SESSION_ID,
     document_id: Optional[str] = None,
+    expected_update_stamp: Optional[int] = None,
 ) -> Dict[str, Any]:
+    if (
+        expected_update_stamp is not None
+        and operation not in UPDATE_STAMP_OPERATIONS
+    ):
+        raise ValueError(
+            f"expected_update_stamp is not supported for {operation}"
+        )
     if operation == "document.open":
         values = _parameters(
             operation,
@@ -124,6 +152,19 @@ def execute_operation(
     entry = None
     if operation.startswith("document.") and documents is not None:
         entry = documents.resolve(document_id, session_id=session_id)
+        if expected_update_stamp is not None:
+            actual_update_stamp = documents.describe(
+                entry, session_id=session_id
+            ).get("update_stamp")
+            if actual_update_stamp is None:
+                raise DocumentUpdateStampUnavailable(
+                    "the selected document does not expose GetUpdateStamp"
+                )
+            if actual_update_stamp != expected_update_stamp:
+                raise DocumentUpdateConflict(
+                    "the selected document changed: expected update stamp "
+                    f"{expected_update_stamp}, found {actual_update_stamp}"
+                )
 
     if operation == "document.inspect":
         values = _parameters(

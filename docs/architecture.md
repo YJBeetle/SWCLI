@@ -157,6 +157,13 @@ It is useful for detecting model-state and geometry changes, including changes
 made outside SWCLI, but it deliberately is not described as a complete document
 revision because SOLIDWORKS does not increment it for every cosmetic or naming
 edit.
+The request-level `expected_update_stamp` field provides optional optimistic
+concurrency for every selected-document operation. The worker resolves the
+document and compares its native stamp immediately before dispatching the COM
+operation. A mismatch returns `DocumentUpdateConflict` without invoking the
+operation; an unavailable native stamp returns
+`DocumentUpdateStampUnavailable`. This remains opt-in because the update stamp
+does not cover every possible document change.
 Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild state
 and feature error codes without changing the model. Rebuild is explicit, never
 saves implicitly, and always returns post-rebuild diagnostics so a true COM

@@ -112,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
             dest="document_id",
             help="target a d-... document ID, or 'active' for this command only",
         )
+        command_parser.add_argument(
+            "--if-update-stamp",
+            type=int,
+            dest="expected_update_stamp",
+            help="run only if GetUpdateStamp still equals this value",
+        )
 
     inspect_parser = document_commands.add_parser(
         "inspect", help="inspect the selected or current SOLIDWORKS document"
@@ -236,7 +242,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     typed = _typed_operation(args)
     if typed is not None:
-        operation, parameters, as_json, document_id = typed
+        (
+            operation,
+            parameters,
+            as_json,
+            document_id,
+            expected_update_stamp,
+        ) = typed
         try:
             translate_parameter_paths(parameters)
             response = call_daemon(
@@ -247,10 +259,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 connect_timeout_seconds=args.connect_timeout,
                 session_id=args.session,
                 document_id=document_id,
+                expected_update_stamp=expected_update_stamp,
             )
         except Exception as exc:
             response = _autostart_and_retry(
-                args, operation, parameters, document_id, exc
+                args,
+                operation,
+                parameters,
+                document_id,
+                expected_update_stamp,
+                exc,
             )
             if response is None:
                 payload = {
@@ -478,6 +496,7 @@ def _autostart_and_retry(
     operation: str,
     parameters: Dict[str, Any],
     document_id: Optional[str],
+    expected_update_stamp: Optional[int],
     connection_error: BaseException,
 ) -> Optional[Dict[str, Any]]:
     """Start a missing local Windows daemon, then retry one typed request."""
@@ -500,6 +519,7 @@ def _autostart_and_retry(
             connect_timeout_seconds=args.connect_timeout,
             session_id=args.session,
             document_id=document_id,
+            expected_update_stamp=expected_update_stamp,
         )
     except Exception as exc:
         return {
@@ -510,7 +530,7 @@ def _autostart_and_retry(
 
 def _typed_operation(
     args: argparse.Namespace,
-) -> Optional[Tuple[str, Dict[str, Any], bool, Optional[str]]]:
+) -> Optional[Tuple[str, Dict[str, Any], bool, Optional[str], Optional[int]]]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
     if args.command == "document":
         command = args.document_command
@@ -524,17 +544,19 @@ def _typed_operation(
                 },
                 args.as_json,
                 None,
+                None,
             )
         if command == "list":
-            return "document.list", {}, args.as_json, None
+            return "document.list", {}, args.as_json, None, None
         if command == "use":
-            return "document.use", {}, args.as_json, args.document_id
+            return "document.use", {}, args.as_json, args.document_id, None
         if command == "inspect":
             return (
                 "document.inspect",
                 {"detail": args.detail, "max_features": args.max_features},
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
         if command == "close":
             return (
@@ -542,15 +564,23 @@ def _typed_operation(
                 {"discard": args.discard},
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
         if command == "save":
-            return "document.save", {}, args.as_json, args.document_id
+            return (
+                "document.save",
+                {},
+                args.as_json,
+                args.document_id,
+                args.expected_update_stamp,
+            )
         if command == "diagnose":
             return (
                 "document.diagnose",
                 {"max_features": args.max_features},
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
         if command == "rebuild":
             return (
@@ -562,6 +592,7 @@ def _typed_operation(
                 },
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
         if command == "render":
             return (
@@ -576,6 +607,7 @@ def _typed_operation(
                 },
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
         if command == "export":
             return (
@@ -587,6 +619,7 @@ def _typed_operation(
                 },
                 args.as_json,
                 args.document_id,
+                args.expected_update_stamp,
             )
     if args.command == "part" and args.part_command == "create-box":
         return (
@@ -600,6 +633,7 @@ def _typed_operation(
                 "overwrite": args.overwrite,
             },
             args.as_json,
+            None,
             None,
         )
     return None

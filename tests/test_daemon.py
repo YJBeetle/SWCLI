@@ -751,11 +751,13 @@ class DaemonProtocolTests(unittest.TestCase):
                 request_id="request-2",
                 session_id="agent-a",
                 document_id="d-k7m2q9",
+                expected_update_stamp=106,
             )
 
         request = json.loads(connection.sent.decode("utf-8"))
         self.assertEqual(request["session_id"], "agent-a")
         self.assertEqual(request["document_id"], "d-k7m2q9")
+        self.assertEqual(request["expected_update_stamp"], 106)
 
     def test_request_validation_rejects_unknown_protocol(self):
         with self.assertRaisesRegex(ValueError, "unsupported api_version"):
@@ -787,6 +789,64 @@ class DaemonProtocolTests(unittest.TestCase):
                     {**request, "document_id": document_id}
                 )
                 self.assertEqual(validated["document_id"], document_id)
+
+    def test_request_validation_enforces_update_stamp_type(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-1",
+            "operation": "document.inspect",
+            "parameters": {},
+        }
+        for update_stamp in (True, "106", 1.5):
+            with self.subTest(update_stamp=update_stamp), self.assertRaisesRegex(
+                ValueError, "expected_update_stamp must be an integer"
+            ):
+                server.validate_request(
+                    {**request, "expected_update_stamp": update_stamp}
+                )
+
+        validated = server.validate_request(
+            {**request, "expected_update_stamp": 106}
+        )
+        self.assertEqual(validated["expected_update_stamp"], 106)
+
+        with self.assertRaisesRegex(ValueError, "not supported for document.open"):
+            server.validate_request(
+                {
+                    **request,
+                    "operation": "document.open",
+                    "expected_update_stamp": 106,
+                }
+            )
+
+    @mock.patch("swcli.daemon.operations.save_active_windows_document")
+    def test_update_stamp_precondition_blocks_stale_document_operation(
+        self, save_document
+    ):
+        class VersionedDocument(self.FakeDocument):
+            def GetUpdateStamp(self):
+                return 107
+
+        document = VersionedDocument("part.SLDPRT", "C:\\part.SLDPRT")
+        app = self.FakeApp([document], active=document)
+        registry = DocumentRegistry(app)
+        entry = registry.register(document)
+        registry.set_current(entry, session_id="agent-a")
+
+        with self.assertRaisesRegex(
+            operations.DocumentUpdateConflict,
+            "expected update stamp 106, found 107",
+        ):
+            operations.execute_operation(
+                app,
+                "document.save",
+                {},
+                documents=registry,
+                session_id="agent-a",
+                expected_update_stamp=106,
+            )
+
+        save_document.assert_not_called()
 
     @mock.patch("swcli.daemon.operations.open_windows_document_with_handle")
     def test_document_operation_reuses_worker_owned_app(self, open_document):

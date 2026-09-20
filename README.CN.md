@@ -180,6 +180,13 @@ sw-cli document close
 
 `document inspect` 报告所选文档的类型、路径、标题、修改状态、SOLIDWORKS `GetUpdateStamp` 值及重建状态。该更新戳会跟踪模型状态和几何变化，但不是覆盖外观或命名修改的完整 revision。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
 
+调用方读取文档后再执行操作时，可以给任意选中文档的命令添加 `--if-update-stamp N`。daemon 会在进入 COM 操作前立即比较原生更新戳；如果文档已经变化，则返回 `DocumentUpdateConflict`，且不执行该操作。省略此选项时保持原有的宽容行为：
+
+```powershell
+sw-cli document inspect --json
+sw-cli document rebuild --if-update-stamp 106 --json
+```
+
 `document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
 
 结构检查还会返回活动配置、全部配置名称、明确的文档单位、按模型定义顺序进行的有界顶层特征遍历，以及零件实体的拓扑摘要。特征名称用于人类阅读，特征类型才是面向机器的判别字段；调用方不能假定编辑后名称或位置仍然稳定。

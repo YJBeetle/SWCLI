@@ -272,6 +272,18 @@ state, SOLIDWORKS `GetUpdateStamp` value, and rebuild status. The update stamp
 tracks model-state and geometry changes, but is not a complete revision for
 cosmetic or naming edits. JSON output is always UTF-8 so paths and model names
 remain machine-readable across remote runners.
+
+Callers that read a document and later act on it can add
+`--if-update-stamp N` to any selected-document command. The daemon compares the
+native stamp immediately before the operation and returns
+`DocumentUpdateConflict` without entering the COM operation if the document has
+changed. Omitting the option preserves the normal permissive behavior:
+
+```powershell
+sw-cli document inspect --json
+sw-cli document rebuild --if-update-stamp 106 --json
+```
+
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 

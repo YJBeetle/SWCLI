@@ -20,6 +20,10 @@
         {"const": "active"}
       ]
     },
+    "expected_update_stamp": {
+      "type": "integer",
+      "description": "Optional IModelDoc2::GetUpdateStamp precondition for the selected document"
+    },
     "operation": {"type": "string", "minLength": 1},
     "parameters": {"type": "object"},
     "timeout_ms": {"type": "integer", "minimum": 1}

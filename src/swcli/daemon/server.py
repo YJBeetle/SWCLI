@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, Optional
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
-from .operations import OPERATIONS, execute_operation
+from .operations import OPERATIONS, UPDATE_STAMP_OPERATIONS, execute_operation
 
 
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
@@ -82,6 +82,20 @@ def validate_request(request: Any) -> Dict[str, Any]:
         )
     ):
         raise ValueError("document_id must be a d-... ID or 'active'")
+    expected_update_stamp = request.get("expected_update_stamp")
+    if expected_update_stamp is not None and (
+        not isinstance(expected_update_stamp, int)
+        or isinstance(expected_update_stamp, bool)
+    ):
+        raise ValueError("expected_update_stamp must be an integer when provided")
+    if (
+        expected_update_stamp is not None
+        and request["operation"] not in UPDATE_STAMP_OPERATIONS
+    ):
+        raise ValueError(
+            "expected_update_stamp is not supported for "
+            f"{request['operation']}"
+        )
     timeout_ms = request.get("timeout_ms", 600000)
     if not isinstance(timeout_ms, int) or timeout_ms < 1:
         raise ValueError("timeout_ms must be a positive integer")
@@ -221,6 +235,7 @@ def _worker_main(
                         request.get("session_id") or DEFAULT_SESSION_ID
                     ),
                     document_id=request.get("document_id"),
+                    expected_update_stamp=request.get("expected_update_stamp"),
                 )
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):
