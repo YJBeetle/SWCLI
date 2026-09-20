@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import math
 import ntpath
 import secrets
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Iterator, Optional
+from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
 
 
 _HANDLE_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
 _HANDLE_LENGTH = 6
+_LEASE_TOKEN_LENGTH = 12
 DEFAULT_SESSION_ID = "default"
 
 
@@ -32,10 +35,26 @@ class DocumentActivationFailed(RuntimeError):
     """SOLIDWORKS could not make a required target document active."""
 
 
+class DocumentLeaseConflict(RuntimeError):
+    """Another client holds the selected document lease."""
+
+
+class DocumentLeaseNotFound(RuntimeError):
+    """A requested document lease does not exist or has expired."""
+
+
 @dataclass
 class DocumentEntry:
     document_id: str
     document: Any
+
+
+@dataclass
+class DocumentLease:
+    lease_id: str
+    document_id: str
+    session_id: str
+    expires_at: float
 
 
 def _documents(value: Any) -> Iterable[Any]:
@@ -64,11 +83,16 @@ def _document_key(document: Any) -> tuple[Any, ...]:
 class DocumentRegistry:
     """Map short-lived IDs to documents and remember a current ID per session."""
 
-    def __init__(self, app: Any) -> None:
+    def __init__(
+        self, app: Any, *, clock: Callable[[], float] = time.monotonic
+    ) -> None:
         self.app = app
+        self._clock = clock
         self._entries: Dict[str, DocumentEntry] = {}
         self._ids_by_key: Dict[tuple[Any, ...], str] = {}
         self._current_by_session: Dict[str, str] = {}
+        self._leases_by_id: Dict[str, DocumentLease] = {}
+        self._lease_id_by_document: Dict[str, str] = {}
 
     def _new_id(self) -> str:
         while True:
@@ -78,6 +102,104 @@ class DocumentRegistry:
             document_id = f"d-{suffix}"
             if document_id not in self._entries:
                 return document_id
+
+    def _new_lease_id(self) -> str:
+        while True:
+            suffix = "".join(
+                secrets.choice(_HANDLE_ALPHABET)
+                for _ in range(_LEASE_TOKEN_LENGTH)
+            )
+            lease_id = f"l-{suffix}"
+            if lease_id not in self._leases_by_id:
+                return lease_id
+
+    def _purge_expired_leases(self) -> None:
+        now = self._clock()
+        for lease_id, lease in tuple(self._leases_by_id.items()):
+            if lease.expires_at <= now:
+                self._forget_lease(lease_id)
+
+    def _forget_lease(self, lease_id: str) -> None:
+        lease = self._leases_by_id.pop(lease_id, None)
+        if lease is None:
+            return
+        if self._lease_id_by_document.get(lease.document_id) == lease_id:
+            del self._lease_id_by_document[lease.document_id]
+
+    def _describe_lease(self, lease: DocumentLease) -> Dict[str, Any]:
+        return {
+            "lease_id": lease.lease_id,
+            "document_id": lease.document_id,
+            "session_id": lease.session_id,
+            "expires_in_seconds": max(0.0, lease.expires_at - self._clock()),
+        }
+
+    def acquire_lease(
+        self, entry: DocumentEntry, *, session_id: str, ttl_seconds: float
+    ) -> Dict[str, Any]:
+        if not math.isfinite(ttl_seconds) or ttl_seconds <= 0:
+            raise ValueError("lease ttl_seconds must be positive and finite")
+        self._purge_expired_leases()
+        existing_id = self._lease_id_by_document.get(entry.document_id)
+        if existing_id is not None:
+            existing = self._leases_by_id[existing_id]
+            if existing.session_id != session_id:
+                raise DocumentLeaseConflict(
+                    f"document '{entry.document_id}' is leased by session "
+                    f"'{existing.session_id}'"
+                )
+            existing.expires_at = self._clock() + ttl_seconds
+            return self._describe_lease(existing)
+
+        lease = DocumentLease(
+            lease_id=self._new_lease_id(),
+            document_id=entry.document_id,
+            session_id=session_id,
+            expires_at=self._clock() + ttl_seconds,
+        )
+        self._leases_by_id[lease.lease_id] = lease
+        self._lease_id_by_document[entry.document_id] = lease.lease_id
+        return self._describe_lease(lease)
+
+    def renew_lease(
+        self, lease_id: str, *, session_id: str, ttl_seconds: float
+    ) -> Dict[str, Any]:
+        if not math.isfinite(ttl_seconds) or ttl_seconds <= 0:
+            raise ValueError("lease ttl_seconds must be positive and finite")
+        self._purge_expired_leases()
+        lease = self._leases_by_id.get(lease_id)
+        if lease is None:
+            raise DocumentLeaseNotFound(
+                f"lease '{lease_id}' does not exist or has expired"
+            )
+        if lease.session_id != session_id:
+            raise DocumentLeaseConflict(
+                f"lease '{lease_id}' belongs to session '{lease.session_id}'"
+            )
+        lease.expires_at = self._clock() + ttl_seconds
+        return self._describe_lease(lease)
+
+    def release_lease(self, lease_id: str, *, session_id: str) -> Dict[str, Any]:
+        self._purge_expired_leases()
+        lease = self._leases_by_id.get(lease_id)
+        if lease is None:
+            raise DocumentLeaseNotFound(
+                f"lease '{lease_id}' does not exist or has expired"
+            )
+        if lease.session_id != session_id:
+            raise DocumentLeaseConflict(
+                f"lease '{lease_id}' belongs to session '{lease.session_id}'"
+            )
+        result = self._describe_lease(lease)
+        self._forget_lease(lease_id)
+        return result
+
+    def active_lease(self, entry: DocumentEntry) -> Optional[Dict[str, Any]]:
+        self._purge_expired_leases()
+        lease_id = self._lease_id_by_document.get(entry.document_id)
+        if lease_id is None:
+            return None
+        return self._describe_lease(self._leases_by_id[lease_id])
 
     def register(self, document: Any) -> DocumentEntry:
         key = _document_key(document)
@@ -111,6 +233,9 @@ class DocumentRegistry:
         entry = self._entries.pop(document_id, None)
         if entry is None:
             return
+        lease_id = self._lease_id_by_document.get(document_id)
+        if lease_id is not None:
+            self._forget_lease(lease_id)
         for key, registered_id in tuple(self._ids_by_key.items()):
             if registered_id == document_id:
                 del self._ids_by_key[key]
