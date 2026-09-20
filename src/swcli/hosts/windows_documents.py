@@ -568,6 +568,7 @@ def render_active_windows_document(
     import win32com.client
 
     owns_com = app is None
+    temporary_output_path: Optional[Path] = None
     if owns_com:
         pythoncom.CoInitialize()
     try:
@@ -597,16 +598,20 @@ def render_active_windows_document(
             document.ShowNamedView2("", standard_view_id)
         if fit:
             _com_value(document, "ViewZoomtofit2")
-        saved = bool(document.SaveBMP(str(output_path), width, height))
+        temporary_output_path = output_path.with_name(
+            f".{output_path.stem}.{uuid4().hex}.swcli{output_path.suffix}"
+        )
+        render_path = temporary_output_path
+        saved = bool(document.SaveBMP(str(render_path), width, height))
         result["api_saved"] = saved
-        if not saved or not output_path.is_file():
+        if not saved or not render_path.is_file():
             result["error"] = {
                 "type": "RenderFailed",
                 "message": "SOLIDWORKS failed to create the bitmap",
             }
             return result
 
-        with output_path.open("rb") as bitmap:
+        with render_path.open("rb") as bitmap:
             actual_size = _parse_bmp_dimensions(bitmap.read(26))
         result["actual_size"] = (
             {**actual_size, "unit": "pixel"} if actual_size is not None else None
@@ -618,11 +623,15 @@ def render_active_windows_document(
             }
             return result
 
+        size_bytes = render_path.stat().st_size
+        render_path.replace(output_path)
+        temporary_output_path = None
+
         result["artifact"] = {
             "kind": "image",
             "media_type": "image/bmp",
             "path": str(output_path),
-            "size_bytes": output_path.stat().st_size,
+            "size_bytes": size_bytes,
         }
         result["ok"] = True
         return result
@@ -630,6 +639,18 @@ def render_active_windows_document(
         result["error"] = _error(exc)
         return result
     finally:
+        if temporary_output_path is not None:
+            try:
+                temporary_output_path.unlink(missing_ok=True)
+            except OSError as exc:
+                result.setdefault("warnings", []).append(
+                    {
+                        "code": "temporary-output-cleanup-failed",
+                        "message": "failed to remove temporary render artifact",
+                        "path": str(temporary_output_path),
+                        "error": str(exc),
+                    }
+                )
         if owns_com:
             pythoncom.CoUninitialize()
 

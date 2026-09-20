@@ -69,6 +69,124 @@ class WindowsDocumentTests(unittest.TestCase):
         )
         self.assertIsNone(windows_documents._parse_bmp_dimensions(b"not-a-bitmap"))
 
+    def test_render_preserves_existing_target_when_verification_fails(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Document:
+            def ViewZoomtofit2(self):
+                return None
+
+            def SaveBMP(self, path, width, height):
+                self.render_path = Path(path)
+                self.render_path.write_bytes(b"not a bitmap")
+                return True
+
+        document = Document()
+        description = {
+            "title": "part",
+            "path": "part.SLDPRT",
+            "type": 1,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "view.bmp"
+            output.write_bytes(b"existing good bitmap")
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+            ):
+                result = windows_documents.render_active_windows_document(
+                    str(output), overwrite=True, app=mock.Mock(ActiveDoc=document)
+                )
+
+            self.assertEqual(output.read_bytes(), b"existing good bitmap")
+            self.assertNotEqual(document.render_path, output)
+            self.assertFalse(document.render_path.exists())
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "RenderVerificationFailed")
+
+    def test_render_atomically_replaces_target_after_verification(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Document:
+            def ViewZoomtofit2(self):
+                return None
+
+            def SaveBMP(self, path, width, height):
+                self.render_path = Path(path)
+                header = bytearray(26)
+                header[:2] = b"BM"
+                header[18:22] = width.to_bytes(4, "little", signed=True)
+                header[22:26] = height.to_bytes(4, "little", signed=True)
+                self.render_path.write_bytes(header)
+                return True
+
+        document = Document()
+        description = {
+            "title": "part",
+            "path": "part.SLDPRT",
+            "type": 1,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "view.bmp"
+            output.write_bytes(b"old bitmap")
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+            ):
+                result = windows_documents.render_active_windows_document(
+                    str(output), overwrite=True, app=mock.Mock(ActiveDoc=document)
+                )
+
+            self.assertTrue(output.read_bytes().startswith(b"BM"))
+            self.assertNotEqual(document.render_path, output)
+            self.assertFalse(document.render_path.exists())
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["actual_size"],
+            {"width": 1024, "height": 768, "unit": "pixel"},
+        )
+        self.assertEqual(result["artifact"]["path"], str(output.resolve()))
+
     def test_export_formats_are_constrained_by_document_type(self):
         self.assertEqual(
             windows_documents._export_format(1, Path("part.STEP")), "STEP"
