@@ -36,6 +36,7 @@ def call_daemon(
     session_id: Optional[str] = None,
     document_id: Optional[str] = None,
     expected_update_stamp: Optional[int] = None,
+    lease_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit one typed operation to swclid and return its protocol response."""
 
@@ -56,6 +57,8 @@ def call_daemon(
         request["document_id"] = document_id
     if expected_update_stamp is not None:
         request["expected_update_stamp"] = expected_update_stamp
+    if lease_id is not None:
+        request["lease_id"] = lease_id
     encoded = json.dumps(request, ensure_ascii=False, separators=(",", ":")).encode(
         "utf-8"
     ) + b"\n"

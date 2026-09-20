@@ -201,6 +201,34 @@ class DocumentRegistry:
             return None
         return self._describe_lease(self._leases_by_id[lease_id])
 
+    def require_lease(
+        self,
+        entry: DocumentEntry,
+        *,
+        session_id: str,
+        lease_id: Optional[str],
+    ) -> Optional[Dict[str, Any]]:
+        active = self.active_lease(entry)
+        if active is None:
+            if lease_id is not None:
+                raise DocumentLeaseNotFound(
+                    f"lease '{lease_id}' does not exist or has expired"
+                )
+            return None
+        if lease_id is None:
+            raise DocumentLeaseConflict(
+                f"document '{entry.document_id}' requires its active lease"
+            )
+        if active["lease_id"] != lease_id:
+            raise DocumentLeaseConflict(
+                f"lease '{lease_id}' does not own document '{entry.document_id}'"
+            )
+        if active["session_id"] != session_id:
+            raise DocumentLeaseConflict(
+                f"lease '{lease_id}' belongs to session '{active['session_id']}'"
+            )
+        return active
+
     def register(self, document: Any) -> DocumentEntry:
         key = _document_key(document)
         existing_id = self._ids_by_key.get(key)

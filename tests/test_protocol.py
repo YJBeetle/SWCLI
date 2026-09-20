@@ -36,6 +36,7 @@ class ProtocolSchemaTests(unittest.TestCase):
     def test_request_schema_describes_update_stamp_precondition(self):
         properties = load_schema("request")["properties"]
         self.assertEqual(properties["expected_update_stamp"]["type"], "integer")
+        self.assertEqual(properties["lease_id"]["type"], "string")
 
     def test_capabilities_schema_describes_daemon_health(self):
         schema = load_schema("capabilities")

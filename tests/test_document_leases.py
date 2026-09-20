@@ -98,6 +98,35 @@ class DocumentLeaseTests(unittest.TestCase):
                 lease["lease_id"], session_id="agent-a", ttl_seconds=30.0
             )
 
+    def test_active_lease_guards_operations_until_release(self):
+        self.assertIsNone(
+            self.registry.require_lease(
+                self.entry, session_id="agent-a", lease_id=None
+            )
+        )
+        lease = self.registry.acquire_lease(
+            self.entry, session_id="agent-a", ttl_seconds=30.0
+        )
+
+        with self.assertRaises(DocumentLeaseConflict):
+            self.registry.require_lease(
+                self.entry, session_id="agent-a", lease_id=None
+            )
+        with self.assertRaises(DocumentLeaseConflict):
+            self.registry.require_lease(
+                self.entry,
+                session_id="agent-b",
+                lease_id=lease["lease_id"],
+            )
+        self.assertEqual(
+            self.registry.require_lease(
+                self.entry,
+                session_id="agent-a",
+                lease_id=lease["lease_id"],
+            )["lease_id"],
+            lease["lease_id"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

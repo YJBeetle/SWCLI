@@ -284,6 +284,22 @@ sw-cli document inspect --json
 sw-cli document rebuild --if-update-stamp 106 --json
 ```
 
+Longer multi-step clients can acquire a short-lived document lease. While the
+lease is active, close, save, rebuild, render, and export reject requests that
+do not carry its token. Inspection and diagnosis remain available to other
+sessions. The default TTL is 60 seconds and may be set from 1 to 3600 seconds:
+
+```powershell
+$lease = sw-cli --session agent-a document lease acquire --ttl-seconds 120 --json |
+    ConvertFrom-Json
+sw-cli --session agent-a document rebuild --lease $lease.lease.lease_id
+sw-cli --session agent-a document lease release $lease.lease.lease_id
+```
+
+`lease status` reports ownership and remaining time; `lease renew` extends an
+owned lease. Leases expire automatically, disappear when the document closes,
+and coordinate clients rather than authenticate them.
+
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 

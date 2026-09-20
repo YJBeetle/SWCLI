@@ -15,11 +15,17 @@ from typing import Any, Callable, Dict, Optional
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
-from .operations import OPERATIONS, UPDATE_STAMP_OPERATIONS, execute_operation
+from .operations import (
+    LEASE_TOKEN_OPERATIONS,
+    OPERATIONS,
+    UPDATE_STAMP_OPERATIONS,
+    execute_operation,
+)
 
 
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 DOCUMENT_ID_PATTERN = re.compile(r"^d-[0-9a-hjkmnp-tv-z]{6}$")
+LEASE_ID_PATTERN = re.compile(r"^l-[0-9a-hjkmnp-tv-z]{12}$")
 
 
 class ExistingHostRequiresAttach(RuntimeError):
@@ -96,6 +102,14 @@ def validate_request(request: Any) -> Dict[str, Any]:
             "expected_update_stamp is not supported for "
             f"{request['operation']}"
         )
+    lease_id = request.get("lease_id")
+    if lease_id is not None and (
+        not isinstance(lease_id, str)
+        or LEASE_ID_PATTERN.fullmatch(lease_id) is None
+    ):
+        raise ValueError("lease_id must be an l-... lease token")
+    if lease_id is not None and request["operation"] not in LEASE_TOKEN_OPERATIONS:
+        raise ValueError(f"lease_id is not supported for {request['operation']}")
     timeout_ms = request.get("timeout_ms", 600000)
     if not isinstance(timeout_ms, int) or timeout_ms < 1:
         raise ValueError("timeout_ms must be a positive integer")
@@ -236,6 +250,7 @@ def _worker_main(
                     ),
                     document_id=request.get("document_id"),
                     expected_update_stamp=request.get("expected_update_stamp"),
+                    lease_id=request.get("lease_id"),
                 )
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):

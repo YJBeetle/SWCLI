@@ -9,6 +9,7 @@ from unittest import mock
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
 from swcli.daemon.documents import (
+    DocumentLeaseConflict,
     DocumentNotFound,
     DocumentRegistry,
     NoCurrentDocument,
@@ -752,12 +753,14 @@ class DaemonProtocolTests(unittest.TestCase):
                 session_id="agent-a",
                 document_id="d-k7m2q9",
                 expected_update_stamp=106,
+                lease_id="l-23456789abcd",
             )
 
         request = json.loads(connection.sent.decode("utf-8"))
         self.assertEqual(request["session_id"], "agent-a")
         self.assertEqual(request["document_id"], "d-k7m2q9")
         self.assertEqual(request["expected_update_stamp"], 106)
+        self.assertEqual(request["lease_id"], "l-23456789abcd")
 
     def test_request_validation_rejects_unknown_protocol(self):
         with self.assertRaisesRegex(ValueError, "unsupported api_version"):
@@ -819,6 +822,33 @@ class DaemonProtocolTests(unittest.TestCase):
                 }
             )
 
+    def test_request_validation_enforces_lease_token(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-1",
+            "operation": "document.save",
+            "parameters": {},
+        }
+        for lease_id in ("invalid", "l-short", 42):
+            with self.subTest(lease_id=lease_id), self.assertRaisesRegex(
+                ValueError, "lease_id must be"
+            ):
+                server.validate_request({**request, "lease_id": lease_id})
+
+        validated = server.validate_request(
+            {**request, "lease_id": "l-23456789abcd"}
+        )
+        self.assertEqual(validated["lease_id"], "l-23456789abcd")
+
+        with self.assertRaisesRegex(ValueError, "not supported for document.inspect"):
+            server.validate_request(
+                {
+                    **request,
+                    "operation": "document.inspect",
+                    "lease_id": "l-23456789abcd",
+                }
+            )
+
     @mock.patch("swcli.daemon.operations.save_active_windows_document")
     def test_update_stamp_precondition_blocks_stale_document_operation(
         self, save_document
@@ -847,6 +877,75 @@ class DaemonProtocolTests(unittest.TestCase):
             )
 
         save_document.assert_not_called()
+
+    @mock.patch("swcli.daemon.operations.save_active_windows_document")
+    def test_document_lease_lifecycle_guards_mutating_operations(
+        self, save_document
+    ):
+        document = self.FakeDocument("part.SLDPRT", "C:\\part.SLDPRT")
+        app = self.FakeApp([document], active=document)
+        registry = DocumentRegistry(app)
+        entry = registry.register(document)
+        registry.set_current(entry, session_id="agent-a")
+        registry.set_current(entry, session_id="agent-b")
+
+        acquired = operations.execute_operation(
+            app,
+            "document.lease.acquire",
+            {"ttl_seconds": 60},
+            documents=registry,
+            session_id="agent-a",
+        )
+        lease_id = acquired["lease"]["lease_id"]
+
+        status = operations.execute_operation(
+            app,
+            "document.lease.status",
+            {},
+            documents=registry,
+            session_id="agent-b",
+        )
+        self.assertTrue(status["leased"])
+        self.assertFalse(status["owned_by_session"])
+        self.assertNotIn("lease_id", status["lease"])
+
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "document.save",
+                {},
+                documents=registry,
+                session_id="agent-b",
+            )
+        save_document.assert_not_called()
+
+        save_document.return_value = {"ok": True}
+        operations.execute_operation(
+            app,
+            "document.save",
+            {},
+            documents=registry,
+            session_id="agent-a",
+            lease_id=lease_id,
+        )
+        save_document.assert_called_once_with(app=app, document=document)
+
+        operations.execute_operation(
+            app,
+            "document.lease.release",
+            {},
+            documents=registry,
+            session_id="agent-a",
+            lease_id=lease_id,
+        )
+        operations.execute_operation(
+            app,
+            "document.save",
+            {},
+            documents=registry,
+            session_id="agent-b",
+        )
+        self.assertEqual(save_document.call_count, 2)
 
     @mock.patch("swcli.daemon.operations.open_windows_document_with_handle")
     def test_document_operation_reuses_worker_owned_app(self, open_document):

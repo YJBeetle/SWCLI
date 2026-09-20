@@ -268,7 +268,7 @@ class CliTests(unittest.TestCase):
             with self.subTest(operation=operation):
                 self.assertEqual(
                     _typed_operation(parser.parse_args(arguments)),
-                    (operation, parameters, True, document_id, None),
+                    (operation, parameters, True, document_id, None, None),
                 )
 
     def test_document_selector_and_session_are_mapped_separately(self):
@@ -294,6 +294,7 @@ class CliTests(unittest.TestCase):
                 True,
                 "active",
                 None,
+                None,
             ),
         )
 
@@ -312,7 +313,39 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(
             _typed_operation(args),
-            ("document.save", {}, True, "d-k7m2q9", 106),
+            ("document.save", {}, True, "d-k7m2q9", 106, None),
+        )
+
+    def test_document_lease_commands_and_guard_token_are_mapped(self):
+        parser = build_parser()
+        self.assertEqual(
+            _typed_operation(
+                parser.parse_args(
+                    ["document", "lease", "acquire", "--ttl-seconds", "90", "--json"]
+                )
+            ),
+            ("document.lease.acquire", {"ttl_seconds": 90}, True, None, None, None),
+        )
+        self.assertEqual(
+            _typed_operation(
+                parser.parse_args(
+                    [
+                        "document",
+                        "rebuild",
+                        "--lease",
+                        "l-23456789abcd",
+                        "--json",
+                    ]
+                )
+            ),
+            (
+                "document.rebuild",
+                {"force": False, "top_only": False, "max_features": 500},
+                True,
+                None,
+                None,
+                "l-23456789abcd",
+            ),
         )
 
     @mock.patch("swcli.cli.call_daemon")
@@ -340,6 +373,7 @@ class CliTests(unittest.TestCase):
             session_id=None,
             document_id=None,
             expected_update_stamp=None,
+            lease_id=None,
         )
 
     @mock.patch("swcli.cli.call_daemon")

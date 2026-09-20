@@ -15,13 +15,21 @@ from ..hosts.windows_documents import (
     save_active_windows_document,
 )
 from ..hosts.windows_parts import create_box_part_windows_with_handle
-from .documents import DEFAULT_SESSION_ID, DocumentEntry, DocumentRegistry
+from .documents import (
+    DEFAULT_SESSION_ID,
+    DocumentEntry,
+    DocumentRegistry,
+)
 
 
 OPERATIONS = (
     "document.open",
     "document.list",
     "document.use",
+    "document.lease.acquire",
+    "document.lease.status",
+    "document.lease.renew",
+    "document.lease.release",
     "document.inspect",
     "document.close",
     "document.save",
@@ -31,6 +39,21 @@ OPERATIONS = (
     "document.export",
     "part.create-box",
 )
+
+LEASE_GUARDED_OPERATIONS = frozenset(
+    {
+        "document.close",
+        "document.save",
+        "document.rebuild",
+        "document.render",
+        "document.export",
+    }
+)
+
+LEASE_TOKEN_OPERATIONS = LEASE_GUARDED_OPERATIONS | {
+    "document.lease.renew",
+    "document.lease.release",
+}
 
 UPDATE_STAMP_OPERATIONS = frozenset(
     {
@@ -67,6 +90,17 @@ def _parameters(
     return parameters
 
 
+def _lease_ttl(parameters: Dict[str, Any]) -> float:
+    value = parameters.get("ttl_seconds", 60)
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not 1 <= value <= 3600
+    ):
+        raise ValueError("ttl_seconds must be between 1 and 3600")
+    return float(value)
+
+
 def _with_document(
     result: Dict[str, Any],
     documents: DocumentRegistry,
@@ -100,6 +134,7 @@ def execute_operation(
     session_id: str = DEFAULT_SESSION_ID,
     document_id: Optional[str] = None,
     expected_update_stamp: Optional[int] = None,
+    lease_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if (
         expected_update_stamp is not None
@@ -108,6 +143,8 @@ def execute_operation(
         raise ValueError(
             f"expected_update_stamp is not supported for {operation}"
         )
+    if lease_id is not None and operation not in LEASE_TOKEN_OPERATIONS:
+        raise ValueError(f"lease_id is not supported for {operation}")
     if operation == "document.open":
         values = _parameters(
             operation,
@@ -149,6 +186,38 @@ def execute_operation(
             "document": documents.describe(entry, session_id=session_id),
         }
 
+    if operation == "document.lease.renew":
+        values = _parameters(operation, parameters, {"ttl_seconds"}, set())
+        if documents is None:
+            raise RuntimeError("document registry is unavailable")
+        if lease_id is None:
+            raise ValueError("document.lease.renew requires lease_id")
+        lease = documents.renew_lease(
+            lease_id,
+            session_id=session_id,
+            ttl_seconds=_lease_ttl(values),
+        )
+        return {
+            "ok": True,
+            "action": operation,
+            "session_id": session_id,
+            "lease": lease,
+        }
+    if operation == "document.lease.release":
+        _parameters(operation, parameters, set(), set())
+        if documents is None:
+            raise RuntimeError("document registry is unavailable")
+        if lease_id is None:
+            raise ValueError("document.lease.release requires lease_id")
+        lease = documents.release_lease(lease_id, session_id=session_id)
+        return {
+            "ok": True,
+            "action": operation,
+            "session_id": session_id,
+            "released": True,
+            "lease": lease,
+        }
+
     entry = None
     if operation.startswith("document.") and documents is not None:
         entry = documents.resolve(document_id, session_id=session_id)
@@ -165,6 +234,49 @@ def execute_operation(
                     "the selected document changed: expected update stamp "
                     f"{expected_update_stamp}, found {actual_update_stamp}"
                 )
+
+    if operation == "document.lease.acquire":
+        values = _parameters(operation, parameters, {"ttl_seconds"}, set())
+        if documents is None or entry is None:
+            raise RuntimeError("document registry is unavailable")
+        lease = documents.acquire_lease(
+            entry,
+            session_id=session_id,
+            ttl_seconds=_lease_ttl(values),
+        )
+        return {
+            "ok": True,
+            "action": operation,
+            "session_id": session_id,
+            "lease": lease,
+            "document": documents.describe(entry, session_id=session_id),
+        }
+    if operation == "document.lease.status":
+        _parameters(operation, parameters, set(), set())
+        if documents is None or entry is None:
+            raise RuntimeError("document registry is unavailable")
+        lease = documents.active_lease(entry)
+        if lease is not None and lease["session_id"] != session_id:
+            lease = {key: value for key, value in lease.items() if key != "lease_id"}
+        return {
+            "ok": True,
+            "action": operation,
+            "session_id": session_id,
+            "leased": lease is not None,
+            "owned_by_session": lease is not None
+            and lease["session_id"] == session_id,
+            "lease": lease,
+            "document": documents.describe(entry, session_id=session_id),
+        }
+
+    if (
+        operation in LEASE_GUARDED_OPERATIONS
+        and documents is not None
+        and entry is not None
+    ):
+        documents.require_lease(
+            entry, session_id=session_id, lease_id=lease_id
+        )
 
     if operation == "document.inspect":
         values = _parameters(

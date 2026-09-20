@@ -24,6 +24,11 @@
       "type": "integer",
       "description": "Optional IModelDoc2::GetUpdateStamp precondition for the selected document"
     },
+    "lease_id": {
+      "type": "string",
+      "pattern": "^l-[0-9a-hjkmnp-tv-z]{12}$",
+      "description": "Short-lived document lease token for guarded operations"
+    },
     "operation": {"type": "string", "minLength": 1},
     "parameters": {"type": "object"},
     "timeout_ms": {"type": "integer", "minimum": 1}

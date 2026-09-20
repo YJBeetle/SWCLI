@@ -106,18 +106,57 @@ def build_parser() -> argparse.ArgumentParser:
     use_parser.add_argument("document_id")
     use_parser.add_argument("--json", action="store_true", dest="as_json")
 
-    def add_document_selector(command_parser: argparse.ArgumentParser) -> None:
+    def add_document_target(command_parser: argparse.ArgumentParser) -> None:
         command_parser.add_argument(
             "--document",
             dest="document_id",
             help="target a d-... document ID, or 'active' for this command only",
         )
+
+    def add_document_selector(command_parser: argparse.ArgumentParser) -> None:
+        add_document_target(command_parser)
         command_parser.add_argument(
             "--if-update-stamp",
             type=int,
             dest="expected_update_stamp",
             help="run only if GetUpdateStamp still equals this value",
         )
+
+    def add_lease_token(command_parser: argparse.ArgumentParser) -> None:
+        command_parser.add_argument(
+            "--lease",
+            dest="lease_id",
+            help="active l-... lease token for this document operation",
+        )
+
+    lease_parser = document_commands.add_parser(
+        "lease", help="manage a short-lived exclusive document lease"
+    )
+    lease_commands = lease_parser.add_subparsers(
+        dest="lease_command", required=True
+    )
+    lease_acquire_parser = lease_commands.add_parser(
+        "acquire", help="acquire or renew this session's document lease"
+    )
+    add_document_target(lease_acquire_parser)
+    lease_acquire_parser.add_argument("--ttl-seconds", type=int, default=60)
+    lease_acquire_parser.add_argument("--json", action="store_true", dest="as_json")
+    lease_status_parser = lease_commands.add_parser(
+        "status", help="inspect the selected document lease"
+    )
+    add_document_target(lease_status_parser)
+    lease_status_parser.add_argument("--json", action="store_true", dest="as_json")
+    lease_renew_parser = lease_commands.add_parser(
+        "renew", help="renew a lease owned by this session"
+    )
+    lease_renew_parser.add_argument("lease_id")
+    lease_renew_parser.add_argument("--ttl-seconds", type=int, default=60)
+    lease_renew_parser.add_argument("--json", action="store_true", dest="as_json")
+    lease_release_parser = lease_commands.add_parser(
+        "release", help="release a lease owned by this session"
+    )
+    lease_release_parser.add_argument("lease_id")
+    lease_release_parser.add_argument("--json", action="store_true", dest="as_json")
 
     inspect_parser = document_commands.add_parser(
         "inspect", help="inspect the selected or current SOLIDWORKS document"
@@ -132,6 +171,7 @@ def build_parser() -> argparse.ArgumentParser:
         "close", help="close the selected or current SOLIDWORKS document"
     )
     add_document_selector(close_parser)
+    add_lease_token(close_parser)
     close_parser.add_argument(
         "--discard",
         action="store_true",
@@ -142,6 +182,7 @@ def build_parser() -> argparse.ArgumentParser:
         "save", help="save the selected or current SOLIDWORKS document in place"
     )
     add_document_selector(save_parser)
+    add_lease_token(save_parser)
     save_parser.add_argument("--json", action="store_true", dest="as_json")
     diagnose_parser = document_commands.add_parser(
         "diagnose", help="report rebuild state and feature errors"
@@ -153,6 +194,7 @@ def build_parser() -> argparse.ArgumentParser:
         "rebuild", help="rebuild the active SOLIDWORKS document"
     )
     add_document_selector(rebuild_parser)
+    add_lease_token(rebuild_parser)
     rebuild_parser.add_argument("--force", action="store_true")
     rebuild_parser.add_argument(
         "--top-only",
@@ -165,6 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
         "render", help="render the selected or current document to a BMP image"
     )
     add_document_selector(render_parser)
+    add_lease_token(render_parser)
     render_parser.add_argument("output")
     render_parser.add_argument("--width", type=int, default=1024)
     render_parser.add_argument("--height", type=int, default=768)
@@ -183,6 +226,7 @@ def build_parser() -> argparse.ArgumentParser:
         "export", help="export the selected or current document"
     )
     add_document_selector(export_parser)
+    add_lease_token(export_parser)
     export_parser.add_argument("output")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
@@ -248,6 +292,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             as_json,
             document_id,
             expected_update_stamp,
+            lease_id,
         ) = typed
         try:
             translate_parameter_paths(parameters)
@@ -260,6 +305,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 session_id=args.session,
                 document_id=document_id,
                 expected_update_stamp=expected_update_stamp,
+                lease_id=lease_id,
             )
         except Exception as exc:
             response = _autostart_and_retry(
@@ -268,6 +314,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 parameters,
                 document_id,
                 expected_update_stamp,
+                lease_id,
                 exc,
             )
             if response is None:
@@ -497,6 +544,7 @@ def _autostart_and_retry(
     parameters: Dict[str, Any],
     document_id: Optional[str],
     expected_update_stamp: Optional[int],
+    lease_id: Optional[str],
     connection_error: BaseException,
 ) -> Optional[Dict[str, Any]]:
     """Start a missing local Windows daemon, then retry one typed request."""
@@ -520,6 +568,7 @@ def _autostart_and_retry(
             session_id=args.session,
             document_id=document_id,
             expected_update_stamp=expected_update_stamp,
+            lease_id=lease_id,
         )
     except Exception as exc:
         return {
@@ -530,7 +579,16 @@ def _autostart_and_retry(
 
 def _typed_operation(
     args: argparse.Namespace,
-) -> Optional[Tuple[str, Dict[str, Any], bool, Optional[str], Optional[int]]]:
+) -> Optional[
+    Tuple[
+        str,
+        Dict[str, Any],
+        bool,
+        Optional[str],
+        Optional[int],
+        Optional[str],
+    ]
+]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
     if args.command == "document":
         command = args.document_command
@@ -545,11 +603,50 @@ def _typed_operation(
                 args.as_json,
                 None,
                 None,
+                None,
             )
         if command == "list":
-            return "document.list", {}, args.as_json, None, None
+            return "document.list", {}, args.as_json, None, None, None
         if command == "use":
-            return "document.use", {}, args.as_json, args.document_id, None
+            return "document.use", {}, args.as_json, args.document_id, None, None
+        if command == "lease":
+            lease_command = args.lease_command
+            if lease_command == "acquire":
+                return (
+                    "document.lease.acquire",
+                    {"ttl_seconds": args.ttl_seconds},
+                    args.as_json,
+                    args.document_id,
+                    None,
+                    None,
+                )
+            if lease_command == "status":
+                return (
+                    "document.lease.status",
+                    {},
+                    args.as_json,
+                    args.document_id,
+                    None,
+                    None,
+                )
+            if lease_command == "renew":
+                return (
+                    "document.lease.renew",
+                    {"ttl_seconds": args.ttl_seconds},
+                    args.as_json,
+                    None,
+                    None,
+                    args.lease_id,
+                )
+            if lease_command == "release":
+                return (
+                    "document.lease.release",
+                    {},
+                    args.as_json,
+                    None,
+                    None,
+                    args.lease_id,
+                )
         if command == "inspect":
             return (
                 "document.inspect",
@@ -557,6 +654,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                None,
             )
         if command == "close":
             return (
@@ -565,6 +663,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                args.lease_id,
             )
         if command == "save":
             return (
@@ -573,6 +672,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                args.lease_id,
             )
         if command == "diagnose":
             return (
@@ -581,6 +681,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                None,
             )
         if command == "rebuild":
             return (
@@ -593,6 +694,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                args.lease_id,
             )
         if command == "render":
             return (
@@ -608,6 +710,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                args.lease_id,
             )
         if command == "export":
             return (
@@ -620,6 +723,7 @@ def _typed_operation(
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
+                args.lease_id,
             )
     if args.command == "part" and args.part_command == "create-box":
         return (
@@ -633,6 +737,7 @@ def _typed_operation(
                 "overwrite": args.overwrite,
             },
             args.as_json,
+            None,
             None,
             None,
         )

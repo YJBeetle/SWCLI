@@ -187,6 +187,17 @@ sw-cli document inspect --json
 sw-cli document rebuild --if-update-stamp 106 --json
 ```
 
+需要执行较长多步流程的客户端可以获取短期文档 lease。lease 有效期间，关闭、保存、重建、渲染和导出操作必须携带它的 token；其他 session 仍可执行检查和诊断。默认 TTL 为 60 秒，可设置为 1 至 3600 秒：
+
+```powershell
+$lease = sw-cli --session agent-a document lease acquire --ttl-seconds 120 --json |
+    ConvertFrom-Json
+sw-cli --session agent-a document rebuild --lease $lease.lease.lease_id
+sw-cli --session agent-a document lease release $lease.lease.lease_id
+```
+
+`lease status` 返回持有状态和剩余时间，`lease renew` 用于延长本 session 持有的 lease。lease 到期后自动失效，文档关闭时也会被清理；它用于客户端协作，不是身份认证机制。
+
 `document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
 
 结构检查还会返回活动配置、全部配置名称、明确的文档单位、按模型定义顺序进行的有界顶层特征遍历，以及零件实体的拓扑摘要。特征名称用于人类阅读，特征类型才是面向机器的判别字段；调用方不能假定编辑后名称或位置仍然稳定。

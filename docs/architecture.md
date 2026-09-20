@@ -164,6 +164,13 @@ operation. A mismatch returns `DocumentUpdateConflict` without invoking the
 operation; an unavailable native stamp returns
 `DocumentUpdateStampUnavailable`. This remains opt-in because the update stamp
 does not cover every possible document change.
+Document leases provide the complementary pessimistic mechanism. They are
+worker-local, document-scoped tokens with a bounded TTL. Once active, close,
+save, rebuild, render, and export require the owning session and token; read-only
+inspection and diagnosis remain available. Acquisition is idempotent for the
+same session, expiration is automatic, and closing a document removes its
+lease. Lease state coordinates cooperating clients and is not an authentication
+or network-authorization boundary.
 Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild state
 and feature error codes without changing the model. Rebuild is explicit, never
 saves implicitly, and always returns post-rebuild diagnostics so a true COM
