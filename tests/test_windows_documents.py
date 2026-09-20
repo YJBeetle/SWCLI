@@ -363,6 +363,64 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"]["type"], "ExportVerificationFailed")
 
+    def test_export_reports_temporary_artifact_cleanup_failure(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Extension:
+            NeedsRebuild2 = 0
+
+        class Document:
+            def ClearSelection2(self, clear_all):
+                self.clear_all = clear_all
+
+            def SaveAs3(self, path, version, options):
+                Path(path).write_bytes(b"not a PDF")
+                return 0
+
+        Document.Extension = Extension()
+        description = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "drawing.PDF"
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+                mock.patch.object(Path, "unlink", side_effect=OSError("locked")),
+            ):
+                result = windows_documents.export_active_windows_document(
+                    str(output), app=mock.Mock(ActiveDoc=Document())
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "ExportVerificationFailed")
+        cleanup_warning = result["warnings"][-1]
+        self.assertEqual(
+            cleanup_warning["code"], "temporary-output-cleanup-failed"
+        )
+        self.assertIn("locked", cleanup_warning["error"])
+
     def test_permissive_export_preserves_existing_target_on_save_failure(self):
         pythoncom = ModuleType("pythoncom")
         pythoncom.CoInitialize = mock.Mock()

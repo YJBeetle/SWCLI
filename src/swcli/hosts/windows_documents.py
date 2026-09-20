@@ -781,8 +781,15 @@ def export_active_windows_document(
         if temporary_output_path is not None:
             try:
                 temporary_output_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+            except OSError as exc:
+                result.setdefault("warnings", []).append(
+                    {
+                        "code": "temporary-output-cleanup-failed",
+                        "message": "failed to remove temporary export artifact",
+                        "path": str(temporary_output_path),
+                        "error": str(exc),
+                    }
+                )
         if owns_com:
             pythoncom.CoUninitialize()
 
