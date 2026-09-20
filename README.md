@@ -182,6 +182,14 @@ COM apartment. `sw-cli daemon start` launches the same `serve` implementation
 in the background and is idempotent. `sw-cli daemon status` reports the worker
 and host state; `sw-cli daemon stop` requests a graceful shutdown. A timed-out
 operation causes the worker and its SOLIDWORKS process tree to be replaced.
+If a user-started SOLIDWORKS instance already exists, the worker attaches to it,
+preserves its visibility, and never closes or force-terminates it as part of
+daemon shutdown or timeout recovery.
+
+TCP connection establishment has a separate three-second timeout so an absent
+local daemon can be started promptly without reducing the operation budget.
+Override it with `--connect-timeout`; `--request-timeout` controls the CAD
+operation after a connection has been established.
 
 All typed `sw-cli` document and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with

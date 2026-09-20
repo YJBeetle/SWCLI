@@ -51,6 +51,28 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIn("serve", command)
         self.assertIn("19000", command)
 
+    @mock.patch("swcli.daemon.main.subprocess.Popen")
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_background_start_treats_local_connect_timeout_as_offline(
+        self, call_daemon, popen
+    ):
+        call_daemon.side_effect = [
+            TimeoutError("timed out"),
+            {"success": True, "result": {"worker_alive": True}},
+        ]
+        process = popen.return_value
+        process.poll.return_value = None
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            os.environ, {"LOCALAPPDATA": directory}
+        ), mock.patch("swcli.daemon.main.sys.platform", "win32"):
+            result = start_daemon(
+                endpoint="127.0.0.1:19000", startup_timeout_seconds=5.0
+            )
+
+        self.assertTrue(result["success"])
+        self.assertTrue(result["result"]["started"])
+        popen.assert_called_once()
+
     def test_resident_lifetime_selects_official_background_control(self):
         hidden = mock.Mock()
         server.configure_resident_app(hidden, visible=False)
@@ -61,6 +83,50 @@ class DaemonProtocolTests(unittest.TestCase):
         server.configure_resident_app(visible, visible=True)
         self.assertTrue(visible.UserControl)
         self.assertTrue(visible.Visible)
+
+    @mock.patch("swcli.daemon.server.configure_resident_app")
+    def test_resident_app_preserves_existing_user_instance(self, configure):
+        app = object()
+        com_client = mock.Mock()
+        com_client.GetActiveObject.return_value = app
+
+        actual, owned_by_daemon = server.acquire_resident_app(
+            com_client, visible=False
+        )
+
+        self.assertIs(actual, app)
+        self.assertFalse(owned_by_daemon)
+        com_client.DispatchEx.assert_not_called()
+        configure.assert_not_called()
+
+    @mock.patch("swcli.daemon.server.configure_resident_app")
+    def test_resident_app_configures_new_daemon_instance(self, configure):
+        app = object()
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = RuntimeError("not running")
+        com_client.DispatchEx.return_value = app
+
+        actual, owned_by_daemon = server.acquire_resident_app(
+            com_client, visible=False
+        )
+
+        self.assertIs(actual, app)
+        self.assertTrue(owned_by_daemon)
+        com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
+        configure.assert_called_once_with(app, visible=False)
+
+    @mock.patch("swcli.daemon.server.subprocess.run")
+    def test_worker_termination_does_not_kill_attached_user_instance(self, run):
+        manager = object.__new__(server.WorkerManager)
+        process = mock.Mock()
+        process.is_alive.side_effect = [True, False]
+        manager._process = process
+        manager.host = {"process_id": 1234, "owned_by_daemon": False}
+
+        manager._terminate_worker()
+
+        process.terminate.assert_called_once()
+        run.assert_not_called()
 
     def test_endpoint_parser_validates_host_and_port(self):
         self.assertEqual(client.parse_endpoint("127.0.0.1:18495"), ("127.0.0.1", 18495))
@@ -100,11 +166,12 @@ class DaemonProtocolTests(unittest.TestCase):
         connection = Connection()
         with mock.patch.object(
             client.socket, "create_connection", return_value=connection
-        ):
+        ) as create_connection:
             actual = client.call_daemon(
                 "daemon.health",
                 endpoint="127.0.0.1:18495",
                 timeout_seconds=2.0,
+                connect_timeout_seconds=0.5,
                 request_id="request-1",
             )
 
@@ -112,6 +179,9 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertEqual(request["api_version"], PROTOCOL_VERSION)
         self.assertEqual(request["operation"], "daemon.health")
         self.assertEqual(request["timeout_ms"], 2000)
+        create_connection.assert_called_once_with(
+            ("127.0.0.1", 18495), timeout=0.5
+        )
         self.assertEqual(actual, response)
 
     def test_request_validation_rejects_unknown_protocol(self):

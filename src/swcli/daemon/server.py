@@ -60,7 +60,9 @@ def validate_request(request: Any) -> Dict[str, Any]:
     return request
 
 
-def _describe_app(app: Any, startup_wait_seconds: float) -> Dict[str, Any]:
+def _describe_app(
+    app: Any, startup_wait_seconds: float, *, owned_by_daemon: bool
+) -> Dict[str, Any]:
     revision = str(_com_value(app, "RevisionNumber"))
     return {
         "revision": revision,
@@ -68,6 +70,7 @@ def _describe_app(app: Any, startup_wait_seconds: float) -> Dict[str, Any]:
         "process_id": int(_com_value(app, "GetProcessID")),
         "visible": bool(_com_value(app, "Visible")),
         "startup_wait_seconds": startup_wait_seconds,
+        "owned_by_daemon": owned_by_daemon,
     }
 
 
@@ -82,6 +85,18 @@ def configure_resident_app(app: Any, *, visible: bool) -> None:
         app.Visible = False
 
 
+def acquire_resident_app(com_client: Any, *, visible: bool) -> tuple[Any, bool]:
+    """Attach to a user instance or create an instance owned by swclid."""
+
+    try:
+        app = com_client.GetActiveObject(PROG_ID)
+    except Exception:
+        app = com_client.DispatchEx(PROG_ID)
+        configure_resident_app(app, visible=visible)
+        return app, True
+    return app, False
+
+
 def _worker_main(
     request_queue: Any,
     response_queue: Any,
@@ -94,15 +109,22 @@ def _worker_main(
 
     pythoncom.CoInitialize()
     app = None
+    owned_by_daemon = False
     try:
-        app = win32com.client.DispatchEx(PROG_ID)
-        # SOLIDWORKS exposes separate lifetime controls for visible and hidden
-        # resident automation. Both keep the application alive across requests.
-        configure_resident_app(app, visible=visible)
+        app, owned_by_daemon = acquire_resident_app(
+            win32com.client, visible=visible
+        )
         waited = wait_windows_host_ready(
             app, timeout_seconds=startup_timeout_seconds
         )
-        ready_queue.put({"ok": True, "host": _describe_app(app, waited)})
+        ready_queue.put(
+            {
+                "ok": True,
+                "host": _describe_app(
+                    app, waited, owned_by_daemon=owned_by_daemon
+                ),
+            }
+        )
 
         while True:
             request = request_queue.get()
@@ -168,7 +190,7 @@ def _worker_main(
     finally:
         if app is not None:
             try:
-                if _com_value(app, "ActiveDoc") is None:
+                if owned_by_daemon and _com_value(app, "ActiveDoc") is None:
                     _com_value(app, "ExitApp")
             except Exception:
                 pass
@@ -235,7 +257,11 @@ class WorkerManager:
             if self._process.is_alive():
                 self._process.kill()
                 self._process.join(timeout=5.0)
-        if forced and self.host.get("process_id"):
+        if (
+            forced
+            and self.host.get("owned_by_daemon")
+            and self.host.get("process_id")
+        ):
             subprocess.run(
                 [
                     "taskkill",

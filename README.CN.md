@@ -143,6 +143,10 @@ sw-cli daemon serve
 
 服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 报告 worker 和宿主状态；`sw-cli daemon stop` 请求优雅关闭。操作超时后，worker 及其 SOLIDWORKS 进程树会被替换。
 
+如果用户已经启动 SOLIDWORKS，worker 会连接该实例并保留其可见性；daemon 停止或超时恢复时都不会关闭或强制终止这个用户实例。
+
+TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及时启动，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
+
 所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此不要把 daemon 直接暴露到不可信网络。`doctor` 始终是只读操作。
 
 ## 文档操作
