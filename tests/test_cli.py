@@ -32,6 +32,21 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(args.command, "daemon")
                 self.assertEqual(args.daemon_command, command)
 
+    def test_daemon_attach_existing_is_explicit(self):
+        parser = build_parser()
+
+        default = parser.parse_args(["daemon", "start"])
+        attached_start = parser.parse_args(
+            ["daemon", "start", "--attach-existing"]
+        )
+        attached_serve = parser.parse_args(
+            ["daemon", "serve", "--attach-existing"]
+        )
+
+        self.assertFalse(default.attach_existing)
+        self.assertTrue(attached_start.attach_existing)
+        self.assertTrue(attached_serve.attach_existing)
+
     @mock.patch("swcli.cli.call_daemon")
     @mock.patch("swcli.cli.doctor_windows_host")
     def test_doctor_combines_host_and_daemon_diagnostics(

@@ -181,10 +181,21 @@ versioned local JSON requests while one spawned COM worker owns the
 COM apartment. `sw-cli daemon start` launches the same `serve` implementation
 in the background and is idempotent. `sw-cli daemon status` reports the worker
 and host state; `sw-cli daemon stop` requests a graceful shutdown. A timed-out
-operation causes the worker and its SOLIDWORKS process tree to be replaced.
-If a user-started SOLIDWORKS instance already exists, the worker attaches to it,
-preserves its visibility, and never closes or force-terminates it as part of
-daemon shutdown or timeout recovery.
+operation causes the worker and any daemon-owned SOLIDWORKS process tree to be
+replaced.
+Exclusive ownership is the default. If a user-started SOLIDWORKS instance
+already exists, `sw-cli daemon start` fails with
+`ExistingHostRequiresAttach` instead of silently sharing it. Close that
+instance, or explicitly opt into an interactive shared session:
+
+```powershell
+sw-cli daemon start --attach-existing
+```
+
+An explicitly attached instance preserves its visibility and is reported as
+`owned_by_daemon: false` and `shared_interactive: true`. Daemon shutdown and
+timeout recovery never close or force-terminate it. Native Windows typed-command
+auto-start always uses exclusive mode and never opts into sharing implicitly.
 
 TCP connection establishment has a separate three-second timeout so an absent
 local daemon can be started promptly without reducing the operation budget.

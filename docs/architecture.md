@@ -51,15 +51,21 @@ client and supervisor contract works on native Windows and Wine. It binds to
 authentication; a non-loopback bind must therefore be protected by a trusted
 network boundary or tunnel.
 
-The COM worker is a spawned child process. It creates one exclusive
+The COM worker is a spawned child process. By default it refuses to start when
+an active SOLIDWORKS COM host already exists. Otherwise it creates one exclusive
 `SldWorks.Application` through `DispatchEx`, waits for
 `StartupProcessCompleted`, and serializes every operation against that object.
 The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
 `UserControl=True` for a visible foreground host, or
 `UserControlBackground=True` for a hidden background host. The daemon remains
 the explicit owner and shuts the instance down through `ExitApp`.
+`--attach-existing` is the explicit interactive exception: the worker shares
+the existing COM host, preserves its visibility, reports it as not owned by the
+daemon, and never closes or force-terminates it. Typed-command auto-start never
+enables this option.
 If an operation exceeds its request timeout, the supervisor terminates the
-worker and its SOLIDWORKS process tree rather than reusing unknown COM state.
+worker and any daemon-owned SOLIDWORKS process tree rather than reusing unknown
+COM state. An explicitly attached interactive host is left running.
 The following request starts a fresh worker automatically.
 
 Typed public CLI commands are daemon-only. The COM adapter remains an internal
@@ -96,7 +102,8 @@ than assuming a fixed installation directory or SOLIDWORKS release:
 2. follow its `CLSID` and `LocalServer32` registration, using `CurVer` when
    present and the CLSID's versioned ProgID as a fallback;
 3. enumerate installed SOLIDWORKS release keys for diagnostics;
-4. attach to the active COM object only when one already exists.
+4. detect an active COM object so exclusive daemon startup can reject it, or
+   attach only when the caller explicitly selected `--attach-existing`.
 
 Starting, stopping, and replacing a SOLIDWORKS process belong to the resident
 daemon lifecycle. The top-level `sw-cli doctor` command only inspects host and

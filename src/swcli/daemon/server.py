@@ -19,6 +19,18 @@ from .operations import OPERATIONS, execute_operation
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 
 
+class ExistingHostRequiresAttach(RuntimeError):
+    """Raised when exclusive startup finds a user-controlled SOLIDWORKS host."""
+
+
+class WorkerStartupError(RuntimeError):
+    """Preserve a worker startup error code across the process boundary."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def _error_response(
     request_id: str, code: str, message: str, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -71,6 +83,7 @@ def _describe_app(
         "visible": bool(_com_value(app, "Visible")),
         "startup_wait_seconds": startup_wait_seconds,
         "owned_by_daemon": owned_by_daemon,
+        "shared_interactive": not owned_by_daemon,
     }
 
 
@@ -85,8 +98,10 @@ def configure_resident_app(app: Any, *, visible: bool) -> None:
         app.Visible = False
 
 
-def acquire_resident_app(com_client: Any, *, visible: bool) -> tuple[Any, bool]:
-    """Attach to a user instance or create an instance owned by swclid."""
+def acquire_resident_app(
+    com_client: Any, *, visible: bool, attach_existing: bool = False
+) -> tuple[Any, bool]:
+    """Create an owned instance, or explicitly attach to a user instance."""
 
     try:
         app = com_client.GetActiveObject(PROG_ID)
@@ -94,6 +109,11 @@ def acquire_resident_app(com_client: Any, *, visible: bool) -> tuple[Any, bool]:
         app = com_client.DispatchEx(PROG_ID)
         configure_resident_app(app, visible=visible)
         return app, True
+    if not attach_existing:
+        raise ExistingHostRequiresAttach(
+            "SOLIDWORKS is already running; close it or restart with "
+            "'sw-cli daemon start --attach-existing'"
+        )
     return app, False
 
 
@@ -103,6 +123,7 @@ def _worker_main(
     ready_queue: Any,
     visible: bool,
     startup_timeout_seconds: float,
+    attach_existing: bool,
 ) -> None:
     import pythoncom
     import win32com.client
@@ -112,7 +133,9 @@ def _worker_main(
     owned_by_daemon = False
     try:
         app, owned_by_daemon = acquire_resident_app(
-            win32com.client, visible=visible
+            win32com.client,
+            visible=visible,
+            attach_existing=attach_existing,
         )
         waited = wait_windows_host_ready(
             app, timeout_seconds=startup_timeout_seconds
@@ -206,10 +229,12 @@ class WorkerManager:
         visible: bool = False,
         startup_timeout_seconds: float = 120.0,
         host_platform: str = "windows",
+        attach_existing: bool = False,
     ) -> None:
         self.visible = visible
         self.startup_timeout_seconds = startup_timeout_seconds
         self.host_platform = host_platform
+        self.attach_existing = attach_existing
         self._context = multiprocessing.get_context("spawn")
         self._lock = threading.Lock()
         self._process: Optional[Any] = None
@@ -230,6 +255,7 @@ class WorkerManager:
                 ready_queue,
                 self.visible,
                 self.startup_timeout_seconds,
+                self.attach_existing,
             ),
             name="swclid-com-worker",
         )
@@ -242,8 +268,9 @@ class WorkerManager:
         if not ready.get("ok"):
             self._terminate_worker()
             error = ready.get("error") or {}
-            raise RuntimeError(
-                f"SOLIDWORKS worker failed: {error.get('type')}: {error.get('message')}"
+            raise WorkerStartupError(
+                str(error.get("type", "WorkerStartupError")),
+                str(error.get("message", "SOLIDWORKS worker failed to start")),
             )
         self.host = dict(ready["host"])
         self.host["platform"] = self.host_platform

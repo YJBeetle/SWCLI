@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 from .client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
-from .server import SwclidServer, WorkerManager
+from .server import SwclidServer, WorkerManager, WorkerStartupError
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -26,6 +26,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=18495)
     serve.add_argument("--visible", action="store_true")
+    serve.add_argument(
+        "--attach-existing",
+        action="store_true",
+        help="explicitly share an already running interactive SOLIDWORKS instance",
+    )
     serve.add_argument("--startup-timeout", type=float, default=120.0)
     serve.add_argument(
         "--host-platform",
@@ -36,6 +41,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     start = commands.add_parser("start", help="start the service in the background")
     start.add_argument("--endpoint", dest="daemon_endpoint")
     start.add_argument("--visible", action="store_true")
+    start.add_argument(
+        "--attach-existing",
+        action="store_true",
+        help="explicitly share an already running interactive SOLIDWORKS instance",
+    )
     start.add_argument("--startup-timeout", type=float, default=120.0)
     start.add_argument("--json", action="store_true", dest="as_json")
 
@@ -89,11 +99,38 @@ def _failure(code: str, message: str, **details: Any) -> Dict[str, Any]:
     return {"success": False, "error": error}
 
 
+def _read_startup_failure(
+    log_path: Path, *, start_offset: int = 0
+) -> Optional[Dict[str, str]]:
+    """Read the current launch's last structured failure from the daemon log."""
+
+    try:
+        with log_path.open("rb") as log:
+            log.seek(start_offset)
+            lines = log.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        try:
+            payload = json.loads(line)
+        except (TypeError, ValueError):
+            continue
+        if payload.get("action") != "daemon.serve" or payload.get("ok") is not False:
+            continue
+        error = payload.get("error") or {}
+        if isinstance(error.get("code"), str) and isinstance(
+            error.get("message"), str
+        ):
+            return {"code": error["code"], "message": error["message"]}
+    return None
+
+
 def start_daemon(
     *,
     endpoint: str = DEFAULT_ENDPOINT,
     visible: bool = False,
     startup_timeout_seconds: float = 120.0,
+    attach_existing: bool = False,
 ) -> Dict[str, Any]:
     """Idempotently start a detached local daemon and wait for readiness."""
 
@@ -157,12 +194,15 @@ def start_daemon(
     ]
     if visible:
         command.append("--visible")
+    if attach_existing:
+        command.append("--attach-existing")
 
     creationflags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200
     )
     try:
         with log_path.open("ab") as log:
+            log_offset = log.tell()
             process = subprocess.Popen(
                 command,
                 stdin=subprocess.DEVNULL,
@@ -195,6 +235,15 @@ def start_daemon(
         except Exception as exc:
             last_error = exc
         if process.poll() is not None:
+            startup_error = _read_startup_failure(
+                log_path, start_offset=log_offset
+            )
+            if startup_error is not None:
+                return _failure(
+                    startup_error["code"],
+                    startup_error["message"],
+                    log=str(log_path),
+                )
             return _failure(
                 "DaemonExited",
                 f"daemon exited during startup with code {process.returncode}",
@@ -215,11 +264,13 @@ def run(args: argparse.Namespace) -> int:
             raise SystemExit("sw-cli daemon serve: port must be between 1 and 65535")
         server = SwclidServer((args.host, args.port))
         manager = None
+        exit_code = 0
         try:
             manager = WorkerManager(
                 visible=args.visible,
                 startup_timeout_seconds=args.startup_timeout,
                 host_platform=args.host_platform,
+                attach_existing=args.attach_existing,
             )
             server.manager = manager
             print(
@@ -238,11 +289,25 @@ def run(args: argparse.Namespace) -> int:
             server.serve_forever()
         except KeyboardInterrupt:
             pass
+        except WorkerStartupError as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "action": "daemon.serve",
+                        "error": {"code": exc.code, "message": str(exc)},
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            exit_code = 1
         finally:
             server.server_close()
             if manager is not None:
                 manager.close()
-        return 0
+        return exit_code
 
     endpoint = (
         getattr(args, "daemon_endpoint", None)
@@ -254,6 +319,7 @@ def run(args: argparse.Namespace) -> int:
             endpoint=endpoint,
             visible=args.visible,
             startup_timeout_seconds=args.startup_timeout,
+            attach_existing=args.attach_existing,
         )
     else:
         operation = "daemon.health" if command == "status" else "daemon.shutdown"

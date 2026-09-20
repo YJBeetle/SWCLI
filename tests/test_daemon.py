@@ -3,11 +3,12 @@ import json
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
-from swcli.daemon.main import start_daemon
+from swcli.daemon.main import _read_startup_failure, start_daemon
 
 
 class DaemonProtocolTests(unittest.TestCase):
@@ -50,6 +51,28 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertEqual(command[:4], [mock.ANY, "-m", "swcli", "daemon"])
         self.assertIn("serve", command)
         self.assertIn("19000", command)
+        self.assertNotIn("--attach-existing", command)
+
+    @mock.patch("swcli.daemon.main.subprocess.Popen")
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_background_start_forwards_explicit_attach(self, call_daemon, popen):
+        call_daemon.side_effect = [
+            ConnectionRefusedError("offline"),
+            {"success": True, "result": {"worker_alive": True}},
+        ]
+        process = popen.return_value
+        process.poll.return_value = None
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            os.environ, {"LOCALAPPDATA": directory}
+        ), mock.patch("swcli.daemon.main.sys.platform", "win32"):
+            result = start_daemon(
+                endpoint="127.0.0.1:19000",
+                startup_timeout_seconds=5.0,
+                attach_existing=True,
+            )
+
+        self.assertTrue(result["success"])
+        self.assertIn("--attach-existing", popen.call_args.args[0])
 
     @mock.patch("swcli.daemon.main.subprocess.Popen")
     @mock.patch("swcli.daemon.main.call_daemon")
@@ -85,19 +108,67 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertTrue(visible.Visible)
 
     @mock.patch("swcli.daemon.server.configure_resident_app")
-    def test_resident_app_preserves_existing_user_instance(self, configure):
+    def test_resident_app_requires_explicit_attach_for_user_instance(self, configure):
+        app = object()
+        com_client = mock.Mock()
+        com_client.GetActiveObject.return_value = app
+
+        with self.assertRaises(server.ExistingHostRequiresAttach):
+            server.acquire_resident_app(com_client, visible=False)
+
+        com_client.DispatchEx.assert_not_called()
+        configure.assert_not_called()
+
+    @mock.patch("swcli.daemon.server.configure_resident_app")
+    def test_resident_app_preserves_explicitly_attached_user_instance(self, configure):
         app = object()
         com_client = mock.Mock()
         com_client.GetActiveObject.return_value = app
 
         actual, owned_by_daemon = server.acquire_resident_app(
-            com_client, visible=False
+            com_client, visible=False, attach_existing=True
         )
 
         self.assertIs(actual, app)
         self.assertFalse(owned_by_daemon)
         com_client.DispatchEx.assert_not_called()
         configure.assert_not_called()
+
+    def test_structured_startup_failure_can_be_recovered_from_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = os.path.join(directory, "daemon.log")
+            with open(log_path, "w", encoding="utf-8") as log:
+                log.write("older diagnostic\n")
+                current_launch_offset = log.tell()
+                log.write(
+                    json.dumps(
+                        {
+                            "ok": False,
+                            "action": "daemon.serve",
+                            "error": {
+                                "code": "ExistingHostRequiresAttach",
+                                "message": "explicit attach required",
+                            },
+                        }
+                    )
+                    + "\n"
+                )
+
+            self.assertEqual(
+                _read_startup_failure(
+                    Path(log_path), start_offset=current_launch_offset
+                ),
+                {
+                    "code": "ExistingHostRequiresAttach",
+                    "message": "explicit attach required",
+                },
+            )
+
+            self.assertIsNone(
+                _read_startup_failure(
+                    Path(log_path), start_offset=os.path.getsize(log_path)
+                )
+            )
 
     @mock.patch("swcli.daemon.server.configure_resident_app")
     def test_resident_app_configures_new_daemon_instance(self, configure):
