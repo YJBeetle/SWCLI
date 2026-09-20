@@ -46,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=3.0,
         help="daemon TCP connection timeout in seconds",
     )
+    parser.add_argument(
+        "--session",
+        default=os.environ.get("SWCLI_SESSION_ID"),
+        help="daemon-side current-document session (default: shared default session)",
+    )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     version_parser = subcommands.add_parser("version", help="show client versions")
@@ -83,17 +88,36 @@ def build_parser() -> argparse.ArgumentParser:
     open_parser.add_argument("--read-only", action="store_true")
     open_parser.add_argument("--configuration", default="")
     open_parser.add_argument("--json", action="store_true", dest="as_json")
-    inspect_parser = document_commands.add_parser(
-        "inspect", help="inspect the active SOLIDWORKS document"
+    list_parser = document_commands.add_parser(
+        "list", help="list open documents and their short-lived IDs"
     )
+    list_parser.add_argument("--json", action="store_true", dest="as_json")
+    use_parser = document_commands.add_parser(
+        "use", help="set the current document for this CLI session"
+    )
+    use_parser.add_argument("document_id")
+    use_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    def add_document_selector(command_parser: argparse.ArgumentParser) -> None:
+        command_parser.add_argument(
+            "--document",
+            dest="document_id",
+            help="target a d-... document ID, or 'active' for this command only",
+        )
+
+    inspect_parser = document_commands.add_parser(
+        "inspect", help="inspect the selected or current SOLIDWORKS document"
+    )
+    add_document_selector(inspect_parser)
     inspect_parser.add_argument(
         "--detail", choices=("summary", "structure"), default="summary"
     )
     inspect_parser.add_argument("--max-features", type=int, default=500)
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     close_parser = document_commands.add_parser(
-        "close", help="close the active SOLIDWORKS document"
+        "close", help="close the selected or current SOLIDWORKS document"
     )
+    add_document_selector(close_parser)
     close_parser.add_argument(
         "--discard",
         action="store_true",
@@ -101,17 +125,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     close_parser.add_argument("--json", action="store_true", dest="as_json")
     save_parser = document_commands.add_parser(
-        "save", help="save the active SOLIDWORKS document in place"
+        "save", help="save the selected or current SOLIDWORKS document in place"
     )
+    add_document_selector(save_parser)
     save_parser.add_argument("--json", action="store_true", dest="as_json")
     diagnose_parser = document_commands.add_parser(
         "diagnose", help="report rebuild state and feature errors"
     )
+    add_document_selector(diagnose_parser)
     diagnose_parser.add_argument("--max-features", type=int, default=500)
     diagnose_parser.add_argument("--json", action="store_true", dest="as_json")
     rebuild_parser = document_commands.add_parser(
         "rebuild", help="rebuild the active SOLIDWORKS document"
     )
+    add_document_selector(rebuild_parser)
     rebuild_parser.add_argument("--force", action="store_true")
     rebuild_parser.add_argument(
         "--top-only",
@@ -121,8 +148,9 @@ def build_parser() -> argparse.ArgumentParser:
     rebuild_parser.add_argument("--max-features", type=int, default=500)
     rebuild_parser.add_argument("--json", action="store_true", dest="as_json")
     render_parser = document_commands.add_parser(
-        "render", help="render the active view to a BMP image"
+        "render", help="render the selected or current document to a BMP image"
     )
+    add_document_selector(render_parser)
     render_parser.add_argument("output")
     render_parser.add_argument("--width", type=int, default=1024)
     render_parser.add_argument("--height", type=int, default=768)
@@ -138,8 +166,9 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--overwrite", action="store_true")
     render_parser.add_argument("--json", action="store_true", dest="as_json")
     export_parser = document_commands.add_parser(
-        "export", help="export the active document to STEP, PDF, or DWG"
+        "export", help="export the selected or current document"
     )
+    add_document_selector(export_parser)
     export_parser.add_argument("output")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
@@ -196,7 +225,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     typed = _typed_operation(args)
     if typed is not None:
-        operation, parameters, as_json = typed
+        operation, parameters, as_json, document_id = typed
         try:
             response = call_daemon(
                 operation,
@@ -204,9 +233,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 endpoint=args.endpoint,
                 timeout_seconds=args.request_timeout,
                 connect_timeout_seconds=args.connect_timeout,
+                session_id=args.session,
+                document_id=document_id,
             )
         except Exception as exc:
-            response = _autostart_and_retry(args, operation, parameters, exc)
+            response = _autostart_and_retry(
+                args, operation, parameters, document_id, exc
+            )
             if response is None:
                 payload = {
                     "ok": False,
@@ -281,6 +314,7 @@ def _autostart_and_retry(
     args: argparse.Namespace,
     operation: str,
     parameters: Dict[str, Any],
+    document_id: Optional[str],
     connection_error: BaseException,
 ) -> Optional[Dict[str, Any]]:
     """Start a missing local Windows daemon, then retry one typed request."""
@@ -301,6 +335,8 @@ def _autostart_and_retry(
             endpoint=args.endpoint,
             timeout_seconds=args.request_timeout,
             connect_timeout_seconds=args.connect_timeout,
+            session_id=args.session,
+            document_id=document_id,
         )
     except Exception as exc:
         return {
@@ -311,7 +347,7 @@ def _autostart_and_retry(
 
 def _typed_operation(
     args: argparse.Namespace,
-) -> Optional[Tuple[str, Dict[str, Any], bool]]:
+) -> Optional[Tuple[str, Dict[str, Any], bool, Optional[str]]]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
     if args.command == "document":
         command = args.document_command
@@ -324,22 +360,34 @@ def _typed_operation(
                     "configuration": args.configuration,
                 },
                 args.as_json,
+                None,
             )
+        if command == "list":
+            return "document.list", {}, args.as_json, None
+        if command == "use":
+            return "document.use", {}, args.as_json, args.document_id
         if command == "inspect":
             return (
                 "document.inspect",
                 {"detail": args.detail, "max_features": args.max_features},
                 args.as_json,
+                args.document_id,
             )
         if command == "close":
-            return "document.close", {"discard": args.discard}, args.as_json
+            return (
+                "document.close",
+                {"discard": args.discard},
+                args.as_json,
+                args.document_id,
+            )
         if command == "save":
-            return "document.save", {}, args.as_json
+            return "document.save", {}, args.as_json, args.document_id
         if command == "diagnose":
             return (
                 "document.diagnose",
                 {"max_features": args.max_features},
                 args.as_json,
+                args.document_id,
             )
         if command == "rebuild":
             return (
@@ -350,6 +398,7 @@ def _typed_operation(
                     "max_features": args.max_features,
                 },
                 args.as_json,
+                args.document_id,
             )
         if command == "render":
             return (
@@ -363,6 +412,7 @@ def _typed_operation(
                     "overwrite": args.overwrite,
                 },
                 args.as_json,
+                args.document_id,
             )
         if command == "export":
             return (
@@ -373,6 +423,7 @@ def _typed_operation(
                     "strict": args.strict,
                 },
                 args.as_json,
+                args.document_id,
             )
     if args.command == "part" and args.part_command == "create-box":
         return (
@@ -386,6 +437,7 @@ def _typed_operation(
                 "overwrite": args.overwrite,
             },
             args.as_json,
+            None,
         )
     return None
 

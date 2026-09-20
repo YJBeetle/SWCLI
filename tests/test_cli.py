@@ -101,31 +101,49 @@ class CliTests(unittest.TestCase):
                 ["document", "open", "part.SLDPRT", "--read-only", "--json"],
                 "document.open",
                 {"path": "part.SLDPRT", "read_only": True, "configuration": ""},
+                None,
+            ),
+            (
+                ["document", "list", "--json"],
+                "document.list",
+                {},
+                None,
+            ),
+            (
+                ["document", "use", "d-k7m2q9", "--json"],
+                "document.use",
+                {},
+                "d-k7m2q9",
             ),
             (
                 ["document", "inspect", "--detail", "structure", "--json"],
                 "document.inspect",
                 {"detail": "structure", "max_features": 500},
+                None,
             ),
             (
                 ["document", "close", "--discard", "--json"],
                 "document.close",
                 {"discard": True},
+                None,
             ),
             (
                 ["document", "save", "--json"],
                 "document.save",
                 {},
+                None,
             ),
             (
                 ["document", "diagnose", "--max-features", "25", "--json"],
                 "document.diagnose",
                 {"max_features": 25},
+                None,
             ),
             (
                 ["document", "rebuild", "--force", "--top-only", "--json"],
                 "document.rebuild",
                 {"force": True, "top_only": True, "max_features": 500},
+                None,
             ),
             (
                 [
@@ -138,6 +156,7 @@ class CliTests(unittest.TestCase):
                     "output": "view.bmp", "width": 800, "height": 600,
                     "view": "isometric", "fit": False, "overwrite": True,
                 },
+                None,
             ),
             (
                 [
@@ -150,6 +169,7 @@ class CliTests(unittest.TestCase):
                     "overwrite": True,
                     "strict": True,
                 },
+                None,
             ),
             (
                 [
@@ -163,15 +183,41 @@ class CliTests(unittest.TestCase):
                     "height_mm": 50.0, "depth_mm": 20.0,
                     "template": "Part.prtdot", "overwrite": False,
                 },
+                None,
             ),
         )
         parser = build_parser()
-        for arguments, operation, parameters in cases:
+        for arguments, operation, parameters, document_id in cases:
             with self.subTest(operation=operation):
                 self.assertEqual(
                     _typed_operation(parser.parse_args(arguments)),
-                    (operation, parameters, True),
+                    (operation, parameters, True, document_id),
                 )
+
+    def test_document_selector_and_session_are_mapped_separately(self):
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "--session",
+                "agent-a",
+                "document",
+                "inspect",
+                "--document",
+                "active",
+                "--json",
+            ]
+        )
+
+        self.assertEqual(args.session, "agent-a")
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "document.inspect",
+                {"detail": "summary", "max_features": 500},
+                True,
+                "active",
+            ),
+        )
 
     @mock.patch("swcli.cli.call_daemon")
     def test_typed_command_uses_default_daemon_endpoint(self, call_daemon):
@@ -195,6 +241,8 @@ class CliTests(unittest.TestCase):
             endpoint="127.0.0.1:18495",
             timeout_seconds=600.0,
             connect_timeout_seconds=3.0,
+            session_id=None,
+            document_id=None,
         )
 
     @mock.patch("swcli.cli.call_daemon")
