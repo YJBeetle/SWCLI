@@ -1,5 +1,7 @@
 # SWCLI
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 [English](README.md) | [简体中文](README.CN.md)
 
 SWCLI is an independent, cross-platform automation protocol, command-line
@@ -326,3 +328,7 @@ installation cache; patched Wine integration remains the responsibility of
 DockerSW and MacSW. A separate manual probe diagnoses disk cleanup and streamed
 Google Drive ISO access without claiming that Windows Server is a supported
 SOLIDWORKS client environment. See [Windows CI](docs/windows-ci.md).
+
+## License
+
+SWCLI is available under the [MIT License](LICENSE).

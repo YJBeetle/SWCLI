@@ -7,6 +7,7 @@ name = "swcli"
 version = "0.1.0.dev0"
 description = "Cross-platform automation protocol, CLI, and agent runtime for SOLIDWORKS"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.9"
 authors = [
   { name = "YJBeetle" },
@@ -14,6 +15,7 @@ authors = [
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
 ]
