@@ -19,6 +19,20 @@ class ProtocolSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported protocol version"):
             load_schema("request", version="swcli/v2")
 
+    def test_response_schema_describes_the_implemented_envelope(self):
+        properties = load_schema("response")["properties"]
+        self.assertEqual(
+            set(properties),
+            {
+                "api_version",
+                "request_id",
+                "success",
+                "duration_ms",
+                "result",
+                "error",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

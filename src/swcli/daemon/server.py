@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import multiprocessing
 import queue
+import re
 import socketserver
 import subprocess
 import threading
@@ -18,6 +19,7 @@ from .operations import OPERATIONS, execute_operation
 
 
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
+DOCUMENT_ID_PATTERN = re.compile(r"^d-[0-9a-hjkmnp-tv-z]{6}$")
 
 
 class ExistingHostRequiresAttach(RuntimeError):
@@ -66,10 +68,20 @@ def validate_request(request: Any) -> Dict[str, Any]:
             raise ValueError(f"{name} must be a non-empty string")
     if not isinstance(request.get("parameters"), dict):
         raise ValueError("parameters must be an object")
-    for name in ("session_id", "document_id"):
-        value = request.get(name)
-        if value is not None and (not isinstance(value, str) or not value):
-            raise ValueError(f"{name} must be a non-empty string when provided")
+    session_id = request.get("session_id")
+    if session_id is not None and (
+        not isinstance(session_id, str) or not session_id
+    ):
+        raise ValueError("session_id must be a non-empty string when provided")
+    document_id = request.get("document_id")
+    if document_id is not None and (
+        not isinstance(document_id, str)
+        or (
+            document_id != "active"
+            and DOCUMENT_ID_PATTERN.fullmatch(document_id) is None
+        )
+    ):
+        raise ValueError("document_id must be a d-... ID or 'active'")
     timeout_ms = request.get("timeout_ms", 600000)
     if not isinstance(timeout_ms, int) or timeout_ms < 1:
         raise ValueError("timeout_ms must be a positive integer")

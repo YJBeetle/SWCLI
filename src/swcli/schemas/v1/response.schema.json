@@ -10,10 +10,7 @@
     "request_id": {"type": "string", "minLength": 1},
     "success": {"type": "boolean"},
     "duration_ms": {"type": "number", "minimum": 0},
-    "document_revision": {"type": "integer", "minimum": 0},
     "result": {},
-    "diagnostics": {"type": "array", "items": {"type": "object"}},
-    "artifacts": {"type": "array", "items": {"type": "object"}},
     "error": {
       "type": "object",
       "additionalProperties": false,

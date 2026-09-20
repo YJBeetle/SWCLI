@@ -128,7 +128,7 @@ class DocumentRegistry:
             return self.register(document)
 
         document_id = selector
-        if document_id in (None, "current"):
+        if document_id is None:
             document_id = self._current_by_session.get(session_id)
             if document_id is None:
                 raise NoCurrentDocument(

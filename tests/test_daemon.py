@@ -484,6 +484,26 @@ class DaemonProtocolTests(unittest.TestCase):
                 }
             )
 
+    def test_request_validation_enforces_public_document_selectors(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-1",
+            "operation": "document.inspect",
+            "parameters": {},
+        }
+        for document_id in ("current", "d-invalid", "", 42):
+            with self.subTest(document_id=document_id), self.assertRaisesRegex(
+                ValueError, "document_id must be"
+            ):
+                server.validate_request({**request, "document_id": document_id})
+
+        for document_id in ("active", "d-k7m2q9"):
+            with self.subTest(document_id=document_id):
+                validated = server.validate_request(
+                    {**request, "document_id": document_id}
+                )
+                self.assertEqual(validated["document_id"], document_id)
+
     @mock.patch("swcli.daemon.operations.open_windows_document_with_handle")
     def test_document_operation_reuses_worker_owned_app(self, open_document):
         app = object()
