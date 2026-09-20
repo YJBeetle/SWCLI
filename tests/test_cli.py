@@ -55,7 +55,10 @@ class CliTests(unittest.TestCase):
         self.assertTrue(payload["daemon"]["reachable"])
         self.assertTrue(payload["daemon"]["health"]["worker_alive"])
         call_daemon.assert_called_once_with(
-            "daemon.health", endpoint="127.0.0.1:18495", timeout_seconds=10.0
+            "daemon.health",
+            endpoint="127.0.0.1:18495",
+            timeout_seconds=10.0,
+            connect_timeout_seconds=3.0,
         )
 
     @mock.patch("swcli.cli.call_daemon", side_effect=ConnectionRefusedError("offline"))
@@ -176,6 +179,7 @@ class CliTests(unittest.TestCase):
             {"path": "sample.SLDPRT", "read_only": True, "configuration": ""},
             endpoint="127.0.0.1:18495",
             timeout_seconds=600.0,
+            connect_timeout_seconds=3.0,
         )
 
     @mock.patch("swcli.cli.call_daemon")
@@ -197,6 +201,37 @@ class CliTests(unittest.TestCase):
     ):
         call_daemon.side_effect = [
             ConnectionRefusedError("daemon unavailable"),
+            {
+                "success": True,
+                "result": {
+                    "ok": True,
+                    "action": "document.inspect",
+                    "document": {"title": "sample.SLDPRT"},
+                },
+            },
+        ]
+        start_daemon.return_value = {
+            "success": True,
+            "result": {"started": True},
+        }
+        output = io.StringIO()
+        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
+            output
+        ):
+            exit_code = main(["document", "inspect", "--json"])
+
+        self.assertEqual(exit_code, 0)
+        start_daemon.assert_called_once_with(endpoint="127.0.0.1:18495")
+        self.assertEqual(call_daemon.call_count, 2)
+        self.assertTrue(json.loads(output.getvalue())["ok"])
+
+    @mock.patch("swcli.cli.start_daemon")
+    @mock.patch("swcli.cli.call_daemon")
+    def test_native_windows_typed_command_autostarts_after_connect_timeout(
+        self, call_daemon, start_daemon
+    ):
+        call_daemon.side_effect = [
+            TimeoutError("timed out"),
             {
                 "success": True,
                 "result": {

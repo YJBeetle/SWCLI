@@ -17,7 +17,7 @@ from .protocol import SCHEMA_NAMES, load_schema
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
-    is_connection_refused_error,
+    is_local_daemon_unreachable_error,
     is_local_endpoint,
     run as run_daemon_command,
     start_daemon,
@@ -39,6 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=600.0,
         help="daemon request timeout in seconds",
+    )
+    parser.add_argument(
+        "--connect-timeout",
+        type=float,
+        default=3.0,
+        help="daemon TCP connection timeout in seconds",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -197,6 +203,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 parameters,
                 endpoint=args.endpoint,
                 timeout_seconds=args.request_timeout,
+                connect_timeout_seconds=args.connect_timeout,
             )
         except Exception as exc:
             response = _autostart_and_retry(args, operation, parameters, exc)
@@ -220,6 +227,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 "daemon.health",
                 endpoint=args.endpoint,
                 timeout_seconds=min(args.request_timeout, 10.0),
+                connect_timeout_seconds=args.connect_timeout,
             )
         except Exception as exc:
             payload["daemon"] = {
@@ -280,7 +288,7 @@ def _autostart_and_retry(
     if (
         sys.platform != "win32"
         or not is_local_endpoint(args.endpoint)
-        or not is_connection_refused_error(connection_error)
+        or not is_local_daemon_unreachable_error(connection_error)
     ):
         return None
     started = start_daemon(endpoint=args.endpoint)
@@ -292,6 +300,7 @@ def _autostart_and_retry(
             parameters,
             endpoint=args.endpoint,
             timeout_seconds=args.request_timeout,
+            connect_timeout_seconds=args.connect_timeout,
         )
     except Exception as exc:
         return {

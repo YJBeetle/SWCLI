@@ -65,8 +65,16 @@ def is_local_endpoint(endpoint: str) -> bool:
     return host.casefold() in {"127.0.0.1", "localhost"}
 
 
-def is_connection_refused_error(exc: BaseException) -> bool:
-    return isinstance(exc, ConnectionRefusedError) or (
+def is_local_daemon_unreachable_error(exc: BaseException) -> bool:
+    """Return whether a local health probe failed before reaching swclid.
+
+    Some Windows networking stacks, including Windows on Parallels, time out
+    loopback connects to an unused port instead of returning WSAECONNREFUSED.
+    Both outcomes mean automatic startup should be attempted for an explicitly
+    local endpoint.
+    """
+
+    return isinstance(exc, (ConnectionRefusedError, TimeoutError)) or (
         isinstance(exc, OSError)
         and (
             getattr(exc, "errno", None) == errno.ECONNREFUSED
@@ -107,7 +115,7 @@ def start_daemon(
             "daemon.health", endpoint=endpoint, timeout_seconds=1.0
         )
     except Exception as exc:
-        if not is_connection_refused_error(exc):
+        if not is_local_daemon_unreachable_error(exc):
             return _failure(type(exc).__name__, str(exc))
     else:
         if response.get("success"):
@@ -251,7 +259,10 @@ def run(args: argparse.Namespace) -> int:
         operation = "daemon.health" if command == "status" else "daemon.shutdown"
         try:
             response = call_daemon(
-                operation, endpoint=endpoint, timeout_seconds=10.0
+                operation,
+                endpoint=endpoint,
+                timeout_seconds=10.0,
+                connect_timeout_seconds=1.0,
             )
         except Exception as exc:
             response = _failure(type(exc).__name__, str(exc))

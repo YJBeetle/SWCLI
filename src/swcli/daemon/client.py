@@ -31,6 +31,7 @@ def call_daemon(
     *,
     endpoint: Optional[str] = None,
     timeout_seconds: float = 600.0,
+    connect_timeout_seconds: Optional[float] = None,
     request_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit one typed operation to swclid and return its protocol response."""
@@ -50,7 +51,12 @@ def call_daemon(
         "utf-8"
     ) + b"\n"
 
-    with socket.create_connection((host, port), timeout=timeout_seconds) as connection:
+    connect_timeout = (
+        timeout_seconds
+        if connect_timeout_seconds is None
+        else connect_timeout_seconds
+    )
+    with socket.create_connection((host, port), timeout=connect_timeout) as connection:
         connection.settimeout(timeout_seconds + 10.0)
         connection.sendall(encoded)
         reader = connection.makefile("rb")
