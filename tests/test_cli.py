@@ -182,7 +182,7 @@ class CliTests(unittest.TestCase):
     def test_daemon_connection_failure_does_not_fall_back_to_com(self, call_daemon):
         call_daemon.side_effect = ConnectionRefusedError("daemon unavailable")
         output = io.StringIO()
-        with contextlib.redirect_stdout(output):
+        with mock.patch("swcli.cli.sys.platform", "linux"), contextlib.redirect_stdout(output):
             exit_code = main(["document", "inspect", "--json"])
         self.assertEqual(exit_code, 1)
         self.assertEqual(
