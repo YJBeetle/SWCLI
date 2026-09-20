@@ -6,7 +6,7 @@ import math
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from .windows import PROG_ID, _com_value, _describe_document, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
@@ -153,7 +153,7 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
     }
 
 
-def create_box_part_windows(
+def create_box_part_windows_with_handle(
     output: str,
     *,
     width_mm: float,
@@ -162,21 +162,24 @@ def create_box_part_windows(
     template: Optional[str] = None,
     overwrite: bool = False,
     app: Any = None,
-) -> Dict[str, Any]:
-    """Create, rebuild, diagnose, and save a centered rectangular extrusion."""
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    """Create a box and return the exact COM document produced by NewDocument."""
 
     invalid = _validate_box_arguments(output, width_mm, height_mm, depth_mm)
     if invalid is not None:
-        return invalid
+        return invalid, None
     if sys.platform != "win32":
-        return {
-            "ok": False,
-            "action": "part.create-box",
-            "error": {
-                "type": "UnsupportedPlatform",
-                "message": "native Windows part operations require Windows",
+        return (
+            {
+                "ok": False,
+                "action": "part.create-box",
+                "error": {
+                    "type": "UnsupportedPlatform",
+                    "message": "native Windows part operations require Windows",
+                },
             },
-        }
+            None,
+        )
 
     output_path = Path(output).expanduser().resolve()
     result: Dict[str, Any] = {
@@ -195,13 +198,13 @@ def create_box_part_windows(
             "type": "ParentDirectoryNotFound",
             "message": f"output directory does not exist: {output_path.parent}",
         }
-        return result
+        return result, None
     if output_path.exists() and not overwrite:
         result["error"] = {
             "type": "OutputExists",
             "message": "output already exists; use --overwrite to replace it",
         }
-        return result
+        return result, None
 
     import pythoncom
     import win32com.client
@@ -219,7 +222,7 @@ def create_box_part_windows(
                     "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
-                return result
+                return result, None
 
         template_result = _resolve_part_template(app, template)
         result["template"] = {
@@ -227,7 +230,7 @@ def create_box_part_windows(
         }
         if not template_result["ok"]:
             result["error"] = template_result["error"]
-            return result
+            return result, None
 
         document = app.NewDocument(template_result["path"], 0, 0.0, 0.0)
         if document is None:
@@ -235,7 +238,7 @@ def create_box_part_windows(
                 "type": "NewDocumentFailed",
                 "message": "SOLIDWORKS could not create a part from the resolved template",
             }
-            return result
+            return result, None
 
         width_m = width_mm / 1000.0
         height_m = height_mm / 1000.0
@@ -255,7 +258,7 @@ def create_box_part_windows(
                 "type": "SketchFailed",
                 "message": "SOLIDWORKS did not create rectangle sketch segments",
             }
-            return result
+            return result, None
         sketch_manager.InsertSketch(True)
 
         feature_manager = _com_value(document, "FeatureManager")
@@ -289,7 +292,7 @@ def create_box_part_windows(
                 "type": "ExtrusionFailed",
                 "message": "SOLIDWORKS did not create the extrusion feature",
             }
-            return result
+            return result, None
 
         rebuilt = bool(_com_value(document, "EditRebuild3"))
         diagnostics = _diagnose_features(document, 500)
@@ -300,7 +303,7 @@ def create_box_part_windows(
                 "type": "ModelInvalid",
                 "message": "created model did not pass rebuild diagnostics",
             }
-            return result
+            return result, None
 
         bodies = _inspect_bodies(document)
         geometry_verification = _verify_box_geometry(
@@ -313,7 +316,7 @@ def create_box_part_windows(
                 "type": "GeometryVerificationFailed",
                 "message": "created body did not match the requested box dimensions",
             }
-            return result
+            return result, None
 
         document.ClearSelection2(True)
         # ModelDocExtension.SaveAs3 has two optional COM object parameters that
@@ -333,7 +336,7 @@ def create_box_part_windows(
                 "type": "SaveFailed",
                 "message": "SOLIDWORKS failed to save the created part",
             }
-            return result
+            return result, None
 
         result["document"] = _describe_document(document)
         result["feature"] = {
@@ -341,10 +344,34 @@ def create_box_part_windows(
             "type": str(_com_value(feature, "GetTypeName2")),
         }
         result["ok"] = True
-        return result
+        return result, document
     except Exception as exc:
         result["error"] = _error(exc)
-        return result
+        return result, None
     finally:
         if owns_com:
             pythoncom.CoUninitialize()
+
+
+def create_box_part_windows(
+    output: str,
+    *,
+    width_mm: float,
+    height_mm: float,
+    depth_mm: float,
+    template: Optional[str] = None,
+    overwrite: bool = False,
+    app: Any = None,
+) -> Dict[str, Any]:
+    """Create, rebuild, diagnose, and save a centered rectangular extrusion."""
+
+    result, _document = create_box_part_windows_with_handle(
+        output,
+        width_mm=width_mm,
+        height_mm=height_mm,
+        depth_mm=depth_mm,
+        template=template,
+        overwrite=overwrite,
+        app=app,
+    )
+    return result

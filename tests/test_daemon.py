@@ -144,6 +144,44 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(entry.document, opened)
         self.assertIsNot(entry.document, previous)
 
+    @mock.patch("swcli.daemon.operations.create_box_part_windows_with_handle")
+    def test_create_box_registers_exact_document_returned_by_newdocument(
+        self, create_box
+    ):
+        previous = self.FakeDocument("previous.SLDPRT", "C:\\previous.SLDPRT")
+        created = self.FakeDocument("box.SLDPRT", "C:\\box.SLDPRT")
+        app = self.FakeApp([previous, created], active=previous)
+        registry = DocumentRegistry(app)
+        create_box.return_value = (
+            {
+                "ok": True,
+                "action": "part.create-box",
+                "document": {
+                    "title": created.title,
+                    "path": created.path,
+                    "type": created.document_type,
+                    "modified": False,
+                },
+            },
+            created,
+        )
+
+        result = operations.execute_operation(
+            app,
+            "part.create-box",
+            {
+                "output": created.path,
+                "width_mm": 10,
+                "height_mm": 20,
+                "depth_mm": 30,
+            },
+            documents=registry,
+        )
+
+        entry = registry.resolve(result["document"]["document_id"])
+        self.assertIs(entry.document, created)
+        self.assertIsNot(entry.document, previous)
+
     def test_closing_current_document_clears_only_matching_sessions(self):
         first = self.FakeDocument("first.SLDPRT", "C:\\first.SLDPRT")
         app = self.FakeApp([first], active=first)

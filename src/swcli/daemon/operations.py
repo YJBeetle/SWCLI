@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ..hosts.windows import _com_value
 from ..hosts.windows_documents import (
     open_windows_document_with_handle,
     close_active_windows_document,
@@ -15,7 +14,7 @@ from ..hosts.windows_documents import (
     render_active_windows_document,
     save_active_windows_document,
 )
-from ..hosts.windows_parts import create_box_part_windows
+from ..hosts.windows_parts import create_box_part_windows_with_handle
 from .documents import DEFAULT_SESSION_ID, DocumentEntry, DocumentRegistry
 
 
@@ -269,7 +268,7 @@ def execute_operation(
             },
             {"output", "width_mm", "height_mm", "depth_mm"},
         )
-        result = create_box_part_windows(
+        result, created_document = create_box_part_windows_with_handle(
             str(values["output"]),
             width_mm=float(values["width_mm"]),
             height_mm=float(values["height_mm"]),
@@ -281,12 +280,11 @@ def execute_operation(
             app=app,
         )
         if documents is not None and result.get("ok"):
-            document = _com_value(app, "ActiveDoc")
-            if document is None:
+            if created_document is None:
                 raise RuntimeError(
                     "SOLIDWORKS returned no document after creating a part"
                 )
-            entry = documents.register(document)
+            entry = documents.register(created_document)
             documents.set_current(entry, session_id=session_id)
             return _with_document(result, documents, entry, session_id=session_id)
         return result
