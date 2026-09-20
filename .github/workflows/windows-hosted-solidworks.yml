@@ -1,4 +1,4 @@
-name: Windows hosted SOLIDWORKS smoke test
+name: SOLIDWORKS E2E
 
 on:
   push:

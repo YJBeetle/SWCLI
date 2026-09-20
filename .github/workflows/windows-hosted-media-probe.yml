@@ -1,4 +1,4 @@
-name: Windows hosted media probe
+name: Installation media diagnostics
 
 on:
   workflow_dispatch:

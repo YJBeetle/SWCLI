@@ -35,10 +35,11 @@ Required repository secret:
 
 ## Disposable hosted installation smoke
 
-`.github/workflows/windows-hosted-solidworks.yml` is a manual integration test,
-not a release pipeline or a declaration that Windows Server is an officially
-supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where it
-also applies to native Windows:
+`.github/workflows/windows-hosted-solidworks.yml` runs on trusted `main` pushes
+and can also be started manually. It is an integration test, not a release
+pipeline or a declaration that Windows Server is an officially supported
+SOLIDWORKS workstation. It mirrors the proven DockerSW order where it also
+applies to native Windows:
 
 1. stream the complete official ISO and expose it through ImDisk as a read-only
    optical volume, without selectively extracting an assumed dependency set;
@@ -65,26 +66,6 @@ smoke are retained with the SWCLI-generated evidence so modal startup failures
 remain diagnosable when COM never becomes ready. All other private inputs and
 the rclone credential are removed in an unconditional cleanup step; the hosted
 VM is then discarded by GitHub.
-
-## Native SOLIDWORKS E2E
-
-`.github/workflows/windows-solidworks.yml` targets a self-hosted runner with
-these labels:
-
-```text
-self-hosted, windows, x64, solidworks-2025
-```
-
-The runner must be started interactively by a dedicated logged-in user, not as
-a Windows service in Session 0. The smoke test discovers the registered
-SOLIDWORKS installation, waits for complete startup, creates and verifies a
-100 x 50 x 20 mm box, renders an 800 x 600 isometric BMP, exports STEP, closes
-the document, and exits SOLIDWORKS. JSON results and artifacts are retained for
-14 days.
-
-Because SWCLI is public, this runner workflow is manual-only initially. Do not
-enable it for fork pull requests. After the runner is isolated and proven, it
-can be enabled for protected `main` pushes, scheduled runs, and releases.
 
 ## Installation cache boundary
 
