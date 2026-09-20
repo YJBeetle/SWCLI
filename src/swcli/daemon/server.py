@@ -267,6 +267,7 @@ class WorkerManager:
         self._process: Optional[Any] = None
         self._request_queue: Optional[Any] = None
         self._response_queue: Optional[Any] = None
+        self._recovery_required: Optional[Dict[str, str]] = None
         self.host: Dict[str, Any] = {}
         self._start_worker()
 
@@ -332,6 +333,12 @@ class WorkerManager:
 
     def call(self, request: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            if self._recovery_required is not None:
+                return _error_response(
+                    request["request_id"],
+                    self._recovery_required["code"],
+                    self._recovery_required["message"],
+                )
             if self._process is None or not self._process.is_alive():
                 self._start_worker()
             assert self._request_queue is not None
@@ -341,11 +348,27 @@ class WorkerManager:
             try:
                 response = self._response_queue.get(timeout=timeout_seconds)
             except queue.Empty:
+                shared_interactive = bool(self.host.get("shared_interactive"))
                 self._terminate_worker()
+                if shared_interactive:
+                    message = (
+                        f"operation exceeded {request['timeout_ms']}ms while using an "
+                        "attached interactive SOLIDWORKS instance; its state is unknown. "
+                        "Inspect SOLIDWORKS, then restart swclid before issuing more commands"
+                    )
+                    self._recovery_required = {
+                        "code": "SharedHostRecoveryRequired",
+                        "message": message,
+                    }
+                else:
+                    message = (
+                        f"operation exceeded {request['timeout_ms']}ms; worker and owned "
+                        "SOLIDWORKS host were terminated"
+                    )
                 return _error_response(
                     request["request_id"],
                     "WorkerTimeout",
-                    f"operation exceeded {request['timeout_ms']}ms; worker was replaced",
+                    message,
                     duration_ms=float(request["timeout_ms"]),
                 )
             if (response.get("error") or {}).get("code") == "HostDisconnected":
@@ -365,6 +388,8 @@ class WorkerManager:
             "worker_alive": bool(
                 self._process is not None and self._process.is_alive()
             ),
+            "recovery_required": self._recovery_required is not None,
+            "recovery_error": self._recovery_required,
             "host": self.host,
         }
 

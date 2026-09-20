@@ -474,6 +474,44 @@ class DaemonProtocolTests(unittest.TestCase):
         process.terminate.assert_called_once()
         run.assert_not_called()
 
+    def test_shared_host_timeout_requires_explicit_daemon_recovery(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = mock.Mock()
+        manager._process.is_alive.return_value = True
+        manager._request_queue = mock.Mock()
+        manager._response_queue = mock.Mock()
+        manager._response_queue.get.side_effect = server.queue.Empty
+        manager._recovery_required = None
+        manager.host = {
+            "process_id": 1234,
+            "owned_by_daemon": False,
+            "shared_interactive": True,
+        }
+        manager._terminate_worker = mock.Mock()
+        request = {
+            "request_id": "req-timeout",
+            "timeout_ms": 100,
+        }
+
+        timed_out = manager.call(request)
+        blocked = manager.call({**request, "request_id": "req-after-timeout"})
+
+        self.assertEqual(timed_out["error"]["code"], "WorkerTimeout")
+        self.assertIn("state is unknown", timed_out["error"]["message"])
+        self.assertEqual(
+            blocked["error"]["code"], "SharedHostRecoveryRequired"
+        )
+        self.assertIn("restart swclid", blocked["error"]["message"])
+        manager._terminate_worker.assert_called_once()
+        manager._request_queue.put.assert_called_once_with(request)
+
+        health = manager.health()
+        self.assertTrue(health["recovery_required"])
+        self.assertEqual(
+            health["recovery_error"]["code"], "SharedHostRecoveryRequired"
+        )
+
     def test_endpoint_parser_validates_host_and_port(self):
         self.assertEqual(client.parse_endpoint("127.0.0.1:18495"), ("127.0.0.1", 18495))
         with self.assertRaisesRegex(ValueError, "HOST:PORT"):
