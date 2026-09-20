@@ -7,6 +7,7 @@ on:
       - '**.md'
       - 'docs/**'
       - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
     inputs:
       media_path:
