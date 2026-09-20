@@ -15,6 +15,7 @@ from swcli.daemon.documents import (
 )
 from swcli.daemon.main import (
     _read_startup_failure,
+    _read_startup_host,
     _terminate_spawned_daemon,
     require_remote_bind_opt_in,
     start_daemon,
@@ -339,13 +340,35 @@ class DaemonProtocolTests(unittest.TestCase):
         call_daemon.side_effect = ConnectionRefusedError("offline")
         process = popen.return_value
         process.poll.return_value = None
+
+        def launch(*args, **kwargs):
+            kwargs["stdout"].write(
+                (
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "action": "daemon.startup",
+                            "phase": "host-acquired",
+                            "host": {
+                                "process_id": 9876,
+                                "owned_by_daemon": True,
+                            },
+                        }
+                    )
+                    + "\n"
+                ).encode("utf-8")
+            )
+            kwargs["stdout"].flush()
+            return process
+
+        popen.side_effect = launch
         terminate.return_value = None
         with (
             tempfile.TemporaryDirectory() as directory,
             mock.patch.dict(os.environ, {"LOCALAPPDATA": directory}),
             mock.patch("swcli.daemon.main.sys.platform", "win32"),
             mock.patch(
-                "swcli.daemon.main.time.monotonic", side_effect=[0.0, 6.0]
+                "swcli.daemon.main.time.monotonic", side_effect=[0.0, 16.0]
             ),
         ):
             result = start_daemon(
@@ -354,7 +377,7 @@ class DaemonProtocolTests(unittest.TestCase):
 
         self.assertFalse(result["success"])
         self.assertEqual(result["error"]["code"], "StartupTimeout")
-        terminate.assert_called_once_with(process)
+        terminate.assert_called_once_with(process, owned_host_pid=9876)
 
     @mock.patch("swcli.daemon.main.subprocess.run")
     def test_spawned_daemon_cleanup_kills_the_complete_process_tree(self, run):
@@ -370,6 +393,72 @@ class DaemonProtocolTests(unittest.TestCase):
             ["taskkill", "/PID", "4321", "/T", "/F"],
         )
         process.wait.assert_called_once_with(timeout=5.0)
+
+    @mock.patch("swcli.daemon.main.subprocess.run")
+    def test_spawned_daemon_cleanup_kills_reported_owned_host_by_pid(self, run):
+        process = mock.Mock(pid=4321)
+        process.poll.return_value = None
+        run.return_value.returncode = 0
+
+        error = _terminate_spawned_daemon(process, owned_host_pid=9876)
+
+        self.assertIsNone(error)
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            [
+                ["taskkill", "/PID", "9876", "/T", "/F"],
+                ["taskkill", "/PID", "4321", "/T", "/F"],
+            ],
+        )
+
+    def test_worker_startup_reports_owned_host_before_readiness(self):
+        manager = object.__new__(server.WorkerManager)
+        manager.visible = False
+        manager.startup_timeout_seconds = 120.0
+        manager.host_platform = "windows"
+        manager.attach_existing = False
+        manager.startup_reporter = mock.Mock()
+        manager.host = {}
+        manager._context = mock.Mock()
+        request_queue = mock.Mock()
+        response_queue = mock.Mock()
+        ready_queue = mock.Mock()
+        manager._context.Queue.side_effect = [
+            request_queue,
+            response_queue,
+            ready_queue,
+        ]
+        process = manager._context.Process.return_value
+        ready_queue.get.side_effect = [
+            {
+                "ok": True,
+                "phase": "host-acquired",
+                "host": {"process_id": 9876, "owned_by_daemon": True},
+            },
+            {
+                "ok": True,
+                "phase": "ready",
+                "host": {
+                    "process_id": 9876,
+                    "owned_by_daemon": True,
+                    "solidworks_revision": "33.5.0",
+                },
+            },
+        ]
+
+        with mock.patch("swcli.daemon.server.time.monotonic", return_value=0.0):
+            manager._start_worker()
+
+        process.start.assert_called_once()
+        manager.startup_reporter.assert_called_once_with(
+            {
+                "process_id": 9876,
+                "owned_by_daemon": True,
+                "platform": "windows",
+            }
+        )
+        self.assertEqual(manager.host["solidworks_revision"], "33.5.0")
+        self.assertEqual(manager.host["platform"], "windows")
 
     def test_resident_lifetime_selects_official_background_control(self):
         hidden = mock.Mock()
@@ -443,6 +532,47 @@ class DaemonProtocolTests(unittest.TestCase):
                 _read_startup_failure(
                     Path(log_path), start_offset=os.path.getsize(log_path)
                 )
+            )
+
+    def test_owned_startup_host_can_be_recovered_from_log(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "daemon.log"
+            with log_path.open("w", encoding="utf-8") as log:
+                log.write(
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "action": "daemon.startup",
+                            "phase": "host-acquired",
+                            "host": {
+                                "process_id": 1111,
+                                "owned_by_daemon": True,
+                            },
+                        }
+                    )
+                    + "\n"
+                )
+                current_launch_offset = log.tell()
+                log.write(
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "action": "daemon.startup",
+                            "phase": "host-acquired",
+                            "host": {
+                                "process_id": 9876,
+                                "owned_by_daemon": True,
+                            },
+                        }
+                    )
+                    + "\n"
+                )
+
+            self.assertEqual(
+                _read_startup_host(
+                    log_path, start_offset=current_launch_offset
+                ),
+                {"process_id": 9876, "owned_by_daemon": True},
             )
 
     @mock.patch("swcli.daemon.server.configure_resident_app")

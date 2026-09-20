@@ -148,13 +148,72 @@ def _read_startup_failure(
     return None
 
 
-def _terminate_spawned_daemon(process: subprocess.Popen[Any]) -> Optional[str]:
+def _read_startup_host(
+    log_path: Path, *, start_offset: int = 0
+) -> Optional[Dict[str, Any]]:
+    """Read the host ownership and PID reported during the current launch."""
+
+    try:
+        with log_path.open("rb") as log:
+            log.seek(start_offset)
+            lines = log.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        try:
+            payload = json.loads(line)
+        except (TypeError, ValueError):
+            continue
+        if (
+            payload.get("action") != "daemon.startup"
+            or payload.get("phase") != "host-acquired"
+        ):
+            continue
+        host = payload.get("host") or {}
+        process_id = host.get("process_id")
+        owned_by_daemon = host.get("owned_by_daemon")
+        if (
+            isinstance(process_id, int)
+            and process_id > 0
+            and isinstance(owned_by_daemon, bool)
+        ):
+            return {
+                "process_id": process_id,
+                "owned_by_daemon": owned_by_daemon,
+            }
+    return None
+
+
+def _terminate_spawned_daemon(
+    process: subprocess.Popen[Any], *, owned_host_pid: Optional[int] = None
+) -> Optional[str]:
     """Terminate the detached daemon process tree after a failed startup."""
 
     if process.poll() is not None:
         return None
 
     errors = []
+    if owned_host_pid is not None:
+        try:
+            completed = subprocess.run(
+                ["taskkill", "/PID", str(owned_host_pid), "/T", "/F"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=10.0,
+            )
+            if completed.returncode != 0:
+                errors.append(
+                    "owned SOLIDWORKS taskkill exited with code "
+                    f"{completed.returncode}"
+                )
+        except (OSError, subprocess.SubprocessError) as exc:
+            errors.append(f"owned SOLIDWORKS taskkill failed: {exc}")
+
+    if process.poll() is not None:
+        return "; ".join(errors) or None
+
     try:
         completed = subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
@@ -272,7 +331,10 @@ def start_daemon(
     except Exception as exc:
         return _failure(type(exc).__name__, str(exc), log=str(log_path))
 
-    deadline = time.monotonic() + startup_timeout_seconds + 5.0
+    # The worker owns the operation timeout plus five seconds for startup IPC.
+    # Leave it another ten seconds to perform exact-PID host cleanup before the
+    # outer launcher force-terminates the detached supervisor.
+    deadline = time.monotonic() + startup_timeout_seconds + 15.0
     last_error: Optional[BaseException] = None
     while time.monotonic() < deadline:
         try:
@@ -312,7 +374,15 @@ def start_daemon(
     message = f"daemon did not become ready within {startup_timeout_seconds:g}s"
     if last_error is not None:
         message = f"{message}: {last_error}"
-    cleanup_error = _terminate_spawned_daemon(process)
+    startup_host = _read_startup_host(log_path, start_offset=log_offset)
+    owned_host_pid = (
+        int(startup_host["process_id"])
+        if startup_host is not None and startup_host["owned_by_daemon"]
+        else None
+    )
+    cleanup_error = _terminate_spawned_daemon(
+        process, owned_host_pid=owned_host_pid
+    )
     details: Dict[str, Any] = {"log": str(log_path)}
     if cleanup_error is not None:
         details["cleanup_error"] = cleanup_error
@@ -328,12 +398,32 @@ def run(args: argparse.Namespace) -> int:
         server = SwclidServer((args.host, args.port))
         manager = None
         exit_code = 0
+
+        def report_startup_host(host: Dict[str, Any]) -> None:
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "action": "daemon.startup",
+                        "phase": "host-acquired",
+                        "host": {
+                            "process_id": host["process_id"],
+                            "owned_by_daemon": host["owned_by_daemon"],
+                        },
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
         try:
             manager = WorkerManager(
                 visible=args.visible,
                 startup_timeout_seconds=args.startup_timeout,
                 host_platform=args.host_platform,
                 attach_existing=args.attach_existing,
+                startup_reporter=report_startup_host,
             )
             server.manager = manager
             print(
@@ -359,6 +449,23 @@ def run(args: argparse.Namespace) -> int:
                         "ok": False,
                         "action": "daemon.serve",
                         "error": {"code": exc.code, "message": str(exc)},
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            exit_code = 1
+        except TimeoutError as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "action": "daemon.serve",
+                        "error": {
+                            "code": "WorkerStartupTimeout",
+                            "message": str(exc),
+                        },
                     },
                     ensure_ascii=False,
                     sort_keys=True,

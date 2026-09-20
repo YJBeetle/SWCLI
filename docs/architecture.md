@@ -115,7 +115,11 @@ daemon state.
 Host startup is not complete merely because the COM object can be attached.
 The daemon worker waits for the official `StartupProcessCompleted` state before
 reporting success. This contract applies equally to native Windows and Wine
-hosts.
+hosts. As soon as COM activation returns, the worker reports whether it owns the
+host and its exact process ID to the supervisor. Background startup records this
+phase before waiting for readiness, so timeout cleanup can terminate an owned
+SOLIDWORKS process by PID even when DCOM did not place it below the Python
+process tree. An explicitly attached host is never selected for that cleanup.
 
 `sw-cli daemon serve` owns the SOLIDWORKS instance and waits for
 `StartupProcessCompleted`; `sw-cli daemon start` launches that same service in

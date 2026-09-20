@@ -10,7 +10,7 @@ import socketserver
 import subprocess
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
@@ -156,6 +156,16 @@ def _worker_main(
             visible=visible,
             attach_existing=attach_existing,
         )
+        ready_queue.put(
+            {
+                "ok": True,
+                "phase": "host-acquired",
+                "host": {
+                    "process_id": int(_com_value(app, "GetProcessID")),
+                    "owned_by_daemon": owned_by_daemon,
+                },
+            }
+        )
         waited = wait_windows_host_ready(
             app, timeout_seconds=startup_timeout_seconds
         )
@@ -163,6 +173,7 @@ def _worker_main(
         ready_queue.put(
             {
                 "ok": True,
+                "phase": "ready",
                 "host": _describe_app(
                     app, waited, owned_by_daemon=owned_by_daemon
                 ),
@@ -257,11 +268,13 @@ class WorkerManager:
         startup_timeout_seconds: float = 120.0,
         host_platform: str = "windows",
         attach_existing: bool = False,
+        startup_reporter: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> None:
         self.visible = visible
         self.startup_timeout_seconds = startup_timeout_seconds
         self.host_platform = host_platform
         self.attach_existing = attach_existing
+        self.startup_reporter = startup_reporter
         self._context = multiprocessing.get_context("spawn")
         self._lock = threading.Lock()
         self._process: Optional[Any] = None
@@ -288,20 +301,35 @@ class WorkerManager:
             name="swclid-com-worker",
         )
         self._process.start()
-        try:
-            ready = ready_queue.get(timeout=self.startup_timeout_seconds + 5.0)
-        except queue.Empty as exc:
+        deadline = time.monotonic() + self.startup_timeout_seconds + 5.0
+        while True:
+            try:
+                ready = ready_queue.get(
+                    timeout=max(0.0, deadline - time.monotonic())
+                )
+            except queue.Empty as exc:
+                self._terminate_worker()
+                raise TimeoutError("SOLIDWORKS worker startup timed out") from exc
+            if not ready.get("ok"):
+                self._terminate_worker()
+                error = ready.get("error") or {}
+                raise WorkerStartupError(
+                    str(error.get("type", "WorkerStartupError")),
+                    str(error.get("message", "SOLIDWORKS worker failed to start")),
+                )
+            self.host = dict(ready["host"])
+            self.host["platform"] = self.host_platform
+            if ready.get("phase") == "host-acquired":
+                if self.startup_reporter is not None:
+                    self.startup_reporter(dict(self.host))
+                continue
+            if ready.get("phase") == "ready":
+                return
             self._terminate_worker()
-            raise TimeoutError("SOLIDWORKS worker startup timed out") from exc
-        if not ready.get("ok"):
-            self._terminate_worker()
-            error = ready.get("error") or {}
             raise WorkerStartupError(
-                str(error.get("type", "WorkerStartupError")),
-                str(error.get("message", "SOLIDWORKS worker failed to start")),
+                "InvalidStartupEvent",
+                "SOLIDWORKS worker returned an unknown startup phase",
             )
-        self.host = dict(ready["host"])
-        self.host["platform"] = self.host_platform
 
     def _terminate_worker(self) -> None:
         forced = False
