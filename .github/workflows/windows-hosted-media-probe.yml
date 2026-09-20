@@ -1,8 +1,6 @@
 name: Windows hosted media probe
 
 on:
-  push:
-    branches: [codex/windows-ci]
   workflow_dispatch:
     inputs:
       media_path:
