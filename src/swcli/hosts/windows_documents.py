@@ -406,7 +406,11 @@ def inspect_active_windows_document(
             }
             return result
 
+        extension = _com_value(document, "Extension")
         result["document"] = _describe_document(document)
+        result["needs_rebuild"] = int(
+            _com_value(extension, "NeedsRebuild2")
+        )
         if detail == "structure":
             result["structure"] = {
                 "configurations": _inspect_configurations(document),

@@ -92,8 +92,9 @@ error and never falls back to a second direct-COM execution mode. Explicit
 
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
-active document's type, path, title, and modified state. JSON output is always
-UTF-8 so paths and model names remain machine-readable across remote runners.
+active document's type, path, title, modified state, and rebuild status. JSON
+output is always UTF-8 so paths and model names remain machine-readable across
+remote runners.
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 
