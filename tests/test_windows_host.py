@@ -18,9 +18,9 @@ class WindowsHostTests(unittest.TestCase):
             windows._command_executable(command), r"C:\SOLIDWORKS\SLDWORKS.exe"
         )
 
-    def test_non_windows_probe_is_structured(self):
+    def test_non_windows_doctor_is_structured(self):
         with mock.patch.object(windows.sys, "platform", "darwin"):
-            result = windows.probe_windows_host()
+            result = windows.doctor_windows_host()
 
         self.assertFalse(result["supported"])
         self.assertEqual(result["error"]["type"], "UnsupportedPlatform")
@@ -44,15 +44,6 @@ class WindowsHostTests(unittest.TestCase):
         self.assertEqual(windows._com_value(example, "property_value"), "property")
         self.assertEqual(windows._com_value(example, "method_value"), "method")
         self.assertIs(windows._com_value(example, "object_value"), example.object_value)
-
-    def test_lifecycle_is_rejected_off_windows(self):
-        with mock.patch.object(windows.sys, "platform", "darwin"):
-            start = windows.start_windows_host()
-            stop = windows.stop_windows_host()
-
-        self.assertFalse(start["ok"])
-        self.assertFalse(stop["ok"])
-        self.assertEqual(start["error"]["type"], "UnsupportedPlatform")
 
     def test_wait_windows_host_ready_polls_until_startup_completes(self):
         class App:

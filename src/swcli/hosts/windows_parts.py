@@ -216,7 +216,7 @@ def create_box_part_windows(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result

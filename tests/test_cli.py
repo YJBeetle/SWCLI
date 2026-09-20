@@ -24,42 +24,58 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(json.loads(output.getvalue())["title"], "SWCLI Request")
 
-    def test_host_probe_remains_an_explicit_local_diagnostic(self):
+    def test_daemon_lifecycle_commands_share_the_main_parser(self):
+        parser = build_parser()
+        for command in ("serve", "start", "status", "stop"):
+            with self.subTest(command=command):
+                args = parser.parse_args(["daemon", command])
+                self.assertEqual(args.command, "daemon")
+                self.assertEqual(args.daemon_command, command)
+
+    @mock.patch("swcli.cli.call_daemon")
+    @mock.patch("swcli.cli.doctor_windows_host")
+    def test_doctor_combines_host_and_daemon_diagnostics(
+        self, doctor_windows_host, call_daemon
+    ):
+        doctor_windows_host.return_value = {
+            "supported": True,
+            "host": {"platform": "win32", "machine": "AMD64"},
+            "registration": {},
+            "com": {},
+        }
+        call_daemon.return_value = {
+            "success": True,
+            "result": {"worker_alive": True},
+        }
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
-            exit_code = main(["host", "probe", "--json"])
+            exit_code = main(["doctor", "--json"])
         self.assertEqual(exit_code, 0)
         payload = json.loads(output.getvalue())
-        self.assertIn("supported", payload)
-        self.assertIn("host", payload)
-
-    @mock.patch("swcli.cli.start_windows_host")
-    def test_host_start_remains_an_explicit_local_diagnostic(self, start_windows_host):
-        start_windows_host.return_value = {
-            "ok": True,
-            "action": "start",
-            "started": True,
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(["host", "start", "--json"])
-        self.assertEqual(exit_code, 0)
-        start_windows_host.assert_called_once_with(visible=True, timeout_seconds=60.0)
-
-    @mock.patch("swcli.cli.stop_windows_host")
-    def test_host_stop_failure_returns_nonzero(self, stop_windows_host):
-        stop_windows_host.return_value = {
-            "ok": False,
-            "action": "stop",
-            "error": {"type": "OpenDocument", "message": "document is open"},
-        }
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            exit_code = main(["host", "stop", "--json"])
-        self.assertEqual(exit_code, 1)
-        self.assertEqual(
-            json.loads(output.getvalue())["error"]["type"], "OpenDocument"
+        self.assertTrue(payload["daemon"]["reachable"])
+        self.assertTrue(payload["daemon"]["health"]["worker_alive"])
+        call_daemon.assert_called_once_with(
+            "daemon.health", endpoint="127.0.0.1:18495", timeout_seconds=10.0
         )
+
+    @mock.patch("swcli.cli.call_daemon", side_effect=ConnectionRefusedError("offline"))
+    @mock.patch("swcli.cli.doctor_windows_host")
+    def test_doctor_reports_unreachable_daemon_without_failing(
+        self, doctor_windows_host, call_daemon
+    ):
+        doctor_windows_host.return_value = {
+            "supported": False,
+            "host": {"platform": "linux", "machine": "x86_64"},
+            "registration": None,
+            "com": None,
+        }
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["doctor", "--json"])
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(output.getvalue())
+        self.assertFalse(payload["daemon"]["reachable"])
+        self.assertEqual(payload["daemon"]["error"]["type"], "ConnectionRefusedError")
 
     def test_all_typed_commands_map_to_daemon_operations(self):
         cases = (
@@ -169,6 +185,63 @@ class CliTests(unittest.TestCase):
         with contextlib.redirect_stdout(output):
             exit_code = main(["document", "inspect", "--json"])
         self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            json.loads(output.getvalue())["error"]["type"],
+            "ConnectionRefusedError",
+        )
+
+    @mock.patch("swcli.cli.start_daemon")
+    @mock.patch("swcli.cli.call_daemon")
+    def test_native_windows_typed_command_autostarts_and_retries(
+        self, call_daemon, start_daemon
+    ):
+        call_daemon.side_effect = [
+            ConnectionRefusedError("daemon unavailable"),
+            {
+                "success": True,
+                "result": {
+                    "ok": True,
+                    "action": "document.inspect",
+                    "document": {"title": "sample.SLDPRT"},
+                },
+            },
+        ]
+        start_daemon.return_value = {
+            "success": True,
+            "result": {"started": True},
+        }
+        output = io.StringIO()
+        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
+            output
+        ):
+            exit_code = main(["document", "inspect", "--json"])
+
+        self.assertEqual(exit_code, 0)
+        start_daemon.assert_called_once_with(endpoint="127.0.0.1:18495")
+        self.assertEqual(call_daemon.call_count, 2)
+        self.assertTrue(json.loads(output.getvalue())["ok"])
+
+    @mock.patch("swcli.cli.start_daemon")
+    @mock.patch("swcli.cli.call_daemon", side_effect=ConnectionRefusedError("offline"))
+    def test_native_windows_remote_endpoint_never_autostarts(
+        self, call_daemon, start_daemon
+    ):
+        output = io.StringIO()
+        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
+            output
+        ):
+            exit_code = main(
+                [
+                    "--endpoint",
+                    "192.0.2.10:18495",
+                    "document",
+                    "inspect",
+                    "--json",
+                ]
+            )
+
+        self.assertEqual(exit_code, 1)
+        start_daemon.assert_not_called()
         self.assertEqual(
             json.loads(output.getvalue())["error"]["type"],
             "ConnectionRefusedError",

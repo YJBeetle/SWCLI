@@ -1,24 +1,28 @@
-"""Command-line entry point for swclid."""
+"""Lifecycle commands for the resident SWCLI service."""
 
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
+import subprocess
 import sys
-from typing import Optional, Sequence
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, Optional, Sequence
 
-from .client import DEFAULT_ENDPOINT, call_daemon
+from .client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
 from .server import SwclidServer, WorkerManager
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="swclid", description="Resident SOLIDWORKS COM service for SWCLI"
-    )
-    commands = parser.add_subparsers(dest="command", required=True)
+def configure_parser(parser: argparse.ArgumentParser) -> None:
+    """Add daemon lifecycle commands to a parser."""
 
-    serve = commands.add_parser("serve", help="start the local protocol service")
+    commands = parser.add_subparsers(dest="daemon_command", required=True)
+
+    serve = commands.add_parser("serve", help="run the local protocol service")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=18495)
     serve.add_argument("--visible", action="store_true")
@@ -29,21 +33,178 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("SWCLI_HOST_PLATFORM", "windows"),
     )
 
+    start = commands.add_parser("start", help="start the service in the background")
+    start.add_argument("--endpoint", dest="daemon_endpoint")
+    start.add_argument("--visible", action="store_true")
+    start.add_argument("--startup-timeout", type=float, default=120.0)
+    start.add_argument("--json", action="store_true", dest="as_json")
+
     status = commands.add_parser("status", help="query a running service")
-    status.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
+    status.add_argument("--endpoint", dest="daemon_endpoint")
     status.add_argument("--json", action="store_true", dest="as_json")
 
     stop = commands.add_parser("stop", help="stop a running service")
-    stop.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
+    stop.add_argument("--endpoint", dest="daemon_endpoint")
     stop.add_argument("--json", action="store_true", dest="as_json")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="python -m swcli.daemon",
+        description="Resident SOLIDWORKS COM service for SWCLI",
+    )
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
-    if args.command == "serve":
+def is_local_endpoint(endpoint: str) -> bool:
+    try:
+        host, _ = parse_endpoint(endpoint)
+    except (TypeError, ValueError):
+        return False
+    return host.casefold() in {"127.0.0.1", "localhost"}
+
+
+def is_connection_refused_error(exc: BaseException) -> bool:
+    return isinstance(exc, ConnectionRefusedError) or (
+        isinstance(exc, OSError)
+        and (
+            getattr(exc, "errno", None) == errno.ECONNREFUSED
+            or getattr(exc, "winerror", None) == 10061
+        )
+    )
+
+
+def _failure(code: str, message: str, **details: Any) -> Dict[str, Any]:
+    error: Dict[str, Any] = {"code": code, "message": message}
+    error.update(details)
+    return {"success": False, "error": error}
+
+
+def start_daemon(
+    *,
+    endpoint: str = DEFAULT_ENDPOINT,
+    visible: bool = False,
+    startup_timeout_seconds: float = 120.0,
+) -> Dict[str, Any]:
+    """Idempotently start a detached local daemon and wait for readiness."""
+
+    if sys.platform != "win32":
+        return _failure(
+            "UnsupportedPlatform",
+            "automatic daemon startup requires native Windows or Windows Python under Wine",
+        )
+    if not is_local_endpoint(endpoint):
+        return _failure(
+            "NonLocalEndpoint",
+            "automatic daemon startup is limited to localhost endpoints",
+        )
+    if startup_timeout_seconds <= 0:
+        return _failure("InvalidTimeout", "startup timeout must be positive")
+
+    try:
+        response = call_daemon(
+            "daemon.health", endpoint=endpoint, timeout_seconds=1.0
+        )
+    except Exception as exc:
+        if not is_connection_refused_error(exc):
+            return _failure(type(exc).__name__, str(exc))
+    else:
+        if response.get("success"):
+            return {
+                "success": True,
+                "result": {
+                    "started": False,
+                    "already_running": True,
+                    "endpoint": endpoint,
+                    "health": response.get("result"),
+                },
+            }
+        error = response.get("error") or {}
+        return _failure(
+            error.get("code", "DaemonError"),
+            error.get("message", "daemon health check failed"),
+        )
+
+    host, port = parse_endpoint(endpoint)
+    log_root = Path(
+        os.environ.get("LOCALAPPDATA")
+        or os.environ.get("TEMP")
+        or tempfile.gettempdir()
+    )
+    log_path = log_root / "SWCLI" / "logs" / "daemon.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        sys.executable,
+        "-m",
+        "swcli",
+        "daemon",
+        "serve",
+        "--host",
+        host,
+        "--port",
+        str(port),
+        "--startup-timeout",
+        str(startup_timeout_seconds),
+    ]
+    if visible:
+        command.append("--visible")
+
+    creationflags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008) | getattr(
+        subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200
+    )
+    try:
+        with log_path.open("ab") as log:
+            process = subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                close_fds=True,
+                creationflags=creationflags,
+            )
+    except Exception as exc:
+        return _failure(type(exc).__name__, str(exc), log=str(log_path))
+
+    deadline = time.monotonic() + startup_timeout_seconds + 5.0
+    last_error: Optional[BaseException] = None
+    while time.monotonic() < deadline:
+        try:
+            response = call_daemon(
+                "daemon.health", endpoint=endpoint, timeout_seconds=1.0
+            )
+            if response.get("success"):
+                return {
+                    "success": True,
+                    "result": {
+                        "started": True,
+                        "already_running": False,
+                        "endpoint": endpoint,
+                        "log": str(log_path),
+                        "health": response.get("result"),
+                    },
+                }
+        except Exception as exc:
+            last_error = exc
+        if process.poll() is not None:
+            return _failure(
+                "DaemonExited",
+                f"daemon exited during startup with code {process.returncode}",
+                log=str(log_path),
+            )
+        time.sleep(0.25)
+
+    message = f"daemon did not become ready within {startup_timeout_seconds:g}s"
+    if last_error is not None:
+        message = f"{message}: {last_error}"
+    return _failure("StartupTimeout", message, log=str(log_path))
+
+
+def run(args: argparse.Namespace) -> int:
+    command = args.daemon_command
+    if command == "serve":
         if not 1 <= args.port <= 65535:
-            raise SystemExit("swclid: port must be between 1 and 65535")
+            raise SystemExit("sw-cli daemon serve: port must be between 1 and 65535")
         server = SwclidServer((args.host, args.port))
         manager = None
         try:
@@ -75,25 +236,39 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 manager.close()
         return 0
 
-    operation = "daemon.health" if args.command == "status" else "daemon.shutdown"
-    try:
-        response = call_daemon(
-            operation, endpoint=args.endpoint, timeout_seconds=10.0
+    endpoint = (
+        getattr(args, "daemon_endpoint", None)
+        or getattr(args, "endpoint", None)
+        or os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
+    )
+    if command == "start":
+        response = start_daemon(
+            endpoint=endpoint,
+            visible=args.visible,
+            startup_timeout_seconds=args.startup_timeout,
         )
-    except Exception as exc:
-        response = {
-            "success": False,
-            "error": {"code": type(exc).__name__, "message": str(exc)},
-        }
+    else:
+        operation = "daemon.health" if command == "status" else "daemon.shutdown"
+        try:
+            response = call_daemon(
+                operation, endpoint=endpoint, timeout_seconds=10.0
+            )
+        except Exception as exc:
+            response = _failure(type(exc).__name__, str(exc))
+
     if args.as_json:
         print(json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True))
     elif response.get("success"):
-        print(f"swclid {args.command}: ok")
+        print(f"sw-cli daemon {command}: ok")
     else:
         error = response.get("error") or {}
         print(
-            f"swclid {args.command}: {error.get('code', 'failed')}: "
+            f"sw-cli daemon {command}: {error.get('code', 'failed')}: "
             f"{error.get('message', 'unknown error')}",
             file=sys.stderr,
         )
     return 0 if response.get("success") else 1
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    return run(build_parser().parse_args(argv))

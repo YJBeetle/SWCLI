@@ -25,7 +25,6 @@ windows = [
 
 [project.scripts]
 sw-cli = "swcli.cli:main"
-swclid = "swcli.daemon:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

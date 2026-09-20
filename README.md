@@ -25,21 +25,19 @@ export workflows.
 - Project: **SWCLI**
 - Command: `sw-cli`
 - Python package: `swcli`
-- Resident service: `swclid`
+- Resident service: `swclid` (managed through `sw-cli daemon`)
 - Protocol: **SWCLI Protocol**
 
 ## Current status
 
-SWCLI is in its initial host-discovery and protocol-design phase. The first
-native Windows probe discovers SOLIDWORKS through the registry and attaches to
-an already-running COM server without starting or stopping the application.
+SWCLI is in its initial host-discovery and protocol-design phase. Its read-only
+doctor command discovers SOLIDWORKS through the registry, inspects an active
+COM server when present, and reports the resident daemon state.
 
 ```bash
 python -m swcli version --json
 python -m swcli protocol show request
-python -m swcli host probe --json
-python -m swcli host start --json
-python -m swcli host stop --json
+python -m swcli doctor --json
 python -m swcli document open model.SLDPRT --read-only --json
 python -m swcli document inspect --json
 python -m swcli document inspect --detail structure --json
@@ -54,41 +52,35 @@ python -m swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
 ```
 
-On Windows, `host probe` reports the Python architecture, registered
+On Windows, `doctor` reports the Python architecture, registered
 SOLIDWORKS version and executable, installed versions, pywin32 availability,
-and details from the active `SldWorks.Application` COM object. The command is
-read-only and does not open a SOLIDWORKS instance.
-
-`host start` uses the registered `LocalServer32` executable and makes the
-session visible by default; pass `--hidden` for an automation-only session.
-It succeeds only after the official `StartupProcessCompleted` state confirms
-that startup add-ins are loaded and the host is ready for calls such as
-`OpenDoc6`; `--timeout` covers both COM discovery and this readiness wait.
-`host stop` uses the SOLIDWORKS `ExitApp` API and refuses to exit while a
-document is open. `host stop --force` is an explicit, potentially destructive
-escape hatch that terminates the SOLIDWORKS process tree.
+details from the active `SldWorks.Application` COM object, and `swclid` health.
+It does not start, stop, or otherwise modify SOLIDWORKS or the daemon.
 
 ## Resident service
 
-Start `swclid` when multiple CLI invocations should share one SOLIDWORKS
-instance:
+Run the resident service in the foreground when developing or inspecting its
+logs:
 
 ```powershell
-swclid serve
+sw-cli daemon serve
 ```
 
 The service binds to `127.0.0.1:18495` by default. Its supervisor accepts
 versioned local JSON requests while one spawned COM worker owns the
 `SldWorks.Application` instance and executes operations serially on a single
-COM apartment. `swclid status` reports the worker and host state; `swclid stop`
-requests a graceful shutdown. A timed-out operation causes the worker and its
-SOLIDWORKS process tree to be replaced.
+COM apartment. `sw-cli daemon start` launches the same `serve` implementation
+in the background and is idempotent. `sw-cli daemon status` reports the worker
+and host state; `sw-cli daemon stop` requests a graceful shutdown. A timed-out
+operation causes the worker and its SOLIDWORKS process tree to be replaced.
 
 All typed `sw-cli` document and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
-error and never falls back to a second direct-COM execution mode. Explicit
-`host` commands remain available as low-level local diagnostics.
+error and never falls back to a second direct-COM execution mode. On native
+Windows, a typed command automatically uses the same background-start logic as
+`sw-cli daemon start` when its selected local endpoint is not running. Remote
+endpoints are never started implicitly. `doctor` remains read-only.
 
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the

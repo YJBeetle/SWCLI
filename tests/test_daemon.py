@@ -1,13 +1,56 @@
 import io
 import json
+import os
+import tempfile
 import unittest
 from unittest import mock
 
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
+from swcli.daemon.main import start_daemon
 
 
 class DaemonProtocolTests(unittest.TestCase):
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_background_start_is_idempotent(self, call_daemon):
+        call_daemon.return_value = {
+            "success": True,
+            "result": {"worker_alive": True},
+        }
+
+        with mock.patch("swcli.daemon.main.sys.platform", "win32"):
+            result = start_daemon(endpoint="127.0.0.1:18495")
+
+        self.assertTrue(result["success"])
+        self.assertTrue(result["result"]["already_running"])
+        self.assertFalse(result["result"]["started"])
+
+    @mock.patch("swcli.daemon.main.subprocess.Popen")
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_background_start_launches_serve_and_waits_for_health(
+        self, call_daemon, popen
+    ):
+        call_daemon.side_effect = [
+            ConnectionRefusedError("offline"),
+            {"success": True, "result": {"worker_alive": True}},
+        ]
+        process = popen.return_value
+        process.pid = 4321
+        process.poll.return_value = None
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            os.environ, {"LOCALAPPDATA": directory}
+        ), mock.patch("swcli.daemon.main.sys.platform", "win32"):
+            result = start_daemon(
+                endpoint="127.0.0.1:19000", startup_timeout_seconds=5.0
+            )
+
+        self.assertTrue(result["success"])
+        self.assertTrue(result["result"]["started"])
+        command = popen.call_args.args[0]
+        self.assertEqual(command[:4], [mock.ANY, "-m", "swcli", "daemon"])
+        self.assertIn("serve", command)
+        self.assertIn("19000", command)
+
     def test_resident_lifetime_selects_official_background_control(self):
         hidden = mock.Mock()
         server.configure_resident_app(hidden, visible=False)

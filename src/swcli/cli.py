@@ -11,12 +11,17 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 from . import PROTOCOL_VERSION, __version__
 from .hosts import (
     RENDER_VIEWS,
-    probe_windows_host,
-    start_windows_host,
-    stop_windows_host,
+    doctor_windows_host,
 )
 from .protocol import SCHEMA_NAMES, load_schema
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
+from .daemon.main import (
+    configure_parser as configure_daemon_parser,
+    is_connection_refused_error,
+    is_local_endpoint,
+    run as run_daemon_command,
+    start_daemon,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--endpoint",
         default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT),
-        help="swclid HOST:PORT endpoint for all typed operations",
+        help="daemon HOST:PORT endpoint for all typed operations",
     )
     parser.add_argument(
         "--request-timeout",
@@ -49,26 +54,15 @@ def build_parser() -> argparse.ArgumentParser:
     show_parser = protocol_commands.add_parser("show", help="print a JSON Schema")
     show_parser.add_argument("schema", choices=SCHEMA_NAMES)
 
-    host_parser = subcommands.add_parser("host", help="inspect the automation host")
-    host_commands = host_parser.add_subparsers(dest="host_command", required=True)
-    probe_parser = host_commands.add_parser(
-        "probe", help="probe Windows and the active SOLIDWORKS COM server"
+    daemon_parser = subcommands.add_parser(
+        "daemon", help="manage the resident SOLIDWORKS service"
     )
-    probe_parser.add_argument("--json", action="store_true", dest="as_json")
-    start_parser = host_commands.add_parser(
-        "start", help="start SOLIDWORKS or reuse the active instance"
+    configure_daemon_parser(daemon_parser)
+
+    doctor_parser = subcommands.add_parser(
+        "doctor", help="inspect the local host and daemon without changing either"
     )
-    start_parser.add_argument("--hidden", action="store_true")
-    start_parser.add_argument("--timeout", type=float, default=60.0)
-    start_parser.add_argument("--json", action="store_true", dest="as_json")
-    stop_parser = host_commands.add_parser("stop", help="stop the active SOLIDWORKS instance")
-    stop_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="terminate the process tree even when a document is open",
-    )
-    stop_parser.add_argument("--timeout", type=float, default=30.0)
-    stop_parser.add_argument("--json", action="store_true", dest="as_json")
+    doctor_parser.add_argument("--json", action="store_true", dest="as_json")
 
     document_parser = subcommands.add_parser(
         "document", help="open and inspect SOLIDWORKS documents"
@@ -191,6 +185,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "daemon":
+        return run_daemon_command(args)
+
     typed = _typed_operation(args)
     if typed is not None:
         operation, parameters, as_json = typed
@@ -202,34 +199,50 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 timeout_seconds=args.request_timeout,
             )
         except Exception as exc:
-            payload = {
-                "ok": False,
-                "action": operation,
-                "error": {"type": type(exc).__name__, "message": str(exc)},
-            }
+            response = _autostart_and_retry(args, operation, parameters, exc)
+            if response is None:
+                payload = {
+                    "ok": False,
+                    "action": operation,
+                    "error": {"type": type(exc).__name__, "message": str(exc)},
+                }
+            else:
+                payload = _typed_payload(operation, response)
         else:
-            payload = response.get("result") or {
-                "ok": False,
-                "action": operation,
-                "error": {
-                    "type": (response.get("error") or {}).get(
-                        "code", "DaemonError"
-                    ),
-                    "message": (response.get("error") or {}).get(
-                        "message", "swclid request failed"
-                    ),
-                },
-            }
+            payload = _typed_payload(operation, response)
         _print_action_result(payload, as_json)
         return 0 if payload.get("ok") else 1
 
-    if args.command == "host" and args.host_command == "probe":
-        payload = probe_windows_host()
+    if args.command == "doctor":
+        payload = doctor_windows_host()
+        try:
+            response = call_daemon(
+                "daemon.health",
+                endpoint=args.endpoint,
+                timeout_seconds=min(args.request_timeout, 10.0),
+            )
+        except Exception as exc:
+            payload["daemon"] = {
+                "reachable": False,
+                "error": {"type": type(exc).__name__, "message": str(exc)},
+            }
+        else:
+            payload["daemon"] = {
+                "reachable": bool(response.get("success")),
+                "health": response.get("result"),
+            }
+            if not response.get("success"):
+                error = response.get("error") or {}
+                payload["daemon"]["error"] = {
+                    "type": error.get("code", "DaemonError"),
+                    "message": error.get("message", "daemon health check failed"),
+                }
         if args.as_json:
             print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             registration = payload.get("registration") or {}
             com = payload.get("com") or {}
+            daemon = payload["daemon"]
             print(f"Platform: {payload['host']['platform']} ({payload['host']['machine']})")
             print(f"Supported: {'yes' if payload['supported'] else 'no'}")
             print(f"SOLIDWORKS registration: {registration.get('current_version') or 'not found'}")
@@ -237,23 +250,54 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"Active COM server: {'attached' if com.get('attached') else 'not attached'}")
             if com.get("revision"):
                 print(f"SOLIDWORKS revision: {com['revision']}")
+            print(f"daemon: {'reachable' if daemon['reachable'] else 'unreachable'}")
         return 0
 
-    if args.command == "host" and args.host_command == "start":
-        payload = start_windows_host(
-            visible=not args.hidden, timeout_seconds=args.timeout
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
-    if args.command == "host" and args.host_command == "stop":
-        payload = stop_windows_host(
-            force=args.force, timeout_seconds=args.timeout
-        )
-        _print_action_result(payload, args.as_json)
-        return 0 if payload["ok"] else 1
-
     return 2
+
+
+def _typed_payload(operation: str, response: Dict[str, Any]) -> Dict[str, Any]:
+    return response.get("result") or {
+        "ok": False,
+        "action": operation,
+        "error": {
+            "type": (response.get("error") or {}).get("code", "DaemonError"),
+            "message": (response.get("error") or {}).get(
+                "message", "daemon request failed"
+            ),
+        },
+    }
+
+
+def _autostart_and_retry(
+    args: argparse.Namespace,
+    operation: str,
+    parameters: Dict[str, Any],
+    connection_error: BaseException,
+) -> Optional[Dict[str, Any]]:
+    """Start a missing local Windows daemon, then retry one typed request."""
+
+    if (
+        sys.platform != "win32"
+        or not is_local_endpoint(args.endpoint)
+        or not is_connection_refused_error(connection_error)
+    ):
+        return None
+    started = start_daemon(endpoint=args.endpoint)
+    if not started.get("success"):
+        return started
+    try:
+        return call_daemon(
+            operation,
+            parameters,
+            endpoint=args.endpoint,
+            timeout_seconds=args.request_timeout,
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": {"code": type(exc).__name__, "message": str(exc)},
+        }
 
 
 def _typed_operation(

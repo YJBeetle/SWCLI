@@ -93,18 +93,20 @@ than assuming a fixed installation directory or SOLIDWORKS release:
 3. enumerate installed SOLIDWORKS release keys for diagnostics;
 4. attach to the active COM object only when one already exists.
 
-Starting, stopping, and replacing a SOLIDWORKS process are explicit lifecycle
-operations and remain separate from the read-only host probe.
+Starting, stopping, and replacing a SOLIDWORKS process belong to the resident
+daemon lifecycle. The top-level `sw-cli doctor` command only inspects host and
+daemon state.
 
 Host startup is not complete merely because the COM object can be attached.
-The lifecycle adapter waits for the official `StartupProcessCompleted` state
-before reporting success, using one timeout budget for process launch, COM
-discovery, and startup add-in loading. This contract applies equally to native
-Windows and Wine hosts.
+The daemon worker waits for the official `StartupProcessCompleted` state before
+reporting success. This contract applies equally to native Windows and Wine
+hosts.
 
-The default lifecycle policy is conservative: `start` creates a visible,
-user-controlled session, while `stop` refuses to exit if a document is open.
-Forced termination must be explicitly requested and may discard unsaved work.
+`sw-cli daemon serve` owns the SOLIDWORKS instance and waits for
+`StartupProcessCompleted`; `sw-cli daemon start` launches that same service in
+the background, while `sw-cli daemon stop` requests an orderly daemon and COM
+worker shutdown. Native Windows typed commands reuse the `start` path when the
+local endpoint is absent.
 
 Document operations preserve the SOLIDWORKS API's error and warning bitmasks
 instead of reducing them to a boolean. The Windows adapter owns pywin32 details

@@ -275,7 +275,7 @@ def open_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -462,7 +462,7 @@ def inspect_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -553,7 +553,7 @@ def render_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -654,7 +654,7 @@ def export_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -787,7 +787,7 @@ def save_active_windows_document(*, app: Any = None) -> Dict[str, Any]:
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -871,7 +871,7 @@ def close_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -926,7 +926,7 @@ def diagnose_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result
@@ -984,7 +984,7 @@ def rebuild_active_windows_document(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result

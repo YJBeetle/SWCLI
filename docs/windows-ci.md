@@ -50,7 +50,7 @@ applies to native Windows:
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. start the current checkout's resident `swclid`, capture desktop/window
+6. start the current checkout's resident daemon with `sw-cli daemon serve`, capture desktop/window
    diagnostics around first startup, then use typed CLI requests against its
    single COM worker for a real model, render, and STEP export.
 

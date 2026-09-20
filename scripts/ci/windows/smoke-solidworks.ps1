@@ -125,7 +125,7 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemon = Start-Process `
     -FilePath $python `
-    -ArgumentList @("-m", "swcli.daemon", "serve", "--visible", "--startup-timeout", "120") `
+    -ArgumentList @("-m", "swcli", "daemon", "serve", "--visible", "--startup-timeout", "120") `
     -RedirectStandardOutput $daemonStdout `
     -RedirectStandardError $daemonStderr `
     -NoNewWindow `
@@ -162,12 +162,15 @@ Save-DesktopDiagnostic -Name "desktop-swclid-ready"
 
 $started = $true
 try {
-    $probe = Invoke-SwCliJson -Name "host-probe-before" -Arguments @("host", "probe", "--json")
-    if (-not $probe.supported) {
+    $doctor = Invoke-SwCliJson -Name "doctor-before" -Arguments @("doctor", "--json")
+    if (-not $doctor.supported) {
         throw "SWCLI does not recognize this runner as a supported Windows host"
     }
-    if (-not $probe.registration.local_server_exists) {
+    if (-not $doctor.registration.local_server_exists) {
         throw "SOLIDWORKS LocalServer32 registration is missing or points to a missing executable"
+    }
+    if (-not $doctor.daemon.reachable) {
+        throw "swclid is not reachable after startup"
     }
 
     Invoke-SwCliJson -Name "part-create-box" -Arguments @(
@@ -182,7 +185,7 @@ try {
     ) | Out-Null
     Invoke-SwCliJson -Name "document-export" -Arguments @("document", "export", $stepPath, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-close" -Arguments @("document", "close", "--discard", "--json") | Out-Null
-    & $python -m swcli.daemon stop --json | Set-Content -Path (Join-Path $Workspace "swclid-stop.json") -Encoding utf8
+    & $python -m swcli daemon stop --json | Set-Content -Path (Join-Path $Workspace "swclid-stop.json") -Encoding utf8
     if ($LASTEXITCODE -ne 0) {
         throw "swclid graceful shutdown failed with exit code $LASTEXITCODE"
     }
@@ -208,7 +211,7 @@ finally {
     if ($started) {
         & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
-        & python -m swcli.daemon stop --json 2>&1 |
+        & python -m swcli daemon stop --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-daemon-stop.log") -Encoding utf8
         if (-not $daemon.HasExited) {
             Stop-Process -Id $daemon.Id -Force -ErrorAction SilentlyContinue
