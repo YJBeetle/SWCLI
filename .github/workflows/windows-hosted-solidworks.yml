@@ -3,6 +3,10 @@ name: SOLIDWORKS E2E
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   workflow_dispatch:
     inputs:
       media_path:

@@ -2,6 +2,10 @@ name: Build and unit tests
 
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   pull_request:
   workflow_dispatch:
 
