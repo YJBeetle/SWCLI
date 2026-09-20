@@ -2,15 +2,18 @@
 
 ## Product boundary
 
-SWCLI owns the automation control plane:
+SWCLI currently owns the automation control plane:
 
 - versioned protocol and JSON Schemas;
-- `sw-cli` and Python SDK;
+- the `sw-cli` client;
 - the resident `swclid` service;
 - typed modeling, inspection, validation, rendering, and export operations;
-- native Windows and Wine host adapters;
-- MCP and other agent-facing adapters;
-- mock and contract-test backends.
+- the native Windows COM adapter used directly and under Wine;
+- protocol, CLI, host-adapter, and mocked COM unit tests.
+
+Planned control-plane work includes a public Python SDK, MCP and other
+agent-facing adapters, richer modeling operations, stable entity references,
+transactions, and a reusable mock backend.
 
 DockerSW owns the execution environment:
 
@@ -25,7 +28,7 @@ DockerSW owns the execution environment:
 The target runtime separates supervision from COM execution:
 
 ```text
-sw-cli / SDK / MCP
+sw-cli (future: SDK / MCP)
         |
         v
 supervisor and protocol gateway
@@ -42,10 +45,11 @@ the COM worker if SOLIDWORKS becomes blocked. All SOLIDWORKS COM calls execute
 on the worker's owning STA thread.
 
 `swclid` exposes the versioned request/response protocol over newline-delimited
-JSON on a loopback TCP endpoint. TCP is used instead of a Windows named pipe so
-the same client and supervisor contract works on native Windows and Wine. The
-default endpoint is never externally bound; remote access and authentication
-are outside the initial local-service boundary.
+JSON on a TCP endpoint. TCP is used instead of a Windows named pipe so the same
+client and supervisor contract works on native Windows and Wine. It binds to
+`127.0.0.1:18495` by default. The current protocol has no transport
+authentication; a non-loopback bind must therefore be protected by a trusted
+network boundary or tunnel.
 
 The COM worker is a spawned child process. It creates one exclusive
 `SldWorks.Application` through `DispatchEx`, waits for
@@ -66,21 +70,22 @@ silently changing document or modeling semantics.
 
 ## Modeling loop
 
-The first stable vertical slice will implement:
+The long-term modeling loop is:
 
 ```text
 inspect -> plan -> apply -> rebuild -> diagnose -> measure -> render -> verify
 ```
 
-Raw Python execution may remain available as an explicitly unsafe escape hatch,
-but it is not the primary modeling protocol.
+Public raw Python, eval, and direct-COM escape hatches are intentionally outside
+the typed CLI contract.
 
 ## Compatibility policy
 
-Protocol and host implementation versions are independent. Clients discover
-server capabilities before submitting operations. Length and angle units are
-explicit at the protocol boundary; host adapters convert them to the units
-expected by the SOLIDWORKS API.
+Protocol and host implementation versions are independent. Daemon health
+currently reports the server version, supported protocol versions, operations,
+worker state, and host details. Formal capability negotiation is planned.
+Length and angle units are explicit at typed modeling boundaries; host adapters
+convert them to the units expected by the SOLIDWORKS API.
 
 ## Host discovery
 
@@ -119,10 +124,13 @@ model-definition order; names and indices are observational and must not be
 used as persistent identifiers. Traversals are bounded so malformed or very
 large models cannot produce unbounded agent context.
 
-Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild
-state and feature error codes without changing the model. Rebuild is explicit,
-never saves implicitly, and always returns post-rebuild diagnostics so a true
-COM call result is not mistaken for a valid model.
+Inspection reports both the document's modified flag and `NeedsRebuild2` state.
+Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild state
+and feature error codes without changing the model. Rebuild is explicit, never
+saves implicitly, and always returns post-rebuild diagnostics so a true COM
+call result is not mistaken for a valid model. Saving is a separate typed
+operation that preserves native `Save3` error and warning bitmasks and succeeds
+only when the document is no longer modified.
 
 Rendering is an artifact-producing operation rather than a model save. The
 Windows adapter fits the active view, requests an explicit pixel size, and
@@ -133,8 +141,12 @@ Overwrite remains opt-in.
 
 Neutral and drawing exports are explicit artifact operations. Format choices
 are constrained by active document type, selection is cleared before export,
-and success requires a native zero error code, a non-empty output, a matching
-file signature, and unchanged active-document state.
+and success requires a native zero error code, a non-empty output, and a
+matching file signature. Default export is permissive and reports structured
+warnings only when the source needs saving, needs rebuilding, or changes during
+export. Strict export rejects those conditions and writes through a temporary
+file in the destination directory so the requested output is replaced only
+after all checks pass.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
 explicit output extension and active document type. Source-file naming and

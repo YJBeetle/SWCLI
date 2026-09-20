@@ -25,32 +25,139 @@ export workflows.
 - Project: **SWCLI**
 - Command: `sw-cli`
 - Python package: `swcli`
-- Resident service: `swclid` (managed through `sw-cli daemon`)
+- Resident service: `swclid`, managed through `sw-cli daemon`
 - Protocol: **SWCLI Protocol**
 
 ## Current status
 
-SWCLI is in its initial host-discovery and protocol-design phase. Its read-only
-doctor command discovers SOLIDWORKS through the registry, inspects an active
-COM server when present, and reports the resident daemon state.
+SWCLI is pre-alpha but already provides the versioned local protocol, resident
+daemon lifecycle, native Windows discovery, document open/inspect/save/close,
+rebuild diagnostics, deterministic BMP rendering, verified STEP/GLB/PDF/DWG
+export, and a first typed part-modeling operation. The public typed commands are
+daemon-only; there is no direct-COM fallback mode.
+
+The modeling vocabulary is intentionally still small. General sketches,
+features, stable entity references, transactions, SDK, MCP, and formal
+capability negotiation remain future work.
+
+## Installation
+
+### DockerSW
+
+DockerSW images install and pin a tested SWCLI revision. Do not install a second
+copy inside the container. Verify the bundled client with:
 
 ```bash
-python -m swcli version --json
-python -m swcli protocol show request
-python -m swcli doctor --json
-python -m swcli document open model.SLDPRT --read-only --json
-python -m swcli document inspect --json
-python -m swcli document inspect --detail structure --json
-python -m swcli document save --json
-python -m swcli document close --json
-python -m swcli document diagnose --json
-python -m swcli document rebuild --json
-python -m swcli document render view.bmp --view isometric \
-  --width 1024 --height 768 --json
-python -m swcli document export model.step --json
-python -m swcli part create-box box.SLDPRT \
-  --width-mm 100 --height-mm 50 --depth-mm 20 --json
+sw-cli version --json
+sw-cli doctor --json
 ```
+
+DockerSW runs the `sw-cli` client with Linux Python and the daemon/COM worker
+with Windows Python under Wine. DockerSW owns that split runtime, Wine setup,
+SOLIDWORKS registration, and process lifecycle.
+
+### Native Windows
+
+Requirements:
+
+- Python 3.9 or newer;
+- a native SOLIDWORKS installation with working COM registration;
+- pywin32, installed automatically by the Windows dependency extra below.
+
+Until packaged releases are published, install a non-editable copy from a
+checkout. This keeps the installed command independent from the checkout after
+installation:
+
+```powershell
+git clone https://github.com/YJBeetle/SWCLI.git
+Set-Location SWCLI
+python -m pip install ".[windows]"
+```
+
+The installation creates `sw-cli.exe` in Python's scripts directory. If a new
+terminal cannot find `sw-cli`, add that directory to the user `PATH`, then
+reopen the terminal:
+
+```powershell
+$scripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if (($userPath -split ";") -notcontains $scripts) {
+    [Environment]::SetEnvironmentVariable("Path", "$userPath;$scripts", "User")
+}
+```
+
+Verify both package installation and host discovery:
+
+```powershell
+sw-cli version --json
+sw-cli doctor --json
+sw-cli daemon status --json
+```
+
+`daemon status` may report that no service is running; that is not an
+installation failure. On native Windows, the first typed `document` or `part`
+command automatically starts the local daemon. Use `sw-cli daemon start`
+explicitly when startup timing or visibility must be controlled.
+
+`python -m swcli` is an equivalent fallback when the scripts directory is not
+yet on `PATH`:
+
+```powershell
+python -m swcli version --json
+```
+
+### Development checkout
+
+Contributors who intentionally want source edits to take effect immediately can
+use an editable install:
+
+```powershell
+python -m pip install --editable ".[windows]"
+```
+
+An editable installation depends on the checkout remaining at the same path.
+Do not use it for a VM or deployment whose shared source drive may be absent
+after restart. On macOS or Linux, omit the Windows extra when installing only
+the portable client and protocol tooling:
+
+```bash
+python3 -m pip install --editable .
+```
+
+Wine host installation is normally performed by DockerSW or another host
+integration project; installing the portable client alone does not configure
+Wine, Windows Python, pywin32, SOLIDWORKS, or COM registration.
+
+## Quick start
+
+The following is one read-only-source workflow after installation:
+
+```bash
+sw-cli version --json
+sw-cli protocol show request
+sw-cli doctor --json
+sw-cli document open model.SLDPRT --read-only --json
+sw-cli document inspect --json
+sw-cli document inspect --detail structure --json
+sw-cli document diagnose --json
+sw-cli document render view.bmp --view isometric \
+  --width 1024 --height 768 --json
+sw-cli document export model.step --strict --json
+sw-cli document close --json
+```
+
+Create and verify a new part in a separate workflow:
+
+```bash
+sw-cli part create-box box.SLDPRT \
+  --width-mm 100 --height-mm 50 --depth-mm 20 --json
+sw-cli document inspect --detail structure --json
+sw-cli document diagnose --json
+sw-cli document close --json
+```
+
+Use `sw-cli document --help` for modifying operations such as `save` and
+`rebuild`.
 
 On Windows, `doctor` reports the Python architecture, registered
 SOLIDWORKS version and executable, installed versions, pywin32 availability,
@@ -80,7 +187,11 @@ default endpoint is `127.0.0.1:18495`; select another daemon with
 error and never falls back to a second direct-COM execution mode. On native
 Windows, a typed command automatically uses the same background-start logic as
 `sw-cli daemon start` when its selected local endpoint is not running. Remote
-endpoints are never started implicitly. `doctor` remains read-only.
+endpoints are never started implicitly. The protocol currently has no transport
+authentication, so do not expose the daemon directly to an untrusted network.
+`doctor` remains read-only.
+
+## Document operations
 
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
@@ -138,8 +249,8 @@ tolerance before the file is saved. CLI dimensions are explicit millimeters
 and are converted to SOLIDWORKS system units internally. SOLIDWORKS documents
 body boxes as approximate, so this evidence is not a precision measurement.
 
-See [Architecture](docs/architecture.md) for the project boundary and planned
-execution model.
+See [Architecture](docs/architecture.md) for the implemented boundary and
+longer-term execution model.
 
 ## Development
 
@@ -147,8 +258,16 @@ execution model.
 python -m unittest discover -s tests -v
 ```
 
-CI runs the unit suite on Windows and builds distributions on Linux without
-claiming either job proves Wine compatibility. Real SOLIDWORKS modeling is
+Run directly from a checkout without installing by setting the source directory
+on the module path:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+CI runs the unit suite on Windows 2025 with Python 3.9 and 3.14, and builds and
+checks distributions on Linux without claiming either job proves Wine
+compatibility. Real SOLIDWORKS modeling is
 verified on a disposable GitHub-hosted Windows runner using a versioned
 installation cache; patched Wine integration remains the responsibility of
 DockerSW and MacSW. A separate manual probe diagnoses disk cleanup and streamed

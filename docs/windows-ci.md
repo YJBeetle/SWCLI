@@ -5,11 +5,13 @@ SOLIDWORKS installation.
 
 ## Hosted CI
 
-`.github/workflows/ci.yml` runs the unit suite on Windows and builds the wheel
-on Linux. These jobs do not run Wine or require SOLIDWORKS and are safe for
-pull requests. Wine execution is intentionally left to integration projects
-such as DockerSW and MacSW because their patched runtimes define whether
-SOLIDWORKS is usable, not the host operating system alone.
+`.github/workflows/ci.yml` runs the unit suite on Windows 2025 with Python 3.9
+and 3.14, parses every Windows CI PowerShell script, verifies the installed CLI
+and protocol schemas, and builds and checks both distributions on Linux. These
+jobs do not run Wine or require SOLIDWORKS and are safe for pull requests. Wine
+execution is intentionally left to integration projects such as DockerSW and
+MacSW because their patched runtimes define whether SOLIDWORKS is usable, not
+the host operating system alone.
 
 `.github/workflows/windows-hosted-media-probe.yml` is a manual feasibility
 probe for disposable GitHub-hosted Windows runners. It can remove optional
@@ -50,9 +52,13 @@ applies to native Windows:
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. start the current checkout's resident daemon with `sw-cli daemon serve`, capture desktop/window
+6. install the current checkout with its Windows dependency extra;
+7. start the resident daemon with `sw-cli daemon serve`, capture desktop/window
    diagnostics around first startup, then use typed CLI requests against its
-   single COM worker for a real model, render, and STEP export.
+   single COM worker for a real model, structural inspection, diagnosis,
+   deterministic render, and verified STEP export;
+8. request graceful daemon shutdown and upload the generated native part,
+   render, export, JSON responses, and desktop/window diagnostics as evidence.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
@@ -81,11 +87,11 @@ not enabled for pull requests; trusted push and manual runs use GitHub's default
 cache-write access.
 
 On a hit, the workflow restores the program and shared directories, template
-data, the clean registry snapshot, and the private test inputs. Windows Installer
-state cannot be reconstructed safely from copied Login Manager files, so its
-small official MSI and its external CAB media are also cached with their
-relative layout and silently reapplied; the large core MSI remains skipped. The
-workflow also skips the multi-minute aggressive runner cleanup because the
+data, the clean registry snapshot, and the private test inputs. Windows
+Installer state cannot be reconstructed safely from copied Login Manager files,
+so its small official MSI and its external CAB media are also cached with their
+relative layout and silently reapplied; the large core MSI remains skipped.
+The workflow also skips the multi-minute aggressive runner cleanup because the
 initial free space is sufficient for restoring the approximately 7 GB
 installation. Cache restoration is never sufficient evidence on its own: the
 same real SWCLI model, render, and export smoke still has to pass before the run
