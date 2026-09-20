@@ -41,8 +41,8 @@ export, and a first typed part-modeling operation. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketches,
-features, stable entity references, transactions, SDK, MCP, and formal
-capability negotiation remain future work.
+features, stable entity references, transactions, SDK, MCP, and per-operation
+schema negotiation remain future work.
 
 ## Installation
 
@@ -218,6 +218,18 @@ authentication. `daemon serve` therefore refuses non-loopback listeners unless
 `--allow-remote` is explicitly supplied; that flag adds no authentication and
 must only be used behind a trusted network boundary or authenticated tunnel.
 `doctor` remains read-only.
+
+Query the versioned capabilities of an already running daemon without starting
+SOLIDWORKS implicitly:
+
+```bash
+sw-cli capabilities --json
+```
+
+On success, the JSON output directly conforms to the published capabilities
+schema and includes protocol/server versions, the operation list, worker and
+recovery state, and the current host description. A missing or older daemon is
+reported as an error rather than being started or silently accepted.
 
 ### Host path translation
 

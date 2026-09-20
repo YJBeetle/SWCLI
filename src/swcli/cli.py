@@ -76,6 +76,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doctor_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    capabilities_parser = subcommands.add_parser(
+        "capabilities", help="query the capabilities of a running daemon"
+    )
+    capabilities_parser.add_argument(
+        "--json", action="store_true", dest="as_json"
+    )
+
     document_parser = subcommands.add_parser(
         "document", help="open and inspect SOLIDWORKS documents"
     )
@@ -224,6 +231,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "daemon":
         return run_daemon_command(args)
 
+    if args.command == "capabilities":
+        return _run_capabilities(args)
+
     typed = _typed_operation(args)
     if typed is not None:
         operation, parameters, as_json, document_id = typed
@@ -297,6 +307,157 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     return 2
+
+
+def _run_capabilities(args: argparse.Namespace) -> int:
+    """Query a running daemon without implicitly starting a local host."""
+
+    try:
+        response = call_daemon(
+            "daemon.health",
+            endpoint=args.endpoint,
+            timeout_seconds=min(args.request_timeout, 10.0),
+            connect_timeout_seconds=args.connect_timeout,
+        )
+    except Exception as exc:
+        payload: Dict[str, Any] = {
+            "ok": False,
+            "action": "capabilities",
+            "error": {"type": type(exc).__name__, "message": str(exc)},
+        }
+    else:
+        if not response.get("success"):
+            error = response.get("error") or {}
+            payload = {
+                "ok": False,
+                "action": "capabilities",
+                "error": {
+                    "type": error.get("code", "DaemonError"),
+                    "message": error.get(
+                        "message", "daemon capability query failed"
+                    ),
+                },
+            }
+        else:
+            capabilities = response.get("result")
+            mismatch = _capabilities_mismatch(capabilities)
+            if mismatch is None:
+                payload = capabilities
+            else:
+                payload = {
+                    "ok": False,
+                    "action": "capabilities",
+                    "error": {
+                        "type": "CapabilitiesMismatch",
+                        "message": mismatch,
+                    },
+                }
+
+    if args.as_json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    elif payload.get("ok") is False:
+        _print_action_result(payload, False)
+    else:
+        host = payload["host"]
+        print(f"Server: {payload['server_version']}")
+        print(f"Protocols: {', '.join(payload['protocol_versions'])}")
+        print(f"Worker: {'ready' if payload['worker_alive'] else 'unavailable'}")
+        if host is None:
+            print("Host: unavailable")
+        else:
+            print(
+                "Host: "
+                f"{host['platform']} / SOLIDWORKS {host['solidworks_revision']}"
+            )
+        print(f"Operations: {', '.join(payload['operations'])}")
+        if payload["recovery_required"]:
+            print(
+                "Recovery required: "
+                f"{payload['recovery_error']['code']}"
+            )
+    return 1 if payload.get("ok") is False else 0
+
+
+def _capabilities_mismatch(payload: Any) -> Optional[str]:
+    """Return why a health payload cannot satisfy the public capabilities schema."""
+
+    if not isinstance(payload, dict):
+        return "daemon returned a non-object capabilities payload"
+    schema = load_schema("capabilities")
+    expected = set(schema["properties"])
+    actual = set(payload)
+    if actual != expected:
+        missing = sorted(expected - actual)
+        unknown = sorted(actual - expected)
+        return f"capabilities fields differ; missing={missing}, unknown={unknown}"
+    if not isinstance(payload["server_version"], str):
+        return "server_version must be a string"
+    if not (
+        isinstance(payload["protocol_versions"], list)
+        and payload["protocol_versions"]
+        and all(isinstance(value, str) for value in payload["protocol_versions"])
+        and len(payload["protocol_versions"])
+        == len(set(payload["protocol_versions"]))
+    ):
+        return "protocol_versions must be a non-empty unique string array"
+    if not (
+        isinstance(payload["operations"], list)
+        and all(isinstance(value, str) for value in payload["operations"])
+        and len(payload["operations"]) == len(set(payload["operations"]))
+    ):
+        return "operations must be a unique string array"
+    if not isinstance(payload["worker_alive"], bool):
+        return "worker_alive must be a boolean"
+    if not isinstance(payload["recovery_required"], bool):
+        return "recovery_required must be a boolean"
+
+    recovery_error = payload["recovery_error"]
+    if recovery_error is not None and (
+        not isinstance(recovery_error, dict)
+        or set(recovery_error) != {"code", "message"}
+        or not all(
+            isinstance(recovery_error.get(name), str)
+            for name in ("code", "message")
+        )
+        or not recovery_error.get("code")
+    ):
+        return "recovery_error must be null or contain string code and message"
+    if payload["recovery_required"] != (recovery_error is not None):
+        return "recovery_required and recovery_error disagree"
+
+    host = payload["host"]
+    if host is not None:
+        host_schema = schema["properties"]["host"]["oneOf"][0]
+        if not isinstance(host, dict) or set(host) != set(
+            host_schema["properties"]
+        ):
+            return "host fields do not match the capabilities schema"
+        if not all(
+            isinstance(host.get(name), str)
+            for name in ("revision", "solidworks_revision", "language")
+        ):
+            return "host revisions and language must be strings"
+        if (
+            not isinstance(host.get("process_id"), int)
+            or isinstance(host.get("process_id"), bool)
+            or host["process_id"] < 1
+        ):
+            return "host process_id must be a positive integer"
+        if not all(
+            isinstance(host.get(name), bool)
+            for name in ("visible", "owned_by_daemon", "shared_interactive")
+        ):
+            return "host state flags must be booleans"
+        startup_wait = host.get("startup_wait_seconds")
+        if (
+            not isinstance(startup_wait, (int, float))
+            or isinstance(startup_wait, bool)
+            or startup_wait < 0
+        ):
+            return "host startup_wait_seconds must be a non-negative number"
+        if host.get("platform") not in {"windows", "macos-wine", "linux-wine"}:
+            return "host platform is unsupported"
+    return None
 
 
 def _typed_payload(operation: str, response: Dict[str, Any]) -> Dict[str, Any]:

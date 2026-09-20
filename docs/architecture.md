@@ -90,9 +90,12 @@ the typed CLI contract.
 
 ## Compatibility policy
 
-Protocol and host implementation versions are independent. Daemon health
-currently reports the server version, supported protocol versions, operations,
-worker state, and host details. Formal capability negotiation is planned.
+Protocol and host implementation versions are independent. `sw-cli
+capabilities` exposes the running daemon's server version, supported protocol
+versions, operations, worker/recovery state, and host details without starting
+a missing local service. Its successful JSON output conforms directly to the
+published capabilities schema; richer per-operation schema negotiation remains
+future work.
 Length and angle units are explicit at typed modeling boundaries; host adapters
 convert them to the units expected by the SOLIDWORKS API.
 

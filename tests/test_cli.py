@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 from swcli.cli import (
+    _capabilities_mismatch,
     _typed_operation,
     build_parser,
     main,
@@ -52,6 +53,76 @@ class CliTests(unittest.TestCase):
         self.assertFalse(default.attach_existing)
         self.assertTrue(attached_start.attach_existing)
         self.assertTrue(attached_serve.attach_existing)
+
+    @mock.patch("swcli.cli.call_daemon")
+    def test_capabilities_json_matches_daemon_health(self, call_daemon):
+        capabilities = {
+            "server_version": "0.1.0.dev0",
+            "protocol_versions": ["swcli/v1"],
+            "operations": ["document.open"],
+            "worker_alive": True,
+            "recovery_required": False,
+            "recovery_error": None,
+            "host": {
+                "revision": "33.5.0",
+                "solidworks_revision": "33.5.0",
+                "language": "chinese-simplified",
+                "process_id": 1234,
+                "visible": False,
+                "startup_wait_seconds": 5.5,
+                "owned_by_daemon": True,
+                "shared_interactive": False,
+                "platform": "windows",
+            },
+        }
+        call_daemon.return_value = {"success": True, "result": capabilities}
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["capabilities", "--json"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(json.loads(output.getvalue()), capabilities)
+        call_daemon.assert_called_once_with(
+            "daemon.health",
+            endpoint="127.0.0.1:18495",
+            timeout_seconds=10.0,
+            connect_timeout_seconds=3.0,
+        )
+
+    @mock.patch("swcli.cli.start_daemon")
+    @mock.patch(
+        "swcli.cli.call_daemon",
+        side_effect=ConnectionRefusedError("offline"),
+    )
+    def test_capabilities_does_not_start_solidworks(
+        self, call_daemon, start_daemon
+    ):
+        output = io.StringIO()
+
+        with contextlib.redirect_stdout(output):
+            exit_code = main(["capabilities", "--json"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(
+            json.loads(output.getvalue())["error"]["type"],
+            "ConnectionRefusedError",
+        )
+        start_daemon.assert_not_called()
+
+    def test_capabilities_rejects_schema_drift(self):
+        self.assertIn(
+            "missing=['recovery_error', 'recovery_required']",
+            _capabilities_mismatch(
+                {
+                    "server_version": "old",
+                    "protocol_versions": ["swcli/v1"],
+                    "operations": [],
+                    "worker_alive": True,
+                    "host": None,
+                }
+            ),
+        )
 
     @mock.patch("swcli.cli.call_daemon")
     @mock.patch("swcli.cli.doctor_windows_host")
