@@ -116,7 +116,7 @@ class DaemonProtocolTests(unittest.TestCase):
             {
                 "output": "C:\\drawing.DWG",
                 "overwrite": True,
-                "allow_source_modification": True,
+                "allow_source_dirty": True,
             },
         )
 
@@ -124,7 +124,7 @@ class DaemonProtocolTests(unittest.TestCase):
         export_document.assert_called_once_with(
             "C:\\drawing.DWG",
             overwrite=True,
-            allow_source_modification=True,
+            allow_source_dirty=True,
             app=app,
         )
 
