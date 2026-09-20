@@ -6,11 +6,11 @@ from typing import Any, Dict, Optional
 
 from ..hosts.windows import _com_value
 from ..hosts.windows_documents import (
+    open_windows_document_with_handle,
     close_active_windows_document,
     diagnose_active_windows_document,
     export_active_windows_document,
     inspect_active_windows_document,
-    open_windows_document,
     rebuild_active_windows_document,
     render_active_windows_document,
     save_active_windows_document,
@@ -72,17 +72,6 @@ def _with_document(
     return result
 
 
-def _opened_document(app: Any, result: Dict[str, Any]) -> Any:
-    description = result.get("document") or {}
-    path = str(description.get("path") or "")
-    document = app.GetOpenDocumentByName(path) if path else None
-    if document is None:
-        document = _com_value(app, "ActiveDoc")
-    if document is None:
-        raise RuntimeError("SOLIDWORKS returned no document after a successful open")
-    return document
-
-
 def execute_operation(
     app: Any,
     operation: str,
@@ -99,14 +88,18 @@ def execute_operation(
             {"path", "read_only", "configuration"},
             {"path"},
         )
-        result = open_windows_document(
+        result, opened_document = open_windows_document_with_handle(
             str(values["path"]),
             read_only=bool(values.get("read_only", False)),
             configuration=str(values.get("configuration", "")),
             app=app,
         )
         if documents is not None and result.get("ok"):
-            entry = documents.register(_opened_document(app, result))
+            if opened_document is None:
+                raise RuntimeError(
+                    "SOLIDWORKS returned no document after a successful open"
+                )
+            entry = documents.register(opened_document)
             documents.set_current(entry, session_id=session_id)
             return _with_document(result, documents, entry, session_id=session_id)
         return result

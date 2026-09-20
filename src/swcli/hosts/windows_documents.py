@@ -227,17 +227,17 @@ def _export_source_change_warnings(
     return warnings
 
 
-def open_windows_document(
+def open_windows_document_with_handle(
     path: str,
     *,
     read_only: bool = False,
     configuration: str = "",
     app: Any = None,
-) -> Dict[str, Any]:
-    """Open a native SOLIDWORKS document silently and report API status codes."""
+) -> tuple[Dict[str, Any], Optional[Any]]:
+    """Open a native document and retain the exact COM object returned by OpenDoc6."""
 
     if sys.platform != "win32":
-        return _unsupported("document.open")
+        return _unsupported("document.open"), None
 
     document_path = Path(path).expanduser().resolve()
     result: Dict[str, Any] = {
@@ -252,7 +252,7 @@ def open_windows_document(
             "type": "FileNotFound",
             "message": f"document does not exist: {document_path}",
         }
-        return result
+        return result, None
 
     document_type = _document_type(document_path)
     if document_type is None:
@@ -260,7 +260,7 @@ def open_windows_document(
             "type": "UnsupportedDocumentType",
             "message": f"unsupported SOLIDWORKS document extension: {document_path.suffix}",
         }
-        return result
+        return result, None
 
     import pythoncom
     import win32com.client
@@ -278,7 +278,7 @@ def open_windows_document(
                     "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
                     "cause": _error(exc),
                 }
-                return result
+                return result, None
 
         errors = win32com.client.VARIANT(
             pythoncom.VT_BYREF | pythoncom.VT_I4, 0
@@ -302,17 +302,35 @@ def open_windows_document(
                 "type": "OpenFailed",
                 "message": "SOLIDWORKS OpenDoc6 returned no document",
             }
-            return result
+            return result, None
 
         result["document"] = _describe_document(document)
         result["ok"] = True
-        return result
+        return result, document
     except Exception as exc:
         result["error"] = _error(exc)
-        return result
+        return result, None
     finally:
         if owns_com:
             pythoncom.CoUninitialize()
+
+
+def open_windows_document(
+    path: str,
+    *,
+    read_only: bool = False,
+    configuration: str = "",
+    app: Any = None,
+) -> Dict[str, Any]:
+    """Open a native SOLIDWORKS document silently and report API status codes."""
+
+    result, _document = open_windows_document_with_handle(
+        path,
+        read_only=read_only,
+        configuration=configuration,
+        app=app,
+    )
+    return result
 
 
 def _inspect_configurations(document: Any) -> Dict[str, Any]:

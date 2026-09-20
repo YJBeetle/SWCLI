@@ -105,6 +105,40 @@ class DaemonProtocolTests(unittest.TestCase):
             registry.resolve(None, session_id="default").document, first
         )
 
+    @mock.patch("swcli.daemon.operations.open_windows_document_with_handle")
+    def test_open_registers_exact_document_returned_by_opendoc6(self, open_document):
+        previous = self.FakeDocument("previous.SLDPRT", "C:\\previous.SLDPRT")
+        opened = self.FakeDocument("opened.SLDPRT", "C:\\opened.SLDPRT")
+        app = self.FakeApp([previous, opened], active=previous)
+        app.GetOpenDocumentByName = mock.Mock(
+            side_effect=AssertionError("document must not be looked up again")
+        )
+        registry = DocumentRegistry(app)
+        open_document.return_value = (
+            {
+                "ok": True,
+                "action": "document.open",
+                "document": {
+                    "title": opened.title,
+                    "path": opened.path,
+                    "type": opened.document_type,
+                    "modified": False,
+                },
+            },
+            opened,
+        )
+
+        result = operations.execute_operation(
+            app,
+            "document.open",
+            {"path": opened.path},
+            documents=registry,
+        )
+
+        entry = registry.resolve(result["document"]["document_id"])
+        self.assertIs(entry.document, opened)
+        self.assertIsNot(entry.document, previous)
+
     def test_closing_current_document_clears_only_matching_sessions(self):
         first = self.FakeDocument("first.SLDPRT", "C:\\first.SLDPRT")
         app = self.FakeApp([first], active=first)
@@ -450,10 +484,10 @@ class DaemonProtocolTests(unittest.TestCase):
                 }
             )
 
-    @mock.patch("swcli.daemon.operations.open_windows_document")
+    @mock.patch("swcli.daemon.operations.open_windows_document_with_handle")
     def test_document_operation_reuses_worker_owned_app(self, open_document):
         app = object()
-        open_document.return_value = {"ok": True}
+        open_document.return_value = ({"ok": True}, object())
 
         result = operations.execute_operation(
             app,
