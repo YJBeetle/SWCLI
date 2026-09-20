@@ -178,11 +178,16 @@ def _com_value(obj: Any, name: str) -> Any:
 
 
 def _describe_document(document: Any) -> Dict[str, Any]:
+    try:
+        update_stamp = int(_com_value(document, "GetUpdateStamp"))
+    except Exception:
+        update_stamp = None
     return {
         "title": str(_com_value(document, "GetTitle")),
         "path": str(_com_value(document, "GetPathName")),
         "type": int(_com_value(document, "GetType")),
         "modified": bool(_com_value(document, "GetSaveFlag")),
+        "update_stamp": update_stamp,
     }
 
 

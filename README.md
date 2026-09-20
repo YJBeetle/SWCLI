@@ -268,7 +268,9 @@ sw-cli document close
 ```
 
 `document inspect` reports the selected document's type, path, title, modified
-state, and rebuild status. JSON output is always UTF-8 so paths and model names
+state, SOLIDWORKS `GetUpdateStamp` value, and rebuild status. The update stamp
+tracks model-state and geometry changes, but is not a complete revision for
+cosmetic or naming edits. JSON output is always UTF-8 so paths and model names
 remain machine-readable across remote runners.
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.

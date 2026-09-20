@@ -178,7 +178,7 @@ sw-cli document export output.STEP --strict
 sw-cli document close
 ```
 
-`document inspect` 报告所选文档的类型、路径、标题、修改状态及重建状态。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
+`document inspect` 报告所选文档的类型、路径、标题、修改状态、SOLIDWORKS `GetUpdateStamp` 值及重建状态。该更新戳会跟踪模型状态和几何变化，但不是覆盖外观或命名修改的完整 revision。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
 
 `document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
 

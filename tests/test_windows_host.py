@@ -5,6 +5,29 @@ from swcli.hosts import windows
 
 
 class WindowsHostTests(unittest.TestCase):
+    def test_document_description_reports_solidworks_update_stamp(self):
+        class Document:
+            GetTitle = lambda self: "part.SLDPRT"
+            GetPathName = lambda self: "C:\\part.SLDPRT"
+            GetType = lambda self: 1
+            GetSaveFlag = lambda self: False
+            GetUpdateStamp = lambda self: 42
+
+        description = windows._describe_document(Document())
+
+        self.assertEqual(description["update_stamp"], 42)
+
+    def test_document_description_allows_unavailable_update_stamp(self):
+        class Document:
+            GetTitle = lambda self: "part.SLDPRT"
+            GetPathName = lambda self: "C:\\part.SLDPRT"
+            GetType = lambda self: 1
+            GetSaveFlag = lambda self: False
+
+        description = windows._describe_document(Document())
+
+        self.assertIsNone(description["update_stamp"])
+
     def test_command_executable_handles_quoted_server(self):
         command = '"C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\SLDWORKS.exe" /Automation'
         self.assertEqual(
