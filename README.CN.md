@@ -157,7 +157,18 @@ TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及�
 
 ## 文档操作
 
-`document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。`document inspect` 报告活动文档的类型、路径、标题、修改状态及重建状态。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
+`document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。每次打开或创建都会返回 `d-k7m2q9` 形式的短期 ID，并把该文档设为所选 CLI session 的 `current`。文档关闭或 worker 重启后 ID 即失效。`document list` 返回全部打开文档及各自的 `active`、`current` 状态；`document use ID` 用于明确修改 session 的 `current`。
+
+省略 `--document` 时，命令操作 session 的 `current`；`--document ID` 仅为本次命令指定确切文档，`--document active` 仅为本次命令选择 SOLIDWORKS 前台文档，两者都不会改变 `current`。并发客户端可以通过 `--session NAME` 或 `SWCLI_SESSION_ID` 隔离各自的当前文档；不指定时使用共享的 `default` session，方便编写线性脚本：
+
+```powershell
+sw-cli document open model.SLDPRT
+sw-cli document rebuild
+sw-cli document export output.STEP --strict
+sw-cli document close
+```
+
+`document inspect` 报告所选文档的类型、路径、标题、修改状态及重建状态。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
 
 `document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
 
@@ -165,11 +176,11 @@ TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及�
 
 `document diagnose` 是只读操作，报告 `NeedsRebuild2` 以及每个特征非零的 `GetErrorCode2` 结果。`document rebuild` 默认只重建过期特征，`--force` 则执行完整重建。两者都返回同一种有界诊断结构，便于智能体比较操作前后状态。
 
-`document save` 使用 `Save3` 原位保存活动原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
+`document save` 使用 `Save3` 原位保存所选原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
 
-`document render` 会使活动模型适合当前视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
+`document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
 
-`document export` 可将活动零件或装配体转换为 STEP、活动装配体转换为 GLB，或将活动工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。严格模式先写入目标目录内的临时文件，所有检查通过后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
+`document export` 可将所选零件或装配体转换为 STEP、所选装配体转换为 GLB，或将所选工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。严格模式先写入目标目录内的临时文件，所有检查通过后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
 
 `part create-box` 是首个类型化建模操作。它会创建中心矩形草图并拉伸，重建和诊断结果，保存原生零件，再返回实体拓扑与近似轴对齐包围盒。该操作使用明确的 `.PRTDOT` 路径创建文档，而非调用交互式 `NewPart` 命令：`--template` 优先，其次是配置的默认模板，最后在已安装 SOLIDWORKS 根目录下进行确定性搜索。如果找不到可用模板，它会返回结构化错误，而不是等待隐藏的模板选择对话框。
 

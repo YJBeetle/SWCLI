@@ -215,10 +215,29 @@ authentication, so do not expose the daemon directly to an untrusted network.
 ## Document operations
 
 `document open` supports native part, assembly, and drawing files and returns
-the exact `OpenDoc6` error and warning bitmasks. `document inspect` reports the
-active document's type, path, title, modified state, and rebuild status. JSON
-output is always UTF-8 so paths and model names remain machine-readable across
-remote runners.
+the exact `OpenDoc6` error and warning bitmasks. Every open or create returns a
+short-lived ID such as `d-k7m2q9` and makes that document current for the
+selected CLI session. IDs expire when the document closes or the worker
+restarts. `document list` reports every open document plus its `active` and
+`current` state; `document use ID` explicitly changes the session current.
+
+Commands use the session current when `--document` is omitted. Pass
+`--document ID` for a one-off exact target, or `--document active` to target the
+SOLIDWORKS foreground document once; neither form changes the remembered
+current. Use `--session NAME` or `SWCLI_SESSION_ID` to isolate current-document
+state between concurrent clients. The unnamed default session keeps linear
+shell scripts concise:
+
+```powershell
+sw-cli document open model.SLDPRT
+sw-cli document rebuild
+sw-cli document export output.STEP --strict
+sw-cli document close
+```
+
+`document inspect` reports the selected document's type, path, title, modified
+state, and rebuild status. JSON output is always UTF-8 so paths and model names
+remain machine-readable across remote runners.
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 
@@ -233,20 +252,20 @@ per-feature `GetErrorCode2` results. `document rebuild` rebuilds only outdated
 features by default; `--force` invokes a full rebuild. Both return the same
 bounded diagnostic structure so agents can compare pre- and post-action state.
 
-`document save` saves the active native document in place with `Save3`. Its
+`document save` saves the selected native document in place with `Save3`. Its
 response includes the raw SOLIDWORKS save error/warning bitmasks, stable names
 for every set bit, and the document state before and after saving. Success
 requires both a successful API result and a clean post-save document.
 
-`document render` fits the active model in the current view and exports a BMP
+`document render` fits the selected model in its view and exports a BMP
 at explicit pixel dimensions. It refuses to overwrite by default and verifies
 the generated bitmap header and dimensions before returning an image artifact.
 Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
 `isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
 orientation; the default `current` preserves the active UI orientation.
 
-`document export` converts the active part or assembly to STEP, an active
-assembly to GLB, or the active drawing to PDF or DWG. It clears selections so
+`document export` converts the selected part or assembly to STEP, a selected
+assembly to GLB, or the selected drawing to PDF or DWG. It clears selections so
 the whole document is exported, refuses overwrite by default, and verifies the
 resulting file signature and non-empty content. The default mode is permissive:
 it completes the export but reports structured warnings only when the source

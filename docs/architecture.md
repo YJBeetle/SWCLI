@@ -125,6 +125,16 @@ instead of reducing them to a boolean. The Windows adapter owns pywin32 details
 such as typed `VT_BYREF | VT_I4` arguments required by `OpenDoc6`; these details
 must not leak into the public protocol.
 
+The worker owns a short-lived document registry. Opaque eight-character IDs
+such as `d-k7m2q9` identify an open COM document only until it closes or the
+worker restarts. Each protocol `session_id` has an independent remembered
+current document; an omitted session uses `default`. Open and create update the
+session current, while an explicit ID or the reserved `active` selector applies
+to one request only. `document.use` is the only standalone operation that
+changes current. No public command exposes SOLIDWORKS activation as persistent
+state. Operations that require an active document temporarily use
+`ActivateDoc3` with no rebuild and restore the previous foreground document.
+
 Structural inspection distinguishes stable semantics from display details.
 Feature traversal reports `GetTypeName2` and explicitly labels its order as
 model-definition order; names and indices are observational and must not be
@@ -147,7 +157,7 @@ localized names, so rendered comparisons remain stable across host languages.
 Overwrite remains opt-in.
 
 Neutral and drawing exports are explicit artifact operations. Format choices
-are constrained by active document type, selection is cleared before export,
+are constrained by the selected document type, selection is cleared before export,
 and success requires a native zero error code, a non-empty output, and a
 matching file signature. Default export is permissive and reports structured
 warnings only when the source needs saving, needs rebuilding, or changes during
@@ -156,7 +166,7 @@ file in the destination directory so the requested output is replaced only
 after all checks pass.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
-explicit output extension and active document type. Source-file naming and
+explicit output extension and selected document type. Source-file naming and
 batch policy belong to the consuming CI job, which composes explicit typed
 open, export, and close operations. SWCLI does not ship a policy-specific
 manifest exporter.
