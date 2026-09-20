@@ -148,6 +148,41 @@ def _read_startup_failure(
     return None
 
 
+def _terminate_spawned_daemon(process: subprocess.Popen[Any]) -> Optional[str]:
+    """Terminate the detached daemon process tree after a failed startup."""
+
+    if process.poll() is not None:
+        return None
+
+    errors = []
+    try:
+        completed = subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=10.0,
+        )
+        if completed.returncode != 0:
+            errors.append(f"taskkill exited with code {completed.returncode}")
+    except (OSError, subprocess.SubprocessError) as exc:
+        errors.append(f"taskkill failed: {exc}")
+
+    try:
+        process.wait(timeout=5.0)
+    except subprocess.TimeoutExpired:
+        try:
+            process.kill()
+            process.wait(timeout=5.0)
+        except (OSError, subprocess.SubprocessError) as exc:
+            errors.append(f"process termination failed: {exc}")
+    except OSError as exc:
+        errors.append(f"process wait failed: {exc}")
+
+    return "; ".join(errors) or None
+
+
 def start_daemon(
     *,
     endpoint: str = DEFAULT_ENDPOINT,
@@ -277,7 +312,11 @@ def start_daemon(
     message = f"daemon did not become ready within {startup_timeout_seconds:g}s"
     if last_error is not None:
         message = f"{message}: {last_error}"
-    return _failure("StartupTimeout", message, log=str(log_path))
+    cleanup_error = _terminate_spawned_daemon(process)
+    details: Dict[str, Any] = {"log": str(log_path)}
+    if cleanup_error is not None:
+        details["cleanup_error"] = cleanup_error
+    return _failure("StartupTimeout", message, **details)
 
 
 def run(args: argparse.Namespace) -> int:

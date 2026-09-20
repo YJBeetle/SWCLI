@@ -15,6 +15,7 @@ from swcli.daemon.documents import (
 )
 from swcli.daemon.main import (
     _read_startup_failure,
+    _terminate_spawned_daemon,
     require_remote_bind_opt_in,
     start_daemon,
 )
@@ -328,6 +329,47 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertTrue(result["result"]["started"])
         popen.assert_called_once()
+
+    @mock.patch("swcli.daemon.main._terminate_spawned_daemon")
+    @mock.patch("swcli.daemon.main.subprocess.Popen")
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_background_start_terminates_late_process_after_timeout(
+        self, call_daemon, popen, terminate
+    ):
+        call_daemon.side_effect = ConnectionRefusedError("offline")
+        process = popen.return_value
+        process.poll.return_value = None
+        terminate.return_value = None
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": directory}),
+            mock.patch("swcli.daemon.main.sys.platform", "win32"),
+            mock.patch(
+                "swcli.daemon.main.time.monotonic", side_effect=[0.0, 6.0]
+            ),
+        ):
+            result = start_daemon(
+                endpoint="127.0.0.1:19000", startup_timeout_seconds=1.0
+            )
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"]["code"], "StartupTimeout")
+        terminate.assert_called_once_with(process)
+
+    @mock.patch("swcli.daemon.main.subprocess.run")
+    def test_spawned_daemon_cleanup_kills_the_complete_process_tree(self, run):
+        process = mock.Mock(pid=4321)
+        process.poll.return_value = None
+        run.return_value.returncode = 0
+
+        error = _terminate_spawned_daemon(process)
+
+        self.assertIsNone(error)
+        self.assertEqual(
+            run.call_args.args[0],
+            ["taskkill", "/PID", "4321", "/T", "/F"],
+        )
+        process.wait.assert_called_once_with(timeout=5.0)
 
     def test_resident_lifetime_selects_official_background_control(self):
         hidden = mock.Mock()
