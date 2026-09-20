@@ -127,6 +127,7 @@ class DocumentRegistry:
                 raise NoActiveDocument("SOLIDWORKS has no active document")
             return self.register(document)
 
+        self.sync()
         document_id = selector
         if document_id is None:
             document_id = self._current_by_session.get(session_id)

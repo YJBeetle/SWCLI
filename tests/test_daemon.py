@@ -9,6 +9,7 @@ from unittest import mock
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
 from swcli.daemon.documents import (
+    DocumentNotFound,
     DocumentRegistry,
     NoCurrentDocument,
 )
@@ -153,6 +154,21 @@ class DaemonProtocolTests(unittest.TestCase):
 
         with self.assertRaises(NoCurrentDocument):
             registry.resolve(None, session_id="agent-a")
+
+    def test_resolve_discards_handles_for_documents_closed_outside_swcli(self):
+        document = self.FakeDocument("part.SLDPRT", "C:\\part.SLDPRT")
+        app = self.FakeApp([document], active=document)
+        registry = DocumentRegistry(app)
+        entry = registry.register(document)
+        registry.set_current(entry, session_id="default")
+
+        app.documents.clear()
+        app.ActiveDoc = None
+
+        with self.assertRaises(NoCurrentDocument):
+            registry.resolve(None, session_id="default")
+        with self.assertRaises(DocumentNotFound):
+            registry.resolve(entry.document_id, session_id="default")
 
     @mock.patch("swcli.daemon.operations.close_active_windows_document")
     def test_close_uses_pre_close_descriptor_and_forgets_handle(self, close_document):
