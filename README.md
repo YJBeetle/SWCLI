@@ -44,21 +44,7 @@ capability negotiation remain future work.
 
 ## Installation
 
-### DockerSW
-
-DockerSW images install and pin a tested SWCLI revision. Do not install a second
-copy inside the container. Verify the bundled client with:
-
-```bash
-sw-cli version --json
-sw-cli doctor --json
-```
-
-DockerSW runs the `sw-cli` client with Linux Python and the daemon/COM worker
-with Windows Python under Wine. DockerSW owns that split runtime, Wine setup,
-SOLIDWORKS registration, and process lifecycle.
-
-### Native Windows
+### Windows
 
 Requirements:
 
@@ -107,6 +93,20 @@ yet on `PATH`:
 ```powershell
 python -m swcli version --json
 ```
+
+### DockerSW
+
+DockerSW images install and pin a tested SWCLI revision. Do not install a second
+copy inside the container. Verify the bundled client with:
+
+```bash
+sw-cli version --json
+sw-cli doctor --json
+```
+
+DockerSW runs the `sw-cli` client with Linux Python and the daemon/COM worker
+with Windows Python under Wine. DockerSW owns that split runtime, Wine setup,
+SOLIDWORKS registration, and process lifecycle.
 
 ### Development checkout
 

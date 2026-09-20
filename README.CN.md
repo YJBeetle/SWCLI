@@ -32,18 +32,7 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
-### DockerSW
-
-DockerSW 镜像会安装并固定经过测试的 SWCLI 版本，请勿在容器内重复安装。可用以下命令验证内置客户端：
-
-```bash
-sw-cli version --json
-sw-cli doctor --json
-```
-
-在 DockerSW 中，`sw-cli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
-
-### 原生 Windows
+### Windows 平台
 
 要求：
 
@@ -84,6 +73,17 @@ sw-cli daemon status --json
 ```powershell
 python -m swcli version --json
 ```
+
+### DockerSW
+
+DockerSW 镜像会安装并固定经过测试的 SWCLI 版本，请勿在容器内重复安装。可用以下命令验证内置客户端：
+
+```bash
+sw-cli version --json
+sw-cli doctor --json
+```
+
+在 DockerSW 中，`sw-cli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
 
 ### 开发工作区
 
