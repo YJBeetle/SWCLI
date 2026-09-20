@@ -488,7 +488,10 @@ class DaemonProtocolTests(unittest.TestCase):
             "owned_by_daemon": False,
             "shared_interactive": True,
         }
-        manager._terminate_worker = mock.Mock()
+        def terminate_worker():
+            manager.host = {}
+
+        manager._terminate_worker = mock.Mock(side_effect=terminate_worker)
         request = {
             "request_id": "req-timeout",
             "timeout_ms": 100,
@@ -508,6 +511,7 @@ class DaemonProtocolTests(unittest.TestCase):
 
         health = manager.health()
         self.assertTrue(health["recovery_required"])
+        self.assertIsNone(health["host"])
         self.assertEqual(
             health["recovery_error"]["code"], "SharedHostRecoveryRequired"
         )

@@ -390,7 +390,7 @@ class WorkerManager:
             ),
             "recovery_required": self._recovery_required is not None,
             "recovery_error": self._recovery_required,
-            "host": self.host,
+            "host": self.host or None,
         }
 
     def shutdown(self, request: Dict[str, Any]) -> Dict[str, Any]:

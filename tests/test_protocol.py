@@ -33,6 +33,38 @@ class ProtocolSchemaTests(unittest.TestCase):
             },
         )
 
+    def test_capabilities_schema_describes_daemon_health(self):
+        schema = load_schema("capabilities")
+        self.assertEqual(
+            set(schema["properties"]),
+            {
+                "server_version",
+                "protocol_versions",
+                "operations",
+                "worker_alive",
+                "recovery_required",
+                "recovery_error",
+                "host",
+            },
+        )
+        self.assertEqual(set(schema["required"]), set(schema["properties"]))
+        live_host = schema["properties"]["host"]["oneOf"][0]
+        self.assertEqual(
+            set(live_host["properties"]),
+            {
+                "revision",
+                "solidworks_revision",
+                "language",
+                "process_id",
+                "visible",
+                "startup_wait_seconds",
+                "owned_by_daemon",
+                "shared_interactive",
+                "platform",
+            },
+        )
+        self.assertEqual(set(live_host["required"]), set(live_host["properties"]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,7 +9,9 @@
     "server_version",
     "host",
     "operations",
-    "worker_alive"
+    "worker_alive",
+    "recovery_required",
+    "recovery_error"
   ],
   "properties": {
     "protocol_versions": {
@@ -20,18 +22,56 @@
     },
     "server_version": {"type": "string"},
     "host": {
-      "type": "object",
-      "required": ["platform"],
-      "properties": {
-        "platform": {"enum": ["windows", "macos-wine", "linux-wine"]},
-        "solidworks_revision": {"type": "string"}
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "revision",
+            "solidworks_revision",
+            "language",
+            "process_id",
+            "visible",
+            "startup_wait_seconds",
+            "owned_by_daemon",
+            "shared_interactive",
+            "platform"
+          ],
+          "properties": {
+            "revision": {"type": "string"},
+            "solidworks_revision": {"type": "string"},
+            "language": {"type": "string"},
+            "process_id": {"type": "integer", "minimum": 1},
+            "visible": {"type": "boolean"},
+            "startup_wait_seconds": {"type": "number", "minimum": 0},
+            "owned_by_daemon": {"type": "boolean"},
+            "shared_interactive": {"type": "boolean"},
+            "platform": {"enum": ["windows", "macos-wine", "linux-wine"]}
+          }
+        },
+        {"type": "null"}
+      ]
     },
     "operations": {
       "type": "array",
       "items": {"type": "string"},
       "uniqueItems": true
     },
-    "worker_alive": {"type": "boolean"}
+    "worker_alive": {"type": "boolean"},
+    "recovery_required": {"type": "boolean"},
+    "recovery_error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"type": "string", "minLength": 1},
+            "message": {"type": "string"}
+          }
+        },
+        {"type": "null"}
+      ]
+    }
   }
 }
