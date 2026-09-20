@@ -221,13 +221,6 @@ def create_box_part_windows(
                 }
                 return result
 
-        if _com_value(app, "ActiveDoc") is not None:
-            result["error"] = {
-                "type": "ActiveDocument",
-                "message": "close the active document before creating a new part",
-            }
-            return result
-
         template_result = _resolve_part_template(app, template)
         result["template"] = {
             key: value for key, value in template_result.items() if key != "error"

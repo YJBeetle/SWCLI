@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
+from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import OPERATIONS, execute_operation
 
 
@@ -65,6 +66,10 @@ def validate_request(request: Any) -> Dict[str, Any]:
             raise ValueError(f"{name} must be a non-empty string")
     if not isinstance(request.get("parameters"), dict):
         raise ValueError("parameters must be an object")
+    for name in ("session_id", "document_id"):
+        value = request.get(name)
+        if value is not None and (not isinstance(value, str) or not value):
+            raise ValueError(f"{name} must be a non-empty string when provided")
     timeout_ms = request.get("timeout_ms", 600000)
     if not isinstance(timeout_ms, int) or timeout_ms < 1:
         raise ValueError("timeout_ms must be a positive integer")
@@ -131,6 +136,7 @@ def _worker_main(
     pythoncom.CoInitialize()
     app = None
     owned_by_daemon = False
+    documents = None
     try:
         app, owned_by_daemon = acquire_resident_app(
             win32com.client,
@@ -140,6 +146,7 @@ def _worker_main(
         waited = wait_windows_host_ready(
             app, timeout_seconds=startup_timeout_seconds
         )
+        documents = DocumentRegistry(app)
         ready_queue.put(
             {
                 "ok": True,
@@ -182,7 +189,14 @@ def _worker_main(
                     )
                     break
                 result = execute_operation(
-                    app, str(request["operation"]), dict(request["parameters"])
+                    app,
+                    str(request["operation"]),
+                    dict(request["parameters"]),
+                    documents=documents,
+                    session_id=str(
+                        request.get("session_id") or DEFAULT_SESSION_ID
+                    ),
+                    document_id=request.get("document_id"),
                 )
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):

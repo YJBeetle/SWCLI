@@ -33,6 +33,8 @@ def call_daemon(
     timeout_seconds: float = 600.0,
     connect_timeout_seconds: Optional[float] = None,
     request_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    document_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit one typed operation to swclid and return its protocol response."""
 
@@ -47,6 +49,10 @@ def call_daemon(
         "parameters": parameters or {},
         "timeout_ms": max(1, int(timeout_seconds * 1000)),
     }
+    if session_id:
+        request["session_id"] = session_id
+    if document_id:
+        request["document_id"] = document_id
     encoded = json.dumps(request, ensure_ascii=False, separators=(",", ":")).encode(
         "utf-8"
     ) + b"\n"

@@ -441,9 +441,13 @@ def _inspect_bodies(document: Any) -> Dict[str, Any]:
 
 
 def inspect_active_windows_document(
-    *, detail: str = "summary", max_features: int = 500, app: Any = None
+    *,
+    detail: str = "summary",
+    max_features: int = 500,
+    app: Any = None,
+    document: Any = None,
 ) -> Dict[str, Any]:
-    """Describe the active SOLIDWORKS document without modifying it."""
+    """Describe a selected SOLIDWORKS document without modifying it."""
 
     if sys.platform != "win32":
         return _unsupported("document.inspect")
@@ -467,7 +471,8 @@ def inspect_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -506,8 +511,9 @@ def render_active_windows_document(
     fit: bool = True,
     overwrite: bool = False,
     app: Any = None,
+    document: Any = None,
 ) -> Dict[str, Any]:
-    """Render the active SOLIDWORKS view to a verified bitmap artifact."""
+    """Render a selected SOLIDWORKS view to a verified bitmap artifact."""
 
     invalid = _validate_render_arguments(output, width, height, view)
     if invalid is not None:
@@ -558,7 +564,8 @@ def render_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -615,8 +622,9 @@ def export_active_windows_document(
     overwrite: bool = False,
     strict: bool = False,
     app: Any = None,
+    document: Any = None,
 ) -> Dict[str, Any]:
-    """Export the active document to a verified neutral or drawing format."""
+    """Export a selected document to a verified neutral or drawing format."""
 
     if sys.platform != "win32":
         return _unsupported("document.export")
@@ -659,7 +667,8 @@ def export_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -763,8 +772,10 @@ def export_active_windows_document(
             pythoncom.CoUninitialize()
 
 
-def save_active_windows_document(*, app: Any = None) -> Dict[str, Any]:
-    """Save the active native document in place and report SOLIDWORKS status."""
+def save_active_windows_document(
+    *, app: Any = None, document: Any = None
+) -> Dict[str, Any]:
+    """Save a selected native document in place and report SOLIDWORKS status."""
 
     if sys.platform != "win32":
         return _unsupported("document.save")
@@ -792,7 +803,8 @@ def save_active_windows_document(*, app: Any = None) -> Dict[str, Any]:
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -845,9 +857,9 @@ def save_active_windows_document(*, app: Any = None) -> Dict[str, Any]:
 
 
 def close_active_windows_document(
-    *, discard: bool = False, app: Any = None
+    *, discard: bool = False, app: Any = None, document: Any = None
 ) -> Dict[str, Any]:
-    """Close the active document, refusing to discard modifications by default."""
+    """Close a selected document, refusing to discard modifications by default."""
 
     if sys.platform != "win32":
         return _unsupported("document.close")
@@ -876,7 +888,8 @@ def close_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -905,7 +918,7 @@ def close_active_windows_document(
 
 
 def diagnose_active_windows_document(
-    *, max_features: int = 500, app: Any = None
+    *, max_features: int = 500, app: Any = None, document: Any = None
 ) -> Dict[str, Any]:
     """Report rebuild state and per-feature errors without modifying the model."""
 
@@ -931,7 +944,8 @@ def diagnose_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",
@@ -959,6 +973,7 @@ def rebuild_active_windows_document(
     top_only: bool = False,
     max_features: int = 500,
     app: Any = None,
+    document: Any = None,
 ) -> Dict[str, Any]:
     """Rebuild the active configuration and return post-rebuild diagnostics."""
 
@@ -989,7 +1004,8 @@ def rebuild_active_windows_document(
                 }
                 return result
 
-        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            document = _com_value(app, "ActiveDoc")
         if document is None:
             result["error"] = {
                 "type": "NoActiveDocument",

@@ -8,8 +8,18 @@
   "properties": {
     "api_version": {"const": "swcli/v1"},
     "request_id": {"type": "string", "minLength": 1},
-    "session_id": {"type": "string", "minLength": 1},
-    "document_id": {"type": "string", "minLength": 1},
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Scope for the daemon-side current document; omitted means default"
+    },
+    "document_id": {
+      "description": "Short-lived document ID, or the one-shot active selector",
+      "oneOf": [
+        {"type": "string", "pattern": "^d-[0-9a-hjkmnp-tv-z]{6}$"},
+        {"const": "active"}
+      ]
+    },
     "operation": {"type": "string", "minLength": 1},
     "parameters": {"type": "object"},
     "timeout_ms": {"type": "integer", "minimum": 1}
