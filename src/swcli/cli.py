@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from typing import Any, Dict, Optional, Sequence, Tuple
 
@@ -227,6 +228,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if typed is not None:
         operation, parameters, as_json, document_id = typed
         try:
+            translate_parameter_paths(parameters)
             response = call_daemon(
                 operation,
                 parameters,
@@ -446,6 +448,30 @@ def _configure_output() -> None:
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if callable(reconfigure):
         reconfigure(encoding="utf-8")
+
+
+PATH_PARAMETER_NAMES = ("path", "output", "template")
+
+
+def translate_parameter_paths(parameters: Dict[str, Any]) -> None:
+    """Translate known path parameters in place using the host helper command.
+
+    Hosts that mix POSIX and Windows filesystems (for example Wine containers)
+    export SWCLI_PATH_TRANSLATE_CMD pointing at a helper that maps a single
+    path argument to the host's native form. The client knows which parameters
+    are paths, so it applies the helper to exactly those fields instead of
+    leaving a shell wrapper to guess from argument positions.
+    """
+
+    command = os.environ.get("SWCLI_PATH_TRANSLATE_CMD")
+    if not command:
+        return
+    for name in PATH_PARAMETER_NAMES:
+        value = parameters.get(name)
+        if isinstance(value, str) and value:
+            parameters[name] = subprocess.check_output(
+                [command, value], text=True
+            ).strip()
 
 
 def _print_action_result(payload: dict, as_json: bool) -> None:

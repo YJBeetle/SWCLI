@@ -212,6 +212,19 @@ endpoints are never started implicitly. The protocol currently has no transport
 authentication, so do not expose the daemon directly to an untrusted network.
 `doctor` remains read-only.
 
+### Host path translation
+
+Hosts that run the Linux client against a Windows Python worker (Wine, for
+example) can point the client at a small helper so POSIX paths in typed
+requests reach SOLIDWORKS as Windows paths. Set `SWCLI_PATH_TRANSLATE_CMD` to
+an executable that accepts one path argument on `argv[1]` and prints the
+translated path to stdout. The client applies it only to the parameters it
+knows to be paths — `path`, `output`, and `template` — before sending the
+request, so the mapping never depends on command-line argument positions. When
+the variable is unset (native Windows, or a client that already passes Windows
+paths) translation is skipped entirely. DockerSW ships a helper that calls
+`winepath -w` for POSIX paths and passes drive-letter paths through untouched.
+
 ## Document operations
 
 `document open` supports native part, assembly, and drawing files and returns

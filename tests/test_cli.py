@@ -1,10 +1,16 @@
 import contextlib
 import io
 import json
+import os
 import unittest
 from unittest import mock
 
-from swcli.cli import _typed_operation, build_parser, main
+from swcli.cli import (
+    _typed_operation,
+    build_parser,
+    main,
+    translate_parameter_paths,
+)
 
 
 class CliTests(unittest.TestCase):
@@ -344,6 +350,77 @@ class CliTests(unittest.TestCase):
             json.loads(output.getvalue())["error"]["type"],
             "ConnectionRefusedError",
         )
+
+
+class PathTranslationTests(unittest.TestCase):
+    def test_no_op_without_translator_command(self):
+        parameters = {"path": "/workspace/model.SLDPRT"}
+        with mock.patch.dict(os.environ, {}, clear=True):
+            translate_parameter_paths(parameters)
+        self.assertEqual(parameters["path"], "/workspace/model.SLDPRT")
+
+    def test_translates_only_known_path_fields(self):
+        parameters = {
+            "path": "/in.SLDPRT",
+            "output": "/out.STEP",
+            "template": "/tpl.PRTDOT",
+            "configuration": "Active",
+            "max_features": 500,
+            "read_only": False,
+        }
+        with mock.patch.dict(
+            os.environ, {"SWCLI_PATH_TRANSLATE_CMD": "to-win"}
+        ), mock.patch(
+            "swcli.cli.subprocess.check_output",
+            side_effect=lambda cmd, text: "W:" + cmd[1] + "\n",
+        ) as check_output:
+            translate_parameter_paths(parameters)
+
+        self.assertEqual(parameters["path"], "W:/in.SLDPRT")
+        self.assertEqual(parameters["output"], "W:/out.STEP")
+        self.assertEqual(parameters["template"], "W:/tpl.PRTDOT")
+        self.assertEqual(parameters["configuration"], "Active")
+        self.assertEqual(parameters["max_features"], 500)
+        self.assertEqual(parameters["read_only"], False)
+        self.assertEqual(
+            [call.args[0] for call in check_output.call_args_list],
+            [["to-win", "/in.SLDPRT"], ["to-win", "/out.STEP"], ["to-win", "/tpl.PRTDOT"]],
+        )
+
+    def test_skips_empty_and_missing_path_fields(self):
+        parameters = {"path": "", "configuration": "x"}
+        with mock.patch.dict(
+            os.environ, {"SWCLI_PATH_TRANSLATE_CMD": "to-win"}
+        ), mock.patch("swcli.cli.subprocess.check_output") as check_output:
+            translate_parameter_paths(parameters)
+        check_output.assert_not_called()
+        self.assertEqual(parameters["path"], "")
+
+    def test_typed_request_sends_translated_paths_to_daemon(self):
+        parameters = {"output": "/workspace/out.STEP", "overwrite": False}
+        with mock.patch.dict(
+            os.environ,
+            {
+                "SWCLI_ENDPOINT": "127.0.0.1:18495",
+                "SWCLI_PATH_TRANSLATE_CMD": "to-win",
+            },
+        ), mock.patch(
+            "swcli.cli.subprocess.check_output",
+            return_value="Z:\\workspace\\out.STEP\n",
+        ), mock.patch(
+            "swcli.cli.call_daemon",
+            return_value={
+                "api_version": "swcli/v1",
+                "request_id": "r",
+                "success": True,
+                "result": {"ok": True, "action": "document.export"},
+            },
+        ) as call_daemon:
+            exit_code = main(["document", "export", "/workspace/out.STEP"])
+
+        self.assertEqual(exit_code, 0)
+        sent = call_daemon.call_args.args[1]
+        self.assertEqual(sent["output"], "Z:\\workspace\\out.STEP")
 
 
 if __name__ == "__main__":
