@@ -143,7 +143,7 @@ sw-cli document close --json
 sw-cli daemon serve
 ```
 
-服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 报告 worker 和宿主状态；`sw-cli daemon stop` 请求优雅关闭。操作超时后，worker 及 daemon 所有的 SOLIDWORKS 进程树会被替换。
+服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 报告 worker 和宿主状态；`sw-cli daemon stop` 请求优雅关闭。操作超时后会终止 worker 及 daemon 所有的 SOLIDWORKS 进程树，下一个请求再启动干净的独占宿主。
 
 daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw-cli daemon start` 会返回 `ExistingHostRequiresAttach`，不会静默共享该实例。此时可以关闭已有实例，或者明确选择交互式共享会话：
 
@@ -151,7 +151,7 @@ daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw
 sw-cli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。Windows 平台上的类型化命令自动启动始终采用独占模式，不会隐式选择共享。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。Windows 平台上的类型化命令自动启动始终采用独占模式，不会隐式选择共享。
 
 TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及时启动，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
@@ -180,9 +180,9 @@ sw-cli document close
 
 `document save` 使用 `Save3` 原位保存所选原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
 
-`document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
+`document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。渲染始终先写入目标目录内的临时文件，验证通过后才替换正式输出。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
 
-`document export` 可将所选零件或装配体转换为 STEP、所选装配体转换为 GLB，或将所选工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。严格模式先写入目标目录内的临时文件，所有检查通过后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
+`document export` 可将所选零件或装配体转换为 STEP、所选装配体转换为 GLB，或将所选工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。两种模式都先写入目标目录内的临时文件，通过文件验证及严格模式检查后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
 
 `part create-box` 是首个类型化建模操作。它会创建中心矩形草图并拉伸，重建和诊断结果，保存原生零件，再返回实体拓扑与近似轴对齐包围盒。该操作使用明确的 `.PRTDOT` 路径创建文档，而非调用交互式 `NewPart` 命令：`--template` 优先，其次是配置的默认模板，最后在已安装 SOLIDWORKS 根目录下进行确定性搜索。如果找不到可用模板，它会返回结构化错误，而不是等待隐藏的模板选择对话框。
 

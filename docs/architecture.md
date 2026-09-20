@@ -66,8 +66,10 @@ daemon, and never closes or force-terminates it. Typed-command auto-start never
 enables this option.
 If an operation exceeds its request timeout, the supervisor terminates the
 worker and any daemon-owned SOLIDWORKS process tree rather than reusing unknown
-COM state. An explicitly attached interactive host is left running.
-The following request starts a fresh worker automatically.
+COM state. The following request starts a fresh owned worker automatically. An
+explicitly attached interactive host is left running, but its state is unknown;
+the daemon rejects further typed operations with `SharedHostRecoveryRequired`
+until the user inspects SOLIDWORKS and restarts swclid.
 
 Typed public CLI commands are daemon-only. The COM adapter remains an internal
 worker backend and a direct unit/integration-test seam, but it is not a second
@@ -155,16 +157,17 @@ Windows adapter fits the active view, requests an explicit pixel size, and
 verifies the resulting bitmap signature and dimensions before exposing it to
 an agent. Standard orientations use numeric SOLIDWORKS view IDs rather than
 localized names, so rendered comparisons remain stable across host languages.
-Overwrite remains opt-in.
+Overwrite remains opt-in. Every render is verified in a same-directory
+temporary file before it atomically replaces the requested output.
 
 Neutral and drawing exports are explicit artifact operations. Format choices
 are constrained by the selected document type, selection is cleared before export,
 and success requires a native zero error code, a non-empty output, and a
 matching file signature. Default export is permissive and reports structured
 warnings only when the source needs saving, needs rebuilding, or changes during
-export. Strict export rejects those conditions and writes through a temporary
-file in the destination directory so the requested output is replaced only
-after all checks pass.
+export. Strict export rejects those conditions. Both modes write through a
+temporary file in the destination directory so the requested output is
+replaced only after file verification and all applicable checks pass.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
 explicit output extension and selected document type. Source-file naming and

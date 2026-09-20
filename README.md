@@ -183,8 +183,8 @@ versioned local JSON requests while one spawned COM worker owns the
 COM apartment. `sw-cli daemon start` launches the same `serve` implementation
 in the background and is idempotent. `sw-cli daemon status` reports the worker
 and host state; `sw-cli daemon stop` requests a graceful shutdown. A timed-out
-operation causes the worker and any daemon-owned SOLIDWORKS process tree to be
-replaced.
+operation terminates the worker and any daemon-owned SOLIDWORKS process tree;
+the next request starts a clean owned host.
 Exclusive ownership is the default. If a user-started SOLIDWORKS instance
 already exists, `sw-cli daemon start` fails with
 `ExistingHostRequiresAttach` instead of silently sharing it. Close that
@@ -196,8 +196,11 @@ sw-cli daemon start --attach-existing
 
 An explicitly attached instance preserves its visibility and is reported as
 `owned_by_daemon: false` and `shared_interactive: true`. Daemon shutdown and
-timeout recovery never close or force-terminate it. Native Windows typed-command
-auto-start always uses exclusive mode and never opts into sharing implicitly.
+timeout recovery never close or force-terminate it. Because its state is unknown
+after a timed-out COM call, swclid rejects further typed operations with
+`SharedHostRecoveryRequired` until the user inspects SOLIDWORKS and restarts the
+daemon. Native Windows typed-command auto-start always uses exclusive mode and
+never opts into sharing implicitly.
 
 TCP connection establishment has a separate three-second timeout so an absent
 local daemon can be started promptly without reducing the operation budget.
@@ -277,6 +280,8 @@ requires both a successful API result and a clean post-save document.
 `document render` fits the selected model in its view and exports a BMP
 at explicit pixel dimensions. It refuses to overwrite by default and verifies
 the generated bitmap header and dimensions before returning an image artifact.
+Rendering always uses a temporary file in the destination directory and only
+replaces the requested output after verification succeeds.
 Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
 `isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
 orientation; the default `current` preserves the active UI orientation.
@@ -288,10 +293,11 @@ resulting file signature and non-empty content. The default mode is permissive:
 it completes the export but reports structured warnings only when the source
 needs saving, needs rebuilding, or its state changes during export. `--strict`
 rejects a source that needs saving or rebuilding before invoking SOLIDWORKS and
-fails if export changes the source state. Strict mode writes to a temporary file
-in the destination directory and replaces the requested output only after all
-checks pass. This core operation selects format only from the explicit output
-extension and does not interpret source naming conventions.
+fails if export changes the source state. Both modes write to a temporary file
+in the destination directory and replace the requested output only after file
+verification and any strict checks pass. This core operation selects format
+only from the explicit output extension and does not interpret source naming
+conventions.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
