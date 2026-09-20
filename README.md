@@ -43,6 +43,7 @@ python -m swcli host stop --json
 python -m swcli document open model.SLDPRT --read-only --json
 python -m swcli document inspect --json
 python -m swcli document inspect --detail structure --json
+python -m swcli document save --json
 python -m swcli document close --json
 python -m swcli document diagnose --json
 python -m swcli document rebuild --json
@@ -106,6 +107,11 @@ not assume names or positions remain stable after edits.
 per-feature `GetErrorCode2` results. `document rebuild` rebuilds only dirty
 features by default; `--force` invokes a full rebuild. Both return the same
 bounded diagnostic structure so agents can compare pre- and post-action state.
+
+`document save` saves the active native document in place with `Save3`. Its
+response includes the raw SOLIDWORKS save error/warning bitmasks, stable names
+for every set bit, and the document state before and after saving. Success
+requires both a successful API result and a clean post-save document.
 
 `document render` fits the active model in the current view and exports a BMP
 at explicit pixel dimensions. It refuses to overwrite by default and verifies

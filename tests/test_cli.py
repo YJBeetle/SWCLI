@@ -79,6 +79,11 @@ class CliTests(unittest.TestCase):
                 {"discard": True},
             ),
             (
+                ["document", "save", "--json"],
+                "document.save",
+                {},
+            ),
+            (
                 ["document", "diagnose", "--max-features", "25", "--json"],
                 "document.diagnose",
                 {"max_features": 25},

@@ -100,6 +100,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="discard modifications instead of refusing to close",
     )
     close_parser.add_argument("--json", action="store_true", dest="as_json")
+    save_parser = document_commands.add_parser(
+        "save", help="save the active SOLIDWORKS document in place"
+    )
+    save_parser.add_argument("--json", action="store_true", dest="as_json")
     diagnose_parser = document_commands.add_parser(
         "diagnose", help="report rebuild state and feature errors"
     )
@@ -276,6 +280,8 @@ def _typed_operation(
             )
         if command == "close":
             return "document.close", {"discard": args.discard}, args.as_json
+        if command == "save":
+            return "document.save", {}, args.as_json
         if command == "diagnose":
             return (
                 "document.diagnose",

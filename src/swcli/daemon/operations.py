@@ -12,6 +12,7 @@ from ..hosts.windows_documents import (
     open_windows_document,
     rebuild_active_windows_document,
     render_active_windows_document,
+    save_active_windows_document,
 )
 from ..hosts.windows_parts import create_box_part_windows
 
@@ -20,6 +21,7 @@ OPERATIONS = (
     "document.open",
     "document.inspect",
     "document.close",
+    "document.save",
     "document.diagnose",
     "document.rebuild",
     "document.render",
@@ -70,6 +72,9 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
         return close_active_windows_document(
             discard=bool(values.get("discard", False)), app=app
         )
+    if operation == "document.save":
+        _parameters(operation, parameters, set(), set())
+        return save_active_windows_document(app=app)
     if operation == "document.diagnose":
         values = _parameters(operation, parameters, {"max_features"}, set())
         return diagnose_active_windows_document(

@@ -128,6 +128,16 @@ class DaemonProtocolTests(unittest.TestCase):
             app=app,
         )
 
+    @mock.patch("swcli.daemon.operations.save_active_windows_document")
+    def test_document_save_reuses_worker_owned_app(self, save_document):
+        app = object()
+        save_document.return_value = {"ok": True}
+
+        result = operations.execute_operation(app, "document.save", {})
+
+        self.assertEqual(result, {"ok": True})
+        save_document.assert_called_once_with(app=app)
+
 
 if __name__ == "__main__":
     unittest.main()

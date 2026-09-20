@@ -113,6 +113,20 @@ class WindowsDocumentTests(unittest.TestCase):
             windows_documents._export_signature_valid("PDF", b"empty")
         )
 
+    def test_save_status_bitmasks_are_named(self):
+        self.assertEqual(
+            windows_documents._bitmask_names(
+                3, windows_documents._SAVE_ERRORS
+            ),
+            ["generic-save-error", "read-only-save-error"],
+        )
+        self.assertEqual(
+            windows_documents._bitmask_names(
+                2048, windows_documents._SAVE_WARNINGS
+            ),
+            ["xml-invalid"],
+        )
+
     def test_export_can_explicitly_accept_only_modified_flag_change(self):
         pythoncom = ModuleType("pythoncom")
         pythoncom.CoInitialize = mock.Mock()
@@ -166,11 +180,133 @@ class WindowsDocumentTests(unittest.TestCase):
         pythoncom.CoInitialize.assert_not_called()
         pythoncom.CoUninitialize.assert_not_called()
 
+    def test_save_reports_status_and_requires_clean_post_save_state(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.VT_BYREF = 0x4000
+        pythoncom.VT_I4 = 3
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+
+        class Variant:
+            def __init__(self, variant_type, value):
+                self.variant_type = variant_type
+                self.value = value
+
+        win32com_client.VARIANT = Variant
+        win32com.client = win32com_client
+
+        class Document:
+            def Save3(self, options, errors, warnings):
+                self.options = options
+                return True
+
+        document = Document()
+        app = mock.Mock(ActiveDoc=document)
+        before = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": True,
+        }
+        after = {**before, "modified": False}
+
+        with (
+            mock.patch.object(windows_documents.sys, "platform", "win32"),
+            mock.patch.dict(
+                "sys.modules",
+                {
+                    "pythoncom": pythoncom,
+                    "win32com": win32com,
+                    "win32com.client": win32com_client,
+                },
+            ),
+            mock.patch.object(
+                windows_documents,
+                "_describe_document",
+                side_effect=[before, after],
+            ),
+        ):
+            result = windows_documents.save_active_windows_document(app=app)
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["api_saved"])
+        self.assertEqual(result["save_errors"], 0)
+        self.assertEqual(result["save_error_names"], [])
+        self.assertEqual(result["save_warnings"], 0)
+        self.assertEqual(result["save_warning_names"], [])
+        self.assertFalse(result["document_after"]["modified"])
+        self.assertEqual(document.options, 1)
+        pythoncom.CoInitialize.assert_not_called()
+        pythoncom.CoUninitialize.assert_not_called()
+
+    def test_save_failure_reports_named_error_and_warning_bits(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.VT_BYREF = 0x4000
+        pythoncom.VT_I4 = 3
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+
+        class Variant:
+            def __init__(self, variant_type, value):
+                self.variant_type = variant_type
+                self.value = value
+
+        win32com_client.VARIANT = Variant
+        win32com.client = win32com_client
+
+        class Document:
+            def Save3(self, options, errors, warnings):
+                errors.value = 1
+                warnings.value = 2048
+                return False
+
+        before = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": True,
+        }
+
+        with (
+            mock.patch.object(windows_documents.sys, "platform", "win32"),
+            mock.patch.dict(
+                "sys.modules",
+                {
+                    "pythoncom": pythoncom,
+                    "win32com": win32com,
+                    "win32com.client": win32com_client,
+                },
+            ),
+            mock.patch.object(
+                windows_documents,
+                "_describe_document",
+                side_effect=[before, before],
+            ),
+        ):
+            result = windows_documents.save_active_windows_document(
+                app=mock.Mock(ActiveDoc=Document())
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "SaveFailed")
+        self.assertEqual(result["save_errors"], 1)
+        self.assertEqual(result["save_error_names"], ["generic-save-error"])
+        self.assertEqual(result["save_warnings"], 2048)
+        self.assertEqual(result["save_warning_names"], ["xml-invalid"])
+        self.assertTrue(result["document_after"]["modified"])
+        pythoncom.CoInitialize.assert_not_called()
+        pythoncom.CoUninitialize.assert_not_called()
+
     def test_operations_are_rejected_off_windows(self):
         with mock.patch.object(windows_documents.sys, "platform", "darwin"):
             opened = windows_documents.open_windows_document("part.SLDPRT")
             inspected = windows_documents.inspect_active_windows_document()
             closed = windows_documents.close_active_windows_document()
+            saved = windows_documents.save_active_windows_document()
             diagnosed = windows_documents.diagnose_active_windows_document()
             exported = windows_documents.export_active_windows_document("model.step")
             rebuilt = windows_documents.rebuild_active_windows_document()
@@ -179,6 +315,7 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertEqual(opened["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(inspected["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(closed["error"]["type"], "UnsupportedPlatform")
+        self.assertEqual(saved["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(diagnosed["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(exported["error"]["type"], "UnsupportedPlatform")
         self.assertEqual(rebuilt["error"]["type"], "UnsupportedPlatform")

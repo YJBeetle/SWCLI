@@ -57,6 +57,36 @@ _EXPORT_FORMATS = {
     2: {".step", ".stp", ".glb"},
     3: {".pdf", ".dwg"},
 }
+_SAVE_ERRORS = {
+    1: "generic-save-error",
+    2: "read-only-save-error",
+    4: "file-name-empty",
+    8: "file-name-contains-at-sign",
+    16: "file-lock-error",
+    32: "save-format-not-available",
+    128: "do-not-overwrite",
+    256: "invalid-file-extension",
+    512: "no-selection",
+    1024: "bad-edrawings-version",
+    2048: "name-exceeds-max-path-length",
+    4096: "save-as-not-supported",
+    8192: "requires-saving-references",
+    16384: "detached-drawings-not-supported",
+}
+_SAVE_WARNINGS = {
+    1: "rebuild-error",
+    2: "needs-rebuild",
+    4: "views-need-update",
+    8: "animator-needs-solve",
+    16: "animator-feature-edits",
+    32: "edrawings-bad-selection",
+    64: "animator-light-edits",
+    128: "animator-camera-views",
+    256: "animator-section-views",
+    512: "missing-ole-objects",
+    1024: "opened-view-only",
+    2048: "xml-invalid",
+}
 
 
 def _unsupported(action: str) -> Dict[str, Any]:
@@ -122,6 +152,10 @@ def _export_signature_valid(export_format: str, header: bytes) -> bool:
     if export_format == "GLB":
         return header.startswith(b"glTF\x02\x00\x00\x00")
     return False
+
+
+def _bitmask_names(code: int, values: Dict[int, str]) -> list[str]:
+    return [name for bit, name in values.items() if code & bit]
 
 
 def open_windows_document(
@@ -623,6 +657,87 @@ def export_active_windows_document(
             "path": str(output_path),
             "size_bytes": size_bytes,
         }
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result
+    finally:
+        if owns_com:
+            pythoncom.CoUninitialize()
+
+
+def save_active_windows_document(*, app: Any = None) -> Dict[str, Any]:
+    """Save the active native document in place and report SOLIDWORKS status."""
+
+    if sys.platform != "win32":
+        return _unsupported("document.save")
+
+    result: Dict[str, Any] = {
+        "ok": False,
+        "action": "document.save",
+    }
+
+    import pythoncom
+    import win32com.client
+
+    owns_com = app is None
+    if owns_com:
+        pythoncom.CoInitialize()
+    try:
+        if app is None:
+            try:
+                app = win32com.client.GetActiveObject(PROG_ID)
+            except Exception as exc:
+                result["error"] = {
+                    "type": "HostNotRunning",
+                    "message": "SOLIDWORKS is not running; run 'sw-cli host start' first",
+                    "cause": _error(exc),
+                }
+                return result
+
+        document = _com_value(app, "ActiveDoc")
+        if document is None:
+            result["error"] = {
+                "type": "NoActiveDocument",
+                "message": "SOLIDWORKS has no active document",
+            }
+            return result
+
+        before = _describe_document(document)
+        result["document"] = before
+        errors = win32com.client.VARIANT(
+            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
+        )
+        warnings = win32com.client.VARIANT(
+            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
+        )
+        saved = bool(document.Save3(1, errors, warnings))
+        result["api_saved"] = saved
+        error_code = int(errors.value)
+        warning_code = int(warnings.value)
+        result["save_errors"] = error_code
+        result["save_error_names"] = _bitmask_names(error_code, _SAVE_ERRORS)
+        result["save_warnings"] = warning_code
+        result["save_warning_names"] = _bitmask_names(
+            warning_code, _SAVE_WARNINGS
+        )
+        after = _describe_document(document)
+        result["document_after"] = after
+
+        if not saved or error_code != 0:
+            result["error"] = {
+                "type": "SaveFailed",
+                "message": "SOLIDWORKS failed to save the active document",
+            }
+            return result
+        if after.get("modified"):
+            result["error"] = {
+                "type": "DocumentStillModified",
+                "message": "SOLIDWORKS left the document modified after saving",
+            }
+            return result
+
         result["ok"] = True
         return result
     except Exception as exc:
