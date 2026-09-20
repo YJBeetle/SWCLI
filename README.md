@@ -1,5 +1,7 @@
 # SWCLI
 
+[English](README.md) | [简体中文](README.CN.md)
+
 SWCLI is an independent, cross-platform automation protocol, command-line
 client, and agent runtime for controlling SOLIDWORKS on native Windows and
 Wine-based hosts.

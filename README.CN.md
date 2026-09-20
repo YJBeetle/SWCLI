@@ -1,0 +1,182 @@
+# SWCLI
+
+[English](README.md) | [简体中文](README.CN.md)
+
+SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智能体运行时，用于控制原生 Windows 或基于 Wine 的主机上的 SOLIDWORKS。
+
+项目围绕稳定的自动化契约设计，而不是依赖原始 GUI 操作。主要面向需要可重复执行模型创建、检查、验证、渲染和导出流程的 AI 智能体、CI 系统及工程师。
+
+> [!IMPORTANT]
+> SWCLI 是独立的开源项目，与 Dassault Systèmes 或 SOLIDWORKS 没有关联，也未获得其认可或支持。
+
+## 目标宿主
+
+- 安装了原生 SOLIDWORKS 的 Windows
+- 通过 Wine 运行 SOLIDWORKS 的 macOS
+- 通过 Wine 运行 SOLIDWORKS 的 Linux
+- 默认安装并固定 SWCLI 版本的 DockerSW
+
+## 命名
+
+- 项目：**SWCLI**
+- 命令：`sw-cli`
+- Python 包：`swcli`
+- 常驻服务：`swclid`，通过 `sw-cli daemon` 管理
+- 协议：**SWCLI Protocol**
+
+## 当前状态
+
+SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及首个类型化零件建模操作。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
+
+目前建模词汇仍有意保持精简。通用草图、特征、稳定实体引用、事务、SDK、MCP 和正式的能力协商仍属于后续工作。
+
+## 安装
+
+### DockerSW
+
+DockerSW 镜像会安装并固定经过测试的 SWCLI 版本，请勿在容器内重复安装。可用以下命令验证内置客户端：
+
+```bash
+sw-cli version --json
+sw-cli doctor --json
+```
+
+在 DockerSW 中，`sw-cli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
+
+### 原生 Windows
+
+要求：
+
+- Python 3.9 或更高版本；
+- 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
+- pywin32；下面的 Windows 可选依赖会自动安装它。
+
+在正式安装包发布之前，请从代码仓库安装非 editable 版本。安装完成后，即使工作区位置变化，已安装命令也不会依赖该 checkout：
+
+```powershell
+git clone https://github.com/YJBeetle/SWCLI.git
+Set-Location SWCLI
+python -m pip install ".[windows]"
+```
+
+安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
+
+```powershell
+$scripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if (($userPath -split ";") -notcontains $scripts) {
+    [Environment]::SetEnvironmentVariable("Path", "$userPath;$scripts", "User")
+}
+```
+
+验证软件包安装和宿主探测：
+
+```powershell
+sw-cli version --json
+sw-cli doctor --json
+sw-cli daemon status --json
+```
+
+`daemon status` 可能提示服务尚未运行，这不代表安装失败。在原生 Windows 上，首个类型化 `document` 或 `part` 命令会自动启动本地 daemon。如果需要明确控制启动时机或可见性，可主动执行 `sw-cli daemon start`。
+
+当 scripts 目录尚未加入 `PATH` 时，也可使用等价形式 `python -m swcli`：
+
+```powershell
+python -m swcli version --json
+```
+
+### 开发工作区
+
+希望源码修改立即生效的贡献者可以使用 editable 安装：
+
+```powershell
+python -m pip install --editable ".[windows]"
+```
+
+Editable 安装依赖 checkout 始终处于原路径。对于重启后可能无法挂载共享源码盘的虚拟机或部署环境，请勿采用这种方式。在 macOS 或 Linux 上仅安装可移植客户端和协议工具时，可省略 Windows 可选依赖：
+
+```bash
+python3 -m pip install --editable .
+```
+
+Wine 宿主通常由 DockerSW 或其他宿主集成项目安装。只安装可移植客户端并不会自动配置 Wine、Windows Python、pywin32、SOLIDWORKS 或 COM 注册。
+
+## 快速开始
+
+安装后，可按以下流程只读处理源文件：
+
+```bash
+sw-cli version --json
+sw-cli protocol show request
+sw-cli doctor --json
+sw-cli document open model.SLDPRT --read-only --json
+sw-cli document inspect --json
+sw-cli document inspect --detail structure --json
+sw-cli document diagnose --json
+sw-cli document render view.bmp --view isometric \
+  --width 1024 --height 768 --json
+sw-cli document export model.step --strict --json
+sw-cli document close --json
+```
+
+在另一套流程中创建并验证新零件：
+
+```bash
+sw-cli part create-box box.SLDPRT \
+  --width-mm 100 --height-mm 50 --depth-mm 20 --json
+sw-cli document inspect --detail structure --json
+sw-cli document diagnose --json
+sw-cli document close --json
+```
+
+修改类操作（例如 `save` 和 `rebuild`）可通过 `sw-cli document --help` 查看。
+
+在 Windows 上，`doctor` 会报告 Python 架构、已注册的 SOLIDWORKS 版本和可执行文件、已安装版本、pywin32 可用性、活动 `SldWorks.Application` COM 对象信息以及 `swclid` 健康状态。它不会启动、停止或以其他方式修改 SOLIDWORKS 或 daemon。
+
+## 常驻服务
+
+开发或查看日志时，可在前台运行常驻服务：
+
+```powershell
+sw-cli daemon serve
+```
+
+服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 报告 worker 和宿主状态；`sw-cli daemon stop` 请求优雅关闭。操作超时后，worker 及其 SOLIDWORKS 进程树会被替换。
+
+所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此不要把 daemon 直接暴露到不可信网络。`doctor` 始终是只读操作。
+
+## 文档操作
+
+`document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。`document inspect` 报告活动文档的类型、路径、标题、修改状态及重建状态。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
+
+`document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
+
+结构检查还会返回活动配置、全部配置名称、明确的文档单位、按模型定义顺序进行的有界顶层特征遍历，以及零件实体的拓扑摘要。特征名称用于人类阅读，特征类型才是面向机器的判别字段；调用方不能假定编辑后名称或位置仍然稳定。
+
+`document diagnose` 是只读操作，报告 `NeedsRebuild2` 以及每个特征非零的 `GetErrorCode2` 结果。`document rebuild` 默认只重建过期特征，`--force` 则执行完整重建。两者都返回同一种有界诊断结构，便于智能体比较操作前后状态。
+
+`document save` 使用 `Save3` 原位保存活动原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
+
+`document render` 会使活动模型适合当前视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
+
+`document export` 可将活动零件或装配体转换为 STEP、活动装配体转换为 GLB，或将活动工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。严格模式先写入目标目录内的临时文件，所有检查通过后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
+
+`part create-box` 是首个类型化建模操作。它会创建中心矩形草图并拉伸，重建和诊断结果，保存原生零件，再返回实体拓扑与近似轴对齐包围盒。该操作使用明确的 `.PRTDOT` 路径创建文档，而非调用交互式 `NewPart` 命令：`--template` 优先，其次是配置的默认模板，最后在已安装 SOLIDWORKS 根目录下进行确定性搜索。如果找不到可用模板，它会返回结构化错误，而不是等待隐藏的模板选择对话框。
+
+保存前，请求尺寸会以较小的冒烟测试容差与包围盒对比。CLI 中的尺寸明确采用毫米，内部转换为 SOLIDWORKS 系统单位。SOLIDWORKS 将 body box 定义为近似值，因此这项证据不能当作精密测量结果。
+
+已实现的边界和长期执行模型请参阅[架构说明](docs/architecture.md)。
+
+## 开发
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+无需安装即可直接从 checkout 运行测试，只需把源码目录加入模块路径：
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+CI 会在 Windows 2025 上使用 Python 3.9 和 3.14 运行单元测试，并在 Linux 上构建和检查发行包；这两类任务都不声称能够证明 Wine 兼容性。真实 SOLIDWORKS 建模会在一次性的 GitHub-hosted Windows runner 上，使用带版本的安装缓存进行验证；经过补丁的 Wine 集成仍由 DockerSW 和 MacSW 负责。另一个手动 probe 用于诊断磁盘清理和 Google Drive ISO 流式访问，但不会宣称 Windows Server 是受支持的 SOLIDWORKS 客户端环境。详见 [Windows CI](docs/windows-ci.md)。
