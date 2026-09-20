@@ -113,15 +113,13 @@ def execute_operation(app: Any, operation: str, parameters: Dict[str, Any]) -> D
         values = _parameters(
             operation,
             parameters,
-            {"output", "overwrite", "allow_source_dirty"},
+            {"output", "overwrite", "strict"},
             {"output"},
         )
         return export_active_windows_document(
             str(values["output"]),
             overwrite=bool(values.get("overwrite", False)),
-            allow_source_dirty=bool(
-                values.get("allow_source_dirty", False)
-            ),
+            strict=bool(values.get("strict", False)),
             app=app,
         )
     if operation == "part.create-box":

@@ -143,9 +143,9 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument("output")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
-        "--allow-source-dirty",
+        "--strict",
         action="store_true",
-        help="accept an export that only changes the source document's dirty flag",
+        help="require a saved, rebuilt source and preserve its state",
     )
     export_parser.add_argument("--json", action="store_true", dest="as_json")
 
@@ -317,7 +317,7 @@ def _typed_operation(
                 {
                     "output": args.output,
                     "overwrite": args.overwrite,
-                    "allow_source_dirty": args.allow_source_dirty,
+                    "strict": args.strict,
                 },
                 args.as_json,
             )

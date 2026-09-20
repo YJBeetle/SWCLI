@@ -108,13 +108,13 @@ class CliTests(unittest.TestCase):
             (
                 [
                     "document", "export", "part.STEP", "--overwrite",
-                    "--allow-source-dirty", "--json",
+                    "--strict", "--json",
                 ],
                 "document.export",
                 {
                     "output": "part.STEP",
                     "overwrite": True,
-                    "allow_source_dirty": True,
+                    "strict": True,
                 },
             ),
             (

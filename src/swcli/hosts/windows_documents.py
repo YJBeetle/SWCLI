@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
@@ -156,6 +157,74 @@ def _export_signature_valid(export_format: str, header: bytes) -> bool:
 
 def _bitmask_names(code: int, values: Dict[int, str]) -> list[str]:
     return [name for bit, name in values.items() if code & bit]
+
+
+def _export_source_state(document: Any) -> Dict[str, Any]:
+    extension = _com_value(document, "Extension")
+    return {
+        "document": _describe_document(document),
+        "needs_rebuild": int(_com_value(extension, "NeedsRebuild2")),
+    }
+
+
+def _export_source_warnings(state: Dict[str, Any]) -> list[Dict[str, Any]]:
+    warnings = []
+    if state["document"]["modified"]:
+        warnings.append(
+            {
+                "code": "source-modified",
+                "message": "source document has unsaved modifications",
+            }
+        )
+    if state["needs_rebuild"] != 0:
+        warnings.append(
+            {
+                "code": "source-needs-rebuild",
+                "message": "source document requires rebuild",
+                "needs_rebuild": state["needs_rebuild"],
+            }
+        )
+    return warnings
+
+
+def _export_source_change_warnings(
+    before: Dict[str, Any], after: Dict[str, Any]
+) -> list[Dict[str, Any]]:
+    warnings = []
+    before_document = before["document"]
+    after_document = after["document"]
+    changed_identity = [
+        name
+        for name in ("title", "path", "type")
+        if before_document.get(name) != after_document.get(name)
+    ]
+    if changed_identity:
+        warnings.append(
+            {
+                "code": "source-document-changed",
+                "message": "export changed the active source document identity",
+                "fields": changed_identity,
+            }
+        )
+    if before_document["modified"] != after_document["modified"]:
+        warnings.append(
+            {
+                "code": "source-modified-by-export",
+                "message": "export changed the source document modified state",
+                "before": before_document["modified"],
+                "after": after_document["modified"],
+            }
+        )
+    if before["needs_rebuild"] != after["needs_rebuild"]:
+        warnings.append(
+            {
+                "code": "source-rebuild-state-changed",
+                "message": "export changed the source document rebuild state",
+                "before": before["needs_rebuild"],
+                "after": after["needs_rebuild"],
+            }
+        )
+    return warnings
 
 
 def open_windows_document(
@@ -544,7 +613,7 @@ def export_active_windows_document(
     output: str,
     *,
     overwrite: bool = False,
-    allow_source_dirty: bool = False,
+    strict: bool = False,
     app: Any = None,
 ) -> Dict[str, Any]:
     """Export the active document to a verified neutral or drawing format."""
@@ -575,6 +644,7 @@ def export_active_windows_document(
     import win32com.client
 
     owns_com = app is None
+    temporary_output_path: Optional[Path] = None
     if owns_com:
         pythoncom.CoInitialize()
     try:
@@ -597,63 +667,78 @@ def export_active_windows_document(
             }
             return result
 
-        before = _describe_document(document)
-        export_format = _export_format(before["type"], output_path)
-        result["document"] = before
-        result["format"] = export_format
+        before = _export_source_state(document)
+        export_format = _export_format(before["document"]["type"], output_path)
         if export_format is None:
-            allowed = sorted(_EXPORT_FORMATS.get(before["type"], set()))
+            allowed = sorted(
+                _EXPORT_FORMATS.get(before["document"]["type"], set())
+            )
             result["error"] = {
                 "type": "UnsupportedExportFormat",
                 "message": (
-                    f"unsupported output extension for document type {before['type']}; "
+                    "unsupported output extension for document type "
+                    f"{before['document']['type']}; "
                     f"allowed: {', '.join(allowed) or 'none'}"
                 ),
             }
             return result
 
-        document.ClearSelection2(True)
-        save_error = int(document.SaveAs3(str(output_path), 0, 1))
-        result["save_errors"] = save_error
-        if save_error != 0 or not output_path.is_file():
+        warnings = _export_source_warnings(before)
+        if strict and warnings:
             result["error"] = {
-                "type": "ExportFailed",
-                "message": "SOLIDWORKS failed to export the active document",
+                "type": "SourceNotClean",
+                "message": "source document is not ready for strict export",
+                "violations": warnings,
             }
             return result
 
-        size_bytes = output_path.stat().st_size
-        with output_path.open("rb") as exported_file:
+        export_path = output_path
+        if strict:
+            temporary_output_path = output_path.with_name(
+                f".{output_path.stem}.{uuid4().hex}.swcli{output_path.suffix}"
+            )
+            export_path = temporary_output_path
+
+        document.ClearSelection2(True)
+        save_error = int(document.SaveAs3(str(export_path), 0, 1))
+        if save_error != 0 or not export_path.is_file():
+            result["error"] = {
+                "type": "ExportFailed",
+                "message": "SOLIDWORKS failed to export the active document",
+                "save_errors": save_error,
+            }
+            return result
+
+        size_bytes = export_path.stat().st_size
+        with export_path.open("rb") as exported_file:
             signature_valid = _export_signature_valid(
                 export_format, exported_file.read(128)
             )
-        result["verification"] = {
-            "non_empty": size_bytes > 0,
-            "signature_valid": signature_valid,
-        }
         if size_bytes <= 0 or not signature_valid:
             result["error"] = {
                 "type": "ExportVerificationFailed",
                 "message": "exported file did not pass content verification",
+                "verification": {
+                    "non_empty": size_bytes > 0,
+                    "signature_valid": signature_valid,
+                },
             }
             return result
 
-        after = _describe_document(document)
-        result["document_after"] = after
-        if after != before:
-            only_modified = {
-                key: value for key, value in after.items() if key != "modified"
-            } == {key: value for key, value in before.items() if key != "modified"}
-            became_modified = not before["modified"] and after["modified"]
-            if not (
-                allow_source_dirty and only_modified and became_modified
-            ):
-                result["error"] = {
-                    "type": "DocumentStateChanged",
-                    "message": "export unexpectedly changed the active document state",
-                }
-                return result
-            result["source_modified_by_export"] = True
+        after = _export_source_state(document)
+        changes = _export_source_change_warnings(before, after)
+        if strict and changes:
+            result["error"] = {
+                "type": "SourceStateChanged",
+                "message": "export changed the source document state",
+                "violations": changes,
+            }
+            return result
+        warnings.extend(changes)
+
+        if strict:
+            export_path.replace(output_path)
+            temporary_output_path = None
 
         result["artifact"] = {
             "kind": "cad-export",
@@ -661,12 +746,19 @@ def export_active_windows_document(
             "path": str(output_path),
             "size_bytes": size_bytes,
         }
+        if warnings:
+            result["warnings"] = warnings
         result["ok"] = True
         return result
     except Exception as exc:
         result["error"] = _error(exc)
         return result
     finally:
+        if temporary_output_path is not None:
+            try:
+                temporary_output_path.unlink(missing_ok=True)
+            except OSError:
+                pass
         if owns_com:
             pythoncom.CoUninitialize()
 

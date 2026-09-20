@@ -105,7 +105,7 @@ for humans but feature type is the machine-facing discriminator; callers must
 not assume names or positions remain stable after edits.
 
 `document diagnose` is read-only and reports `NeedsRebuild2` plus non-zero
-per-feature `GetErrorCode2` results. `document rebuild` rebuilds only dirty
+per-feature `GetErrorCode2` results. `document rebuild` rebuilds only outdated
 features by default; `--force` invokes a full rebuild. Both return the same
 bounded diagnostic structure so agents can compare pre- and post-action state.
 
@@ -123,13 +123,15 @@ orientation; the default `current` preserves the active UI orientation.
 
 `document export` converts the active part or assembly to STEP, an active
 assembly to GLB, or the active drawing to PDF or DWG. It clears selections so
-the whole document is exported, refuses overwrite by default, preserves the
-active document identity and dirty state, and verifies the resulting file
-signature and non-empty content. Some SOLIDWORKS drawing exporters mark the
-source dirty even when only creating an artifact; callers must explicitly use
-`--allow-source-dirty` to accept that isolated dirty-flag transition.
-This core operation selects format only from the explicit output extension and
-does not interpret source naming conventions.
+the whole document is exported, refuses overwrite by default, and verifies the
+resulting file signature and non-empty content. The default mode is permissive:
+it completes the export but reports structured warnings only when the source
+needs saving, needs rebuilding, or its state changes during export. `--strict`
+rejects a source that needs saving or rebuilding before invoking SOLIDWORKS and
+fails if export changes the source state. Strict mode writes to a temporary file
+in the destination directory and replaces the requested output only after all
+checks pass. This core operation selects format only from the explicit output
+extension and does not interpret source naming conventions.
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
