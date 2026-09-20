@@ -305,6 +305,185 @@ class WindowsDocumentTests(unittest.TestCase):
             ["source-modified", "source-needs-rebuild"],
         )
 
+    def test_permissive_export_removes_invalid_temporary_artifact(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Extension:
+            NeedsRebuild2 = 0
+
+        class Document:
+            def ClearSelection2(self, clear_all):
+                self.clear_all = clear_all
+
+            def SaveAs3(self, path, version, options):
+                self.export_path = Path(path)
+                self.export_path.write_bytes(b"not a PDF")
+                return 0
+
+        Document.Extension = Extension()
+        document = Document()
+        description = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "drawing.PDF"
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+            ):
+                result = windows_documents.export_active_windows_document(
+                    str(output), app=mock.Mock(ActiveDoc=document)
+                )
+
+            self.assertFalse(output.exists())
+            self.assertNotEqual(document.export_path, output)
+            self.assertFalse(document.export_path.exists())
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "ExportVerificationFailed")
+
+    def test_permissive_export_preserves_existing_target_on_save_failure(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Extension:
+            NeedsRebuild2 = 0
+
+        class Document:
+            def ClearSelection2(self, clear_all):
+                self.clear_all = clear_all
+
+            def SaveAs3(self, path, version, options):
+                self.export_path = Path(path)
+                self.export_path.write_bytes(b"partial export")
+                return 1
+
+        Document.Extension = Extension()
+        document = Document()
+        description = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "drawing.PDF"
+            output.write_bytes(b"existing artifact")
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+            ):
+                result = windows_documents.export_active_windows_document(
+                    str(output),
+                    overwrite=True,
+                    app=mock.Mock(ActiveDoc=document),
+                )
+
+            self.assertEqual(output.read_bytes(), b"existing artifact")
+            self.assertNotEqual(document.export_path, output)
+            self.assertFalse(document.export_path.exists())
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "ExportFailed")
+
+    def test_permissive_export_replaces_existing_target_after_verification(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.CoInitialize = mock.Mock()
+        pythoncom.CoUninitialize = mock.Mock()
+        win32com = ModuleType("win32com")
+        win32com_client = ModuleType("win32com.client")
+        win32com.client = win32com_client
+
+        class Extension:
+            NeedsRebuild2 = 0
+
+        class Document:
+            def ClearSelection2(self, clear_all):
+                self.clear_all = clear_all
+
+            def SaveAs3(self, path, version, options):
+                self.export_path = Path(path)
+                self.export_path.write_bytes(b"%PDF-1.7\nnew artifact")
+                return 0
+
+        Document.Extension = Extension()
+        document = Document()
+        description = {
+            "title": "drawing",
+            "path": "drawing.SLDDRW",
+            "type": 3,
+            "modified": False,
+        }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "drawing.PDF"
+            output.write_bytes(b"existing artifact")
+            with (
+                mock.patch.object(windows_documents.sys, "platform", "win32"),
+                mock.patch.dict(
+                    "sys.modules",
+                    {
+                        "pythoncom": pythoncom,
+                        "win32com": win32com,
+                        "win32com.client": win32com_client,
+                    },
+                ),
+                mock.patch.object(
+                    windows_documents,
+                    "_describe_document",
+                    return_value=description,
+                ),
+            ):
+                result = windows_documents.export_active_windows_document(
+                    str(output),
+                    overwrite=True,
+                    app=mock.Mock(ActiveDoc=document),
+                )
+
+            self.assertEqual(output.read_bytes(), b"%PDF-1.7\nnew artifact")
+            self.assertNotEqual(document.export_path, output)
+            self.assertFalse(document.export_path.exists())
+
+        self.assertTrue(result["ok"])
+
     def test_strict_export_commits_verified_temporary_artifact(self):
         pythoncom = ModuleType("pythoncom")
         pythoncom.CoInitialize = mock.Mock()

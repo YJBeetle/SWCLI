@@ -701,12 +701,10 @@ def export_active_windows_document(
             }
             return result
 
-        export_path = output_path
-        if strict:
-            temporary_output_path = output_path.with_name(
-                f".{output_path.stem}.{uuid4().hex}.swcli{output_path.suffix}"
-            )
-            export_path = temporary_output_path
+        temporary_output_path = output_path.with_name(
+            f".{output_path.stem}.{uuid4().hex}.swcli{output_path.suffix}"
+        )
+        export_path = temporary_output_path
 
         document.ClearSelection2(True)
         save_error = int(document.SaveAs3(str(export_path), 0, 1))
@@ -745,9 +743,8 @@ def export_active_windows_document(
             return result
         warnings.extend(changes)
 
-        if strict:
-            export_path.replace(output_path)
-            temporary_output_path = None
+        export_path.replace(output_path)
+        temporary_output_path = None
 
         result["artifact"] = {
             "kind": "cad-export",
