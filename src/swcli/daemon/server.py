@@ -84,6 +84,7 @@ def _describe_app(
     return {
         "revision": revision,
         "solidworks_revision": revision,
+        "language": str(_com_value(app, "GetCurrentLanguage")),
         "process_id": int(_com_value(app, "GetProcessID")),
         "visible": bool(_com_value(app, "Visible")),
         "startup_wait_seconds": startup_wait_seconds,

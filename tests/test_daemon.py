@@ -48,6 +48,28 @@ class DaemonProtocolTests(unittest.TestCase):
                 None,
             )
 
+    def test_host_description_reports_solidworks_language(self):
+        class App:
+            RevisionNumber = "33.5.0"
+            Visible = False
+
+            @staticmethod
+            def GetCurrentLanguage():
+                return "chinese-simplified"
+
+            @staticmethod
+            def GetProcessID():
+                return 1234
+
+        app = App()
+
+        description = server._describe_app(
+            app, 0.5, owned_by_daemon=True
+        )
+
+        self.assertEqual("33.5.0", description["solidworks_revision"])
+        self.assertEqual("chinese-simplified", description["language"])
+
     def test_document_registry_uses_short_ids_and_session_current(self):
         first = self.FakeDocument("first.SLDPRT", "C:\\first.SLDPRT")
         second = self.FakeDocument("second.SLDPRT", "C:\\second.SLDPRT")
