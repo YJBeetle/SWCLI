@@ -52,15 +52,18 @@ Requirements:
 
 - Python 3.9 or newer;
 - a native SOLIDWORKS installation with working COM registration;
-- pywin32, installed automatically by the Windows dependency extra below.
+- pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a1` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
 python -m pip install "swcli[windows] @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a1/swcli-0.1.0a1-py3-none-any.whl"
 ```
+
+The `[windows]` suffix is required only by `v0.1.0a1`. Development versions
+after that release install pywin32 automatically when running on Windows.
 
 `v0.1.0a1` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
@@ -117,13 +120,13 @@ Contributors who intentionally want source edits to take effect immediately can
 use an editable install:
 
 ```powershell
-python -m pip install --editable ".[windows]"
+python -m pip install --editable .
 ```
 
 An editable installation depends on the checkout remaining at the same path.
 Do not use it for a VM or deployment whose shared source drive may be absent
-after restart. On macOS or Linux, omit the Windows extra when installing only
-the portable client and protocol tooling:
+after restart. On macOS or Linux, the same command installs only the portable
+client and protocol tooling because the pywin32 dependency is platform-gated:
 
 ```bash
 python3 -m pip install --editable .

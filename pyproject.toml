@@ -19,9 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
 ]
-
-[project.optional-dependencies]
-windows = [
+dependencies = [
   "pywin32>=312; sys_platform == 'win32'",
 ]
 

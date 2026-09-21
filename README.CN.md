@@ -40,13 +40,15 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 - Python 3.9 或更高版本；
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
-- pywin32；下面的 Windows 可选依赖会自动安装它。
+- pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定版本的预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a1` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
 python -m pip install "swcli[windows] @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a1/swcli-0.1.0a1-py3-none-any.whl"
 ```
+
+只有 `v0.1.0a1` 需要 `[windows]` 后缀；该版本之后的开发版本会在 Windows 上自动安装 pywin32。
 
 `v0.1.0a1` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
@@ -92,10 +94,10 @@ sw-cli doctor --json
 希望源码修改立即生效的贡献者可以使用 editable 安装：
 
 ```powershell
-python -m pip install --editable ".[windows]"
+python -m pip install --editable .
 ```
 
-Editable 安装依赖 checkout 始终处于原路径。对于重启后可能无法挂载共享源码盘的虚拟机或部署环境，请勿采用这种方式。在 macOS 或 Linux 上仅安装可移植客户端和协议工具时，可省略 Windows 可选依赖：
+Editable 安装依赖 checkout 始终处于原路径。对于重启后可能无法挂载共享源码盘的虚拟机或部署环境，请勿采用这种方式。在 macOS 或 Linux 上使用同一条命令时，平台条件会自动跳过 pywin32，只安装可移植客户端和协议工具：
 
 ```bash
 python3 -m pip install --editable .
