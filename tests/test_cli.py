@@ -12,6 +12,7 @@ from swcli.cli import (
     main,
     translate_parameter_paths,
 )
+from swcli.operation_schemas import operation_schemas
 
 
 class CliTests(unittest.TestCase):
@@ -59,7 +60,8 @@ class CliTests(unittest.TestCase):
         capabilities = {
             "server_version": "0.1.0.dev0",
             "protocol_versions": ["swcli/v1"],
-            "operations": ["document.open"],
+            "operations": list(operation_schemas()),
+            "operation_schemas": operation_schemas(),
             "worker_alive": True,
             "recovery_required": False,
             "recovery_error": None,
@@ -118,6 +120,7 @@ class CliTests(unittest.TestCase):
                     "server_version": "old",
                     "protocol_versions": ["swcli/v1"],
                     "operations": [],
+                    "operation_schemas": {},
                     "worker_alive": True,
                     "host": None,
                 }

@@ -41,8 +41,9 @@ export, and a first typed part-modeling operation. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketches,
-features, stable entity references, transactions, SDK, MCP, and per-operation
-schema negotiation remain future work.
+features, stable entity references, transactions, SDK, and MCP remain future
+work. The daemon now publishes the JSON Schema used to validate each supported
+operation through capability discovery.
 
 ## Installation
 
@@ -231,9 +232,11 @@ sw-cli capabilities --json
 ```
 
 On success, the JSON output directly conforms to the published capabilities
-schema and includes protocol/server versions, the operation list, worker and
-recovery state, and the current host description. A missing or older daemon is
-reported as an error rather than being started or silently accepted.
+schema and includes protocol/server versions, the operation list, each
+operation's parameter schema and supported request context, worker and recovery
+state, and the current host description. The server validates requests against
+the same operation catalog it publishes. A missing or older daemon is reported
+as an error rather than being started or silently accepted.
 
 ### Host path translation
 

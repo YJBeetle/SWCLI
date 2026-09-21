@@ -92,10 +92,12 @@ the typed CLI contract.
 
 Protocol and host implementation versions are independent. `sw-cli
 capabilities` exposes the running daemon's server version, supported protocol
-versions, operations, worker/recovery state, and host details without starting
-a missing local service. Its successful JSON output conforms directly to the
-published capabilities schema; richer per-operation schema negotiation remains
-future work.
+versions, operations, per-operation parameter schemas and request context,
+worker/recovery state, and host details without starting a missing local
+service. Its successful JSON output conforms directly to the published
+capabilities schema. The schemas advertised by the daemon are the same
+definitions used for request validation, so capability discovery cannot drift
+from runtime parameter handling.
 Length and angle units are explicit at typed modeling boundaries; host adapters
 convert them to the units expected by the SOLIDWORKS API.
 

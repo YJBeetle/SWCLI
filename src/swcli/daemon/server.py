@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
+from ..operation_schemas import operation_schemas, validate_operation_request
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import (
     LEASE_TOKEN_OPERATIONS,
@@ -114,6 +115,13 @@ def validate_request(request: Any) -> Dict[str, Any]:
     if not isinstance(timeout_ms, int) or timeout_ms < 1:
         raise ValueError("timeout_ms must be a positive integer")
     request["timeout_ms"] = timeout_ms
+    validate_operation_request(
+        request["operation"],
+        request["parameters"],
+        document_id=document_id,
+        expected_update_stamp=expected_update_stamp,
+        lease_id=lease_id,
+    )
     return request
 
 
@@ -443,6 +451,7 @@ class WorkerManager:
             "server_version": __version__,
             "protocol_versions": [PROTOCOL_VERSION],
             "operations": list(OPERATIONS),
+            "operation_schemas": operation_schemas(),
             "worker_alive": bool(
                 self._process is not None and self._process.is_alive()
             ),

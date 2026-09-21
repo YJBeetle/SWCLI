@@ -1,5 +1,10 @@
 import unittest
 
+from swcli.operation_schemas import (
+    OPERATIONS,
+    operation_schemas,
+    validate_operation_request,
+)
 from swcli.protocol import SCHEMA_NAMES, load_schema
 
 
@@ -46,6 +51,7 @@ class ProtocolSchemaTests(unittest.TestCase):
                 "server_version",
                 "protocol_versions",
                 "operations",
+                "operation_schemas",
                 "worker_alive",
                 "recovery_required",
                 "recovery_error",
@@ -53,6 +59,10 @@ class ProtocolSchemaTests(unittest.TestCase):
             },
         )
         self.assertEqual(set(schema["required"]), set(schema["properties"]))
+        operation_schema = schema["properties"]["operation_schemas"][
+            "additionalProperties"
+        ]
+        self.assertIn("x-swcli-context", operation_schema["required"])
         live_host = schema["properties"]["host"]["oneOf"][0]
         self.assertEqual(
             set(live_host["properties"]),
@@ -69,6 +79,42 @@ class ProtocolSchemaTests(unittest.TestCase):
             },
         )
         self.assertEqual(set(live_host["required"]), set(live_host["properties"]))
+
+    def test_operation_catalog_is_complete_and_isolated(self):
+        schemas = operation_schemas()
+        self.assertEqual(tuple(schemas), OPERATIONS)
+        self.assertEqual(
+            len({schema["$id"] for schema in schemas.values()}), len(schemas)
+        )
+
+        schemas["document.open"]["properties"].clear()
+        self.assertIn("path", operation_schemas()["document.open"]["properties"])
+
+    def test_operation_catalog_drives_parameter_and_context_validation(self):
+        validate_operation_request(
+            "document.render",
+            {"output": "view.bmp", "width": 800, "fit": True},
+            document_id="d-k7m2q9",
+            lease_id="l-23456789abcd",
+        )
+        with self.assertRaisesRegex(ValueError, "document.open requires path"):
+            validate_operation_request("document.open", {})
+        with self.assertRaisesRegex(ValueError, "document.use requires document_id"):
+            validate_operation_request("document.use", {})
+        with self.assertRaisesRegex(ValueError, "read_only must be a boolean"):
+            validate_operation_request(
+                "document.open", {"path": "part.SLDPRT", "read_only": "false"}
+            )
+        with self.assertRaisesRegex(ValueError, "width_mm must be finite"):
+            validate_operation_request(
+                "part.create-box",
+                {
+                    "output": "box.SLDPRT",
+                    "width_mm": float("nan"),
+                    "height_mm": 50,
+                    "depth_mm": 20,
+                },
+            )
 
 
 if __name__ == "__main__":

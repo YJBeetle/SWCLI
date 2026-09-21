@@ -849,6 +849,27 @@ class DaemonProtocolTests(unittest.TestCase):
                 }
             )
 
+    def test_request_validation_uses_published_operation_schemas(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-schema",
+            "operation": "document.render",
+            "parameters": {"output": "view.bmp", "width": 800},
+        }
+        validated = server.validate_request(request)
+        self.assertEqual(validated["parameters"]["width"], 800)
+
+        with self.assertRaisesRegex(ValueError, "width must be an integer"):
+            server.validate_request(
+                {**request, "parameters": {"output": "view.bmp", "width": "800"}}
+            )
+        with self.assertRaisesRegex(ValueError, "unsupported document.render"):
+            server.validate_request(
+                {**request, "parameters": {"output": "view.bmp", "surprise": True}}
+            )
+        with self.assertRaisesRegex(ValueError, "unsupported operation"):
+            server.validate_request({**request, "operation": "document.unknown"})
+
     @mock.patch("swcli.daemon.operations.save_active_windows_document")
     def test_update_stamp_precondition_blocks_stale_document_operation(
         self, save_document

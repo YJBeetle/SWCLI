@@ -9,6 +9,7 @@
     "server_version",
     "host",
     "operations",
+    "operation_schemas",
     "worker_alive",
     "recovery_required",
     "recovery_error"
@@ -56,6 +57,47 @@
       "type": "array",
       "items": {"type": "string"},
       "uniqueItems": true
+    },
+    "operation_schemas": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "$schema",
+          "$id",
+          "title",
+          "type",
+          "additionalProperties",
+          "properties",
+          "required",
+          "x-swcli-context"
+        ],
+        "properties": {
+          "$schema": {"const": "https://json-schema.org/draft/2020-12/schema"},
+          "$id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "type": {"const": "object"},
+          "additionalProperties": {"const": false},
+          "properties": {"type": "object"},
+          "required": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          },
+          "x-swcli-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["document_id", "expected_update_stamp", "lease_id"],
+            "properties": {
+              "document_id": {"enum": ["forbidden", "optional", "required"]},
+              "expected_update_stamp": {"enum": ["forbidden", "optional", "required"]},
+              "lease_id": {"enum": ["forbidden", "optional", "required"]}
+            }
+          }
+        }
+      }
     },
     "worker_alive": {"type": "boolean"},
     "recovery_required": {"type": "boolean"},

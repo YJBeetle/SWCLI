@@ -471,6 +471,47 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
         and len(payload["operations"]) == len(set(payload["operations"]))
     ):
         return "operations must be a unique string array"
+    operation_schemas = payload["operation_schemas"]
+    if not isinstance(operation_schemas, dict) or set(operation_schemas) != set(
+        payload["operations"]
+    ):
+        return "operation_schemas must describe every advertised operation"
+    operation_schema_fields = {
+        "$schema",
+        "$id",
+        "title",
+        "type",
+        "additionalProperties",
+        "properties",
+        "required",
+        "x-swcli-context",
+    }
+    context_fields = {"document_id", "expected_update_stamp", "lease_id"}
+    context_modes = {"forbidden", "optional", "required"}
+    for operation, operation_schema in operation_schemas.items():
+        if not isinstance(operation_schema, dict) or set(operation_schema) != (
+            operation_schema_fields
+        ):
+            return f"operation schema fields are invalid for {operation}"
+        if (
+            operation_schema.get("$schema")
+            != "https://json-schema.org/draft/2020-12/schema"
+            or operation_schema.get("type") != "object"
+            or operation_schema.get("additionalProperties") is not False
+            or not isinstance(operation_schema.get("properties"), dict)
+            or not isinstance(operation_schema.get("required"), list)
+            or not set(operation_schema["required"]).issubset(
+                operation_schema["properties"]
+            )
+        ):
+            return f"operation parameter schema is invalid for {operation}"
+        context = operation_schema.get("x-swcli-context")
+        if (
+            not isinstance(context, dict)
+            or set(context) != context_fields
+            or not all(value in context_modes for value in context.values())
+        ):
+            return f"operation context schema is invalid for {operation}"
     if not isinstance(payload["worker_alive"], bool):
         return "worker_alive must be a boolean"
     if not isinstance(payload["recovery_required"], bool):
