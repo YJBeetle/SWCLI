@@ -106,7 +106,25 @@ function Invoke-SwCliJson {
         throw "sw-cli $Name returned invalid JSON (exit code $($process.ExitCode))`n$stderr"
     }
     if ($payload.PSObject.Properties.Name -contains "ok" -and -not $payload.ok) {
-        throw "sw-cli $Name returned ok=false"
+        $errorType = if ($null -ne $payload.error.type) {
+            [string]$payload.error.type
+        }
+        else {
+            "UnknownError"
+        }
+        $errorMessage = if ($null -ne $payload.error.message) {
+            [string]$payload.error.message
+        }
+        else {
+            "no error message"
+        }
+        $requestId = if ($null -ne $payload.request_id) {
+            " [request_id=$($payload.request_id)]"
+        }
+        else {
+            ""
+        }
+        throw "sw-cli $Name returned ok=false: ${errorType}: ${errorMessage}${requestId}"
     }
     if ($null -ne $process.ExitCode -and $process.ExitCode -ne 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
