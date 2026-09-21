@@ -212,6 +212,23 @@ local daemon can be started promptly without reducing the operation budget.
 Override it with `--connect-timeout`; `--request-timeout` controls the CAD
 operation after a connection has been established.
 
+Every typed CLI request gets a random request ID. Automation that may retry an
+uncertain request can provide a stable key explicitly:
+
+```bash
+sw-cli --request-id export-build-42 document export output.STEP --strict --json
+```
+
+Within one running daemon, swclid caches the most recent completed responses.
+Repeating the same semantic request with the same ID returns the cached result
+without re-entering SOLIDWORKS and reports `replayed: true`; changing the
+operation, parameters, session, document, update stamp, or lease while reusing
+that ID fails with `RequestIdConflict`. The timeout is not part of the semantic
+request, so a retry may choose a different waiting budget. Capability discovery
+reports the replay cache size and scope. The cache is bounded and is lost when
+the daemon restarts, so it protects immediate transport retries rather than
+providing durable exactly-once execution across daemon failures.
+
 All typed `sw-cli` document and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
@@ -234,9 +251,10 @@ sw-cli capabilities --json
 On success, the JSON output directly conforms to the published capabilities
 schema and includes protocol/server versions, the operation list, each
 operation's parameter schema and supported request context, worker and recovery
-state, and the current host description. The server validates requests against
-the same operation catalog it publishes. A missing or older daemon is reported
-as an error rather than being started or silently accepted.
+state, request replay policy, and the current host description. The server
+validates requests against the same operation catalog it publishes. A missing
+or older daemon is reported as an error rather than being started or silently
+accepted.
 
 ### Host path translation
 

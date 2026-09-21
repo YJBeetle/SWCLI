@@ -10,6 +10,8 @@ import socketserver
 import subprocess
 import threading
 import time
+from collections import OrderedDict
+from copy import deepcopy
 from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
@@ -25,6 +27,8 @@ from .operations import (
 
 
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
+REQUEST_REPLAY_MAX_ENTRIES = 1024
+REQUEST_REPLAY_MAX_BYTES = 64 * 1024 * 1024
 DOCUMENT_ID_PATTERN = re.compile(r"^d-[0-9a-hjkmnp-tv-z]{6}$")
 LEASE_ID_PATTERN = re.compile(r"^l-[0-9a-hjkmnp-tv-z]{12}$")
 
@@ -70,9 +74,25 @@ def validate_request(request: Any) -> Dict[str, Any]:
         raise ValueError("request must be a JSON object")
     if request.get("api_version") != PROTOCOL_VERSION:
         raise ValueError("unsupported api_version")
+    allowed_fields = {
+        "api_version",
+        "request_id",
+        "session_id",
+        "document_id",
+        "expected_update_stamp",
+        "lease_id",
+        "operation",
+        "parameters",
+        "timeout_ms",
+    }
+    unexpected = sorted(set(request) - allowed_fields)
+    if unexpected:
+        raise ValueError(f"unsupported request fields: {', '.join(unexpected)}")
     for name in ("request_id", "operation"):
         if not isinstance(request.get(name), str) or not request[name]:
             raise ValueError(f"{name} must be a non-empty string")
+    if len(request["request_id"]) > 128:
+        raise ValueError("request_id must not exceed 128 characters")
     if not isinstance(request.get("parameters"), dict):
         raise ValueError("parameters must be an object")
     session_id = request.get("session_id")
@@ -318,6 +338,10 @@ class WorkerManager:
         self._process: Optional[Any] = None
         self._request_queue: Optional[Any] = None
         self._response_queue: Optional[Any] = None
+        self._request_cache: OrderedDict[
+            str, tuple[str, Dict[str, Any], int]
+        ] = OrderedDict()
+        self._request_cache_bytes = 0
         self._recovery_required: Optional[Dict[str, str]] = None
         self.host: Dict[str, Any] = {}
         self._start_worker()
@@ -399,12 +423,17 @@ class WorkerManager:
 
     def call(self, request: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            replay = self._replay_response(request)
+            if replay is not None:
+                return replay
             if self._recovery_required is not None:
-                return _error_response(
+                response = _error_response(
                     request["request_id"],
                     self._recovery_required["code"],
                     self._recovery_required["message"],
                 )
+                self._remember_response(request, response)
+                return response
             if self._process is None or not self._process.is_alive():
                 self._start_worker()
             assert self._request_queue is not None
@@ -431,12 +460,14 @@ class WorkerManager:
                         f"operation exceeded {request['timeout_ms']}ms; worker and owned "
                         "SOLIDWORKS host were terminated"
                     )
-                return _error_response(
+                response = _error_response(
                     request["request_id"],
                     "WorkerTimeout",
                     message,
                     duration_ms=float(request["timeout_ms"]),
                 )
+                self._remember_response(request, response)
+                return response
             if (response.get("error") or {}).get("code") == "HostDisconnected":
                 self._process.join(timeout=5.0)
                 if self._process.is_alive():
@@ -444,7 +475,86 @@ class WorkerManager:
                 else:
                     self._process = None
                     self.host = {}
+            self._remember_response(request, response)
             return response
+
+    @staticmethod
+    def _request_fingerprint(request: Dict[str, Any]) -> str:
+        semantic_request = {
+            key: value
+            for key, value in request.items()
+            if key not in {"request_id", "timeout_ms"}
+        }
+        return json.dumps(
+            semantic_request,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+    def _replay_response(
+        self, request: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        cache = getattr(self, "_request_cache", None)
+        if cache is None:
+            cache = OrderedDict()
+            self._request_cache = cache
+        request_id = request["request_id"]
+        cached = cache.get(request_id)
+        if cached is None:
+            return None
+        fingerprint, response, _ = cached
+        cache.move_to_end(request_id)
+        if fingerprint != self._request_fingerprint(request):
+            return _error_response(
+                request_id,
+                "RequestIdConflict",
+                "request_id was already used for a different request",
+            )
+        replay = deepcopy(response)
+        replay["replayed"] = True
+        return replay
+
+    def _remember_response(
+        self, request: Dict[str, Any], response: Dict[str, Any]
+    ) -> None:
+        cache = getattr(self, "_request_cache", None)
+        if cache is None:
+            cache = OrderedDict()
+            self._request_cache = cache
+        request_id = request["request_id"]
+        previous = cache.pop(request_id, None)
+        if previous is not None:
+            self._request_cache_bytes = max(
+                0,
+                getattr(self, "_request_cache_bytes", 0) - previous[2],
+            )
+        response_copy = deepcopy(response)
+        response_size = len(
+            json.dumps(
+                response_copy,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
+        if response_size > REQUEST_REPLAY_MAX_BYTES:
+            return
+        cache[request_id] = (
+            self._request_fingerprint(request),
+            response_copy,
+            response_size,
+        )
+        self._request_cache_bytes = (
+            getattr(self, "_request_cache_bytes", 0) + response_size
+        )
+        cache.move_to_end(request_id)
+        while (
+            len(cache) > REQUEST_REPLAY_MAX_ENTRIES
+            or self._request_cache_bytes > REQUEST_REPLAY_MAX_BYTES
+        ):
+            _, (_, _, evicted_size) = cache.popitem(last=False)
+            self._request_cache_bytes -= evicted_size
 
     def health(self) -> Dict[str, Any]:
         return {
@@ -452,6 +562,12 @@ class WorkerManager:
             "protocol_versions": [PROTOCOL_VERSION],
             "operations": list(OPERATIONS),
             "operation_schemas": operation_schemas(),
+            "request_replay": {
+                "supported": True,
+                "max_entries": REQUEST_REPLAY_MAX_ENTRIES,
+                "max_bytes": REQUEST_REPLAY_MAX_BYTES,
+                "scope": "daemon",
+            },
             "worker_alive": bool(
                 self._process is not None and self._process.is_alive()
             ),

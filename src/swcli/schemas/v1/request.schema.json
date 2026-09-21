@@ -7,7 +7,7 @@
   "required": ["api_version", "request_id", "operation", "parameters"],
   "properties": {
     "api_version": {"const": "swcli/v1"},
-    "request_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
     "session_id": {
       "type": "string",
       "minLength": 1,

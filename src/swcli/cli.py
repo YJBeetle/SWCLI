@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 from . import PROTOCOL_VERSION, __version__
@@ -51,6 +52,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--session",
         default=os.environ.get("SWCLI_SESSION_ID"),
         help="daemon-side current-document session (default: shared default session)",
+    )
+    parser.add_argument(
+        "--request-id",
+        help="stable idempotency key for one typed request (default: random UUID)",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
@@ -294,6 +299,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             expected_update_stamp,
             lease_id,
         ) = typed
+        request_id = args.request_id or str(uuid.uuid4())
         try:
             translate_parameter_paths(parameters)
             response = call_daemon(
@@ -302,6 +308,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 endpoint=args.endpoint,
                 timeout_seconds=args.request_timeout,
                 connect_timeout_seconds=args.connect_timeout,
+                request_id=request_id,
                 session_id=args.session,
                 document_id=document_id,
                 expected_update_stamp=expected_update_stamp,
@@ -315,6 +322,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 document_id,
                 expected_update_stamp,
                 lease_id,
+                request_id,
                 exc,
             )
             if response is None:
@@ -512,6 +520,21 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
             or not all(value in context_modes for value in context.values())
         ):
             return f"operation context schema is invalid for {operation}"
+    request_replay = payload["request_replay"]
+    if (
+        not isinstance(request_replay, dict)
+        or set(request_replay)
+        != {"supported", "max_entries", "max_bytes", "scope"}
+        or request_replay.get("supported") is not True
+        or not isinstance(request_replay.get("max_entries"), int)
+        or isinstance(request_replay.get("max_entries"), bool)
+        or request_replay["max_entries"] < 1
+        or not isinstance(request_replay.get("max_bytes"), int)
+        or isinstance(request_replay.get("max_bytes"), bool)
+        or request_replay["max_bytes"] < 1
+        or request_replay.get("scope") != "daemon"
+    ):
+        return "request_replay does not match the capabilities schema"
     if not isinstance(payload["worker_alive"], bool):
         return "worker_alive must be a boolean"
     if not isinstance(payload["recovery_required"], bool):
@@ -567,16 +590,25 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
 
 
 def _typed_payload(operation: str, response: Dict[str, Any]) -> Dict[str, Any]:
-    return response.get("result") or {
-        "ok": False,
-        "action": operation,
-        "error": {
-            "type": (response.get("error") or {}).get("code", "DaemonError"),
-            "message": (response.get("error") or {}).get(
-                "message", "daemon request failed"
-            ),
-        },
-    }
+    result = response.get("result")
+    if isinstance(result, dict):
+        payload = dict(result)
+    else:
+        payload = {
+            "ok": False,
+            "action": operation,
+            "error": {
+                "type": (response.get("error") or {}).get("code", "DaemonError"),
+                "message": (response.get("error") or {}).get(
+                    "message", "daemon request failed"
+                ),
+            },
+        }
+    if response.get("request_id"):
+        payload["request_id"] = response["request_id"]
+    if response.get("replayed") is True:
+        payload["replayed"] = True
+    return payload
 
 
 def _autostart_and_retry(
@@ -586,6 +618,7 @@ def _autostart_and_retry(
     document_id: Optional[str],
     expected_update_stamp: Optional[int],
     lease_id: Optional[str],
+    request_id: str,
     connection_error: BaseException,
 ) -> Optional[Dict[str, Any]]:
     """Start a missing local Windows daemon, then retry one typed request."""
@@ -606,6 +639,7 @@ def _autostart_and_retry(
             endpoint=args.endpoint,
             timeout_seconds=args.request_timeout,
             connect_timeout_seconds=args.connect_timeout,
+            request_id=request_id,
             session_id=args.session,
             document_id=document_id,
             expected_update_stamp=expected_update_stamp,

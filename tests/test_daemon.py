@@ -647,6 +647,89 @@ class DaemonProtocolTests(unittest.TestCase):
             health["recovery_error"]["code"], "SharedHostRecoveryRequired"
         )
 
+    def test_completed_request_is_replayed_without_reentering_worker(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = mock.Mock()
+        manager._process.is_alive.return_value = True
+        manager._request_queue = mock.Mock()
+        manager._response_queue = mock.Mock()
+        manager._response_queue.get.return_value = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "req-replay",
+            "success": True,
+            "duration_ms": 12.5,
+            "result": {"ok": True, "action": "document.save"},
+        }
+        manager._request_cache = server.OrderedDict()
+        manager._recovery_required = None
+        manager.host = {}
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "req-replay",
+            "operation": "document.save",
+            "parameters": {},
+            "timeout_ms": 1000,
+        }
+
+        original = manager.call(request)
+        replayed = manager.call({**request, "timeout_ms": 5000})
+
+        self.assertNotIn("replayed", original)
+        self.assertTrue(replayed["replayed"])
+        self.assertEqual(replayed["result"], original["result"])
+        manager._request_queue.put.assert_called_once_with(request)
+        manager._response_queue.get.assert_called_once_with(timeout=1.0)
+
+    def test_reused_request_id_with_different_payload_is_rejected(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = mock.Mock()
+        manager._process.is_alive.return_value = True
+        manager._request_queue = mock.Mock()
+        manager._response_queue = mock.Mock()
+        manager._response_queue.get.return_value = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "req-conflict",
+            "success": True,
+            "duration_ms": 1.0,
+            "result": {"ok": True},
+        }
+        manager._request_cache = server.OrderedDict()
+        manager._recovery_required = None
+        manager.host = {}
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "req-conflict",
+            "operation": "document.export",
+            "parameters": {"output": "first.STEP"},
+            "timeout_ms": 1000,
+        }
+
+        manager.call(request)
+        conflict = manager.call(
+            {**request, "parameters": {"output": "second.STEP"}}
+        )
+
+        self.assertEqual(conflict["error"]["code"], "RequestIdConflict")
+        manager._request_queue.put.assert_called_once_with(request)
+
+    def test_request_replay_cache_is_bounded(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._request_cache = server.OrderedDict()
+        with mock.patch.object(server, "REQUEST_REPLAY_MAX_ENTRIES", 2):
+            for index in range(3):
+                request = {
+                    "request_id": f"req-{index}",
+                    "operation": "document.save",
+                    "parameters": {},
+                }
+                manager._remember_response(
+                    request,
+                    server._success_response(request["request_id"], {"ok": True}),
+                )
+        self.assertEqual(list(manager._request_cache), ["req-1", "req-2"])
+
     def test_endpoint_parser_validates_host_and_port(self):
         self.assertEqual(client.parse_endpoint("127.0.0.1:18495"), ("127.0.0.1", 18495))
         with self.assertRaisesRegex(ValueError, "HOST:PORT"):
@@ -772,6 +855,18 @@ class DaemonProtocolTests(unittest.TestCase):
                     "parameters": {},
                 }
             )
+
+    def test_request_validation_rejects_unsafe_request_ids_and_fields(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-1",
+            "operation": "daemon.health",
+            "parameters": {},
+        }
+        with self.assertRaisesRegex(ValueError, "128 characters"):
+            server.validate_request({**request, "request_id": "x" * 129})
+        with self.assertRaisesRegex(ValueError, "unsupported request fields"):
+            server.validate_request({**request, "unexpected": True})
 
     def test_request_validation_enforces_public_document_selectors(self):
         request = {

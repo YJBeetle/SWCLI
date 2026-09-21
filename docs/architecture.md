@@ -71,6 +71,16 @@ explicitly attached interactive host is left running, but its state is unknown;
 the daemon rejects further typed operations with `SharedHostRecoveryRequired`
 until the user inspects SOLIDWORKS and restarts swclid.
 
+The supervisor also owns a bounded request replay cache. Completed COM-bound
+requests are keyed by `request_id` plus a canonical fingerprint of their
+operation, parameters, and document/session concurrency context. An identical
+retry is served from the cache, while reuse of an ID for a different semantic
+request returns `RequestIdConflict`. `timeout_ms` is deliberately excluded from
+the fingerprint so a transport retry can change only its waiting budget. The
+cache survives COM worker replacement but not supervisor restart, and old
+entries can be evicted at the advertised capacity; it is therefore an
+in-process retry safety mechanism rather than durable exactly-once storage.
+
 Typed public CLI commands are daemon-only. The COM adapter remains an internal
 worker backend and a direct unit/integration-test seam, but it is not a second
 public execution mode. Host discovery and activation probes remain explicit
@@ -93,11 +103,11 @@ the typed CLI contract.
 Protocol and host implementation versions are independent. `sw-cli
 capabilities` exposes the running daemon's server version, supported protocol
 versions, operations, per-operation parameter schemas and request context,
-worker/recovery state, and host details without starting a missing local
-service. Its successful JSON output conforms directly to the published
-capabilities schema. The schemas advertised by the daemon are the same
-definitions used for request validation, so capability discovery cannot drift
-from runtime parameter handling.
+request replay policy, worker/recovery state, and host details without starting
+a missing local service. Its successful JSON output conforms directly to the
+published capabilities schema. The schemas advertised by the daemon are the
+same definitions used for request validation, so capability discovery cannot
+drift from runtime parameter handling.
 Length and angle units are explicit at typed modeling boundaries; host adapters
 convert them to the units expected by the SOLIDWORKS API.
 

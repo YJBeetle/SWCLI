@@ -10,6 +10,10 @@
     "request_id": {"type": "string", "minLength": 1},
     "success": {"type": "boolean"},
     "duration_ms": {"type": "number", "minimum": 0},
+    "replayed": {
+      "type": "boolean",
+      "description": "True when swclid returned a cached response for request_id"
+    },
     "result": {},
     "error": {
       "type": "object",

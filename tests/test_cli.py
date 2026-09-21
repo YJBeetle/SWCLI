@@ -8,6 +8,7 @@ from unittest import mock
 from swcli.cli import (
     _capabilities_mismatch,
     _typed_operation,
+    _typed_payload,
     build_parser,
     main,
     translate_parameter_paths,
@@ -31,6 +32,19 @@ class CliTests(unittest.TestCase):
             exit_code = main(["protocol", "show", "request"])
         self.assertEqual(exit_code, 0)
         self.assertEqual(json.loads(output.getvalue())["title"], "SWCLI Request")
+
+    def test_typed_payload_exposes_request_replay(self):
+        payload = _typed_payload(
+            "document.save",
+            {
+                "request_id": "save-42",
+                "replayed": True,
+                "success": True,
+                "result": {"ok": True, "action": "document.save"},
+            },
+        )
+        self.assertEqual(payload["request_id"], "save-42")
+        self.assertTrue(payload["replayed"])
 
     def test_daemon_lifecycle_commands_share_the_main_parser(self):
         parser = build_parser()
@@ -62,6 +76,12 @@ class CliTests(unittest.TestCase):
             "protocol_versions": ["swcli/v1"],
             "operations": list(operation_schemas()),
             "operation_schemas": operation_schemas(),
+            "request_replay": {
+                "supported": True,
+                "max_entries": 1024,
+                "max_bytes": 67108864,
+                "scope": "daemon",
+            },
             "worker_alive": True,
             "recovery_required": False,
             "recovery_error": None,
@@ -114,7 +134,7 @@ class CliTests(unittest.TestCase):
 
     def test_capabilities_rejects_schema_drift(self):
         self.assertIn(
-            "missing=['recovery_error', 'recovery_required']",
+            "missing=['recovery_error', 'recovery_required', 'request_replay']",
             _capabilities_mismatch(
                 {
                     "server_version": "old",
@@ -364,7 +384,15 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             exit_code = main(
-                ["document", "open", "sample.SLDPRT", "--read-only", "--json"]
+                [
+                    "--request-id",
+                    "request-open-1",
+                    "document",
+                    "open",
+                    "sample.SLDPRT",
+                    "--read-only",
+                    "--json",
+                ]
             )
         self.assertEqual(exit_code, 0)
         call_daemon.assert_called_once_with(
@@ -373,6 +401,7 @@ class CliTests(unittest.TestCase):
             endpoint="127.0.0.1:18495",
             timeout_seconds=600.0,
             connect_timeout_seconds=3.0,
+            request_id="request-open-1",
             session_id=None,
             document_id=None,
             expected_update_stamp=None,
@@ -420,6 +449,10 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         start_daemon.assert_called_once_with(endpoint="127.0.0.1:18495")
         self.assertEqual(call_daemon.call_count, 2)
+        self.assertEqual(
+            call_daemon.call_args_list[0].kwargs["request_id"],
+            call_daemon.call_args_list[1].kwargs["request_id"],
+        )
         self.assertTrue(json.loads(output.getvalue())["ok"])
 
     @mock.patch("swcli.cli.start_daemon")

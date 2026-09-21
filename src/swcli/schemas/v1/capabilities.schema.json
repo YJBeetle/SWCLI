@@ -10,6 +10,7 @@
     "host",
     "operations",
     "operation_schemas",
+    "request_replay",
     "worker_alive",
     "recovery_required",
     "recovery_error"
@@ -97,6 +98,17 @@
             }
           }
         }
+      }
+    },
+    "request_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "max_entries", "max_bytes", "scope"],
+      "properties": {
+        "supported": {"const": true},
+        "max_entries": {"type": "integer", "minimum": 1},
+        "max_bytes": {"type": "integer", "minimum": 1},
+        "scope": {"const": "daemon"}
       }
     },
     "worker_alive": {"type": "boolean"},
