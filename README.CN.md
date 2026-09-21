@@ -198,6 +198,13 @@ sw-cli --session agent-a document lease release $lease.lease.lease_id
 
 `lease status` 返回持有状态和剩余时间，`lease renew` 用于延长本 session 持有的 lease。lease 到期后自动失效，文档关闭时也会被清理；它用于客户端协作，不是身份认证机制。
 
+lease 的边界有意保持狭窄：
+
+- lease 只属于一个 daemon/worker 进程。即使多个 SWCLI daemon 或容器挂载并打开同一文件，它们之间也不会协调；这不是分布式文件锁。
+- 持有者未释放就退出时，文档会继续受到保护，直到 TTL 到期。CI 应选择够用但较短的 TTL，并在长操作期间续租。
+- lease 保护修改以及视图/产物操作，不阻止读取。其他 session 仍可重新打开同一路径、检查和诊断文档。
+- `lease status` 会向其他 session 隐藏 token，但为了协作会报告持有方的 `session_id`；它不是多租户隐私边界。
+
 `document close` 遵循保守的生命周期策略：除非明确传入 `--discard`，否则拒绝关闭已修改的文档。
 
 结构检查还会返回活动配置、全部配置名称、明确的文档单位、按模型定义顺序进行的有界顶层特征遍历，以及零件实体的拓扑摘要。特征名称用于人类阅读，特征类型才是面向机器的判别字段；调用方不能假定编辑后名称或位置仍然稳定。

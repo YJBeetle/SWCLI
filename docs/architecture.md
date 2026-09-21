@@ -171,6 +171,16 @@ inspection and diagnosis remain available. Acquisition is idempotent for the
 same session, expiration is automatic, and closing a document removes its
 lease. Lease state coordinates cooperating clients and is not an authentication
 or network-authorization boundary.
+
+The lease registry exists only inside one daemon's COM worker. It does not
+coordinate separate daemon or container instances that happen to mount the same
+workspace, so callers must not treat it as a distributed filesystem lock. A
+client crash intentionally leaves the lease active until its TTL expires;
+automation should use a short practical TTL and renew longer work. Opening the
+same path, inspection, and diagnosis remain available because leases guard
+mutating and view/artifact operations rather than reads. Status responses hide
+the token from a non-owning session but expose the owner `session_id` for local
+coordination, which also means leases are not a multi-tenant privacy boundary.
 Rebuild and diagnosis remain distinct operations. Diagnosis reads rebuild state
 and feature error codes without changing the model. Rebuild is explicit, never
 saves implicitly, and always returns post-rebuild diagnostics so a true COM

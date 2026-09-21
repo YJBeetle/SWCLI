@@ -300,6 +300,19 @@ sw-cli --session agent-a document lease release $lease.lease.lease_id
 owned lease. Leases expire automatically, disappear when the document closes,
 and coordinate clients rather than authenticate them.
 
+Lease boundaries are deliberately narrow:
+
+- A lease belongs to one daemon/worker process. Separate SWCLI daemon or
+  container instances do not coordinate even if they mount and open the same
+  file; this is not a distributed filesystem lock.
+- If a holder exits without releasing, the document remains protected until
+  its TTL expires. CI clients should choose a short practical TTL and renew it
+  during longer operations.
+- Leases guard mutations and view/artifact operations, not reads. Other
+  sessions may still open the same path, inspect, and diagnose the document.
+- `lease status` hides the token from other sessions but reports the owning
+  `session_id` for coordination. It is not a multi-tenant privacy boundary.
+
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 
