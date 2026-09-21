@@ -42,13 +42,13 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；下面的 Windows 可选依赖会自动安装它。
 
-在正式安装包发布之前，请从代码仓库安装非 editable 版本。安装完成后，即使工作区位置变化，已安装命令也不会依赖该 checkout：
+请从 GitHub Releases 安装固定版本的预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-git clone https://github.com/YJBeetle/SWCLI.git
-Set-Location SWCLI
-python -m pip install ".[windows]"
+python -m pip install "swcli[windows] @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a1/swcli-0.1.0a1-py3-none-any.whl"
 ```
+
+`v0.1.0a1` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
