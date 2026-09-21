@@ -5,30 +5,30 @@ SOLIDWORKS installation.
 
 ## Hosted CI
 
-`.github/workflows/ci.yml` runs the unit suite on Windows 2025 with Python 3.9
-and 3.14, parses every Windows CI PowerShell script, verifies the installed CLI
-and protocol schemas, and builds and checks both distributions on Linux. These
-jobs do not run Wine or require SOLIDWORKS and are safe for pull requests. Wine
-execution is intentionally left to integration projects such as DockerSW and
-MacSW because their patched runtimes define whether SOLIDWORKS is usable, not
-the host operating system alone.
+`.github/workflows/ci.yml` is the single hosted workflow. Its first stage runs
+the unit suite on Windows 2025 with Python 3.9 and 3.14, parses every Windows CI
+PowerShell script, verifies the installed CLI and protocol schemas, and builds
+and checks both distributions on Linux. These jobs do not run Wine or require
+SOLIDWORKS and are safe for pull requests.
 
-`.github/workflows/windows-hosted-media-probe.yml` is a manual feasibility
-probe for disposable GitHub-hosted Windows runners. It can remove optional
-preinstalled SDK payloads, mounts Google Drive through rclone and WinFsp, then
-uses ImDisk's `devio` shared-memory proxy to expose the streamed ISO as a
-read-only virtual optical drive. It deliberately does not install or execute
-SOLIDWORKS, so media/cache and virtual-driver failures remain separate from
-installer and COM failures.
+The second stage depends on both unit tests and package validation. It runs the
+native SOLIDWORKS E2E only for trusted `main` pushes or an explicit manual run;
+any first-stage failure prevents the expensive installation and real export
+job from starting. Wine execution remains the responsibility of integration
+projects such as DockerSW and MacSW because their patched runtimes define
+whether SOLIDWORKS is usable under Wine.
 
-The probe records disk capacity before cleanup, after cleanup, and after the
-ISO access. It also records the actual rclone VFS cache size. Windows'
-`Mount-DiskImage` cannot attach an ISO through a WinFsp-backed path on the
-hosted runner, and WinCDEmu 4.1 cannot complete its unattended driver install on
-Windows Server 2025. With ImDisk, the user-mode `devio` process owns the remote
-file handle while the kernel driver receives block reads through shared memory.
-The official standalone `devio.exe` URL and SHA-256 are pinned. The optical
-volume is detached before `devio` and rclone are stopped.
+The earlier standalone installation-media probe has been retired after its
+mounting path was incorporated into the E2E job. The unified workflow records
+disk capacity and actual rclone VFS cache size, mounts Google Drive through
+rclone and WinFsp, and uses ImDisk's `devio` shared-memory proxy to expose the
+streamed ISO as a read-only virtual optical drive. Windows' `Mount-DiskImage`
+cannot attach an ISO through a WinFsp-backed path on the hosted runner, and
+WinCDEmu 4.1 cannot complete its unattended driver install on Windows Server
+2025. With ImDisk, the user-mode `devio` process owns the remote file handle
+while the kernel driver receives block reads through shared memory. The
+official standalone `devio.exe` URL and SHA-256 are pinned. The optical volume
+is detached before `devio` and rclone are stopped.
 
 Required repository secret:
 
@@ -37,11 +37,10 @@ Required repository secret:
 
 ## Disposable hosted installation smoke
 
-`.github/workflows/windows-hosted-solidworks.yml` runs on trusted `main` pushes
-and can also be started manually. It is an integration test, not a release
-pipeline or a declaration that Windows Server is an officially supported
-SOLIDWORKS workstation. It mirrors the proven DockerSW order where it also
-applies to native Windows:
+The second stage of `.github/workflows/ci.yml` is an integration test, not a
+release pipeline or a declaration that Windows Server is an officially
+supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where
+it also applies to native Windows:
 
 1. stream the complete official ISO and expose it through ImDisk as a read-only
    optical volume, without selectively extracting an assumed dependency set;
