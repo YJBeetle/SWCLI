@@ -623,7 +623,16 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                 return
             if len(raw) > MAX_REQUEST_BYTES:
                 raise ValueError("request exceeds the maximum supported size")
-            request = validate_request(json.loads(raw.decode("utf-8")))
+            payload = json.loads(raw.decode("utf-8"))
+            if isinstance(payload, dict):
+                candidate_request_id = payload.get("request_id")
+                if (
+                    isinstance(candidate_request_id, str)
+                    and candidate_request_id
+                    and len(candidate_request_id) <= 128
+                ):
+                    request_id = candidate_request_id
+            request = validate_request(payload)
             request_id = request["request_id"]
             if self.server.manager is None:
                 response = _error_response(

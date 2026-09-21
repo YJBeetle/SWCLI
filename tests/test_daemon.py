@@ -798,6 +798,31 @@ class DaemonProtocolTests(unittest.TestCase):
         )
         self.assertEqual(actual, response)
 
+    def test_validation_error_preserves_valid_caller_request_id(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "request-invalid-parameters",
+            "operation": "part.create-box",
+            "parameters": {
+                "output": "box.SLDPRT",
+                "width_mm": 100,
+                "height_mm": 50,
+                "depth_mm": 20,
+                "template": None,
+            },
+        }
+        handler = object.__new__(server.SwclidRequestHandler)
+        handler.rfile = io.BytesIO(json.dumps(request).encode("utf-8") + b"\n")
+        handler.wfile = io.BytesIO()
+        handler.server = mock.Mock(manager=None)
+
+        handler.handle()
+
+        response = json.loads(handler.wfile.getvalue())
+        self.assertEqual(response["request_id"], request["request_id"])
+        self.assertEqual(response["error"]["code"], "ValueError")
+        self.assertIn("template must be a string", response["error"]["message"])
+
     def test_client_sends_document_and_session_context(self):
         response = {
             "api_version": PROTOCOL_VERSION,

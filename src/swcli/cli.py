@@ -801,16 +801,18 @@ def _typed_operation(
                 args.lease_id,
             )
     if args.command == "part" and args.part_command == "create-box":
+        parameters = {
+            "output": args.output,
+            "width_mm": args.width_mm,
+            "height_mm": args.height_mm,
+            "depth_mm": args.depth_mm,
+            "overwrite": args.overwrite,
+        }
+        if args.template is not None:
+            parameters["template"] = args.template
         return (
             "part.create-box",
-            {
-                "output": args.output,
-                "width_mm": args.width_mm,
-                "height_mm": args.height_mm,
-                "depth_mm": args.depth_mm,
-                "template": args.template,
-                "overwrite": args.overwrite,
-            },
+            parameters,
             args.as_json,
             None,
             None,

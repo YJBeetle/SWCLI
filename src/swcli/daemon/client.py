@@ -79,5 +79,9 @@ def call_daemon(
         raise ValueError("swclid response exceeds the maximum supported size")
     response = json.loads(line.decode("utf-8"))
     if response.get("request_id") != request["request_id"]:
-        raise ValueError("swclid returned a mismatched request_id")
+        raise ValueError(
+            "swclid returned a mismatched request_id "
+            f"(expected {request['request_id']!r}, "
+            f"received {response.get('request_id')!r})"
+        )
     return response

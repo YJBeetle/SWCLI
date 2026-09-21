@@ -13,7 +13,7 @@ from swcli.cli import (
     main,
     translate_parameter_paths,
 )
-from swcli.operation_schemas import operation_schemas
+from swcli.operation_schemas import operation_schemas, validate_operation_request
 
 
 class CliTests(unittest.TestCase):
@@ -319,6 +319,34 @@ class CliTests(unittest.TestCase):
                 None,
                 None,
             ),
+        )
+
+    def test_create_box_without_template_matches_published_schema(self):
+        args = build_parser().parse_args(
+            [
+                "part",
+                "create-box",
+                "box.SLDPRT",
+                "--width-mm",
+                "100",
+                "--height-mm",
+                "50",
+                "--depth-mm",
+                "20",
+            ]
+        )
+
+        operation, parameters, _, document_id, update_stamp, lease_id = (
+            _typed_operation(args)
+        )
+
+        self.assertNotIn("template", parameters)
+        validate_operation_request(
+            operation,
+            parameters,
+            document_id=document_id,
+            expected_update_stamp=update_stamp,
+            lease_id=lease_id,
         )
 
     def test_document_update_stamp_precondition_is_mapped_separately(self):
