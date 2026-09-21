@@ -163,7 +163,7 @@ TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及�
 sw-cli --request-id export-build-42 document export output.STEP --strict --json
 ```
 
-在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回缓存结果并报告 `replayed: true`；如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
+在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应，包括失败和超时。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回首次终局结果并报告 `replayed: true`；失败后若要再次执行，必须使用新的 request ID。除非显式传入 `--request-id`，CLI 每次调用都会生成新的 UUID。如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
 
 所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
 

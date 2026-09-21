@@ -80,6 +80,14 @@ the fingerprint so a transport retry can change only its waiting budget. The
 cache survives COM worker replacement but not supervisor restart, and old
 entries can be evicted at the advertised capacity; it is therefore an
 in-process retry safety mechanism rather than durable exactly-once storage.
+Terminal failures and timeouts are cached as deliberately as successes: the
+same request ID denotes the same attempted semantic request, not permission to
+try the operation again.
+
+Top-level request fields are maintained across three coordinated surfaces: the
+server validation allowlist, the fingerprint inclusion/exclusion rules, and
+`request.schema.json`. Any protocol-field change must review all three and keep
+their contract tests aligned.
 
 Typed public CLI commands are daemon-only. The COM adapter remains an internal
 worker backend and a direct unit/integration-test seam, but it is not a second

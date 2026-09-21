@@ -219,15 +219,18 @@ uncertain request can provide a stable key explicitly:
 sw-cli --request-id export-build-42 document export output.STEP --strict --json
 ```
 
-Within one running daemon, swclid caches the most recent completed responses.
-Repeating the same semantic request with the same ID returns the cached result
-without re-entering SOLIDWORKS and reports `replayed: true`; changing the
-operation, parameters, session, document, update stamp, or lease while reusing
-that ID fails with `RequestIdConflict`. The timeout is not part of the semantic
-request, so a retry may choose a different waiting budget. Capability discovery
-reports the replay cache size and scope. The cache is bounded and is lost when
-the daemon restarts, so it protects immediate transport retries rather than
-providing durable exactly-once execution across daemon failures.
+Within one running daemon, swclid caches the most recent completed responses,
+including failures and timeouts. Repeating the same semantic request with the
+same ID returns that first terminal result without re-entering SOLIDWORKS and
+reports `replayed: true`; execute again after a failure with a new request ID.
+The CLI generates a fresh UUID for each invocation unless `--request-id` is
+provided explicitly. Changing the operation, parameters, session, document,
+update stamp, or lease while reusing that ID fails with `RequestIdConflict`.
+The timeout is not part of the semantic request, so a retry may choose a
+different waiting budget. Capability discovery reports the replay cache size
+and scope. The cache is bounded and is lost when the daemon restarts, so it
+protects immediate transport retries rather than providing durable exactly-once
+execution across daemon failures.
 
 All typed `sw-cli` document and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
