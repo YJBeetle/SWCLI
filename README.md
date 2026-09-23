@@ -190,9 +190,12 @@ in the background and is idempotent. `sw-cli daemon status` reports the worker
 and host state, including the explicit `host_connected` flag; `sw-cli daemon
 stop` requests a graceful shutdown and also succeeds when SOLIDWORKS has already
 exited. While idle, the worker probes a lightweight COM property once per
-second on its owning apartment. If SOLIDWORKS exits externally, the daemon
-clears the stale host, reports `HostDisconnected`, and rejects typed operations
-instead of silently starting a different session. Recover explicitly with:
+second on its owning apartment. Explicit disconnect HRESULTs are acted on
+immediately, temporary COM call rejection is retried, and unknown errors must
+occur three times consecutively before the host is considered disconnected.
+If SOLIDWORKS exits externally, the daemon clears the stale host, reports
+`HostDisconnected`, and rejects typed operations instead of silently starting
+a different session. Recover explicitly with:
 
 ```powershell
 sw-cli daemon restart

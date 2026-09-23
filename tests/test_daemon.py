@@ -654,9 +654,11 @@ class DaemonProtocolTests(unittest.TestCase):
         com_client.DispatchEx.assert_not_called()
 
     @mock.patch("swcli.daemon.server._com_value")
-    def test_idle_worker_probe_reports_host_disconnect(self, com_value):
+    def test_idle_worker_probe_requires_consecutive_unknown_failures(
+        self, com_value
+    ):
         request_queue = mock.Mock()
-        request_queue.get.side_effect = server.queue.Empty
+        request_queue.get.side_effect = [server.queue.Empty] * 3
         lifecycle_queue = mock.Mock()
         com_value.side_effect = RuntimeError("RPC server unavailable")
 
@@ -668,10 +670,76 @@ class DaemonProtocolTests(unittest.TestCase):
         )
 
         self.assertIsNone(request)
-        request_queue.get.assert_called_once_with(timeout=1.0)
+        self.assertEqual(request_queue.get.call_count, 3)
         event = lifecycle_queue.put.call_args.args[0]
         self.assertEqual(event["event"], "host-disconnected")
         self.assertEqual(event["error"]["code"], "HostDisconnected")
+
+    @mock.patch("swcli.daemon.server._com_value")
+    def test_idle_worker_probe_ignores_transient_call_rejection(self, com_value):
+        class ComBusyError(RuntimeError):
+            hresult = -2147418111  # RPC_E_CALL_REJECTED
+
+        request_queue = mock.Mock()
+        request_queue.get.side_effect = [server.queue.Empty, {"request_id": "next"}]
+        lifecycle_queue = mock.Mock()
+        com_value.side_effect = ComBusyError("application busy")
+
+        request = server._wait_for_worker_request(
+            request_queue, lifecycle_queue, object()
+        )
+
+        self.assertEqual(request, {"request_id": "next"})
+        lifecycle_queue.put.assert_not_called()
+
+    @mock.patch("swcli.daemon.server._com_value")
+    def test_successful_idle_probe_resets_failure_count(self, com_value):
+        request_queue = mock.Mock()
+        request_queue.get.side_effect = [
+            server.queue.Empty,
+            server.queue.Empty,
+            server.queue.Empty,
+            {"request_id": "next"},
+        ]
+        lifecycle_queue = mock.Mock()
+        com_value.side_effect = [
+            RuntimeError("temporary failure"),
+            "33.5.0",
+            RuntimeError("temporary failure"),
+        ]
+
+        request = server._wait_for_worker_request(
+            request_queue, lifecycle_queue, object()
+        )
+
+        self.assertEqual(request, {"request_id": "next"})
+        lifecycle_queue.put.assert_not_called()
+
+    @mock.patch("swcli.daemon.server._com_value")
+    def test_explicit_disconnect_hresult_is_reported_immediately(self, com_value):
+        class ServerUnavailableError(RuntimeError):
+            hresult = -2147023174  # 0x800706BA
+
+        request_queue = mock.Mock()
+        request_queue.get.side_effect = server.queue.Empty
+        lifecycle_queue = mock.Mock()
+        com_value.side_effect = ServerUnavailableError("server unavailable")
+
+        request = server._wait_for_worker_request(
+            request_queue, lifecycle_queue, object()
+        )
+
+        self.assertIsNone(request)
+        request_queue.get.assert_called_once_with(timeout=1.0)
+        self.assertEqual(
+            lifecycle_queue.put.call_args.args[0]["error"]["code"],
+            "HostDisconnected",
+        )
+
+    def test_com_hresult_normalizes_signed_pywin32_values(self):
+        error = RuntimeError(-2147418111, "call rejected")
+
+        self.assertEqual(server._com_hresult(error), 0x80010001)
 
     def test_health_discards_stale_host_after_idle_disconnect(self):
         for owned_by_daemon in (True, False):

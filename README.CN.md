@@ -145,7 +145,7 @@ sw-cli document close --json
 sw-cli daemon serve
 ```
 
-服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 会报告 worker 与宿主状态，包括明确的 `host_connected` 字段；`sw-cli daemon stop` 请求优雅关闭，即使 SOLIDWORKS 已经退出也会成功。worker 空闲时每秒在所属 COM apartment 内探测一次轻量属性。SOLIDWORKS 被外部关闭后，daemon 会清除过期宿主、报告 `HostDisconnected` 并拒绝类型化操作，不会静默启动另一个会话。恢复必须显式执行：
+服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 会报告 worker 与宿主状态，包括明确的 `host_connected` 字段；`sw-cli daemon stop` 请求优雅关闭，即使 SOLIDWORKS 已经退出也会成功。worker 空闲时每秒在所属 COM apartment 内探测一次轻量属性：明确的断连 HRESULT 会立即生效，暂时性的 COM call rejection 会重试，未知异常则必须连续发生 3 次才判定宿主断开。SOLIDWORKS 被外部关闭后，daemon 会清除过期宿主、报告 `HostDisconnected` 并拒绝类型化操作，不会静默启动另一个会话。恢复必须显式执行：
 
 ```powershell
 sw-cli daemon restart

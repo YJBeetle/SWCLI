@@ -68,8 +68,11 @@ falls back to `DispatchEx`; absence is reported as `ExistingHostNotFound`.
 
 While idle, the worker waits on its request queue with a one-second timeout and
 probes `RevisionNumber` before waiting again. This probe stays on the worker's
-owning STA thread. An external SOLIDWORKS exit emits a lifecycle event and ends
-the worker; the supervisor then clears the cached host and reports
+owning STA thread. Known disconnect HRESULTs take effect immediately, temporary
+call-rejected HRESULTs do not count as failures, and otherwise three
+consecutive probe failures are required; a successful probe resets that count.
+An external SOLIDWORKS exit emits a lifecycle event and ends the worker; the
+supervisor then clears the cached host and reports
 `worker_alive: false`, `host_connected: false`, and `HostDisconnected` recovery
 state. Typed operations remain blocked so they cannot silently replace the lost
 document session. `daemon stop` treats an already disconnected host as a
