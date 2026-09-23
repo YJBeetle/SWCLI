@@ -29,12 +29,17 @@ from .operations import (
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 REQUEST_REPLAY_MAX_ENTRIES = 1024
 REQUEST_REPLAY_MAX_BYTES = 64 * 1024 * 1024
+HOST_PROBE_INTERVAL_SECONDS = 1.0
 DOCUMENT_ID_PATTERN = re.compile(r"^d-[0-9a-hjkmnp-tv-z]{6}$")
 LEASE_ID_PATTERN = re.compile(r"^l-[0-9a-hjkmnp-tv-z]{12}$")
 
 
 class ExistingHostRequiresAttach(RuntimeError):
     """Raised when exclusive startup finds a user-controlled SOLIDWORKS host."""
+
+
+class ExistingHostNotFound(RuntimeError):
+    """Raised when explicit attach was requested but no active host exists."""
 
 
 class WorkerStartupError(RuntimeError):
@@ -180,6 +185,10 @@ def acquire_resident_app(
     try:
         app = com_client.GetActiveObject(PROG_ID)
     except Exception:
+        if attach_existing:
+            raise ExistingHostNotFound(
+                "--attach-existing requires an already running SOLIDWORKS instance"
+            )
         app = com_client.DispatchEx(PROG_ID)
         configure_resident_app(app, visible=visible)
         return app, True
@@ -191,10 +200,42 @@ def acquire_resident_app(
     return app, False
 
 
+def _host_disconnected_error(exc: BaseException) -> Dict[str, str]:
+    return {
+        "code": "HostDisconnected",
+        "message": f"SOLIDWORKS COM host is no longer available: {exc}",
+    }
+
+
+def _wait_for_worker_request(
+    request_queue: Any,
+    lifecycle_queue: Any,
+    app: Any,
+    *,
+    probe_interval_seconds: float = HOST_PROBE_INTERVAL_SECONDS,
+) -> Any:
+    """Wait for work while probing COM from the worker's owning STA thread."""
+
+    while True:
+        try:
+            return request_queue.get(timeout=probe_interval_seconds)
+        except queue.Empty:
+            try:
+                _com_value(app, "RevisionNumber")
+            except Exception as exc:
+                lifecycle_queue.put(
+                    {
+                        "event": "host-disconnected",
+                        "error": _host_disconnected_error(exc),
+                    }
+                )
+                return None
+
+
 def _worker_main(
     request_queue: Any,
     response_queue: Any,
-    ready_queue: Any,
+    lifecycle_queue: Any,
     visible: bool,
     startup_timeout_seconds: float,
     attach_existing: bool,
@@ -212,7 +253,7 @@ def _worker_main(
             visible=visible,
             attach_existing=attach_existing,
         )
-        ready_queue.put(
+        lifecycle_queue.put(
             {
                 "ok": True,
                 "phase": "host-acquired",
@@ -226,7 +267,7 @@ def _worker_main(
             app, timeout_seconds=startup_timeout_seconds
         )
         documents = DocumentRegistry(app)
-        ready_queue.put(
+        lifecycle_queue.put(
             {
                 "ok": True,
                 "phase": "ready",
@@ -237,7 +278,9 @@ def _worker_main(
         )
 
         while True:
-            request = request_queue.get()
+            request = _wait_for_worker_request(
+                request_queue, lifecycle_queue, app
+            )
             if request is None:
                 break
             started_at = time.monotonic()
@@ -246,12 +289,16 @@ def _worker_main(
                 try:
                     _com_value(app, "RevisionNumber")
                 except Exception as exc:
+                    error = _host_disconnected_error(exc)
                     response_queue.put(
                         _error_response(
                             request_id,
-                            "HostDisconnected",
-                            f"SOLIDWORKS COM host is no longer available: {exc}",
+                            error["code"],
+                            error["message"],
                         )
+                    )
+                    lifecycle_queue.put(
+                        {"event": "host-disconnected", "error": error}
                     )
                     break
                 if request["operation"] == "__daemon.shutdown__":
@@ -303,7 +350,7 @@ def _worker_main(
                 )
             response_queue.put(response)
     except Exception as exc:
-        ready_queue.put(
+        lifecycle_queue.put(
             {"ok": False, "error": {"type": type(exc).__name__, "message": str(exc)}}
         )
     finally:
@@ -338,6 +385,7 @@ class WorkerManager:
         self._process: Optional[Any] = None
         self._request_queue: Optional[Any] = None
         self._response_queue: Optional[Any] = None
+        self._lifecycle_queue: Optional[Any] = None
         self._request_cache: OrderedDict[
             str, tuple[str, Dict[str, Any], int]
         ] = OrderedDict()
@@ -349,13 +397,13 @@ class WorkerManager:
     def _start_worker(self) -> None:
         self._request_queue = self._context.Queue()
         self._response_queue = self._context.Queue()
-        ready_queue = self._context.Queue()
+        self._lifecycle_queue = self._context.Queue()
         self._process = self._context.Process(
             target=_worker_main,
             args=(
                 self._request_queue,
                 self._response_queue,
-                ready_queue,
+                self._lifecycle_queue,
                 self.visible,
                 self.startup_timeout_seconds,
                 self.attach_existing,
@@ -366,7 +414,7 @@ class WorkerManager:
         deadline = time.monotonic() + self.startup_timeout_seconds + 5.0
         while True:
             try:
-                ready = ready_queue.get(
+                ready = self._lifecycle_queue.get(
                     timeout=max(0.0, deadline - time.monotonic())
                 )
             except queue.Empty as exc:
@@ -392,6 +440,42 @@ class WorkerManager:
                 "InvalidStartupEvent",
                 "SOLIDWORKS worker returned an unknown startup phase",
             )
+
+    def _refresh_worker_state_locked(self) -> None:
+        latest_disconnect: Optional[Dict[str, str]] = None
+        lifecycle_queue = getattr(self, "_lifecycle_queue", None)
+        if lifecycle_queue is not None:
+            while True:
+                try:
+                    event = lifecycle_queue.get_nowait()
+                except queue.Empty:
+                    break
+                if event.get("event") == "host-disconnected":
+                    error = event.get("error") or {}
+                    latest_disconnect = {
+                        "code": str(error.get("code", "HostDisconnected")),
+                        "message": str(
+                            error.get(
+                                "message", "SOLIDWORKS COM host disconnected"
+                            )
+                        ),
+                    }
+        if latest_disconnect is not None:
+            self._recovery_required = latest_disconnect
+            self.host = {}
+
+        if self._process is not None and not self._process.is_alive():
+            self._process.join(timeout=0.0)
+            self._process = None
+            self.host = {}
+            if self._recovery_required is None:
+                self._recovery_required = {
+                    "code": "WorkerExited",
+                    "message": (
+                        "SOLIDWORKS COM worker exited unexpectedly; restart swclid "
+                        "before issuing more commands"
+                    ),
+                }
 
     def _terminate_worker(self) -> None:
         forced = False
@@ -423,6 +507,7 @@ class WorkerManager:
 
     def call(self, request: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
+            self._refresh_worker_state_locked()
             replay = self._replay_response(request)
             if replay is not None:
                 return replay
@@ -469,6 +554,11 @@ class WorkerManager:
                 self._remember_response(request, response)
                 return response
             if (response.get("error") or {}).get("code") == "HostDisconnected":
+                error = response["error"]
+                self._recovery_required = {
+                    "code": str(error["code"]),
+                    "message": str(error["message"]),
+                }
                 self._process.join(timeout=5.0)
                 if self._process.is_alive():
                     self._terminate_worker()
@@ -557,6 +647,22 @@ class WorkerManager:
             self._request_cache_bytes -= evicted_size
 
     def health(self) -> Dict[str, Any]:
+        acquired = self._lock.acquire(blocking=False)
+        try:
+            if acquired:
+                self._refresh_worker_state_locked()
+            worker_alive = bool(
+                self._process is not None and self._process.is_alive()
+            )
+            recovery_error = self._recovery_required
+            host = dict(self.host) if self.host else None
+        finally:
+            if acquired:
+                self._lock.release()
+
+        host_connected = bool(
+            worker_alive and host and recovery_error is None
+        )
         return {
             "server_version": __version__,
             "protocol_versions": [PROTOCOL_VERSION],
@@ -568,30 +674,64 @@ class WorkerManager:
                 "max_bytes": REQUEST_REPLAY_MAX_BYTES,
                 "scope": "daemon",
             },
-            "worker_alive": bool(
-                self._process is not None and self._process.is_alive()
-            ),
-            "recovery_required": self._recovery_required is not None,
-            "recovery_error": self._recovery_required,
-            "host": self.host or None,
+            "worker_alive": worker_alive,
+            "host_connected": host_connected,
+            "recovery_required": recovery_error is not None,
+            "recovery_error": recovery_error,
+            "host": host,
         }
 
     def shutdown(self, request: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
-            if self._process is None or not self._process.is_alive():
-                return _success_response(request["request_id"], {"stopping": True})
+            self._refresh_worker_state_locked()
+            if self._process is None:
+                return _success_response(
+                    request["request_id"],
+                    {
+                        "stopping": True,
+                        "host_already_disconnected": self._recovery_required
+                        is not None,
+                    },
+                )
             assert self._request_queue is not None
             assert self._response_queue is not None
             control = dict(request)
             control["operation"] = "__daemon.shutdown__"
             self._request_queue.put(control)
-            try:
-                response = self._response_queue.get(timeout=15.0)
-            except queue.Empty:
-                return _error_response(
+            deadline = time.monotonic() + 15.0
+            while True:
+                try:
+                    response = self._response_queue.get(
+                        timeout=min(0.25, max(0.0, deadline - time.monotonic()))
+                    )
+                    break
+                except queue.Empty:
+                    self._refresh_worker_state_locked()
+                    if self._process is None:
+                        return _success_response(
+                            request["request_id"],
+                            {
+                                "stopping": True,
+                                "host_already_disconnected": True,
+                            },
+                        )
+                    if time.monotonic() >= deadline:
+                        return _error_response(
+                            request["request_id"],
+                            "ShutdownTimeout",
+                            "COM worker did not stop within 15 seconds",
+                        )
+            if (response.get("error") or {}).get("code") == "HostDisconnected":
+                self._recovery_required = dict(response["error"])
+                self._process.join(timeout=5.0)
+                if self._process.is_alive():
+                    self._terminate_worker()
+                else:
+                    self._process = None
+                    self.host = {}
+                return _success_response(
                     request["request_id"],
-                    "ShutdownTimeout",
-                    "COM worker did not stop within 15 seconds",
+                    {"stopping": True, "host_already_disconnected": True},
                 )
             if response.get("success"):
                 self._process.join(timeout=15.0)

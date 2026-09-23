@@ -435,6 +435,7 @@ def _run_capabilities(args: argparse.Namespace) -> int:
         print(f"Server: {payload['server_version']}")
         print(f"Protocols: {', '.join(payload['protocol_versions'])}")
         print(f"Worker: {'ready' if payload['worker_alive'] else 'unavailable'}")
+        print(f"Host connected: {'yes' if payload['host_connected'] else 'no'}")
         if host is None:
             print("Host: unavailable")
         else:
@@ -537,6 +538,8 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
         return "request_replay does not match the capabilities schema"
     if not isinstance(payload["worker_alive"], bool):
         return "worker_alive must be a boolean"
+    if not isinstance(payload["host_connected"], bool):
+        return "host_connected must be a boolean"
     if not isinstance(payload["recovery_required"], bool):
         return "recovery_required must be a boolean"
 
@@ -553,6 +556,12 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
         return "recovery_error must be null or contain string code and message"
     if payload["recovery_required"] != (recovery_error is not None):
         return "recovery_required and recovery_error disagree"
+    if payload["host_connected"] != (
+        payload["worker_alive"]
+        and payload["host"] is not None
+        and not payload["recovery_required"]
+    ):
+        return "host_connected disagrees with worker, host, or recovery state"
 
     host = payload["host"]
     if host is not None:

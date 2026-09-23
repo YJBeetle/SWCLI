@@ -48,7 +48,7 @@ class CliTests(unittest.TestCase):
 
     def test_daemon_lifecycle_commands_share_the_main_parser(self):
         parser = build_parser()
-        for command in ("serve", "start", "status", "stop"):
+        for command in ("serve", "start", "restart", "status", "stop"):
             with self.subTest(command=command):
                 args = parser.parse_args(["daemon", command])
                 self.assertEqual(args.command, "daemon")
@@ -61,12 +61,16 @@ class CliTests(unittest.TestCase):
         attached_start = parser.parse_args(
             ["daemon", "start", "--attach-existing"]
         )
+        attached_restart = parser.parse_args(
+            ["daemon", "restart", "--attach-existing"]
+        )
         attached_serve = parser.parse_args(
             ["daemon", "serve", "--attach-existing"]
         )
 
         self.assertFalse(default.attach_existing)
         self.assertTrue(attached_start.attach_existing)
+        self.assertTrue(attached_restart.attach_existing)
         self.assertTrue(attached_serve.attach_existing)
 
     @mock.patch("swcli.cli.call_daemon")
@@ -83,6 +87,7 @@ class CliTests(unittest.TestCase):
                 "scope": "daemon",
             },
             "worker_alive": True,
+            "host_connected": True,
             "recovery_required": False,
             "recovery_error": None,
             "host": {
@@ -134,7 +139,7 @@ class CliTests(unittest.TestCase):
 
     def test_capabilities_rejects_schema_drift(self):
         self.assertIn(
-            "missing=['recovery_error', 'recovery_required', 'request_replay']",
+            "missing=['host_connected', 'recovery_error', 'recovery_required', 'request_replay']",
             _capabilities_mismatch(
                 {
                     "server_version": "old",

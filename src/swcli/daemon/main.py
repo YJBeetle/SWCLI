@@ -55,6 +55,19 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     start.add_argument("--startup-timeout", type=float, default=120.0)
     start.add_argument("--json", action="store_true", dest="as_json")
 
+    restart = commands.add_parser(
+        "restart", help="restart the service and explicitly recover its host"
+    )
+    restart.add_argument("--endpoint", dest="daemon_endpoint")
+    restart.add_argument("--visible", action="store_true")
+    restart.add_argument(
+        "--attach-existing",
+        action="store_true",
+        help="explicitly share an already running interactive SOLIDWORKS instance",
+    )
+    restart.add_argument("--startup-timeout", type=float, default=120.0)
+    restart.add_argument("--json", action="store_true", dest="as_json")
+
     status = commands.add_parser("status", help="query a running service")
     status.add_argument("--endpoint", dest="daemon_endpoint")
     status.add_argument("--json", action="store_true", dest="as_json")
@@ -107,11 +120,13 @@ def is_local_daemon_unreachable_error(exc: BaseException) -> bool:
     local endpoint.
     """
 
-    return isinstance(exc, (ConnectionRefusedError, TimeoutError)) or (
+    return isinstance(
+        exc, (ConnectionRefusedError, ConnectionResetError, TimeoutError)
+    ) or (
         isinstance(exc, OSError)
         and (
             getattr(exc, "errno", None) == errno.ECONNREFUSED
-            or getattr(exc, "winerror", None) == 10061
+            or getattr(exc, "winerror", None) in {10054, 10061}
         )
     )
 
@@ -389,6 +404,61 @@ def start_daemon(
     return _failure("StartupTimeout", message, **details)
 
 
+def restart_daemon(
+    *,
+    endpoint: str = DEFAULT_ENDPOINT,
+    visible: bool = False,
+    startup_timeout_seconds: float = 120.0,
+    attach_existing: bool = False,
+) -> Dict[str, Any]:
+    """Stop a reachable daemon, then explicitly start a fresh host session."""
+
+    try:
+        stopped = call_daemon(
+            "daemon.shutdown",
+            endpoint=endpoint,
+            timeout_seconds=20.0,
+            connect_timeout_seconds=1.0,
+        )
+    except Exception as exc:
+        if not (is_local_endpoint(endpoint) and is_local_daemon_unreachable_error(exc)):
+            return _failure(type(exc).__name__, str(exc))
+    else:
+        if not stopped.get("success"):
+            error = stopped.get("error") or {}
+            return _failure(
+                str(error.get("code", "DaemonError")),
+                str(error.get("message", "daemon shutdown failed")),
+            )
+
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline:
+            try:
+                call_daemon(
+                    "daemon.health",
+                    endpoint=endpoint,
+                    timeout_seconds=1.0,
+                    connect_timeout_seconds=0.25,
+                )
+            except Exception as exc:
+                if is_local_daemon_unreachable_error(exc):
+                    break
+                return _failure(type(exc).__name__, str(exc))
+            time.sleep(0.1)
+        else:
+            return _failure(
+                "ShutdownTimeout",
+                "daemon endpoint remained reachable after shutdown",
+            )
+
+    return start_daemon(
+        endpoint=endpoint,
+        visible=visible,
+        startup_timeout_seconds=startup_timeout_seconds,
+        attach_existing=attach_existing,
+    )
+
+
 def run(args: argparse.Namespace) -> int:
     command = args.daemon_command
     if command == "serve":
@@ -491,6 +561,13 @@ def run(args: argparse.Namespace) -> int:
             startup_timeout_seconds=args.startup_timeout,
             attach_existing=args.attach_existing,
         )
+    elif command == "restart":
+        response = restart_daemon(
+            endpoint=endpoint,
+            visible=args.visible,
+            startup_timeout_seconds=args.startup_timeout,
+            attach_existing=args.attach_existing,
+        )
     else:
         operation = "daemon.health" if command == "status" else "daemon.shutdown"
         try:
@@ -501,7 +578,17 @@ def run(args: argparse.Namespace) -> int:
                 connect_timeout_seconds=1.0,
             )
         except Exception as exc:
-            response = _failure(type(exc).__name__, str(exc))
+            if (
+                command == "stop"
+                and is_local_endpoint(endpoint)
+                and is_local_daemon_unreachable_error(exc)
+            ):
+                response = {
+                    "success": True,
+                    "result": {"stopping": False, "already_stopped": True},
+                }
+            else:
+                response = _failure(type(exc).__name__, str(exc))
 
     if args.as_json:
         print(json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True))

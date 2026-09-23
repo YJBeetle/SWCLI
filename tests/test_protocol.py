@@ -55,6 +55,7 @@ class ProtocolSchemaTests(unittest.TestCase):
                 "operation_schemas",
                 "request_replay",
                 "worker_alive",
+                "host_connected",
                 "recovery_required",
                 "recovery_error",
                 "host",

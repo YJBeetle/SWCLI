@@ -12,6 +12,7 @@
     "operation_schemas",
     "request_replay",
     "worker_alive",
+    "host_connected",
     "recovery_required",
     "recovery_error"
   ],
@@ -112,6 +113,7 @@
       }
     },
     "worker_alive": {"type": "boolean"},
+    "host_connected": {"type": "boolean"},
     "recovery_required": {"type": "boolean"},
     "recovery_error": {
       "oneOf": [

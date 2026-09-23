@@ -18,7 +18,9 @@ from swcli.daemon.main import (
     _read_startup_failure,
     _read_startup_host,
     _terminate_spawned_daemon,
+    is_local_daemon_unreachable_error,
     require_remote_bind_opt_in,
+    restart_daemon,
     start_daemon,
 )
 
@@ -332,6 +334,54 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertTrue(result["result"]["started"])
         popen.assert_called_once()
 
+    def test_local_connection_reset_means_daemon_finished_stopping(self):
+        error = ConnectionResetError("endpoint closed during shutdown")
+        error.winerror = 10054
+
+        self.assertTrue(is_local_daemon_unreachable_error(error))
+
+    @mock.patch("swcli.daemon.main.start_daemon")
+    @mock.patch("swcli.daemon.main.call_daemon")
+    def test_restart_waits_for_shutdown_then_starts_explicit_host(
+        self, call_daemon, start
+    ):
+        call_daemon.side_effect = [
+            {"success": True, "result": {"stopping": True}},
+            ConnectionRefusedError("offline"),
+        ]
+        start.return_value = {"success": True, "result": {"started": True}}
+
+        result = restart_daemon(
+            endpoint="127.0.0.1:18495",
+            visible=True,
+            startup_timeout_seconds=30.0,
+            attach_existing=True,
+        )
+
+        self.assertTrue(result["success"])
+        self.assertEqual(call_daemon.call_args_list[0].args[0], "daemon.shutdown")
+        start.assert_called_once_with(
+            endpoint="127.0.0.1:18495",
+            visible=True,
+            startup_timeout_seconds=30.0,
+            attach_existing=True,
+        )
+
+    @mock.patch("swcli.daemon.main.start_daemon")
+    @mock.patch(
+        "swcli.daemon.main.call_daemon",
+        side_effect=ConnectionRefusedError("offline"),
+    )
+    def test_restart_starts_when_local_daemon_is_already_stopped(
+        self, call_daemon, start
+    ):
+        start.return_value = {"success": True, "result": {"started": True}}
+
+        result = restart_daemon(endpoint="127.0.0.1:18495")
+
+        self.assertTrue(result["success"])
+        start.assert_called_once()
+
     @mock.patch("swcli.daemon.main._terminate_spawned_daemon")
     @mock.patch("swcli.daemon.main.subprocess.Popen")
     @mock.patch("swcli.daemon.main.call_daemon")
@@ -592,6 +642,138 @@ class DaemonProtocolTests(unittest.TestCase):
         com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
         configure.assert_called_once_with(app, visible=False)
 
+    def test_explicit_attach_requires_an_existing_instance(self):
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = RuntimeError("not running")
+
+        with self.assertRaises(server.ExistingHostNotFound):
+            server.acquire_resident_app(
+                com_client, visible=True, attach_existing=True
+            )
+
+        com_client.DispatchEx.assert_not_called()
+
+    @mock.patch("swcli.daemon.server._com_value")
+    def test_idle_worker_probe_reports_host_disconnect(self, com_value):
+        request_queue = mock.Mock()
+        request_queue.get.side_effect = server.queue.Empty
+        lifecycle_queue = mock.Mock()
+        com_value.side_effect = RuntimeError("RPC server unavailable")
+
+        request = server._wait_for_worker_request(
+            request_queue,
+            lifecycle_queue,
+            object(),
+            probe_interval_seconds=1.0,
+        )
+
+        self.assertIsNone(request)
+        request_queue.get.assert_called_once_with(timeout=1.0)
+        event = lifecycle_queue.put.call_args.args[0]
+        self.assertEqual(event["event"], "host-disconnected")
+        self.assertEqual(event["error"]["code"], "HostDisconnected")
+
+    def test_health_discards_stale_host_after_idle_disconnect(self):
+        for owned_by_daemon in (True, False):
+            with self.subTest(owned_by_daemon=owned_by_daemon):
+                manager = object.__new__(server.WorkerManager)
+                manager._lock = server.threading.Lock()
+                manager._process = mock.Mock()
+                manager._process.is_alive.return_value = False
+                manager._lifecycle_queue = mock.Mock()
+                manager._lifecycle_queue.get_nowait.side_effect = [
+                    {
+                        "event": "host-disconnected",
+                        "error": {
+                            "code": "HostDisconnected",
+                            "message": "SOLIDWORKS exited",
+                        },
+                    },
+                    server.queue.Empty,
+                ]
+                manager._recovery_required = None
+                manager.host = {
+                    "process_id": 1234,
+                    "owned_by_daemon": owned_by_daemon,
+                    "shared_interactive": not owned_by_daemon,
+                }
+
+                health = manager.health()
+
+                self.assertFalse(health["worker_alive"])
+                self.assertFalse(health["host_connected"])
+                self.assertIsNone(health["host"])
+                self.assertTrue(health["recovery_required"])
+                self.assertEqual(
+                    health["recovery_error"]["code"], "HostDisconnected"
+                )
+
+    def test_host_disconnect_blocks_restart_on_next_business_request(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = None
+        manager._lifecycle_queue = None
+        manager._recovery_required = {
+            "code": "HostDisconnected",
+            "message": "SOLIDWORKS exited",
+        }
+        manager._request_cache = server.OrderedDict()
+        manager._request_cache_bytes = 0
+        manager.host = {}
+        manager._start_worker = mock.Mock()
+
+        response = manager.call(
+            {
+                "request_id": "req-after-disconnect",
+                "operation": "document.list",
+                "parameters": {},
+                "timeout_ms": 1000,
+            }
+        )
+
+        self.assertEqual(response["error"]["code"], "HostDisconnected")
+        manager._start_worker.assert_not_called()
+
+    def test_shutdown_succeeds_when_host_is_already_disconnected(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = None
+        manager._lifecycle_queue = None
+        manager._recovery_required = {
+            "code": "HostDisconnected",
+            "message": "SOLIDWORKS exited",
+        }
+        manager.host = {}
+
+        response = manager.shutdown({"request_id": "req-stop"})
+
+        self.assertTrue(response["success"])
+        self.assertTrue(response["result"]["stopping"])
+        self.assertTrue(response["result"]["host_already_disconnected"])
+
+    def test_shutdown_treats_racing_host_disconnect_as_stopped(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = mock.Mock()
+        manager._process.is_alive.side_effect = [True, False]
+        manager._request_queue = mock.Mock()
+        manager._response_queue = mock.Mock()
+        manager._response_queue.get.return_value = server._error_response(
+            "req-stop",
+            "HostDisconnected",
+            "SOLIDWORKS exited",
+        )
+        manager._lifecycle_queue = None
+        manager._recovery_required = None
+        manager.host = {"process_id": 1234, "owned_by_daemon": True}
+
+        response = manager.shutdown({"request_id": "req-stop"})
+
+        self.assertTrue(response["success"])
+        self.assertTrue(response["result"]["host_already_disconnected"])
+        self.assertIsNone(manager._process)
+        self.assertEqual(manager.host, {})
+
     @mock.patch("swcli.daemon.server.subprocess.run")
     def test_worker_termination_does_not_kill_attached_user_instance(self, run):
         manager = object.__new__(server.WorkerManager)
@@ -612,6 +794,7 @@ class DaemonProtocolTests(unittest.TestCase):
         manager._process.is_alive.return_value = True
         manager._request_queue = mock.Mock()
         manager._response_queue = mock.Mock()
+        manager._lifecycle_queue = None
         manager._response_queue.get.side_effect = server.queue.Empty
         manager._recovery_required = None
         manager.host = {
@@ -654,6 +837,7 @@ class DaemonProtocolTests(unittest.TestCase):
         manager._process.is_alive.return_value = True
         manager._request_queue = mock.Mock()
         manager._response_queue = mock.Mock()
+        manager._lifecycle_queue = None
         manager._response_queue.get.return_value = {
             "api_version": PROTOCOL_VERSION,
             "request_id": "req-replay",
@@ -688,6 +872,7 @@ class DaemonProtocolTests(unittest.TestCase):
         manager._process.is_alive.return_value = True
         manager._request_queue = mock.Mock()
         manager._response_queue = mock.Mock()
+        manager._lifecycle_queue = None
         manager._response_queue.get.return_value = {
             "api_version": PROTOCOL_VERSION,
             "request_id": "req-conflict",
