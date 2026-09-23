@@ -59,7 +59,8 @@ function Invoke-SwCliJson {
         [Parameter(Mandatory = $true)]
         [string]$Name,
         [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
+        [string[]]$Arguments,
+        [switch]$AllowFailure
     )
     $outputPath = Join-Path $Workspace "$Name.json"
     $stderrPath = Join-Path $Workspace "$Name.stderr.log"
@@ -105,7 +106,9 @@ function Invoke-SwCliJson {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
         throw "sw-cli $Name returned invalid JSON (exit code $($process.ExitCode))`n$stderr"
     }
-    if ($payload.PSObject.Properties.Name -contains "ok" -and -not $payload.ok) {
+    if (-not $AllowFailure -and
+        $payload.PSObject.Properties.Name -contains "ok" -and
+        -not $payload.ok) {
         $errorType = if ($null -ne $payload.error.type) {
             [string]$payload.error.type
         }
@@ -126,7 +129,9 @@ function Invoke-SwCliJson {
         }
         throw "sw-cli $Name returned ok=false: ${errorType}: ${errorMessage}${requestId}"
     }
-    if ($null -ne $process.ExitCode -and $process.ExitCode -ne 0) {
+    if (-not $AllowFailure -and
+        $null -ne $process.ExitCode -and
+        $process.ExitCode -ne 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
         throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
     }
@@ -203,9 +208,51 @@ try {
     ) | Out-Null
     Invoke-SwCliJson -Name "document-export" -Arguments @("document", "export", $stepPath, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-close" -Arguments @("document", "close", "--discard", "--json") | Out-Null
-    & $python -m swcli daemon stop --json | Set-Content -Path (Join-Path $Workspace "swclid-stop.json") -Encoding utf8
-    if ($LASTEXITCODE -ne 0) {
-        throw "swclid graceful shutdown failed with exit code $LASTEXITCODE"
+
+    $connected = Invoke-SwCliJson -Name "daemon-connected" -Arguments @("daemon", "status", "--json")
+    if (-not $connected.result.host_connected) {
+        throw "swclid did not report its SOLIDWORKS host as connected"
+    }
+    $solidworksPid = [int]$connected.result.host.process_id
+    Stop-Process -Id $solidworksPid -Force -ErrorAction Stop
+
+    $disconnected = $null
+    for ($attempt = 1; $attempt -le 25; $attempt++) {
+        Start-Sleep -Milliseconds 200
+        $status = Invoke-SwCliJson `
+            -Name ("daemon-disconnected-{0:D2}" -f $attempt) `
+            -Arguments @("daemon", "status", "--json")
+        if (-not $status.result.host_connected) {
+            $disconnected = $status
+            break
+        }
+    }
+    if ($null -eq $disconnected) {
+        throw "swclid did not detect the external SOLIDWORKS exit within 5 seconds"
+    }
+    if ($disconnected.result.worker_alive -or
+        $null -ne $disconnected.result.host -or
+        -not $disconnected.result.recovery_required -or
+        $disconnected.result.recovery_error.code -ne "HostDisconnected") {
+        throw "swclid returned an inconsistent disconnected host state"
+    }
+
+    $blocked = Invoke-SwCliJson `
+        -Name "document-list-after-host-exit" `
+        -Arguments @("document", "list", "--json") `
+        -AllowFailure
+    if ($blocked.ok -or $blocked.error.type -ne "HostDisconnected") {
+        throw "a business request was not blocked after SOLIDWORKS disconnected"
+    }
+    Start-Sleep -Seconds 1
+    if (@(Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue).Count -ne 0) {
+        throw "a business request silently restarted SOLIDWORKS after disconnect"
+    }
+
+    $stopped = Invoke-SwCliJson -Name "swclid-stop" -Arguments @("daemon", "stop", "--json")
+    if (-not $stopped.success -or
+        -not $stopped.result.host_already_disconnected) {
+        throw "swclid did not stop cleanly after its host disconnected"
     }
     if (-not $daemon.WaitForExit(30000)) {
         throw "swclid did not exit within 30 seconds after shutdown"
