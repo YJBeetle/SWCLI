@@ -63,7 +63,19 @@ the explicit owner and shuts the instance down through `ExitApp`.
 `--attach-existing` is the explicit interactive exception: the worker shares
 the existing COM host, preserves its visibility, reports it as not owned by the
 daemon, and never closes or force-terminates it. Typed-command auto-start never
-enables this option.
+enables this option. Attach mode requires an already active COM host and never
+falls back to `DispatchEx`; absence is reported as `ExistingHostNotFound`.
+
+While idle, the worker waits on its request queue with a one-second timeout and
+probes `RevisionNumber` before waiting again. This probe stays on the worker's
+owning STA thread. An external SOLIDWORKS exit emits a lifecycle event and ends
+the worker; the supervisor then clears the cached host and reports
+`worker_alive: false`, `host_connected: false`, and `HostDisconnected` recovery
+state. Typed operations remain blocked so they cannot silently replace the lost
+document session. `daemon stop` treats an already disconnected host as a
+successful idempotent shutdown, while `daemon restart` is the explicit recovery
+boundary.
+
 If an operation exceeds its request timeout, the supervisor terminates the
 worker and any daemon-owned SOLIDWORKS process tree rather than reusing unknown
 COM state. The following request starts a fresh owned worker automatically. An
@@ -147,8 +159,11 @@ process tree. An explicitly attached host is never selected for that cleanup.
 `sw-cli daemon serve` owns the SOLIDWORKS instance and waits for
 `StartupProcessCompleted`; `sw-cli daemon start` launches that same service in
 the background, while `sw-cli daemon stop` requests an orderly daemon and COM
-worker shutdown. Native Windows typed commands reuse the `start` path when the
-local endpoint is absent.
+worker shutdown. `sw-cli daemon restart` first stops a reachable daemon, waits
+for its local endpoint to close, and then applies the requested owned or
+explicit-attach startup policy. Native Windows typed commands reuse the `start`
+path when the local endpoint is absent, but never use it to bypass a reachable
+daemon's recovery-required state.
 
 Document operations preserve the SOLIDWORKS API's error and warning bitmasks
 instead of reducing them to a boolean. The Windows adapter owns pywin32 details

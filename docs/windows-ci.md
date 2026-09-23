@@ -51,13 +51,19 @@ it also applies to native Windows:
    MSI performs AppSearch;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. install the current checkout with its Windows dependency extra;
+6. install the current checkout; its platform marker installs pywin32 on
+   Windows automatically;
 7. start the resident daemon with `sw-cli daemon serve`, capture desktop/window
    diagnostics around first startup, then use typed CLI requests against its
    single COM worker for a real model, structural inspection, diagnosis,
    deterministic render, and verified STEP export;
-8. request graceful daemon shutdown and upload the generated native part,
-   render, export, JSON responses, and desktop/window diagnostics as evidence.
+8. close the model, externally terminate the daemon-owned SOLIDWORKS process,
+   and require health to report `host_connected: false`, clear the stale host,
+   and retain `HostDisconnected` without silently restarting on a business
+   request;
+9. require graceful daemon shutdown to succeed with the host already absent,
+   then upload the generated native part, render, export, JSON responses, and
+   desktop/window diagnostics as evidence.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache

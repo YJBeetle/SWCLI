@@ -187,9 +187,20 @@ versioned local JSON requests while one spawned COM worker owns the
 `SldWorks.Application` instance and executes operations serially on a single
 COM apartment. `sw-cli daemon start` launches the same `serve` implementation
 in the background and is idempotent. `sw-cli daemon status` reports the worker
-and host state; `sw-cli daemon stop` requests a graceful shutdown. A timed-out
-operation terminates the worker and any daemon-owned SOLIDWORKS process tree;
-the next request starts a clean owned host.
+and host state, including the explicit `host_connected` flag; `sw-cli daemon
+stop` requests a graceful shutdown and also succeeds when SOLIDWORKS has already
+exited. While idle, the worker probes a lightweight COM property once per
+second on its owning apartment. If SOLIDWORKS exits externally, the daemon
+clears the stale host, reports `HostDisconnected`, and rejects typed operations
+instead of silently starting a different session. Recover explicitly with:
+
+```powershell
+sw-cli daemon restart
+```
+
+A timed-out operation terminates the worker and any daemon-owned SOLIDWORKS
+process tree; the following request may start a clean owned host. This timeout
+recovery policy is separate from unexpected external host exit.
 Exclusive ownership is the default. If a user-started SOLIDWORKS instance
 already exists, `sw-cli daemon start` fails with
 `ExistingHostRequiresAttach` instead of silently sharing it. Close that
@@ -205,7 +216,10 @@ timeout recovery never close or force-terminate it. Because its state is unknown
 after a timed-out COM call, swclid rejects further typed operations with
 `SharedHostRecoveryRequired` until the user inspects SOLIDWORKS and restarts the
 daemon. Native Windows typed-command auto-start always uses exclusive mode and
-never opts into sharing implicitly.
+never opts into sharing implicitly. `--attach-existing` requires an active COM
+host and fails with `ExistingHostNotFound` when none exists; it never falls back
+to creating a daemon-owned instance. After an attached host exits, start
+SOLIDWORKS yourself and run `sw-cli daemon restart --attach-existing`.
 
 TCP connection establishment has a separate three-second timeout so an absent
 local daemon can be started promptly without reducing the operation budget.

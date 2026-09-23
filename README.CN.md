@@ -145,7 +145,13 @@ sw-cli document close --json
 sw-cli daemon serve
 ```
 
-服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 报告 worker 和宿主状态；`sw-cli daemon stop` 请求优雅关闭。操作超时后会终止 worker 及 daemon 所有的 SOLIDWORKS 进程树，下一个请求再启动干净的独占宿主。
+服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 会报告 worker 与宿主状态，包括明确的 `host_connected` 字段；`sw-cli daemon stop` 请求优雅关闭，即使 SOLIDWORKS 已经退出也会成功。worker 空闲时每秒在所属 COM apartment 内探测一次轻量属性。SOLIDWORKS 被外部关闭后，daemon 会清除过期宿主、报告 `HostDisconnected` 并拒绝类型化操作，不会静默启动另一个会话。恢复必须显式执行：
+
+```powershell
+sw-cli daemon restart
+```
+
+操作超时后会终止 worker 及 daemon 所有的 SOLIDWORKS 进程树，后续请求可以再启动干净的独占宿主；该超时恢复策略与宿主被外部关闭是两个独立情形。
 
 daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw-cli daemon start` 会返回 `ExistingHostRequiresAttach`，不会静默共享该实例。此时可以关闭已有实例，或者明确选择交互式共享会话：
 
@@ -153,7 +159,7 @@ daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw
 sw-cli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。Windows 平台上的类型化命令自动启动始终采用独占模式，不会隐式选择共享。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。Windows 平台上的类型化命令自动启动始终采用独占模式，不会隐式选择共享。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
 
 TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及时启动，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
