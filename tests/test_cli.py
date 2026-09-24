@@ -117,14 +117,11 @@ class CliTests(unittest.TestCase):
             connect_timeout_seconds=3.0,
         )
 
-    @mock.patch("swcli.cli.start_daemon")
     @mock.patch(
         "swcli.cli.call_daemon",
         side_effect=ConnectionRefusedError("offline"),
     )
-    def test_capabilities_does_not_start_solidworks(
-        self, call_daemon, start_daemon
-    ):
+    def test_capabilities_does_not_start_solidworks(self, call_daemon):
         output = io.StringIO()
 
         with contextlib.redirect_stdout(output):
@@ -135,7 +132,7 @@ class CliTests(unittest.TestCase):
             json.loads(output.getvalue())["error"]["type"],
             "ConnectionRefusedError",
         )
-        start_daemon.assert_not_called()
+        call_daemon.assert_called_once()
 
     def test_capabilities_rejects_schema_drift(self):
         self.assertIn(
@@ -442,87 +439,45 @@ class CliTests(unittest.TestCase):
         )
 
     @mock.patch("swcli.cli.call_daemon")
-    def test_daemon_connection_failure_does_not_fall_back_to_com(self, call_daemon):
-        call_daemon.side_effect = ConnectionRefusedError("daemon unavailable")
+    def test_typed_commands_require_explicit_local_daemon_on_all_platforms(
+        self, call_daemon
+    ):
+        for platform, command in (
+            ("win32", ["document", "list", "--json"]),
+            (
+                "darwin",
+                [
+                    "part", "create-box", "box.SLDPRT",
+                    "--width-mm", "1", "--height-mm", "2", "--depth-mm", "3",
+                    "--json",
+                ],
+            ),
+        ):
+            with self.subTest(platform=platform, command=command):
+                call_daemon.reset_mock()
+                call_daemon.side_effect = ConnectionRefusedError("offline")
+                output = io.StringIO()
+                with mock.patch("swcli.cli.sys.platform", platform), contextlib.redirect_stdout(output):
+                    exit_code = main(command)
+                payload = json.loads(output.getvalue())
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(payload["error"]["type"], "DaemonUnavailable")
+                self.assertIn("sw-cli daemon start", payload["error"]["message"])
+                self.assertIn("--attach-existing", payload["error"]["message"])
+                call_daemon.assert_called_once()
+
+    @mock.patch("swcli.cli.call_daemon", side_effect=TimeoutError("timed out"))
+    def test_native_windows_connect_timeout_does_not_start_or_retry(self, call_daemon):
         output = io.StringIO()
-        with mock.patch("swcli.cli.sys.platform", "linux"), contextlib.redirect_stdout(output):
+        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(output):
             exit_code = main(["document", "inspect", "--json"])
         self.assertEqual(exit_code, 1)
-        self.assertEqual(
-            json.loads(output.getvalue())["error"]["type"],
-            "ConnectionRefusedError",
-        )
+        self.assertEqual(json.loads(output.getvalue())["error"]["type"], "DaemonUnavailable")
+        call_daemon.assert_called_once()
 
-    @mock.patch("swcli.cli.start_daemon")
-    @mock.patch("swcli.cli.call_daemon")
-    def test_native_windows_typed_command_autostarts_and_retries(
-        self, call_daemon, start_daemon
-    ):
-        call_daemon.side_effect = [
-            ConnectionRefusedError("daemon unavailable"),
-            {
-                "success": True,
-                "result": {
-                    "ok": True,
-                    "action": "document.inspect",
-                    "document": {"title": "sample.SLDPRT"},
-                },
-            },
-        ]
-        start_daemon.return_value = {
-            "success": True,
-            "result": {"started": True},
-        }
-        output = io.StringIO()
-        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
-            output
-        ):
-            exit_code = main(["document", "inspect", "--json"])
-
-        self.assertEqual(exit_code, 0)
-        start_daemon.assert_called_once_with(endpoint="127.0.0.1:18495")
-        self.assertEqual(call_daemon.call_count, 2)
-        self.assertEqual(
-            call_daemon.call_args_list[0].kwargs["request_id"],
-            call_daemon.call_args_list[1].kwargs["request_id"],
-        )
-        self.assertTrue(json.loads(output.getvalue())["ok"])
-
-    @mock.patch("swcli.cli.start_daemon")
-    @mock.patch("swcli.cli.call_daemon")
-    def test_native_windows_typed_command_autostarts_after_connect_timeout(
-        self, call_daemon, start_daemon
-    ):
-        call_daemon.side_effect = [
-            TimeoutError("timed out"),
-            {
-                "success": True,
-                "result": {
-                    "ok": True,
-                    "action": "document.inspect",
-                    "document": {"title": "sample.SLDPRT"},
-                },
-            },
-        ]
-        start_daemon.return_value = {
-            "success": True,
-            "result": {"started": True},
-        }
-        output = io.StringIO()
-        with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
-            output
-        ):
-            exit_code = main(["document", "inspect", "--json"])
-
-        self.assertEqual(exit_code, 0)
-        start_daemon.assert_called_once_with(endpoint="127.0.0.1:18495")
-        self.assertEqual(call_daemon.call_count, 2)
-        self.assertTrue(json.loads(output.getvalue())["ok"])
-
-    @mock.patch("swcli.cli.start_daemon")
     @mock.patch("swcli.cli.call_daemon", side_effect=ConnectionRefusedError("offline"))
-    def test_native_windows_remote_endpoint_never_autostarts(
-        self, call_daemon, start_daemon
+    def test_native_windows_remote_endpoint_does_not_suggest_local_start(
+        self, call_daemon
     ):
         output = io.StringIO()
         with mock.patch("swcli.cli.sys.platform", "win32"), contextlib.redirect_stdout(
@@ -539,7 +494,7 @@ class CliTests(unittest.TestCase):
             )
 
         self.assertEqual(exit_code, 1)
-        start_daemon.assert_not_called()
+        call_daemon.assert_called_once()
         self.assertEqual(
             json.loads(output.getvalue())["error"]["type"],
             "ConnectionRefusedError",

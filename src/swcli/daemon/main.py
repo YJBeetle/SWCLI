@@ -269,12 +269,12 @@ def start_daemon(
     if sys.platform != "win32":
         return _failure(
             "UnsupportedPlatform",
-            "automatic daemon startup requires native Windows or Windows Python under Wine",
+            "daemon startup requires native Windows or Windows Python under Wine",
         )
     if not is_local_endpoint(endpoint):
         return _failure(
             "NonLocalEndpoint",
-            "automatic daemon startup is limited to localhost endpoints",
+            "daemon startup is limited to localhost endpoints",
         )
     if startup_timeout_seconds <= 0:
         return _failure("InvalidTimeout", "startup timeout must be positive")

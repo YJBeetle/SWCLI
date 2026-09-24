@@ -62,9 +62,10 @@ The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
 the explicit owner and shuts the instance down through `ExitApp`.
 `--attach-existing` is the explicit interactive exception: the worker shares
 the existing COM host, preserves its visibility, reports it as not owned by the
-daemon, and never closes or force-terminates it. Typed-command auto-start never
-enables this option. Attach mode requires an already active COM host and never
-falls back to `DispatchEx`; absence is reported as `ExistingHostNotFound`.
+daemon, and never closes or force-terminates it. Typed commands never start a
+daemon or attach to a host implicitly. Attach mode requires an active COM host
+and never falls back to `DispatchEx`; absence is reported as
+`ExistingHostNotFound`.
 
 While idle, the worker waits on its request queue with a one-second timeout and
 probes `RevisionNumber` before waiting again. This probe stays on the worker's
@@ -164,9 +165,9 @@ process tree. An explicitly attached host is never selected for that cleanup.
 the background, while `sw-cli daemon stop` requests an orderly daemon and COM
 worker shutdown. `sw-cli daemon restart` first stops a reachable daemon, waits
 for its local endpoint to close, and then applies the requested owned or
-explicit-attach startup policy. Native Windows typed commands reuse the `start`
-path when the local endpoint is absent, but never use it to bypass a reachable
-daemon's recovery-required state.
+explicit-attach startup policy. Native Windows and portable typed commands
+require a reachable daemon; an absent local endpoint returns `DaemonUnavailable`
+without changing the SOLIDWORKS process state.
 
 Document operations preserve the SOLIDWORKS API's error and warning bitmasks
 instead of reducing them to a boolean. The Windows adapter owns pywin32 details

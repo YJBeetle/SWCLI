@@ -22,7 +22,6 @@ from .daemon.main import (
     is_local_daemon_unreachable_error,
     is_local_endpoint,
     run as run_daemon_command,
-    start_daemon,
 )
 
 
@@ -315,24 +314,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 lease_id=lease_id,
             )
         except Exception as exc:
-            response = _autostart_and_retry(
-                args,
-                operation,
-                parameters,
-                document_id,
-                expected_update_stamp,
-                lease_id,
-                request_id,
-                exc,
-            )
-            if response is None:
-                payload = {
-                    "ok": False,
-                    "action": operation,
-                    "error": {"type": type(exc).__name__, "message": str(exc)},
-                }
-            else:
-                payload = _typed_payload(operation, response)
+            error_type = type(exc).__name__
+            error_message = str(exc)
+            if is_local_endpoint(args.endpoint) and is_local_daemon_unreachable_error(exc):
+                error_type = "DaemonUnavailable"
+                error_message = (
+                    f"SWCLI daemon is unavailable at {args.endpoint}; start it explicitly "
+                    "with 'sw-cli daemon start', or use "
+                    "'sw-cli daemon start --attach-existing' when SOLIDWORKS is already running"
+                )
+            payload = {
+                "ok": False,
+                "action": operation,
+                "error": {"type": error_type, "message": error_message},
+            }
         else:
             payload = _typed_payload(operation, response)
         _print_action_result(payload, as_json)
@@ -618,47 +613,6 @@ def _typed_payload(operation: str, response: Dict[str, Any]) -> Dict[str, Any]:
     if response.get("replayed") is True:
         payload["replayed"] = True
     return payload
-
-
-def _autostart_and_retry(
-    args: argparse.Namespace,
-    operation: str,
-    parameters: Dict[str, Any],
-    document_id: Optional[str],
-    expected_update_stamp: Optional[int],
-    lease_id: Optional[str],
-    request_id: str,
-    connection_error: BaseException,
-) -> Optional[Dict[str, Any]]:
-    """Start a missing local Windows daemon, then retry one typed request."""
-
-    if (
-        sys.platform != "win32"
-        or not is_local_endpoint(args.endpoint)
-        or not is_local_daemon_unreachable_error(connection_error)
-    ):
-        return None
-    started = start_daemon(endpoint=args.endpoint)
-    if not started.get("success"):
-        return started
-    try:
-        return call_daemon(
-            operation,
-            parameters,
-            endpoint=args.endpoint,
-            timeout_seconds=args.request_timeout,
-            connect_timeout_seconds=args.connect_timeout,
-            request_id=request_id,
-            session_id=args.session,
-            document_id=document_id,
-            expected_update_stamp=expected_update_stamp,
-            lease_id=lease_id,
-        )
-    except Exception as exc:
-        return {
-            "success": False,
-            "error": {"code": type(exc).__name__, "message": str(exc)},
-        }
 
 
 def _typed_operation(

@@ -90,9 +90,11 @@ sw-cli daemon status --json
 ```
 
 `daemon status` may report that no service is running; that is not an
-installation failure. On native Windows, the first typed `document` or `part`
-command automatically starts the local daemon. Use `sw-cli daemon start`
-explicitly when startup timing or visibility must be controlled.
+installation failure. Before using `document` or `part`, start the daemon
+explicitly with `sw-cli daemon start` (hidden by default) or
+`sw-cli daemon start --visible`. These commands wait for SOLIDWORKS to become
+ready. If SOLIDWORKS is already running, use
+`sw-cli daemon start --attach-existing` instead.
 
 `python -m swcli` is an equivalent fallback when the scripts directory is not
 yet on `PATH`:
@@ -145,6 +147,7 @@ The following is one read-only-source workflow after installation:
 sw-cli version --json
 sw-cli protocol show request
 sw-cli doctor --json
+sw-cli daemon start --visible --json
 sw-cli document open model.SLDPRT --read-only --json
 sw-cli document inspect --json
 sw-cli document inspect --detail structure --json
@@ -158,6 +161,7 @@ sw-cli document close --json
 Create and verify a new part in a separate workflow:
 
 ```bash
+sw-cli daemon start --json
 sw-cli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
 sw-cli document inspect --detail structure --json
@@ -218,14 +222,14 @@ An explicitly attached instance preserves its visibility and is reported as
 timeout recovery never close or force-terminate it. Because its state is unknown
 after a timed-out COM call, swclid rejects further typed operations with
 `SharedHostRecoveryRequired` until the user inspects SOLIDWORKS and restarts the
-daemon. Native Windows typed-command auto-start always uses exclusive mode and
-never opts into sharing implicitly. `--attach-existing` requires an active COM
-host and fails with `ExistingHostNotFound` when none exists; it never falls back
+daemon. Typed commands never start or attach to a host implicitly.
+`--attach-existing` requires an active COM host and fails with
+`ExistingHostNotFound` when none exists; it never falls back
 to creating a daemon-owned instance. After an attached host exits, start
 SOLIDWORKS yourself and run `sw-cli daemon restart --attach-existing`.
 
 TCP connection establishment has a separate three-second timeout so an absent
-local daemon can be started promptly without reducing the operation budget.
+daemon can be reported promptly without reducing the operation budget.
 Override it with `--connect-timeout`; `--request-timeout` controls the CAD
 operation after a connection has been established.
 
@@ -252,11 +256,10 @@ execution across daemon failures.
 All typed `sw-cli` document and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
-error and never falls back to a second direct-COM execution mode. On native
-Windows, a typed command automatically uses the same background-start logic as
-`sw-cli daemon start` when its selected local endpoint is not running. Remote
-endpoints are never started implicitly. The protocol currently has no transport
-authentication. `daemon serve` therefore refuses non-loopback listeners unless
+error and never falls back to a second direct-COM execution mode. No endpoint,
+local or remote, is started implicitly; an unavailable local endpoint produces
+`DaemonUnavailable` with an explicit startup hint. The protocol currently has
+no transport authentication. `daemon serve` therefore refuses non-loopback listeners unless
 `--allow-remote` is explicitly supplied; that flag adds no authentication and
 must only be used behind a trusted network boundary or authenticated tunnel.
 `doctor` remains read-only.

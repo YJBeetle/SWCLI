@@ -70,7 +70,7 @@ sw-cli doctor --json
 sw-cli daemon status --json
 ```
 
-`daemon status` 可能提示服务尚未运行，这不代表安装失败。在原生 Windows 上，首个类型化 `document` 或 `part` 命令会自动启动本地 daemon。如果需要明确控制启动时机或可见性，可主动执行 `sw-cli daemon start`。
+`daemon status` 可能提示服务尚未运行，这不代表安装失败。执行 `document` 或 `part` 前须显式运行 `sw-cli daemon start`（默认隐藏）或 `sw-cli daemon start --visible`。启动命令会等待 SOLIDWORKS 就绪。若 SOLIDWORKS 已经运行，请改用 `sw-cli daemon start --attach-existing`。
 
 当 scripts 目录尚未加入 `PATH` 时，也可使用等价形式 `python -m swcli`：
 
@@ -113,6 +113,7 @@ Wine 宿主通常由 DockerSW 或其他宿主集成项目安装。只安装可�
 sw-cli version --json
 sw-cli protocol show request
 sw-cli doctor --json
+sw-cli daemon start --visible --json
 sw-cli document open model.SLDPRT --read-only --json
 sw-cli document inspect --json
 sw-cli document inspect --detail structure --json
@@ -126,6 +127,7 @@ sw-cli document close --json
 在另一套流程中创建并验证新零件：
 
 ```bash
+sw-cli daemon start --json
 sw-cli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
 sw-cli document inspect --detail structure --json
@@ -159,9 +161,9 @@ daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw
 sw-cli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。Windows 平台上的类型化命令自动启动始终采用独占模式，不会隐式选择共享。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
 
-TCP 建连使用独立的 3 秒超时，使本地 daemon 不存在时能够及时启动，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
+TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报错，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
 每个类型化 CLI 请求默认使用随机请求 ID。可能重试状态不确定请求的自动化可以明确提供稳定键：
 
@@ -171,7 +173,7 @@ sw-cli --request-id export-build-42 document export output.STEP --strict --json
 
 在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应，包括失败和超时。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回首次终局结果并报告 `replayed: true`；失败后若要再次执行，必须使用新的 request ID。除非显式传入 `--request-id`，CLI 每次调用都会生成新的 UUID。如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
 
-所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。在原生 Windows 上，如果所选本地端点未运行，类型化命令会使用与 `sw-cli daemon start` 相同的后台启动逻辑；远程端点绝不会被隐式启动。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
+所有类型化的 `sw-cli document` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
 
 可以查询已经运行的 daemon 所声明的版本化能力，而不会隐式启动 SOLIDWORKS：
 
