@@ -31,8 +31,6 @@ REQUEST_REPLAY_MAX_ENTRIES = 1024
 REQUEST_REPLAY_MAX_BYTES = 64 * 1024 * 1024
 HOST_PROBE_INTERVAL_SECONDS = 1.0
 HOST_PROBE_FAILURE_LIMIT = 3
-HOST_ACTIVATION_RETRY_INTERVAL_SECONDS = 1.0
-REGDB_E_CLASSNOTREG = 0x80040154
 TRANSIENT_COM_HRESULTS = {
     0x80010001,  # RPC_E_CALL_REJECTED
     0x8001010A,  # RPC_E_SERVERCALL_RETRYLATER
@@ -194,7 +192,6 @@ def acquire_resident_app(
     com_client: Any,
     *,
     visible: bool,
-    startup_timeout_seconds: float = 120.0,
     attach_existing: bool = False,
 ) -> tuple[Any, bool]:
     """Create an owned instance, or explicitly attach to a user instance."""
@@ -206,27 +203,10 @@ def acquire_resident_app(
             raise ExistingHostNotFound(
                 "--attach-existing requires an already running SOLIDWORKS instance"
             )
-        deadline = time.monotonic() + startup_timeout_seconds
-        try:
-            app = com_client.DispatchEx(PROG_ID)
-        except Exception as activation_error:
-            if _com_hresult(activation_error) != REGDB_E_CLASSNOTREG:
-                raise
-            # Wine may already have launched LocalServer32 before reporting
-            # CLASSNOTREG. Never activate again: wait for that host's ROT entry.
-            while True:
-                now = time.monotonic()
-                if now >= deadline:
-                    raise activation_error
-                time.sleep(
-                    min(HOST_ACTIVATION_RETRY_INTERVAL_SECONDS, deadline - now)
-                )
-                try:
-                    app = com_client.GetActiveObject(PROG_ID)
-                    break
-                except Exception as exc:
-                    if _com_hresult(exc) not in {0x800401E3, REGDB_E_CLASSNOTREG}:
-                        raise
+        # The host runtime must keep this single activation alive while its
+        # class factory registers. A failed activation cannot reliably be
+        # recovered via ROT in Wine, and retrying can launch a second host.
+        app = com_client.DispatchEx(PROG_ID)
         configure_resident_app(app, visible=visible)
         return app, True
     if not attach_existing:
@@ -313,7 +293,6 @@ def _worker_main(
         app, owned_by_daemon = acquire_resident_app(
             win32com.client,
             visible=visible,
-            startup_timeout_seconds=startup_timeout_seconds,
             attach_existing=attach_existing,
         )
         lifecycle_queue.put(

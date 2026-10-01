@@ -54,12 +54,13 @@ be protected by a trusted network boundary or authenticated tunnel.
 
 The COM worker is a spawned child process. By default it refuses to start when
 an active SOLIDWORKS COM host already exists. Otherwise it creates one exclusive
-`SldWorks.Application` through `DispatchEx`. Wine can transiently report
-`REGDB_E_CLASSNOTREG` while its COM activation services are still starting, so
-the worker waits for that launch's active COM object within the caller's startup
-timeout without calling `DispatchEx` again. Repeated activation can launch
-additional SOLIDWORKS processes while the first is still loading on a busy disk.
-Other activation errors remain immediate. The worker then waits for
+`SldWorks.Application` through one `DispatchEx` call. Activation errors are
+reported immediately: the worker neither reactivates nor attempts ROT recovery.
+Repeated activation can launch additional SOLIDWORKS processes while the first
+is still loading on a busy disk, and Wine does not reliably expose that server
+in ROT. Wine hosts must provide sufficient COM class-factory registration wait
+inside the original activation (DockerSW does this in its Wine runtime).
+The worker then waits for
 `StartupProcessCompleted`, and serializes every operation against that object.
 The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
 `UserControl=True` for a visible foreground host, or
