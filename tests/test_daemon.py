@@ -642,6 +642,80 @@ class DaemonProtocolTests(unittest.TestCase):
         com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
         configure.assert_called_once_with(app, visible=False)
 
+    @mock.patch("swcli.daemon.server.configure_resident_app")
+    @mock.patch("swcli.daemon.server.time.sleep")
+    @mock.patch(
+        "swcli.daemon.server.time.monotonic",
+        side_effect=[0.0, 0.1, 0.2],
+    )
+    def test_resident_app_retries_class_not_registered_during_startup(
+        self, monotonic, sleep, configure
+    ):
+        app = object()
+        class_not_registered = RuntimeError(
+            -2147221164, "REGDB_E_CLASSNOTREG"
+        )
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = RuntimeError("not running")
+        com_client.DispatchEx.side_effect = [
+            class_not_registered,
+            class_not_registered,
+            app,
+        ]
+
+        actual, owned_by_daemon = server.acquire_resident_app(
+            com_client,
+            visible=False,
+            startup_timeout_seconds=10.0,
+        )
+
+        self.assertIs(actual, app)
+        self.assertTrue(owned_by_daemon)
+        self.assertEqual(com_client.DispatchEx.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        configure.assert_called_once_with(app, visible=False)
+
+    @mock.patch("swcli.daemon.server.time.sleep")
+    @mock.patch(
+        "swcli.daemon.server.time.monotonic",
+        side_effect=[0.0, 1.0],
+    )
+    def test_resident_app_stops_retrying_when_startup_timeout_expires(
+        self, monotonic, sleep
+    ):
+        class_not_registered = RuntimeError(
+            -2147221164, "REGDB_E_CLASSNOTREG"
+        )
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = RuntimeError("not running")
+        com_client.DispatchEx.side_effect = class_not_registered
+
+        with self.assertRaisesRegex(RuntimeError, "REGDB_E_CLASSNOTREG"):
+            server.acquire_resident_app(
+                com_client,
+                visible=False,
+                startup_timeout_seconds=0.5,
+            )
+
+        com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
+        sleep.assert_not_called()
+
+    @mock.patch("swcli.daemon.server.time.sleep")
+    def test_resident_app_does_not_retry_other_activation_errors(self, sleep):
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = RuntimeError("not running")
+        com_client.DispatchEx.side_effect = RuntimeError("access denied")
+
+        with self.assertRaisesRegex(RuntimeError, "access denied"):
+            server.acquire_resident_app(
+                com_client,
+                visible=False,
+                startup_timeout_seconds=10.0,
+            )
+
+        com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
+        sleep.assert_not_called()
+
     def test_explicit_attach_requires_an_existing_instance(self):
         com_client = mock.Mock()
         com_client.GetActiveObject.side_effect = RuntimeError("not running")
