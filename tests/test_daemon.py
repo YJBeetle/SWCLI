@@ -648,7 +648,7 @@ class DaemonProtocolTests(unittest.TestCase):
         "swcli.daemon.server.time.monotonic",
         side_effect=[0.0, 0.1, 0.2],
     )
-    def test_resident_app_retries_class_not_registered_during_startup(
+    def test_resident_app_waits_for_launched_host_without_reactivating(
         self, monotonic, sleep, configure
     ):
         app = object()
@@ -656,12 +656,12 @@ class DaemonProtocolTests(unittest.TestCase):
             -2147221164, "REGDB_E_CLASSNOTREG"
         )
         com_client = mock.Mock()
-        com_client.GetActiveObject.side_effect = RuntimeError("not running")
-        com_client.DispatchEx.side_effect = [
-            class_not_registered,
-            class_not_registered,
+        com_client.GetActiveObject.side_effect = [
+            RuntimeError("not running"),
+            RuntimeError(-2147221021, "MK_E_UNAVAILABLE"),
             app,
         ]
+        com_client.DispatchEx.side_effect = class_not_registered
 
         actual, owned_by_daemon = server.acquire_resident_app(
             com_client,
@@ -671,7 +671,8 @@ class DaemonProtocolTests(unittest.TestCase):
 
         self.assertIs(actual, app)
         self.assertTrue(owned_by_daemon)
-        self.assertEqual(com_client.DispatchEx.call_count, 3)
+        com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
+        self.assertEqual(com_client.GetActiveObject.call_count, 3)
         self.assertEqual(sleep.call_count, 2)
         configure.assert_called_once_with(app, visible=False)
 
@@ -699,6 +700,31 @@ class DaemonProtocolTests(unittest.TestCase):
 
         com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
         sleep.assert_not_called()
+
+    @mock.patch("swcli.daemon.server.time.sleep")
+    @mock.patch(
+        "swcli.daemon.server.time.monotonic",
+        side_effect=[0.0, 0.1, 0.6],
+    )
+    def test_resident_app_rot_wait_timeout_never_launches_another_host(
+        self, monotonic, sleep
+    ):
+        activation_error = RuntimeError(-2147221164, "REGDB_E_CLASSNOTREG")
+        com_client = mock.Mock()
+        com_client.GetActiveObject.side_effect = [
+            RuntimeError("not running"),
+            RuntimeError(-2147221021, "MK_E_UNAVAILABLE"),
+        ]
+        com_client.DispatchEx.side_effect = activation_error
+
+        with self.assertRaisesRegex(RuntimeError, "REGDB_E_CLASSNOTREG"):
+            server.acquire_resident_app(
+                com_client, visible=False, startup_timeout_seconds=0.5
+            )
+
+        com_client.DispatchEx.assert_called_once_with(server.PROG_ID)
+        self.assertEqual(com_client.GetActiveObject.call_count, 2)
+        sleep.assert_called_once()
 
     @mock.patch("swcli.daemon.server.time.sleep")
     def test_resident_app_does_not_retry_other_activation_errors(self, sleep):

@@ -207,17 +207,26 @@ def acquire_resident_app(
                 "--attach-existing requires an already running SOLIDWORKS instance"
             )
         deadline = time.monotonic() + startup_timeout_seconds
-        while True:
-            try:
-                app = com_client.DispatchEx(PROG_ID)
-                break
-            except Exception as exc:
+        try:
+            app = com_client.DispatchEx(PROG_ID)
+        except Exception as activation_error:
+            if _com_hresult(activation_error) != REGDB_E_CLASSNOTREG:
+                raise
+            # Wine may already have launched LocalServer32 before reporting
+            # CLASSNOTREG. Never activate again: wait for that host's ROT entry.
+            while True:
                 now = time.monotonic()
-                if _com_hresult(exc) != REGDB_E_CLASSNOTREG or now >= deadline:
-                    raise
+                if now >= deadline:
+                    raise activation_error
                 time.sleep(
                     min(HOST_ACTIVATION_RETRY_INTERVAL_SECONDS, deadline - now)
                 )
+                try:
+                    app = com_client.GetActiveObject(PROG_ID)
+                    break
+                except Exception as exc:
+                    if _com_hresult(exc) not in {0x800401E3, REGDB_E_CLASSNOTREG}:
+                        raise
         configure_resident_app(app, visible=visible)
         return app, True
     if not attach_existing:
