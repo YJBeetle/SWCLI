@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
 from math import isfinite
 from typing import Any, Dict, Optional
 
@@ -11,6 +12,17 @@ from .hosts.windows_documents import RENDER_VIEWS
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CONTEXT_FIELDS = ("document_id", "expected_update_stamp", "lease_id")
+
+
+@dataclass(frozen=True)
+class OperationSpec:
+    """One declaration for request contract and execution policy."""
+
+    parameters: Dict[str, Any]
+    handler: Optional[str]
+    selected_document: bool
+    lease_guarded: bool
+    temporary_activation: bool
 
 
 def _string(**keywords: Any) -> Dict[str, Any]:
@@ -37,8 +49,10 @@ def _operation(
     document_id: str = "forbidden",
     expected_update_stamp: str = "forbidden",
     lease_id: str = "forbidden",
-) -> Dict[str, Any]:
-    return {
+    selected_document: Optional[bool] = None,
+    temporary_activation: bool = False,
+) -> OperationSpec:
+    schema = {
         "$schema": JSON_SCHEMA_DIALECT,
         "$id": f"https://swcli.dev/schema/v1/operations/{name}.schema.json",
         "title": f"SWCLI {name} parameters",
@@ -52,6 +66,14 @@ def _operation(
             "lease_id": lease_id,
         },
     }
+    return OperationSpec(
+        parameters=schema,
+        handler=None if name.startswith("daemon.") else name.replace(".", "_").replace("-", "_"),
+        selected_document=(document_id != "forbidden")
+        if selected_document is None else selected_document,
+        lease_guarded=lease_id == "optional",
+        temporary_activation=temporary_activation,
+    )
 
 
 _DOCUMENT_READ_CONTEXT = {
@@ -64,7 +86,7 @@ _DOCUMENT_WRITE_CONTEXT = {
 }
 
 
-OPERATION_SCHEMAS: Dict[str, Dict[str, Any]] = {
+OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.health": _operation("daemon.health"),
     "daemon.shutdown": _operation("daemon.shutdown"),
     "document.open": _operation(
@@ -80,6 +102,7 @@ OPERATION_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "document.use": _operation(
         "document.use",
         document_id="required",
+        selected_document=False,
     ),
     "document.lease.acquire": _operation(
         "document.lease.acquire",
@@ -141,6 +164,7 @@ OPERATION_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "overwrite": _boolean(),
         },
         required=("output",),
+        temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.export": _operation(
@@ -151,6 +175,7 @@ OPERATION_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "strict": _boolean(),
         },
         required=("output",),
+        temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
     "part.create-box": _operation(
@@ -168,7 +193,10 @@ OPERATION_SCHEMAS: Dict[str, Dict[str, Any]] = {
 }
 
 
-OPERATIONS = tuple(OPERATION_SCHEMAS)
+OPERATION_SCHEMAS = {
+    name: spec.parameters for name, spec in OPERATION_CATALOG.items()
+}
+OPERATIONS = tuple(OPERATION_CATALOG)
 
 
 def operation_schemas() -> Dict[str, Dict[str, Any]]:
