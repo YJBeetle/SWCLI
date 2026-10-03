@@ -191,9 +191,23 @@ WARNINGS = {
 ERROR = _object(
     {"type": STRING, "message": STRING}, ("type", "message"), extensible=True
 )
+PART_TEMPLATE = _object(
+    {
+        "ok": BOOL,
+        "path": NULLABLE_STRING,
+        "source": STRING,
+        "configured_path": NULLABLE_STRING,
+        "searched_roots": STRING_LIST,
+    },
+    ("ok", "path", "source"),
+)
 
 
 _RESULT_FIELDS = {
+    "document.create": (
+        {"created": {"const": True}, "template": PART_TEMPLATE},
+        ("created", "template", "document"),
+    ),
     "document.open": (
         {
             "path": STRING,
@@ -330,16 +344,7 @@ _RESULT_FIELDS = {
                 },
                 ("unit", "width", "height", "depth"),
             ),
-            "template": _object(
-                {
-                    "ok": BOOL,
-                    "path": NULLABLE_STRING,
-                    "source": STRING,
-                    "configured_path": NULLABLE_STRING,
-                    "searched_roots": STRING_LIST,
-                },
-                ("ok", "path", "source"),
-            ),
+            "template": PART_TEMPLATE,
             "rebuilt": BOOL,
             "diagnostics": DIAGNOSTICS,
             "bodies": BODIES,

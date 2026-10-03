@@ -93,6 +93,12 @@ def build_parser() -> argparse.ArgumentParser:
     document_commands = document_parser.add_subparsers(
         dest="document_command", required=True
     )
+    create_parser = document_commands.add_parser(
+        "create", help="create an unsaved part from a real SOLIDWORKS template"
+    )
+    create_parser.add_argument("--type", choices=("part",), default="part")
+    create_parser.add_argument("--template", help="explicit .PRTDOT template path")
+    create_parser.add_argument("--json", action="store_true", dest="as_json")
     open_parser = document_commands.add_parser(
         "open", help="open a SOLIDWORKS document silently"
     )
@@ -651,6 +657,11 @@ def _typed_operation(
     """Map public typed CLI arguments to the daemon-only protocol surface."""
     if args.command == "document":
         command = args.document_command
+        if command == "create":
+            parameters = {"type": args.type}
+            if args.template is not None:
+                parameters["template"] = args.template
+            return "document.create", parameters, args.as_json, None, None, None
         if command == "open":
             return (
                 "document.open",

@@ -5,9 +5,83 @@ from pathlib import Path
 from unittest import mock
 
 from swcli.hosts import windows_parts
+from swcli.result_schemas import validate_operation_result
 
 
 class WindowsPartTests(unittest.TestCase):
+    @mock.patch.object(windows_parts.sys, "platform", "win32")
+    def test_create_part_returns_exact_unsaved_document_without_saving(self):
+        with tempfile.TemporaryDirectory() as directory:
+            template = Path(directory) / "Part.prtdot"
+            template.touch()
+            document = mock.Mock()
+            document.GetTitle = lambda: "Part1"
+            document.GetPathName = lambda: ""
+            document.GetType = lambda: 1
+            document.GetSaveFlag = lambda: False
+            document.GetUpdateStamp = lambda: 0
+            app = mock.Mock()
+            app.NewDocument.return_value = document
+
+            result, handle = windows_parts.create_part_windows_with_handle(
+                app=app, template=str(template)
+            )
+
+            app.NewDocument.assert_called_once_with(
+                str(template.resolve()), 0, 0.0, 0.0
+            )
+            app.GetActiveObject.assert_not_called()
+            document.Save3.assert_not_called()
+            document.SaveAs3.assert_not_called()
+        self.assertIs(handle, document)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["document"]["path"], "")
+        self.assertEqual(result["document"]["update_stamp"], 0)
+        validate_operation_result("document.create", result)
+
+    @mock.patch.object(windows_parts.sys, "platform", "win32")
+    def test_create_part_missing_template_does_not_call_newdocument(self):
+        app = mock.Mock()
+        result, handle = windows_parts.create_part_windows_with_handle(
+            app=app, template="missing-template.prtdot"
+        )
+        app.NewDocument.assert_not_called()
+        self.assertIsNone(handle)
+        self.assertEqual(result["error"]["type"], "PartTemplateUnavailable")
+        validate_operation_result("document.create", result)
+
+    @mock.patch.object(windows_parts.sys, "platform", "win32")
+    @mock.patch.object(windows_parts, "_resolve_part_template")
+    def test_create_part_handles_null_document_and_com_failure(self, resolve):
+        resolve.return_value = {"ok": True, "path": "Part.prtdot", "source": "explicit"}
+        app = mock.Mock()
+        app.NewDocument.return_value = None
+        result, handle = windows_parts.create_part_windows_with_handle(app=app)
+        self.assertIsNone(handle)
+        self.assertEqual(result["error"]["type"], "NewDocumentFailed")
+        validate_operation_result("document.create", result)
+
+        app.NewDocument.side_effect = RuntimeError("creation failed")
+        result, handle = windows_parts.create_part_windows_with_handle(app=app)
+        self.assertIsNone(handle)
+        self.assertEqual(result["error"]["type"], "RuntimeError")
+        validate_operation_result("document.create", result)
+
+    @mock.patch.object(windows_parts.sys, "platform", "win32")
+    @mock.patch.object(windows_parts, "_resolve_part_template")
+    def test_create_part_preserves_acquired_handle_on_descriptor_failure(self, resolve):
+        resolve.return_value = {"ok": True, "path": "Part.prtdot", "source": "explicit"}
+        app = mock.Mock()
+        document = app.NewDocument.return_value
+        document.GetTitle = mock.Mock(
+            spec=lambda: None, side_effect=RuntimeError("descriptor unavailable")
+        )
+        result, handle = windows_parts.create_part_windows_with_handle(app=app)
+        self.assertIs(handle, document)
+        self.assertTrue(result["created"])
+        self.assertFalse(result["ok"])
+        validate_operation_result("document.create", result)
+
     def test_explicit_part_template_takes_precedence(self):
         with tempfile.TemporaryDirectory() as directory:
             template = Path(directory) / "Custom.PRTDOT"

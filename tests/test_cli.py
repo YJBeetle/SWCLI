@@ -201,6 +201,12 @@ class CliTests(unittest.TestCase):
     def test_all_typed_commands_map_to_daemon_operations(self):
         cases = (
             (
+                ["document", "create", "--template", "Part.prtdot", "--json"],
+                "document.create",
+                {"type": "part", "template": "Part.prtdot"},
+                None,
+            ),
+            (
                 ["document", "open", "part.SLDPRT", "--read-only", "--json"],
                 "document.open",
                 {"path": "part.SLDPRT", "read_only": True, "configuration": ""},

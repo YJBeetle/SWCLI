@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional, Tuple
 from .windows import PROG_ID, _com_value, _describe_document, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
 
-
 _SAVE_CURRENT_VERSION = 0
 _SAVE_SILENT = 1
 _SW_DEFAULT_TEMPLATE_PART = 8
@@ -123,9 +122,7 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
                 continue
             try:
                 discovered = sorted(
-                    path.resolve()
-                    for path in root.rglob("*.prtdot")
-                    if path.is_file()
+                    path.resolve() for path in root.rglob("*.prtdot") if path.is_file()
                 )
             except OSError:
                 continue
@@ -151,6 +148,53 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
         "configured_path": configured or None,
         "searched_roots": searched_roots,
     }
+
+
+def create_part_windows_with_handle(
+    *, app: Any, template: Optional[str] = None
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    """Create an unsaved part using the worker's existing COM application."""
+
+    result: Dict[str, Any] = {"ok": False, "action": "document.create"}
+    if sys.platform != "win32":
+        result["error"] = {
+            "type": "UnsupportedPlatform",
+            "message": "native Windows document creation requires Windows",
+        }
+        return result, None
+
+    document = None
+    try:
+        template_result = _resolve_part_template(app, template)
+        result["template"] = {
+            key: value for key, value in template_result.items() if key != "error"
+        }
+        if not template_result["ok"]:
+            result["error"] = template_result["error"]
+            return result, None
+
+        document = app.NewDocument(template_result["path"], 0, 0.0, 0.0)
+        if document is None:
+            result["error"] = {
+                "type": "NewDocumentFailed",
+                "message": "SOLIDWORKS could not create a part from the resolved template",
+            }
+            return result, None
+
+        result["created"] = True
+        result["document"] = _describe_document(document)
+        if result["document"]["type"] != 1:
+            result["error"] = {
+                "type": "UnexpectedDocumentType",
+                "message": "the resolved part template did not produce a part document",
+            }
+            return result, document
+        result["ok"] = True
+        return result, document
+    except Exception as exc:
+        result["error"] = _error(exc)
+        # Preserve any acquired handle: failure after NewDocument is not rollback.
+        return result, document
 
 
 def create_box_part_windows_with_handle(
@@ -323,9 +367,7 @@ def create_box_part_windows_with_handle(
         # dynamic pywin32 Dispatch cannot marshal as null on the tested host.
         # ModelDoc2.SaveAs3 is scalar-only and returns the swFileSaveError_e code.
         save_error = int(
-            document.SaveAs3(
-                str(output_path), _SAVE_CURRENT_VERSION, _SAVE_SILENT
-            )
+            document.SaveAs3(str(output_path), _SAVE_CURRENT_VERSION, _SAVE_SILENT)
         )
         saved = save_error == 0 and output_path.is_file()
         result["save_errors"] = save_error

@@ -149,6 +149,51 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(entry.document, opened)
         self.assertIsNot(entry.document, previous)
 
+    @mock.patch("swcli.daemon.operations.create_part_windows_with_handle")
+    def test_create_registers_unsaved_handle_and_changes_only_callers_current(
+        self, create
+    ):
+        previous = self.FakeDocument("previous.SLDPRT", "C:\\previous.SLDPRT")
+        created = self.FakeDocument("Part1", "")
+        app = self.FakeApp([previous, created], active=previous)
+        registry = DocumentRegistry(app)
+        previous_entry = registry.register(previous)
+        registry.set_current(previous_entry, session_id="other-agent")
+        create.return_value = (
+            {"ok": True, "action": "document.create", "created": True},
+            created,
+        )
+
+        result = operations.execute_operation(
+            app, "document.create", {}, documents=registry, session_id="modeler"
+        )
+        self.assertIs(registry.resolve(None, session_id="modeler").document, created)
+        self.assertIs(
+            registry.resolve(None, session_id="other-agent").document, previous
+        )
+        self.assertFalse(result["document"]["active"])
+        self.assertTrue(result["document"]["current"])
+
+    @mock.patch("swcli.daemon.operations.create_part_windows_with_handle")
+    def test_failed_creation_without_handle_preserves_current_document(self, create):
+        previous = self.FakeDocument("previous.SLDPRT", "C:\\previous.SLDPRT")
+        app = self.FakeApp([previous], active=previous)
+        registry = DocumentRegistry(app)
+        registry.set_current(registry.register(previous), session_id="default")
+        create.return_value = (
+            {
+                "ok": False,
+                "action": "document.create",
+                "error": {"type": "NewDocumentFailed", "message": "failed"},
+            },
+            None,
+        )
+        result = operations.execute_operation(
+            app, "document.create", {}, documents=registry
+        )
+        self.assertFalse(result["ok"])
+        self.assertIs(registry.resolve(None).document, previous)
+
     @mock.patch("swcli.daemon.operations.create_box_part_windows_with_handle")
     def test_create_box_registers_exact_document_returned_by_newdocument(
         self, create_box

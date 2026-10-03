@@ -98,6 +98,10 @@ _DOCUMENT_WRITE_CONTEXT = {
 OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.health": _operation("daemon.health"),
     "daemon.shutdown": _operation("daemon.shutdown"),
+    "document.create": _operation(
+        "document.create",
+        {"type": _string(enum=["part"]), "template": _string(minLength=1)},
+    ),
     "document.open": _operation(
         "document.open",
         {

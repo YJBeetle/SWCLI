@@ -11,6 +11,7 @@ from swcli.protocol import SCHEMA_NAMES, load_schema
 
 class ProtocolSchemaTests(unittest.TestCase):
     def test_execution_policies_distinguish_selection_and_activation(self):
+        self.assertFalse(OPERATION_CATALOG["document.create"].selected_document)
         self.assertFalse(OPERATION_CATALOG["document.use"].selected_document)
         self.assertFalse(OPERATION_CATALOG["document.open"].selected_document)
         self.assertTrue(OPERATION_CATALOG["document.inspect"].selected_document)
@@ -19,6 +20,14 @@ class ProtocolSchemaTests(unittest.TestCase):
         self.assertTrue(OPERATION_CATALOG["document.export"].temporary_activation)
         self.assertFalse(OPERATION_CATALOG["document.save"].temporary_activation)
         self.assertIsNone(OPERATION_CATALOG["daemon.health"].handler)
+
+    def test_document_create_rejects_unsupported_types_and_target_context(self):
+        validate_operation_request("document.create", {})
+        validate_operation_request("document.create", {"type": "part", "template": "Part.prtdot"})
+        with self.assertRaises(ValueError):
+            validate_operation_request("document.create", {"type": "assembly"})
+        with self.assertRaises(ValueError):
+            validate_operation_request("document.create", {}, document_id="d-ab12cd")
 
     def test_all_schemas_load(self):
         for name in SCHEMA_NAMES:

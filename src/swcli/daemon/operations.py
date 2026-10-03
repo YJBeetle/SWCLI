@@ -22,7 +22,10 @@ from ..hosts.windows_documents import (
     render_active_windows_document,
     save_active_windows_document,
 )
-from ..hosts.windows_parts import create_box_part_windows_with_handle
+from ..hosts.windows_parts import (
+    create_box_part_windows_with_handle,
+    create_part_windows_with_handle,
+)
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -106,6 +109,22 @@ def _register_handler(handler):
         raise RuntimeError(f"duplicate operation handler: {handler.__name__}")
     _HANDLERS[handler.__name__] = handler
     return handler
+
+
+@_register_handler
+def document_create(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    result, created_document = create_part_windows_with_handle(
+        app=context.app, template=values.get("template")
+    )
+    if context.documents is not None and created_document is not None:
+        context.entry = context.documents.register(created_document)
+        context.documents.set_current(context.entry, session_id=context.session_id)
+        return _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
+    return result
 
 
 @_register_handler
