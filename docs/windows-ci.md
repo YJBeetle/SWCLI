@@ -57,11 +57,14 @@ it also applies to native Windows:
    diagnostics around first startup, then use typed CLI requests against its
    single COM worker for a real model, structural inspection, diagnosis,
    deterministic render, and verified STEP export;
-8. close the model, externally terminate the daemon-owned SOLIDWORKS process,
+8. verify capabilities, document list/use/rebuild/save, lease acquire/status/
+   renew/release and saved-document reopening, with worker-side result Schema
+   validation enabled for every typed operation;
+9. close the model, externally terminate the daemon-owned SOLIDWORKS process,
    and require health to report `host_connected: false`, clear the stale host,
    and retain `HostDisconnected` without silently restarting on a business
    request;
-9. require graceful daemon shutdown to succeed with the host already absent,
+10. require graceful daemon shutdown to succeed with the host already absent,
    then upload the generated native part, render, export, JSON responses, and
    desktop/window diagnostics as evidence.
 

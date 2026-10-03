@@ -196,18 +196,31 @@ try {
         throw "swclid is not reachable after startup"
     }
 
-    Invoke-SwCliJson -Name "part-create-box" -Arguments @(
+    Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
+
+    $created = Invoke-SwCliJson -Name "part-create-box" -Arguments @(
         "part", "create-box", $partPath,
         "--width-mm", "100", "--height-mm", "50", "--depth-mm", "20", "--json"
-    ) | Out-Null
+    )
+    Invoke-SwCliJson -Name "document-list" -Arguments @("document", "list", "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-use" -Arguments @("document", "use", $created.document.document_id, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-inspect" -Arguments @("document", "inspect", "--detail", "structure", "--json") | Out-Null
     Invoke-SwCliJson -Name "document-diagnose" -Arguments @("document", "diagnose", "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-rebuild" -Arguments @("document", "rebuild", "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-save" -Arguments @("document", "save", "--json") | Out-Null
+    $lease = Invoke-SwCliJson -Name "lease-acquire" -Arguments @("document", "lease", "acquire", "--json")
+    Invoke-SwCliJson -Name "lease-status" -Arguments @("document", "lease", "status", "--json") | Out-Null
+    Invoke-SwCliJson -Name "lease-renew" -Arguments @("document", "lease", "renew", $lease.lease.lease_id, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-render" -Arguments @(
         "document", "render", $renderPath,
+        "--lease", $lease.lease.lease_id,
         "--view", "isometric", "--width", "800", "--height", "600", "--json"
     ) | Out-Null
-    Invoke-SwCliJson -Name "document-export" -Arguments @("document", "export", $stepPath, "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-export" -Arguments @("document", "export", $stepPath, "--lease", $lease.lease.lease_id, "--json") | Out-Null
+    Invoke-SwCliJson -Name "lease-release" -Arguments @("document", "lease", "release", $lease.lease.lease_id, "--json") | Out-Null
     Invoke-SwCliJson -Name "document-close" -Arguments @("document", "close", "--discard", "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-open" -Arguments @("document", "open", $partPath, "--read-only", "--json") | Out-Null
+    Invoke-SwCliJson -Name "document-close-reopened" -Arguments @("document", "close", "--discard", "--json") | Out-Null
 
     $connected = Invoke-SwCliJson -Name "daemon-connected" -Arguments @("daemon", "status", "--json")
     if (-not $connected.result.host_connected) {
