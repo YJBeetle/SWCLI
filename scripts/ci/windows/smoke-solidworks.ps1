@@ -198,6 +198,29 @@ try {
 
     Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
 
+    $emptyA = Invoke-SwCliJson -Name "document-create-a" -Arguments @("document", "create", "--type", "part", "--json")
+    $emptyB = Invoke-SwCliJson -Name "document-create-b" -Arguments @("document", "create", "--json")
+    if (-not $emptyA.created -or -not $emptyB.created -or
+        $emptyA.document.path -ne "" -or $emptyB.document.path -ne "" -or
+        $emptyA.document.type -ne 1 -or $emptyB.document.type -ne 1 -or
+        $emptyA.document.document_id -eq $emptyB.document.document_id) {
+        throw "document create did not return two distinct unsaved part handles"
+    }
+    $selectedA = Invoke-SwCliJson -Name "document-inspect-created-a" -Arguments @(
+        "document", "inspect", "--document", $emptyA.document.document_id, "--json"
+    )
+    if ($selectedA.document.current -or $selectedA.document.active) {
+        throw "inspecting a non-current created part changed its selection state"
+    }
+    Invoke-SwCliJson -Name "document-close-created-a" -Arguments @(
+        "document", "close", "--document", $emptyA.document.document_id, "--discard", "--json"
+    ) | Out-Null
+    $currentB = Invoke-SwCliJson -Name "document-inspect-created-b" -Arguments @("document", "inspect", "--json")
+    if ($currentB.document.document_id -ne $emptyB.document.document_id) {
+        throw "closing a non-current part changed the current document"
+    }
+    Invoke-SwCliJson -Name "document-close-created-b" -Arguments @("document", "close", "--discard", "--json") | Out-Null
+
     $created = Invoke-SwCliJson -Name "part-create-box" -Arguments @(
         "part", "create-box", $partPath,
         "--width-mm", "100", "--height-mm", "50", "--depth-mm", "20", "--json"
