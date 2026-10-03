@@ -55,18 +55,18 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a2` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a3` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a2/swcli-0.1.0a2-py3-none-any.whl"
+python -m pip install "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a3/swcli-0.1.0a3-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a2` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a3` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
