@@ -64,6 +64,7 @@ class ProtocolSchemaTests(unittest.TestCase):
                 "protocol_versions",
                 "operations",
                 "operation_schemas",
+                "operation_result_schemas",
                 "request_replay",
                 "worker_alive",
                 "host_connected",

@@ -16,7 +16,8 @@ from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
-from ..operation_schemas import operation_schemas, validate_operation_request
+from ..operation_schemas import operation_schemas, operation_result_schemas, validate_operation_request
+from ..result_schemas import validate_operation_result
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import (
     LEASE_TOKEN_OPERATIONS,
@@ -369,6 +370,7 @@ def _worker_main(
                     expected_update_stamp=request.get("expected_update_stamp"),
                     lease_id=request.get("lease_id"),
                 )
+                validate_operation_result(str(request["operation"]), result)
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):
                     error = result.get("error") or {}
@@ -710,6 +712,7 @@ class WorkerManager:
             "protocol_versions": [PROTOCOL_VERSION],
             "operations": list(OPERATIONS),
             "operation_schemas": operation_schemas(),
+            "operation_result_schemas": operation_result_schemas(),
             "request_replay": {
                 "supported": True,
                 "max_entries": REQUEST_REPLAY_MAX_ENTRIES,

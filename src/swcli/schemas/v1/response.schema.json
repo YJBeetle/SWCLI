@@ -5,6 +5,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["api_version", "request_id", "success", "duration_ms"],
+  "if": {"properties": {"success": {"const": true}}},
+  "then": {"required": ["result"], "not": {"required": ["error"]}},
+  "else": {"required": ["error"]},
   "properties": {
     "api_version": {"const": "swcli/v1"},
     "request_id": {"type": "string", "minLength": 1},

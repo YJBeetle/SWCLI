@@ -516,6 +516,27 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
             or not all(value in context_modes for value in context.values())
         ):
             return f"operation context schema is invalid for {operation}"
+    result_schemas = payload["operation_result_schemas"]
+    if not isinstance(result_schemas, dict) or set(result_schemas) != set(payload["operations"]):
+        return "operation_result_schemas must describe every advertised operation"
+    from jsonschema import Draft202012Validator
+    from jsonschema.exceptions import SchemaError
+    mismatch = next(Draft202012Validator(schema).iter_errors(payload), None)
+    if mismatch is not None:
+        return f"capabilities schema mismatch: {mismatch.message}"
+    for operation, result_schema in result_schemas.items():
+        if not isinstance(result_schema, dict):
+            return f"operation result schema is invalid for {operation}"
+        try:
+            Draft202012Validator.check_schema(result_schema)
+        except SchemaError:
+            return f"operation result schema is invalid for {operation}"
+        if (result_schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema"
+                or result_schema.get("type") != "object"
+                or result_schema.get("additionalProperties") is not False
+                or not isinstance(result_schema.get("$id"), str)
+                or not result_schema["$id"]):
+            return f"operation result schema is invalid for {operation}"
     request_replay = payload["request_replay"]
     if (
         not isinstance(request_replay, dict)
