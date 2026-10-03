@@ -13,7 +13,7 @@ from swcli.cli import (
     main,
     translate_parameter_paths,
 )
-from swcli.operation_schemas import operation_schemas, validate_operation_request
+from swcli.operation_schemas import operation_schemas, operation_result_schemas, validate_operation_request
 
 
 class CliTests(unittest.TestCase):
@@ -80,6 +80,7 @@ class CliTests(unittest.TestCase):
             "protocol_versions": ["swcli/v1"],
             "operations": list(operation_schemas()),
             "operation_schemas": operation_schemas(),
+            "operation_result_schemas": operation_result_schemas(),
             "request_replay": {
                 "supported": True,
                 "max_entries": 1024,
@@ -136,7 +137,7 @@ class CliTests(unittest.TestCase):
 
     def test_capabilities_rejects_schema_drift(self):
         self.assertIn(
-            "missing=['host_connected', 'recovery_error', 'recovery_required', 'request_replay']",
+            "missing=['host_connected', 'operation_result_schemas', 'recovery_error', 'recovery_required', 'request_replay']",
             _capabilities_mismatch(
                 {
                     "server_version": "old",

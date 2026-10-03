@@ -20,6 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
+  "jsonschema>=4.18",
   "pywin32>=312; sys_platform == 'win32'",
 ]
 

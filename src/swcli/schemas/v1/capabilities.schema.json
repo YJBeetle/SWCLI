@@ -10,6 +10,7 @@
     "host",
     "operations",
     "operation_schemas",
+    "operation_result_schemas",
     "request_replay",
     "worker_alive",
     "host_connected",
@@ -98,6 +99,22 @@
               "lease_id": {"enum": ["forbidden", "optional", "required"]}
             }
           }
+        }
+      }
+    },
+    "operation_result_schemas": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["$schema", "$id", "type", "properties", "required", "additionalProperties"],
+        "properties": {
+          "$schema": {"const": "https://json-schema.org/draft/2020-12/schema"},
+          "$id": {"type": "string", "minLength": 1},
+          "type": {"const": "object"},
+          "properties": {"type": "object"},
+          "required": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+          "additionalProperties": {"const": false}
         }
       }
     },

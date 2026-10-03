@@ -8,7 +8,7 @@ from math import isfinite
 from typing import Any, Dict, Optional
 
 from .hosts.windows_documents import RENDER_VIEWS
-
+from .result_schemas import operation_result_schema
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CONTEXT_FIELDS = ("document_id", "expected_update_stamp", "lease_id")
@@ -23,6 +23,7 @@ class OperationSpec:
     selected_document: bool
     lease_guarded: bool
     temporary_activation: bool
+    result: Dict[str, Any]
 
 
 def _string(**keywords: Any) -> Dict[str, Any]:
@@ -68,11 +69,19 @@ def _operation(
     }
     return OperationSpec(
         parameters=schema,
-        handler=None if name.startswith("daemon.") else name.replace(".", "_").replace("-", "_"),
-        selected_document=(document_id != "forbidden")
-        if selected_document is None else selected_document,
+        handler=(
+            None
+            if name.startswith("daemon.")
+            else name.replace(".", "_").replace("-", "_")
+        ),
+        selected_document=(
+            (document_id != "forbidden")
+            if selected_document is None
+            else selected_document
+        ),
         lease_guarded=lease_id == "optional",
         temporary_activation=temporary_activation,
+        result=operation_result_schema(name),
     )
 
 
@@ -193,9 +202,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
 }
 
 
-OPERATION_SCHEMAS = {
-    name: spec.parameters for name, spec in OPERATION_CATALOG.items()
-}
+OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)
 
 
@@ -203,6 +210,10 @@ def operation_schemas() -> Dict[str, Dict[str, Any]]:
     """Return an isolated protocol-safe operation schema catalog."""
 
     return deepcopy(OPERATION_SCHEMAS)
+
+
+def operation_result_schemas() -> Dict[str, Dict[str, Any]]:
+    return {name: deepcopy(spec.result) for name, spec in OPERATION_CATALOG.items()}
 
 
 def _validate_parameter(name: str, value: Any, schema: Dict[str, Any]) -> None:
@@ -250,9 +261,7 @@ def validate_operation_request(
     properties = schema["properties"]
     unexpected = sorted(set(parameters) - set(properties))
     if unexpected:
-        raise ValueError(
-            f"unsupported {operation} parameters: {', '.join(unexpected)}"
-        )
+        raise ValueError(f"unsupported {operation} parameters: {', '.join(unexpected)}")
     missing = sorted(
         name for name in schema["required"] if parameters.get(name) is None
     )
