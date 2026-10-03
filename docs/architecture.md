@@ -138,6 +138,27 @@ a missing local service. Its successful JSON output conforms directly to the
 published capabilities schema. The schemas advertised by the daemon are the
 same definitions used for request validation, so capability discovery cannot
 drift from runtime parameter handling.
+
+Starting with the `0.1.0a4` development branch, each operation declaration also
+owns its handler name, selected-document policy, lease guard, temporary
+activation policy and result schema. Worker handlers are registered and checked
+against that catalog at import time. Dispatch validates the request, resolves
+the document, checks the update stamp and lease, then invokes the handler; view
+activation is restored before describing the final document state.
+
+`operation_result_schemas` describes the transport envelope's `result` field,
+including partial adapter failures. Pre-dispatch and transport errors can omit
+`result` and use the common error envelope instead. Worker results are validated
+against the same contracts advertised by capabilities. A mismatch produces
+`OperationResultInvalid`; validation happens after execution and does not roll
+back a completed mutation or artifact write. Typed CLI JSON flattens `result`
+and can add request/replay metadata. Known nested structures are described;
+warning and native error details remain extensible. The validator is imported
+only when validation is requested, leaving help/version startup lightweight.
+
+The pre-stable capabilities contract has gained a required field. Upgrade
+client and daemon together when moving from `v0.1.0a3` to this development
+version. The published a3 wheel remains unchanged.
 Length and angle units are explicit at typed modeling boundaries; host adapters
 convert them to the units expected by the SOLIDWORKS API.
 
