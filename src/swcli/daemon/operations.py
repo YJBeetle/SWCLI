@@ -29,16 +29,17 @@ from .documents import (
     DocumentRegistry,
 )
 
-
 LEASE_GUARDED_OPERATIONS = frozenset(
     name for name, spec in OPERATION_CATALOG.items() if spec.lease_guarded
 )
 LEASE_TOKEN_OPERATIONS = frozenset(
-    name for name, schema in OPERATION_SCHEMAS.items()
+    name
+    for name, schema in OPERATION_SCHEMAS.items()
     if schema["x-swcli-context"]["lease_id"] != "forbidden"
 )
 UPDATE_STAMP_OPERATIONS = frozenset(
-    name for name, schema in OPERATION_SCHEMAS.items()
+    name
+    for name, schema in OPERATION_SCHEMAS.items()
     if schema["x-swcli-context"]["expected_update_stamp"] != "forbidden"
 )
 
@@ -122,7 +123,9 @@ def document_open(context: OperationContext, values: Dict[str, Any]) -> Dict[str
             )
         context.entry = context.documents.register(opened_document)
         context.documents.set_current(context.entry, session_id=context.session_id)
-        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        return _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
     return result
 
 
@@ -139,17 +142,23 @@ def document_use(context: OperationContext, values: Dict[str, Any]) -> Dict[str,
         raise RuntimeError("document registry is unavailable")
     if context.document_id is None:
         raise ValueError("document.use requires document_id")
-    context.entry = context.documents.use(context.document_id, session_id=context.session_id)
+    context.entry = context.documents.use(
+        context.document_id, session_id=context.session_id
+    )
     return {
         "ok": True,
         "action": "document.use",
         "session_id": context.session_id,
-        "document": context.documents.describe(context.entry, session_id=context.session_id),
+        "document": context.documents.describe(
+            context.entry, session_id=context.session_id
+        ),
     }
 
 
 @_register_handler
-def document_lease_renew(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_lease_renew(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     if context.documents is None:
         raise RuntimeError("document registry is unavailable")
     if context.lease_id is None:
@@ -168,12 +177,16 @@ def document_lease_renew(context: OperationContext, values: Dict[str, Any]) -> D
 
 
 @_register_handler
-def document_lease_release(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_lease_release(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     if context.documents is None:
         raise RuntimeError("document registry is unavailable")
     if context.lease_id is None:
         raise ValueError("document.lease.release requires lease_id")
-    lease = context.documents.release_lease(context.lease_id, session_id=context.session_id)
+    lease = context.documents.release_lease(
+        context.lease_id, session_id=context.session_id
+    )
     return {
         "ok": True,
         "action": context.operation,
@@ -184,7 +197,9 @@ def document_lease_release(context: OperationContext, values: Dict[str, Any]) ->
 
 
 @_register_handler
-def document_lease_acquire(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_lease_acquire(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     lease = context.documents.acquire_lease(
@@ -197,12 +212,16 @@ def document_lease_acquire(context: OperationContext, values: Dict[str, Any]) ->
         "action": context.operation,
         "session_id": context.session_id,
         "lease": lease,
-        "document": context.documents.describe(context.entry, session_id=context.session_id),
+        "document": context.documents.describe(
+            context.entry, session_id=context.session_id
+        ),
     }
 
 
 @_register_handler
-def document_lease_status(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_lease_status(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     lease = context.documents.active_lease(context.entry)
@@ -216,12 +235,16 @@ def document_lease_status(context: OperationContext, values: Dict[str, Any]) -> 
         "owned_by_session": lease is not None
         and lease["session_id"] == context.session_id,
         "lease": lease,
-        "document": context.documents.describe(context.entry, session_id=context.session_id),
+        "document": context.documents.describe(
+            context.entry, session_id=context.session_id
+        ),
     }
 
 
 @_register_handler
-def document_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_inspect(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     result = inspect_active_windows_document(
         detail=str(values.get("detail", "summary")),
         max_features=int(values.get("max_features", 500)),
@@ -229,7 +252,9 @@ def document_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[
         document=context.entry.document if context.entry is not None else None,
     )
     return (
-        _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
         if context.documents is not None and context.entry is not None
         else result
     )
@@ -266,31 +291,40 @@ def document_close(context: OperationContext, values: Dict[str, Any]) -> Dict[st
 @_register_handler
 def document_save(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     result = save_active_windows_document(
-        app=context.app, document=context.entry.document if context.entry is not None else None
+        app=context.app,
+        document=context.entry.document if context.entry is not None else None,
     )
     return (
-        _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
         if context.documents is not None and context.entry is not None
         else result
     )
 
 
 @_register_handler
-def document_diagnose(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_diagnose(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     result = diagnose_active_windows_document(
         max_features=int(values.get("max_features", 500)),
         app=context.app,
         document=context.entry.document if context.entry is not None else None,
     )
     return (
-        _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
         if context.documents is not None and context.entry is not None
         else result
     )
 
 
 @_register_handler
-def document_rebuild(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_rebuild(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     result = rebuild_active_windows_document(
         force=bool(values.get("force", False)),
         top_only=bool(values.get("top_only", False)),
@@ -299,14 +333,18 @@ def document_rebuild(context: OperationContext, values: Dict[str, Any]) -> Dict[
         document=context.entry.document if context.entry is not None else None,
     )
     return (
-        _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
         if context.documents is not None and context.entry is not None
         else result
     )
 
 
 @_register_handler
-def document_render(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_render(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     kwargs = {
         "width": int(values.get("width", 1024)),
         "height": int(values.get("height", 768)),
@@ -320,7 +358,9 @@ def document_render(context: OperationContext, values: Dict[str, Any]) -> Dict[s
 
 
 @_register_handler
-def document_export(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def document_export(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     kwargs = {
         "overwrite": bool(values.get("overwrite", False)),
         "strict": bool(values.get("strict", False)),
@@ -331,7 +371,9 @@ def document_export(context: OperationContext, values: Dict[str, Any]) -> Dict[s
 
 
 @_register_handler
-def part_create_box(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def part_create_box(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     result, created_document = create_box_part_windows_with_handle(
         str(values["output"]),
         width_mm=float(values["width_mm"]),
@@ -345,12 +387,12 @@ def part_create_box(context: OperationContext, values: Dict[str, Any]) -> Dict[s
     )
     if context.documents is not None and result.get("ok"):
         if created_document is None:
-            raise RuntimeError(
-                "SOLIDWORKS returned no document after creating a part"
-            )
+            raise RuntimeError("SOLIDWORKS returned no document after creating a part")
         context.entry = context.documents.register(created_document)
         context.documents.set_current(context.entry, session_id=context.session_id)
-        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+        return _with_document(
+            result, context.documents, context.entry, session_id=context.session_id
+        )
     return result
 
 
@@ -373,17 +415,24 @@ def execute_operation(
     lease_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     values = validate_operation_request(
-        operation, parameters, document_id=document_id,
-        expected_update_stamp=expected_update_stamp, lease_id=lease_id,
+        operation,
+        parameters,
+        document_id=document_id,
+        expected_update_stamp=expected_update_stamp,
+        lease_id=lease_id,
     )
     spec = OPERATION_CATALOG[operation]
     if spec.handler is None:
         raise ValueError(f"operation belongs to the supervisor: {operation}")
-    context = OperationContext(app, operation, documents, session_id, document_id, lease_id)
+    context = OperationContext(
+        app, operation, documents, session_id, document_id, lease_id
+    )
     if spec.selected_document and documents is not None:
         context.entry = documents.resolve(document_id, session_id=session_id)
         if expected_update_stamp is not None:
-            actual = documents.describe(context.entry, session_id=session_id).get("update_stamp")
+            actual = documents.describe(context.entry, session_id=session_id).get(
+                "update_stamp"
+            )
             if actual is None:
                 raise DocumentUpdateStampUnavailable(
                     "the selected document does not expose GetUpdateStamp"
@@ -394,14 +443,22 @@ def execute_operation(
                     f"{expected_update_stamp}, found {actual}"
                 )
         if spec.lease_guarded:
-            documents.require_lease(context.entry, session_id=session_id, lease_id=lease_id)
+            documents.require_lease(
+                context.entry, session_id=session_id, lease_id=lease_id
+            )
     activation = (
         documents.temporarily_activate(context.entry)
-        if spec.temporary_activation and documents is not None and context.entry is not None
+        if spec.temporary_activation
+        and documents is not None
+        and context.entry is not None
         else nullcontext()
     )
     with activation:
         result = _HANDLERS[spec.handler](context, values)
-    if spec.temporary_activation and documents is not None and context.entry is not None:
+    if (
+        spec.temporary_activation
+        and documents is not None
+        and context.entry is not None
+    ):
         return _with_document(result, documents, context.entry, session_id=session_id)
     return result
