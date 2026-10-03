@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及首个类型化零件建模操作。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图、特征、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。
+目前建模词汇仍有意保持精简。通用草图、特征、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。
 
 ## 安装
 
@@ -182,6 +182,8 @@ sw-cli capabilities --json
 ```
 
 成功时，JSON 输出直接符合公开的 capabilities schema，包含协议与服务版本、操作列表、每个操作的参数 schema 与可用请求上下文、worker 与恢复状态、请求重放策略及当前宿主描述。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
+
+`0.1.0a4` 开发分支在操作目录中统一声明 handler、文档选择、lease 守卫、临时前台激活和输出契约。结果 Schema 描述协议响应中的 `result`；类型化 CLI JSON 将它展开，并可能添加 `request_id` 和 `replayed`。适配器输出违反契约时返回 `OperationResultInvalid`；此时 CAD 操作可能已经改变了状态，发起新请求重试前应先检查文档。
 
 ## 文档操作
 

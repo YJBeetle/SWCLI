@@ -43,7 +43,9 @@ daemon-only; there is no direct-COM fallback mode.
 The modeling vocabulary is intentionally still small. General sketches,
 features, stable entity references, transactions, SDK, and MCP remain future
 work. The daemon now publishes the JSON Schema used to validate each supported
-operation through capability discovery.
+operation through capability discovery. The development branch for `0.1.0a4`
+also advertises `operation_result_schemas` and validates worker results before
+returning them; this is not included in the pinned `v0.1.0a3` wheel below.
 
 ## Installation
 
@@ -275,7 +277,14 @@ On success, the JSON output directly conforms to the published capabilities
 schema and includes protocol/server versions, the operation list, each
 operation's parameter schema and supported request context, worker and recovery
 state, request replay policy, and the current host description. The server
-validates requests against the same operation catalog it publishes. A missing
+validates requests against the same operation catalog it publishes. In the
+`0.1.0a4` development branch, the catalog also declares handlers, document
+selection, lease guards, temporary activation and result contracts. Result
+schemas describe the protocol envelope's `result` field; typed CLI JSON flattens
+that field and may add `request_id` and `replayed`. Adapter contract violations
+return `OperationResultInvalid`, which may occur after the CAD operation has
+already changed state. Inspect the document before attempting a new request.
+A missing
 or older daemon is reported as an error rather than being started or silently
 accepted.
 
