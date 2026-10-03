@@ -303,6 +303,28 @@ paths) translation is skipped entirely. DockerSW ships a helper that calls
 
 ## Document operations
 
+On the `0.1.0a4` development branch, `document create` creates an **unsaved
+part** using a real `.PRTDOT` template. It does not build geometry, rebuild,
+or save a file. The exact `NewDocument` handle becomes this session's current
+document and receives a short-lived ID, including when it has no file path.
+Only `--type part` (the default) is supported so far. Template resolution is
+the same as `part create-box`: explicit path, configured default, then installed
+template discovery; a missing template fails without opening a selection dialog.
+
+```powershell
+sw-cli document create --type part --json
+# Alternatively: sw-cli document create --template C:\Templates\Part.PRTDOT --json
+sw-cli document inspect --detail structure --json
+sw-cli document close --discard
+```
+
+This foundation for general modeling is not in the published `v0.1.0a3` wheel.
+Native save-as, general sketch and extrusion commands are still forthcoming;
+`document save` only saves an already named document. If creation succeeds but
+a later check fails, the partial document is not rolled back or silently closed;
+an acquired handle is registered when readable, allowing explicit inspection
+and cleanup.
+
 `document open` supports native part, assembly, and drawing files and returns
 the exact `OpenDoc6` error and warning bitmasks. Every open or create returns a
 short-lived ID such as `d-k7m2q9` and makes that document current for the

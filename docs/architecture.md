@@ -128,6 +128,17 @@ inspect -> plan -> apply -> rebuild -> diagnose -> measure -> render -> verify
 Public raw Python, eval, and direct-COM escape hatches are intentionally outside
 the typed CLI contract.
 
+The first general-modeling foundation on the a4 development branch is
+`document.create`: an unsaved part from a resolved native template. It reuses
+the worker's application and registers the exact returned document, not a
+subsequent `ActiveDoc` lookup. Creation changes only the requesting session's
+current handle; selectors and leases on other documents are not involved.
+Missing templates and null COM returns fail without changing current. Once
+`NewDocument` has produced a document, later failure does not imply rollback;
+the acquired object remains available for registration and explicit cleanup.
+General sketch/extrusion operations, native save-as and the complete
+create/model/save/reopen verification loop are still pending.
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli

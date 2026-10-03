@@ -187,6 +187,17 @@ sw-cli capabilities --json
 
 ## 文档操作
 
+`0.1.0a4` 开发分支新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。目前仅支持 `--type part`（默认值）。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
+
+```powershell
+sw-cli document create --type part --json
+# 或：sw-cli document create --template C:\Templates\Part.PRTDOT --json
+sw-cli document inspect --detail structure --json
+sw-cli document close --discard
+```
+
+已发布的 `v0.1.0a3` wheel 不包含此命令。原生另存为、通用草图和拉伸命令仍待实现；现有 `document save` 只保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
+
 `document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。每次打开或创建都会返回 `d-k7m2q9` 形式的短期 ID，并把该文档设为所选 CLI session 的 `current`。文档关闭或 worker 重启后 ID 即失效。`document list` 返回全部打开文档及各自的 `active`、`current` 状态；`document use ID` 用于明确修改 session 的 `current`。
 
 省略 `--document` 时，命令操作 session 的 `current`；`--document ID` 仅为本次命令指定确切文档，`--document active` 仅为本次命令选择 SOLIDWORKS 前台文档，两者都不会改变 `current`。并发客户端可以通过 `--session NAME` 或 `SWCLI_SESSION_ID` 隔离各自的当前文档；不指定时使用共享的 `default` session，方便编写线性脚本：
