@@ -1783,6 +1783,31 @@ class DaemonProtocolTests(unittest.TestCase):
                 client.call_daemon("feature.extrude", {"depth_mm": float("nan")})
             connect.assert_not_called()
 
+    def test_native_error_text_remains_utf8_encodable_and_diagnosable(self):
+        response = server._error_response("req-1", "COMError", "native text: \ud800")
+        json.dumps(response, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        self.assertEqual(response["error"]["message"], r"native text: \ud800")
+
+    def test_invalid_health_metadata_returns_a_structured_response_error(self):
+        request = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "health-invalid-native-text",
+            "operation": "daemon.health",
+            "parameters": {},
+        }
+        handler = object.__new__(server.SwclidRequestHandler)
+        handler.rfile = io.BytesIO(json.dumps(request).encode("utf-8") + b"\n")
+        handler.wfile = io.BytesIO()
+        handler.server = mock.Mock(manager=mock.Mock())
+        handler.server.manager.health.return_value = {
+            "host": {"language": "invalid\ud800"}
+        }
+        handler.handle()
+        response = json.loads(handler.wfile.getvalue())
+        self.assertFalse(response["success"])
+        self.assertEqual(response["request_id"], request["request_id"])
+        self.assertEqual(response["error"]["code"], "InvalidResponse")
+
     def test_client_sends_document_and_session_context(self):
         response = {
             "api_version": PROTOCOL_VERSION,

@@ -63,6 +63,11 @@ class WorkerStartupError(RuntimeError):
         self.code = code
 
 
+def _safe_error_text(value: Any) -> str:
+    """Keep valid native text and visibly escape unpaired UTF-16 surrogates."""
+    return str(value).encode("utf-8", errors="backslashreplace").decode("utf-8")
+
+
 def _error_response(
     request_id: str, code: str, message: str, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -71,7 +76,7 @@ def _error_response(
         "request_id": request_id,
         "success": False,
         "duration_ms": duration_ms,
-        "error": {"code": code, "message": message},
+        "error": {"code": _safe_error_text(code), "message": _safe_error_text(message)},
     }
 
 
@@ -231,7 +236,9 @@ def acquire_resident_app(
 def _host_disconnected_error(exc: BaseException) -> Dict[str, str]:
     return {
         "code": "HostDisconnected",
-        "message": f"SOLIDWORKS COM host is no longer available: {exc}",
+        "message": _safe_error_text(
+            f"SOLIDWORKS COM host is no longer available: {exc}"
+        ),
     }
 
 
@@ -852,9 +859,17 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                 response = self.server.manager.call(request)
         except Exception as exc:
             response = _error_response(request_id, type(exc).__name__, str(exc))
-        self.wfile.write(
-            json.dumps(
+        try:
+            encoded = json.dumps(
                 response, ensure_ascii=False, allow_nan=False, separators=(",", ":")
             ).encode("utf-8")
-            + b"\n"
-        )
+        except (TypeError, ValueError, RecursionError, UnicodeError) as exc:
+            fallback = _error_response(
+                request_id,
+                "InvalidResponse",
+                f"daemon response is not finite UTF-8 JSON: {exc}",
+            )
+            encoded = json.dumps(
+                fallback, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+            ).encode("utf-8")
+        self.wfile.write(encoded + b"\n")
