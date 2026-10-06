@@ -78,6 +78,11 @@ probes `RevisionNumber` before waiting again. This probe stays on the worker's
 owning STA thread. Known disconnect HRESULTs take effect immediately, temporary
 call-rejected HRESULTs do not count as failures, and otherwise three
 consecutive probe failures are required; a successful probe resets that count.
+The pre-operation probe uses the same transient HRESULT classification: a
+temporary call rejection returns `HostBusy` without dispatching the operation,
+marking the host disconnected or discarding the live session. No automatic
+retry is performed. If retrying later, use a new request ID because replay also
+remembers terminal busy failures.
 An external SOLIDWORKS exit emits a lifecycle event and ends the worker; the
 supervisor then clears the cached host and reports
 `worker_alive: false`, `host_connected: false`, and `HostDisconnected` recovery
