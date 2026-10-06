@@ -167,6 +167,21 @@ document handles cannot be used and business commands do not silently restart
 SOLIDWORKS. Report `HostDisconnected` and recover with an authorized daemon
 restart. Shared-host timeouts require inspection and explicit recovery as well.
 
+Distinguish failures by their execution boundary, not just their error text:
+
+| Failure | Meaning and next action |
+| --- | --- |
+| `HostBusy` | The pre-operation COM probe was temporarily rejected; the operation was not dispatched and the worker/session remains intact. Wait for the host to become available and use a new request ID for a new attempt; do not restart it automatically. |
+| `DocumentUpdateConflict` / `DocumentLeaseConflict` | A concurrency guard rejected execution. Re-observe/re-plan or coordinate with the holder; do not silently bypass the stamp/token. |
+| `OperationResultInvalid` / `InvalidResponse` | Execution or state observation may already have occurred before response validation/encoding failed. Inspect native state and artifacts before deciding whether another mutation is safe. |
+| `HostDisconnected` | The document session was lost. Report the loss; an authorized explicit restart creates a new session with new handles. |
+| `SharedHostRecoveryRequired` | A shared-host request timed out; the human's instance remains running but its state is unknown. Inspect it and obtain explicit recovery authority. |
+
+Other operation-specific failures may also leave partial geometry. Do not
+generalize `HostBusy`'s no-dispatch guarantee to every COM error, especially one
+returned after a modeling handler started. Saving, closing or restarting to
+"clean up" can destroy evidence or unsaved work and needs task authority.
+
 Request IDs protect nearby transport retries: reuse the same explicit
 `--request-id` only for the same semantic request. The daemon replays the first
 terminal result, including failure; a genuinely new retry needs a new ID.
