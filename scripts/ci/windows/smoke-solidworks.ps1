@@ -9,6 +9,7 @@ New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
 $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
 $stepPath = Join-Path $Workspace "swcli-box-100x50x20.STEP"
 $renderPath = Join-Path $Workspace "swcli-box-isometric-800x600.bmp"
+$genericPartPath = Join-Path $Workspace "swcli-generic-model.SLDPRT"
 
 function Save-DesktopDiagnostic {
     param([Parameter(Mandatory = $true)][string]$Name)
@@ -51,6 +52,20 @@ function Save-DesktopDiagnostic {
     }
     catch {
         $_ | Out-String | Set-Content -Path (Join-Path $Workspace "$Name-windows-error.txt") -Encoding utf8
+    }
+}
+
+function Get-SharedFileHash([string]$Path) {
+    # SOLIDWORKS keeps native files open. Read without requesting an exclusive
+    # file handle, unlike Get-FileHash's default path overload.
+    $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    $hash = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [BitConverter]::ToString($hash.ComputeHash($stream))
+    } finally {
+        $hash.Dispose()
+        $stream.Dispose()
     }
 }
 
@@ -275,6 +290,30 @@ try {
             }
         }
     }
+    $nativeSaved = Invoke-SwCliJson -Name "document-save-as" -Arguments @(
+        "document", "save-as", $genericPartPath, "--document", $emptyA.document.document_id,
+        "--lease", $sketchLease.lease.lease_id, "--json"
+    )
+    if ($nativeSaved.document.document_id -ne $emptyA.document.document_id -or
+        $nativeSaved.document.modified -or $nativeSaved.document.path -eq "" -or
+        $nativeSaved.document.active -or $nativeSaved.document.current) {
+        throw "native save-as lost document identity or foreground/current state"
+    }
+    $savedLease = Invoke-SwCliJson -Name "lease-after-save-as" -Arguments @(
+        "document", "lease", "status", "--document", $emptyA.document.document_id, "--json"
+    )
+    if ($savedLease.lease.lease_id -ne $sketchLease.lease.lease_id) {
+        throw "native save-as lost the document lease"
+    }
+    $nativeHash = Get-SharedFileHash $genericPartPath
+    $existingTarget = Invoke-SwCliJson -Name "save-as-existing-target" -AllowFailure -Arguments @(
+        "document", "save-as", $genericPartPath, "--document", $emptyA.document.document_id,
+        "--lease", $sketchLease.lease.lease_id, "--json"
+    )
+    if ($existingTarget.ok -or $existingTarget.error.type -ne "OutputExists" -or
+        (Get-SharedFileHash $genericPartPath) -ne $nativeHash) {
+        throw "save-as did not protect an existing native target"
+    }
     $usedSketch = Invoke-SwCliJson -Name "feature-extrude-used-sketch" -AllowFailure -Arguments @(
         "feature", "extrude", $sketchIds[0], "--depth-mm", "20",
         "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
@@ -287,6 +326,27 @@ try {
     ) | Out-Null
     Invoke-SwCliJson -Name "document-close-created-a" -Arguments @(
         "document", "close", "--document", $emptyA.document.document_id, "--discard", "--json"
+    ) | Out-Null
+    $reopened = Invoke-SwCliJson -Name "generic-model-reopen" -Arguments @(
+        "--session", "reopen-verifier", "document", "open", $genericPartPath, "--read-only", "--json"
+    )
+    if ($reopened.document.document_id -eq $emptyA.document.document_id) {
+        throw "reopening a closed native part unexpectedly reused its expired document ID"
+    }
+    $reopenedStructure = Invoke-SwCliJson -Name "generic-model-reopen-inspect" -Arguments @(
+        "--session", "reopen-verifier", "document", "inspect", "--detail", "structure", "--json"
+    )
+    if ($reopenedStructure.structure.bodies.count -ne $extrusion.bodies.count) {
+        throw "native save/reopen changed the modeled solid body count"
+    }
+    $reopenedDiagnosis = Invoke-SwCliJson -Name "generic-model-reopen-diagnose" -Arguments @(
+        "--session", "reopen-verifier", "document", "diagnose", "--json"
+    )
+    if (-not $reopenedDiagnosis.diagnostics.healthy -or $reopenedDiagnosis.needs_rebuild -ne 0) {
+        throw "reopened native model did not pass feature and rebuild checks"
+    }
+    Invoke-SwCliJson -Name "generic-model-reopen-close" -Arguments @(
+        "--session", "reopen-verifier", "document", "close", "--discard", "--json"
     ) | Out-Null
     $currentB = Invoke-SwCliJson -Name "document-inspect-created-b" -Arguments @("document", "inspect", "--json")
     if ($currentB.document.document_id -ne $emptyB.document.document_id) {
@@ -368,7 +428,7 @@ try {
     }
     $started = $false
 
-    foreach ($artifact in @($partPath, $stepPath, $renderPath)) {
+    foreach ($artifact in @($partPath, $genericPartPath, $stepPath, $renderPath)) {
         $item = Get-Item -LiteralPath $artifact
         if ($item.Length -le 0) {
             throw "Smoke artifact is empty: $artifact"
