@@ -242,6 +242,12 @@ unsupported objects, cycles and unencodable native strings fail with
 `OperationResultInvalid` before socket delivery; Python's extended numeric
 values are not valid wire JSON even if a Schema validator accepts them.
 
+Native exception text preserves valid Unicode and visibly backslash-escapes
+unpaired UTF-16 surrogates. The final socket encoder also guards health/control
+metadata and other non-adapter responses: invalid values return a correlated
+`InvalidResponse` error rather than breaking the connection during encoding.
+This wire fallback does not roll back an already completed operation.
+
 The pre-stable capabilities contract has gained a required field. Upgrade
 client and daemon together when moving from `v0.1.0a3` to this development
 version. The published a3 wheel remains unchanged.
