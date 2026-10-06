@@ -114,6 +114,17 @@ only a newly created empty fixture key. This is test isolation, not a SWCLI
 startup policy or proof that Marketplace works offline. Product attach mode
 does not change user add-in settings.
 
+A fresh interactive launch can also display the SOLIDWORKS License Agreement
+before its main window becomes usable, even when automation-created hosts have
+already completed CAD operations. This was observed on the disposable hosted
+runner, not on the user's previously initialized Windows VM. COM registration
+alone does not establish interactive readiness. The test retains the dialog
+screenshot and fails; it does not click Accept or write an acceptance flag.
+Resolve the first-use consent prerequisite through the responsible user and an
+approved test-environment setup, or explicitly redesign that gate's scope.
+Do not treat successful local/native modeling as proof that this hosted manual
+startup gate passed. See the [a4 verification record](verification/a4-2026-10-07.md).
+
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
 measurements are uploaded. The workflow never uploads official installation
