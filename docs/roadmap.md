@@ -59,6 +59,10 @@ upper-layer application; this goal does not require designing it now.
 
 ## Release gate
 
+The next pre-release draft and its publication evidence checklist are recorded
+in [v0.1.0a4 candidate notes](releases/v0.1.0a4-draft.md). This file is not a
+published release or permission to treat the development wheel as stable.
+
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,
 installation command, Windows/Wine evidence and known limitations. Do not
