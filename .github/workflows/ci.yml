@@ -74,7 +74,7 @@ jobs:
         shell: powershell
         run: |
           $failed = $false
-          Get-ChildItem scripts/ci/windows -Filter *.ps1 | ForEach-Object {
+          Get-ChildItem scripts/ci/windows, examples -Filter *.ps1 | ForEach-Object {
             $tokens = $null
             $errors = $null
             [Management.Automation.Language.Parser]::ParseFile(
