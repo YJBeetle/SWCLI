@@ -251,6 +251,9 @@ try {
     }
     $sketchIds = @()
     foreach ($plane in @("front", "top", "right")) {
+        Invoke-SwCliJson -Name "rectangle-lease-renew-$plane" -Arguments @(
+            "document", "lease", "renew", $sketchLease.lease.lease_id, "--json"
+        ) | Out-Null
         $rectangle = Invoke-SwCliJson -Name "sketch-rectangle-$plane" -Arguments @(
             "sketch", "rectangle", "--plane", $plane,
             "--width-mm", "100", "--height-mm", "50", "--center-x-mm", "10", "--center-y-mm", "20",
@@ -290,6 +293,35 @@ try {
             }
         }
     }
+    foreach ($plane in @("front", "top", "right")) {
+        Invoke-SwCliJson -Name "circle-lease-renew-$plane" -Arguments @(
+            "document", "lease", "renew", $sketchLease.lease.lease_id, "--json"
+        ) | Out-Null
+        $circle = Invoke-SwCliJson -Name "sketch-circle-$plane" -Arguments @(
+            "sketch", "circle", "--plane", $plane, "--radius-mm", "8",
+            "--center-x-mm", "120", "--center-y-mm", "20",
+            "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+        )
+        if (-not $circle.geometry_verification.passed -or
+            -not $circle.geometry_verification.complete_circle -or
+            [Math]::Abs($circle.geometry_verification.actual_radius_mm - 8) -gt 0.000001 -or
+            [Math]::Abs($circle.geometry_verification.actual_center_mm.x - 120) -gt 0.000001 -or
+            [Math]::Abs($circle.geometry_verification.actual_center_mm.y - 20) -gt 0.000001 -or
+            [Math]::Abs($circle.geometry_verification.actual_center_mm.z) -gt 0.000001 -or
+            $circle.editing -or $circle.document.active -or $circle.document.current) {
+            throw "circle on $plane failed native local geometry or foreground checks"
+        }
+        $extrusion = Invoke-SwCliJson -Name "circle-extrude-$plane" -Arguments @(
+            "feature", "extrude", $circle.sketch.sketch_id, "--depth-mm", "20", "--no-merge",
+            "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+        )
+        if (-not $extrusion.geometry_verification.passed -or $extrusion.geometry_verification.actual_merge) {
+            throw "circle extrusion did not produce a verified unmerged native feature"
+        }
+    }
+    Invoke-SwCliJson -Name "native-save-lease-renew" -Arguments @(
+        "document", "lease", "renew", $sketchLease.lease.lease_id, "--json"
+    ) | Out-Null
     $nativeSaved = Invoke-SwCliJson -Name "document-save-as" -Arguments @(
         "document", "save-as", $genericPartPath, "--document", $emptyA.document.document_id,
         "--lease", $sketchLease.lease.lease_id, "--json"
