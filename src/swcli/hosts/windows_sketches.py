@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
 
@@ -166,6 +166,42 @@ def create_rectangle_sketch_windows_with_handle(
         }
         return result, None
 
+    return _create_profile_sketch_windows_with_handle(
+        app=app,
+        document=document,
+        plane=plane,
+        action="sketch.rectangle",
+        dimensions={
+            "unit": "millimeter",
+            "width": width_mm,
+            "height": height_mm,
+            "center_x": center_x_mm,
+            "center_y": center_y_mm,
+        },
+        create_segments=lambda manager: manager.CreateCenterRectangle(
+            center_x_mm / 1000,
+            center_y_mm / 1000,
+            0.0,
+            expected["max_x"] / 1000,
+            expected["max_y"] / 1000,
+            0.0,
+        ),
+        verify_sketch=lambda sketch: _rectangle_verification(sketch, expected),
+    )
+
+
+def _create_profile_sketch_windows_with_handle(
+    *,
+    app: Any,
+    document: Any,
+    plane: str,
+    action: str,
+    dimensions: Dict[str, Any],
+    create_segments: Callable[[Any], Any],
+    verify_sketch: Callable[[Any], Dict[str, Any]],
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    """Own the fresh sketch edit lifecycle and return its exact feature handle."""
+    result: Dict[str, Any] = {"ok": False, "action": action}
     feature = None
     manager = None
     entered = False
@@ -173,7 +209,7 @@ def create_rectangle_sketch_windows_with_handle(
         if int(_com_value(document, "GetType")) != 1:
             result["error"] = {
                 "type": "UnsupportedDocumentType",
-                "message": "rectangle sketches currently require a part document",
+                "message": "profile sketches currently require a part document",
             }
             return result, None
         manager = _com_value(document, "SketchManager")
@@ -215,30 +251,17 @@ def create_rectangle_sketch_windows_with_handle(
             raise RuntimeError(
                 "SOLIDWORKS returned an invalid sketch coordinate transform"
             )
-        segments = manager.CreateCenterRectangle(
-            center_x_mm / 1000,
-            center_y_mm / 1000,
-            0.0,
-            expected["max_x"] / 1000,
-            expected["max_y"] / 1000,
-            0.0,
-        )
+        segments = create_segments(manager)
         if not segments:
             result["error"] = {
                 "type": "SketchCreationFailed",
-                "message": "SOLIDWORKS did not create rectangle segments",
+                "message": "SOLIDWORKS did not create profile segments",
             }
             return result, feature
         result["plane"] = plane
         result["coordinate_system"] = "sketch-local"
         result["model_to_sketch_transform"] = transform_values
-        result["dimensions"] = {
-            "unit": "millimeter",
-            "width": width_mm,
-            "height": height_mm,
-            "center_x": center_x_mm,
-            "center_y": center_y_mm,
-        }
+        result["dimensions"] = dimensions
         result["sketch"] = {
             "name": str(_com_value(feature, "Name")),
             "type": "ProfileFeature",
@@ -256,11 +279,11 @@ def create_rectangle_sketch_windows_with_handle(
         result["sketch"]["constraint_status"] = int(
             _com_value(sketch, "GetConstrainedStatus")
         )
-        result["geometry_verification"] = _rectangle_verification(sketch, expected)
+        result["geometry_verification"] = verify_sketch(sketch)
         if not result["geometry_verification"]["passed"]:
             result["error"] = {
                 "type": "SketchVerificationFailed",
-                "message": "created rectangle did not match the requested local coordinates",
+                "message": "created profile did not match the requested local coordinates",
             }
             return result, feature
         result["ok"] = True
