@@ -284,6 +284,16 @@ sw-cli document diagnose --json
 
 ## 零件建模
 
+`feature cut-extrude SKETCH_ID --depth-mm 20`（a4 开发分支）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持贯穿、拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
+
+```powershell
+$hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
+sw-cli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
+sw-cli document measure --json
+```
+
+应在实体与轮廓/深度相交的零件中运行，而不是空文档；文档选择、lease 与更新戳守卫均适用。
+
 `part create-box` 是首个类型化建模操作。它会创建中心矩形草图并拉伸，重建和诊断结果，保存原生零件，再返回实体拓扑与近似轴对齐包围盒。该操作使用明确的 `.PRTDOT` 路径创建文档，而非调用交互式 `NewPart` 命令：`--template` 优先，其次是配置的默认模板，最后在已安装 SOLIDWORKS 根目录下进行确定性搜索。如果找不到可用模板，它会返回结构化错误，而不是等待隐藏的模板选择对话框。
 
 保存前，请求尺寸会以较小的冒烟测试容差与包围盒对比。CLI 中的尺寸明确采用毫米，内部转换为 SOLIDWORKS 系统单位。SOLIDWORKS 将 body box 定义为近似值，因此这项证据不能当作精密测量结果。

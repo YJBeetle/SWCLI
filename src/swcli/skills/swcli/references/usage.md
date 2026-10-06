@@ -124,6 +124,14 @@ lease. Totals sum bodies rather than unioning overlapping geometry, and area
 includes each body's contact/internal faces. It does not report real material
 mass; approximate boxes remain a different kind of evidence.
 
+Hosts advertising `feature.cut-extrude` accept a live sketch ID and positive
+`--depth-mm`, with the same normal/default and `--reverse` convention as bosses.
+It cuts all intersected solids and requires native-definition/rebuild checks
+plus measured volume reduction; this is blind depth, not through-all. It does
+not choose a body from GUI selection or roll back a failed partial feature.
+Create a profile that intersects existing solid material and verify the actual
+removed volume/shape against the task, not merely `ok: true`.
+
 ## Export and recover
 
 ```bash

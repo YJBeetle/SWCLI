@@ -71,7 +71,10 @@ it also applies to native Windows:
    origin planes, verify native radius/center and extrude them as separate
    bodies; observe a leased background part from another session and require
    the initial 100×50×20 body to measure 100000 mm³, 16000 mm² and the expected
-   centroid; save the generic modeled part under a new
+   centroid; cut a radius-4 circle through that body and compare removed volume
+   and final surface area to the analytic hole geometry; use a separate reversed
+   boss/cut part to verify the CLI's common sketch-normal direction convention;
+   save the generic modeled part under a new
    native filename, verify unchanged document/lease/sketch identities and
    rejection of an existing target without changing its hash, then close and
    reopen under an independent session to verify body count, volume, surface

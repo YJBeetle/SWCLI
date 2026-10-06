@@ -191,6 +191,19 @@ The adapter was verified against the installed SOLIDWORKS 2025 API help's array
 layout and unit/coordinate semantics. See
 [body mass properties](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IBody2~GetMassProperties.html).
 
+`feature.cut-extrude` adds a one-ended blind cut through a registered,
+unabsorbed profile. It explicitly affects all intersected part solids, without
+an implicit selected-body scope. The public normal/reverse convention matches
+boss extrusion; `FeatureCut4`'s native default is opposite the sketch normal, so
+its direction flag and reported native `ReverseDirection` are mapped explicitly.
+The adapter checks native depth/end condition and rebuild diagnostics, and
+uses before/after `document.measure` evidence to require a positive volume
+reduction above an absolute/relative numerical floor. It does not infer hole
+design intent, allow an unmeasurable/empty result, or undo partial mutations.
+The scalar signature, body scope and direction were verified from the installed
+SOLIDWORKS 2025 official API help. See
+[native cut extrusion](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~FeatureCut4.html).
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli

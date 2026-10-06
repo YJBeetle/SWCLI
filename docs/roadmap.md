@@ -17,6 +17,8 @@ Implemented and covered by portable tests and native Windows smoke:
   rejection and close/reopen verification;
 - read-only native solid-body volume, area and volume-weighted centroid,
   explicitly scoped to body sums rather than a geometric union or material mass;
+- sketch-ID-based blind cut extrusion with explicit all-solid scope, common
+  normal/reverse direction and native/volume-removal verification;
 - product-facing skill and guide packaged with SWCLI, with an installed-wheel
   resource/Schema gate.
 
@@ -27,10 +29,10 @@ These development features are not in the published v0.1.0a3 wheel.
 
 ## Next modeling increments
 
-1. Add sketch-based material removal and verify native end condition/direction,
-   model diagnostics and actual geometric change.
-2. Add driving dimensions/relations and supported feature edits, so the basic
+1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
+2. Extend profiles/end conditions and selected-body/face support only with
+   explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
 portable failure tests, real Windows proof and the appropriate Wine gate.

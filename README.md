@@ -522,6 +522,27 @@ back on failure. This command is not in the published `v0.1.0a3` wheel.
 
 ## Part modeling
 
+`feature cut-extrude SKETCH_ID --depth-mm 20` (a4 development) removes material
+inside an unused 2D profile with a one-direction blind cut. Like `feature extrude`,
+the CLI's default direction is **along the sketch normal**; `--reverse` means
+against it. The adapter accounts for SOLIDWORKS's opposite native cut default.
+The cut affects all intersected solid bodies; it does not infer a selected-body
+scope or support through-all/draft/thin/sheet-metal-normal options. It rebuilds,
+checks native depth/direction/end condition, and requires a measurable decrease
+in summed solid volume (above `max(1e-6 mm³, prior volume × 1e-12)`). A part with
+no measurable solids, or a cut leaving no measurable solids, cannot pass this
+initial verification contract. It reports before/after geometry, not automatic
+rollback or a proof of the intended hole shape. A failed cut may already exist.
+
+```powershell
+$hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
+sw-cli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
+sw-cli document measure --json
+```
+
+Run this against a part whose solid intersects that profile/depth, not an empty
+document. All selected-document, lease and update-stamp guards apply.
+
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
 part, and returns body topology plus an axis-aligned approximate bounding box.
