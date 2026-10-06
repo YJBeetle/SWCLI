@@ -23,6 +23,11 @@ sw-cli daemon start --visible --json
 The default start requires an exclusive host; explicitly use `--attach-existing`
 only when sharing an existing interactive instance is intended. Attach mode
 does not create a host if none exists and does not take ownership of it.
+
+JSON stdout is UTF-8. When capturing native CLI output in Windows PowerShell
+5.1, set `[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)` before
+`ConvertFrom-Json`; its legacy decoder can corrupt Unicode or JSON delimiters.
+The public plate example scopes and restores this setting for its CLI calls.
 DockerSW starts its own service; do not launch a second Windows worker there.
 
 Use `--endpoint HOST:PORT` or `SWCLI_ENDPOINT` for another endpoint. The current

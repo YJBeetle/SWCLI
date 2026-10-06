@@ -560,6 +560,17 @@ daemon. The sketches are native and editable, but not dimension-driven or
 guaranteed fully constrained. This example is for a local Windows execution
 host, not a remote file-transfer or Docker launch script.
 
+SWCLI JSON stdout is UTF-8. In Windows PowerShell 5.1, set the native-pipeline
+decoder before piping CLI JSON into `ConvertFrom-Json`:
+
+```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+sw-cli document status --json | ConvertFrom-Json
+```
+
+The example scopes that setting to each CLI call and restores the caller's
+encoding, including on failure. PowerShell 7 normally already uses UTF-8.
+
 `feature cut-extrude SKETCH_ID --depth-mm 20` (a4 development) removes material
 inside an unused 2D profile with a one-direction blind cut. Like `feature extrude`,
 the CLI's default direction is **along the sketch normal**; `--reverse` means

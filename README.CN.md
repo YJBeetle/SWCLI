@@ -297,6 +297,15 @@ sw-cli document diagnose --json
 
 ## 零件建模
 
+SWCLI 的 JSON stdout 使用 UTF-8。Windows PowerShell 5.1 中，将 CLI JSON 交给 `ConvertFrom-Json` 前应设置原生命令管道的解码方式：
+
+```powershell
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+sw-cli document status --json | ConvertFrom-Json
+```
+
+案例会在每次 CLI 调用期间设置 UTF-8，并在成功或失败后恢复调用者原编码。PowerShell 7 通常已默认使用 UTF-8。
+
 [`examples/model-plate.ps1`](examples/model-plate.ps1) 是可读的 Windows 完整案例，
 只组合 typed CLI：创建 100×60×8 mm 四孔板（孔半径 4 mm），检查解析体积/表面积和重建诊断，
 保存新 SLDPRT、严格导出 STEP、渲染 BMP，并关闭重开验证几何。它需要运行中的 a4 daemon

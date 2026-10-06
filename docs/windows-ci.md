@@ -86,7 +86,9 @@ it also applies to native Windows:
    rejection of an existing target without changing its hash, then close and
    reopen under an independent session to verify body count, volume, surface
    area and diagnostics;
-9. run the public four-hole plate example using only typed CLI commands, verify
+9. run the public four-hole plate example using only typed CLI commands in a
+   Unicode output directory while forcing the caller's legacy CP936 encoding,
+   require the example to restore that encoding, verify
    analytic volume/area, native save/reopen, strict STEP export and BMP preview,
    and retain these additional generated artifacts under `plate-example`;
 10. close the model, externally terminate the daemon-owned SOLIDWORKS process,
@@ -103,6 +105,14 @@ it also applies to native Windows:
    including CLI/status subprocess overhead rather than counting polling sleeps;
    then upload the generated native part, render, export, JSON responses, and
    desktop/window diagnostics as evidence.
+
+The manual-start fixture temporarily disables the optional 3DEXPERIENCE
+Marketplace startup flag: it can block normal interactive startup while waiting
+for external services, independently of core CAD/COM operations. The helper
+restores the original default value and registry type in `finally`, or removes
+only a newly created empty fixture key. This is test isolation, not a SWCLI
+startup policy or proof that Marketplace works offline. Product attach mode
+does not change user add-in settings.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
