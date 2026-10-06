@@ -232,6 +232,11 @@ and can add request/replay metadata. Known nested structures are described;
 warning and native error details remain extensible. The validator is imported
 only when validation is requested, leaving help/version startup lightweight.
 
+Requests must encode as finite UTF-8 JSON before dispatch. Invalid text in a
+request ID is not echoed; errors use the safe `invalid-request` fallback instead.
+Wire `timeout_ms` rejects booleans and platform-timer overflow before a request
+can enter the COM queue, so an invalid wait cannot dispatch a mutation first.
+
 Adapter results must also serialize as finite UTF-8 JSON. NaN/Infinity,
 unsupported objects, cycles and unencodable native strings fail with
 `OperationResultInvalid` before socket delivery; Python's extended numeric
