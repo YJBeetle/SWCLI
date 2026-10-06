@@ -291,6 +291,19 @@ try {
                 [Math]::Abs($size.y - 50) -gt 0.1 -or [Math]::Abs($size.z - 20) -gt 0.1) {
                 throw "first extrusion did not produce the expected 100x50x20 body"
             }
+            $measured = Invoke-SwCliJson -Name "first-extrusion-measure" -Arguments @(
+                "--session", "measurement-observer", "document", "measure",
+                "--document", $emptyA.document.document_id, "--json"
+            )
+            if ($measured.metrics.solid_body_count -ne 1 -or
+                [Math]::Abs($measured.metrics.volume_mm3 - 100000) -gt 0.00001 -or
+                [Math]::Abs($measured.metrics.surface_area_mm2 - 16000) -gt 0.00001 -or
+                [Math]::Abs($measured.metrics.centroid_mm.x - 10) -gt 0.000001 -or
+                [Math]::Abs($measured.metrics.centroid_mm.y - 20) -gt 0.000001 -or
+                [Math]::Abs($measured.metrics.centroid_mm.z - 10) -gt 0.000001 -or
+                $measured.document.active -or $measured.document.current) {
+                throw "native measurement did not match the first 100x50x20 solid or changed the foreground"
+            }
         }
     }
     foreach ($plane in @("front", "top", "right")) {
@@ -319,6 +332,9 @@ try {
             throw "circle extrusion did not produce a verified unmerged native feature"
         }
     }
+    $genericMeasurement = Invoke-SwCliJson -Name "generic-model-measure" -Arguments @(
+        "document", "measure", "--document", $emptyA.document.document_id, "--json"
+    )
     Invoke-SwCliJson -Name "native-save-lease-renew" -Arguments @(
         "document", "lease", "renew", $sketchLease.lease.lease_id, "--json"
     ) | Out-Null
@@ -370,6 +386,15 @@ try {
     )
     if ($reopenedStructure.structure.bodies.count -ne $extrusion.bodies.count) {
         throw "native save/reopen changed the modeled solid body count"
+    }
+    $reopenedMeasurement = Invoke-SwCliJson -Name "generic-model-reopen-measure" -Arguments @(
+        "--session", "reopen-verifier", "document", "measure", "--json"
+    )
+    $volumeTolerance = [Math]::Max(0.00001, $genericMeasurement.metrics.volume_mm3 * 0.000000001)
+    $areaTolerance = [Math]::Max(0.00001, $genericMeasurement.metrics.surface_area_mm2 * 0.000000001)
+    if ([Math]::Abs($reopenedMeasurement.metrics.volume_mm3 - $genericMeasurement.metrics.volume_mm3) -gt $volumeTolerance -or
+        [Math]::Abs($reopenedMeasurement.metrics.surface_area_mm2 - $genericMeasurement.metrics.surface_area_mm2) -gt $areaTolerance) {
+        throw "native save/reopen changed the measured solid volume or surface area"
     }
     $reopenedDiagnosis = Invoke-SwCliJson -Name "generic-model-reopen-diagnose" -Arguments @(
         "--session", "reopen-verifier", "document", "diagnose", "--json"
