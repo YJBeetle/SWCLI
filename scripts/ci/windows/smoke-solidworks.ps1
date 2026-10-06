@@ -625,21 +625,10 @@ try {
         throw "attach-existing without a host created an owned instance or did not fail explicitly"
     }
 
-    $manualHost = Start-Process -FilePath $doctor.registration.local_server -PassThru
-    $manualReady = $false
-    $wait = [Diagnostics.Stopwatch]::StartNew()
-    do {
-        Start-Sleep -Seconds 1
-        $manualDoctor = Invoke-SwCliJson -Name "doctor-manual-host" -Arguments @("doctor", "--json")
-        if ($manualDoctor.com.attached -and $manualDoctor.com.visible) {
-            $manualReady = $true
-            break
-        }
-    } while ($wait.Elapsed.TotalSeconds -lt 120)
-    if (-not $manualReady -or -not $manualDoctor.com.visible) {
-        throw "manually launched SOLIDWORKS did not expose a visible interactive COM host"
-    }
-    $manualPid = [int]$manualDoctor.com.process_id
+    . (Join-Path $PSScriptRoot "start-manual-host.ps1")
+    $manual = Start-ManualTestHost -FilePath $doctor.registration.local_server
+    $manualHost = $manual.process
+    $manualPid = $manual.process_id
     $attachedStarted = $true
     $attached = Invoke-SwCliJson -Name "attach-manual-host" -Arguments @("daemon", "start", "--attach-existing", "--json")
     $attachedHost = $attached.result.health.host
