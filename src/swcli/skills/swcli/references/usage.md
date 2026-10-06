@@ -109,6 +109,16 @@ file-size/native-state checks are not a full integrity proof; reopen and verify
 the geometry. Saving is allowed only when the task authorizes source changes.
 Use only the save-as/feature operations the host advertises.
 
+If `sketch.inspect` is advertised, use `sw-cli sketch inspect SKETCH_ID --json`
+to re-observe current native geometry, constraint code and absorption/owner
+state, even after the sketch becomes a feature's profile. This is read-only and
+does not activate or edit the document. Coordinates/radii are sketch-local mm;
+transform translation remains native meters. Lines/arcs are decoded, other
+types have null geometry and an explicit incomplete warning. Respect the
+segment limit and never use these array indices as stable entity references.
+The constraint code is `swConstrainedStatus_e`, not a promise that the sketch
+is dimensioned or design intent has been verified.
+
 Inspect/diagnose have additional structure and feature evidence; status reports
 document state, not an invented `export_ready` flag. `modified` means the native
 save flag is set; `needs_rebuild` is a separate native state. Neither should be

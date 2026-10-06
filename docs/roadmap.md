@@ -19,6 +19,8 @@ Implemented and covered by portable tests and native Windows smoke:
   explicitly scoped to body sums rather than a geometric union or material mass;
 - sketch-ID-based blind cut extrusion with explicit all-solid scope, common
   normal/reverse direction and native/volume-removal verification;
+- read-only sketch-ID observation including native constraint/absorption state
+  and line/arc geometry, with explicit incomplete coverage for other types;
 - product-facing skill and guide packaged with SWCLI, with an installed-wheel
   resource/Schema gate.
 

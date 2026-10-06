@@ -267,6 +267,17 @@ sw-cli document close --discard
 
 `sketch circle --plane front --radius-mm 8` 使用与矩形相同的文档守卫和关闭编辑生命周期，新建完整圆草图。可选的 `--center-x-mm`、`--center-y-mm` 默认为草图局部坐标中的零；`radius` 是半径，不是直径。验证会读取最终原生圆弧的完整圆标志、半径与圆心，拒绝局部圆弧或多余轮廓，并返回可供拉伸的文档内草图 ID。它不添加驱动尺寸，也不保证完全定义。已发布的 `v0.1.0a3` wheel 不包含此命令。
 
+`sw-cli sketch inspect SKETCH_ID --json` 可在创建后重新读取登记的二维草图，也可观察
+已经被拉伸或切除吸收的草图。返回当前原生约束状态枚举值 `swConstrainedStatus_e`、
+编辑/吸收状态和所属特征，直线端点、圆弧/完整圆的圆心半径采用草图局部毫米坐标，
+构造线同样返回并标记。原生坐标变换中的平移分量仍为米。
+其他类型只返回类型元数据、`geometry: null`，同时明确报告 `geometry_complete: false`
+和 warning；这不是完整几何或全约束认证。`--max-segments` 默认 1000，超限失败而非悄悄截断。
+
+这是只读命令，不选取、不进入编辑、不重建/保存/激活文档，不要求写入 lease，支持文档选择和
+更新戳检查，保持 session current 和前台不变。只能使用本 worker 登记且仍有效的草图 ID，
+不能用名称或序号代替；关闭重开后原 ID 失效。此命令不在已发布的 `v0.1.0a3` wheel 中。
+
 ## 特征操作（a4 开发分支）
 
 ```powershell

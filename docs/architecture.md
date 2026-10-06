@@ -353,12 +353,20 @@ batch policy belong to the consuming CI job, which composes explicit typed
 open, export, and close operations. SWCLI does not ship a policy-specific
 manifest exporter.
 
-Typed modeling operations own their complete verification boundary. A create
-operation is successful only after feature creation, rebuild, feature-level
-diagnosis, body inspection and geometry smoke verification, and native save all
-succeed. Approximate SOLIDWORKS body boxes may reject obviously wrong geometry
+Typed modeling operations own their declared verification boundary. The
+`part.create-box` convenience operation succeeds only after creation, rebuild,
+diagnosis, body/geometry checks and native save; `document.create`, sketch and
+feature primitives do not implicitly save. Approximate body boxes may reject obviously wrong geometry
 but are not precision metrology. Public dimensions carry explicit units; the
 Windows adapter alone converts them to API meters.
+
+`sketch.inspect` is a selected-document read without activation or a write lease.
+It validates the registered feature's exact native identity and permits absorbed
+profiles, unlike feature creation. It reports native constraint/edit/owner state
+and local line/arc geometry including construction segments. Unsupported types
+are explicitly incomplete, not guessed. Native read failures and segment limits
+fail rather than disguising missing evidence as complete geometry. Segment
+indices are observation ordering, not persistent entity references.
 
 The late-bound Windows adapter may choose a simpler compatible API overload
 when pywin32 cannot marshal optional COM interface parameters. Such fallbacks

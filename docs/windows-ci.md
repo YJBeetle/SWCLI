@@ -72,7 +72,10 @@ it also applies to native Windows:
    bodies; observe a leased background part from another session and require
    the initial 100×50×20 body to measure 100000 mm³, 16000 mm² and the expected
    centroid; cut a radius-4 circle through that body and compare removed volume
-   and final surface area to the analytic hole geometry; use a separate reversed
+   and final surface area to the analytic hole geometry; observe the leased
+   background circle from a read-only session before and after absorption,
+   checking native geometry/state and exact cut owner without changing foreground;
+   use a separate reversed
    boss/cut part to verify the CLI's common sketch-normal direction convention;
    save the generic modeled part under a new
    native filename, verify unchanged document/lease/sketch identities and

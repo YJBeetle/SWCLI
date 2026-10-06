@@ -496,6 +496,21 @@ profile segments, and returns a document-scoped sketch ID for extrusion. It
 does not add driving dimensions or guarantee full definition. This command is
 not in the published `v0.1.0a3` wheel.
 
+`sketch inspect SKETCH_ID --json` reads a registered 2D sketch without entering
+edit mode, selecting geometry, rebuilding, saving or activating its document.
+It works even if the sketch was subsequently absorbed by a boss/cut and reports
+the current native `swConstrainedStatus_e` code, editing/absorption state and
+owner name/type. Lines and arcs/full circles include native sketch-local
+millimeter coordinates/radii; construction segments are included and flagged.
+The native model-to-sketch transform still uses meters for translation.
+Other segment types retain type metadata but have null geometry, with
+`geometry_complete: false` and a warning. This is an observation, not a geometry
+or full-definition certification. `--max-segments` (default 1000) rejects an
+oversized inspection instead of silently returning a partial list. It accepts
+document/stamp selectors but not a write lease, and leaves session current and
+foreground unchanged. It only accepts live IDs registered by this worker, not
+names, segment indices, or expired IDs from a reopened file.
+
 ## Feature operations (a4 development branch)
 
 ```powershell
