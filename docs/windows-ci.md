@@ -62,7 +62,9 @@ it also applies to native Windows:
    deterministic render, and verified STEP export;
 8. verify capabilities, document list/use/rebuild/save, lease acquire/status/
    renew/release and saved-document reopening, with worker-side result Schema
-   validation enabled for every typed operation; create distinct unsaved parts
+   validation enabled for every typed operation; send malformed wire requests
+   and require unchanged host PID/documents; reject invalid restart waits
+   without stopping or replacing the connected SOLIDWORKS PID; create distinct unsaved parts
    and make three verified rectangle sketches on a background part, checking
    lease/stale-stamp rejection, sketch IDs, closed edit state and restoration of
    the foreground/current document; extrude all three sketches with native
@@ -92,6 +94,13 @@ it also applies to native Windows:
    and retain `HostDisconnected` without silently restarting on a business
    request;
 11. require graceful daemon shutdown to succeed with the host already absent,
+   reject `--attach-existing` when no host exists without creating SOLIDWORKS,
+   then manually launch a visible host and explicitly attach. Verify that daemon
+   stop preserves that host's process, ownership and visibility; attach again,
+   terminate only this fixture host, and require the same truthful disconnected
+   state, blocked business request and graceful stop as for an owned host;
+12. allow ten seconds of elapsed wall time for idle disconnect detection,
+   including CLI/status subprocess overhead rather than counting polling sleeps;
    then upload the generated native part, render, export, JSON responses, and
    desktop/window diagnostics as evidence.
 
