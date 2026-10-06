@@ -606,6 +606,10 @@ Installed resources are available through `importlib.resources.files("swcli")`
 
 ## Development
 
+The source distribution includes both READMEs, architecture/roadmap/release
+documents, executable examples and verification scripts. Wheels contain the
+runtime, schemas and portable product skill, not the checkout's CI/examples.
+
 See the [product roadmap](docs/roadmap.md) for completed development capabilities,
 remaining modeling/protocol work and the release proof boundaries.
 

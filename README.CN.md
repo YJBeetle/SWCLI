@@ -330,6 +330,9 @@ sw-cli document measure --json
 
 ## 开发
 
+源码发行包包含中英文 README、架构/路线图/发行说明、可执行案例及验证脚本。
+wheel 只安装运行代码、Schema 和可移植产品 skill，不安装仓库的 CI/案例文件。
+
 已完成的开发能力、后续建模与协议工作以及发布验收边界见[产品路线图](docs/roadmap.md)。
 
 ```bash
