@@ -149,6 +149,13 @@ geometry. Failure does not imply rollback; cleanup warnings report an edit that
 could not be closed. Driving dimensions and full constraint solving are not yet
 part of this command.
 
+`sketch.circle` uses the same lifecycle to create a full circle with explicit
+millimeter radius and sketch-local center. Post-edit verification reads native
+`ISketchArc::IsCircle`, `GetRadius` and `GetCenterPoint2`, requiring exactly one
+full-circle profile. It does not add driving dimensions or persistent entity
+references. See [native circle creation](https://help.solidworks.com/2018/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketchManager~CreateCircleByRadius.html)
+and [full-circle detection](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchArc~IsCircle.html).
+
 `feature.extrude` resolves a document-scoped sketch handle, verifies native
 identity and `GetOwnerFeature` before selecting it, and creates a single-ended
 blind boss with explicit millimeter depth, reverse and merge options. Absorbed

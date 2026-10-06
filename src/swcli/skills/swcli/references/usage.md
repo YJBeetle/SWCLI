@@ -86,7 +86,11 @@ driving dimensions or guarantee full definition. Preserve its sketch ID for
 later supported feature commands; do not substitute a feature name. Hosts
 advertising `feature.extrude` accept `sw-cli feature extrude SKETCH_ID
 --depth-mm 20 --json`; it requires an unabsorbed 2D sketch in the selected part.
-`--reverse` and `--no-merge` are explicit optional choices. A new
+`--reverse` and `--no-merge` are explicit optional choices. Hosts advertising
+`sketch.circle` accept `sw-cli sketch circle --plane front --radius-mm 8 --json`
+with optional local center coordinates. Radius means radius, not diameter;
+the closed sketch result verifies a single complete native circle. Its handle
+can also be passed to `feature extrude`. A new
 document is unsaved: do not assume `document save` names it or that export saves
 the native source. Hosts advertising `document.save-as` accept:
 

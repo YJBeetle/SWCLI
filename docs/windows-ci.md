@@ -64,7 +64,9 @@ it also applies to native Windows:
    lease/stale-stamp rejection, sketch IDs, closed edit state and restoration of
    the foreground/current document; extrude all three sketches with native
    depth/direction/merge checks, verify the first body dimensions, and reject
-   reuse of an absorbed sketch; save the generic modeled part under a new
+   reuse of an absorbed sketch; create full circles on all three background
+   origin planes, verify native radius/center and extrude them as separate
+   bodies; save the generic modeled part under a new
    native filename, verify unchanged document/lease/sketch identities and
    rejection of an existing target without changing its hash, then close and
    reopen under an independent session to verify body count and diagnostics;

@@ -46,8 +46,8 @@ work. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. The development branch for `0.1.0a4`
 also advertises `operation_result_schemas` and validates worker results before
 returning them; this is not included in the pinned `v0.1.0a3` wheel below.
-The same development branch adds unsaved part creation and verified rectangle
-sketches, blind solid extrusion and new-filename native part save-as.
+The same development branch adds unsaved part creation, verified rectangle and
+circle sketches, blind solid extrusion and new-filename native part save-as.
 
 ## Installation
 
@@ -475,6 +475,15 @@ activating a background document does not change the session current. On
 failure, cleanup attempts to exit only the edit started by this operation;
 partial geometry is not rolled back, and cleanup failures produce warnings.
 This command is not included in the published `v0.1.0a3` wheel.
+
+`sketch circle --plane front --radius-mm 8` creates a fresh full-circle sketch
+using the same document guards and closed-edit lifecycle as rectangles.
+Optional `--center-x-mm` and `--center-y-mm` default to zero in sketch-local
+coordinates. The radius is not a diameter. Verification reads the final native
+arc's complete-circle flag, radius and center, rejects partial arcs or extra
+profile segments, and returns a document-scoped sketch ID for extrusion. It
+does not add driving dimensions or guarantee full definition. This command is
+not in the published `v0.1.0a3` wheel.
 
 ## Feature operations (a4 development branch)
 
