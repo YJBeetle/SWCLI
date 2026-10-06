@@ -309,6 +309,19 @@ try {
                 "--center-x-mm", "10", "--center-y-mm", "20",
                 "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
             )
+            $sketchObserved = Invoke-SwCliJson -Name "cut-profile-inspect" -Arguments @(
+                "--session", "sketch-observer", "sketch", "inspect", $hole.sketch.sketch_id,
+                "--document", $emptyA.document.document_id, "--json"
+            )
+            if (-not $sketchObserved.geometry_complete -or $sketchObserved.sketch.absorbed -or
+                $sketchObserved.editing -or $sketchObserved.profile_segment_count -ne 1 -or
+                -not $sketchObserved.segments[0].geometry.complete_circle -or
+                [Math]::Abs($sketchObserved.segments[0].geometry.radius_mm - 4) -gt 0.000001 -or
+                $sketchObserved.sketch.constraint_status -ne $hole.sketch.constraint_status -or
+                $sketchObserved.document.update_stamp -ne $hole.document.update_stamp -or
+                $sketchObserved.document.active -or $sketchObserved.document.current) {
+                throw "background circle observation returned incorrect geometry/state or changed foreground"
+            }
             $cut = Invoke-SwCliJson -Name "feature-cut-extrude" -Arguments @(
                 "feature", "cut-extrude", $hole.sketch.sketch_id, "--depth-mm", "20",
                 "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
@@ -320,6 +333,16 @@ try {
                 [Math]::Abs($cut.measurement_after.surface_area_mm2 - (16000 + 128 * [Math]::PI)) -gt 0.00001 -or
                 $cut.document.active -or $cut.document.current) {
                 throw "blind cut failed native direction, hole geometry or foreground verification"
+            }
+            $absorbed = Invoke-SwCliJson -Name "cut-profile-inspect-absorbed" -Arguments @(
+                "--session", "sketch-observer", "sketch", "inspect", $hole.sketch.sketch_id,
+                "--document", $emptyA.document.document_id, "--json"
+            )
+            if (-not $absorbed.sketch.absorbed -or $absorbed.sketch.owner.name -ne $cut.feature.name -or
+                $absorbed.document.update_stamp -ne $cut.document.update_stamp -or
+                -not $absorbed.geometry_complete -or $absorbed.editing -or
+                $absorbed.document.active -or $absorbed.document.current) {
+                throw "absorbed circle observation did not preserve exact sketch/owner identity"
             }
         }
     }
