@@ -136,7 +136,20 @@ current handle; selectors and leases on other documents are not involved.
 Missing templates and null COM returns fail without changing current. Once
 `NewDocument` has produced a document, later failure does not imply rollback;
 the acquired object remains available for registration and explicit cleanup.
-General sketch/extrusion operations, native save-as and the complete
+`sketch.rectangle` adds a self-contained fresh 2D sketch to a selected part.
+Origin-plane resolution uses reference-plane transforms rather than localized
+names; dimensions are millimeters in sketch-local coordinates. The worker
+registers the exact feature using native `IsSame` identity and returns a
+document-scoped, worker-local `s-xxxxxx` handle. It is not a persistent reference
+across reopening or topology changes. Closing the document clears these handles.
+The operation checks update stamps and leases before COM mutation and restores
+the former foreground document without changing session current. It rejects an
+existing sketch edit and exits its own edit before verifying final native edge
+geometry. Failure does not imply rollback; cleanup warnings report an edit that
+could not be closed. Driving dimensions and full constraint solving are not yet
+part of this command.
+
+General sketch editing, extrusion, native save-as and the complete
 create/model/save/reopen verification loop are still pending.
 
 ## Compatibility policy

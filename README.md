@@ -40,12 +40,14 @@ rebuild diagnostics, deterministic BMP rendering, verified STEP/GLB/PDF/DWG
 export, and a first typed part-modeling operation. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
-The modeling vocabulary is intentionally still small. General sketches,
+The modeling vocabulary is intentionally still small. General sketch editing,
 features, stable entity references, transactions, SDK, and MCP remain future
 work. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. The development branch for `0.1.0a4`
 also advertises `operation_result_schemas` and validates worker results before
 returning them; this is not included in the pinned `v0.1.0a3` wheel below.
+The same development branch adds unsaved part creation and verified rectangle
+sketches; extrusion and native save-as are still pending.
 
 ## Installation
 
@@ -255,7 +257,7 @@ and scope. The cache is bounded and is lost when the daemon restarts, so it
 protects immediate transport retries rather than providing durable exactly-once
 execution across daemon failures.
 
-All typed `sw-cli` document and part commands use this service. The
+All typed `sw-cli` document, sketch and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
 error and never falls back to a second direct-COM execution mode. No endpoint,
@@ -319,7 +321,7 @@ sw-cli document close --discard
 ```
 
 This foundation for general modeling is not in the published `v0.1.0a3` wheel.
-Native save-as, general sketch and extrusion commands are still forthcoming;
+Native save-as, general sketch editing and extrusion commands are still forthcoming;
 `document save` only saves an already named document. If creation succeeds but
 a later check fails, the partial document is not rolled back or silently closed;
 an acquired handle is registered when readable, allowing explicit inspection
@@ -432,6 +434,36 @@ in the destination directory and replace the requested output only after file
 verification and any strict checks pass. This core operation selects format
 only from the explicit output extension and does not interpret source naming
 conventions.
+
+## Sketch operations (a4 development branch)
+
+```powershell
+sw-cli document create --json
+sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json
+sw-cli document inspect --detail structure --json
+sw-cli document close --discard
+```
+
+`sketch rectangle` creates a fresh 2D sketch on the `front`, `top` or `right`
+origin plane of a part, without relying on translated plane names. Width,
+height and the optional `--center-x-mm` / `--center-y-mm` (default zero) use
+millimeters in **sketch-local coordinates**. The response includes the native
+`model_to_sketch_transform` (translation components use meters), the verified
+four-edge bounds, native constraint status and a short `s-ab12cd` sketch ID.
+IDs identify exact sketch feature handles within their document and worker;
+they expire on document close or worker restart and are not persistent
+references across saving, reopening or topology changes.
+
+The command exits sketch editing before verifying the final geometry. It does
+not add driving dimensions or promise a fully defined sketch. An existing
+sketch edit is rejected rather than taken over. `--document`, `--lease` and
+`--if-update-stamp` use the same guards as document writes; temporarily
+activating a background document does not change the session current. On
+failure, cleanup attempts to exit only the edit started by this operation;
+partial geometry is not rolled back, and cleanup failures produce warnings.
+This command is not included in the published `v0.1.0a3` wheel.
+
+## Part modeling
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native
