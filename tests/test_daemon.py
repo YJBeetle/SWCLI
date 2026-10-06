@@ -891,6 +891,7 @@ class DaemonProtocolTests(unittest.TestCase):
 
         self.assertTrue(is_local_daemon_unreachable_error(error))
 
+    @mock.patch("swcli.daemon.main.sys.platform", "win32")
     @mock.patch("swcli.daemon.main.start_daemon")
     @mock.patch("swcli.daemon.main.call_daemon")
     def test_restart_waits_for_shutdown_then_starts_explicit_host(
@@ -918,6 +919,7 @@ class DaemonProtocolTests(unittest.TestCase):
             attach_existing=True,
         )
 
+    @mock.patch("swcli.daemon.main.sys.platform", "win32")
     @mock.patch("swcli.daemon.main.start_daemon")
     @mock.patch(
         "swcli.daemon.main.call_daemon",
@@ -932,6 +934,54 @@ class DaemonProtocolTests(unittest.TestCase):
 
         self.assertTrue(result["success"])
         start.assert_called_once()
+
+    def test_restart_rejects_unstartable_host_before_sending_shutdown(self):
+        for platform, endpoint, timeout, code in (
+            ("linux", "127.0.0.1:18495", 120, "UnsupportedPlatform"),
+            ("win32", "cad.example:18495", 120, "NonLocalEndpoint"),
+            ("win32", "127.0.0.1:wrong", 120, "InvalidEndpoint"),
+            ("win32", "127.0.0.1:18495", float("nan"), "InvalidTimeout"),
+            ("win32", "127.0.0.1:18495", float("inf"), "InvalidTimeout"),
+            ("win32", "127.0.0.1:18495", 0, "InvalidTimeout"),
+        ):
+            with (
+                self.subTest(code=code),
+                mock.patch("swcli.daemon.main.sys.platform", platform),
+                mock.patch("swcli.daemon.main.call_daemon") as call,
+                mock.patch("swcli.daemon.main.subprocess.Popen") as spawn,
+            ):
+                result = restart_daemon(
+                    endpoint=endpoint, startup_timeout_seconds=timeout
+                )
+                self.assertFalse(result["success"])
+                self.assertEqual(result["error"]["code"], code)
+                call.assert_not_called()
+                spawn.assert_not_called()
+
+    def test_invalid_startup_wait_does_not_bind_server_or_spawn_worker(self):
+        from swcli.cli import build_parser
+        from swcli.daemon import main as lifecycle
+
+        args = build_parser().parse_args(
+            ["daemon", "serve", "--startup-timeout", "nan"]
+        )
+        with (
+            mock.patch.object(lifecycle, "SwclidServer") as bind,
+            mock.patch.object(lifecycle, "WorkerManager") as worker,
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            self.assertEqual(lifecycle.run(args), 1)
+            self.assertEqual(
+                json.loads(output.getvalue())["error"]["code"], "InvalidTimeout"
+            )
+            bind.assert_not_called()
+            worker.assert_not_called()
+        with (
+            mock.patch.object(server.WorkerManager, "_start_worker") as start,
+            self.assertRaises(ValueError),
+        ):
+            server.WorkerManager(startup_timeout_seconds=float("inf"))
+        start.assert_not_called()
 
     @mock.patch("swcli.daemon.main._terminate_spawned_daemon")
     @mock.patch("swcli.daemon.main.subprocess.Popen")
@@ -1575,10 +1625,22 @@ class DaemonProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "between 1 and 65535"):
             client.parse_endpoint("127.0.0.1:70000")
 
+    def test_client_rejects_invalid_waits_before_opening_any_connection(self):
+        for value in (0, -1, True, float("nan"), float("inf"), 1e308, 10**1000):
+            for field in ("timeout_seconds", "connect_timeout_seconds"):
+                with (
+                    self.subTest(field=field, value=value),
+                    mock.patch.object(client.socket, "create_connection") as connect,
+                ):
+                    with self.assertRaisesRegex(ValueError, "positive, finite"):
+                        client.call_daemon("daemon.health", **{field: value})
+                    connect.assert_not_called()
+
     def test_non_loopback_daemon_bind_requires_explicit_opt_in(self):
         for host in ("0.0.0.0", "192.168.1.10", "cad-host.local"):
-            with self.subTest(host=host), self.assertRaisesRegex(
-                SystemExit, "--allow-remote"
+            with (
+                self.subTest(host=host),
+                self.assertRaisesRegex(SystemExit, "--allow-remote"),
             ):
                 require_remote_bind_opt_in(host, allow_remote=False)
 

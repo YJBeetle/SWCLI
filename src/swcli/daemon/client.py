@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from .. import PROTOCOL_VERSION
+from .timeouts import validate_timeout
 
 
 DEFAULT_ENDPOINT = "127.0.0.1:18495"
@@ -39,6 +40,14 @@ def call_daemon(
     lease_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit one typed operation to swclid and return its protocol response."""
+
+    timeout_seconds = validate_timeout(
+        timeout_seconds, name="request timeout", margin=10
+    )
+    if connect_timeout_seconds is not None:
+        connect_timeout_seconds = validate_timeout(
+            connect_timeout_seconds, name="connection timeout"
+        )
 
     selected_endpoint = endpoint or os.environ.get(
         "SWCLI_ENDPOINT", DEFAULT_ENDPOINT

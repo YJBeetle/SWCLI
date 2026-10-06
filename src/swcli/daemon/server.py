@@ -25,6 +25,7 @@ from .operations import (
     UPDATE_STAMP_OPERATIONS,
     execute_operation,
 )
+from .timeouts import validate_timeout
 
 
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
@@ -420,7 +421,9 @@ class WorkerManager:
         startup_reporter: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> None:
         self.visible = visible
-        self.startup_timeout_seconds = startup_timeout_seconds
+        self.startup_timeout_seconds = validate_timeout(
+            startup_timeout_seconds, name="startup timeout", margin=15
+        )
         self.host_platform = host_platform
         self.attach_existing = attach_existing
         self.startup_reporter = startup_reporter

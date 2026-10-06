@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional, Sequence
 
 from .client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
 from .server import SwclidServer, WorkerManager, WorkerStartupError
+from .timeouts import validate_timeout
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -257,6 +258,32 @@ def _terminate_spawned_daemon(
     return "; ".join(errors) or None
 
 
+def _startup_preflight(
+    endpoint: str, startup_timeout_seconds: float
+) -> Optional[Dict[str, Any]]:
+    """Check whether the requested new host can start before stopping an old one."""
+    if sys.platform != "win32":
+        return _failure(
+            "UnsupportedPlatform",
+            "daemon startup requires native Windows or Windows Python under Wine",
+        )
+    try:
+        parse_endpoint(endpoint)
+        local = is_local_endpoint(endpoint)
+    except (TypeError, ValueError) as exc:
+        return _failure("InvalidEndpoint", str(exc))
+    if not local:
+        return _failure(
+            "NonLocalEndpoint",
+            "daemon startup is limited to localhost endpoints",
+        )
+    try:
+        validate_timeout(startup_timeout_seconds, name="startup timeout", margin=15)
+    except ValueError as exc:
+        return _failure("InvalidTimeout", str(exc))
+    return None
+
+
 def start_daemon(
     *,
     endpoint: str = DEFAULT_ENDPOINT,
@@ -265,19 +292,9 @@ def start_daemon(
     attach_existing: bool = False,
 ) -> Dict[str, Any]:
     """Idempotently start a detached local daemon and wait for readiness."""
-
-    if sys.platform != "win32":
-        return _failure(
-            "UnsupportedPlatform",
-            "daemon startup requires native Windows or Windows Python under Wine",
-        )
-    if not is_local_endpoint(endpoint):
-        return _failure(
-            "NonLocalEndpoint",
-            "daemon startup is limited to localhost endpoints",
-        )
-    if startup_timeout_seconds <= 0:
-        return _failure("InvalidTimeout", "startup timeout must be positive")
+    failure = _startup_preflight(endpoint, startup_timeout_seconds)
+    if failure is not None:
+        return failure
 
     try:
         response = call_daemon(
@@ -413,6 +430,10 @@ def restart_daemon(
 ) -> Dict[str, Any]:
     """Stop a reachable daemon, then explicitly start a fresh host session."""
 
+    failure = _startup_preflight(endpoint, startup_timeout_seconds)
+    if failure is not None:
+        return failure
+
     try:
         stopped = call_daemon(
             "daemon.shutdown",
@@ -462,6 +483,20 @@ def restart_daemon(
 def run(args: argparse.Namespace) -> int:
     command = args.daemon_command
     if command == "serve":
+        try:
+            validate_timeout(args.startup_timeout, name="startup timeout", margin=15)
+        except ValueError as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "action": "daemon.serve",
+                        "error": {"code": "InvalidTimeout", "message": str(exc)},
+                    }
+                ),
+                flush=True,
+            )
+            return 1
         if not 1 <= args.port <= 65535:
             raise SystemExit("sw-cli daemon serve: port must be between 1 and 65535")
         require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote)
