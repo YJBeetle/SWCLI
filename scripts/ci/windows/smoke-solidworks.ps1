@@ -213,6 +213,19 @@ try {
 
     Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
 
+    $beforeInvalidRestart = Invoke-SwCliJson -Name "status-before-invalid-restart" -Arguments @("daemon", "status", "--json")
+    $invalidRestart = Invoke-SwCliJson -Name "invalid-restart-timeout" -AllowFailure -Arguments @(
+        "daemon", "restart", "--startup-timeout", "nan", "--json"
+    )
+    if ($invalidRestart.success -or $invalidRestart.error.code -ne "InvalidTimeout") {
+        throw "invalid restart timeout was not rejected before host shutdown"
+    }
+    $afterInvalidRestart = Invoke-SwCliJson -Name "status-after-invalid-restart" -Arguments @("daemon", "status", "--json")
+    if (-not $afterInvalidRestart.result.host_connected -or
+        $afterInvalidRestart.result.host.process_id -ne $beforeInvalidRestart.result.host.process_id) {
+        throw "invalid restart parameters stopped or replaced the running SOLIDWORKS host"
+    }
+
     $emptyA = Invoke-SwCliJson -Name "document-create-a" -Arguments @("document", "create", "--type", "part", "--json")
     $emptyB = Invoke-SwCliJson -Name "document-create-b" -Arguments @("document", "create", "--json")
     if (-not $emptyA.created -or -not $emptyB.created -or
