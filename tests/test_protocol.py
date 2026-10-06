@@ -20,6 +20,24 @@ class ProtocolSchemaTests(unittest.TestCase):
         self.assertTrue(OPERATION_CATALOG["document.export"].temporary_activation)
         self.assertFalse(OPERATION_CATALOG["document.save"].temporary_activation)
         self.assertIsNone(OPERATION_CATALOG["daemon.health"].handler)
+        self.assertTrue(OPERATION_CATALOG["sketch.rectangle"].selected_document)
+        self.assertTrue(OPERATION_CATALOG["sketch.rectangle"].lease_guarded)
+        self.assertTrue(OPERATION_CATALOG["sketch.rectangle"].temporary_activation)
+
+    def test_rectangle_parameters_reject_missing_plane_and_nonfinite_geometry(self):
+        valid = {"plane": "front", "width_mm": 100, "height_mm": 50}
+        validate_operation_request("sketch.rectangle", valid)
+        for changed in (
+            {"plane": "other"},
+            {"width_mm": 0},
+            {"center_x_mm": float("nan")},
+        ):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                validate_operation_request("sketch.rectangle", {**valid, **changed})
+        with self.assertRaises(ValueError):
+            validate_operation_request(
+                "sketch.rectangle", {"width_mm": 100, "height_mm": 50}
+            )
 
     def test_document_create_rejects_unsupported_types_and_target_context(self):
         validate_operation_request("document.create", {})

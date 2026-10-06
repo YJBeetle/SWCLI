@@ -201,6 +201,30 @@ class CliTests(unittest.TestCase):
     def test_all_typed_commands_map_to_daemon_operations(self):
         cases = (
             (
+                [
+                    "sketch",
+                    "rectangle",
+                    "--plane",
+                    "top",
+                    "--width-mm",
+                    "100",
+                    "--height-mm",
+                    "50",
+                    "--center-x-mm",
+                    "10",
+                    "--json",
+                ],
+                "sketch.rectangle",
+                {
+                    "plane": "top",
+                    "width_mm": 100.0,
+                    "height_mm": 50.0,
+                    "center_x_mm": 10.0,
+                    "center_y_mm": 0.0,
+                },
+                None,
+            ),
+            (
                 ["document", "create", "--template", "Part.prtdot", "--json"],
                 "document.create",
                 {"type": "part", "template": "Part.prtdot"},
@@ -327,6 +351,47 @@ class CliTests(unittest.TestCase):
                 "active",
                 None,
                 None,
+            ),
+        )
+
+    def test_rectangle_maps_document_and_concurrency_context(self):
+        args = build_parser().parse_args(
+            [
+                "--session",
+                "modeler",
+                "sketch",
+                "rectangle",
+                "--plane",
+                "right",
+                "--width-mm",
+                "80",
+                "--height-mm",
+                "40",
+                "--document",
+                "d-ab12cd",
+                "--if-update-stamp",
+                "0",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--json",
+            ]
+        )
+        self.assertEqual(args.session, "modeler")
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "sketch.rectangle",
+                {
+                    "plane": "right",
+                    "width_mm": 80.0,
+                    "height_mm": 40.0,
+                    "center_x_mm": 0.0,
+                    "center_y_mm": 0.0,
+                },
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
             ),
         )
 

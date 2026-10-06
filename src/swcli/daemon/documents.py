@@ -7,7 +7,7 @@ import ntpath
 import secrets
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
@@ -43,10 +43,15 @@ class DocumentLeaseNotFound(RuntimeError):
     """A requested document lease does not exist or has expired."""
 
 
+class SketchNotFound(RuntimeError):
+    """A sketch handle is absent from the selected document's live registry."""
+
+
 @dataclass
 class DocumentEntry:
     document_id: str
     document: Any
+    sketches: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -241,6 +246,29 @@ class DocumentRegistry:
         self._ids_by_key[key] = entry.document_id
         return entry
 
+    def register_sketch(self, entry: DocumentEntry, feature: Any) -> str:
+        if self._entries.get(entry.document_id) is not entry:
+            raise DocumentNotFound(
+                f"document '{entry.document_id}' is no longer registered"
+            )
+        while True:
+            token = "s-" + "".join(
+                secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
+            )
+            if not any(token in item.sketches for item in self._entries.values()):
+                entry.sketches[token] = feature
+                return token
+
+    def resolve_sketch(self, entry: DocumentEntry, sketch_id: str) -> Any:
+        if (
+            self._entries.get(entry.document_id) is not entry
+            or sketch_id not in entry.sketches
+        ):
+            raise SketchNotFound(
+                f"sketch '{sketch_id}' is not registered in document '{entry.document_id}'"
+            )
+        return entry.sketches[sketch_id]
+
     def sync(self) -> None:
         open_documents = list(_documents(_com_value(self.app, "GetDocuments")))
         open_keys = set()
@@ -261,6 +289,7 @@ class DocumentRegistry:
         entry = self._entries.pop(document_id, None)
         if entry is None:
             return
+        entry.sketches.clear()
         lease_id = self._lease_id_by_document.get(document_id)
         if lease_id is not None:
             self._forget_lease(lease_id)

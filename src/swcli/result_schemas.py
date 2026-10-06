@@ -204,6 +204,78 @@ PART_TEMPLATE = _object(
 
 
 _RESULT_FIELDS = {
+    "sketch.rectangle": (
+        {
+            "plane": {"enum": ["front", "top", "right"]},
+            "coordinate_system": {"const": "sketch-local"},
+            "model_to_sketch_transform": {
+                "type": "array",
+                "items": NUMBER,
+                "minItems": 16,
+                "maxItems": 16,
+            },
+            "dimensions": _object(
+                {
+                    "unit": {"const": "millimeter"},
+                    "width": NUMBER,
+                    "height": NUMBER,
+                    "center_x": NUMBER,
+                    "center_y": NUMBER,
+                },
+                ("unit", "width", "height", "center_x", "center_y"),
+            ),
+            "sketch": _object(
+                {
+                    "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+                    "name": STRING,
+                    "type": {"const": "ProfileFeature"},
+                    "constraint_status": INTEGER,
+                    "dimensions_created": {"const": False},
+                },
+                ("name", "type", "constraint_status", "dimensions_created"),
+            ),
+            "geometry_verification": _object(
+                {
+                    "passed": BOOL,
+                    "method": {"const": "sketch-local-line-bounds"},
+                    "segment_count": INTEGER,
+                    "profile_segment_count": INTEGER,
+                    "actual_bounds_mm": {
+                        "anyOf": [
+                            _object(
+                                {
+                                    k: NUMBER
+                                    for k in ("min_x", "max_x", "min_y", "max_y")
+                                },
+                                ("min_x", "max_x", "min_y", "max_y"),
+                            ),
+                            {"type": "null"},
+                        ]
+                    },
+                    "absolute_tolerance_mm": NUMBER,
+                },
+                (
+                    "passed",
+                    "method",
+                    "segment_count",
+                    "profile_segment_count",
+                    "actual_bounds_mm",
+                    "absolute_tolerance_mm",
+                ),
+            ),
+            "editing": BOOL,
+        },
+        (
+            "plane",
+            "coordinate_system",
+            "model_to_sketch_transform",
+            "dimensions",
+            "sketch",
+            "geometry_verification",
+            "editing",
+            "document",
+        ),
+    ),
     "document.create": (
         {"created": {"const": True}, "template": PART_TEMPLATE},
         ("created", "template", "document"),
@@ -430,6 +502,12 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "document.lease.release",
     ):
         schema["then"]["properties"] = {"lease": {"required": ["lease_id"]}}
+    if name == "sketch.rectangle":
+        schema["then"]["properties"] = {
+            "editing": {"const": False},
+            "sketch": {"required": ["sketch_id"]},
+            "geometry_verification": {"properties": {"passed": {"const": True}}},
+        }
     if name in ("document.render", "document.export"):
         schema["properties"]["artifact"] = deepcopy(ARTIFACT)
         artifact = schema["properties"]["artifact"]

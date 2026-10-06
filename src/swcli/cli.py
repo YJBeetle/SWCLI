@@ -16,6 +16,7 @@ from .hosts import (
     doctor_windows_host,
 )
 from .protocol import SCHEMA_NAMES, load_schema
+from .hosts.windows_sketches import STANDARD_PLANES
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -245,6 +246,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="require a saved, rebuilt source and preserve its state",
     )
     export_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    sketch_parser = subcommands.add_parser(
+        "sketch", help="create explicit part sketches"
+    )
+    sketch_commands = sketch_parser.add_subparsers(dest="sketch_command", required=True)
+    rectangle_parser = sketch_commands.add_parser(
+        "rectangle", help="create and close a new rectangle sketch"
+    )
+    add_document_selector(rectangle_parser)
+    add_lease_token(rectangle_parser)
+    rectangle_parser.add_argument(
+        "--plane", choices=tuple(STANDARD_PLANES), required=True
+    )
+    rectangle_parser.add_argument("--width-mm", type=float, required=True)
+    rectangle_parser.add_argument("--height-mm", type=float, required=True)
+    rectangle_parser.add_argument("--center-x-mm", type=float, default=0.0)
+    rectangle_parser.add_argument("--center-y-mm", type=float, default=0.0)
+    rectangle_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
@@ -655,6 +674,21 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "sketch" and args.sketch_command == "rectangle":
+        return (
+            "sketch.rectangle",
+            {
+                "plane": args.plane,
+                "width_mm": args.width_mm,
+                "height_mm": args.height_mm,
+                "center_x_mm": args.center_x_mm,
+                "center_y_mm": args.center_y_mm,
+            },
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
     if args.command == "document":
         command = args.document_command
         if command == "create":

@@ -8,6 +8,7 @@ from math import isfinite
 from typing import Any, Dict, Optional
 
 from .hosts.windows_documents import RENDER_VIEWS
+from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -188,6 +189,19 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "strict": _boolean(),
         },
         required=("output",),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "sketch.rectangle": _operation(
+        "sketch.rectangle",
+        {
+            "plane": _string(enum=list(STANDARD_PLANES)),
+            "width_mm": _number(exclusiveMinimum=0),
+            "height_mm": _number(exclusiveMinimum=0),
+            "center_x_mm": _number(),
+            "center_y_mm": _number(),
+        },
+        required=("plane", "width_mm", "height_mm"),
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),

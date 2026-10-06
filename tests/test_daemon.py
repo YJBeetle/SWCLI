@@ -2,6 +2,7 @@ import io
 import json
 import os
 import tempfile
+from contextlib import contextmanager
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -13,6 +14,7 @@ from swcli.daemon.documents import (
     DocumentNotFound,
     DocumentRegistry,
     NoCurrentDocument,
+    SketchNotFound,
 )
 from swcli.daemon.main import (
     _read_startup_failure,
@@ -193,6 +195,89 @@ class DaemonProtocolTests(unittest.TestCase):
         )
         self.assertFalse(result["ok"])
         self.assertIs(registry.resolve(None).document, previous)
+
+    @mock.patch("swcli.daemon.operations.create_rectangle_sketch_windows_with_handle")
+    def test_rectangle_guards_and_registers_exact_feature_without_changing_current(
+        self, create
+    ):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other_entry = registry.register(foreground)
+        registry.set_current(other_entry, session_id="modeler")
+        lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
+        values = {"plane": "front", "width_mm": 100, "height_mm": 50}
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "sketch.rectangle",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="contender",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "sketch.rectangle",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=1,
+            )
+        create.assert_not_called()
+        feature = object()
+        create.return_value = (
+            {"ok": True, "action": "sketch.rectangle", "sketch": {"name": "rectangle"}},
+            feature,
+        )
+
+        @contextmanager
+        def activate(selected):
+            self.assertIs(selected, entry)
+            app.ActiveDoc = target
+            try:
+                yield
+            finally:
+                app.ActiveDoc = foreground
+
+        with mock.patch.object(registry, "temporarily_activate", side_effect=activate):
+            result = operations.execute_operation(
+                app,
+                "sketch.rectangle",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=0,
+            )
+        create.assert_called_once_with(
+            app=app,
+            document=target,
+            plane="front",
+            width_mm=100.0,
+            height_mm=50.0,
+            center_x_mm=0.0,
+            center_y_mm=0.0,
+        )
+        self.assertFalse(result["document"]["current"])
+        self.assertFalse(result["document"]["active"])
+        self.assertIs(registry.resolve(None, session_id="modeler"), other_entry)
+        sketch_id = result["sketch"]["sketch_id"]
+        self.assertRegex(sketch_id, "^s-[a-z0-9]{6}$")
+        self.assertIs(registry.resolve_sketch(entry, sketch_id), feature)
+        with self.assertRaises(SketchNotFound):
+            registry.resolve_sketch(other_entry, sketch_id)
+        registry.forget(entry.document_id)
+        self.assertFalse(entry.sketches)
+        with self.assertRaises(SketchNotFound):
+            registry.resolve_sketch(entry, sketch_id)
 
     @mock.patch("swcli.daemon.operations.create_box_part_windows_with_handle")
     def test_create_box_registers_exact_document_returned_by_newdocument(

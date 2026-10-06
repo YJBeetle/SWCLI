@@ -26,6 +26,7 @@ from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
 )
+from ..hosts.windows_sketches import create_rectangle_sketch_windows_with_handle
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -387,6 +388,28 @@ def document_export(
         "document": context.entry.document if context.entry is not None else None,
     }
     return export_active_windows_document(str(values["output"]), **kwargs)
+
+
+@_register_handler
+def sketch_rectangle(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result, feature = create_rectangle_sketch_windows_with_handle(
+        app=context.app,
+        document=context.entry.document,
+        plane=values["plane"],
+        width_mm=float(values["width_mm"]),
+        height_mm=float(values["height_mm"]),
+        center_x_mm=float(values.get("center_x_mm", 0.0)),
+        center_y_mm=float(values.get("center_y_mm", 0.0)),
+    )
+    if feature is not None and isinstance(result.get("sketch"), dict):
+        result["sketch"]["sketch_id"] = context.documents.register_sketch(
+            context.entry, feature
+        )
+    return result
 
 
 @_register_handler
