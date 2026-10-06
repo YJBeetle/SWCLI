@@ -304,6 +304,23 @@ try {
                 $measured.document.active -or $measured.document.current) {
                 throw "native measurement did not match the first 100x50x20 solid or changed the foreground"
             }
+            $hole = Invoke-SwCliJson -Name "cut-profile-circle" -Arguments @(
+                "sketch", "circle", "--plane", "front", "--radius-mm", "4",
+                "--center-x-mm", "10", "--center-y-mm", "20",
+                "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+            )
+            $cut = Invoke-SwCliJson -Name "feature-cut-extrude" -Arguments @(
+                "feature", "cut-extrude", $hole.sketch.sketch_id, "--depth-mm", "20",
+                "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+            )
+            $expectedRemoved = [Math]::PI * 4 * 4 * 20
+            if (-not $cut.geometry_verification.passed -or
+                $cut.geometry_verification.actual_reverse -or
+                [Math]::Abs($cut.geometry_verification.volume_removed_mm3 - $expectedRemoved) -gt 0.00001 -or
+                [Math]::Abs($cut.measurement_after.surface_area_mm2 - (16000 + 128 * [Math]::PI)) -gt 0.00001 -or
+                $cut.document.active -or $cut.document.current) {
+                throw "blind cut failed native direction, hole geometry or foreground verification"
+            }
         }
     }
     foreach ($plane in @("front", "top", "right")) {
@@ -404,6 +421,31 @@ try {
     }
     Invoke-SwCliJson -Name "generic-model-reopen-close" -Arguments @(
         "--session", "reopen-verifier", "document", "close", "--discard", "--json"
+    ) | Out-Null
+    $reversePart = Invoke-SwCliJson -Name "reverse-cut-create" -Arguments @(
+        "--session", "reverse-cut", "document", "create", "--json"
+    )
+    $reverseRectangle = Invoke-SwCliJson -Name "reverse-cut-rectangle" -Arguments @(
+        "--session", "reverse-cut", "sketch", "rectangle", "--plane", "front",
+        "--width-mm", "40", "--height-mm", "30", "--json"
+    )
+    Invoke-SwCliJson -Name "reverse-cut-boss" -Arguments @(
+        "--session", "reverse-cut", "feature", "extrude", $reverseRectangle.sketch.sketch_id,
+        "--depth-mm", "10", "--reverse", "--json"
+    ) | Out-Null
+    $reverseCircle = Invoke-SwCliJson -Name "reverse-cut-circle" -Arguments @(
+        "--session", "reverse-cut", "sketch", "circle", "--plane", "front", "--radius-mm", "3", "--json"
+    )
+    $reverseCut = Invoke-SwCliJson -Name "reverse-cut-feature" -Arguments @(
+        "--session", "reverse-cut", "feature", "cut-extrude", $reverseCircle.sketch.sketch_id,
+        "--depth-mm", "10", "--reverse", "--json"
+    )
+    if (-not $reverseCut.geometry_verification.passed -or -not $reverseCut.geometry_verification.actual_reverse -or
+        [Math]::Abs($reverseCut.geometry_verification.volume_removed_mm3 - (90 * [Math]::PI)) -gt 0.00001) {
+        throw "reverse cut did not remove the expected material against the sketch normal"
+    }
+    Invoke-SwCliJson -Name "reverse-cut-close" -Arguments @(
+        "--session", "reverse-cut", "document", "close", "--discard", "--json"
     ) | Out-Null
     $currentB = Invoke-SwCliJson -Name "document-inspect-created-b" -Arguments @("document", "inspect", "--json")
     if ($currentB.document.document_id -ne $emptyB.document.document_id) {
