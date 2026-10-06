@@ -47,7 +47,7 @@ operation through capability discovery. The development branch for `0.1.0a4`
 also advertises `operation_result_schemas` and validates worker results before
 returning them; this is not included in the pinned `v0.1.0a3` wheel below.
 The same development branch adds unsaved part creation and verified rectangle
-sketches and blind solid extrusion; native save-as is still pending.
+sketches, blind solid extrusion and new-filename native part save-as.
 
 ## Installation
 
@@ -321,8 +321,8 @@ sw-cli document close --discard
 ```
 
 This foundation for general modeling is not in the published `v0.1.0a3` wheel.
-Native save-as and general sketch editing are still forthcoming;
-`document save` only saves an already named document. If creation succeeds but
+General sketch editing remains forthcoming; `document save-as` names a new
+part, while `document save` saves an already named document. If creation succeeds but
 a later check fails, the partial document is not rolled back or silently closed;
 an acquired handle is registered when readable, allowing explicit inspection
 and cleanup.
@@ -366,7 +366,7 @@ sw-cli document rebuild --if-update-stamp 106 --json
 ```
 
 Longer multi-step clients can acquire a short-lived document lease. While the
-lease is active, close, save, rebuild, render, and export reject requests that
+lease is active, modeling, close, save, save-as, rebuild, render, and export reject requests that
 do not carry its token. Inspection and diagnosis remain available to other
 sessions. The default TTL is 60 seconds and may be set from 1 to 3600 seconds:
 
@@ -412,6 +412,19 @@ bounded diagnostic structure so agents can compare pre- and post-action state.
 response includes the raw SOLIDWORKS save error/warning bitmasks, stable names
 for every set bit, and the document state before and after saving. Success
 requires both a successful API result and a clean post-save document.
+
+On the a4 development branch, `document save-as new-part.SLDPRT` names the
+selected part and saves it to a **new target only**. Existing targets (including
+its current filename) are rejected; use `document save` for an in-place save.
+Assembly/drawing save-as and copy-without-renaming are not implemented. The
+same document ID, session current, lease and live sketch handles survive the
+name change. The response checks native save status, adopted path, clean state
+and minimum file size, not a proprietary file-format signature or complete
+geometric validity. `save_warnings` is `null` because the scalar native call
+does not expose that output. For stronger evidence, close, reopen and inspect
+the saved part. Unlike neutral export, native save-as changes the COM document's
+filename and cannot use export's temporary-file rename strategy. Failures may
+leave a renamed live document; inspect its returned state and cleanup warnings.
 
 `document render` fits the selected model in its view and exports a BMP
 at explicit pixel dimensions. It refuses to overwrite by default and verifies
@@ -470,6 +483,10 @@ sw-cli document create --json
 $rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
 sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
 sw-cli document inspect --detail structure --json
+sw-cli document save-as new-part.SLDPRT --json
+sw-cli document close --json
+sw-cli document open new-part.SLDPRT --read-only --json
+sw-cli document diagnose --json
 ```
 
 `feature extrude SKETCH_ID` creates a one-direction blind solid extrusion from

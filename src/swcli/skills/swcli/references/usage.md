@@ -88,7 +88,22 @@ advertising `feature.extrude` accept `sw-cli feature extrude SKETCH_ID
 --depth-mm 20 --json`; it requires an unabsorbed 2D sketch in the selected part.
 `--reverse` and `--no-merge` are explicit optional choices. A new
 document is unsaved: do not assume `document save` names it or that export saves
-the native source. Use only the save-as/feature operations the host advertises.
+the native source. Hosts advertising `document.save-as` accept:
+
+```bash
+sw-cli --session bracket document save-as new-part.SLDPRT --json
+sw-cli --session bracket document close --json
+sw-cli --session bracket document open new-part.SLDPRT --read-only --json
+sw-cli --session bracket document inspect --detail structure --json
+sw-cli --session bracket document diagnose --json
+```
+
+Save-as currently supports parts and rejects existing targets; there is no
+overwrite or copy mode. Renaming preserves the live document/lease/sketch IDs,
+but close/reopen creates a new document handle and drops the old handles. Its
+file-size/native-state checks are not a full integrity proof; reopen and verify
+the geometry. Saving is allowed only when the task authorizes source changes.
+Use only the save-as/feature operations the host advertises.
 
 Inspect/diagnose have additional structure and feature evidence; status reports
 document state, not an invented `export_ready` flag. `modified` means the native

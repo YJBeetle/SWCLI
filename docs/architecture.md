@@ -160,8 +160,17 @@ geometric proof or transaction rollback. Native API references:
 [extrusion depth](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~GetDepth.html),
 [reverse direction](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~ReverseDirection.html).
 
-General sketch editing, native save-as and the complete
-create/model/save/reopen verification loop are still pending.
+`document.save-as` completes the initial rectangle/extrusion/native-save loop
+for parts. It reserves a new filename without replacing an existing target,
+saves the selected live document, and checks the native result, adopted name,
+modified flag and minimum file size. The registry rekeys that same COM object
+even after a post-save failure, preserving document ID, session, lease and
+sketch handles. Native save-as changes the live filename, so it cannot use the
+temporary-file rename strategy of neutral exports. No proprietary container
+header is assumed; Windows CI closes and reopens the saved part and verifies
+body count and rebuild diagnostics. This is not transactional rollback or a
+general file-integrity validator. Assembly/drawing save-as, native-copy mode,
+general sketch editing and feature editing remain pending.
 
 ## Compatibility policy
 
@@ -267,7 +276,7 @@ operation; an unavailable native stamp returns
 does not cover every possible document change.
 Document leases provide the complementary pessimistic mechanism. They are
 worker-local, document-scoped tokens with a bounded TTL. Once active, close,
-save, rebuild, render, and export require the owning session and token; read-only
+modeling, save, save-as, rebuild, render, and export require the owning session and token; read-only
 inspection and diagnosis remain available. Acquisition is idempotent for the
 same session, expiration is automatic, and closing a document removes its
 lease. Lease state coordinates cooperating clients and is not an authentication

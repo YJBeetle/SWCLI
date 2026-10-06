@@ -64,7 +64,10 @@ it also applies to native Windows:
    lease/stale-stamp rejection, sketch IDs, closed edit state and restoration of
    the foreground/current document; extrude all three sketches with native
    depth/direction/merge checks, verify the first body dimensions, and reject
-   reuse of an absorbed sketch;
+   reuse of an absorbed sketch; save the generic modeled part under a new
+   native filename, verify unchanged document/lease/sketch identities and
+   rejection of an existing target without changing its hash, then close and
+   reopen under an independent session to verify body count and diagnostics;
 9. close the model, externally terminate the daemon-owned SOLIDWORKS process,
    and require health to report `host_connected: false`, clear the stale host,
    and retain `HostDisconnected` without silently restarting on a business

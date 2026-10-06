@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及首个类型化零件建模操作。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。同一开发分支新增未保存零件创建、经过验证的矩形草图和定深实体拉伸；原生另存为仍待实现。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。同一开发分支新增未保存零件创建、经过验证的矩形草图、定深实体拉伸及新文件名原生零件另存为。
 
 ## 安装
 
@@ -196,7 +196,7 @@ sw-cli document inspect --detail structure --json
 sw-cli document close --discard
 ```
 
-已发布的 `v0.1.0a3` wheel 不包含此命令。原生另存为和通用草图编辑仍待实现；现有 `document save` 只保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
+已发布的 `v0.1.0a3` wheel 不包含此命令。通用草图编辑仍待实现；`document save-as` 可为新零件指定文件名，现有 `document save` 则原位保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
 
 `document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。每次打开或创建都会返回 `d-k7m2q9` 形式的短期 ID，并把该文档设为所选 CLI session 的 `current`。文档关闭或 worker 重启后 ID 即失效。`document list` 返回全部打开文档及各自的 `active`、`current` 状态；`document use ID` 用于明确修改 session 的 `current`。
 
@@ -218,7 +218,7 @@ sw-cli document inspect --json
 sw-cli document rebuild --if-update-stamp 106 --json
 ```
 
-需要执行较长多步流程的客户端可以获取短期文档 lease。lease 有效期间，关闭、保存、重建、渲染和导出操作必须携带它的 token；其他 session 仍可执行检查和诊断。默认 TTL 为 60 秒，可设置为 1 至 3600 秒：
+需要执行较长多步流程的客户端可以获取短期文档 lease。lease 有效期间，建模、关闭、保存、另存为、重建、渲染和导出操作必须携带它的 token；其他 session 仍可执行检查和诊断。默认 TTL 为 60 秒，可设置为 1 至 3600 秒：
 
 ```powershell
 $lease = sw-cli --session agent-a document lease acquire --ttl-seconds 120 --json |
@@ -244,6 +244,8 @@ lease 的边界有意保持狭窄：
 
 `document save` 使用 `Save3` 原位保存所选原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
 
+在 a4 开发分支中，`document save-as new-part.SLDPRT` 为所选零件指定文件名并保存到**全新目标**。已有目标（包括当前文件名）会被拒绝；原位保存请使用 `document save`。暂不支持装配体/工程图另存为或不改名的副本保存。改名后保留同一文档 ID、session current、lease 和存活的草图句柄。响应检查原生保存结果、采用的路径、未保存状态和最小文件大小，不声称验证专有文件格式或完整几何正确性。标量原生调用不提供 warnings 输出，因此 `save_warnings` 为 `null`。更强验证应关闭重开并检查模型。原生另存为会改变 COM 文档的文件名，不能套用中性格式导出的临时文件重命名策略；失败后可能仍留下已改名的活动文档，请检查返回状态与清理 warnings。
+
 `document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。渲染始终先写入目标目录内的临时文件，验证通过后才替换正式输出。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
 
 `document export` 可将所选零件或装配体转换为 STEP、所选装配体转换为 GLB，或将所选工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。两种模式都先写入目标目录内的临时文件，通过文件验证及严格模式检查后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
@@ -268,6 +270,10 @@ sw-cli document create --json
 $rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
 sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
 sw-cli document inspect --detail structure --json
+sw-cli document save-as new-part.SLDPRT --json
+sw-cli document close --json
+sw-cli document open new-part.SLDPRT --read-only --json
+sw-cli document diagnose --json
 ```
 
 `feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。已发布的 `v0.1.0a3` wheel 不包含此命令。
