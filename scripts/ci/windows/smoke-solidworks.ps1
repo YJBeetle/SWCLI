@@ -163,15 +163,17 @@ function Wait-DisconnectedHost {
         $attempt++
         $status = Invoke-SwCliJson -Name ("{0}-{1:D2}" -f $Name, $attempt) -Arguments @("daemon", "status", "--json")
         if (-not $status.result.host_connected) {
-            if ($status.result.worker_alive -or $null -ne $status.result.host -or
+            if ($null -ne $status.result.host -or
                 -not $status.result.recovery_required -or
                 $status.result.recovery_error.code -ne "HostDisconnected") {
                 throw "swclid returned an inconsistent disconnected host state"
             }
-            return $status
+            # host_connected is the COM truth; worker_alive remains true while
+            # Python releases native handles and finishes process teardown.
+            if (-not $status.result.worker_alive) { return $status }
         }
     } while ($wait.Elapsed.TotalSeconds -lt 10)
-    throw "swclid did not detect the external SOLIDWORKS exit within 10 seconds"
+    throw "swclid did not report host disconnect and finish worker teardown within 10 seconds"
 }
 
 Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue |

@@ -283,6 +283,11 @@ explicit-attach startup policy. Native Windows and portable typed commands
 require a reachable daemon; an absent local endpoint returns `DaemonUnavailable`
 without changing the SOLIDWORKS process state.
 
+`host_connected` describes COM availability, while `worker_alive` describes the
+Python process. A confirmed disconnect clears `host` and sets recovery state
+immediately; `worker_alive` may briefly remain true during native-handle release
+and process teardown. This is disconnected, not a healthy execution host.
+
 Client connection/request waits and supervisor startup waits reject booleans,
 non-positive/non-finite values and waits exceeding the platform timer limit
 before network or host-lifecycle side effects. Invalid restart parameters must

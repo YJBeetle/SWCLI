@@ -1411,6 +1411,31 @@ class DaemonProtocolTests(unittest.TestCase):
                     health["recovery_error"]["code"], "HostDisconnected"
                 )
 
+    def test_health_reports_com_disconnect_while_worker_is_still_exiting(self):
+        manager = object.__new__(server.WorkerManager)
+        manager._lock = server.threading.Lock()
+        manager._process = mock.Mock()
+        manager._process.is_alive.return_value = True
+        manager._lifecycle_queue = mock.Mock()
+        manager._lifecycle_queue.get_nowait.side_effect = [
+            {
+                "event": "host-disconnected",
+                "error": {"code": "HostDisconnected", "message": "host exited"},
+            },
+            server.queue.Empty,
+        ]
+        manager._recovery_required = None
+        manager.host = {"process_id": 1234, "owned_by_daemon": True}
+
+        health = manager.health()
+
+        self.assertTrue(health["worker_alive"])
+        self.assertFalse(health["host_connected"])
+        self.assertIsNone(health["host"])
+        self.assertTrue(health["recovery_required"])
+        self.assertEqual(health["recovery_error"]["code"], "HostDisconnected")
+        manager._process.join.assert_not_called()
+
     def test_host_disconnect_blocks_restart_on_next_business_request(self):
         manager = object.__new__(server.WorkerManager)
         manager._lock = server.threading.Lock()
