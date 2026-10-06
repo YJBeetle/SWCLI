@@ -295,6 +295,19 @@ sw-cli document diagnose --json
 
 ## 零件建模
 
+[`examples/model-plate.ps1`](examples/model-plate.ps1) 是可读的 Windows 完整案例，
+只组合 typed CLI：创建 100×60×8 mm 四孔板（孔半径 4 mm），检查解析体积/表面积和重建诊断，
+保存新 SLDPRT、严格导出 STEP、渲染 BMP，并关闭重开验证几何。它需要运行中的 a4 daemon
+及匹配的 client，输出目录必须是已存在的新本地目录，不允许覆盖已有产物：
+
+```powershell
+sw-cli daemon start --visible --json
+.\examples\model-plate.ps1 -OutputDirectory C:\Models\NewPlate
+```
+
+失败立即停止并释放 lease，不悄悄丢弃/保存部分模型，也不重启 daemon。
+生成原生可编辑草图和特征，但尚无驱动尺寸/全约束保证；这是本机 Windows 案例，不是远程文件传输或容器启动脚本。
+
 `feature cut-extrude SKETCH_ID --depth-mm 20`（a4 开发分支）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持贯穿、拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
 
 ```powershell

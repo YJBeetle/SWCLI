@@ -537,6 +537,24 @@ back on failure. This command is not in the published `v0.1.0a3` wheel.
 
 ## Part modeling
 
+For a readable end-to-end Windows example, see
+[`examples/model-plate.ps1`](examples/model-plate.ps1). With a running a4 daemon
+and matching client, run it against a new, existing local output directory:
+
+```powershell
+sw-cli daemon start --visible --json
+.\examples\model-plate.ps1 -OutputDirectory C:\Models\NewPlate
+```
+
+It builds a 100×60×8 mm plate with four radius-4 mm holes using only typed CLI
+commands, checks analytic volume/surface area and rebuild diagnosis, saves a
+new SLDPRT, strictly exports STEP, renders BMP and verifies geometry after
+reopening. It refuses existing outputs. Failure stops the script and releases
+its lease but does not silently discard/save partial geometry or restart the
+daemon. The sketches are native and editable, but not dimension-driven or
+guaranteed fully constrained. This example is for a local Windows execution
+host, not a remote file-transfer or Docker launch script.
+
 `feature cut-extrude SKETCH_ID --depth-mm 20` (a4 development) removes material
 inside an unused 2D profile with a one-direction blind cut. Like `feature extrude`,
 the CLI's default direction is **along the sketch normal**; `--reverse` means
