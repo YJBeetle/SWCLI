@@ -10,6 +10,25 @@ from swcli.protocol import SCHEMA_NAMES, load_schema
 
 
 class ProtocolSchemaTests(unittest.TestCase):
+
+    def test_sketch_inspect_has_read_only_policy_and_bounded_segment_limit(self):
+        valid = {"sketch_id": "s-ab12cd"}
+        validate_operation_request("sketch.inspect", valid)
+        spec = OPERATION_CATALOG["sketch.inspect"]
+        self.assertTrue(spec.selected_document)
+        self.assertFalse(spec.lease_guarded or spec.temporary_activation)
+        for changed in (
+            {"sketch_id": "Sketch1"},
+            {"max_segments": 0},
+            {"max_segments": True},
+        ):
+            with self.assertRaises(ValueError):
+                validate_operation_request("sketch.inspect", {**valid, **changed})
+        with self.assertRaises(ValueError):
+            validate_operation_request(
+                "sketch.inspect", valid, lease_id="l-ab12cd34ef56"
+            )
+
     def test_execution_policies_distinguish_selection_and_activation(self):
         self.assertFalse(OPERATION_CATALOG["document.create"].selected_document)
         self.assertFalse(OPERATION_CATALOG["document.use"].selected_document)

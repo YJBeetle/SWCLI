@@ -573,6 +573,88 @@ _RESULT_FIELDS = {
 }
 
 
+_SKETCH_SEGMENT_GEOMETRY = {
+    "oneOf": [
+        {"type": "null"},
+        _object(
+            {"kind": {"const": "line"}, "start_mm": VECTOR, "end_mm": VECTOR},
+            ("kind", "start_mm", "end_mm"),
+        ),
+        {
+            **_object(
+                {
+                    "kind": {"const": "arc"},
+                    "complete_circle": BOOL,
+                    "radius_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "center_mm": VECTOR,
+                    "start_mm": VECTOR,
+                    "end_mm": VECTOR,
+                },
+                ("kind", "complete_circle", "radius_mm", "center_mm"),
+            ),
+            "if": {"properties": {"complete_circle": {"const": False}}},
+            "then": {"required": ["start_mm", "end_mm"]},
+        },
+    ]
+}
+_RESULT_FIELDS["sketch.inspect"] = (
+    {
+        "sketch": _object(
+            {
+                "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+                "name": STRING,
+                "type": {"const": "ProfileFeature"},
+                "constraint_status": INTEGER,
+                "absorbed": BOOL,
+                "owner": {
+                    "oneOf": [
+                        {"type": "null"},
+                        _object({"name": STRING, "type": STRING}, ("name", "type")),
+                    ]
+                },
+            },
+            ("sketch_id", "name", "type", "constraint_status", "absorbed", "owner"),
+        ),
+        "editing": BOOL,
+        "coordinate_system": {"const": "sketch-local"},
+        "unit": {"const": "millimeter"},
+        "model_to_sketch_transform": {
+            "type": "array",
+            "items": NUMBER,
+            "minItems": 16,
+            "maxItems": 16,
+        },
+        "segments": {
+            "type": "array",
+            "items": _object(
+                {
+                    "index": {"type": "integer", "minimum": 0},
+                    "type_code": INTEGER,
+                    "construction": BOOL,
+                    "geometry": _SKETCH_SEGMENT_GEOMETRY,
+                },
+                ("index", "type_code", "construction", "geometry"),
+            ),
+        },
+        "segment_count": {"type": "integer", "minimum": 0},
+        "profile_segment_count": {"type": "integer", "minimum": 0},
+        "geometry_complete": BOOL,
+    },
+    (
+        "document",
+        "sketch",
+        "editing",
+        "coordinate_system",
+        "unit",
+        "model_to_sketch_transform",
+        "segments",
+        "segment_count",
+        "profile_segment_count",
+        "geometry_complete",
+    ),
+)
+
+
 _CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])
 del _CUT_FIELDS["merge"]
 _CUT_FIELDS["affected_scope"] = {"const": "all-solid-bodies"}

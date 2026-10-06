@@ -399,6 +399,66 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(app.ActiveDoc, foreground)
         self.assertIs(registry.resolve(None, session_id="observer"), other)
 
+    @mock.patch("swcli.daemon.operations.inspect_sketch_windows")
+    def test_sketch_inspect_resolves_exact_background_handle_without_write_lease_or_activation(
+        self, inspect
+    ):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other = registry.register(foreground)
+        registry.set_current(other, session_id="observer")
+        feature = object()
+        sketch_id = registry.register_sketch(entry, feature)
+        registry.acquire_lease(entry, session_id="writer", ttl_seconds=60)
+        values = {"sketch_id": sketch_id, "max_segments": 12}
+        with self.assertRaises(SketchNotFound):
+            operations.execute_operation(
+                app,
+                "sketch.inspect",
+                values,
+                documents=registry,
+                document_id=other.document_id,
+                session_id="observer",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "sketch.inspect",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="observer",
+                expected_update_stamp=1,
+            )
+        inspect.assert_not_called()
+        inspect.return_value = {
+            "ok": True,
+            "action": "sketch.inspect",
+            "sketch": {"name": "sketch"},
+        }
+        with mock.patch.object(registry, "temporarily_activate") as activate:
+            result = operations.execute_operation(
+                app,
+                "sketch.inspect",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="observer",
+                expected_update_stamp=0,
+            )
+        activate.assert_not_called()
+        inspect.assert_called_once_with(
+            app=app, document=target, sketch_feature=feature, max_segments=12
+        )
+        self.assertEqual(result["sketch"]["sketch_id"], sketch_id)
+        self.assertFalse(result["document"]["active"] or result["document"]["current"])
+        self.assertIs(app.ActiveDoc, foreground)
+        self.assertIs(registry.resolve(None, session_id="observer"), other)
+
     @mock.patch("swcli.daemon.operations.cut_extrude_sketch_windows")
     def test_cut_extrude_requires_lease_and_stamp_and_resolves_exact_background_sketch(
         self, cut

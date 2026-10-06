@@ -35,6 +35,7 @@ from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
 from ..hosts.windows_cuts import cut_extrude_sketch_windows
+from ..hosts.windows_sketch_inspection import inspect_sketch_windows
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -448,6 +449,25 @@ def sketch_rectangle(
             context.entry, feature
         )
     return result
+
+
+@_register_handler
+def sketch_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result = inspect_sketch_windows(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        max_segments=values.get("max_segments", 1000),
+    )
+    if isinstance(result.get("sketch"), dict):
+        result["sketch"]["sketch_id"] = sketch_id
+    return _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
 
 
 @_register_handler

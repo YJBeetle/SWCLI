@@ -205,6 +205,15 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.inspect": _operation(
+        "sketch.inspect",
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "max_segments": _integer(minimum=1),
+        },
+        required=("sketch_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "sketch.rectangle": _operation(
         "sketch.rectangle",
         {
@@ -244,8 +253,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     ),
     "feature.cut-extrude": _operation(
         "feature.cut-extrude",
-        {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
-         "depth_mm": _number(exclusiveMinimum=0), "reverse": _boolean()},
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "depth_mm": _number(exclusiveMinimum=0),
+            "reverse": _boolean(),
+        },
         required=("sketch_id", "depth_mm"),
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,

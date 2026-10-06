@@ -261,9 +261,16 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     sketch_parser = subcommands.add_parser(
-        "sketch", help="create explicit part sketches"
+        "sketch", help="create or inspect explicit part sketches"
     )
     sketch_commands = sketch_parser.add_subparsers(dest="sketch_command", required=True)
+    sketch_inspect_parser = sketch_commands.add_parser(
+        "inspect", help="read a registered sketch without editing it"
+    )
+    sketch_inspect_parser.add_argument("sketch_id")
+    sketch_inspect_parser.add_argument("--max-segments", type=int, default=1000)
+    add_document_selector(sketch_inspect_parser)
+    sketch_inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     rectangle_parser = sketch_commands.add_parser(
         "rectangle", help="create and close a new rectangle sketch"
     )
@@ -725,6 +732,15 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "sketch" and args.sketch_command == "inspect":
+        return (
+            "sketch.inspect",
+            {"sketch_id": args.sketch_id, "max_segments": args.max_segments},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            None,
+        )
     if args.command == "feature" and args.feature_command == "cut-extrude":
         return (
             "feature.cut-extrude",
