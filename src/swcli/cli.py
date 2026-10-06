@@ -195,6 +195,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(save_parser)
     add_lease_token(save_parser)
     save_parser.add_argument("--json", action="store_true", dest="as_json")
+    save_as_parser = document_commands.add_parser(
+        "save-as", help="save the selected part to a new native filename"
+    )
+    save_as_parser.add_argument("output")
+    add_document_selector(save_as_parser)
+    add_lease_token(save_as_parser)
+    save_as_parser.add_argument("--json", action="store_true", dest="as_json")
     diagnose_parser = document_commands.add_parser(
         "diagnose", help="report rebuild state and feature errors"
     )
@@ -795,6 +802,15 @@ def _typed_operation(
             return (
                 "document.close",
                 {"discard": args.discard},
+                args.as_json,
+                args.document_id,
+                args.expected_update_stamp,
+                args.lease_id,
+            )
+        if command == "save-as":
+            return (
+                "document.save-as",
+                {"output": args.output},
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,

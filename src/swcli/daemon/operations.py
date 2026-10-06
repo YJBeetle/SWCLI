@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..operation_schemas import (
@@ -28,6 +29,7 @@ from ..hosts.windows_parts import (
 )
 from ..hosts.windows_sketches import create_rectangle_sketch_windows_with_handle
 from ..hosts.windows_features import extrude_sketch_windows
+from ..hosts.windows_native_files import save_as_part_windows
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -376,6 +378,22 @@ def document_render(
         "document": context.entry.document if context.entry is not None else None,
     }
     return render_active_windows_document(str(values["output"]), **kwargs)
+
+
+@_register_handler
+def document_save_as(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    output = str(Path(values["output"]).expanduser().resolve())
+    context.documents.require_new_path(context.entry, output)
+    try:
+        return save_as_part_windows(output, document=context.entry.document)
+    finally:
+        # COM may have adopted the filename even when a later check failed.
+        # Refresh before the next sync so references and leases are not lost.
+        context.documents.refresh_key(context.entry)
 
 
 @_register_handler

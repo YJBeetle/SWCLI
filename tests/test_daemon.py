@@ -12,6 +12,7 @@ from swcli.daemon import client, operations, server
 from swcli.daemon.documents import (
     DocumentLeaseConflict,
     DocumentNotFound,
+    DocumentPathConflict,
     DocumentRegistry,
     NoCurrentDocument,
     SketchNotFound,
@@ -365,6 +366,94 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertFalse(result["document"]["active"])
         self.assertIs(registry.resolve(None, session_id="modeler"), other)
         self.assertIs(app.ActiveDoc, foreground)
+
+    @mock.patch("swcli.daemon.operations.save_as_part_windows")
+    def test_save_as_keeps_id_current_lease_and_sketches_even_after_post_save_failure(
+        self, save
+    ):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        app = self.FakeApp([target], active=target)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        registry.set_current(entry, session_id="owner")
+        sketch = object()
+        sketch_id = registry.register_sketch(entry, sketch)
+        lease = registry.acquire_lease(entry, session_id="owner", ttl_seconds=60)
+        output = str(Path("native-new-name.SLDPRT").resolve())
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "document.save-as",
+                {"output": output},
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="contender",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "document.save-as",
+                {"output": output},
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="owner",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=1,
+            )
+        save.assert_not_called()
+
+        def rename(path, *, document):
+            self.assertIs(document, target)
+            target.path, target.title = path, "native-new-name.SLDPRT"
+            return {
+                "ok": False,
+                "action": "document.save-as",
+                "error": {"type": "DocumentStillModified", "message": "still modified"},
+            }
+
+        save.side_effect = rename
+        result = operations.execute_operation(
+            app,
+            "document.save-as",
+            {"output": output},
+            documents=registry,
+            document_id=entry.document_id,
+            session_id="owner",
+            lease_id=lease["lease_id"],
+            expected_update_stamp=0,
+        )
+        self.assertEqual(result["document"]["document_id"], entry.document_id)
+        self.assertEqual(result["document"]["path"], output)
+        registry.sync()
+        self.assertEqual(len(registry._entries), 1)
+        self.assertIs(registry.resolve(None, session_id="owner"), entry)
+        self.assertIs(registry.resolve_sketch(entry, sketch_id), sketch)
+        registry.require_lease(entry, session_id="owner", lease_id=lease["lease_id"])
+        self.assertFalse(any(key[0] == "unsaved" for key in registry._ids_by_key))
+
+    def test_native_destination_cannot_shadow_another_open_document(self):
+        target = self.FakeDocument("Part1", "")
+        output = str(Path("already-open.SLDPRT").resolve())
+        other = self.FakeDocument("other", output)
+        app = self.FakeApp([target, other], active=target)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        registry.register(other)
+        with mock.patch("swcli.daemon.operations.save_as_part_windows") as save:
+            with self.assertRaises(DocumentPathConflict):
+                operations.execute_operation(
+                    app,
+                    "document.save-as",
+                    {"output": output},
+                    documents=registry,
+                    document_id=entry.document_id,
+                )
+            save.assert_not_called()
+        target.path = output
+        with self.assertRaises(DocumentPathConflict):
+            registry.refresh_key(entry)
+        self.assertEqual(len(registry._ids_by_key), 2)
 
     @mock.patch("swcli.daemon.operations.create_box_part_windows_with_handle")
     def test_create_box_registers_exact_document_returned_by_newdocument(

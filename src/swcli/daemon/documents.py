@@ -47,6 +47,10 @@ class SketchNotFound(RuntimeError):
     """A sketch handle is absent from the selected document's live registry."""
 
 
+class DocumentPathConflict(RuntimeError):
+    """A new native filename belongs to another open document."""
+
+
 @dataclass
 class DocumentEntry:
     document_id: str
@@ -245,6 +249,28 @@ class DocumentRegistry:
         self._entries[entry.document_id] = entry
         self._ids_by_key[key] = entry.document_id
         return entry
+
+    def require_new_path(self, entry: DocumentEntry, path: str) -> None:
+        key = ("path", ntpath.normcase(ntpath.normpath(path)))
+        existing_id = self._ids_by_key.get(key)
+        if existing_id is not None and existing_id != entry.document_id:
+            raise DocumentPathConflict(
+                "save-as destination belongs to another open document"
+            )
+
+    def refresh_key(self, entry: DocumentEntry) -> None:
+        """Keep the ID, session, lease and sketch handles when native naming changes."""
+        if self._entries.get(entry.document_id) is not entry:
+            raise DocumentNotFound(
+                f"document '{entry.document_id}' is no longer registered"
+            )
+        key = _document_key(entry.document)
+        if key[0] == "path":
+            self.require_new_path(entry, key[1])
+        for old_key, document_id in tuple(self._ids_by_key.items()):
+            if document_id == entry.document_id:
+                del self._ids_by_key[old_key]
+        self._ids_by_key[key] = entry.document_id
 
     def register_sketch(self, entry: DocumentEntry, feature: Any) -> str:
         if self._entries.get(entry.document_id) is not entry:

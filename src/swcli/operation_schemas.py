@@ -154,6 +154,13 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.save",
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "document.save-as": _operation(
+        "document.save-as",
+        {"output": _string(minLength=1)},
+        required=("output",),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "document.diagnose": _operation(
         "document.diagnose",
         {"max_features": _integer(minimum=1)},

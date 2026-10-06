@@ -436,6 +436,33 @@ class CliTests(unittest.TestCase):
         self.assertEqual(_typed_operation(defaults)[1]["merge"], True)
         self.assertEqual(_typed_operation(defaults)[1]["reverse"], False)
 
+    def test_save_as_maps_output_and_document_guards(self):
+        args = build_parser().parse_args(
+            [
+                "document",
+                "save-as",
+                "new.SLDPRT",
+                "--document",
+                "d-ab12cd",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "document.save-as",
+                {"output": "new.SLDPRT"},
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
+            ),
+        )
+
     def test_create_box_without_template_matches_published_schema(self):
         args = build_parser().parse_args(
             [

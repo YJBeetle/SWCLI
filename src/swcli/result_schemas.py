@@ -395,6 +395,40 @@ _RESULT_FIELDS = {
             "save_warning_names",
         ),
     ),
+    "document.save-as": (
+        {
+            "output": STRING,
+            "document_before": DOCUMENT,
+            "api_saved": BOOL,
+            "save_errors": INTEGER,
+            "save_error_names": STRING_LIST,
+            "save_warnings": {"type": "null"},
+            "file_verification": _object(
+                {"non_empty": BOOL, "minimum_size_valid": BOOL},
+                ("non_empty", "minimum_size_valid"),
+            ),
+            "artifact": _object(
+                {
+                    "kind": {"const": "native-document"},
+                    "format": {"const": "SLDPRT"},
+                    "path": STRING,
+                    "size_bytes": {"type": "integer", "minimum": 512},
+                },
+                ("kind", "format", "path", "size_bytes"),
+            ),
+        },
+        (
+            "output",
+            "document_before",
+            "document",
+            "api_saved",
+            "save_errors",
+            "save_error_names",
+            "save_warnings",
+            "file_verification",
+            "artifact",
+        ),
+    ),
     "document.diagnose": (
         {"needs_rebuild": INTEGER, "diagnostics": DIAGNOSTICS},
         ("document", "needs_rebuild", "diagnostics"),
@@ -550,6 +584,18 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "document.lease.release",
     ):
         schema["then"]["properties"] = {"lease": {"required": ["lease_id"]}}
+    if name == "document.save-as":
+        schema["then"]["properties"] = {
+            "api_saved": {"const": True},
+            "save_errors": {"const": 0},
+            "document": {"properties": {"modified": {"const": False}}},
+            "file_verification": {
+                "properties": {
+                    "non_empty": {"const": True},
+                    "minimum_size_valid": {"const": True},
+                }
+            },
+        }
     if name == "feature.extrude":
         schema["then"]["properties"] = {
             "rebuilt": {"const": True},
