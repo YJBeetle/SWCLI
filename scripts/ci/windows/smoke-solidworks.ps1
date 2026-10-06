@@ -500,6 +500,13 @@ try {
     Invoke-SwCliJson -Name "document-open" -Arguments @("document", "open", $partPath, "--read-only", "--json") | Out-Null
     Invoke-SwCliJson -Name "document-close-reopened" -Arguments @("document", "close", "--discard", "--json") | Out-Null
 
+    # The public example is executable product documentation, not COM test code.
+    $exampleFolder = Join-Path $Workspace "plate-example"
+    New-Item -ItemType Directory -Path $exampleFolder | Out-Null
+    $example = Join-Path $PSScriptRoot "../../../examples/model-plate.ps1"
+    & $example -OutputDirectory $exampleFolder |
+        Set-Content (Join-Path $exampleFolder "result.json") -Encoding utf8
+
     $connected = Invoke-SwCliJson -Name "daemon-connected" -Arguments @("daemon", "status", "--json")
     if (-not $connected.result.host_connected) {
         throw "swclid did not report its SOLIDWORKS host as connected"

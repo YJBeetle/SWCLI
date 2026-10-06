@@ -82,11 +82,14 @@ it also applies to native Windows:
    rejection of an existing target without changing its hash, then close and
    reopen under an independent session to verify body count, volume, surface
    area and diagnostics;
-9. close the model, externally terminate the daemon-owned SOLIDWORKS process,
+9. run the public four-hole plate example using only typed CLI commands, verify
+   analytic volume/area, native save/reopen, strict STEP export and BMP preview,
+   and retain these additional generated artifacts under `plate-example`;
+10. close the model, externally terminate the daemon-owned SOLIDWORKS process,
    and require health to report `host_connected: false`, clear the stale host,
    and retain `HostDisconnected` without silently restarting on a business
    request;
-10. require graceful daemon shutdown to succeed with the host already absent,
+11. require graceful daemon shutdown to succeed with the host already absent,
    then upload the generated native part, render, export, JSON responses, and
    desktop/window diagnostics as evidence.
 
