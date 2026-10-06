@@ -16,8 +16,15 @@ foreach ($path in @($nativePath, $stepPath, $previewPath)) {
 }
 
 function Invoke-ModelCli([string[]]$Arguments) {
-    $text = & sw-cli --session $session @Arguments --json
-    if ($LASTEXITCODE -ne 0) { throw ($text -join "`n") }
+    # SWCLI emits UTF-8; Windows PowerShell 5.1 may decode native pipes as CP936.
+    $previousEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        $text = & sw-cli --session $session @Arguments --json
+        $exitCode = $LASTEXITCODE
+    }
+    finally { [Console]::OutputEncoding = $previousEncoding }
+    if ($exitCode -ne 0) { throw ($text -join "`n") }
     $result = ($text -join "`n") | ConvertFrom-Json
     if (-not $result.ok) { throw "SWCLI did not return a successful CAD result" }
     return $result
@@ -57,8 +64,8 @@ finally {
     # On failure, release our lease but retain any partial model for inspection.
     # Do not silently discard, save, retry, restart a host, or promise rollback.
     if ($null -ne $leaseId) {
-        & sw-cli --session $session document lease release $leaseId --json
-        if ($LASTEXITCODE -ne 0) { Write-Warning "Lease release failed; wait for TTL expiry" }
+        try { Invoke-ModelCli -Arguments @("document", "lease", "release", $leaseId) | Out-Null }
+        catch { Write-Warning "Lease release failed; wait for TTL expiry: $($_.Exception.Message)" }
     }
 }
 
