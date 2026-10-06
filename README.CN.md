@@ -294,6 +294,8 @@ sw-cli document diagnose --json
 
 ## 开发
 
+已完成的开发能力、后续建模与协议工作以及发布验收边界见[产品路线图](docs/roadmap.md)。
+
 ```bash
 python -m unittest discover -s tests -v
 ```

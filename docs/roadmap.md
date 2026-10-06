@@ -1,0 +1,64 @@
+# Product roadmap
+
+This is the project's execution roadmap, not a promise of release dates or
+protocol stability. Capabilities and the installed version are authoritative.
+
+## a4 development: first reusable part-modeling loop
+
+Implemented and covered by portable tests and native Windows smoke:
+
+- one operation catalog for parameters, result contracts and execution guards;
+- unsaved part creation with exact, short-lived document handles;
+- fresh rectangle/full-circle sketches on origin planes, explicit millimeter
+  dimensions and native post-edit verification;
+- sketch-ID-based blind solid extrusion, reverse and merge controls, native
+  definition and rebuild/body verification;
+- new-filename native part save-as, retained live handles/leases, existing-target
+  rejection and close/reopen verification;
+- product-facing skill and guide packaged with SWCLI, with an installed-wheel
+  resource/Schema gate.
+
+DockerSW's real Wine gate mirrors the part-modeling primitives in addition to
+the six existing export outputs. A source/unit/native-Windows pass does not
+prove Wine delivery: confirm the relevant DockerSW CI before claiming support.
+These development features are not in the published v0.1.0a3 wheel.
+
+## Next modeling increments
+
+1. Add exact, explicitly scoped volume/area measurements for geometric
+   acceptance; distinguish those from approximate body boxes and material-based
+   mass estimates.
+2. Add sketch-based material removal and verify native end condition/direction,
+   model diagnostics and actual geometric change.
+3. Add driving dimensions/relations and supported feature edits, so the basic
+   native model is not merely editable but intentionally parameterized.
+
+Each increment needs request/result Schema, document/lease/stamp guards,
+portable failure tests, real Windows proof and the appropriate Wine gate.
+Partial mutation is not rollback; do not publish an automatic transaction
+guarantee without implementing and proving its recovery boundary.
+
+## Later protocol and integrations
+
+- Stable entity references with topology/revision validation and explicit stale
+  reference behavior, not guessed feature names or face indices.
+- Batches/transactions with documented partial-result and recovery semantics.
+- Typed Python SDK and a thin MCP adapter over the same daemon protocol; no
+  second public COM/raw-Python execution surface.
+- Authenticated encrypted remote transport, workspace/file transfer and
+  artifact IDs/downloads before treating server paths as a remote product API.
+- Assembly and drawing creation/editing after the part loop is reliable.
+
+The longer-term application goal includes translating supported OpenSCAD
+descriptions into editable SOLIDWORKS-native sketches, dimensions and feature
+trees, not silently falling back to mesh-only import. The converter is an
+upper-layer application; this goal does not require designing it now.
+
+## Release gate
+
+Continue pre-releases until the protocol and recovery boundaries can support a
+compatibility commitment. A new release must name its exact verified commit,
+installation command, Windows/Wine evidence and known limitations. Do not
+equate a built wheel, a registry push or cached installation with successful
+real modeling/exports. CI filename routing stays in the consumer's workflow;
+do not recreate a generic `sw-export` policy wrapper.

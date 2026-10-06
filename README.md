@@ -541,6 +541,9 @@ Installed resources are available through `importlib.resources.files("swcli")`
 
 ## Development
 
+See the [product roadmap](docs/roadmap.md) for completed development capabilities,
+remaining modeling/protocol work and the release proof boundaries.
+
 ```bash
 python -m unittest discover -s tests -v
 ```
