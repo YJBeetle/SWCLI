@@ -212,6 +212,49 @@ try {
     if ($selectedA.document.current -or $selectedA.document.active) {
         throw "inspecting a non-current created part changed its selection state"
     }
+    $sketchLease = Invoke-SwCliJson -Name "sketch-lease-acquire" -Arguments @(
+        "document", "lease", "acquire", "--document", $emptyA.document.document_id, "--json"
+    )
+    $deniedSketch = Invoke-SwCliJson -Name "sketch-lease-denied" -AllowFailure -Arguments @(
+        "--session", "sketch-contender", "sketch", "rectangle", "--plane", "front",
+        "--width-mm", "100", "--height-mm", "50", "--document", $emptyA.document.document_id, "--json"
+    )
+    if ($deniedSketch.ok -or $deniedSketch.error.type -ne "DocumentLeaseConflict") {
+        throw "rectangle sketch creation bypassed the document lease"
+    }
+    if ($null -eq $selectedA.document.update_stamp) {
+        throw "new part has no native update stamp for sketch preconditions"
+    }
+    $staleStamp = ([int]$selectedA.document.update_stamp + 1).ToString()
+    $staleSketch = Invoke-SwCliJson -Name "sketch-stale-stamp" -AllowFailure -Arguments @(
+        "sketch", "rectangle", "--plane", "front", "--width-mm", "100", "--height-mm", "50",
+        "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id,
+        "--if-update-stamp", $staleStamp, "--json"
+    )
+    if ($staleSketch.ok -or $staleSketch.error.type -ne "DocumentUpdateConflict") {
+        throw "rectangle sketch creation bypassed the native update stamp precondition"
+    }
+    $sketchIds = @()
+    foreach ($plane in @("front", "top", "right")) {
+        $rectangle = Invoke-SwCliJson -Name "sketch-rectangle-$plane" -Arguments @(
+            "sketch", "rectangle", "--plane", $plane,
+            "--width-mm", "100", "--height-mm", "50", "--center-x-mm", "10", "--center-y-mm", "20",
+            "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+        )
+        if ($rectangle.editing -or -not $rectangle.geometry_verification.passed -or
+            $rectangle.geometry_verification.profile_segment_count -ne 4 -or
+            $rectangle.sketch.sketch_id -notmatch '^s-[a-z0-9]{6}$' -or
+            $rectangle.document.active -or $rectangle.document.current) {
+            throw "rectangle on $plane failed geometry, edit-state or foreground restoration checks"
+        }
+        $sketchIds += $rectangle.sketch.sketch_id
+    }
+    if (@($sketchIds | Select-Object -Unique).Count -ne 3) {
+        throw "rectangle sketches did not receive distinct handles"
+    }
+    Invoke-SwCliJson -Name "sketch-lease-release" -Arguments @(
+        "document", "lease", "release", $sketchLease.lease.lease_id, "--json"
+    ) | Out-Null
     Invoke-SwCliJson -Name "document-close-created-a" -Arguments @(
         "document", "close", "--document", $emptyA.document.document_id, "--discard", "--json"
     ) | Out-Null

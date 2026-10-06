@@ -59,7 +59,10 @@ it also applies to native Windows:
    deterministic render, and verified STEP export;
 8. verify capabilities, document list/use/rebuild/save, lease acquire/status/
    renew/release and saved-document reopening, with worker-side result Schema
-   validation enabled for every typed operation;
+   validation enabled for every typed operation; create distinct unsaved parts
+   and make three verified rectangle sketches on a background part, checking
+   lease/stale-stamp rejection, sketch IDs, closed edit state and restoration of
+   the foreground/current document;
 9. close the model, externally terminate the daemon-owned SOLIDWORKS process,
    and require health to report `host_connected: false`, clear the stale host,
    and retain `HostDisconnected` without silently restarting on a business
