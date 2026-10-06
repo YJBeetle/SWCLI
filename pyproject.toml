@@ -37,4 +37,4 @@ version = { attr = "swcli.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-swcli = ["schemas/**/*.json"]
+swcli = ["schemas/**/*.json", "skills/**/*.md"]

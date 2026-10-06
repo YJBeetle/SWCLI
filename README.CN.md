@@ -269,6 +269,10 @@ sw-cli document close --discard
 
 已实现的边界和长期执行模型请参阅[架构说明](docs/architecture.md)。
 
+## 供 AI agent 使用
+
+项目自带可移植的 [SWCLI skill](src/swcli/skills/swcli/SKILL.md) 和 [agent 使用指南](src/swcli/skills/swcli/references/usage.md)，说明能力发现、文档/session 选择、并发守卫、单位、导出检查和失败恢复。这是面向**使用 SWCLI 产品**的 agent，不是仓库维护交接说明。通过所用 agent 工具自己的技能机制加载或安装完整的 `swcli` skill 文件夹即可。Python 安装包包含这些文件，但不会修改 agent 配置；Python 3.9+ 可通过 `importlib.resources.files("swcli")` 访问其中的 `skills/swcli`。
+
 ## 开发
 
 ```bash

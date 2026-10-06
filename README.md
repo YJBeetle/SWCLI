@@ -481,6 +481,18 @@ body boxes as approximate, so this evidence is not a precision measurement.
 See [Architecture](docs/architecture.md) for the implemented boundary and
 longer-term execution model.
 
+## Use with AI agents
+
+The project ships a portable [SWCLI skill](src/swcli/skills/swcli/SKILL.md) and
+an [agent usage guide](src/swcli/skills/swcli/references/usage.md). They describe
+capability discovery, document/session selection, concurrency guards, units,
+export checks and failure recovery for agents **using** the product; they are
+not repository-maintenance instructions. Load or install the complete `swcli`
+skill folder using your agent tool's own skill mechanism. Installing the Python
+package includes these files but does not alter your agent's configuration.
+Installed resources are available through `importlib.resources.files("swcli")`
+(Python 3.9+) beneath `skills/swcli`.
+
 ## Development
 
 ```bash
