@@ -581,9 +581,19 @@ try {
     # The public example is executable product documentation, not COM test code.
     $exampleFolder = Join-Path $Workspace "plate-example"
     New-Item -ItemType Directory -Path $exampleFolder | Out-Null
+    $unicodeFolder = Join-Path $exampleFolder ([string][char]0x4E2D + [char]0x6587)
+    New-Item -ItemType Directory -Path $unicodeFolder | Out-Null
     $example = Join-Path $PSScriptRoot "../../../examples/model-plate.ps1"
-    & $example -OutputDirectory $exampleFolder |
-        Set-Content (Join-Path $exampleFolder "result.json") -Encoding utf8
+    $previousEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936)
+        & $example -OutputDirectory $unicodeFolder |
+            Set-Content (Join-Path $exampleFolder "result.json") -Encoding utf8
+        if ([Console]::OutputEncoding.CodePage -ne 936) {
+            throw "the product example changed its caller's console encoding"
+        }
+    }
+    finally { [Console]::OutputEncoding = $previousEncoding }
 
     $connected = Invoke-SwCliJson -Name "daemon-connected" -Arguments @("daemon", "status", "--json")
     if (-not $connected.result.host_connected) {
