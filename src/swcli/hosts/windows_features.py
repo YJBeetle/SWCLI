@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 from .windows import _com_value, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
-from .windows_sketches import _features
+from .windows_sketches import _unabsorbed_profile
 
 _DEPTH_TOLERANCE_MM = 1e-6
 
@@ -50,15 +50,7 @@ def extrude_sketch_windows(
         # Only an unabsorbed top-level 2D sketch is currently supported. Native
         # identity detects deleted, consumed and cross-document handles before
         # changing selections. A feature name or most-recent sketch is not a fallback.
-        live = next(
-            (f for f in _features(document) if int(app.IsSame(f, sketch_feature)) == 1),
-            None,
-        )
-        if (
-            live is None
-            or _com_value(live, "GetTypeName2") != "ProfileFeature"
-            or _com_value(live, "GetOwnerFeature") is not None
-        ):
+        if _unabsorbed_profile(app, document, sketch_feature) is None:
             result["error"] = {
                 "type": "SketchUnavailable",
                 "message": "the sketch is no longer an unabsorbed 2D profile in the selected document",

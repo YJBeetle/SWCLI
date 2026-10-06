@@ -44,6 +44,21 @@ def _standard_plane(document: Any, plane: str) -> Any:
     return None
 
 
+def _unabsorbed_profile(app: Any, document: Any, sketch_feature: Any) -> Optional[Any]:
+    """Resolve exact native identity and reject consumed/cross-document sketches."""
+    feature = next(
+        (f for f in _features(document) if int(app.IsSame(f, sketch_feature)) == 1),
+        None,
+    )
+    if (
+        feature is None
+        or _com_value(feature, "GetTypeName2") != "ProfileFeature"
+        or _com_value(feature, "GetOwnerFeature") is not None
+    ):
+        return None
+    return feature
+
+
 def _sketch_feature(app: Any, document: Any, sketch: Any) -> Any:
     for feature in _features(document):
         if (
