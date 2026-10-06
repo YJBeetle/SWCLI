@@ -331,16 +331,12 @@ def _worker_main(
             {
                 "ok": True,
                 "phase": "ready",
-                "host": _describe_app(
-                    app, waited, owned_by_daemon=owned_by_daemon
-                ),
+                "host": _describe_app(app, waited, owned_by_daemon=owned_by_daemon),
             }
         )
 
         while True:
-            request = _wait_for_worker_request(
-                request_queue, lifecycle_queue, app
-            )
+            request = _wait_for_worker_request(request_queue, lifecycle_queue, app)
             if request is None:
                 break
             started_at = time.monotonic()
@@ -349,6 +345,15 @@ def _worker_main(
                 try:
                     _com_value(app, "RevisionNumber")
                 except Exception as exc:
+                    if _com_hresult(exc) in TRANSIENT_COM_HRESULTS:
+                        response_queue.put(
+                            _error_response(
+                                request_id,
+                                "HostBusy",
+                                f"SOLIDWORKS temporarily rejected the host probe; the operation was not dispatched: {exc}",
+                            )
+                        )
+                        continue
                     error = _host_disconnected_error(exc)
                     response_queue.put(
                         _error_response(

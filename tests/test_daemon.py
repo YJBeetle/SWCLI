@@ -1371,6 +1371,72 @@ class DaemonProtocolTests(unittest.TestCase):
             "HostDisconnected",
         )
 
+    def test_busy_request_probe_does_not_disconnect_or_dispatch_then_next_request_works(
+        self,
+    ):
+        for hresult in server.TRANSIENT_COM_HRESULTS:
+            with self.subTest(hresult=hresult):
+                error = RuntimeError("host temporarily busy")
+                error.hresult = hresult
+                pythoncom = mock.Mock()
+                com_client = mock.Mock()
+                responses = mock.Mock()
+                lifecycle = mock.Mock()
+                first = {
+                    "request_id": "busy",
+                    "operation": "document.list",
+                    "parameters": {},
+                }
+                second = {**first, "request_id": "after-busy"}
+                with (
+                    mock.patch.dict(
+                        "sys.modules",
+                        {
+                            "pythoncom": pythoncom,
+                            "win32com": mock.Mock(client=com_client),
+                            "win32com.client": com_client,
+                        },
+                    ),
+                    mock.patch.object(
+                        server, "acquire_resident_app", return_value=(object(), False)
+                    ),
+                    mock.patch.object(
+                        server, "wait_windows_host_ready", return_value=0
+                    ),
+                    mock.patch.object(server, "DocumentRegistry"),
+                    mock.patch.object(
+                        server, "_describe_app", return_value={"process_id": 1234}
+                    ),
+                    mock.patch.object(
+                        server,
+                        "_wait_for_worker_request",
+                        side_effect=[first, second, None],
+                    ) as wait,
+                    mock.patch.object(
+                        server, "_com_value", side_effect=[1234, error, "33.5.0"]
+                    ),
+                    mock.patch.object(
+                        server, "execute_operation", return_value={"ok": True}
+                    ) as execute,
+                    mock.patch.object(server, "validate_operation_result"),
+                ):
+                    server._worker_main(
+                        mock.Mock(), responses, lifecycle, True, 120, True
+                    )
+                returned = [call.args[0] for call in responses.put.call_args_list]
+                self.assertEqual(returned[0]["error"]["code"], "HostBusy")
+                self.assertTrue(returned[1]["success"])
+                self.assertEqual(returned[1]["request_id"], "after-busy")
+                self.assertEqual(wait.call_count, 3)
+                execute.assert_called_once()
+                self.assertFalse(
+                    any(
+                        call.args[0].get("event") == "host-disconnected"
+                        for call in lifecycle.put.call_args_list
+                    )
+                )
+                pythoncom.CoUninitialize.assert_called_once()
+
     def test_com_hresult_normalizes_signed_pywin32_values(self):
         error = RuntimeError(-2147418111, "call rejected")
 
