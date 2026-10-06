@@ -232,6 +232,11 @@ and can add request/replay metadata. Known nested structures are described;
 warning and native error details remain extensible. The validator is imported
 only when validation is requested, leaving help/version startup lightweight.
 
+Adapter results must also serialize as finite UTF-8 JSON. NaN/Infinity,
+unsupported objects, cycles and unencodable native strings fail with
+`OperationResultInvalid` before socket delivery; Python's extended numeric
+values are not valid wire JSON even if a Schema validator accepts them.
+
 The pre-stable capabilities contract has gained a required field. Upgrade
 client and daemon together when moving from `v0.1.0a3` to this development
 version. The published a3 wheel remains unchanged.
