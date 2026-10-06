@@ -213,6 +213,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.circle": _operation(
+        "sketch.circle",
+        {
+            "plane": _string(enum=list(STANDARD_PLANES)),
+            "radius_mm": _number(exclusiveMinimum=0),
+            "center_x_mm": _number(),
+            "center_y_mm": _number(),
+        },
+        required=("plane", "radius_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "feature.extrude": _operation(
         "feature.extrude",
         {

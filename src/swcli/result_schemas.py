@@ -543,6 +543,41 @@ _RESULT_FIELDS = {
 }
 
 
+_CIRCLE_FIELDS, _CIRCLE_REQUIRED = deepcopy(_RESULT_FIELDS["sketch.rectangle"])
+_CIRCLE_FIELDS["dimensions"] = _object(
+    {
+        "unit": {"const": "millimeter"},
+        "radius": NUMBER,
+        "center_x": NUMBER,
+        "center_y": NUMBER,
+    },
+    ("unit", "radius", "center_x", "center_y"),
+)
+_CIRCLE_FIELDS["geometry_verification"] = _object(
+    {
+        "passed": BOOL,
+        "method": {"const": "sketch-local-circle"},
+        "segment_count": INTEGER,
+        "profile_segment_count": INTEGER,
+        "complete_circle": BOOL,
+        "actual_radius_mm": {"type": ["number", "null"]},
+        "actual_center_mm": {"anyOf": [VECTOR, {"type": "null"}]},
+        "absolute_tolerance_mm": NUMBER,
+    },
+    (
+        "passed",
+        "method",
+        "segment_count",
+        "profile_segment_count",
+        "complete_circle",
+        "actual_radius_mm",
+        "actual_center_mm",
+        "absolute_tolerance_mm",
+    ),
+)
+_RESULT_FIELDS["sketch.circle"] = (_CIRCLE_FIELDS, _CIRCLE_REQUIRED)
+
+
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
@@ -602,12 +637,21 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             "diagnostics": {"properties": {"healthy": {"const": True}}},
             "geometry_verification": {"properties": {"passed": {"const": True}}},
         }
-    if name == "sketch.rectangle":
+    if name in ("sketch.rectangle", "sketch.circle"):
         schema["then"]["properties"] = {
             "editing": {"const": False},
             "sketch": {"required": ["sketch_id"]},
             "geometry_verification": {"properties": {"passed": {"const": True}}},
         }
+        if name == "sketch.circle":
+            schema["then"]["properties"]["geometry_verification"]["properties"].update(
+                {
+                    "complete_circle": {"const": True},
+                    "profile_segment_count": {"const": 1},
+                    "actual_radius_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "actual_center_mm": VECTOR,
+                }
+            )
     if name in ("document.render", "document.export"):
         schema["properties"]["artifact"] = deepcopy(ARTIFACT)
         artifact = schema["properties"]["artifact"]

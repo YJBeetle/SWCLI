@@ -119,6 +119,164 @@ class Manager:
         return self.ActiveSketch.segments
 
 
+class CircleSegment:
+    ConstructionGeometry = False
+
+    def __init__(self, x, y, z, radius):
+        self.center = SimpleNamespace(X=x, Y=y, Z=z)
+        self.radius = radius
+        self.complete = 1
+
+    def GetType(self):
+        return 1
+
+    def IsCircle(self):
+        return self.complete
+
+    def GetRadius(self):
+        return self.radius
+
+    def GetCenterPoint2(self):
+        return self.center
+
+
+class WindowsCircleTests(unittest.TestCase):
+    def setUp(self):
+        self.document = Document()
+        self.app = SimpleNamespace(IsSame=lambda a, b: int(a is b))
+        manager = self.document.SketchManager
+
+        def circle(x, y, z, radius):
+            segment = CircleSegment(x, y, z, radius)
+            manager.ActiveSketch.segments = [segment]
+            return segment
+
+        manager.CreateCircleByRadius = mock.Mock(side_effect=circle)
+
+    def create(self, **arguments):
+        values = dict(plane="front", radius_mm=8, center_x_mm=10, center_y_mm=20)
+        values.update(arguments)
+        return sketches.create_circle_sketch_windows_with_handle(
+            app=self.app, document=self.document, **values
+        )
+
+    def test_three_planes_create_full_circle_and_read_actual_local_geometry(self):
+        for plane, index in (("front", 0), ("top", 1), ("right", 2)):
+            self.setUp()
+            result, feature = self.create(plane=plane)
+            self.assertTrue(result["ok"], result)
+            self.assertIs(feature, self.document.features[-1])
+            self.document.features[index].Select2.assert_called_once_with(False, 0)
+            self.document.SketchManager.CreateCircleByRadius.assert_called_once_with(
+                0.01, 0.02, 0, 0.008
+            )
+            self.assertEqual(result["geometry_verification"]["actual_radius_mm"], 8)
+            self.assertEqual(
+                result["geometry_verification"]["actual_center_mm"],
+                {"x": 10, "y": 20, "z": 0},
+            )
+            self.assertIsNone(self.document.SketchManager.ActiveSketch)
+            self.assertFalse(result["editing"])
+
+    def test_bad_radius_center_plane_and_underflow_do_not_enter_sketch(self):
+        for changed in (
+            {"radius_mm": 0},
+            {"radius_mm": -1},
+            {"radius_mm": math.inf},
+            {"radius_mm": 5e-324},
+            {"radius_mm": 1e308},
+            {"center_x_mm": math.nan},
+            {"center_x_mm": 1e100},
+            {"plane": "other"},
+        ):
+            with self.subTest(changed=changed):
+                self.setUp()
+                result, feature = self.create(**changed)
+                self.assertEqual(result["error"]["type"], "InvalidArgument")
+                self.assertIsNone(feature)
+                self.document.SketchManager.InsertSketch.assert_not_called()
+
+    def test_existing_edit_and_non_part_are_not_modified(self):
+        existing = Sketch()
+        self.document.SketchManager.ActiveSketch = existing
+        self.assertEqual(self.create()[0]["error"]["type"], "SketchEditInProgress")
+        self.assertIs(self.document.SketchManager.ActiveSketch, existing)
+        self.document.GetType = lambda: 2
+        self.assertEqual(self.create()[0]["error"]["type"], "UnsupportedDocumentType")
+        self.document.SketchManager.InsertSketch.assert_not_called()
+
+    def test_solving_modified_arc_or_extra_profiles_cannot_pass_verification(self):
+        def wrong_radius(sketch):
+            sketch.segments[0].radius = 0.009
+
+        def wrong_center(sketch):
+            sketch.segments[0].center.Z = 0.001
+
+        def arc(sketch):
+            sketch.segments[0].complete = 0
+
+        def nonfinite(sketch):
+            sketch.segments[0].radius = math.nan
+
+        def extra(sketch):
+            sketch.segments.append(sketch.segments[0])
+
+        for change in (wrong_radius, wrong_center, arc, nonfinite, extra):
+            self.setUp()
+            self.document.SketchManager.on_close = lambda: change(
+                self.document.SketchManager.ActiveSketch
+            )
+            result, feature = self.create()
+            self.assertEqual(result["error"]["type"], "SketchVerificationFailed")
+            self.assertIsNotNone(feature)
+            self.assertFalse(result["editing"])
+            validate_operation_result("sketch.circle", result)
+
+    def test_native_circle_float_noise_uses_the_declared_absolute_tolerance(self):
+        def float_noise():
+            arc = self.document.SketchManager.ActiveSketch.segments[0]
+            arc.radius = 0.008000000000000012
+            arc.center.X += 1e-12
+
+        self.document.SketchManager.on_close = float_noise
+        result, _ = self.create()
+        self.assertTrue(result["ok"], result)
+        self.assertNotEqual(result["geometry_verification"]["actual_radius_mm"], 8)
+
+    def test_creation_failure_exits_owned_edit_and_preserves_partial_feature(self):
+        manager = self.document.SketchManager
+        manager.CreateCircleByRadius.side_effect = None
+        manager.CreateCircleByRadius.return_value = None
+        result, feature = self.create()
+        self.assertEqual(result["error"]["type"], "SketchCreationFailed")
+        self.assertIsNotNone(feature)
+        self.assertIsNone(manager.ActiveSketch)
+
+    def test_success_contract_requires_handle_closed_edit_and_actual_complete_circle(
+        self,
+    ):
+        result, _ = self.create()
+        result["sketch"]["sketch_id"] = "s-ab12cd"
+        result["document"] = {
+            "title": "Part1",
+            "path": "",
+            "type": 1,
+            "modified": True,
+            "update_stamp": 0,
+        }
+        validate_operation_result("sketch.circle", result)
+        for key, value in (
+            ("complete_circle", False),
+            ("actual_radius_mm", None),
+            ("actual_center_mm", None),
+            ("profile_segment_count", 2),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["geometry_verification"][key] = value
+            with self.assertRaises(OperationResultInvalid):
+                validate_operation_result("sketch.circle", invalid)
+
+
 class WindowsSketchTests(unittest.TestCase):
     def setUp(self):
         self.document = Document()

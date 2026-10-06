@@ -124,6 +124,98 @@ def _rectangle_verification(sketch: Any, expected: Dict[str, float]) -> Dict[str
     }
 
 
+def _circle_verification(
+    sketch: Any, radius_mm: float, center_x_mm: float, center_y_mm: float
+) -> Dict[str, Any]:
+    segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
+    profile = [s for s in segments if not bool(_com_value(s, "ConstructionGeometry"))]
+    actual_radius, center, complete = None, None, False
+    if len(profile) == 1 and int(_com_value(profile[0], "GetType")) == 1:
+        arc = profile[0]
+        complete = int(_com_value(arc, "IsCircle")) == 1
+        value = float(_com_value(arc, "GetRadius")) * 1000
+        actual_radius = value if math.isfinite(value) else None
+        point = _com_value(arc, "GetCenterPoint2")
+        coordinates = [
+            float(_com_value(point, axis)) * 1000 for axis in ("X", "Y", "Z")
+        ]
+        if all(math.isfinite(v) for v in coordinates):
+            center = dict(zip(("x", "y", "z"), coordinates))
+    passed = (
+        complete
+        and actual_radius is not None
+        and center is not None
+        and math.isclose(
+            actual_radius, radius_mm, rel_tol=0, abs_tol=_GEOMETRY_TOLERANCE_MM
+        )
+        and all(
+            math.isclose(
+                center[axis], expected, rel_tol=0, abs_tol=_GEOMETRY_TOLERANCE_MM
+            )
+            for axis, expected in (("x", center_x_mm), ("y", center_y_mm), ("z", 0))
+        )
+    )
+    return {
+        "passed": passed,
+        "method": "sketch-local-circle",
+        "segment_count": len(segments),
+        "profile_segment_count": len(profile),
+        "complete_circle": complete,
+        "actual_radius_mm": actual_radius,
+        "actual_center_mm": center,
+        "absolute_tolerance_mm": _GEOMETRY_TOLERANCE_MM,
+    }
+
+
+def create_circle_sketch_windows_with_handle(
+    *,
+    app: Any,
+    document: Any,
+    plane: str,
+    radius_mm: float,
+    center_x_mm: float = 0.0,
+    center_y_mm: float = 0.0,
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    """Create a full circle in a fresh sketch and verify its final native geometry."""
+    result: Dict[str, Any] = {"ok": False, "action": "sketch.circle"}
+    if (
+        plane not in STANDARD_PLANES
+        or not all(math.isfinite(v) for v in (radius_mm, center_x_mm, center_y_mm))
+        or radius_mm <= 0
+        or not math.isfinite(2 * radius_mm)
+        or radius_mm / 1000 <= 0
+        or any(
+            not math.isfinite(center - radius_mm)
+            or not math.isfinite(center + radius_mm)
+            or not (center - radius_mm) / 1000 < (center + radius_mm) / 1000
+            for center in (center_x_mm, center_y_mm)
+        )
+    ):
+        result["error"] = {
+            "type": "InvalidArgument",
+            "message": "circle requires a supported plane and positive finite, representable radius and center",
+        }
+        return result, None
+    return _create_profile_sketch_windows_with_handle(
+        app=app,
+        document=document,
+        plane=plane,
+        action="sketch.circle",
+        dimensions={
+            "unit": "millimeter",
+            "radius": radius_mm,
+            "center_x": center_x_mm,
+            "center_y": center_y_mm,
+        },
+        create_segments=lambda manager: manager.CreateCircleByRadius(
+            center_x_mm / 1000, center_y_mm / 1000, 0, radius_mm / 1000
+        ),
+        verify_sketch=lambda sketch: _circle_verification(
+            sketch, radius_mm, center_x_mm, center_y_mm
+        ),
+    )
+
+
 def create_rectangle_sketch_windows_with_handle(
     *,
     app: Any,

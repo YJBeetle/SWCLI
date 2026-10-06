@@ -272,6 +272,17 @@ def build_parser() -> argparse.ArgumentParser:
     rectangle_parser.add_argument("--center-y-mm", type=float, default=0.0)
     rectangle_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    circle_parser = sketch_commands.add_parser(
+        "circle", help="create and close a new full-circle sketch"
+    )
+    add_document_selector(circle_parser)
+    add_lease_token(circle_parser)
+    circle_parser.add_argument("--plane", choices=tuple(STANDARD_PLANES), required=True)
+    circle_parser.add_argument("--radius-mm", type=float, required=True)
+    circle_parser.add_argument("--center-x-mm", type=float, default=0.0)
+    circle_parser.add_argument("--center-y-mm", type=float, default=0.0)
+    circle_parser.add_argument("--json", action="store_true", dest="as_json")
+
     feature_parser = subcommands.add_parser(
         "feature", help="create explicit part features"
     )
@@ -706,6 +717,20 @@ def _typed_operation(
                 "depth_mm": args.depth_mm,
                 "reverse": args.reverse,
                 "merge": args.merge,
+            },
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
+    if args.command == "sketch" and args.sketch_command == "circle":
+        return (
+            "sketch.circle",
+            {
+                "plane": args.plane,
+                "radius_mm": args.radius_mm,
+                "center_x_mm": args.center_x_mm,
+                "center_y_mm": args.center_y_mm,
             },
             args.as_json,
             args.document_id,

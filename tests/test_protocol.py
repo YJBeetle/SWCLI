@@ -64,6 +64,26 @@ class ProtocolSchemaTests(unittest.TestCase):
             with self.subTest(changed=changed), self.assertRaises(ValueError):
                 validate_operation_request("feature.extrude", {**valid, **changed})
 
+    def test_circle_parameters_and_policies_require_finite_radius_and_plane(self):
+        valid = {"plane": "front", "radius_mm": 8}
+        validate_operation_request("sketch.circle", valid)
+        spec = OPERATION_CATALOG["sketch.circle"]
+        self.assertTrue(
+            spec.selected_document and spec.lease_guarded and spec.temporary_activation
+        )
+        for changed in (
+            {"radius_mm": 0},
+            {"radius_mm": -1},
+            {"radius_mm": float("nan")},
+            {"center_y_mm": float("inf")},
+            {"plane": "other"},
+            {"diameter_mm": 16},
+        ):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                validate_operation_request("sketch.circle", {**valid, **changed})
+        with self.assertRaises(ValueError):
+            validate_operation_request("sketch.circle", {"radius_mm": 8})
+
     def test_all_schemas_load(self):
         for name in SCHEMA_NAMES:
             with self.subTest(name=name):

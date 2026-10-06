@@ -17,6 +17,50 @@ from swcli.operation_schemas import operation_schemas, operation_result_schemas,
 
 
 class CliTests(unittest.TestCase):
+
+    def test_circle_maps_local_dimensions_and_document_guards(self):
+        args = build_parser().parse_args(
+            [
+                "sketch",
+                "circle",
+                "--document",
+                "d-ab12cd",
+                "--plane",
+                "right",
+                "--radius-mm",
+                "8",
+                "--center-x-mm",
+                "10",
+                "--center-y-mm",
+                "20",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "sketch.circle",
+                {
+                    "plane": "right",
+                    "radius_mm": 8,
+                    "center_x_mm": 10,
+                    "center_y_mm": 20,
+                },
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
+            ),
+        )
+        defaults = build_parser().parse_args(
+            ["sketch", "circle", "--plane", "front", "--radius-mm", "8"]
+        )
+        self.assertEqual(_typed_operation(defaults)[1]["center_x_mm"], 0)
+
     def test_version_json(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
