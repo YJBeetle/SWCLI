@@ -77,6 +77,8 @@ it also applies to native Windows:
    checking native geometry/state and exact cut owner without changing foreground;
    use a separate reversed
    boss/cut part to verify the CLI's common sketch-normal direction convention;
+   reject reuse of absorbed cut profiles and verify that a nonintersecting
+   profile returns `CutExtrusionFailed` without changing the measured solid;
    save the generic modeled part under a new
    native filename, verify unchanged document/lease/sketch identities and
    rejection of an existing target without changing its hash, then close and

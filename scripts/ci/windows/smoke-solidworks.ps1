@@ -344,6 +344,13 @@ try {
                 $absorbed.document.active -or $absorbed.document.current) {
                 throw "absorbed circle observation did not preserve exact sketch/owner identity"
             }
+            $usedCutProfile = Invoke-SwCliJson -Name "cut-profile-reuse-denied" -AllowFailure -Arguments @(
+                "feature", "cut-extrude", $hole.sketch.sketch_id, "--depth-mm", "20",
+                "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+            )
+            if ($usedCutProfile.ok -or $usedCutProfile.error.type -ne "SketchUnavailable") {
+                throw "cut creation did not reject its already absorbed profile"
+            }
         }
     }
     foreach ($plane in @("front", "top", "right")) {
@@ -469,6 +476,36 @@ try {
     }
     Invoke-SwCliJson -Name "reverse-cut-close" -Arguments @(
         "--session", "reverse-cut", "document", "close", "--discard", "--json"
+    ) | Out-Null
+    # A remote profile that cannot intersect the solid must not be reported as a cut.
+    Invoke-SwCliJson -Name "failed-cut-create" -Arguments @(
+        "--session", "failed-cut", "document", "create", "--json"
+    ) | Out-Null
+    $failedCutRectangle = Invoke-SwCliJson -Name "failed-cut-rectangle" -Arguments @(
+        "--session", "failed-cut", "sketch", "rectangle", "--plane", "front",
+        "--width-mm", "40", "--height-mm", "30", "--json"
+    )
+    Invoke-SwCliJson -Name "failed-cut-boss" -Arguments @(
+        "--session", "failed-cut", "feature", "extrude", $failedCutRectangle.sketch.sketch_id, "--depth-mm", "10", "--json"
+    ) | Out-Null
+    $outsideCircle = Invoke-SwCliJson -Name "failed-cut-outside-circle" -Arguments @(
+        "--session", "failed-cut", "sketch", "circle", "--plane", "front", "--radius-mm", "2", "--center-x-mm", "1000", "--json"
+    )
+    $noIntersection = Invoke-SwCliJson -Name "failed-cut-no-intersection" -AllowFailure -Arguments @(
+        "--session", "failed-cut", "feature", "cut-extrude", $outsideCircle.sketch.sketch_id, "--depth-mm", "10", "--json"
+    )
+    if ($noIntersection.ok -or $noIntersection.error.type -ne "CutExtrusionFailed") {
+        throw "a nonintersecting profile did not report native cut creation failure"
+    }
+    $afterFailure = Invoke-SwCliJson -Name "failed-cut-measure" -Arguments @(
+        "--session", "failed-cut", "document", "measure", "--json"
+    )
+    if ($afterFailure.metrics.solid_body_count -ne 1 -or
+        [Math]::Abs($afterFailure.metrics.volume_mm3 - 12000) -gt 0.00001) {
+        throw "nonintersecting cut failure changed the measured solid"
+    }
+    Invoke-SwCliJson -Name "failed-cut-close" -Arguments @(
+        "--session", "failed-cut", "document", "close", "--discard", "--json"
     ) | Out-Null
     $currentB = Invoke-SwCliJson -Name "document-inspect-created-b" -Arguments @("document", "inspect", "--json")
     if ($currentB.document.document_id -ne $emptyB.document.document_id) {
