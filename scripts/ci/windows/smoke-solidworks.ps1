@@ -631,7 +631,7 @@ try {
     do {
         Start-Sleep -Seconds 1
         $manualDoctor = Invoke-SwCliJson -Name "doctor-manual-host" -Arguments @("doctor", "--json")
-        if ($manualDoctor.com.attached) {
+        if ($manualDoctor.com.attached -and $manualDoctor.com.visible) {
             $manualReady = $true
             break
         }
