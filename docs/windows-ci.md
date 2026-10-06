@@ -8,7 +8,10 @@ SOLIDWORKS installation.
 `.github/workflows/ci.yml` is the single hosted workflow. Its first stage runs
 the unit suite on Windows 2025 with Python 3.9 and 3.14, parses every Windows CI
 PowerShell script, verifies the installed CLI and protocol schemas, and builds
-and checks both distributions on Linux. These jobs do not run Wine or require
+and checks both distributions on Linux. The Linux package job installs the
+actual wheel and verifies the isolated CLI, all request/result Schemas and
+packaged product skill/guide; Windows checks the same resources in the installed
+checkout. These jobs do not activate COM, run Wine or require
 SOLIDWORKS and are safe for pull requests.
 
 The second stage depends on both unit tests and package validation. It runs the
