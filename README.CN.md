@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及首个类型化零件建模操作。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、特征、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。同一开发分支新增未保存零件创建和经过验证的矩形草图；拉伸与原生另存为仍待实现。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。同一开发分支新增未保存零件创建、经过验证的矩形草图和定深实体拉伸；原生另存为仍待实现。
 
 ## 安装
 
@@ -173,7 +173,7 @@ sw-cli --request-id export-build-42 document export output.STEP --strict --json
 
 在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应，包括失败和超时。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回首次终局结果并报告 `replayed: true`；失败后若要再次执行，必须使用新的 request ID。除非显式传入 `--request-id`，CLI 每次调用都会生成新的 UUID。如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
 
-所有类型化的 `sw-cli document`、`sw-cli sketch` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
+所有类型化的 `sw-cli document`、`sw-cli sketch`、`sw-cli feature` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
 
 可以查询已经运行的 daemon 所声明的版本化能力，而不会隐式启动 SOLIDWORKS：
 
@@ -196,7 +196,7 @@ sw-cli document inspect --detail structure --json
 sw-cli document close --discard
 ```
 
-已发布的 `v0.1.0a3` wheel 不包含此命令。原生另存为、通用草图编辑和拉伸命令仍待实现；现有 `document save` 只保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
+已发布的 `v0.1.0a3` wheel 不包含此命令。原生另存为和通用草图编辑仍待实现；现有 `document save` 只保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
 
 `document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。每次打开或创建都会返回 `d-k7m2q9` 形式的短期 ID，并把该文档设为所选 CLI session 的 `current`。文档关闭或 worker 重启后 ID 即失效。`document list` 返回全部打开文档及各自的 `active`、`current` 状态；`document use ID` 用于明确修改 session 的 `current`。
 
@@ -260,6 +260,17 @@ sw-cli document close --discard
 `sketch rectangle` 在零件的 `front`、`top` 或 `right` 原点基准面上新建二维草图，不依赖本地化的基准面名称。宽、高及可选的 `--center-x-mm` / `--center-y-mm`（默认零）均使用**草图局部坐标中的毫米**。响应包含原生 `model_to_sketch_transform`（平移分量单位为米）、经过验证的四条轮廓边界、原生约束状态及 `s-ab12cd` 形式的短草图 ID。ID 绑定本次文档与 worker 内的准确草图特征对象，关档或 worker 重启后失效，不是跨保存、重开或拓扑变化的持久引用。
 
 命令退出草图编辑后才验证最终几何，不添加驱动尺寸，也不保证草图完全定义。已有草图处于编辑状态时明确拒绝，不接管编辑。`--document`、`--lease` 和 `--if-update-stamp` 与文档写操作使用相同守卫；临时激活后台文档不会改变 session 的 `current`。失败时只尝试退出本次操作开启的草图编辑，不回滚已生成的部分几何；退出清理失败会返回 warnings。已发布的 `v0.1.0a3` wheel 不包含此命令。
+
+## 特征操作（a4 开发分支）
+
+```powershell
+sw-cli document create --json
+$rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
+sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
+sw-cli document inspect --detail structure --json
+```
+
+`feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。已发布的 `v0.1.0a3` wheel 不包含此命令。
 
 ## 零件建模
 

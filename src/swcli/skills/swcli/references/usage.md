@@ -83,7 +83,10 @@ sw-cli --session bracket document diagnose --json
 The rectangle is a fresh sketch using millimeters in sketch-local coordinates.
 Its result verifies native edges after leaving edit mode, but does not add
 driving dimensions or guarantee full definition. Preserve its sketch ID for
-later supported feature commands; do not substitute a feature name. A new
+later supported feature commands; do not substitute a feature name. Hosts
+advertising `feature.extrude` accept `sw-cli feature extrude SKETCH_ID
+--depth-mm 20 --json`; it requires an unabsorbed 2D sketch in the selected part.
+`--reverse` and `--no-merge` are explicit optional choices. A new
 document is unsaved: do not assume `document save` names it or that export saves
 the native source. Use only the save-as/feature operations the host advertises.
 

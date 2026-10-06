@@ -41,13 +41,13 @@ export, and a first typed part-modeling operation. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketch editing,
-features, stable entity references, transactions, SDK, and MCP remain future
+feature editing, stable entity references, transactions, SDK, and MCP remain future
 work. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. The development branch for `0.1.0a4`
 also advertises `operation_result_schemas` and validates worker results before
 returning them; this is not included in the pinned `v0.1.0a3` wheel below.
 The same development branch adds unsaved part creation and verified rectangle
-sketches; extrusion and native save-as are still pending.
+sketches and blind solid extrusion; native save-as is still pending.
 
 ## Installation
 
@@ -257,7 +257,7 @@ and scope. The cache is bounded and is lost when the daemon restarts, so it
 protects immediate transport retries rather than providing durable exactly-once
 execution across daemon failures.
 
-All typed `sw-cli` document, sketch and part commands use this service. The
+All typed `sw-cli` document, sketch, feature and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
 error and never falls back to a second direct-COM execution mode. No endpoint,
@@ -321,7 +321,7 @@ sw-cli document close --discard
 ```
 
 This foundation for general modeling is not in the published `v0.1.0a3` wheel.
-Native save-as, general sketch editing and extrusion commands are still forthcoming;
+Native save-as and general sketch editing are still forthcoming;
 `document save` only saves an already named document. If creation succeeds but
 a later check fails, the partial document is not rolled back or silently closed;
 an acquired handle is registered when readable, allowing explicit inspection
@@ -462,6 +462,26 @@ activating a background document does not change the session current. On
 failure, cleanup attempts to exit only the edit started by this operation;
 partial geometry is not rolled back, and cleanup failures produce warnings.
 This command is not included in the published `v0.1.0a3` wheel.
+
+## Feature operations (a4 development branch)
+
+```powershell
+sw-cli document create --json
+$rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
+sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
+sw-cli document inspect --detail structure --json
+```
+
+`feature extrude SKETCH_ID` creates a one-direction blind solid extrusion from
+a registered, unabsorbed 2D sketch in the selected part. Depth uses millimeters;
+`--reverse` reverses the sketch-normal direction and `--no-merge` keeps new
+bodies separate. It resolves the exact native sketch, rejects missing/deleted/
+absorbed sketches and existing sketch edits, then rebuilds and diagnoses the
+model. The response verifies native depth, direction, merge and end conditions
+and reports solid-body evidence, not just echoed inputs. It does not verify all
+design dimensions or save the native document. Selection cleanup and foreground
+restoration follow the document guards; partial feature creation is not rolled
+back on failure. This command is not in the published `v0.1.0a3` wheel.
 
 ## Part modeling
 

@@ -149,7 +149,18 @@ geometry. Failure does not imply rollback; cleanup warnings report an edit that
 could not be closed. Driving dimensions and full constraint solving are not yet
 part of this command.
 
-General sketch editing, extrusion, native save-as and the complete
+`feature.extrude` resolves a document-scoped sketch handle, verifies native
+identity and `GetOwnerFeature` before selecting it, and creates a single-ended
+blind boss with explicit millimeter depth, reverse and merge options. Absorbed
+sketches remain in SOLIDWORKS traversal and are deliberately rejected rather
+than mistaken for unused profiles. Native extrusion data, rebuild diagnostics
+and solid-body evidence are checked after creation. This is not a general
+geometric proof or transaction rollback. Native API references:
+[owner feature](https://help.solidworks.com/2022/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IFeature~GetOwnerFeature.html),
+[extrusion depth](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~GetDepth.html),
+[reverse direction](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~ReverseDirection.html).
+
+General sketch editing, native save-as and the complete
 create/model/save/reopen verification loop are still pending.
 
 ## Compatibility policy
