@@ -15,6 +15,8 @@ Implemented and covered by portable tests and native Windows smoke:
   definition and rebuild/body verification;
 - new-filename native part save-as, retained live handles/leases, existing-target
   rejection and close/reopen verification;
+- read-only native solid-body volume, area and volume-weighted centroid,
+  explicitly scoped to body sums rather than a geometric union or material mass;
 - product-facing skill and guide packaged with SWCLI, with an installed-wheel
   resource/Schema gate.
 
@@ -25,12 +27,9 @@ These development features are not in the published v0.1.0a3 wheel.
 
 ## Next modeling increments
 
-1. Add exact, explicitly scoped volume/area measurements for geometric
-   acceptance; distinguish those from approximate body boxes and material-based
-   mass estimates.
-2. Add sketch-based material removal and verify native end condition/direction,
+1. Add sketch-based material removal and verify native end condition/direction,
    model diagnostics and actual geometric change.
-3. Add driving dimensions/relations and supported feature edits, so the basic
+2. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
 
 Each increment needs request/result Schema, document/lease/stamp guards,

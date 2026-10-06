@@ -179,6 +179,18 @@ body count and rebuild diagnostics. This is not transactional rollback or a
 general file-integrity validator. Assembly/drawing save-as, native-copy mode,
 general sketch editing and feature editing remain pending.
 
+`document.measure` is a part-only, selection-independent read. It enumerates
+all solid bodies, including hidden bodies, and reads `IBody2::GetMassProperties`
+with a unit calculation density; synthetic mass/inertia are discarded, not
+reported as material evidence. Native m³/m²/m values become mm³/mm²/mm outputs.
+Totals sum individual bodies (not their union), and the centroid is weighted
+by their volumes in part-model coordinates. Missing/invalid geometry and
+body-limit overflow fail instead of silently falling back to approximate boxes
+or reporting partial totals. Existing write leases do not block observation.
+The adapter was verified against the installed SOLIDWORKS 2025 API help's array
+layout and unit/coordinate semantics. See
+[body mass properties](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IBody2~GetMassProperties.html).
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli

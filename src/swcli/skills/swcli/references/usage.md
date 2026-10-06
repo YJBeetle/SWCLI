@@ -116,6 +116,14 @@ silently resolved by saving/rebuilding if the task is only to validate committed
 CI sources. Rebuild diagnostics, requested dimensions and geometry checks form
 the acceptance loop; an API returning success alone is insufficient.
 
+Hosts advertising `document.measure` support `sw-cli document measure --json`
+for all solid bodies of a part. It reports kernel-derived mm³ volume, mm² area
+and the volume-weighted center in part-model millimeters without selection or
+rebuild changes. It is a read, available even while another session holds a
+lease. Totals sum bodies rather than unioning overlapping geometry, and area
+includes each body's contact/internal faces. It does not report real material
+mass; approximate boxes remain a different kind of evidence.
+
 ## Export and recover
 
 ```bash

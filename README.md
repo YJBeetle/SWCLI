@@ -413,6 +413,17 @@ response includes the raw SOLIDWORKS save error/warning bitmasks, stable names
 for every set bit, and the document state before and after saving. Success
 requires both a successful API result and a clean post-save document.
 
+`document measure --json` (a4 development) reads kernel-derived geometry for
+all solid bodies in the selected part, including hidden bodies. It reports
+volume in mm³, surface area in mm² and the volume-weighted centroid in part-model
+millimeters, plus per-body evidence. It neither changes selection nor activates,
+rebuilds or saves the document; another session's lease does not block this read.
+`--max-bodies` defaults to 1000 and rejects larger sets rather than silently
+measuring a subset. Totals are **sums of individual bodies**, not a geometric
+union: overlapping volumes and contacting/internal faces are counted per body.
+No material-derived mass is reported. Assembly/drawing measurement is not yet
+supported, and these numeric kernel properties are not a proof of design intent.
+
 On the a4 development branch, `document save-as new-part.SLDPRT` names the
 selected part and saves it to a **new target only**. Existing targets (including
 its current filename) are rejected; use `document save` for an in-place save.

@@ -69,10 +69,13 @@ it also applies to native Windows:
    depth/direction/merge checks, verify the first body dimensions, and reject
    reuse of an absorbed sketch; create full circles on all three background
    origin planes, verify native radius/center and extrude them as separate
-   bodies; save the generic modeled part under a new
+   bodies; observe a leased background part from another session and require
+   the initial 100×50×20 body to measure 100000 mm³, 16000 mm² and the expected
+   centroid; save the generic modeled part under a new
    native filename, verify unchanged document/lease/sketch identities and
    rejection of an existing target without changing its hash, then close and
-   reopen under an independent session to verify body count and diagnostics;
+   reopen under an independent session to verify body count, volume, surface
+   area and diagnostics;
 9. close the model, externally terminate the daemon-owned SOLIDWORKS process,
    and require health to report `host_connected: false`, clear the stale host,
    and retain `HostDisconnected` without silently restarting on a business
