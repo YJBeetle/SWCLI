@@ -68,14 +68,15 @@ def call_daemon(
         request["expected_update_stamp"] = expected_update_stamp
     if lease_id is not None:
         request["lease_id"] = lease_id
-    encoded = json.dumps(request, ensure_ascii=False, separators=(",", ":")).encode(
-        "utf-8"
-    ) + b"\n"
+    encoded = (
+        json.dumps(
+            request, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        ).encode("utf-8")
+        + b"\n"
+    )
 
     connect_timeout = (
-        timeout_seconds
-        if connect_timeout_seconds is None
-        else connect_timeout_seconds
+        timeout_seconds if connect_timeout_seconds is None else connect_timeout_seconds
     )
     with socket.create_connection((host, port), timeout=connect_timeout) as connection:
         connection.settimeout(timeout_seconds + 10.0)

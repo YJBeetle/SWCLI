@@ -1723,6 +1723,41 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertEqual(response["error"]["code"], "ValueError")
         self.assertIn("template must be a string", response["error"]["message"])
 
+    def test_invalid_envelope_never_reaches_worker_or_lifecycle_handlers(self):
+        valid = {
+            "api_version": PROTOCOL_VERSION,
+            "request_id": "invalid-envelope",
+            "operation": "document.rebuild",
+            "parameters": {},
+        }
+        for changed in (
+            {"timeout_ms": True},
+            {"timeout_ms": 10**1000},
+            {"session_id": "invalid\ud800"},
+            {"request_id": "invalid\ud800"},
+            {"parameters": {"unexpected": float("nan")}},
+        ):
+            with self.subTest(fields=list(changed)):
+                handler = object.__new__(server.SwclidRequestHandler)
+                handler.rfile = io.BytesIO(
+                    json.dumps({**valid, **changed}).encode("utf-8") + b"\n"
+                )
+                handler.wfile = io.BytesIO()
+                handler.server = mock.Mock(manager=mock.Mock())
+                handler.handle()
+                response = json.loads(handler.wfile.getvalue())
+                self.assertFalse(response["success"])
+                self.assertEqual(response["error"]["code"], "ValueError")
+                response["request_id"].encode("utf-8")
+                handler.server.manager.call.assert_not_called()
+                handler.server.manager.shutdown.assert_not_called()
+
+    def test_client_rejects_nonfinite_parameters_before_network_io(self):
+        with mock.patch.object(client.socket, "create_connection") as connect:
+            with self.assertRaises(ValueError):
+                client.call_daemon("feature.extrude", {"depth_mm": float("nan")})
+            connect.assert_not_called()
+
     def test_client_sends_document_and_session_context(self):
         response = {
             "api_version": PROTOCOL_VERSION,

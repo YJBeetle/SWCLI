@@ -90,6 +90,10 @@ def _success_response(
 def validate_request(request: Any) -> Dict[str, Any]:
     if not isinstance(request, dict):
         raise ValueError("request must be a JSON object")
+    try:
+        json.dumps(request, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError, RecursionError, UnicodeError) as exc:
+        raise ValueError("request must be finite UTF-8 JSON") from exc
     if request.get("api_version") != PROTOCOL_VERSION:
         raise ValueError("unsupported api_version")
     allowed_fields = {
@@ -143,15 +147,20 @@ def validate_request(request: Any) -> Dict[str, Any]:
         )
     lease_id = request.get("lease_id")
     if lease_id is not None and (
-        not isinstance(lease_id, str)
-        or LEASE_ID_PATTERN.fullmatch(lease_id) is None
+        not isinstance(lease_id, str) or LEASE_ID_PATTERN.fullmatch(lease_id) is None
     ):
         raise ValueError("lease_id must be an l-... lease token")
     if lease_id is not None and request["operation"] not in LEASE_TOKEN_OPERATIONS:
         raise ValueError(f"lease_id is not supported for {request['operation']}")
     timeout_ms = request.get("timeout_ms", 600000)
-    if not isinstance(timeout_ms, int) or timeout_ms < 1:
-        raise ValueError("timeout_ms must be a positive integer")
+    if (
+        not isinstance(timeout_ms, int)
+        or isinstance(timeout_ms, bool)
+        or not 1 <= timeout_ms <= threading.TIMEOUT_MAX * 1000
+    ):
+        raise ValueError(
+            "timeout_ms must be a positive integer within platform timer limits"
+        )
     request["timeout_ms"] = timeout_ms
     validate_operation_request(
         request["operation"],
@@ -819,7 +828,12 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                     and candidate_request_id
                     and len(candidate_request_id) <= 128
                 ):
-                    request_id = candidate_request_id
+                    try:
+                        candidate_request_id.encode("utf-8")
+                    except UnicodeError:
+                        pass
+                    else:
+                        request_id = candidate_request_id
             request = validate_request(payload)
             request_id = request["request_id"]
             if self.server.manager is None:
@@ -839,8 +853,8 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
         except Exception as exc:
             response = _error_response(request_id, type(exc).__name__, str(exc))
         self.wfile.write(
-            json.dumps(response, ensure_ascii=False, separators=(",", ":")).encode(
-                "utf-8"
-            )
+            json.dumps(
+                response, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+            ).encode("utf-8")
             + b"\n"
         )
