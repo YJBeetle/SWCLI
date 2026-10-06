@@ -252,6 +252,36 @@ try {
     if (@($sketchIds | Select-Object -Unique).Count -ne 3) {
         throw "rectangle sketches did not receive distinct handles"
     }
+    for ($index = 0; $index -lt $sketchIds.Count; $index++) {
+        $extrudeArguments = @(
+            "feature", "extrude", $sketchIds[$index], "--depth-mm", "20",
+            "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+        )
+        if ($index -eq 1) { $extrudeArguments += "--reverse" }
+        if ($index -eq 2) { $extrudeArguments += "--no-merge" }
+        $extrusion = Invoke-SwCliJson -Name "feature-extrude-$index" -Arguments $extrudeArguments
+        if (-not $extrusion.geometry_verification.passed -or
+            $extrusion.geometry_verification.actual_depth_mm -ne 20 -or
+            $extrusion.geometry_verification.actual_reverse -ne ($index -eq 1) -or
+            $extrusion.geometry_verification.actual_merge -ne ($index -ne 2) -or
+            $extrusion.document.active -or $extrusion.document.current) {
+            throw "extrusion failed native definition or foreground restoration checks"
+        }
+        if ($index -eq 0) {
+            $size = $extrusion.bodies.items[0].approximate_bounding_box.size_mm
+            if ($extrusion.bodies.count -ne 1 -or [Math]::Abs($size.x - 100) -gt 0.1 -or
+                [Math]::Abs($size.y - 50) -gt 0.1 -or [Math]::Abs($size.z - 20) -gt 0.1) {
+                throw "first extrusion did not produce the expected 100x50x20 body"
+            }
+        }
+    }
+    $usedSketch = Invoke-SwCliJson -Name "feature-extrude-used-sketch" -AllowFailure -Arguments @(
+        "feature", "extrude", $sketchIds[0], "--depth-mm", "20",
+        "--document", $emptyA.document.document_id, "--lease", $sketchLease.lease.lease_id, "--json"
+    )
+    if ($usedSketch.ok -or $usedSketch.error.type -ne "SketchUnavailable") {
+        throw "extrusion did not reject an already absorbed sketch handle"
+    }
     Invoke-SwCliJson -Name "sketch-lease-release" -Arguments @(
         "document", "lease", "release", $sketchLease.lease.lease_id, "--json"
     ) | Out-Null
