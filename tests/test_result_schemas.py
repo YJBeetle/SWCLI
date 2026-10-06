@@ -22,6 +22,25 @@ DOCUMENT = {
 
 
 class ResultSchemaTests(unittest.TestCase):
+    def test_result_validation_rejects_nonfinite_json_even_in_partial_measurement(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            result = {
+                "ok": False,
+                "action": "document.measure",
+                "error": {
+                    "type": "MeasurementUnavailable",
+                    "message": "partial geometry",
+                },
+                "metrics": {
+                    "solid_body_count": 1,
+                    "volume_mm3": value,
+                    "surface_area_mm2": 1,
+                    "centroid_mm": {"x": 0, "y": 0, "z": 0},
+                },
+            }
+            with self.subTest(value=value), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("document.measure", result)
+
     def test_transport_envelope_distinguishes_success_from_failure(self):
         validator = Draft202012Validator(load_schema("response"))
         base = {"api_version": "swcli/v1", "request_id": "test", "duration_ms": 0}
@@ -78,6 +97,22 @@ class ResultSchemaTests(unittest.TestCase):
         del invalid["needs_rebuild"]
         with self.assertRaisesRegex(OperationResultInvalid, "needs_rebuild"):
             validate_operation_result("document.inspect", invalid)
+
+    def test_unserializable_cyclic_and_unencodable_native_results_fail_structurally(self):
+        cyclic = []
+        cyclic.append(cyclic)
+        for title in (b"binary", object(), cyclic, "bad\ud800title"):
+            result = {
+                "ok": True,
+                "action": "document.inspect",
+                "document": {**DOCUMENT, "title": title},
+                "needs_rebuild": 0,
+            }
+            with (
+                self.subTest(kind=type(title).__name__),
+                self.assertRaisesRegex(OperationResultInvalid, "UTF-8 JSON"),
+            ):
+                validate_operation_result("document.inspect", result)
 
     def test_failure_can_have_partial_result_but_requires_error(self):
         result = {

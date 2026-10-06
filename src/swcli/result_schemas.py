@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from functools import lru_cache
+import json
 from typing import Any, Dict
 
 from .protocol import load_schema
@@ -839,6 +840,15 @@ class OperationResultInvalid(RuntimeError):
 
 
 def validate_operation_result(name: str, result: Any) -> None:
+    # jsonschema accepts Python NaN/Infinity as numbers; wire JSON does not.
+    # Check the actual UTF-8 encoding too, so malformed native text cannot make
+    # a later socket write fail instead of returning a structured adapter error.
+    try:
+        json.dumps(result, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError, RecursionError, UnicodeError) as exc:
+        raise OperationResultInvalid(
+            f"{name}: result is not finite UTF-8 JSON: {exc}"
+        ) from exc
     error = next(_validator(name).iter_errors(result), None)
     if error is not None:
         path = ".".join(str(item) for item in error.absolute_path) or "result"
