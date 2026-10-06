@@ -238,6 +238,8 @@ try {
     }
 
     Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
+    & python (Join-Path $PSScriptRoot "../verify-invalid-requests.py")
+    if ($LASTEXITCODE -ne 0) { throw "invalid wire requests changed the running host or documents" }
 
     $beforeInvalidRestart = Invoke-SwCliJson -Name "status-before-invalid-restart" -Arguments @("daemon", "status", "--json")
     $invalidRestart = Invoke-SwCliJson -Name "invalid-restart-timeout" -AllowFailure -Arguments @(

@@ -15,6 +15,7 @@ REQUIRED = {
     "docs/windows-ci.md",
     "examples/model-plate.ps1",
     "scripts/ci/verify-installed.py",
+    "scripts/ci/verify-invalid-requests.py",
     "scripts/ci/verify-sdist.py",
     "scripts/ci/windows/smoke-solidworks.ps1",
     "src/swcli/skills/swcli/SKILL.md",
