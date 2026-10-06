@@ -165,6 +165,8 @@ sw-cli daemon start --attach-existing
 
 TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报错，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
+连接、请求和启动超时必须为正数、有限值，且在平台计时器支持范围内。`daemon restart` 会在停止现有服务前检查本地启动条件；参数无效不会关闭正在运行的服务。这是前置检查，不保证随后 COM 启动一定成功。
+
 每个类型化 CLI 请求默认使用随机请求 ID。可能重试状态不确定请求的自动化可以明确提供稳定键：
 
 ```bash

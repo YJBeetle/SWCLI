@@ -271,11 +271,18 @@ process tree. An explicitly attached host is never selected for that cleanup.
 `sw-cli daemon serve` owns the SOLIDWORKS instance and waits for
 `StartupProcessCompleted`; `sw-cli daemon start` launches that same service in
 the background, while `sw-cli daemon stop` requests an orderly daemon and COM
-worker shutdown. `sw-cli daemon restart` first stops a reachable daemon, waits
+worker shutdown. `sw-cli daemon restart` first validates the local platform,
+endpoint and startup wait, then stops a reachable daemon, waits
 for its local endpoint to close, and then applies the requested owned or
 explicit-attach startup policy. Native Windows and portable typed commands
 require a reachable daemon; an absent local endpoint returns `DaemonUnavailable`
 without changing the SOLIDWORKS process state.
+
+Client connection/request waits and supervisor startup waits reject booleans,
+non-positive/non-finite values and waits exceeding the platform timer limit
+before network or host-lifecycle side effects. Invalid restart parameters must
+not shut down an existing host. This preflight does not reserve resources or
+guarantee that a later COM activation succeeds.
 
 Document operations preserve the SOLIDWORKS API's error and warning bitmasks
 instead of reducing them to a boolean. The Windows adapter owns pywin32 details

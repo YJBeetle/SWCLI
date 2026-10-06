@@ -237,6 +237,11 @@ daemon can be reported promptly without reducing the operation budget.
 Override it with `--connect-timeout`; `--request-timeout` controls the CAD
 operation after a connection has been established.
 
+Connection, request and startup timeouts must be positive, finite values within
+the platform's timer limits. `daemon restart` validates local startup conditions
+before stopping the running service; invalid parameters do not shut it down.
+This is a preflight check, not a guarantee that a subsequent COM startup succeeds.
+
 Every typed CLI request gets a random request ID. Automation that may retry an
 uncertain request can provide a stable key explicitly:
 
