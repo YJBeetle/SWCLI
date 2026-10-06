@@ -47,6 +47,23 @@ class ProtocolSchemaTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_operation_request("document.create", {}, document_id="d-ab12cd")
 
+    def test_extrude_schema_and_validator_agree_on_sketch_handle_and_depth(self):
+        valid = {"sketch_id": "s-ab12cd", "depth_mm": 20}
+        validate_operation_request("feature.extrude", valid)
+        spec = OPERATION_CATALOG["feature.extrude"]
+        self.assertTrue(
+            spec.selected_document and spec.lease_guarded and spec.temporary_activation
+        )
+        for changed in (
+            {"sketch_id": "Sketch1"},
+            {"sketch_id": "s-short"},
+            {"depth_mm": 0},
+            {"depth_mm": float("inf")},
+            {"merge": "false"},
+        ):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                validate_operation_request("feature.extrude", {**valid, **changed})
+
     def test_all_schemas_load(self):
         for name in SCHEMA_NAMES:
             with self.subTest(name=name):

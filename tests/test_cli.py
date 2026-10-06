@@ -395,6 +395,47 @@ class CliTests(unittest.TestCase):
             ),
         )
 
+    def test_extrude_maps_sketch_selector_and_explicit_options(self):
+        args = build_parser().parse_args(
+            [
+                "feature",
+                "extrude",
+                "s-ab12cd",
+                "--depth-mm",
+                "20",
+                "--reverse",
+                "--no-merge",
+                "--document",
+                "d-ab12cd",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "feature.extrude",
+                {
+                    "sketch_id": "s-ab12cd",
+                    "depth_mm": 20.0,
+                    "reverse": True,
+                    "merge": False,
+                },
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
+            ),
+        )
+        defaults = build_parser().parse_args(
+            ["feature", "extrude", "s-ab12cd", "--depth-mm", "20"]
+        )
+        self.assertEqual(_typed_operation(defaults)[1]["merge"], True)
+        self.assertEqual(_typed_operation(defaults)[1]["reverse"], False)
+
     def test_create_box_without_template_matches_published_schema(self):
         args = build_parser().parse_args(
             [

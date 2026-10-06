@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 from math import isfinite
+from re import search
 from typing import Any, Dict, Optional
 
 from .hosts.windows_documents import RENDER_VIEWS
@@ -205,6 +206,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "feature.extrude": _operation(
+        "feature.extrude",
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "depth_mm": _number(exclusiveMinimum=0),
+            "reverse": _boolean(),
+            "merge": _boolean(),
+        },
+        required=("sketch_id", "depth_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "part.create-box": _operation(
         "part.create-box",
         {
@@ -253,6 +266,8 @@ def _validate_parameter(name: str, value: Any, schema: Dict[str, Any]) -> None:
         raise ValueError(f"{name} must be finite")
     if "minLength" in schema and len(value) < schema["minLength"]:
         raise ValueError(f"{name} must not be empty")
+    if "pattern" in schema and search(schema["pattern"], value) is None:
+        raise ValueError(f"{name} must match {schema['pattern']}")
     if "enum" in schema and value not in schema["enum"]:
         raise ValueError(f"{name} must be one of {', '.join(schema['enum'])}")
     if "minimum" in schema and value < schema["minimum"]:

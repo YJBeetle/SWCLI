@@ -265,6 +265,23 @@ def build_parser() -> argparse.ArgumentParser:
     rectangle_parser.add_argument("--center-y-mm", type=float, default=0.0)
     rectangle_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    feature_parser = subcommands.add_parser(
+        "feature", help="create explicit part features"
+    )
+    feature_commands = feature_parser.add_subparsers(
+        dest="feature_command", required=True
+    )
+    extrude_parser = feature_commands.add_parser(
+        "extrude", help="extrude a registered 2D sketch"
+    )
+    extrude_parser.add_argument("sketch_id")
+    extrude_parser.add_argument("--depth-mm", type=float, required=True)
+    extrude_parser.add_argument("--reverse", action="store_true")
+    extrude_parser.add_argument("--no-merge", action="store_false", dest="merge")
+    add_document_selector(extrude_parser)
+    add_lease_token(extrude_parser)
+    extrude_parser.add_argument("--json", action="store_true", dest="as_json")
+
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
     box_parser = part_commands.add_parser(
@@ -674,6 +691,20 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "feature" and args.feature_command == "extrude":
+        return (
+            "feature.extrude",
+            {
+                "sketch_id": args.sketch_id,
+                "depth_mm": args.depth_mm,
+                "reverse": args.reverse,
+                "merge": args.merge,
+            },
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
     if args.command == "sketch" and args.sketch_command == "rectangle":
         return (
             "sketch.rectangle",

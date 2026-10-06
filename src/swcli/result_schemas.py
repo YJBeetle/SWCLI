@@ -204,6 +204,54 @@ PART_TEMPLATE = _object(
 
 
 _RESULT_FIELDS = {
+    "feature.extrude": (
+        {
+            "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+            "depth_mm": NUMBER,
+            "reverse": BOOL,
+            "merge": BOOL,
+            "feature": _object({"name": STRING, "type": STRING}, ("name", "type")),
+            "rebuilt": BOOL,
+            "diagnostics": DIAGNOSTICS,
+            "bodies": BODIES,
+            "geometry_verification": _object(
+                {
+                    "passed": BOOL,
+                    "method": {"const": "native-extrusion-definition"},
+                    "actual_depth_mm": NUMBER,
+                    "actual_reverse": BOOL,
+                    "actual_merge": BOOL,
+                    "end_condition": INTEGER,
+                    "both_directions": BOOL,
+                    "solid_body_count": INTEGER,
+                    "absolute_tolerance_mm": NUMBER,
+                },
+                (
+                    "passed",
+                    "method",
+                    "actual_depth_mm",
+                    "actual_reverse",
+                    "actual_merge",
+                    "end_condition",
+                    "both_directions",
+                    "solid_body_count",
+                    "absolute_tolerance_mm",
+                ),
+            ),
+        },
+        (
+            "sketch_id",
+            "depth_mm",
+            "reverse",
+            "merge",
+            "feature",
+            "rebuilt",
+            "diagnostics",
+            "bodies",
+            "geometry_verification",
+            "document",
+        ),
+    ),
     "sketch.rectangle": (
         {
             "plane": {"enum": ["front", "top", "right"]},
@@ -502,6 +550,12 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "document.lease.release",
     ):
         schema["then"]["properties"] = {"lease": {"required": ["lease_id"]}}
+    if name == "feature.extrude":
+        schema["then"]["properties"] = {
+            "rebuilt": {"const": True},
+            "diagnostics": {"properties": {"healthy": {"const": True}}},
+            "geometry_verification": {"properties": {"passed": {"const": True}}},
+        }
     if name == "sketch.rectangle":
         schema["then"]["properties"] = {
             "editing": {"const": False},

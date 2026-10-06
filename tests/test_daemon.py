@@ -279,6 +279,93 @@ class DaemonProtocolTests(unittest.TestCase):
         with self.assertRaises(SketchNotFound):
             registry.resolve_sketch(entry, sketch_id)
 
+    @mock.patch("swcli.daemon.operations.extrude_sketch_windows")
+    def test_extrude_resolves_sketch_within_guarded_document_and_restores_foreground(
+        self, extrude
+    ):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other = registry.register(foreground)
+        registry.set_current(other, session_id="modeler")
+        native_sketch = object()
+        sketch_id = registry.register_sketch(entry, native_sketch)
+        lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
+        values = {
+            "sketch_id": sketch_id,
+            "depth_mm": 20,
+            "reverse": True,
+            "merge": False,
+        }
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "feature.extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="contender",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "feature.extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=1,
+            )
+        extrude.assert_not_called()
+
+        @contextmanager
+        def activate(selected):
+            app.ActiveDoc = selected.document
+            try:
+                yield
+            finally:
+                app.ActiveDoc = foreground
+
+        extrude.return_value = {"ok": True, "action": "feature.extrude"}
+        with mock.patch.object(registry, "temporarily_activate", side_effect=activate):
+            with self.assertRaises(SketchNotFound):
+                operations.execute_operation(
+                    app,
+                    "feature.extrude",
+                    values,
+                    documents=registry,
+                    document_id=other.document_id,
+                    session_id="modeler",
+                )
+            extrude.assert_not_called()
+            result = operations.execute_operation(
+                app,
+                "feature.extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=0,
+            )
+        extrude.assert_called_once_with(
+            app=app,
+            document=target,
+            sketch_feature=native_sketch,
+            depth_mm=20.0,
+            reverse=True,
+            merge=False,
+        )
+        self.assertEqual(result["sketch_id"], sketch_id)
+        self.assertFalse(result["document"]["current"])
+        self.assertFalse(result["document"]["active"])
+        self.assertIs(registry.resolve(None, session_id="modeler"), other)
+        self.assertIs(app.ActiveDoc, foreground)
+
     @mock.patch("swcli.daemon.operations.create_box_part_windows_with_handle")
     def test_create_box_registers_exact_document_returned_by_newdocument(
         self, create_box

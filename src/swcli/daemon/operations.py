@@ -27,6 +27,7 @@ from ..hosts.windows_parts import (
     create_part_windows_with_handle,
 )
 from ..hosts.windows_sketches import create_rectangle_sketch_windows_with_handle
+from ..hosts.windows_features import extrude_sketch_windows
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -409,6 +410,26 @@ def sketch_rectangle(
         result["sketch"]["sketch_id"] = context.documents.register_sketch(
             context.entry, feature
         )
+    return result
+
+
+@_register_handler
+def feature_extrude(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result = extrude_sketch_windows(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        depth_mm=float(values["depth_mm"]),
+        reverse=values.get("reverse", False),
+        merge=values.get("merge", True),
+    )
+    result["sketch_id"] = sketch_id
     return result
 
 
