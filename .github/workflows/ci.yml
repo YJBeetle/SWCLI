@@ -122,6 +122,7 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           python -m twine check dist/*
+          python scripts/ci/verify-sdist.py dist/*.tar.gz
 
       - name: Verify installed wheel and product skill
         shell: bash
