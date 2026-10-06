@@ -84,6 +84,15 @@ class ProtocolSchemaTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_operation_request("sketch.circle", {"radius_mm": 8})
 
+    def test_measure_is_read_only_with_positive_body_limit(self):
+        validate_operation_request("document.measure", {})
+        spec = OPERATION_CATALOG["document.measure"]
+        self.assertTrue(spec.selected_document)
+        self.assertFalse(spec.lease_guarded or spec.temporary_activation)
+        for limit in (0, True, 1.5):
+            with self.assertRaises(ValueError):
+                validate_operation_request("document.measure", {"max_bodies": limit})
+
     def test_all_schemas_load(self):
         for name in SCHEMA_NAMES:
             with self.subTest(name=name):

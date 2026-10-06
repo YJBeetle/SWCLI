@@ -33,6 +33,7 @@ from ..hosts.windows_sketches import (
 )
 from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
+from ..hosts.windows_measurements import measure_part_windows
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -283,6 +284,20 @@ def document_inspect(
         )
         if context.documents is not None and context.entry is not None
         else result
+    )
+
+
+@_register_handler
+def document_measure(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = measure_part_windows(
+        document=context.entry.document, max_bodies=values.get("max_bodies", 1000)
+    )
+    return _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
     )
 
 

@@ -324,6 +324,36 @@ _RESULT_FIELDS = {
             "document",
         ),
     ),
+    "document.measure": (
+        {
+            "scope": {"const": "sum-of-solid-bodies"},
+            "coordinate_system": {"const": "part-model"},
+            "method": {"const": "native-body-mass-properties"},
+            "metrics": _object(
+                {
+                    "solid_body_count": {"type": "integer", "minimum": 1},
+                    "volume_mm3": {"type": "number", "exclusiveMinimum": 0},
+                    "surface_area_mm2": {"type": "number", "exclusiveMinimum": 0},
+                    "centroid_mm": VECTOR,
+                },
+                ("solid_body_count", "volume_mm3", "surface_area_mm2", "centroid_mm"),
+            ),
+            "bodies": {
+                "type": "array",
+                "minItems": 1,
+                "items": _object(
+                    {
+                        "index": {"type": "integer", "minimum": 0},
+                        "volume_mm3": {"type": "number", "exclusiveMinimum": 0},
+                        "surface_area_mm2": {"type": "number", "exclusiveMinimum": 0},
+                        "centroid_mm": VECTOR,
+                    },
+                    ("index", "volume_mm3", "surface_area_mm2", "centroid_mm"),
+                ),
+            },
+        },
+        ("document", "scope", "coordinate_system", "method", "metrics", "bodies"),
+    ),
     "document.create": (
         {"created": {"const": True}, "template": PART_TEMPLATE},
         ("created", "template", "document"),

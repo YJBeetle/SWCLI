@@ -150,6 +150,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {"discard": _boolean()},
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "document.measure": _operation(
+        "document.measure",
+        {"max_bodies": _integer(minimum=1)},
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "document.save": _operation(
         "document.save",
         **_DOCUMENT_WRITE_CONTEXT,

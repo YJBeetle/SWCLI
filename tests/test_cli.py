@@ -61,6 +61,32 @@ class CliTests(unittest.TestCase):
         )
         self.assertEqual(_typed_operation(defaults)[1]["center_x_mm"], 0)
 
+    def test_measure_maps_explicit_target_and_stamp_without_write_lease(self):
+        args = build_parser().parse_args(
+            [
+                "document",
+                "measure",
+                "--document",
+                "d-ab12cd",
+                "--max-bodies",
+                "12",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "document.measure",
+                {"max_bodies": 12},
+                True,
+                "d-ab12cd",
+                0,
+                None,
+            ),
+        )
+
     def test_version_json(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):

@@ -359,6 +359,46 @@ class DaemonProtocolTests(unittest.TestCase):
             registry.resolve_sketch(entry, result["sketch"]["sketch_id"]), feature
         )
 
+    @mock.patch("swcli.daemon.operations.measure_part_windows")
+    def test_measure_can_observe_another_session_leased_background_part(self, measure):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other = registry.register(foreground)
+        registry.set_current(other, session_id="observer")
+        registry.acquire_lease(entry, session_id="writer", ttl_seconds=60)
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "document.measure",
+                {},
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="observer",
+                expected_update_stamp=1,
+            )
+        measure.assert_not_called()
+        measure.return_value = {"ok": True, "action": "document.measure"}
+        with mock.patch.object(registry, "temporarily_activate") as activate:
+            result = operations.execute_operation(
+                app,
+                "document.measure",
+                {"max_bodies": 12},
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="observer",
+                expected_update_stamp=0,
+            )
+        activate.assert_not_called()
+        measure.assert_called_once_with(document=target, max_bodies=12)
+        self.assertFalse(result["document"]["active"])
+        self.assertFalse(result["document"]["current"])
+        self.assertIs(app.ActiveDoc, foreground)
+        self.assertIs(registry.resolve(None, session_id="observer"), other)
+
     @mock.patch("swcli.daemon.operations.extrude_sketch_windows")
     def test_extrude_resolves_sketch_within_guarded_document_and_restores_foreground(
         self, extrude

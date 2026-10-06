@@ -178,6 +178,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     inspect_parser.add_argument("--max-features", type=int, default=500)
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+    measure_parser = document_commands.add_parser(
+        "measure", help="measure all solid bodies in the selected part"
+    )
+    add_document_selector(measure_parser)
+    measure_parser.add_argument("--max-bodies", type=int, default=1000)
+    measure_parser.add_argument("--json", action="store_true", dest="as_json")
     close_parser = document_commands.add_parser(
         "close", help="close the selected or current SOLIDWORKS document"
     )
@@ -831,6 +837,15 @@ def _typed_operation(
                 args.document_id,
                 args.expected_update_stamp,
                 args.lease_id,
+            )
+        if command == "measure":
+            return (
+                "document.measure",
+                {"max_bodies": args.max_bodies},
+                args.as_json,
+                args.document_id,
+                args.expected_update_stamp,
+                None,
             )
         if command == "save-as":
             return (
