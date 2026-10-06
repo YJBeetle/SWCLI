@@ -93,6 +93,23 @@ class ProtocolSchemaTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_operation_request("document.measure", {"max_bodies": limit})
 
+    def test_cut_extrude_requires_registered_sketch_depth_and_write_guards(self):
+        valid = {"sketch_id": "s-ab12cd", "depth_mm": 20}
+        validate_operation_request("feature.cut-extrude", valid)
+        spec = OPERATION_CATALOG["feature.cut-extrude"]
+        self.assertTrue(
+            spec.selected_document and spec.lease_guarded and spec.temporary_activation
+        )
+        for changed in (
+            {"sketch_id": "Sketch1"},
+            {"depth_mm": 0},
+            {"depth_mm": float("inf")},
+            {"reverse": "false"},
+            {"merge": False},
+        ):
+            with self.assertRaises(ValueError):
+                validate_operation_request("feature.cut-extrude", {**valid, **changed})
+
     def test_all_schemas_load(self):
         for name in SCHEMA_NAMES:
             with self.subTest(name=name):

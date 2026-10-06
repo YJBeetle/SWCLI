@@ -306,6 +306,16 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(extrude_parser)
     extrude_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    cut_parser = feature_commands.add_parser(
+        "cut-extrude", help="remove material using a registered sketch and blind depth"
+    )
+    cut_parser.add_argument("sketch_id")
+    cut_parser.add_argument("--depth-mm", type=float, required=True)
+    cut_parser.add_argument("--reverse", action="store_true")
+    add_document_selector(cut_parser)
+    add_lease_token(cut_parser)
+    cut_parser.add_argument("--json", action="store_true", dest="as_json")
+
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
     box_parser = part_commands.add_parser(
@@ -715,6 +725,19 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "feature" and args.feature_command == "cut-extrude":
+        return (
+            "feature.cut-extrude",
+            {
+                "sketch_id": args.sketch_id,
+                "depth_mm": args.depth_mm,
+                "reverse": args.reverse,
+            },
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
     if args.command == "feature" and args.feature_command == "extrude":
         return (
             "feature.extrude",

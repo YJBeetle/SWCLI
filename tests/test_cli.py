@@ -87,6 +87,36 @@ class CliTests(unittest.TestCase):
             ),
         )
 
+    def test_cut_extrude_maps_explicit_sketch_and_write_guards(self):
+        args = build_parser().parse_args(
+            [
+                "feature",
+                "cut-extrude",
+                "s-ab12cd",
+                "--depth-mm",
+                "20",
+                "--reverse",
+                "--document",
+                "d-ab12cd",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "feature.cut-extrude",
+                {"sketch_id": "s-ab12cd", "depth_mm": 20, "reverse": True},
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
+            ),
+        )
+
     def test_version_json(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):

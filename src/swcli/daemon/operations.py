@@ -34,6 +34,7 @@ from ..hosts.windows_sketches import (
 from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
+from ..hosts.windows_cuts import cut_extrude_sketch_windows
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -483,6 +484,25 @@ def feature_extrude(
         depth_mm=float(values["depth_mm"]),
         reverse=values.get("reverse", False),
         merge=values.get("merge", True),
+    )
+    result["sketch_id"] = sketch_id
+    return result
+
+
+@_register_handler
+def feature_cut_extrude(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result = cut_extrude_sketch_windows(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        depth_mm=float(values["depth_mm"]),
+        reverse=values.get("reverse", False),
     )
     result["sketch_id"] = sketch_id
     return result

@@ -399,6 +399,72 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(app.ActiveDoc, foreground)
         self.assertIs(registry.resolve(None, session_id="observer"), other)
 
+    @mock.patch("swcli.daemon.operations.cut_extrude_sketch_windows")
+    def test_cut_extrude_requires_lease_and_stamp_and_resolves_exact_background_sketch(
+        self, cut
+    ):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other = registry.register(foreground)
+        registry.set_current(other, session_id="modeler")
+        feature = object()
+        sketch_id = registry.register_sketch(entry, feature)
+        lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
+        values = {"sketch_id": sketch_id, "depth_mm": 20, "reverse": True}
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "feature.cut-extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="contender",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "feature.cut-extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=1,
+            )
+        cut.assert_not_called()
+        cut.return_value = {"ok": True, "action": "feature.cut-extrude"}
+
+        @contextmanager
+        def activate(selected):
+            app.ActiveDoc = target
+            try:
+                yield
+            finally:
+                app.ActiveDoc = foreground
+
+        with mock.patch.object(registry, "temporarily_activate", side_effect=activate):
+            result = operations.execute_operation(
+                app,
+                "feature.cut-extrude",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=0,
+            )
+        cut.assert_called_once_with(
+            app=app, document=target, sketch_feature=feature, depth_mm=20, reverse=True
+        )
+        self.assertFalse(result["document"]["active"])
+        self.assertFalse(result["document"]["current"])
+        self.assertEqual(result["sketch_id"], sketch_id)
+        self.assertIs(registry.resolve(None, session_id="modeler"), other)
+
     @mock.patch("swcli.daemon.operations.extrude_sketch_windows")
     def test_extrude_resolves_sketch_within_guarded_document_and_restores_foreground(
         self, extrude

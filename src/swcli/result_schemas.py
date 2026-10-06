@@ -573,6 +573,46 @@ _RESULT_FIELDS = {
 }
 
 
+_CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])
+del _CUT_FIELDS["merge"]
+_CUT_FIELDS["affected_scope"] = {"const": "all-solid-bodies"}
+for _measurement_phase in ("measurement_before", "measurement_after"):
+    _CUT_FIELDS[_measurement_phase] = deepcopy(
+        _RESULT_FIELDS["document.measure"][0]["metrics"]
+    )
+_CUT_FIELDS["geometry_verification"] = _object(
+    {
+        "passed": BOOL,
+        "method": {"const": "native-cut-definition-and-volume"},
+        "actual_depth_mm": NUMBER,
+        "actual_reverse": BOOL,
+        "native_reverse_direction": BOOL,
+        "end_condition": INTEGER,
+        "both_directions": BOOL,
+        "volume_removed_mm3": NUMBER,
+        "minimum_volume_change_mm3": NUMBER,
+        "absolute_depth_tolerance_mm": NUMBER,
+    },
+    (
+        "passed",
+        "method",
+        "actual_depth_mm",
+        "actual_reverse",
+        "native_reverse_direction",
+        "end_condition",
+        "both_directions",
+        "volume_removed_mm3",
+        "minimum_volume_change_mm3",
+        "absolute_depth_tolerance_mm",
+    ),
+)
+_RESULT_FIELDS["feature.cut-extrude"] = (
+    _CUT_FIELDS,
+    tuple(key for key in _CUT_REQUIRED if key != "merge")
+    + ("affected_scope", "measurement_before", "measurement_after"),
+)
+
+
 _CIRCLE_FIELDS, _CIRCLE_REQUIRED = deepcopy(_RESULT_FIELDS["sketch.rectangle"])
 _CIRCLE_FIELDS["dimensions"] = _object(
     {
@@ -661,12 +701,20 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 }
             },
         }
-    if name == "feature.extrude":
+    if name in ("feature.extrude", "feature.cut-extrude"):
         schema["then"]["properties"] = {
             "rebuilt": {"const": True},
             "diagnostics": {"properties": {"healthy": {"const": True}}},
             "geometry_verification": {"properties": {"passed": {"const": True}}},
         }
+        if name == "feature.cut-extrude":
+            schema["then"]["properties"]["geometry_verification"]["properties"].update(
+                {
+                    "volume_removed_mm3": {"type": "number", "exclusiveMinimum": 0},
+                    "end_condition": {"const": 0},
+                    "both_directions": {"const": False},
+                }
+            )
     if name in ("sketch.rectangle", "sketch.circle"):
         schema["then"]["properties"] = {
             "editing": {"const": False},

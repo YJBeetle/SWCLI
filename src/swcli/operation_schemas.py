@@ -242,6 +242,14 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "feature.cut-extrude": _operation(
+        "feature.cut-extrude",
+        {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+         "depth_mm": _number(exclusiveMinimum=0), "reverse": _boolean()},
+        required=("sketch_id", "depth_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "part.create-box": _operation(
         "part.create-box",
         {
