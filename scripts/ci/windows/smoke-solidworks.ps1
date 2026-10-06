@@ -153,6 +153,27 @@ function Invoke-SwCliJson {
     return $payload
 }
 
+function Wait-DisconnectedHost {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $wait = [Diagnostics.Stopwatch]::StartNew()
+    $attempt = 0
+    do {
+        Start-Sleep -Milliseconds 200
+        $attempt++
+        $status = Invoke-SwCliJson -Name ("{0}-{1:D2}" -f $Name, $attempt) -Arguments @("daemon", "status", "--json")
+        if (-not $status.result.host_connected) {
+            if ($status.result.worker_alive -or $null -ne $status.result.host -or
+                -not $status.result.recovery_required -or
+                $status.result.recovery_error.code -ne "HostDisconnected") {
+                throw "swclid returned an inconsistent disconnected host state"
+            }
+            return $status
+        }
+    } while ($wait.Elapsed.TotalSeconds -lt 10)
+    throw "swclid did not detect the external SOLIDWORKS exit within 10 seconds"
+}
+
 Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
@@ -199,6 +220,9 @@ if (-not $daemonReady) {
 Save-DesktopDiagnostic -Name "desktop-swclid-ready"
 
 $started = $true
+$attachedStarted = $false
+$manualHost = $null
+$manualPid = $null
 try {
     $doctor = Invoke-SwCliJson -Name "doctor-before" -Arguments @("doctor", "--json")
     if (-not $doctor.supported) {
@@ -564,26 +588,7 @@ try {
     $solidworksPid = [int]$connected.result.host.process_id
     Stop-Process -Id $solidworksPid -Force -ErrorAction Stop
 
-    $disconnected = $null
-    for ($attempt = 1; $attempt -le 25; $attempt++) {
-        Start-Sleep -Milliseconds 200
-        $status = Invoke-SwCliJson `
-            -Name ("daemon-disconnected-{0:D2}" -f $attempt) `
-            -Arguments @("daemon", "status", "--json")
-        if (-not $status.result.host_connected) {
-            $disconnected = $status
-            break
-        }
-    }
-    if ($null -eq $disconnected) {
-        throw "swclid did not detect the external SOLIDWORKS exit within 5 seconds"
-    }
-    if ($disconnected.result.worker_alive -or
-        $null -ne $disconnected.result.host -or
-        -not $disconnected.result.recovery_required -or
-        $disconnected.result.recovery_error.code -ne "HostDisconnected") {
-        throw "swclid returned an inconsistent disconnected host state"
-    }
+    Wait-DisconnectedHost -Name "daemon-disconnected" | Out-Null
 
     $blocked = Invoke-SwCliJson `
         -Name "document-list-after-host-exit" `
@@ -607,6 +612,63 @@ try {
     }
     $started = $false
 
+    # An explicitly attached instance belongs to the human, not the daemon.
+    $missingHost = Invoke-SwCliJson -Name "attach-without-host" -AllowFailure -Arguments @(
+        "daemon", "start", "--attach-existing", "--json"
+    )
+    if ($missingHost.success -or $missingHost.error.code -ne "ExistingHostNotFound" -or
+        @(Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue).Count -ne 0) {
+        throw "attach-existing without a host created an owned instance or did not fail explicitly"
+    }
+
+    $manualHost = Start-Process -FilePath $doctor.registration.local_server -PassThru
+    $manualReady = $false
+    $wait = [Diagnostics.Stopwatch]::StartNew()
+    do {
+        Start-Sleep -Seconds 1
+        $manualDoctor = Invoke-SwCliJson -Name "doctor-manual-host" -Arguments @("doctor", "--json")
+        if ($manualDoctor.com.attached) {
+            $manualReady = $true
+            break
+        }
+    } while ($wait.Elapsed.TotalSeconds -lt 120)
+    if (-not $manualReady -or -not $manualDoctor.com.visible) {
+        throw "manually launched SOLIDWORKS did not expose a visible interactive COM host"
+    }
+    $manualPid = [int]$manualDoctor.com.process_id
+    $attachedStarted = $true
+    $attached = Invoke-SwCliJson -Name "attach-manual-host" -Arguments @("daemon", "start", "--attach-existing", "--json")
+    $attachedHost = $attached.result.health.host
+    if ($attachedHost.owned_by_daemon -or -not $attachedHost.shared_interactive -or
+        $attachedHost.process_id -ne $manualPid -or -not $attachedHost.visible) {
+        throw "attach-existing changed the ownership, identity or visibility of the manual host"
+    }
+    Invoke-SwCliJson -Name "stop-attached-live-host" -Arguments @("daemon", "stop", "--json") | Out-Null
+    $attachedStarted = $false
+    if ($null -eq (Get-Process -Id $manualPid -ErrorAction SilentlyContinue)) {
+        throw "stopping an attached daemon terminated the human-owned SOLIDWORKS host"
+    }
+    $preservedHost = Invoke-SwCliJson -Name "doctor-after-attached-stop" -Arguments @("doctor", "--json")
+    if (-not $preservedHost.com.attached -or -not $preservedHost.com.visible -or
+        $preservedHost.com.process_id -ne $manualPid) {
+        throw "stopping an attached daemon changed the visible interactive COM host"
+    }
+
+    $attachedStarted = $true
+    Invoke-SwCliJson -Name "reattach-manual-host" -Arguments @("daemon", "restart", "--attach-existing", "--json") | Out-Null
+    Stop-Process -Id $manualPid -Force -ErrorAction Stop
+    Wait-DisconnectedHost -Name "attached-host-disconnected" | Out-Null
+    $blockedShared = Invoke-SwCliJson -Name "list-after-attached-host-exit" -AllowFailure -Arguments @("document", "list", "--json")
+    if ($blockedShared.ok -or $blockedShared.error.type -ne "HostDisconnected" -or
+        @(Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue).Count -ne 0) {
+        throw "shared host disconnect was not retained or a business request silently created a host"
+    }
+    $stoppedShared = Invoke-SwCliJson -Name "stop-attached-disconnected-host" -Arguments @("daemon", "stop", "--json")
+    if (-not $stoppedShared.success -or -not $stoppedShared.result.host_already_disconnected) {
+        throw "stopping an attached daemon after host exit did not succeed cleanly"
+    }
+    $attachedStarted = $false
+
     foreach ($artifact in @($partPath, $genericPartPath, $stepPath, $renderPath)) {
         $item = Get-Item -LiteralPath $artifact
         if ($item.Length -le 0) {
@@ -621,6 +683,16 @@ catch {
     throw
 }
 finally {
+    if ($attachedStarted) {
+        & python -m swcli daemon stop --json 2>&1 |
+            Set-Content -Path (Join-Path $Workspace "cleanup-attached-daemon-stop.log") -Encoding utf8
+    }
+    if ($null -ne $manualHost) {
+        Stop-Process -Id $manualHost.Id -Force -ErrorAction SilentlyContinue
+    }
+    if ($null -ne $manualPid) {
+        Stop-Process -Id $manualPid -Force -ErrorAction SilentlyContinue
+    }
     if ($started) {
         & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
