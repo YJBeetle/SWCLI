@@ -1,8 +1,10 @@
 # Linux/Wine rejected-cut sequence investigation — 2026-10-08
 
 This is development diagnostic evidence, not an a5 release gate pass or a
-confirmed Wine source defect. The public native Windows sequence passed;
-the Linux/Wine sequence remains under investigation.
+confirmed Wine source defect. Earlier native Windows **visible-mode** sequences
+passed. Subsequent matched **hidden-mode** controls reproduce a related native
+Windows failure as well, at a different COM call/HRESULT. Calling this a
+Wine-only defect is no longer supported by the evidence.
 
 ## Environment and experimental boundary
 
@@ -10,7 +12,7 @@ the Linux/Wine sequence remains under investigation.
   SOLIDWORKS 2025 SP5 (`33.5.0`), Podman.
 - Isolated diagnostic image `localhost/swcli-a5-probe:20261008`, based on
   `ghcr.io/yjbeetle/sw-executable:sha-9b73e84`. Its SWCLI snapshot `966a8be`
-  has no runtime `src/` differences from `64e97eb`; later changes are test/docs
+  has no runtime `src/` differences from `e8f78a5`; later changes are test/docs
   changes. This is not verification of the new hosted CI candidate image.
 - Each `fresh-*` case starts a new container/writable Wine prefix from the
   same image. The preceding diagnostic container is stopped and archived,
@@ -25,7 +27,13 @@ the Linux/Wine sequence remains under investigation.
 
 Evidence root on the test host:
 `/tmp/swcli-wine-20261008.UV2nYN/evidence-context-20261008`.
-One parameterized `probe-context.py` and `run-fresh.sh` serve all cases.
+One parameterized `probe-context.py` and `run-fresh.sh` serve public CLI cases.
+Later `probe-direct-adapters.py` / `run-direct.sh` remove the daemon and document
+registry: one owned STA calls the same native adapters and holds exact returned
+COM objects. Completed case directories preserve helper copies/checksums.
+The user's Windows VM uses that same helper/current checkout under
+`C:\Workspace\SWCLI-tests\wine-sequence-controls-20261008`. These source-adapter
+experiments are not installed-wheel or hosted-installer proof.
 
 ## Minimal public sequence
 
@@ -56,8 +64,12 @@ not necessary inputs to this reproduction.
 | `fresh-hidden-foreground-cut` | Hidden | Close base, fresh foreground part | Failed at InsertSketch after 59.077 s, `0x800703E6` |
 | `fresh-visible-foreground-cut` | Visible | Close base, fresh foreground part | Passed; target circle 16.511 s |
 | `fresh-hidden-same-cut` | Hidden | Keep base, add circle in that same part | Passed; target circle 0.915 s |
+| `fresh-hidden-new-with-base-cut` | Hidden | Keep base, create another part | Passed; target circle 1.277 s |
+| `fresh-hidden-foreground-cut-repeat` | Hidden | Repeat close base, fresh foreground part | Failed at InsertSketch after 58.588 s, `0x800703E6` |
+| `fresh-hidden-placeholder-cut` | Hidden | Open a blank placeholder before closing base, then create target | Failed at InsertSketch after 57.298 s, `0x800703E6` |
+| `fresh-hidden-same-then-foreground-cut` | Hidden | Successfully add another circle in base, then close/create target | Passed; same-part circle 1.030 s, target circle 1.204 s |
 
-All four completed with empty cleanup errors and zero remaining documents.
+The first four completed with empty cleanup errors and zero remaining documents.
 Their original native PIDs respectively remained **612, 608, 608, 616**,
 connected with `worker_alive=true`. PID values belong to independent Wine
 prefixes: matching numeric PIDs across cases do not mean the same process.
@@ -74,27 +86,120 @@ The native stderr file `fresh-hidden-foreground-cut/native-runtime-stderr/`
 at `0x45ae70f0`, attempting address `0xb38`. The previously captured module map
 places this address range in `sldappu.dll`. This is an observed native exception,
 not a first-chance call stack or proof that Wine's implementation caused it.
+The placeholder control also captured the actual native process's module map;
+its stderr includes a caught execute access violation before the eventual
+COM error. No native debugger or source patch was used.
+
+## No-daemon and native Windows controls
+
+All direct cases require an initially empty document set, owned native host,
+one 12000 mm³ solid after the rejected cut, no active sketch, exact case-owned
+cleanup and unchanged host PID/revision. There are no protocol requests, leases,
+document registry entries or public client path conversions in these cases.
+
+| Platform / case | Single changed condition | Result |
+| --- | --- | --- |
+| Wine `fresh-direct-hidden-cut` | Direct adapters, hidden | Target InsertSketch failed after 54.279 s, `0x800703E6` |
+| Wine `fresh-direct-hidden-release-before-close-cut` | Release profile COM references before, not after, close | Target InsertSketch failed after 58.235 s, `0x800703E6` |
+| Wine `fresh-direct-hidden-command-in-progress-cut` | `CommandInProgress=true` for the API sequence | Target InsertSketch failed after 58.303 s, `0x800703E6`; original flag restored |
+| Windows initial `wine-sequence-hidden-20261008` | Same direct sequence, hidden | Target NewDocument failed after 9.387 s, `0x80010105` / `RPC_E_SERVERFAULT` |
+| Windows `hidden-no-cut` | Omit only the rejected cut | Passed; target create 0.390 s, circle 0.124 s |
+| Windows `visible-cut` | Visible resident host | Passed; target create 0.567 s, circle 2.385 s |
+| Windows `hidden-observe-command-cut` | Hidden repeat, add only read-only command observations | Target NewDocument failed after 8.344 s, `0x80010105` |
+
+The Windows failures do **not** reproduce the exact Wine InsertSketch exception:
+they fail earlier, at NewDocument. They do disprove the earlier inference that
+native Windows cannot reproduce the sequence-sensitive hidden-mode problem.
+Both platforms' initial getters reported `UserControl=true`,
+`UserControlBackground=true`, `Visible=false`, `CommandInProgress=false`.
+Template/language and native Python version differ between hosts; identical
+underlying source cause is not yet established.
+
+`ExitApp()` being called is not proof that the native process exited. The
+Windows hidden failures retained an otherwise responsive owned SOLIDWORKS PID
+after that call. Its PID/name/start-time were checked against the experiment
+record before terminating only that owned process between fresh cases. Some
+Wine probes completed their JSON record but hung during subsequent shutdown;
+the external 420-second budget stopped only their diagnostic container. Those
+shutdown observations are separate from the measured failing COM call.
+
+## Native command-state evidence
+
+Read-only `GetRunningCommandInfo` uses explicit by-reference integer, string and
+boolean arguments on the original STA. On native Windows and Wine it reports:
+
+| Checkpoint | Command ID | UI active |
+| --- | --- | --- |
+| Before rejected cut | -3 | false |
+| After rejected cut | 10 | false |
+| After closing its document | 10 | false |
+| After creating the next Wine document | 10 | false |
+
+The official [command enumeration](https://help.solidworks.com/2025/english/api/swcommands/SolidWorks.Interop.swcommands~SolidWorks.Interop.swcommands.swCommands_e.html?id=cec41382bfc941eb83f24f6c8425852b)
+maps -3 to `NoCommand` and 10 to `ExtrudedCut`.
+[GetRunningCommandInfo](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetRunningCommandInfo.html)
+reports command and UI activity separately: `ui_active=false` must not be
+interpreted as no running command. This is evidence of residual native command
+state, not yet proof of which component owns its incorrect lifetime.
+
+The documented [CommandInProgress](https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~CommandInProgress.html)
+performance flag was set/read back/restored in one fresh Wine case and did not
+clear that state or fix the failure. It is not adopted as a runtime workaround.
+
+## Documented native cleanup controls
+
+Independent fresh hosts add exactly one cleanup call after the rejected cut;
+there is no retry, visibility change or native host replacement.
+
+| Cleanup / host | Return/readback | Following result |
+| --- | --- | --- |
+| Standard Cancel (`RunCommand(3043, "")`), Windows | true, command remains 10 | NewDocument fails after 7.440 s, `0x80010105` |
+| Standard Cancel, Wine | true, command remains 10 | InsertSketch still fails, `0x800703E6` |
+| PropertyManager Cancel (`RunCommand(-1, "")`), Windows | true, command remains 10 | NewDocument fails after 7.974 s, `0x80010105` |
+| `SetPickMode()`, Windows | void/None; command becomes -3 and stays -3 through close/create | Passed; target create 0.476 s, circle 0.134 s |
+| `SetPickMode()`, Wine | void/None; command becomes -3 and stays -3 through close/create | Passed; target create 1.209 s, circle 0.835 s |
+
+The official [RunCommand](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~RunCommand.html)
+boolean means that the command ran; these negative controls show that it does
+not prove the residual operation ended. The documented
+[SetPickMode](https://help.solidworks.com/2023/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~SetPickMode.html)
+returns the document to default selection mode. It is a void method, so its
+None return must not be misclassified as failure.
+
+These controls support incomplete native-command cleanup as an actionable
+adapter defect on both hosts. They do not prove an internal Wine source defect.
+The proposed narrow runtime change ends only an attempted native cut that
+returned no feature or raised, preserves its original failure and independently
+reports cleanup errors; successful cuts and pre-call rejections are unchanged.
+Direct controls are not yet full installed public CLI/gate proof of that change.
 
 ## Interpretation and remaining work
 
-- The same-document pass argues against treating any rejected cut as an
-  immediately unusable COM host. Closing/replacing the document still needs
-  isolation from an interval with no open documents.
+- The same-document/new-document-while-base-remains passes argue against
+  treating any rejected cut as an immediately unusable COM host. Keeping a
+  placeholder open still fails, so an empty-document interval is not necessary.
+- The no-daemon reproduction excludes daemon registry/transport as necessary
+  inputs; changing profile COM release order alone does not fix it.
+- A successful same-part sketch before closing the affected document lets the
+  fresh target pass. This is a diagnostic control, not a hidden modeling retry
+  or approved production workaround. Documented native cleanup controls above
+  identify a narrower candidate without adding geometry or an artificial delay.
 - The visible control changes **both** residency and visibility, not just
   rendering: current SWCLI uses `UserControl=true, Visible=true` versus
   `UserControlBackground=true, Visible=false`. The official
   [UserControl](https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISldWorks~UserControl.html)
   and [UserControlBackground](https://help.solidworks.com/2022/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISldWorks~UserControlBackground.html)
-  descriptions explain this distinction. One visible pass does not establish
-  a general fix, and the visible calls were substantially slower.
+  descriptions explain this distinction. Getter observations above also show
+  that setter paths cannot be inferred from one residency boolean alone. Visible
+  passes do not establish a general fix; Wine visible calls were much slower.
 - A prior case reused an old container after a manual daemon restart and
   timed out during new-document creation; subsequent startup failed. That
   confounded result is retained as `hidden-foreground-v2`, but is not used as
   a fresh-prefix cut-trigger proof.
-- Next controls should retain the base while creating another part, repeat
-  the fresh hidden failure, and separate empty-document/close behavior from
-  host mode. Any proposed runtime change must pass the full shared sequence
-  without native retries or hidden host replacement.
+- Next verification moves the selection-mode cleanup inside the native adapter
+  and runs the shared public modeling/driving gates on both hosts. A successful
+  cancellation return alone is insufficient. Any runtime change must pass that
+  full sequence without retries, weakened assertions or hidden host replacement.
 
 For earlier CI and Windows evidence, see
 [the a5 verification record](a5-2026-10-07.md).
