@@ -25,6 +25,10 @@ Windows-only startup/attach/disconnect behavior remains in
 uses native setup and is not presented as a cross-platform public CLI test.
 Installer and Wine lifecycle checks belong to their respective host projects.
 The six DockerSW published export artifacts remain a separate delivery gate.
+Windows hosted CI runs that same wrapper in visible and `-Hidden` modes using
+one installation and independent evidence directories. Modeling and driving
+share one unchanged native PID within each mode; passing visible mode is not
+proof of hidden/background behavior.
 
 ## Calling the gates
 

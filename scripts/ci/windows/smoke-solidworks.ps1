@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Workspace
+    [string]$Workspace,
+    [switch]$Hidden
 )
 
 $ErrorActionPreference = "Stop"
@@ -170,9 +171,11 @@ Save-DesktopDiagnostic -Name "desktop-before-swclid"
 $python = (Get-Command python -ErrorAction Stop).Source
 $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
+$daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120")
+if (-not $Hidden) { $daemonArguments += "--visible" }
 $daemon = Start-Process `
     -FilePath $python `
-    -ArgumentList @("-m", "swcli", "daemon", "serve", "--visible", "--startup-timeout", "120") `
+    -ArgumentList $daemonArguments `
     -RedirectStandardOutput $daemonStdout `
     -RedirectStandardError $daemonStderr `
     -NoNewWindow `

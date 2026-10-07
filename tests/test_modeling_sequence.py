@@ -43,6 +43,17 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('"attach-without-host"', script)
         self.assertIn('"daemon-disconnected"', script)
 
+    def test_windows_ci_runs_the_same_smoke_in_visible_and_hidden_modes(self):
+        root = SCRIPT.parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        visible = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT'
+        hidden = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\hidden" -Hidden'
+        self.assertLess(workflow.index(visible), workflow.index(hidden))
+        self.assertIn('[switch]$Hidden', wrapper)
+        self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
+        self.assertIn('-ArgumentList $daemonArguments', wrapper)
+
     def record(self):
         return {
             "state": "completed",

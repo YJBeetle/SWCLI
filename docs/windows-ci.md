@@ -51,6 +51,15 @@ host/local path namespaces and evidence. These common assertions are no longer
 duplicated in the Windows PowerShell host wrapper; equation setup, desktop
 diagnostics and owned/attached host lifecycle checks remain Windows-specific.
 
+The hosted installation is performed once. Its smoke wrapper runs first in the
+default visible test mode, then again with `-Hidden` and a separate `hidden/`
+evidence directory. Both modes use the same public gates and lifecycle checks;
+there is no restart between modeling and driving within either mode. A fresh
+host between these two independent mode runs is not native-failure recovery.
+The hidden run is mandatory: visible-only success did not expose the rejected
+cut's residual native command state. See the
+[matched investigation](verification/linux-wine-rejected-cut-2026-10-08.md).
+
 The second stage of `.github/workflows/ci.yml` is an integration test, not a
 release pipeline or a declaration that Windows Server is an officially
 supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where

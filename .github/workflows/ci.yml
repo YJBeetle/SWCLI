@@ -268,7 +268,10 @@ jobs:
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell
-        run: scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT
+          # Same public gates on a fresh hidden host; no restart inside a gate.
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden
 
       - name: Measure streamed data and remaining disk
         if: always()
