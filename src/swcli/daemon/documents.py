@@ -12,7 +12,6 @@ from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
 
-
 _HANDLE_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
 _HANDLE_LENGTH = 6
 _LEASE_TOKEN_LENGTH = 12
@@ -47,8 +46,20 @@ class SketchNotFound(RuntimeError):
     """A sketch handle is absent from the selected document's live registry."""
 
 
+class DimensionNotFound(RuntimeError):
+    """A dimension handle is absent from the selected document's live registry."""
+
+
 class DocumentPathConflict(RuntimeError):
     """A new native filename belongs to another open document."""
+
+
+@dataclass
+class DimensionEntry:
+    """Exact native dimension and its registered owning sketch, not a name lookup."""
+
+    sketch_id: str
+    dimension: Any
 
 
 @dataclass
@@ -56,6 +67,7 @@ class DocumentEntry:
     document_id: str
     document: Any
     sketches: Dict[str, Any] = field(default_factory=dict)
+    dimensions: Dict[str, DimensionEntry] = field(default_factory=dict)
 
 
 @dataclass
@@ -115,8 +127,7 @@ class DocumentRegistry:
     def _new_lease_id(self) -> str:
         while True:
             suffix = "".join(
-                secrets.choice(_HANDLE_ALPHABET)
-                for _ in range(_LEASE_TOKEN_LENGTH)
+                secrets.choice(_HANDLE_ALPHABET) for _ in range(_LEASE_TOKEN_LENGTH)
             )
             lease_id = f"l-{suffix}"
             if lease_id not in self._leases_by_id:
@@ -295,6 +306,36 @@ class DocumentRegistry:
             )
         return entry.sketches[sketch_id]
 
+    def register_dimension(
+        self, entry: DocumentEntry, sketch_id: str, dimension: Any
+    ) -> str:
+        """Keep partial native creations observable while their document is live."""
+        self.resolve_sketch(entry, sketch_id)
+        if dimension is None:
+            raise ValueError("cannot register an absent native dimension")
+        while True:
+            token = "m-" + "".join(
+                secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
+            )
+            if not any(token in item.dimensions for item in self._entries.values()):
+                entry.dimensions[token] = DimensionEntry(sketch_id, dimension)
+                return token
+
+    def resolve_dimension(
+        self, entry: DocumentEntry, dimension_id: str
+    ) -> DimensionEntry:
+        if (
+            self._entries.get(entry.document_id) is not entry
+            or dimension_id not in entry.dimensions
+        ):
+            raise DimensionNotFound(
+                f"dimension '{dimension_id}' is not registered in document "
+                f"'{entry.document_id}'"
+            )
+        registered = entry.dimensions[dimension_id]
+        self.resolve_sketch(entry, registered.sketch_id)
+        return registered
+
     def sync(self) -> None:
         open_documents = list(_documents(_com_value(self.app, "GetDocuments")))
         open_keys = set()
@@ -316,6 +357,7 @@ class DocumentRegistry:
         if entry is None:
             return
         entry.sketches.clear()
+        entry.dimensions.clear()
         lease_id = self._lease_id_by_document.get(document_id)
         if lease_id is not None:
             self._forget_lease(lease_id)
