@@ -276,6 +276,113 @@ class DrivingSmoke:
         )
         return result
 
+    def selection_state(self, *, session_id):
+        result = self.call("document.list", session_id=session_id)
+        active_ids = sorted(
+            item["document_id"] for item in result["documents"] if item["active"]
+        )
+        require(
+            len(active_ids) == 1,
+            "discovery gate requires one exact foreground document",
+        )
+        return {
+            "current_document_id": result["current_document_id"],
+            "active_document_id": active_ids[0],
+        }
+
+    def discover_reopened_sketch(self, document_id, *, foreground_id, current_id, cli):
+        reopen_session = self.session + "-reopen"
+        before_stamp = self.stamp(document_id)
+        before_selection = {
+            "main": self.selection_state(session_id=self.session),
+            "reopen": self.selection_state(session_id=reopen_session),
+        }
+        require(
+            before_selection["main"]
+            == {"current_document_id": current_id, "active_document_id": foreground_id}
+            and before_selection["reopen"]
+            == {
+                "current_document_id": foreground_id,
+                "active_document_id": foreground_id,
+            },
+            "reopened sketch discovery did not start with the intended background/session state",
+        )
+        proof = {
+            "document_id": document_id,
+            "main_session_id": self.session,
+            "reopen_session_id": reopen_session,
+            "update_stamp_before": before_stamp,
+            "selection_before": before_selection,
+        }
+        self.record.setdefault("reopened_sketch_discoveries", []).append(proof)
+
+        def list_sketches():
+            return (
+                self.command(["sketch", "list", "--document", document_id])
+                if cli
+                else self.call("sketch.list", document_id=document_id)
+            )
+
+        listed = list_sketches()
+        proof["listed"] = listed
+        require(
+            listed["count"] == 1 and len(listed["sketches"]) == 1,
+            "native reopen did not discover exactly one complete 2D sketch",
+        )
+        descriptor = listed["sketches"][0]
+        sketch_id = descriptor["sketch_id"]
+        proof["sketch_id"] = sketch_id
+        require(
+            re.fullmatch(r"s-[a-z0-9]{6}", sketch_id) is not None
+            and descriptor["type"] == "ProfileFeature"
+            and descriptor["absorbed"]
+            and descriptor["owner"] is not None
+            and bool(descriptor["owner"]["name"])
+            and bool(descriptor["owner"]["type"]),
+            "discovered sketch lacks exact registered/absorbed ownership metadata",
+        )
+        repeated = list_sketches()
+        proof["repeated"] = repeated
+        require(
+            repeated["count"] == 1
+            and len(repeated["sketches"]) == 1
+            and repeated["sketches"][0]["sketch_id"] == sketch_id,
+            "repeated sketch discovery changed a live native sketch handle",
+        )
+        # This handle comes only from the reopened native feature traversal.
+        # Never select by a remembered native name or reuse the expired handle.
+        observed = self.call(
+            "sketch.inspect", {"sketch_id": sketch_id}, document_id=document_id
+        )
+        proof["observed"] = observed
+        require(
+            observed["sketch"]["sketch_id"] == sketch_id,
+            "reopened sketch inspection returned a different registered handle",
+        )
+        assert_circle(observed, 10, absorbed=True)
+        after_stamp = self.stamp(document_id)
+        after_selection = {
+            "main": self.selection_state(session_id=self.session),
+            "reopen": self.selection_state(session_id=reopen_session),
+        }
+        proof.update(update_stamp_after=after_stamp, selection_after=after_selection)
+        for result in (listed, repeated, observed):
+            require(
+                result["document"]["document_id"] == document_id
+                and not result["document"]["current"]
+                and not result["document"]["active"],
+                "reopened sketch observation changed its background document identity",
+            )
+        require(
+            after_stamp == before_stamp,
+            "sketch discovery/inspection changed native update stamp",
+        )
+        require(
+            after_selection == before_selection,
+            "sketch discovery changed foreground or session current",
+        )
+        return proof
+
     def close(self, document_id):
         owner = self.owned[document_id]
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
@@ -475,6 +582,13 @@ class DrivingSmoke:
             expected_error="SketchNotFound",
             document_id=reopened_id,
         )
+        reopened_foreground_id = self.create(session_id=self.session + "-reopen")
+        discovered = self.discover_reopened_sketch(
+            reopened_id,
+            foreground_id=reopened_foreground_id,
+            current_id=foreground_id,
+            cli=use_cli,
+        )
         reopened_measurement = self.call("document.measure", document_id=reopened_id)
         assert_measurement(reopened_measurement, 10)
         structure = self.call(
@@ -509,9 +623,11 @@ class DrivingSmoke:
                 "after_edit_metrics": measured["metrics"],
                 "reopened_metrics": reopened_measurement["metrics"],
                 "expired_handles_rejected": True,
+                "reopened_sketch_discovery": discovered,
             }
         )
         self.close(reopened_id)
+        self.close(reopened_foreground_id)
         self.close(foreground_id)
 
     def run(self):
@@ -524,6 +640,7 @@ class DrivingSmoke:
             "sketch.dimension-diameter",
             "dimension.inspect",
             "dimension.set",
+            "sketch.list",
         ):
             require(
                 operation in health["operations"], f"installed daemon lacks {operation}"

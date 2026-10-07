@@ -31,6 +31,13 @@ class FakeDaemon:
         self.stale_dimensions = False
         self.lose_foreground = False
         self.close_fails = False
+        self.list_empty = False
+        self.list_changes_stamp = False
+        self.list_moves_foreground = False
+        self.list_changes_current = False
+        self.list_id_drift = False
+        self.reopened_inspect_wrong_id = False
+        self.list_serial = 0
         self.calls = []
 
     @staticmethod
@@ -77,6 +84,7 @@ class FakeDaemon:
                         "sketch.dimension-diameter",
                         "dimension.inspect",
                         "dimension.set",
+                        "sketch.list",
                     ],
                 }
             )
@@ -139,6 +147,31 @@ class FakeDaemon:
             result["dimension"] = self.dimension(document)
             if self.modify_inspect:
                 document["stamp"] += 1
+        elif operation == "sketch.list":
+            self.list_serial += 1
+            if document["sketch"] is None or self.list_id_drift:
+                document["sketch"] = f"s-{self.list_serial + 100000:06d}"
+            sketches = (
+                []
+                if self.list_empty
+                else [
+                    {
+                        "sketch_id": document["sketch"],
+                        "name": "保存的圆草图",
+                        "type": "ProfileFeature",
+                        "constraint_status": 2,
+                        "absorbed": document["absorbed"],
+                        "owner": {"name": "Boss1", "type": "ICE"},
+                    }
+                ]
+            )
+            result.update(sketches=sketches, count=len(sketches))
+            if self.list_changes_stamp:
+                document["stamp"] += 1
+            if self.list_moves_foreground:
+                self.active = document_id
+            if self.list_changes_current:
+                self.current[session] = document_id
         elif operation == "sketch.inspect":
             if document["sketch"] != values["sketch_id"]:
                 return self.error("SketchNotFound")
@@ -148,7 +181,15 @@ class FakeDaemon:
                 coordinate_system="sketch-local",
                 profile_segment_count=1,
                 segment_count=1,
-                sketch={"absorbed": document["absorbed"]},
+                sketch={
+                    "absorbed": document["absorbed"],
+                    "sketch_id": (
+                        "s-999999"
+                        if self.reopened_inspect_wrong_id
+                        and document["dimension"] is None
+                        else document["sketch"]
+                    ),
+                },
                 segments=[
                     {
                         "construction": False,
@@ -244,6 +285,8 @@ class FakeDaemon:
                 "dimension_id": arguments[2],
                 "value_mm": float(flag("--value-mm")),
             }
+        elif operation == "sketch.list":
+            values = {}
         else:
             values = {"dimension_id": arguments[2]}
         response = self.call(operation, values, **context)
@@ -294,7 +337,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     if item["transport"] == "cli"
                 ]
             ),
-            3,
+            5,
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
@@ -303,6 +346,19 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 item["expired_handles_rejected"] for item in self.smoke.record["planes"]
             )
         )
+        for plane in self.smoke.record["planes"]:
+            discovery = plane["reopened_sketch_discovery"]
+            self.assertNotEqual(discovery["sketch_id"], plane["sketch_id"])
+            self.assertEqual(
+                discovery["update_stamp_before"], discovery["update_stamp_after"]
+            )
+            self.assertEqual(
+                discovery["selection_before"], discovery["selection_after"]
+            )
+            self.assertEqual(
+                discovery["listed"]["sketches"][0]["sketch_id"],
+                discovery["observed"]["sketch"]["sketch_id"],
+            )
         self.assertEqual(
             self.progress.splitlines(),
             [
@@ -433,6 +489,43 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         self.daemon.stale_dimensions = True
         with self.assertRaisesRegex(RuntimeError, "DimensionNotFound"):
             self.run_smoke()
+
+    def test_missing_reopened_sketch_fails_instead_of_skipping_discovery(self):
+        self.daemon.list_empty = True
+        with self.assertRaisesRegex(RuntimeError, "discover exactly one"):
+            self.run_smoke()
+        self.assertFalse(self.daemon.documents)
+        self.assertEqual(self.smoke.record["planes"], [])
+
+    def test_repeated_discovery_must_keep_handle_stable(self):
+        self.daemon.list_id_drift = True
+        with self.assertRaisesRegex(
+            RuntimeError, "changed a live native sketch handle"
+        ):
+            self.run_smoke()
+
+    def test_reopened_inspect_must_report_the_newly_listed_exact_handle(self):
+        self.daemon.reopened_inspect_wrong_id = True
+        with self.assertRaisesRegex(RuntimeError, "different registered handle"):
+            self.run_smoke()
+        self.assertFalse(self.daemon.documents)
+        proof = self.smoke.record["reopened_sketch_discoveries"][0]
+        self.assertNotEqual(
+            proof["sketch_id"], proof["observed"]["sketch"]["sketch_id"]
+        )
+
+    def test_reopened_discovery_does_not_change_stamp_foreground_or_session(self):
+        for change, message in (
+            ("list_changes_stamp", "changed native update stamp"),
+            ("list_moves_foreground", "background document identity"),
+            ("list_changes_current", "background document identity"),
+        ):
+            with self.subTest(change=change):
+                self.setUp()
+                setattr(self.daemon, change, True)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
 
     def test_cleanup_failure_is_visible(self):
         self.daemon.fail_lease = self.daemon.close_fails = True
