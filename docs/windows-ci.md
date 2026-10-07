@@ -40,6 +40,17 @@ Required repository secret:
 
 ## Disposable hosted installation smoke
 
+The host wrapper calls `scripts/ci/verify-modeling.py` first and
+`scripts/ci/verify-driving-dimensions.py --after-modeling .../modeling.json`
+second, without restarting the daemon/SOLIDWORKS. The shared modeling gate
+requires a successful fresh background sketch after a native nonintersecting
+cut rejection, no cleanup warnings, a closed edit and unchanged solid volume.
+The driving gate refuses a replaced host or failed/incomplete predecessor.
+See [shared runtime tests](runtime-tests.md) for the portable entry points,
+host/local path namespaces and evidence. These common assertions are no longer
+duplicated in the Windows PowerShell host wrapper; equation setup, desktop
+diagnostics and owned/attached host lifecycle checks remain Windows-specific.
+
 The second stage of `.github/workflows/ci.yml` is an integration test, not a
 release pipeline or a declaration that Windows Server is an officially
 supported SOLIDWORKS workstation. It mirrors the proven DockerSW order where

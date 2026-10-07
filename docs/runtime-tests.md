@@ -38,7 +38,7 @@ On Windows, use the Python environment with the current SWCLI installed:
 
 ```powershell
 python -I scripts/ci/verify-modeling.py --output-dir C:\Workspace\proof\modeling
-python -I scripts/ci/verify-driving-dimensions.py --output-dir C:\Workspace\proof\driving
+python -I scripts/ci/verify-driving-dimensions.py --output-dir C:\Workspace\proof\driving --after-modeling C:\Workspace\proof\modeling\modeling.json
 ```
 
 Linux/macOS callers run the test scripts with native Python, provide the local
@@ -57,6 +57,13 @@ The host wrapper must obtain that path from its actual Wine mappings, never
 assume `Z:` exists, and ensure both paths identify the same writable directory.
 The default CLI is isolated installed Python (`python -I -m swcli`), not an
 old global executable. `SWCLI_ENDPOINT` is the default endpoint when set.
+
+Pass the successful local `modeling.json` to the driving script using
+`--after-modeling`. It rejects failed/interrupted records, missing native cut
+continuation proof and any host PID change between the two gates **before**
+creating a driving fixture. The driving gate also verifies the host PID at its
+end. Both CI wrappers use this linkage; standalone dimension investigations
+may omit the flag but are not evidence of the full consecutive sequence.
 
 Supply `--sample-part` and `--sample-assembly` together, both as absolute
 daemon-visible Windows/UNC paths, to add installed-sample update-stamp, lease

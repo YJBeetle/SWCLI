@@ -244,14 +244,34 @@ def assert_discovered_diameter(result, dimension_id, sketch_id, stamp):
     )
 
 
+def modeling_host(path):
+    record = json.loads(path.read_text(encoding="utf-8"))
+    require(
+        record.get("state") == "completed"
+        and record.get("success") is True
+        and record.get("cleanup_errors") == []
+        and record.get("cases", [])[-1:] == ["rejected-cut-then-sketch"],
+        "predecessor modeling gate did not complete successfully",
+    )
+    pid = record.get("host", {}).get("process_id")
+    require(
+        type(pid) is int and record.get("host_after", {}).get("process_id") == pid,
+        "predecessor modeling gate has no unchanged native host PID",
+    )
+    return pid
+
+
 class DrivingSmoke:
-    def __init__(self, *, endpoint, session, output_directory, cli=None):
+    def __init__(
+        self, *, endpoint, session, output_directory, cli=None, after_modeling=None
+    ):
         self.endpoint = endpoint
         self.session = session
         self.output_directory = output_directory
         # Use the same installed package as this isolated script, even if the
         # caller's shell still has PYTHONPATH pointing at a development tree.
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
+        self.after_modeling = after_modeling
         self.record = {
             "state": "running",
             "stage": "initializing",
@@ -950,11 +970,20 @@ class DrivingSmoke:
         self.close(foreground_id)
 
     def run(self):
+        predecessor_pid = (
+            modeling_host(self.after_modeling) if self.after_modeling else None
+        )
         health = self.call("daemon.health")
         require(
             health["host_connected"], "driving gate needs an already connected host"
         )
         self.record["host"] = health["host"]
+        if self.after_modeling is not None:
+            require(
+                health["host"]["process_id"] == predecessor_pid,
+                "SOLIDWORKS was replaced between modeling and driving gates",
+            )
+            self.record["modeling_record"] = str(self.after_modeling)
         for operation in (
             "sketch.dimension-diameter",
             "dimension.discover-diameter",
@@ -973,11 +1002,23 @@ class DrivingSmoke:
             self.plane(plane)
             self.checkpoint(f"plane.{plane}.completed")
             print(f"Driving-dimension gate: {plane} passed", flush=True)
+        after = self.call("daemon.health")
+        self.record["host_after"] = after["host"]
+        require(
+            after["host_connected"]
+            and after["host"]["process_id"] == health["host"]["process_id"],
+            "SOLIDWORKS disconnected or was replaced during the driving gate",
+        )
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--after-modeling",
+        type=Path,
+        help="require a successful modeling.json from the same connected host",
+    )
     parser.add_argument(
         "--host-output-dir",
         type=host_directory,
@@ -1000,6 +1041,7 @@ def main(argv=None):
         session="driving-smoke-" + uuid.uuid4().hex[:12],
         output_directory=arguments.host_output_dir or str(directory),
         cli=[arguments.cli_command] if arguments.cli_command else None,
+        after_modeling=arguments.after_modeling,
     )
     checkpoint = EvidenceCheckpoint(record_path)
     checkpoint.reserve(smoke.record)
