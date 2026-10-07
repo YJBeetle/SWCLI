@@ -18,7 +18,8 @@ REQUIRED = {
     "scripts/ci/verify-invalid-requests.py",
     "scripts/ci/verify-sdist.py",
     "scripts/ci/windows/smoke-solidworks.ps1",
-    "scripts/ci/windows/start-manual-host.ps1",
+    "scripts/ci/windows/start-external-host.ps1",
+    "scripts/ci/windows/create-external-host.py",
     "src/swcli/skills/swcli/SKILL.md",
     "src/swcli/skills/swcli/references/usage.md",
 }

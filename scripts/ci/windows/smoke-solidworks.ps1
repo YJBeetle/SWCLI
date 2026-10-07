@@ -223,8 +223,7 @@ Save-DesktopDiagnostic -Name "desktop-swclid-ready"
 
 $started = $true
 $attachedStarted = $false
-$manualHost = $null
-$manualPid = $null
+$externalPid = $null
 try {
     $doctor = Invoke-SwCliJson -Name "doctor-before" -Arguments @("doctor", "--json")
     if (-not $doctor.supported) {
@@ -635,31 +634,30 @@ try {
         throw "attach-existing without a host created an owned instance or did not fail explicitly"
     }
 
-    . (Join-Path $PSScriptRoot "start-manual-host.ps1")
-    $manual = Start-ManualTestHost -FilePath $doctor.registration.local_server
-    $manualHost = $manual.process
-    $manualPid = $manual.process_id
+    . (Join-Path $PSScriptRoot "start-external-host.ps1")
+    $external = Start-ExternalTestHost
+    $externalPid = $external.process_id
     $attachedStarted = $true
-    $attached = Invoke-SwCliJson -Name "attach-manual-host" -Arguments @("daemon", "start", "--attach-existing", "--json")
+    $attached = Invoke-SwCliJson -Name "attach-external-host" -Arguments @("daemon", "start", "--attach-existing", "--json")
     $attachedHost = $attached.result.health.host
     if ($attachedHost.owned_by_daemon -or -not $attachedHost.shared_interactive -or
-        $attachedHost.process_id -ne $manualPid -or -not $attachedHost.visible) {
-        throw "attach-existing changed the ownership, identity or visibility of the manual host"
+        $attachedHost.process_id -ne $externalPid -or -not $attachedHost.visible) {
+        throw "attach-existing changed the ownership, identity or visibility of the external host"
     }
     Invoke-SwCliJson -Name "stop-attached-live-host" -Arguments @("daemon", "stop", "--json") | Out-Null
     $attachedStarted = $false
-    if ($null -eq (Get-Process -Id $manualPid -ErrorAction SilentlyContinue)) {
+    if ($null -eq (Get-Process -Id $externalPid -ErrorAction SilentlyContinue)) {
         throw "stopping an attached daemon terminated the human-owned SOLIDWORKS host"
     }
     $preservedHost = Invoke-SwCliJson -Name "doctor-after-attached-stop" -Arguments @("doctor", "--json")
     if (-not $preservedHost.com.attached -or -not $preservedHost.com.visible -or
-        $preservedHost.com.process_id -ne $manualPid) {
+        $preservedHost.com.process_id -ne $externalPid) {
         throw "stopping an attached daemon changed the visible interactive COM host"
     }
 
     $attachedStarted = $true
-    Invoke-SwCliJson -Name "reattach-manual-host" -Arguments @("daemon", "restart", "--attach-existing", "--json") | Out-Null
-    Stop-Process -Id $manualPid -Force -ErrorAction Stop
+    Invoke-SwCliJson -Name "reattach-external-host" -Arguments @("daemon", "restart", "--attach-existing", "--json") | Out-Null
+    Stop-Process -Id $externalPid -Force -ErrorAction Stop
     Wait-DisconnectedHost -Name "attached-host-disconnected" | Out-Null
     $blockedShared = Invoke-SwCliJson -Name "list-after-attached-host-exit" -AllowFailure -Arguments @("document", "list", "--json")
     if ($blockedShared.ok -or $blockedShared.error.type -ne "HostDisconnected" -or
@@ -690,11 +688,8 @@ finally {
         & python -m swcli daemon stop --json 2>&1 |
             Set-Content -Path (Join-Path $Workspace "cleanup-attached-daemon-stop.log") -Encoding utf8
     }
-    if ($null -ne $manualHost) {
-        Stop-Process -Id $manualHost.Id -Force -ErrorAction SilentlyContinue
-    }
-    if ($null -ne $manualPid) {
-        Stop-Process -Id $manualPid -Force -ErrorAction SilentlyContinue
+    if ($null -ne $externalPid) {
+        Stop-Process -Id $externalPid -Force -ErrorAction SilentlyContinue
     }
     if ($started) {
         & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
