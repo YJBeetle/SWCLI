@@ -9,6 +9,9 @@ function Start-ExternalTestHost {
     $process = Start-Process -FilePath (Get-Command python).Source `
         -ArgumentList @('-I', ('"' + $script + '"')) `
         -RedirectStandardOutput $stdout -RedirectStandardError $stderr -NoNewWindow -PassThru
+    # Keep the process handle before it exits, so Windows PowerShell can still
+    # retrieve ExitCode after the short-lived venv launcher has disappeared.
+    $null = $process.Handle
     $ready = $false
     $pidAcquired = $null
     try {
@@ -34,7 +37,7 @@ function Start-ExternalTestHost {
         if ($acquired.Count -eq 1) { $pidAcquired = [int]$acquired[0].process_id }
         $hostReady = @($events | Where-Object phase -eq 'ready')
         if ($process.ExitCode -ne 0 -or $hostReady.Count -ne 1) {
-            throw "External COM host fixture failed: $(Get-Content -LiteralPath $stderr -Raw)"
+            throw "External COM host fixture failed (exit=$($process.ExitCode), ready=$($hostReady.Count)): $(Get-Content -LiteralPath $stderr -Raw)"
         }
         $hostPid = [int]$hostReady[0].process_id
         $doctor = Invoke-SwCliJson -Name 'doctor-external-host' -Arguments @('doctor', '--json')
