@@ -3,6 +3,8 @@
 No COM objects are imported here. The front plane goes through the installed
 CLI entry point; the other planes use its public daemon client. A remote/Wine
 host can use --host-output-dir for its view of the supplied output directory.
+Source-delivered Linux payloads can select their thin executable entry point
+with --cli-command; the default still uses isolated installed Python.
 The caller owns host startup/shutdown. Cleanup closes only documents created
 by this gate and records failures instead of hiding the original error.
 """
@@ -46,6 +48,33 @@ def host_path(directory, filename):
         else PurePosixPath
     )
     return str(path_type(directory) / filename)
+
+
+def host_directory(value):
+    windows = bool(re.match(r"^[A-Za-z]:[\\/]", value)) or value.startswith("\\\\")
+    path = PureWindowsPath(value) if windows else PurePosixPath(value)
+    if "\0" in value or not path.is_absolute() or (windows and not path.root):
+        raise argparse.ArgumentTypeError(
+            "host-output-dir must be an absolute daemon-visible path"
+        )
+    return value
+
+
+def cli_executable(value):
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError(
+            "cli-command must be one absolute executable path"
+        )
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, ValueError) as exc:
+        raise argparse.ArgumentTypeError(f"cli-command does not exist: {path}") from exc
+    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+        raise argparse.ArgumentTypeError(
+            "cli-command must be an executable file, not a directory or command line"
+        )
+    return str(resolved)
 
 
 def assert_dimension(result, dimension_id, sketch_id, value):
@@ -500,7 +529,9 @@ class DrivingSmoke:
                 operation in health["operations"], f"installed daemon lacks {operation}"
             )
         for plane in ("front", "top", "right"):
+            print(f"Driving-dimension gate: {plane} starting", flush=True)
             self.plane(plane)
+            print(f"Driving-dimension gate: {plane} passed", flush=True)
 
 
 def main(argv=None):
@@ -508,7 +539,13 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--host-output-dir",
+        type=host_directory,
         help="daemon-visible path for native artifacts; default: local output-dir",
+    )
+    parser.add_argument(
+        "--cli-command",
+        type=cli_executable,
+        help="one absolute local executable path, e.g. /usr/local/bin/sw-cli; default: isolated installed Python",
     )
     parser.add_argument(
         "--endpoint", default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
@@ -521,6 +558,7 @@ def main(argv=None):
         endpoint=arguments.endpoint,
         session="driving-smoke-" + uuid.uuid4().hex[:12],
         output_directory=arguments.host_output_dir or str(directory),
+        cli=[arguments.cli_command] if arguments.cli_command else None,
     )
     # Reserve evidence before calling the daemon; never mutate the host and
     # only afterwards discover that a previous run's record would be replaced.

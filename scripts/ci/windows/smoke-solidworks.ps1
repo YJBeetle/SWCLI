@@ -240,6 +240,15 @@ try {
     & python (Join-Path $PSScriptRoot "../verify-invalid-requests.py")
     if ($LASTEXITCODE -ne 0) { throw "invalid wire requests changed the running host or documents" }
 
+    # The existing ready daemon owns both fixtures. These gates close only
+    # their own documents and retain separate records/native files.
+    & python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py") `
+        --output-dir (Join-Path $Workspace "driving-dimensions")
+    if ($LASTEXITCODE -ne 0) { throw "driving-dimension CLI/protocol gate failed" }
+    & python -I (Join-Path $PSScriptRoot "verify-equation-dimension.py") `
+        --output-dir (Join-Path $Workspace "equation-dimension")
+    if ($LASTEXITCODE -ne 0) { throw "equation-owned dimension protection gate failed" }
+
     $beforeInvalidRestart = Invoke-SwCliJson -Name "status-before-invalid-restart" -Arguments @("daemon", "status", "--json")
     $invalidRestart = Invoke-SwCliJson -Name "invalid-restart-timeout" -AllowFailure -Arguments @(
         "daemon", "restart", "--startup-timeout", "nan", "--json"

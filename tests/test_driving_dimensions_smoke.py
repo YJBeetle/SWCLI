@@ -1,4 +1,5 @@
 import copy
+import argparse
 import importlib.util
 import io
 import json
@@ -271,11 +272,13 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             mock.patch.object(
                 driving_smoke.subprocess, "run", side_effect=self.daemon.command
             ),
+            mock.patch("sys.stdout", new_callable=io.StringIO) as progress,
         ):
             try:
                 self.smoke.run()
             finally:
                 self.smoke.cleanup()
+                self.progress = progress.getvalue()
 
     def test_all_planes_and_installed_cli_route_pass(self):
         self.run_smoke()
@@ -300,6 +303,104 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 item["expired_handles_rejected"] for item in self.smoke.record["planes"]
             )
         )
+        self.assertEqual(
+            self.progress.splitlines(),
+            [
+                f"Driving-dimension gate: {plane} {phase}"
+                for plane in ("front", "top", "right")
+                for phase in ("starting", "passed")
+            ],
+        )
+
+    def test_wrapper_is_one_exact_executable_without_shell(self):
+        wrapper = "/tmp/a path with spaces/sw-cli"
+        self.smoke.cli = [wrapper]
+        with mock.patch.object(
+            driving_smoke.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess([], 0, b'{"ok":true}', b""),
+        ) as run:
+            self.smoke.command(["dimension", "inspect", "m-ab12cd"])
+        command = run.call_args.args[0]
+        self.assertEqual(command[0], wrapper)
+        self.assertEqual(command[1:3], ["--endpoint", "127.0.0.1:1"])
+        self.assertNotIn("shell", run.call_args.kwargs)
+
+    def test_default_cli_stays_isolated(self):
+        self.assertEqual(self.smoke.cli[1:], ["-I", "-m", "swcli"])
+
+    def test_cli_command_validation_rejects_ambiguous_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "sw cli"
+            executable.write_text("test fixture", encoding="utf-8")
+            executable.chmod(0o755)
+            self.assertEqual(
+                driving_smoke.cli_executable(str(executable)), str(executable.resolve())
+            )
+            for invalid in (
+                "sw-cli",
+                directory,
+                str(executable) + " --flag",
+                str(Path(directory) / "missing"),
+            ):
+                with (
+                    self.subTest(path=invalid),
+                    self.assertRaises(argparse.ArgumentTypeError),
+                ):
+                    driving_smoke.cli_executable(invalid)
+            with mock.patch.object(driving_smoke.os, "access", return_value=False):
+                with self.assertRaises(argparse.ArgumentTypeError):
+                    driving_smoke.cli_executable(str(executable))
+
+    def test_native_namespace_directory_requires_absolute_path(self):
+        for value in (
+            r"Z:\workspace\proof",
+            r"\\server\share\proof",
+            "/workspace/proof",
+        ):
+            self.assertEqual(driving_smoke.host_directory(value), value)
+        for invalid in (
+            "",
+            "relative/proof",
+            r"C:relative",
+            r"\\server",
+            "/workspace/\0proof",
+        ):
+            with (
+                self.subTest(path=invalid),
+                self.assertRaises(argparse.ArgumentTypeError),
+            ):
+                driving_smoke.host_directory(invalid)
+
+    def test_main_passes_wrapper_and_native_directory_without_translation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "sw cli"
+            executable.write_text("test fixture", encoding="utf-8")
+            executable.chmod(0o755)
+            native_directory = r"Z:\output path\proof"
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ) as factory,
+                mock.patch.object(self.smoke, "run"),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+            ):
+                driving_smoke.main(
+                    [
+                        "--output-dir",
+                        directory,
+                        "--host-output-dir",
+                        native_directory,
+                        "--cli-command",
+                        str(executable),
+                    ]
+                )
+            self.assertEqual(
+                factory.call_args.kwargs["cli"], [str(executable.resolve())]
+            )
+            self.assertEqual(
+                factory.call_args.kwargs["output_directory"], native_directory
+            )
 
     def test_lease_false_success_fails_and_cleans_only_owned_documents(self):
         self.daemon.fail_lease = True
