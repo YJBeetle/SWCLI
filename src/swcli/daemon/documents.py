@@ -438,12 +438,15 @@ class DocumentRegistry:
         )
 
     @contextmanager
-    def temporarily_activate(self, entry: DocumentEntry) -> Iterator[None]:
+    def temporarily_activate(
+        self, entry: DocumentEntry
+    ) -> Iterator[list[Dict[str, str]]]:
         """Activate a target without rebuilding, then restore the prior document."""
 
+        warnings: list[Dict[str, str]] = []
         previous = _com_value(self.app, "ActiveDoc")
         if self.is_active(entry):
-            yield
+            yield warnings
             return
 
         import pythoncom
@@ -458,14 +461,35 @@ class DocumentRegistry:
                 f"(ActivateDoc3 status {int(errors.value)})"
             )
         try:
-            yield
+            yield warnings
         finally:
             if previous is not None:
-                restore_errors = win32com.client.VARIANT(
-                    pythoncom.VT_BYREF | pythoncom.VT_I4, 0
-                )
-                previous_title = str(_com_value(previous, "GetTitle"))
-                self.app.ActivateDoc3(previous_title, False, 1, restore_errors)
+                try:
+                    restore_errors = win32com.client.VARIANT(
+                        pythoncom.VT_BYREF | pythoncom.VT_I4, 0
+                    )
+                    previous_title = str(_com_value(previous, "GetTitle"))
+                    restored = self.app.ActivateDoc3(
+                        previous_title, False, 1, restore_errors
+                    )
+                    active = _com_value(self.app, "ActiveDoc")
+                    try:
+                        compare = self.app.IsSame
+                    except AttributeError:
+                        same = active is previous
+                    else:
+                        same = active is not None and int(compare(active, previous)) == 1
+                    if restored is None or not same:
+                        raise DocumentActivationFailed(
+                            "SOLIDWORKS did not restore the previous foreground "
+                            f"document (ActivateDoc3 status {int(restore_errors.value)})"
+                        )
+                except Exception as exc:
+                    # Do not discard a completed native mutation or its handles
+                    # merely because restoring the user's foreground failed.
+                    warnings.append(
+                        {"code": "document-foreground-restore-failed", "message": str(exc)}
+                    )
 
     def list(self, *, session_id: str) -> Dict[str, Any]:
         self.sync()
