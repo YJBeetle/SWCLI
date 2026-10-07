@@ -251,6 +251,38 @@ class EquationGateTests(unittest.TestCase):
         self.assertIn("close failed", record["cleanup_errors"][0]["message"])
         self.assertEqual(record["cleanup_errors"][0]["document_id"], "d-000001")
 
+    def test_failed_fixture_native_context_is_written_before_cleanup_and_kept_in_evidence(
+        self,
+    ):
+        failure = RuntimeError("SOLIDWORKS rejected the fixture dimension equation")
+        failure.native_fixture = {
+            "stage": "add-equation",
+            "expression": '"D1@草图1" = 16mm',
+            "equation_index": -1,
+            "add_status": -1,
+            "count_before": 0,
+            "count_after_add": 0,
+            "equations_after_add": [],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            record = equation_smoke.run_gate(
+                endpoint="endpoint",
+                session_id="fixture",
+                output_dir=directory,
+                fixture=mock.Mock(side_effect=failure),
+            )
+            saved = json.loads(
+                (Path(directory) / "equation-dimension-result.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+        self.assertFalse(record["success"])
+        self.assertEqual(record["failure"]["message"], str(failure))
+        self.assertEqual(record["native_fixture"], failure.native_fixture)
+        self.assertEqual(saved["native_fixture"], failure.native_fixture)
+        self.assertFalse(self.daemon.owned)
+        self.assertEqual(record["cleanup_errors"], [])
+
     def test_cleanup_failure_alone_is_not_a_pass(self):
         self.daemon.close_fails = True
         record = self.run_gate()
@@ -436,6 +468,7 @@ class NativeFixtureBindingTests(unittest.TestCase):
                 ActiveConfiguration=SimpleNamespace(Name="默认")
             ),
             EditRebuild3=lambda: True,
+            GetUnits=lambda: (0, 0, 2, 0, 0),
         )
         self.add_call = mock.Mock(side_effect=self.add)
         self.equation_call = mock.Mock(side_effect=lambda index: self.equations[index])
@@ -443,9 +476,14 @@ class NativeFixtureBindingTests(unittest.TestCase):
             GetCount=lambda: len(self.equations),
             Add2=self.add_call,
             Equation=self.equation_call,
+            Status=0,
         )
         self.document.GetEquationMgr = lambda: self.manager
-        self.app = SimpleNamespace(GetProcessID=lambda: 123, ActiveDoc=self.document)
+        self.app = SimpleNamespace(
+            GetProcessID=lambda: 123,
+            RevisionNumber=lambda: "33.5.0",
+            ActiveDoc=self.document,
+        )
         self.pythoncom = ModuleType("pythoncom")
         self.pythoncom.CoInitialize = mock.Mock()
         self.pythoncom.CoUninitialize = mock.Mock()
@@ -485,11 +523,21 @@ class NativeFixtureBindingTests(unittest.TestCase):
         result = self.call()
         self.client.GetActiveObject.assert_called_once_with("SldWorks.Application")
         self.add_call.assert_called_once_with(-1, '"D1@草图1" = 16mm', True)
-        self.equation_call.assert_called_once_with(0)
+        self.assertEqual(
+            self.equation_call.call_args_list, [mock.call(0), mock.call(0)]
+        )
         self.assertEqual(result["count_before"], 0)
         self.assertEqual(result["count_after"], 1)
         self.assertEqual(result["equation_index"], 0)
         self.assertEqual(result["configuration"], "默认")
+        self.assertEqual(result["configurations"], ["默认"])
+        self.assertEqual(result["stage"], "complete")
+        self.assertEqual(result["solidworks_revision"], "33.5.0")
+        self.assertEqual(result["native_name"], "D1@草图1@零件1")
+        self.assertEqual(result["document_units"], [0, 0, 2, 0, 0])
+        self.assertEqual(result["add_status"], 0)
+        self.assertEqual(result["count_after_add"], 1)
+        self.assertEqual(result["equations_after_add"], ['"D1@草图1" = 16mm'])
         self.pythoncom.CoInitialize.assert_called_once()
         self.pythoncom.CoUninitialize.assert_called_once()
         self.assertFalse(hasattr(self.client, "Dispatch"))
@@ -552,6 +600,122 @@ class NativeFixtureBindingTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     self.call()
                 self.pythoncom.CoUninitialize.assert_called_once()
+
+    def test_negative_native_index_keeps_context_and_reads_status_before_count(self):
+        events = []
+
+        def add(*args):
+            events.append("add")
+            return -1
+
+        def status():
+            events.append("status")
+            return -1
+
+        def count():
+            events.append("count")
+            return 0
+
+        self.add_call.side_effect = add
+        self.manager.Status = status
+        self.manager.GetCount = count
+        self.document.EditRebuild3 = mock.Mock(return_value=True)
+        with self.assertRaisesRegex(RuntimeError, "rejected the fixture") as raised:
+            self.call()
+        evidence = raised.exception.native_fixture
+        self.assertEqual(events, ["count", "add", "status", "count"])
+        self.assertEqual(evidence["stage"], "add-equation")
+        self.assertEqual(evidence["equation_index"], -1)
+        self.assertEqual(evidence["add_status"], -1)
+        self.assertEqual(evidence["count_before"], 0)
+        self.assertEqual(evidence["count_after_add"], 0)
+        self.assertEqual(evidence["equations_before"], [])
+        self.assertEqual(evidence["equations_after_add"], [])
+        self.assertEqual(evidence["native_name"], "D1@草图1@零件1")
+        self.assertEqual(evidence["expression"], '"D1@草图1" = 16mm')
+        self.assertEqual(evidence["document_title"], "零件1")
+        self.assertEqual(evidence["document_path"], "")
+        self.assertEqual(evidence["configuration"], "默认")
+        self.assertEqual(evidence["configurations"], ["默认"])
+        self.assertEqual(evidence["solidworks_revision"], "33.5.0")
+        self.assertEqual(evidence["document_units"], [0, 0, 2, 0, 0])
+        self.document.EditRebuild3.assert_not_called()
+        self.add_call.assert_called_once()
+        self.pythoncom.CoUninitialize.assert_called_once()
+
+    def test_diagnostic_read_failures_never_hide_negative_add_result(self):
+        for field in ("status", "count", "equations", "units"):
+            with self.subTest(field=field):
+                self.setUp()
+
+                def fail_read():
+                    raise RuntimeError("diagnostic read unavailable")
+
+                self.add_call.side_effect = lambda *args: -1
+                if field == "status":
+                    self.manager.Status = fail_read
+                elif field == "count":
+                    count = mock.Mock(
+                        side_effect=[0, RuntimeError("diagnostic read unavailable")]
+                    )
+                    self.manager.GetCount = lambda: count()
+                elif field == "equations":
+                    count = mock.Mock(side_effect=[0, 1])
+                    self.manager.GetCount = lambda: count()
+                    self.equation_call.side_effect = RuntimeError(
+                        "diagnostic read unavailable"
+                    )
+                else:
+                    self.document.GetUnits = fail_read
+                with self.assertRaisesRegex(
+                    RuntimeError, "rejected the fixture dimension equation"
+                ) as raised:
+                    self.call()
+                evidence = raised.exception.native_fixture
+                self.assertEqual(evidence["equation_index"], -1)
+                self.assertEqual(evidence["stage"], "add-equation")
+                self.assertTrue(evidence["observation_errors"])
+                json.dumps(evidence, allow_nan=False)
+                self.add_call.assert_called_once()
+
+    def test_add_exception_is_preserved_while_optional_native_status_is_retained(self):
+        failure = RuntimeError("native Add2 COM exception")
+        self.add_call.side_effect = failure
+        self.manager.Status = -1
+        with self.assertRaisesRegex(
+            RuntimeError, "native Add2 COM exception"
+        ) as raised:
+            self.call()
+        self.assertIs(raised.exception, failure)
+        self.assertNotIn("equation_index", failure.native_fixture)
+        self.assertEqual(failure.native_fixture["add_status"], -1)
+        self.assertEqual(failure.native_fixture["count_after_add"], 0)
+        self.assertEqual(failure.native_fixture["expression"], '"D1@草图1" = 16mm')
+
+    def test_partial_native_addition_is_observed_but_negative_index_still_fails(self):
+        def add_then_reject(index, expression, solve):
+            self.equations.append(expression)
+            return -1
+
+        self.add_call.side_effect = add_then_reject
+        self.manager.Status = -1
+        with self.assertRaisesRegex(RuntimeError, "rejected the fixture") as raised:
+            self.call()
+        evidence = raised.exception.native_fixture
+        self.assertEqual(evidence["equation_index"], -1)
+        self.assertEqual(evidence["count_after_add"], 1)
+        self.assertEqual(evidence["equations_after_add"], ['"D1@草图1" = 16mm'])
+        self.add_call.assert_called_once()
+
+    def test_nonfinite_diagnostic_units_are_recorded_as_unavailable_not_raw_json(self):
+        self.document.GetUnits = lambda: (math.nan,)
+        self.add_call.side_effect = lambda *args: -1
+        with self.assertRaisesRegex(RuntimeError, "rejected the fixture") as raised:
+            self.call()
+        evidence = raised.exception.native_fixture
+        self.assertNotIn("document_units", evidence)
+        self.assertEqual(evidence["observation_errors"][0]["field"], "document_units")
+        json.dumps(evidence, allow_nan=False)
 
 
 if __name__ == "__main__":

@@ -35,6 +35,36 @@ def close_enough(actual, expected, message):
     )
 
 
+def _fixture_observation(evidence, field, read):
+    """Keep optional diagnostics JSON-safe without replacing a native failure."""
+    try:
+        value = json.loads(json.dumps(read(), allow_nan=False))
+    except Exception as exc:
+        evidence.setdefault("observation_errors", []).append(
+            {"field": field, "type": type(exc).__name__, "message": str(exc)}
+        )
+        return None
+    evidence[field] = value
+    return value
+
+
+def _fixture_equations(evidence, manager, field, count):
+    if not isinstance(count, int) or not 0 <= count <= 1000:
+        evidence.setdefault("observation_errors", []).append(
+            {
+                "field": field,
+                "type": "ObservationUnavailable",
+                "message": "equation count is unavailable or exceeds diagnostic limit",
+            }
+        )
+        return
+    _fixture_observation(
+        evidence,
+        field,
+        lambda: [str(manager.Equation(index)) for index in range(count)],
+    )
+
+
 def add_native_equation(*, process_id, document_descriptor, native_name):
     """Attach to the exact existing host and mutate only its fresh active fixture."""
     import pythoncom
@@ -54,6 +84,14 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
     )
     pythoncom.CoInitialize()
     app = document = manager = None
+    evidence = {
+        "stage": "attach-existing-host",
+        "process_id": process_id,
+        "document_descriptor": dict(document_descriptor),
+        "native_name": native_name,
+        "alias": native_name.rsplit("@", 1)[0],
+        "expression": f'"{native_name.rsplit("@", 1)[0]}" = 16mm',
+    }
     try:
         # GetActiveObject never starts a missing host. Refuse a different ROT
         # instance rather than falling back to Dispatch or an active document.
@@ -62,10 +100,17 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
             int(_com_value(app, "GetProcessID")) == process_id,
             "ROT SOLIDWORKS PID differs from the daemon-owned fixture host",
         )
+        _fixture_observation(
+            evidence,
+            "solidworks_revision",
+            lambda: str(_com_value(app, "RevisionNumber")),
+        )
+        evidence["stage"] = "validate-fixture-document"
         document = _com_value(app, "ActiveDoc")
         require(document is not None, "fixture document is not active")
         title = str(_com_value(document, "GetTitle"))
         path = str(_com_value(document, "GetPathName"))
+        evidence.update(document_title=title, document_path=path)
         require(
             title == document_descriptor["title"]
             and ntpath.normcase(ntpath.normpath(path))
@@ -73,7 +118,9 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
             and int(_com_value(document, "GetType")) == 1,
             "active document is not the exact fresh part created by this gate",
         )
+        evidence["stage"] = "validate-configuration"
         configurations = tuple(_com_value(document, "GetConfigurationNames") or ())
+        evidence["configurations"] = list(configurations)
         require(
             len(configurations) == 1, "Add2 fixture requires one fresh configuration"
         )
@@ -86,16 +133,39 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
                 _com_value(document, "ConfigurationManager"), "ActiveConfiguration"
             ).Name
         )
+        evidence["configuration"] = configuration
+        _fixture_observation(
+            evidence, "document_units", lambda: _com_value(document, "GetUnits")
+        )
+        evidence["stage"] = "prepare-equation"
         manager = _com_value(document, "GetEquationMgr")
         require(manager is not None, "native equation manager is unavailable")
         count_before = int(_com_value(manager, "GetCount"))
+        evidence["count_before"] = count_before
+        _fixture_equations(evidence, manager, "equations_before", count_before)
         require(
             count_before == 0, "fixture part unexpectedly already contains equations"
         )
-        alias = native_name.rsplit("@", 1)[0]
-        expression = f'"{alias}" = 16mm'
-        index = int(manager.Add2(-1, expression, True))
+        alias, expression = evidence["alias"], evidence["expression"]
+        evidence["stage"] = "add-equation"
+        try:
+            index = int(manager.Add2(-1, expression, True))
+            evidence["equation_index"] = index
+        finally:
+            # Status is about the last native equation call: capture it before
+            # count/getter observations can change it, including after -1 or a
+            # COM exception. Diagnostic failures never replace Add2's outcome.
+            _fixture_observation(
+                evidence, "add_status", lambda: int(_com_value(manager, "Status"))
+            )
+            count_added = _fixture_observation(
+                evidence,
+                "count_after_add",
+                lambda: int(_com_value(manager, "GetCount")),
+            )
+            _fixture_equations(evidence, manager, "equations_after_add", count_added)
         require(index >= 0, "SOLIDWORKS rejected the fixture dimension equation")
+        evidence["stage"] = "rebuild"
         require(
             bool(_com_value(document, "EditRebuild3")),
             "equation fixture did not rebuild",
@@ -103,18 +173,22 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
         # EquationMgr is configuration-associated. Reacquire after the native
         # rebuild; inspect the indexed property using the same late binding as
         # the production equation-ownership guard, not a generated interop shim.
+        evidence["stage"] = "verify-equation"
         manager = _com_value(document, "GetEquationMgr")
         require(manager is not None, "equation manager disappeared after rebuild")
         count_after = int(_com_value(manager, "GetCount"))
+        evidence["count_after"] = count_after
         require(
             count_after == count_before + 1 and index < count_after,
             "native equation count/index did not match the fixture addition",
         )
         native_expression = str(manager.Equation(index))
+        evidence["equation"] = native_expression
         require(
             native_expression.split("=", 1)[0].strip() == f'"{alias}"',
             "indexed native Equation getter returned a different assignment target",
         )
+        evidence["stage"] = "verify-configuration"
         require(
             str(
                 _com_value(
@@ -124,17 +198,14 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
             == configuration,
             "fixture unexpectedly switched configuration",
         )
-        return {
-            "process_id": process_id,
-            "document_title": title,
-            "document_path": path,
-            "configuration": configuration,
-            "count_before": count_before,
-            "count_after": count_after,
-            "equation_index": index,
-            "equation": native_expression,
-            "binding": "native-indexed-Equation-property",
-        }
+        evidence.update(stage="complete", binding="native-indexed-Equation-property")
+        return evidence
+    except Exception as exc:
+        # Preserve the original exception type/message. The caller publishes
+        # these staged native observations even when fixture setup did not
+        # reach a successful return, rather than silently losing Add2's result.
+        exc.native_fixture = evidence
+        raise
     finally:
         manager = document = app = None
         pythoncom.CoUninitialize()
@@ -300,11 +371,17 @@ class EquationSmoke:
             current_health["host"]["process_id"] == health["host"]["process_id"],
             "daemon host was replaced during fixture setup",
         )
-        native = self.fixture(
-            process_id=current_health["host"]["process_id"],
-            document_descriptor=descriptor,
-            native_name=diameter["dimension"]["native_name"],
-        )
+        try:
+            native = self.fixture(
+                process_id=current_health["host"]["process_id"],
+                document_descriptor=descriptor,
+                native_name=diameter["dimension"]["native_name"],
+            )
+        except Exception as exc:
+            evidence = getattr(exc, "native_fixture", None)
+            if isinstance(evidence, dict):
+                self.record["native_fixture"] = evidence
+            raise
         self.record["native_fixture"] = native
         require(
             isinstance(native.get("equation_index"), int)
