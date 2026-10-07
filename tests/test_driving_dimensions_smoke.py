@@ -638,10 +638,40 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 mock.patch("sys.stdout", new_callable=io.StringIO),
             ):
                 driving_smoke.main(["--output-dir", directory])
-            self.assertEqual(snapshots[0]["stage"], "daemon.health.completed")
+            self.assertEqual(snapshots[0]["stage"], "daemon.health.started")
+            self.assertEqual(snapshots[0]["events"][0]["state"], "running")
+            self.assertEqual(snapshots[0]["events"][0]["parameters"], {})
+            self.assertEqual(
+                snapshots[0]["events"][0]["context"],
+                {"session_id": self.smoke.session},
+            )
             for record in snapshots[:-1]:
                 self.assertEqual(record["state"], "running")
                 self.assertNotIn("success", record)
+                event = record["events"][-1]
+                operation = event.get("operation", "cli")
+                if record["stage"] == operation + ".started":
+                    self.assertEqual(event["state"], "running")
+                    for terminal_field in ("response", "result", "returncode", "error"):
+                        self.assertNotIn(terminal_field, event)
+            for index, event in enumerate(snapshots[-1]["events"]):
+                states = [
+                    record["events"][index]["state"]
+                    for record in snapshots
+                    if len(record["events"]) > index
+                ]
+                self.assertEqual(states[0], "running")
+                self.assertIn("completed", states)
+                self.assertEqual(event["state"], "completed")
+                if event["transport"] == "protocol":
+                    self.assertIsInstance(event["parameters"], dict)
+                    self.assertTrue(
+                        event["context"]["session_id"].startswith(self.smoke.session)
+                    )
+                    if not event["response"]["success"]:
+                        self.assertEqual(
+                            event["response"]["error"]["code"], event["expected_error"]
+                        )
             cli_snapshots = [
                 item for item in snapshots if item["stage"] == "cli.completed"
             ]
@@ -749,6 +779,115 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 )
                 self.assertEqual(record["cleanup_errors"], [])
                 self.assertIn("evidence checkpoint failed", warnings.getvalue())
+                failed_event = next(
+                    event
+                    for event in record["events"]
+                    if event.get("operation") == failed_operation
+                )
+                self.assertEqual(failed_event["state"], "completed")
+                self.assertTrue(failed_event["response"]["success"])
+                self.assertNotIn("error", failed_event)
+
+    def test_pre_call_checkpoint_failure_prevents_rpc_and_cli(self):
+        for transport in ("protocol", "cli"):
+            with self.subTest(transport=transport):
+                self.setUp()
+                attempted = []
+
+                def fail_started(record):
+                    attempted.append(copy.deepcopy(record))
+                    if record["stage"].endswith(".started"):
+                        raise OSError("pre-call evidence unavailable")
+
+                self.smoke.checkpoint_writer = fail_started
+                with (
+                    mock.patch.object(driving_smoke, "call_daemon") as rpc,
+                    mock.patch.object(driving_smoke.subprocess, "run") as cli,
+                    mock.patch("sys.stderr", new_callable=io.StringIO),
+                ):
+                    with self.assertRaisesRegex(
+                        OSError, "pre-call evidence unavailable"
+                    ):
+                        if transport == "protocol":
+                            self.smoke.call(
+                                "sketch.circle",
+                                {"plane": "front", "radius_mm": 5},
+                                document_id="d-ab12cd",
+                            )
+                        else:
+                            self.smoke.command(["dimension", "inspect", "m-ab12cd"])
+                    rpc.assert_not_called()
+                    cli.assert_not_called()
+                self.assertEqual(attempted[0]["events"][-1]["state"], "running")
+                self.assertEqual(attempted[-1]["events"][-1]["state"], "failed")
+                event = self.smoke.record["events"][-1]
+                self.assertEqual(event["state"], "failed")
+                self.assertNotIn("response", event)
+                self.assertNotIn("returncode", event)
+                self.assertEqual(
+                    event["error"]["message"], "pre-call evidence unavailable"
+                )
+
+    def test_pre_call_checkpoint_failure_still_cleans_previously_owned_documents(self):
+        for transport in ("protocol", "cli"):
+            with (
+                self.subTest(transport=transport),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                self.setUp()
+
+                def run():
+                    document_id = self.smoke.create()
+                    self.smoke.create()
+                    self.smoke.checkpoint_writer = mock.Mock(
+                        side_effect=OSError("pre-call disk gone")
+                    )
+                    if transport == "protocol":
+                        self.smoke.call(
+                            "sketch.circle",
+                            {"plane": "front", "radius_mm": 5},
+                            document_id=document_id,
+                        )
+                    else:
+                        self.smoke.command(
+                            [
+                                "dimension",
+                                "inspect",
+                                "m-ab12cd",
+                                "--document",
+                                document_id,
+                            ]
+                        )
+
+                with (
+                    mock.patch.object(
+                        driving_smoke, "DrivingSmoke", return_value=self.smoke
+                    ),
+                    mock.patch.object(
+                        driving_smoke, "call_daemon", side_effect=self.daemon.call
+                    ),
+                    mock.patch.object(driving_smoke.subprocess, "run") as cli,
+                    mock.patch.object(self.smoke, "run", side_effect=run),
+                    mock.patch("sys.stdout", new_callable=io.StringIO),
+                    mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+                ):
+                    with self.assertRaisesRegex(OSError, "pre-call disk gone"):
+                        driving_smoke.main(["--output-dir", directory])
+                    cli.assert_not_called()
+                self.assertFalse(self.daemon.documents)
+                self.assertFalse(self.smoke.owned)
+                self.assertFalse(
+                    any(call[0] == "sketch.circle" for call in self.daemon.calls)
+                )
+                self.assertEqual(
+                    sum(call[0] == "document.close" for call in self.daemon.calls), 2
+                )
+                self.assertEqual(self.smoke.record["cleanup_errors"], [])
+                self.assertEqual(
+                    self.smoke.record["error"]["message"], "pre-call disk gone"
+                )
+                self.assertFalse(self.smoke.record["success"])
+                self.assertIn("pre-call disk gone", warnings.getvalue())
 
     def test_persistent_checkpoint_failure_does_not_interrupt_owned_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -819,7 +958,11 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
     def test_failed_business_response_is_checkpointed_without_masking_primary_error(
         self,
     ):
-        self.smoke.checkpoint_writer = mock.Mock(side_effect=OSError("disk gone"))
+        def fail_terminal(record):
+            if record["stage"].endswith(".failed"):
+                raise OSError("disk gone")
+
+        self.smoke.checkpoint_writer = fail_terminal
         with (
             mock.patch.object(
                 driving_smoke,
@@ -831,12 +974,17 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "COMFailure"):
                 self.smoke.call("sketch.circle")
         event = self.smoke.record["events"][-1]
+        self.assertEqual(event["state"], "failed")
         self.assertEqual(event["response"]["error"]["code"], "COMFailure")
         self.assertIn("COMFailure", event["error"]["message"])
         self.assertIn("disk gone", warnings.getvalue())
 
     def test_failed_cli_response_is_checkpointed_without_masking_primary_error(self):
-        self.smoke.checkpoint_writer = mock.Mock(side_effect=OSError("disk gone"))
+        def fail_terminal(record):
+            if record["stage"].endswith(".failed"):
+                raise OSError("disk gone")
+
+        self.smoke.checkpoint_writer = fail_terminal
         with (
             mock.patch.object(
                 driving_smoke.subprocess,
@@ -853,10 +1001,71 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "CLIComFailure"):
                 self.smoke.command(["dimension", "inspect", "m-ab12cd"])
         event = self.smoke.record["events"][-1]
+        self.assertEqual(event["state"], "failed")
         self.assertEqual(event["returncode"], 1)
         self.assertEqual(json.loads(event["stdout"])["error"]["code"], "CLIComFailure")
         self.assertEqual(event["stderr"], "native diagnostic")
         self.assertIn("disk gone", warnings.getvalue())
+
+    def test_cli_completed_checkpoint_failure_preserves_completed_native_event(self):
+        def fail_completed(record):
+            if record["stage"] == "cli.completed":
+                raise OSError("post-call disk gone")
+
+        self.smoke.checkpoint_writer = fail_completed
+        with (
+            mock.patch.object(
+                driving_smoke.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0, b'{"ok":true}', b""),
+            ) as cli,
+            mock.patch("sys.stderr", new_callable=io.StringIO),
+        ):
+            with self.assertRaisesRegex(OSError, "post-call disk gone"):
+                self.smoke.command(["dimension", "inspect", "m-ab12cd"])
+            cli.assert_called_once()
+        event = self.smoke.record["events"][-1]
+        self.assertEqual(event["state"], "completed")
+        self.assertEqual(event["returncode"], 0)
+        self.assertEqual(event["result"], {"ok": True})
+        self.assertNotIn("error", event)
+        self.assertEqual(
+            self.smoke.record["checkpoint_errors"][0]["stage"], "cli.completed"
+        )
+
+    def test_event_inputs_are_snapshots_not_mutable_caller_arguments(self):
+        parameters = {"dimension_id": "m-ab12cd"}
+        context = {"document_id": "d-ab12cd", "expected_update_stamp": 37}
+        arguments = ["dimension", "inspect", "m-ab12cd"]
+        with (
+            mock.patch.object(
+                driving_smoke,
+                "call_daemon",
+                return_value={"success": True, "result": {"ok": True}},
+            ),
+            mock.patch.object(
+                driving_smoke.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0, b'{"ok":true}', b""),
+            ),
+        ):
+            self.smoke.call("dimension.inspect", parameters, **context)
+            self.smoke.command(arguments)
+        parameters["dimension_id"] = "m-zzzzzz"
+        context["document_id"] = "d-zzzzzz"
+        arguments[2] = "m-zzzzzz"
+        rpc, cli = self.smoke.record["events"]
+        self.assertEqual(rpc["parameters"], {"dimension_id": "m-ab12cd"})
+        self.assertEqual(
+            rpc["context"],
+            {
+                "document_id": "d-ab12cd",
+                "expected_update_stamp": 37,
+                "session_id": self.smoke.session,
+            },
+        )
+        self.assertEqual(cli["arguments"], ["dimension", "inspect", "m-ab12cd"])
+        self.assertEqual([rpc["state"], cli["state"]], ["completed", "completed"])
 
     def test_final_checkpoint_failure_leaves_running_proof_and_exits_unsuccessfully(
         self,
@@ -897,57 +1106,149 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         fixture = """
 import importlib.util
 import sys
+from pathlib import Path
 spec = importlib.util.spec_from_file_location('driving_smoke_fixture', sys.argv[1])
 gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
-gate.call_daemon = lambda *args, **kwargs: {'success': True, 'result': {'fixture': 'completed'}}
+transport = sys.argv[3]
+ready = Path(sys.argv[4])
+def block_in_native_call():
+    ready.write_text(transport, encoding='utf-8')
+    sys.stdin.read()
+    raise AssertionError('fixture must be killed inside its native call')
+def fake_call(operation, *args, **kwargs):
+    if operation == 'daemon.health':
+        return {'success': True, 'result': {'fixture': 'completed'}}
+    if transport != 'protocol' or operation != 'sketch.circle':
+        raise AssertionError('unexpected fixture RPC')
+    return block_in_native_call()
+gate.call_daemon = fake_call
+gate.subprocess.run = lambda *args, **kwargs: block_in_native_call()
 def paused_run(self):
     self.call('daemon.health')
-    self.checkpoint('fixture.paused')
-    sys.stdin.read()
+    if transport == 'protocol':
+        self.call(
+            'sketch.circle',
+            {'plane': 'right', 'radius_mm': 5, 'center_x_mm': 3, 'center_y_mm': 4},
+            document_id='d-ab12cd',
+            session_id='fixture-session',
+            lease_id='l-abcdefabcdef',
+            expected_update_stamp=37,
+            expected_error='DocumentLeaseConflict',
+        )
+    else:
+        self.command([
+            'dimension', 'inspect', 'm-ab12cd', '--document', 'd-ab12cd',
+            '--if-update-stamp', '37',
+        ])
 gate.DrivingSmoke.run = paused_run
 gate.main(['--output-dir', sys.argv[2]])
 """
-        with tempfile.TemporaryDirectory() as directory:
-            record_path = Path(directory) / "driving-dimensions.json"
-            process = subprocess.Popen(
-                [sys.executable, "-c", fixture, str(script), directory],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env={**os.environ, "PYTHONPATH": str(script.parents[2] / "src")},
-            )
-            try:
-                deadline = time.monotonic() + 5
-                record = None
-                while time.monotonic() < deadline:
-                    if record_path.exists():
-                        try:
-                            record = json.loads(record_path.read_text(encoding="utf-8"))
-                        except json.JSONDecodeError:
-                            # Exclusive initial reservation is written before
-                            # any fake/native work starts; wait for that flush.
-                            pass
-                        else:
-                            if record["stage"] == "fixture.paused":
-                                break
-                    if process.poll() is not None:
-                        self.fail(
-                            f"fixture unexpectedly exited: {process.communicate()}"
-                        )
-                    time.sleep(0.01)
-                else:
-                    self.fail("fixture did not checkpoint before its deadline")
-                process.kill()
-                process.communicate(timeout=5)
-                record = json.loads(record_path.read_text(encoding="utf-8"))
-                self.assertEqual(record["state"], "running")
-                self.assertEqual(record["stage"], "fixture.paused")
-                self.assertNotIn("success", record)
-                self.assertEqual(
-                    record["events"][0]["response"]["result"], {"fixture": "completed"}
+        for transport in ("protocol", "cli"):
+            with (
+                self.subTest(transport=transport),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                record_path = Path(directory) / "driving-dimensions.json"
+                ready_path = Path(directory) / "fake-native-call.ready"
+                stage = (
+                    "sketch.circle.started"
+                    if transport == "protocol"
+                    else "cli.started"
                 )
-            finally:
-                if process.poll() is None:
+                process = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-c",
+                        fixture,
+                        str(script),
+                        directory,
+                        transport,
+                        str(ready_path),
+                    ],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    env={**os.environ, "PYTHONPATH": str(script.parents[2] / "src")},
+                )
+                try:
+                    deadline = time.monotonic() + 5
+                    record = None
+                    while time.monotonic() < deadline:
+                        if record_path.exists():
+                            try:
+                                record = json.loads(
+                                    record_path.read_text(encoding="utf-8")
+                                )
+                            except json.JSONDecodeError:
+                                # Reserve is flushed before any fake/native work.
+                                pass
+                            else:
+                                if record["stage"] == stage and ready_path.exists():
+                                    break
+                        if process.poll() is not None:
+                            self.fail(
+                                f"fixture unexpectedly exited: {process.communicate()}"
+                            )
+                        time.sleep(0.01)
+                    else:
+                        self.fail(
+                            "fixture did not enter its native call before the deadline"
+                        )
                     process.kill()
                     process.communicate(timeout=5)
+                    record = json.loads(record_path.read_text(encoding="utf-8"))
+                    self.assertEqual(record["state"], "running")
+                    self.assertEqual(record["stage"], stage)
+                    self.assertNotIn("success", record)
+                    self.assertEqual(len(record["events"]), 2)
+                    self.assertEqual(record["events"][0]["state"], "completed")
+                    self.assertEqual(
+                        record["events"][0]["response"]["result"],
+                        {"fixture": "completed"},
+                    )
+                    pending = record["events"][-1]
+                    self.assertEqual(pending["transport"], transport)
+                    self.assertEqual(pending["state"], "running")
+                    for terminal_field in ("response", "result", "returncode", "error"):
+                        self.assertNotIn(terminal_field, pending)
+                    if transport == "protocol":
+                        self.assertEqual(pending["operation"], "sketch.circle")
+                        self.assertEqual(
+                            pending["parameters"],
+                            {
+                                "plane": "right",
+                                "radius_mm": 5,
+                                "center_x_mm": 3,
+                                "center_y_mm": 4,
+                            },
+                        )
+                        self.assertEqual(
+                            pending["context"],
+                            {
+                                "document_id": "d-ab12cd",
+                                "session_id": "fixture-session",
+                                "lease_id": "l-abcdefabcdef",
+                                "expected_update_stamp": 37,
+                            },
+                        )
+                        self.assertEqual(
+                            pending["expected_error"], "DocumentLeaseConflict"
+                        )
+                    else:
+                        self.assertEqual(
+                            pending["arguments"],
+                            [
+                                "dimension",
+                                "inspect",
+                                "m-ab12cd",
+                                "--document",
+                                "d-ab12cd",
+                                "--if-update-stamp",
+                                "37",
+                            ],
+                        )
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.communicate(timeout=5)

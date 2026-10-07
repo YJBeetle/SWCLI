@@ -253,9 +253,18 @@ class DrivingSmoke:
 
     def call(self, operation, parameters=None, *, expected_error=None, **context):
         context.setdefault("session_id", self.session)
-        event = {"transport": "protocol", "operation": operation}
+        event = {
+            "transport": "protocol",
+            "operation": operation,
+            "parameters": dict(parameters or {}),
+            "context": dict(context),
+            "state": "running",
+        }
+        if expected_error is not None:
+            event["expected_error"] = expected_error
         self.record["events"].append(event)
         try:
+            self.checkpoint(f"{operation}.started")
             response = call_daemon(
                 operation,
                 parameters,
@@ -280,9 +289,11 @@ class DrivingSmoke:
                 )
                 self.remember_owned_result(operation, result, context)
         except Exception as exc:
+            event["state"] = "failed"
             event["error"] = {"type": type(exc).__name__, "message": str(exc)}
             self.checkpoint(f"{operation}.failed", required=False)
             raise
+        event["state"] = "completed"
         self.checkpoint(f"{operation}.completed")
         return result
 
@@ -301,10 +312,12 @@ class DrivingSmoke:
         environment = {**os.environ, "PYTHONIOENCODING": "utf-8"}
         event = {
             "transport": "cli",
-            "arguments": arguments,
+            "arguments": list(arguments),
+            "state": "running",
         }
         self.record["events"].append(event)
         try:
+            self.checkpoint("cli.started")
             completed = subprocess.run(
                 command,
                 stdout=subprocess.PIPE,
@@ -324,9 +337,11 @@ class DrivingSmoke:
             )
             event["result"] = result
         except Exception as exc:
+            event["state"] = "failed"
             event["error"] = {"type": type(exc).__name__, "message": str(exc)}
             self.checkpoint("cli.failed", required=False)
             raise
+        event["state"] = "completed"
         self.checkpoint("cli.completed")
         return result
 
