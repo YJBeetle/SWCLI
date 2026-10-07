@@ -12,6 +12,11 @@ from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
 from ..hosts.com_errors import DISCONNECTED_COM_HRESULTS, com_hresult
+from ..hosts.windows_sketch_inspection import (
+    SketchFeatureIdConflict,
+    _feature_id,
+    _same_feature,
+)
 
 _HANDLE_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
 _HANDLE_LENGTH = 6
@@ -68,6 +73,7 @@ class DocumentEntry:
     document_id: str
     document: Any
     sketches: Dict[str, Any] = field(default_factory=dict)
+    sketch_ids_by_native_id: Dict[int, str] = field(default_factory=dict)
     dimensions: Dict[str, DimensionEntry] = field(default_factory=dict)
 
 
@@ -309,24 +315,25 @@ class DocumentRegistry:
             raise DocumentNotFound(
                 f"document '{entry.document_id}' is no longer registered"
             )
-        for sketch_id, registered in tuple(entry.sketches.items()):
-            if registered is feature:
-                return sketch_id
+        # Read the incoming native ID before changing any registry state. GetID
+        # is document-local, stable and never a substitute for the exact-object
+        # comparison required when an already indexed ID appears again.
+        native_id = _feature_id(feature)
+        sketch_id = entry.sketch_ids_by_native_id.get(native_id)
+        expired_id = None
+        if sketch_id is not None:
+            registered = entry.sketches[sketch_id]
             try:
-                compare = self.app.IsSame
-            except AttributeError:
-                continue
-            try:
-                same = int(compare(registered, feature)) == 1
+                same = _same_feature(self.app, registered, feature)
             except Exception as exc:
                 if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
                     raise
-                del entry.sketches[sketch_id]
-                for dimension_id, dimension in tuple(entry.dimensions.items()):
-                    if dimension.sketch_id == sketch_id:
-                        del entry.dimensions[dimension_id]
-                continue
-            if same:
+                expired_id = sketch_id
+            else:
+                if not same:
+                    raise SketchFeatureIdConflict(
+                        "a registered native sketch ID refers to a different object"
+                    )
                 entry.sketches[sketch_id] = feature
                 return sketch_id
         while True:
@@ -334,7 +341,14 @@ class DocumentRegistry:
                 secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
             )
             if not any(token in item.sketches for item in self._entries.values()):
+                if expired_id is not None:
+                    del entry.sketches[expired_id]
+                    del entry.sketch_ids_by_native_id[native_id]
+                    for dimension_id, dimension in tuple(entry.dimensions.items()):
+                        if dimension.sketch_id == expired_id:
+                            del entry.dimensions[dimension_id]
                 entry.sketches[token] = feature
+                entry.sketch_ids_by_native_id[native_id] = token
                 return token
 
     def resolve_sketch(self, entry: DocumentEntry, sketch_id: str) -> Any:
@@ -398,6 +412,7 @@ class DocumentRegistry:
         if entry is None:
             return
         entry.sketches.clear()
+        entry.sketch_ids_by_native_id.clear()
         entry.dimensions.clear()
         lease_id = self._lease_id_by_document.get(document_id)
         if lease_id is not None:

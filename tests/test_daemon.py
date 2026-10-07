@@ -5,6 +5,7 @@ import tempfile
 from contextlib import contextmanager
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from swcli import PROTOCOL_VERSION
@@ -232,7 +233,7 @@ class DaemonProtocolTests(unittest.TestCase):
                 expected_update_stamp=1,
             )
         create.assert_not_called()
-        feature = object()
+        feature = SimpleNamespace(GetID=lambda: 1)
         create.return_value = (
             {"ok": True, "action": "sketch.rectangle", "sketch": {"name": "rectangle"}},
             feature,
@@ -313,7 +314,7 @@ class DaemonProtocolTests(unittest.TestCase):
                 expected_update_stamp=1,
             )
         create.assert_not_called()
-        feature = object()
+        feature = SimpleNamespace(GetID=lambda: 1)
         create.return_value = (
             {
                 "ok": False,
@@ -411,7 +412,7 @@ class DaemonProtocolTests(unittest.TestCase):
         entry = registry.register(target)
         other = registry.register(foreground)
         registry.set_current(other, session_id="observer")
-        feature = object()
+        feature = SimpleNamespace(GetID=lambda: 1)
         sketch_id = registry.register_sketch(entry, feature)
         registry.acquire_lease(entry, session_id="writer", ttl_seconds=60)
         values = {"sketch_id": sketch_id, "max_segments": 12}
@@ -471,7 +472,7 @@ class DaemonProtocolTests(unittest.TestCase):
         entry = registry.register(target)
         other = registry.register(foreground)
         registry.set_current(other, session_id="modeler")
-        feature = object()
+        feature = SimpleNamespace(GetID=lambda: 1)
         sketch_id = registry.register_sketch(entry, feature)
         lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
         values = {"sketch_id": sketch_id, "depth_mm": 20, "reverse": True}
@@ -537,7 +538,7 @@ class DaemonProtocolTests(unittest.TestCase):
         entry = registry.register(target)
         other = registry.register(foreground)
         registry.set_current(other, session_id="modeler")
-        native_sketch = object()
+        native_sketch = SimpleNamespace(GetID=lambda: 1)
         sketch_id = registry.register_sketch(entry, native_sketch)
         lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
         values = {
@@ -622,7 +623,7 @@ class DaemonProtocolTests(unittest.TestCase):
         registry = DocumentRegistry(app)
         entry = registry.register(target)
         registry.set_current(entry, session_id="owner")
-        sketch = object()
+        sketch = SimpleNamespace(GetID=lambda: 1)
         sketch_id = registry.register_sketch(entry, sketch)
         lease = registry.acquire_lease(entry, session_id="owner", ttl_seconds=60)
         output = str(Path("native-new-name.SLDPRT").resolve())

@@ -1,6 +1,7 @@
 """Worker-local dimension handles retain exact owner and document boundaries."""
 
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 from swcli.daemon.documents import (
@@ -37,7 +38,7 @@ class DimensionRegistryTests(unittest.TestCase):
         self.registry = DocumentRegistry(self.app)
         self.entry = self.registry.register(self.document)
         self.other_entry = self.registry.register(self.other)
-        self.sketch = object()
+        self.sketch = SimpleNamespace(GetID=lambda: 1)
         self.sketch_id = self.registry.register_sketch(self.entry, self.sketch)
         self.dimension = object()
         self.dimension_id = self.registry.register_dimension(

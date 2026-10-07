@@ -83,7 +83,9 @@ class ActivationTests(unittest.TestCase):
 
     @mock.patch("swcli.daemon.operations.set_dimension_windows")
     def test_completed_mutation_keeps_handle_and_reports_restore_failure(self, setter):
-        sketch = self.registry.register_sketch(self.entry, object())
+        sketch = self.registry.register_sketch(
+            self.entry, SimpleNamespace(GetID=lambda: 1)
+        )
         dimension = self.registry.register_dimension(self.entry, sketch, object())
         self.activation(restore=False)
         setter.return_value = {

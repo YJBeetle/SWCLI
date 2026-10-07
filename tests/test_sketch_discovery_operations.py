@@ -17,8 +17,16 @@ class Document:
 
 
 class Feature:
+    _ids_by_identity = {}
+
     def __init__(self, identity):
         self.identity = identity
+        self.native_id = self._ids_by_identity.setdefault(
+            identity, len(self._ids_by_identity)
+        )
+
+    def GetID(self):
+        return self.native_id
 
 
 class SketchDiscoveryOperationTests(unittest.TestCase):
@@ -172,7 +180,9 @@ class SketchDiscoveryOperationTests(unittest.TestCase):
         old_id = self.registry.register_sketch(self.entry, stale)
         dimension_id = self.registry.register_dimension(self.entry, old_id, object())
         self.app.IsSame = mock.Mock(side_effect=ComError("disconnected"))
-        new_id = self.registry.register_sketch(self.entry, Feature("replacement"))
+        replacement = Feature("replacement")
+        replacement.native_id = stale.native_id
+        new_id = self.registry.register_sketch(self.entry, replacement)
         self.assertNotEqual(old_id, new_id)
         self.assertNotIn(old_id, self.entry.sketches)
         self.assertNotIn(dimension_id, self.entry.dimensions)

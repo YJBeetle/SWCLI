@@ -1,6 +1,7 @@
 """Dimension operations share document/session, lease and update-stamp guards."""
 
 from contextlib import contextmanager
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -51,7 +52,7 @@ class DimensionOperationTests(unittest.TestCase):
         self.entry = self.registry.register(self.target)
         self.other = self.registry.register(self.foreground)
         self.registry.set_current(self.other, session_id="writer")
-        self.sketch, self.dimension = object(), object()
+        self.sketch, self.dimension = SimpleNamespace(GetID=lambda: 1), object()
         self.sketch_id = self.registry.register_sketch(self.entry, self.sketch)
         self.dimension_id = self.registry.register_dimension(
             self.entry, self.sketch_id, self.dimension
