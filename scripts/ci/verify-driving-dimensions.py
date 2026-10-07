@@ -192,6 +192,58 @@ def assert_measurement(result, radius):
     )
 
 
+def assert_discovered_diameter(result, dimension_id, sketch_id, stamp):
+    assert_dimension(result, dimension_id, sketch_id, 20)
+    dimension = result["dimension"]
+    require(
+        result["sketch_id"] == sketch_id
+        and type(dimension["driven_state"]) is int
+        and dimension["read_only"] is False
+        and isinstance(dimension["native_name"], str)
+        and bool(dimension["native_name"].strip())
+        and result["editing"] is False
+        and result["equation_control"] == {"controlled": False, "equation_indices": []}
+        and result["equation_control"]["controlled"] is False
+        and result["design_table_controlled"] is False,
+        "discovered diameter ownership or native control state is incorrect",
+    )
+    geometry = result["geometry_verification"]
+    require(
+        geometry["passed"] is True
+        and geometry["method"] == "sketch-local-circle"
+        and geometry["complete_circle"] is True
+        and geometry["segment_count"] == 1
+        and geometry["profile_segment_count"] == 1,
+        "discovered diameter geometry verification is incomplete or failed",
+    )
+    close_enough(
+        geometry["actual_radius_mm"], 10, "discovered diameter radius is incorrect"
+    )
+    for axis, expected in (("x", 3), ("y", 4), ("z", 0)):
+        close_enough(
+            geometry["actual_center_mm"][axis],
+            expected,
+            "discovered diameter circle center changed",
+        )
+    observation = result["observation"]
+    before, after = observation["before"], observation["after"]
+    require(
+        observation["unchanged"] is True
+        and observation["configuration_matched"] is True
+        and before == after
+        and all(
+            type(state["update_stamp"]) is int
+            and state["update_stamp"] == stamp
+            and isinstance(state["configuration"], str)
+            and bool(state["configuration"].strip())
+            and state["configuration"] == dimension["configuration"]
+            and state["editing"] is False
+            for state in (before, after)
+        ),
+        "diameter discovery observation changed stamp, configuration or edit state",
+    )
+
+
 class DrivingSmoke:
     def __init__(self, *, endpoint, session, output_directory, cli=None):
         self.endpoint = endpoint
@@ -513,6 +565,132 @@ class DrivingSmoke:
         self.checkpoint("reopened-sketch-discovery.completed")
         return proof
 
+    def discover_reopened_dimension(
+        self,
+        document_id,
+        *,
+        sketch_id,
+        expired_dimension_id,
+        foreground_id,
+        current_id,
+        cli,
+    ):
+        reopen_session = self.session + "-reopen"
+        before_stamp = self.stamp(document_id)
+        before_selection = {
+            "main": self.selection_state(session_id=self.session),
+            "reopen": self.selection_state(session_id=reopen_session),
+        }
+        require(
+            before_selection["main"]
+            == {"current_document_id": current_id, "active_document_id": foreground_id}
+            and before_selection["reopen"]
+            == {
+                "current_document_id": foreground_id,
+                "active_document_id": foreground_id,
+            },
+            "reopened diameter discovery did not start with the intended background/session state",
+        )
+        proof = {
+            "document_id": document_id,
+            "sketch_id": sketch_id,
+            "expired_dimension_id": expired_dimension_id,
+            "update_stamp_before": before_stamp,
+            "selection_before": before_selection,
+        }
+        self.record.setdefault("reopened_dimension_discoveries", []).append(proof)
+        self.checkpoint("reopened-dimension-discovery.started")
+
+        def discover():
+            return (
+                self.command(
+                    [
+                        "dimension",
+                        "discover-diameter",
+                        sketch_id,
+                        "--document",
+                        document_id,
+                    ]
+                )
+                if cli
+                else self.call(
+                    "dimension.discover-diameter",
+                    {"sketch_id": sketch_id},
+                    document_id=document_id,
+                )
+            )
+
+        discovered = discover()
+        proof["discovered"] = discovered
+        dimension_id = discovered["dimension"]["dimension_id"]
+        proof["dimension_id"] = dimension_id
+        require(
+            dimension_id != expired_dimension_id,
+            "reopened diameter discovery reused an expired dimension handle",
+        )
+        assert_discovered_diameter(discovered, dimension_id, sketch_id, before_stamp)
+        self.checkpoint("reopened-dimension-discovery.discovered")
+        repeated = discover()
+        proof["repeated"] = repeated
+        require(
+            repeated["dimension"]["dimension_id"] == dimension_id,
+            "repeated diameter discovery changed a live native dimension handle",
+        )
+        assert_discovered_diameter(repeated, dimension_id, sketch_id, before_stamp)
+        require(
+            repeated["observation"]["before"] == discovered["observation"]["before"],
+            "repeated diameter discovery changed its observation scope",
+        )
+        self.checkpoint("reopened-dimension-discovery.repeated")
+        inspected = (
+            self.command(
+                ["dimension", "inspect", dimension_id, "--document", document_id]
+            )
+            if cli
+            else self.call(
+                "dimension.inspect",
+                {"dimension_id": dimension_id},
+                document_id=document_id,
+            )
+        )
+        proof["inspected"] = inspected
+        assert_dimension(inspected, dimension_id, sketch_id, 20)
+        require(
+            inspected["dimension"]["configuration"]
+            == discovered["observation"]["before"]["configuration"]
+            and inspected["geometry_verification"]["passed"] is True
+            and inspected["editing"] is False
+            and inspected["equation_control"]
+            == {"controlled": False, "equation_indices": []}
+            and inspected["design_table_controlled"] is False,
+            "newly discovered diameter inspection changed geometry, configuration or control state",
+        )
+        self.checkpoint("reopened-dimension-discovery.inspected")
+        after_stamp = self.stamp(document_id)
+        after_selection = {
+            "main": self.selection_state(session_id=self.session),
+            "reopen": self.selection_state(session_id=reopen_session),
+        }
+        proof.update(update_stamp_after=after_stamp, selection_after=after_selection)
+        for result in (discovered, repeated, inspected):
+            require(
+                result["document"]["document_id"] == document_id
+                and result["document"]["current"] is False
+                and result["document"]["active"] is False
+                and result["document"]["update_stamp"] == before_stamp,
+                "reopened diameter observation changed its background document identity or stamp",
+            )
+        require(
+            after_stamp == before_stamp,
+            "diameter discovery/inspection changed native update stamp",
+        )
+        require(
+            after_selection == before_selection,
+            "diameter discovery changed foreground or session current",
+        )
+        self.checkpoint("reopened-dimension-discovery.completed")
+        return proof
+
     def close(self, document_id):
         owner = self.owned[document_id]
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
@@ -720,6 +898,14 @@ class DrivingSmoke:
             current_id=foreground_id,
             cli=use_cli,
         )
+        discovered_dimension = self.discover_reopened_dimension(
+            reopened_id,
+            sketch_id=discovered["sketch_id"],
+            expired_dimension_id=dimension_id,
+            foreground_id=reopened_foreground_id,
+            current_id=foreground_id,
+            cli=use_cli,
+        )
         reopened_measurement = self.call("document.measure", document_id=reopened_id)
         assert_measurement(reopened_measurement, 10)
         structure = self.call(
@@ -755,6 +941,7 @@ class DrivingSmoke:
                 "reopened_metrics": reopened_measurement["metrics"],
                 "expired_handles_rejected": True,
                 "reopened_sketch_discovery": discovered,
+                "reopened_dimension_discovery": discovered_dimension,
             }
         )
         self.checkpoint(f"plane.{plane}.verified")
@@ -770,6 +957,7 @@ class DrivingSmoke:
         self.record["host"] = health["host"]
         for operation in (
             "sketch.dimension-diameter",
+            "dimension.discover-diameter",
             "dimension.inspect",
             "dimension.set",
             "sketch.list",

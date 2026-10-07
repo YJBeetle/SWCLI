@@ -40,6 +40,17 @@ class FakeDaemon:
         self.list_changes_current = False
         self.list_id_drift = False
         self.reopened_inspect_wrong_id = False
+        self.discovery_error = None
+        self.discovery_defect = None
+        self.discovery_id_drift = False
+        self.discovery_reuses_expired_id = False
+        self.discovery_changes_stamp = False
+        self.discovery_moves_foreground = False
+        self.discovery_changes_current = False
+        self.discovery_changes_reopen_current = False
+        self.discovered_inspect_wrong_id = False
+        self.discovery_missing_capability = False
+        self.dimension_discovery_serial = 0
         self.list_serial = 0
         self.calls = []
 
@@ -73,6 +84,19 @@ class FakeDaemon:
             "native_name": "D1@草图1@零件",
         }
 
+    @staticmethod
+    def geometry(document):
+        return {
+            "passed": True,
+            "method": "sketch-local-circle",
+            "segment_count": 1,
+            "profile_segment_count": 1,
+            "complete_circle": True,
+            "actual_radius_mm": document["radius"],
+            "actual_center_mm": {"x": 3, "y": 4, "z": 0},
+            "absolute_tolerance_mm": 1e-6,
+        }
+
     def call(self, operation, parameters=None, **context):
         self.calls.append((operation, parameters, context))
         values = parameters or {}
@@ -88,7 +112,12 @@ class FakeDaemon:
                         "dimension.inspect",
                         "dimension.set",
                         "sketch.list",
-                    ],
+                    ]
+                    + (
+                        []
+                        if self.discovery_missing_capability
+                        else ["dimension.discover-diameter"]
+                    ),
                 }
             )
         if operation in ("document.create", "document.open"):
@@ -97,6 +126,8 @@ class FakeDaemon:
             if operation == "document.open":
                 document = copy.deepcopy(self.files[values["path"]])
                 document["lease"] = None
+                document["reopened"] = True
+                document["expired_dimension"] = document["dimension"]
                 if not self.stale_dimensions:
                     document["dimension"] = None
                     document["sketch"] = None
@@ -147,9 +178,111 @@ class FakeDaemon:
         elif operation == "dimension.inspect":
             if document["dimension"] != values["dimension_id"]:
                 return self.error("DimensionNotFound")
-            result["dimension"] = self.dimension(document)
+            result.update(
+                dimension=self.dimension(document),
+                sketch_id=document["sketch"],
+                geometry_verification=self.geometry(document),
+                equation_control={"controlled": False, "equation_indices": []},
+                design_table_controlled=False,
+                editing=False,
+            )
+            if self.discovered_inspect_wrong_id and document.get("reopened"):
+                result["dimension"]["dimension_id"] = "m-999999"
             if self.modify_inspect:
                 document["stamp"] += 1
+        elif operation == "dimension.discover-diameter":
+            if self.discovery_error:
+                return self.error(self.discovery_error)
+            if document["sketch"] != values["sketch_id"]:
+                return self.error("SketchNotFound")
+            self.dimension_discovery_serial += 1
+            if document["dimension"] is None or self.discovery_id_drift:
+                document["dimension"] = (
+                    f"m-{200000 + self.dimension_discovery_serial:06d}"
+                )
+            if self.discovery_reuses_expired_id:
+                document["dimension"] = document["expired_dimension"]
+            state = {
+                "update_stamp": document["stamp"],
+                "configuration": "默认",
+                "editing": False,
+            }
+            result.update(
+                dimension=self.dimension(document),
+                sketch_id=document["sketch"],
+                geometry_verification=self.geometry(document),
+                equation_control={"controlled": False, "equation_indices": []},
+                design_table_controlled=False,
+                editing=False,
+                observation={
+                    "before": dict(state),
+                    "after": dict(state),
+                    "configuration_matched": True,
+                    "unchanged": True,
+                },
+            )
+            defect = self.discovery_defect
+            if defect == "wrong_owner":
+                result["dimension"]["sketch_id"] = "s-999999"
+            elif defect == "wrong_document":
+                result["document"]["document_id"] = "d-999999"
+            elif defect == "kind":
+                result["dimension"]["kind"] = "length"
+            elif defect == "value":
+                result["dimension"]["value"] = 19
+            elif defect == "read_only":
+                result["dimension"]["read_only"] = None
+            elif defect == "equation":
+                result["equation_control"] = {
+                    "controlled": True,
+                    "equation_indices": [0],
+                }
+            elif defect == "table":
+                result["design_table_controlled"] = True
+            elif defect == "equation_unknown":
+                result["equation_control"]["controlled"] = 0
+            elif defect == "geometry":
+                result["geometry_verification"]["passed"] = False
+            elif defect == "geometry_radius":
+                result["geometry_verification"]["actual_radius_mm"] = 9
+            elif defect == "geometry_center":
+                result["geometry_verification"]["actual_center_mm"]["x"] = 4
+            elif defect in ("after_stamp", "after_configuration", "after_editing"):
+                field = {
+                    "after_stamp": "update_stamp",
+                    "after_configuration": "configuration",
+                    "after_editing": "editing",
+                }[defect]
+                result["observation"]["after"][field] = {
+                    "after_stamp": state["update_stamp"] + 1,
+                    "after_configuration": "Other",
+                    "after_editing": True,
+                }[defect]
+            elif defect == "wrong_outer_stamp":
+                result["observation"]["before"]["update_stamp"] += 1
+                result["observation"]["after"]["update_stamp"] += 1
+            elif defect == "wrong_configuration":
+                result["observation"]["before"]["configuration"] = "Other"
+                result["observation"]["after"]["configuration"] = "Other"
+            elif defect == "after_stamp_float":
+                result["observation"]["after"]["update_stamp"] = float(
+                    state["update_stamp"]
+                )
+            elif defect == "after_editing_integer":
+                result["observation"]["after"]["editing"] = 0
+            elif defect == "editing":
+                result["observation"]["before"]["editing"] = True
+                result["observation"]["after"]["editing"] = True
+            elif defect in ("unchanged", "configuration_matched"):
+                result["observation"][defect] = False
+            if self.discovery_changes_stamp:
+                document["stamp"] += 1
+            if self.discovery_moves_foreground:
+                self.active = document_id
+            if self.discovery_changes_current:
+                self.current[session] = document_id
+            if self.discovery_changes_reopen_current:
+                self.current[session + "-reopen"] = document_id
         elif operation == "sketch.list":
             self.list_serial += 1
             if document["sketch"] is None or self.list_id_drift:
@@ -290,6 +423,8 @@ class FakeDaemon:
             }
         elif operation == "sketch.list":
             values = {}
+        elif operation == "dimension.discover-diameter":
+            values = {"sketch_id": arguments[2]}
         else:
             values = {"dimension_id": arguments[2]}
         response = self.call(operation, values, **context)
@@ -340,7 +475,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     if item["transport"] == "cli"
                 ]
             ),
-            5,
+            8,
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
@@ -362,6 +497,49 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 discovery["listed"]["sketches"][0]["sketch_id"],
                 discovery["observed"]["sketch"]["sketch_id"],
             )
+            diameter = plane["reopened_dimension_discovery"]
+            self.assertEqual(diameter["sketch_id"], discovery["sketch_id"])
+            self.assertNotEqual(diameter["dimension_id"], plane["dimension_id"])
+            self.assertEqual(
+                diameter["dimension_id"],
+                diameter["repeated"]["dimension"]["dimension_id"],
+            )
+            self.assertEqual(
+                diameter["dimension_id"],
+                diameter["inspected"]["dimension"]["dimension_id"],
+            )
+            self.assertEqual(
+                diameter["update_stamp_before"], diameter["update_stamp_after"]
+            )
+            self.assertEqual(diameter["selection_before"], diameter["selection_after"])
+            self.assertEqual(
+                diameter["discovered"]["observation"]["before"],
+                diameter["discovered"]["observation"]["after"],
+            )
+        discoveries = [
+            event
+            for event in self.smoke.record["events"]
+            if event.get("operation") == "dimension.discover-diameter"
+            or event.get("arguments", [])[:2] == ["dimension", "discover-diameter"]
+        ]
+        self.assertEqual(
+            [event["transport"] for event in discoveries],
+            ["cli", "cli", "protocol", "protocol", "protocol", "protocol"],
+        )
+        for operation, _, context in self.daemon.calls:
+            if operation == "dimension.discover-diameter":
+                self.assertNotIn("lease_id", context)
+        self.assertEqual(
+            sum(operation == "dimension.set" for operation, _, _ in self.daemon.calls),
+            12,
+        )
+        self.assertTrue(
+            all(
+                values["read_only"]
+                for operation, values, _ in self.daemon.calls
+                if operation == "document.open"
+            )
+        )
         self.assertEqual(
             self.progress.splitlines(),
             [
@@ -530,6 +708,181 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     self.run_smoke()
                 self.assertFalse(self.daemon.documents)
 
+    def test_discovery_capability_is_required_before_creating_documents(self):
+        self.daemon.discovery_missing_capability = True
+        with self.assertRaisesRegex(
+            RuntimeError, "installed daemon lacks dimension.discover-diameter"
+        ):
+            self.run_smoke()
+        self.assertFalse(self.daemon.documents)
+        self.assertFalse(
+            any(operation == "document.create" for operation, _, _ in self.daemon.calls)
+        )
+
+    def test_reopened_diameter_empty_ambiguous_or_failed_observation_stops_gate(self):
+        for error in (
+            "DimensionNotFound",
+            "DimensionAmbiguous",
+            "DimensionObservationUnavailable",
+            "NativeObservationFailed",
+        ):
+            with self.subTest(error=error):
+                self.setUp()
+                self.daemon.discovery_error = error
+                with self.assertRaisesRegex(RuntimeError, error):
+                    self.run_smoke()
+                self.assertEqual(self.smoke.record["planes"], [])
+                self.assertFalse(self.daemon.documents)
+                proof = self.smoke.record["reopened_dimension_discoveries"][0]
+                self.assertNotIn("dimension_id", proof)
+                self.assertNotIn("discovered", proof)
+
+    def test_reopened_diameter_handle_must_be_new_and_stable(self):
+        for change, message in (
+            ("discovery_id_drift", "changed a live native dimension handle"),
+            ("discovery_reuses_expired_id", "reused an expired dimension handle"),
+        ):
+            with self.subTest(change=change):
+                self.setUp()
+                setattr(self.daemon, change, True)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.run_smoke()
+                self.assertEqual(self.smoke.record["planes"], [])
+                self.assertFalse(self.daemon.documents)
+
+    def test_reopened_diameter_owner_value_control_and_geometry_are_verified(self):
+        for defect, message in (
+            ("wrong_owner", "dimension identity"),
+            ("wrong_document", "background document identity"),
+            ("kind", "dimension identity"),
+            ("value", "native diameter value is incorrect"),
+            ("read_only", "control state is incorrect"),
+            ("equation", "control state is incorrect"),
+            ("equation_unknown", "control state is incorrect"),
+            ("table", "control state is incorrect"),
+            ("geometry", "geometry verification is incomplete or failed"),
+            ("geometry_radius", "diameter radius is incorrect"),
+            ("geometry_center", "circle center changed"),
+        ):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.daemon.discovery_defect = defect
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.run_smoke()
+                self.assertEqual(self.smoke.record["planes"], [])
+                self.assertFalse(self.daemon.documents)
+
+    def test_discovery_compares_native_observation_not_only_unchanged_claim(self):
+        for defect in (
+            "after_stamp",
+            "after_stamp_float",
+            "after_configuration",
+            "after_editing",
+            "after_editing_integer",
+            "wrong_outer_stamp",
+            "wrong_configuration",
+            "editing",
+            "unchanged",
+            "configuration_matched",
+        ):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.daemon.discovery_defect = defect
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "observation changed stamp, configuration or edit state",
+                ):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
+
+    def test_reopened_diameter_discovery_preserves_outer_stamp_and_both_sessions(self):
+        for change, message in (
+            ("discovery_changes_stamp", "stamp"),
+            ("discovery_moves_foreground", "background document identity|foreground"),
+            (
+                "discovery_changes_current",
+                "background document identity|session current",
+            ),
+            ("discovery_changes_reopen_current", "session current"),
+        ):
+            with self.subTest(change=change):
+                self.setUp()
+                setattr(self.daemon, change, True)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
+                self.assertEqual(self.smoke.record["planes"], [])
+
+    def test_newly_discovered_handle_must_inspect_as_the_same_native_dimension(self):
+        self.daemon.discovered_inspect_wrong_id = True
+        with self.assertRaisesRegex(RuntimeError, "dimension identity"):
+            self.run_smoke()
+        proof = self.smoke.record["reopened_dimension_discoveries"][0]
+        self.assertNotEqual(
+            proof["dimension_id"], proof["inspected"]["dimension"]["dimension_id"]
+        )
+        self.assertFalse(self.daemon.documents)
+
+    def test_discovery_pre_call_checkpoint_failure_cannot_send_rpc_or_cli(self):
+        for cli in (False, True):
+            with self.subTest(cli=cli):
+                self.setUp()
+                with (
+                    mock.patch.object(
+                        driving_smoke, "call_daemon", side_effect=self.daemon.call
+                    ),
+                    mock.patch.object(
+                        driving_smoke.subprocess, "run", side_effect=self.daemon.command
+                    ),
+                ):
+                    document_id = self.smoke.create()
+                    document = self.daemon.documents[document_id]
+                    document.update(
+                        sketch="s-123456",
+                        radius=10,
+                        absorbed=True,
+                        reopened=True,
+                        expired_dimension="m-123456",
+                    )
+                    main_current = self.smoke.create()
+                    foreground = self.smoke.create(
+                        session_id=self.smoke.session + "-reopen"
+                    )
+
+                    def fail_before_discovery(record):
+                        event = record["events"][-1]
+                        if event["state"] == "running" and (
+                            event.get("operation") == "dimension.discover-diameter"
+                            or event.get("arguments", [])[:2]
+                            == ["dimension", "discover-diameter"]
+                        ):
+                            raise OSError("discovery evidence denied")
+
+                    self.smoke.checkpoint_writer = fail_before_discovery
+                    with (
+                        mock.patch("sys.stderr", new_callable=io.StringIO),
+                        self.assertRaisesRegex(OSError, "discovery evidence denied"),
+                    ):
+                        try:
+                            self.smoke.discover_reopened_dimension(
+                                document_id,
+                                sketch_id="s-123456",
+                                expired_dimension_id="m-123456",
+                                foreground_id=foreground,
+                                current_id=main_current,
+                                cli=cli,
+                            )
+                        finally:
+                            self.smoke.cleanup()
+                    self.assertFalse(
+                        any(
+                            operation == "dimension.discover-diameter"
+                            for operation, _, _ in self.daemon.calls
+                        )
+                    )
+                    self.assertFalse(self.daemon.documents)
+                    self.assertFalse(self.smoke.record["cleanup_errors"])
+
     def test_cleanup_failure_is_visible(self):
         self.daemon.fail_lease = self.daemon.close_fails = True
         with self.assertRaisesRegex(RuntimeError, "DocumentLeaseConflict"):
@@ -690,6 +1043,12 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     item["stage"] == "reopened-sketch-discovery.observed"
+                    for item in snapshots
+                )
+            )
+            self.assertTrue(
+                any(
+                    item["stage"] == "reopened-dimension-discovery.inspected"
                     for item in snapshots
                 )
             )
