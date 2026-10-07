@@ -3,7 +3,7 @@
 This is the project's execution roadmap, not a promise of release dates or
 protocol stability. Capabilities and the installed version are authoritative.
 
-## a4 development: first reusable part-modeling loop
+## v0.1.0a4: first reusable part-modeling loop
 
 Implemented and covered by portable tests and native Windows smoke:
 
@@ -27,7 +27,7 @@ Implemented and covered by portable tests and native Windows smoke:
 DockerSW's real Wine gate mirrors the part-modeling primitives in addition to
 the six existing export outputs. A source/unit/native-Windows pass does not
 prove Wine delivery: confirm the relevant DockerSW CI before claiming support.
-These development features are not in the published v0.1.0a3 wheel.
+These features are available in the v0.1.0a4 pre-release, not the older a3 wheel.
 
 ## Next modeling increments
 
@@ -59,9 +59,9 @@ upper-layer application; this goal does not require designing it now.
 
 ## Release gate
 
-The next pre-release draft and its publication evidence checklist are recorded
-in [v0.1.0a4 candidate notes](releases/v0.1.0a4-draft.md). This file is not a
-published release or permission to treat the development wheel as stable.
+The current pre-release and its verification boundaries are recorded in
+[v0.1.0a4 release notes](releases/v0.1.0a4.md). A pre-release does not imply a
+stable compatibility commitment.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,

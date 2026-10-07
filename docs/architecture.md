@@ -133,7 +133,7 @@ inspect -> plan -> apply -> rebuild -> diagnose -> measure -> render -> verify
 Public raw Python, eval, and direct-COM escape hatches are intentionally outside
 the typed CLI contract.
 
-The first general-modeling foundation on the a4 development branch is
+The first general-modeling foundation available since v0.1.0a4 is
 `document.create`: an unsaved part from a resolved native template. It reuses
 the worker's application and registers the exact returned document, not a
 subsequent `ActiveDoc` lookup. Creation changes only the requesting session's
@@ -220,7 +220,7 @@ published capabilities schema. The schemas advertised by the daemon are the
 same definitions used for request validation, so capability discovery cannot
 drift from runtime parameter handling.
 
-Starting with the `0.1.0a4` development branch, each operation declaration also
+Starting with `v0.1.0a4`, each operation declaration also
 owns its handler name, selected-document policy, lease guard, temporary
 activation policy and result schema. Worker handlers are registered and checked
 against that catalog at import time. Dispatch validates the request, resolves
@@ -254,8 +254,8 @@ metadata and other non-adapter responses: invalid values return a correlated
 This wire fallback does not roll back an already completed operation.
 
 The pre-stable capabilities contract has gained a required field. Upgrade
-client and daemon together when moving from `v0.1.0a3` to this development
-version. The published a3 wheel remains unchanged.
+client and daemon together when moving from `v0.1.0a3` to `v0.1.0a4`.
+The published a3 wheel remains unchanged.
 Length and angle units are explicit at typed modeling boundaries; host adapters
 convert them to the units expected by the SOLIDWORKS API.
 

@@ -37,17 +37,16 @@ export workflows.
 SWCLI is pre-alpha but already provides the versioned local protocol, resident
 daemon lifecycle, native Windows discovery, document open/inspect/save/close,
 rebuild diagnostics, deterministic BMP rendering, verified STEP/GLB/PDF/DWG
-export, and a first typed part-modeling operation. The public typed commands are
+export, and a reusable native part-modeling loop. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketch editing,
 feature editing, stable entity references, transactions, SDK, and MCP remain future
 work. The daemon now publishes the JSON Schema used to validate each supported
-operation through capability discovery. The development branch for `0.1.0a4`
-also advertises `operation_result_schemas` and validates worker results before
-returning them; this is not included in the pinned `v0.1.0a3` wheel below.
-The same development branch adds unsaved part creation, verified rectangle and
-circle sketches, blind solid extrusion and new-filename native part save-as.
+operation through capability discovery. Since `v0.1.0a4`, it also advertises
+`operation_result_schemas` and validates worker results before returning them.
+The release adds unsaved part creation, verified rectangle/circle sketches,
+blind bosses/cuts, native volume/area observation and new-filename part save-as.
 
 ## Installation
 
@@ -59,18 +58,18 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a3` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a4` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a3/swcli-0.1.0a3-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a4/swcli-0.1.0a4-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a3` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a4` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
@@ -285,7 +284,7 @@ schema and includes protocol/server versions, the operation list, each
 operation's parameter schema and supported request context, worker and recovery
 state, request replay policy, and the current host description. The server
 validates requests against the same operation catalog it publishes. In the
-`0.1.0a4` development branch, the catalog also declares handlers, document
+`v0.1.0a4` release, the catalog also declares handlers, document
 selection, lease guards, temporary activation and result contracts. Result
 schemas describe the protocol envelope's `result` field; typed CLI JSON flattens
 that field and may add `request_id` and `replayed`. Adapter contract violations
@@ -310,7 +309,7 @@ paths) translation is skipped entirely. DockerSW ships a helper that calls
 
 ## Document operations
 
-On the `0.1.0a4` development branch, `document create` creates an **unsaved
+Since `v0.1.0a4`, `document create` creates an **unsaved
 part** using a real `.PRTDOT` template. It does not build geometry, rebuild,
 or save a file. The exact `NewDocument` handle becomes this session's current
 document and receives a short-lived ID, including when it has no file path.
@@ -325,7 +324,6 @@ sw-cli document inspect --detail structure --json
 sw-cli document close --discard
 ```
 
-This foundation for general modeling is not in the published `v0.1.0a3` wheel.
 General sketch editing remains forthcoming; `document save-as` names a new
 part, while `document save` saves an already named document. If creation succeeds but
 a later check fails, the partial document is not rolled back or silently closed;
@@ -418,7 +416,7 @@ response includes the raw SOLIDWORKS save error/warning bitmasks, stable names
 for every set bit, and the document state before and after saving. Success
 requires both a successful API result and a clean post-save document.
 
-`document measure --json` (a4 development) reads kernel-derived geometry for
+`document measure --json` (since v0.1.0a4) reads kernel-derived geometry for
 all solid bodies in the selected part, including hidden bodies. It reports
 volume in mm³, surface area in mm² and the volume-weighted centroid in part-model
 millimeters, plus per-body evidence. It neither changes selection nor activates,
@@ -429,7 +427,7 @@ union: overlapping volumes and contacting/internal faces are counted per body.
 No material-derived mass is reported. Assembly/drawing measurement is not yet
 supported, and these numeric kernel properties are not a proof of design intent.
 
-On the a4 development branch, `document save-as new-part.SLDPRT` names the
+Since `v0.1.0a4`, `document save-as new-part.SLDPRT` names the
 selected part and saves it to a **new target only**. Existing targets (including
 its current filename) are rejected; use `document save` for an in-place save.
 Assembly/drawing save-as and copy-without-renaming are not implemented. The
@@ -464,7 +462,7 @@ verification and any strict checks pass. This core operation selects format
 only from the explicit output extension and does not interpret source naming
 conventions.
 
-## Sketch operations (a4 development branch)
+## Sketch operations (since v0.1.0a4)
 
 ```powershell
 sw-cli document create --json
@@ -490,7 +488,6 @@ sketch edit is rejected rather than taken over. `--document`, `--lease` and
 activating a background document does not change the session current. On
 failure, cleanup attempts to exit only the edit started by this operation;
 partial geometry is not rolled back, and cleanup failures produce warnings.
-This command is not included in the published `v0.1.0a3` wheel.
 
 `sketch circle --plane front --radius-mm 8` creates a fresh full-circle sketch
 using the same document guards and closed-edit lifecycle as rectangles.
@@ -498,9 +495,7 @@ Optional `--center-x-mm` and `--center-y-mm` default to zero in sketch-local
 coordinates. The radius is not a diameter. Verification reads the final native
 arc's complete-circle flag, radius and center, rejects partial arcs or extra
 profile segments, and returns a document-scoped sketch ID for extrusion. It
-does not add driving dimensions or guarantee full definition. This command is
-not in the published `v0.1.0a3` wheel.
-
+does not add driving dimensions or guarantee full definition.
 `sketch inspect SKETCH_ID --json` reads a registered 2D sketch without entering
 edit mode, selecting geometry, rebuilding, saving or activating its document.
 It works even if the sketch was subsequently absorbed by a boss/cut and reports
@@ -516,7 +511,7 @@ document/stamp selectors but not a write lease, and leaves session current and
 foreground unchanged. It only accepts live IDs registered by this worker, not
 names, segment indices, or expired IDs from a reopened file.
 
-## Feature operations (a4 development branch)
+## Feature operations (since v0.1.0a4)
 
 ```powershell
 sw-cli document create --json
@@ -538,7 +533,7 @@ model. The response verifies native depth, direction, merge and end conditions
 and reports solid-body evidence, not just echoed inputs. It does not verify all
 design dimensions or save the native document. Selection cleanup and foreground
 restoration follow the document guards; partial feature creation is not rolled
-back on failure. This command is not in the published `v0.1.0a3` wheel.
+back on failure.
 
 ## Part modeling
 
@@ -571,7 +566,7 @@ sw-cli document status --json | ConvertFrom-Json
 The example scopes that setting to each CLI call and restores the caller's
 encoding, including on failure. PowerShell 7 normally already uses UTF-8.
 
-`feature cut-extrude SKETCH_ID --depth-mm 20` (a4 development) removes material
+`feature cut-extrude SKETCH_ID --depth-mm 20` (since v0.1.0a4) removes material
 inside an unused 2D profile with a one-direction blind cut. Like `feature extrude`,
 the CLI's default direction is **along the sketch normal**; `--reverse` means
 against it. The adapter accounts for SOLIDWORKS's opposite native cut default.

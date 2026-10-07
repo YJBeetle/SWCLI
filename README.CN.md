@@ -28,9 +28,9 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 ## 当前状态
 
-SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及首个类型化零件建模操作。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
+SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及可复用的原生零件建模闭环。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。`0.1.0a4` 开发分支还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约；下方固定安装的 `v0.1.0a3` wheel 尚不包含这一能力。同一开发分支新增未保存零件创建、经过验证的矩形与圆草图、定深实体拉伸及新文件名原生零件另存为。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。本版新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。
 
 ## 安装
 
@@ -42,15 +42,15 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a3` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a4` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a3/swcli-0.1.0a3-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a4/swcli-0.1.0a4-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a3` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a4` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -185,11 +185,11 @@ sw-cli capabilities --json
 
 成功时，JSON 输出直接符合公开的 capabilities schema，包含协议与服务版本、操作列表、每个操作的参数 schema 与可用请求上下文、worker 与恢复状态、请求重放策略及当前宿主描述。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
 
-`0.1.0a4` 开发分支在操作目录中统一声明 handler、文档选择、lease 守卫、临时前台激活和输出契约。结果 Schema 描述协议响应中的 `result`；类型化 CLI JSON 将它展开，并可能添加 `request_id` 和 `replayed`。适配器输出违反契约时返回 `OperationResultInvalid`；此时 CAD 操作可能已经改变了状态，发起新请求重试前应先检查文档。
+`v0.1.0a4` 在操作目录中统一声明 handler、文档选择、lease 守卫、临时前台激活和输出契约。结果 Schema 描述协议响应中的 `result`；类型化 CLI JSON 将它展开，并可能添加 `request_id` 和 `replayed`。适配器输出违反契约时返回 `OperationResultInvalid`；此时 CAD 操作可能已经改变了状态，发起新请求重试前应先检查文档。
 
 ## 文档操作
 
-`0.1.0a4` 开发分支新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。目前仅支持 `--type part`（默认值）。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
+`v0.1.0a4` 新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。目前仅支持 `--type part`（默认值）。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
 
 ```powershell
 sw-cli document create --type part --json
@@ -198,7 +198,7 @@ sw-cli document inspect --detail structure --json
 sw-cli document close --discard
 ```
 
-已发布的 `v0.1.0a3` wheel 不包含此命令。通用草图编辑仍待实现；`document save-as` 可为新零件指定文件名，现有 `document save` 则原位保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
+通用草图编辑仍待实现；`document save-as` 可为新零件指定文件名，现有 `document save` 则原位保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
 
 `document open` 支持原生零件、装配体和工程图文件，并返回准确的 `OpenDoc6` 错误与警告位掩码。每次打开或创建都会返回 `d-k7m2q9` 形式的短期 ID，并把该文档设为所选 CLI session 的 `current`。文档关闭或 worker 重启后 ID 即失效。`document list` 返回全部打开文档及各自的 `active`、`current` 状态；`document use ID` 用于明确修改 session 的 `current`。
 
@@ -246,15 +246,15 @@ lease 的边界有意保持狭窄：
 
 `document save` 使用 `Save3` 原位保存所选原生文档。响应包含原始 SOLIDWORKS 保存错误/警告位掩码、每个已置位 bit 的稳定名称，以及保存前后的文档状态。只有 API 调用成功且保存后文档处于 clean 状态，操作才算成功。
 
-`document measure --json`（a4 开发分支）读取所选零件全部实体（包括隐藏实体）的原生几何属性，返回体积 mm³、表面积 mm²、零件模型坐标中的体积加权几何中心 mm 及逐实体证据。它不改变选择，不激活、重建或保存文档；其他 session 的 lease 不阻止这项只读操作。`--max-bodies` 默认为 1000，超过上限时明确失败，不会只测一部分并当作总量。总量是**各实体的求和，不是几何并集**：重叠体积及接触/内部表面仍逐实体计入。它不报告基于材料的真实质量，暂不支持装配体/工程图；数值几何属性也不等于设计意图正确。
+`document measure --json`（自 v0.1.0a4 起）读取所选零件全部实体（包括隐藏实体）的原生几何属性，返回体积 mm³、表面积 mm²、零件模型坐标中的体积加权几何中心 mm 及逐实体证据。它不改变选择，不激活、重建或保存文档；其他 session 的 lease 不阻止这项只读操作。`--max-bodies` 默认为 1000，超过上限时明确失败，不会只测一部分并当作总量。总量是**各实体的求和，不是几何并集**：重叠体积及接触/内部表面仍逐实体计入。它不报告基于材料的真实质量，暂不支持装配体/工程图；数值几何属性也不等于设计意图正确。
 
-在 a4 开发分支中，`document save-as new-part.SLDPRT` 为所选零件指定文件名并保存到**全新目标**。已有目标（包括当前文件名）会被拒绝；原位保存请使用 `document save`。暂不支持装配体/工程图另存为或不改名的副本保存。改名后保留同一文档 ID、session current、lease 和存活的草图句柄。响应检查原生保存结果、采用的路径、未保存状态和最小文件大小，不声称验证专有文件格式或完整几何正确性。标量原生调用不提供 warnings 输出，因此 `save_warnings` 为 `null`。更强验证应关闭重开并检查模型。原生另存为会改变 COM 文档的文件名，不能套用中性格式导出的临时文件重命名策略；失败后可能仍留下已改名的活动文档，请检查返回状态与清理 warnings。
+自 `v0.1.0a4` 起，`document save-as new-part.SLDPRT` 为所选零件指定文件名并保存到**全新目标**。已有目标（包括当前文件名）会被拒绝；原位保存请使用 `document save`。暂不支持装配体/工程图另存为或不改名的副本保存。改名后保留同一文档 ID、session current、lease 和存活的草图句柄。响应检查原生保存结果、采用的路径、未保存状态和最小文件大小，不声称验证专有文件格式或完整几何正确性。标量原生调用不提供 warnings 输出，因此 `save_warnings` 为 `null`。更强验证应关闭重开并检查模型。原生另存为会改变 COM 文档的文件名，不能套用中性格式导出的临时文件重命名策略；失败后可能仍留下已改名的活动文档，请检查返回状态与清理 warnings。
 
 `document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。渲染始终先写入目标目录内的临时文件，验证通过后才替换正式输出。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
 
 `document export` 可将所选零件或装配体转换为 STEP、所选装配体转换为 GLB，或将所选工程图转换为 PDF/DWG。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。两种模式都先写入目标目录内的临时文件，通过文件验证及严格模式检查后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
 
-## 草图操作（a4 开发分支）
+## 草图操作（自 v0.1.0a4 起）
 
 ```powershell
 sw-cli document create --json
@@ -265,9 +265,9 @@ sw-cli document close --discard
 
 `sketch rectangle` 在零件的 `front`、`top` 或 `right` 原点基准面上新建二维草图，不依赖本地化的基准面名称。宽、高及可选的 `--center-x-mm` / `--center-y-mm`（默认零）均使用**草图局部坐标中的毫米**。响应包含原生 `model_to_sketch_transform`（平移分量单位为米）、经过验证的四条轮廓边界、原生约束状态及 `s-ab12cd` 形式的短草图 ID。ID 绑定本次文档与 worker 内的准确草图特征对象，关档或 worker 重启后失效，不是跨保存、重开或拓扑变化的持久引用。
 
-命令退出草图编辑后才验证最终几何，不添加驱动尺寸，也不保证草图完全定义。已有草图处于编辑状态时明确拒绝，不接管编辑。`--document`、`--lease` 和 `--if-update-stamp` 与文档写操作使用相同守卫；临时激活后台文档不会改变 session 的 `current`。失败时只尝试退出本次操作开启的草图编辑，不回滚已生成的部分几何；退出清理失败会返回 warnings。已发布的 `v0.1.0a3` wheel 不包含此命令。
+命令退出草图编辑后才验证最终几何，不添加驱动尺寸，也不保证草图完全定义。已有草图处于编辑状态时明确拒绝，不接管编辑。`--document`、`--lease` 和 `--if-update-stamp` 与文档写操作使用相同守卫；临时激活后台文档不会改变 session 的 `current`。失败时只尝试退出本次操作开启的草图编辑，不回滚已生成的部分几何；退出清理失败会返回 warnings。
 
-`sketch circle --plane front --radius-mm 8` 使用与矩形相同的文档守卫和关闭编辑生命周期，新建完整圆草图。可选的 `--center-x-mm`、`--center-y-mm` 默认为草图局部坐标中的零；`radius` 是半径，不是直径。验证会读取最终原生圆弧的完整圆标志、半径与圆心，拒绝局部圆弧或多余轮廓，并返回可供拉伸的文档内草图 ID。它不添加驱动尺寸，也不保证完全定义。已发布的 `v0.1.0a3` wheel 不包含此命令。
+`sketch circle --plane front --radius-mm 8` 使用与矩形相同的文档守卫和关闭编辑生命周期，新建完整圆草图。可选的 `--center-x-mm`、`--center-y-mm` 默认为草图局部坐标中的零；`radius` 是半径，不是直径。验证会读取最终原生圆弧的完整圆标志、半径与圆心，拒绝局部圆弧或多余轮廓，并返回可供拉伸的文档内草图 ID。它不添加驱动尺寸，也不保证完全定义。
 
 `sw-cli sketch inspect SKETCH_ID --json` 可在创建后重新读取登记的二维草图，也可观察
 已经被拉伸或切除吸收的草图。返回当前原生约束状态枚举值 `swConstrainedStatus_e`、
@@ -278,9 +278,9 @@ sw-cli document close --discard
 
 这是只读命令，不选取、不进入编辑、不重建/保存/激活文档，不要求写入 lease，支持文档选择和
 更新戳检查，保持 session current 和前台不变。只能使用本 worker 登记且仍有效的草图 ID，
-不能用名称或序号代替；关闭重开后原 ID 失效。此命令不在已发布的 `v0.1.0a3` wheel 中。
+不能用名称或序号代替；关闭重开后原 ID 失效。
 
-## 特征操作（a4 开发分支）
+## 特征操作（自 v0.1.0a4 起）
 
 ```powershell
 sw-cli document create --json
@@ -293,7 +293,7 @@ sw-cli document open new-part.SLDPRT --read-only --json
 sw-cli document diagnose --json
 ```
 
-`feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。已发布的 `v0.1.0a3` wheel 不包含此命令。
+`feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。
 
 ## 零件建模
 
@@ -319,7 +319,7 @@ sw-cli daemon start --visible --json
 失败立即停止并释放 lease，不悄悄丢弃/保存部分模型，也不重启 daemon。
 生成原生可编辑草图和特征，但尚无驱动尺寸/全约束保证；这是本机 Windows 案例，不是远程文件传输或容器启动脚本。
 
-`feature cut-extrude SKETCH_ID --depth-mm 20`（a4 开发分支）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持贯穿、拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
+`feature cut-extrude SKETCH_ID --depth-mm 20`（自 v0.1.0a4 起）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持贯穿、拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
 
 ```powershell
 $hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
