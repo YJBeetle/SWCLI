@@ -1,7 +1,8 @@
 # a5 driving-dimension increment
 
-Status: internal native adapter development, **not an available CLI/protocol
-operation**. The published a4 capabilities remain unchanged. Keep one public
+Status: typed CLI/protocol implemented on the **a5 development branch**, with
+installed-wheel Windows verification; Wine delivery remains a separate gate.
+The published a4 capabilities remain unchanged. Keep one public
 daemon-backed execution surface, not a direct-COM/debug mode.
 
 ## First slice
@@ -14,9 +15,9 @@ dimension-value prompt preference; verify the final value and circle geometry
 after leaving the owned edit. A failed native mutation can retain a partial
 dimension: return evidence/handle, not an automatic rollback claim.
 
-The adapter is the first step only. Next add a short document/worker-local
-dimension registry, exact owning-sketch validation, request/result Schemas and
-catalog guards. Proposed commands (not finalized or implemented):
+The short document/worker-local dimension registry, exact owning-sketch
+validation, request/result Schemas and catalog guards are implemented.
+Development commands:
 
 ```text
 sketch dimension-diameter SKETCH_ID --diameter-mm ...
@@ -35,6 +36,14 @@ value, final geometry, rebuild diagnostics and downstream measurements. Do not
 equate a successful dimension setter with a correct final model. Multi-config
 editing, equations, arbitrary dimension types, center anchoring, full constraint
 solving, topology-stable handles and transactions are outside this first slice.
+
+Handles use `m-xxxxxx`, retain an exact native dimension plus owning registered
+sketch, and never resolve by localized name. The adapter rechecks native feature
+and display-dimension identity on every inspect/set. Same-path external
+close/reopen is distinguished by native document identity, not filename reuse.
+Set observes equation/design-table ownership before mutation and refuses it.
+Background activation is checked on restoration; restoration failure retains
+partial evidence but cannot return a successful operation.
 
 ## Native feasibility proof
 

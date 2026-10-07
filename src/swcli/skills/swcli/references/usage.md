@@ -58,7 +58,7 @@ changing current. Temporary foreground activation restores the previous tab.
 Different session names isolate current-document state, not SOLIDWORKS itself.
 
 Document IDs are worker-local and expire on close or worker replacement. Sketch
-IDs are additionally scoped to their document; they are not persistent native
+and dimension IDs are additionally scoped to their document; they are not persistent native
 references or names. Reopening a file does not promise the same IDs.
 
 ```bash
@@ -123,6 +123,28 @@ types have null geometry and an explicit incomplete warning. Respect the
 segment limit and never use these array indices as stable entity references.
 The constraint code is `swConstrainedStatus_e`, not a promise that the sketch
 is dimensioned or design intent has been verified.
+
+If capabilities advertises the a5 driving-diameter operations, an exact registered
+single circle can become a parameterized profile:
+
+```bash
+sw-cli sketch dimension-diameter SKETCH_ID --diameter-mm 16 --json
+sw-cli dimension inspect DIMENSION_ID --json
+sw-cli feature extrude SKETCH_ID --depth-mm 10 --json
+sw-cli dimension set DIMENSION_ID --value-mm 20 --json
+```
+
+Replace placeholders with returned `s-xxxxxx`/`m-xxxxxx` handles, and use the
+document/session/lease/stamp context for the task. Creation requires an unabsorbed
+complete circle with no dimensions. Inspect is read-only; set works after
+absorption and changes only the reported current configuration. It refuses
+equation/design-table control, driven/read-only dimensions and existing edits,
+rather than overriding parameter ownership. Verify circle radius/center, native
+value, rebuild health and actual downstream body metrics against the task.
+Neither adding a diameter nor changing its value fully constrains the center.
+Failure may leave a partial dimension with a usable handle. Foreground recovery
+failure is an error with retained native evidence, not permission to repeat the
+mutation. These commands do not exist in the older published a4 package.
 
 Inspect/diagnose have additional structure and feature evidence; status reports
 document state, not an invented `export_ready` flag. `modified` means the native

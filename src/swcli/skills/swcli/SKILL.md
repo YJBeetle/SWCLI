@@ -28,6 +28,10 @@ skill; it does not depend on the developer's machine or repository checkout.
   filesystem locks or protection from human edits.
 - Use explicit units and object handles returned by the daemon. Do not guess
   localized feature/plane names or infer a handle from a filename or tree index.
+- For hosts advertising driving dimensions, use their returned dimension handles
+  and inspect parameter ownership before editing. A diameter is not a radius;
+  edits target the current configuration and must not override equations or
+  design tables. See the usage guide's parameterized-circle workflow.
 - Verify native state and geometry after a change. A failed operation can leave
   partial geometry; inspect before retrying. Do not claim automatic rollback,
   full constraint solving, or exact measurements from approximate body boxes.

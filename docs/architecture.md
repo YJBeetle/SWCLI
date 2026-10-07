@@ -209,6 +209,22 @@ The scalar signature, body scope and direction were verified from the installed
 SOLIDWORKS 2025 official API help. See
 [native cut extrusion](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~FeatureCut4.html).
 
+On the a5 development branch, `sketch.dimension-diameter` adds a real driving
+diameter to one exact unabsorbed full-circle sketch. It registers an `m-xxxxxx`
+dimension handle alongside its owning sketch, including a partial native
+creation when verification fails. `dimension.inspect` rechecks native ownership
+and reads value, geometry and equation/design-table control without activation.
+`dimension.set` supports absorbed profiles, targets only the current configuration
+and refuses externally controlled, driven or read-only dimensions. It verifies
+circle/native value, rebuild diagnostics and before/after solid-body measurements;
+there is no arbitrary feature-edit or automatic rollback guarantee.
+Dimension handles expire on close/reopen or worker replacement. Filename reuse
+does not preserve identity; native `IsSame` distinguishes external same-path
+reopening from another COM wrapper for the existing document.
+Writes retain common lease/stamp/session semantics. Failure to restore the prior
+foreground is reported without discarding completed native mutation evidence.
+These development operations are not present in the released a4 wheel.
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli

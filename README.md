@@ -511,6 +511,35 @@ document/stamp selectors but not a write lease, and leaves session current and
 foreground unchanged. It only accepts live IDs registered by this worker, not
 names, segment indices, or expired IDs from a reopened file.
 
+## Driving diameter (a5 development branch)
+
+These commands are implemented on the development branch, **not in the published
+a4 wheel**. Check capabilities before using them:
+
+```powershell
+sw-cli document create --json
+$circle = sw-cli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
+$diameter = sw-cli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
+sw-cli dimension inspect $diameter.dimension.dimension_id --json
+sw-cli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
+sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
+```
+
+Creation requires one unabsorbed complete circle without existing dimensions.
+The returned `m-xxxxxx` identifies the exact native diameter and owning sketch
+within the document/worker; close/reopen invalidates it. Inspect is read-only.
+Set changes **only the current configuration**, including after absorption by
+a feature. It refuses driven/read-only, equation-controlled or design-table
+dimensions and existing sketch edits; it does not override their ownership.
+Writes use the usual document/session/lease/stamp guards. Verification covers
+native value, unchanged circle center, radius, rebuild diagnostics and downstream
+body metrics, not arbitrary design intent or full definition. Failure may leave
+partial mutation and a handle. Foreground restoration failure reports a failed
+operation with preserved mutation evidence rather than claiming success.
+Windows installed-wheel verification is recorded in the
+[a5 verification notes](docs/verification/a5-2026-10-07.md); Wine delivery remains
+a separate gate. This is not an a5 release announcement.
+
 ## Feature operations (since v0.1.0a4)
 
 ```powershell

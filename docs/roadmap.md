@@ -32,8 +32,9 @@ These features are available in the v0.1.0a4 pre-release, not the older a3 wheel
 ## Next modeling increments
 
 The a5 driving-dimension slice is scoped in
-[driving dimensions](design/driving-dimensions.md). Native feasibility is proven,
-but the internal adapter is not yet an available typed CLI operation.
+[driving dimensions](design/driving-dimensions.md). Its typed creation/inspect/set
+operations are implemented on the development branch and have installed-wheel
+Windows evidence. Complete the independent Wine gate before a5 release.
 
 1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.

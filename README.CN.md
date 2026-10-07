@@ -280,6 +280,25 @@ sw-cli document close --discard
 更新戳检查，保持 session current 和前台不变。只能使用本 worker 登记且仍有效的草图 ID，
 不能用名称或序号代替；关闭重开后原 ID 失效。
 
+## 驱动直径（a5 开发分支）
+
+以下命令已在开发分支实现，**尚未包含在已发布的 a4 wheel 中**。调用前请核对 capabilities：
+
+```powershell
+sw-cli document create --json
+$circle = sw-cli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
+$diameter = sw-cli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
+sw-cli dimension inspect $diameter.dimension.dimension_id --json
+sw-cli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
+sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
+```
+
+创建要求尚未被特征吸收、没有已有尺寸的单个完整圆。返回的 `m-xxxxxx` 是文档/worker 内准确原生直径及其所属草图的短期句柄，关闭重开即失效。inspect 只读；set **仅修改当前配置**，支持草图被特征吸收后继续修改。它拒绝从动、只读、方程或设计表控制的尺寸及已有草图编辑状态，不强行接管这些参数。
+
+写操作遵守文档、session、lease 和 update-stamp 守卫。验证包含原生值、保持不变的圆心、半径、重建诊断及下游实体测量，但不保证任意设计意图或草图完全定义。失败可能保留部分修改及句柄；恢复原前台文档失败时，会保留修改证据并报告失败，不伪装成成功。
+
+Windows 已安装 wheel 验证见 [a5 验证记录](docs/verification/a5-2026-10-07.md)；Wine 交付仍是独立门禁。本节不是 a5 发布公告。
+
 ## 特征操作（自 v0.1.0a4 起）
 
 ```powershell
