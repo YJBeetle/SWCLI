@@ -45,8 +45,11 @@ Windows proof. It preserves explicit unobservable/ambiguous outcomes, strict
 native metadata and unchanged configuration/edit/stamp checks; an empty display
 chain is not absence proof. The installed public gate repeats discovery after
 native reopen and checks the recovered ID through typed inspection. Complete
-its fresh Windows and independent Wine proof before release. Do not infer
-dimensions from names or claim arbitrary dimension support.
+its independent Wine proof before release. Fresh hosted Windows verification
+has now passed the public discovery slice; its exact commit, artifact and
+state-preservation checks are recorded in
+[the a5 verification record](verification/a5-2026-10-07.md).
+Do not infer dimensions from names or claim arbitrary dimension support.
 
 1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
