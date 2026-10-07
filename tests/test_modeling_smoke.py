@@ -5,7 +5,7 @@ import importlib.util
 import io
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import tempfile
 import unittest
@@ -457,8 +457,21 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertEqual(self.fake.calls, [])
 
     def test_posix_output_needs_explicit_host_path(self):
-        with self.assertRaises(gate.argparse.ArgumentTypeError):
-            gate.main(["--output-dir", str(self.directory)])
+        # Simulate the local POSIX namespace even on Windows runners. The real
+        # Windows output path is valid without an override and must not cause
+        # this offline unit test to contact an actual daemon.
+        local_path = mock.Mock()
+        local_path.expanduser.return_value.resolve.return_value = PurePosixPath(
+            "/workspace/proof"
+        )
+        with (
+            mock.patch.object(gate, "Path", return_value=local_path),
+            mock.patch.object(gate.subprocess, "run") as command,
+            self.assertRaises(gate.argparse.ArgumentTypeError),
+        ):
+            gate.main(["--output-dir", "/workspace/proof"])
+        local_path.mkdir.assert_not_called()
+        command.assert_not_called()
         self.assertFalse(self.directory.exists())
 
 
