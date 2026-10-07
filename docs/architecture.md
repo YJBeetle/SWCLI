@@ -238,6 +238,18 @@ The private traversal index uses document-unique
 [IFeature.GetID](https://help.solidworks.com/2022/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.ifeature~getid.html),
 with exact native identity checks for repeated IDs. It is not a new public
 persistent-reference contract or a name-based lookup mechanism.
+
+On hosts advertising `dimension.discover-diameter`, an exact registered 2D
+single-circle profile can yield a fresh native diameter handle after reopen,
+including absorbed profiles. The adapter exhausts the observable display chain,
+checks exact ownership, uniqueness, strict metadata, geometry and unchanged
+configuration/edit/update stamp before registering the handle. Reads do not
+require a lease or temporary activation. Repeat observations reuse the same
+live dimension ID; failed/incomplete observations never publish one. An empty
+display chain is `DimensionObservationUnavailable`, not absence proof, because
+native display APIs can omit hidden/unloaded dimensions. This operation does
+not modify display preferences, create dimensions or provide arbitrary dimension
+discovery. Editing the recovered handle still uses `dimension.set` and its guards.
 These development operations are not present in the released a4 wheel.
 
 ## Compatibility policy

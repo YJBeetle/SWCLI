@@ -132,6 +132,18 @@ the same live native sketch, but close/reopen requires fresh discovery.
 Respect `--max-sketches` (default 1000); traversal/limit errors are not a partial
 successful list. It does not discover 3D sketches or saved dimension handles.
 
+If `dimension.discover-diameter` is advertised, use
+`sw-cli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json`
+to recover the observable unique diameter of an exact single-circle profile,
+including an absorbed sketch in a reopened part. Use its returned fresh
+`m-xxxxxx` with `dimension inspect/set`; never reuse the old closed-document ID.
+Discovery is read-only and preserves foreground, session current and native
+state. It does not enable display or create a missing dimension. An empty chain
+means observation is unavailable, not proof of absence; ambiguity/incomplete
+observations fail without a handle. Report the limitation instead of guessing
+by name or forcing display changes. A discovered equation/design-table-controlled
+dimension is observable but remains protected from typed value editing.
+
 If capabilities advertises the a5 driving-diameter operations, an exact registered
 single circle can become a parameterized profile:
 

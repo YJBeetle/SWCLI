@@ -54,8 +54,14 @@ that modification may have happened; it does not claim rollback.
 discover exact live 2D profile features (including absorbed profiles), reuse
 their worker-local IDs on repeat observations and inspect them without
 activation or edits. A closed document's IDs remain invalid. This slice does
-not yet discover saved dimension handles; name-based parameter lookup is not
-a substitute for that missing operation.
+not itself discover dimension handles. The development operation
+`dimension.discover-diameter SKETCH_ID` observes the exact profile's display
+chain and registers its unique current-configuration full-circle diameter,
+including absorbed profiles. It is read-only, uses document/update-stamp context
+without a lease or activation, and verifies unchanged native configuration,
+edit state and update stamp. Empty/unobservable chains, ambiguity or incomplete
+traversal fail without publishing a handle; no display preference or name-based
+lookup is used. Repeat observations reuse the same live native dimension ID.
 Background activation is checked on restoration; restoration failure retains
 partial evidence but cannot return a successful operation.
 

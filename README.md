@@ -520,7 +520,7 @@ expired ID or guesses by name. Use a returned ID with `sketch inspect`.
 Listing is read-only, accepts a document/update-stamp context but no lease,
 and preserves foreground and session current. `--max-sketches` defaults to
 1000; a limit or traversal failure is an error, not a partial successful list.
-This does not yet rediscover saved dimension handles or cover 3D sketches.
+Listing itself does not discover dimensions or cover 3D sketches.
 
 ## Driving diameter (a5 development branch)
 
@@ -547,6 +547,25 @@ native value, unchanged circle center, radius, rebuild diagnostics and downstrea
 body metrics, not arbitrary design intent or full definition. Failure may leave
 partial mutation and a handle. Foreground restoration failure reports a failed
 operation with preserved mutation evidence rather than claiming success.
+
+For a saved/reopened part, discover a fresh sketch ID with `sketch list`, then
+recover its observable single-circle diameter without editing:
+
+```powershell
+$found = sw-cli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
+sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
+```
+
+This read-only discovery works with absorbed profiles and reuses the same live
+dimension ID on repeated observations. It preserves foreground, session current,
+configuration, edit state and update stamp; it neither creates dimensions nor
+enables their display. An empty display chain means observation is unavailable,
+not that the file has no dimensions. Ambiguous, incomplete or inconsistent native
+observations fail without publishing a handle. Only the current configuration's
+single full-circle diameter is supported, not arbitrary dimensions or persistent
+IDs. Discovering a handle does not grant authority to edit or save the source;
+`dimension set` retains all ownership and write guards.
+
 Windows installed-wheel verification is recorded in the
 [a5 verification notes](docs/verification/a5-2026-10-07.md); Wine delivery remains
 a separate gate. This is not an a5 release announcement.

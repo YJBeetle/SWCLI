@@ -286,7 +286,7 @@ sw-cli document close --discard
 重复列举同一个存活原生草图会复用其 ID；不会复活过期 ID，也不按名称猜对象。
 用返回的 ID 调用 `sketch inspect`。列举只读，支持文档/更新戳上下文但不接受 lease，
 保持前台和 session current 不变。`--max-sketches` 默认 1000；超限或遍历失败会报错，
-不会把部分列表当成功返回。目前不重新发现已保存的尺寸句柄，也不覆盖三维草图。
+不会把部分列表当成功返回。列举本身不发现尺寸，也不覆盖三维草图。
 
 ## 驱动直径（a5 开发分支）
 
@@ -304,6 +304,15 @@ sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
 创建要求尚未被特征吸收、没有已有尺寸的单个完整圆。返回的 `m-xxxxxx` 是文档/worker 内准确原生直径及其所属草图的短期句柄，关闭重开即失效。inspect 只读；set **仅修改当前配置**，支持草图被特征吸收后继续修改。它拒绝从动、只读、方程或设计表控制的尺寸及已有草图编辑状态，不强行接管这些参数。
 
 写操作遵守文档、session、lease 和 update-stamp 守卫。验证包含原生值、保持不变的圆心、半径、重建诊断及下游实体测量，但不保证任意设计意图或草图完全定义。失败可能保留部分修改及句柄；恢复原前台文档失败时，会保留修改证据并报告失败，不伪装成成功。
+
+保存重开的零件可先用 `sketch list` 获取新草图 ID，再只读恢复该单圆草图可观察的直径：
+
+```powershell
+$found = sw-cli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
+sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
+```
+
+发现支持被特征吸收的草图，重复观察同一个存活原生尺寸会复用其 ID，保持前台、session current、配置、编辑状态和更新戳不变，不创建尺寸也不开启尺寸显示。显示链为空意味着无法观察，不意味着文件没有尺寸；有歧义、遍历不完整或原生状态不一致时会失败，不发布句柄。当前仅支持当前配置中单个完整圆的直径，不覆盖任意尺寸或持久 ID。获得句柄不代表获得修改、保存源文件的授权，`dimension set` 仍遵守参数归属和写操作守卫。
 
 Windows 已安装 wheel 验证见 [a5 验证记录](docs/verification/a5-2026-10-07.md)；Wine 交付仍是独立门禁。本节不是 a5 发布公告。
 
