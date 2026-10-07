@@ -47,11 +47,13 @@ it also applies to native Windows:
 
 1. stream the complete official ISO and expose it through ImDisk as a read-only
    optical volume, without selectively extracting an assumed dependency set;
-2. install only the official Login Manager MSI and core MSI, explicitly
-   targeting `C:\Program Files\SOLIDWORKS` for the main program; Login Manager
-   keeps its own `Common Files\SOLIDWORKS Shared` layout;
+2. install the official x64 VBA 7.1 engine (`prereqs\VBA\vba71.msi`) and its
+   required English resources (`vba71_1033.msi`), then Login Manager; preserve
+   their complete media directories, including external CAB payloads;
 3. import `sw2025_network_serials_licensing.reg` immediately before the main
-   MSI performs AppSearch;
+   core MSI performs AppSearch, explicitly targeting
+   `C:\Program Files\SOLIDWORKS`; Login Manager keeps its own
+   `Common Files\SOLIDWORKS Shared` layout;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
 6. install the current checkout; its platform marker installs pywin32 on
@@ -127,7 +129,7 @@ The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
 measurements are uploaded. The workflow never uploads official installation
 media, installed SOLIDWORKS files, private overlays, registry files, FlexNet
-files, or license-server logs. On failure, the two MSI verbose logs are uploaded
+files, or license-server logs. On failure, the MSI verbose logs are uploaded
 for 14 days before cleanup, matching DockerSW's diagnostic boundary; those logs
 can contain installer properties and are therefore treated as private CI
 evidence. Desktop screenshots and visible-window metadata from the first-start
@@ -136,14 +138,40 @@ remain diagnosable when COM never becomes ready. All other private inputs and
 the rclone credential are removed in an unconditional cleanup step; the hosted
 VM is then discarded by GitHub.
 
+The [official 2025 installation guide](https://files.solidworks.com/Supportfiles/SW_Installation_Guide/2025/English/install_guide.pdf)
+(pages 36–39) requires both x64 VBA packages for every language. Additional
+language packages are unnecessary for this English runner. These prerequisites
+are installed automatically by SOLIDWORKS Installation Manager, but this CI
+uses the core MSI directly and must install them explicitly. VSTA is a separate
+optional component, not a substitute for VBA. No historical VBA repair patch
+is added to this installation path.
+
+Both fresh installation and cache restoration write `vba-runtime.json` into
+the public smoke-evidence directory, even when a VBA installer fails. It records
+only VBA product names/versions/Installer product keys and the existence/version
+of the native `VBE7.DLL` and English `VBE7INTL.DLL`. Registry inspection does not
+use `Win32_Product`, which can trigger MSI repair, and never exports licensing
+properties. An incomplete registry read is explicitly marked. Inventory write
+failure cannot replace the original installation failure; with no original
+failure it fails the installation step. The inventory proves neither successful
+VBA initialization inside SOLIDWORKS nor equation evaluation: those still need
+real execution evidence. If either required DLL remains absent after successful
+MSI calls, the installation step fails and no clean cache is saved; an earlier
+installer failure always keeps its original error. The [official installation FAQ](https://www.solidworks.com/support/frequently-asked-questions?page=1&term_id=417)
+connects failed VBA initialization to unavailable equations/macros, but does not
+establish that every `EquationMgr.Add2` failure has this cause.
+
 ## Installation cache boundary
 
 The hosted workflow restores and saves a versioned repository Actions cache.
-On a miss, it streams the ISO, installs the two MSI packages, stops Fast Start,
+The `core-v4-vba71` cache uses manifest format 2. The previous cache key and
+format are intentionally incompatible; no old-cache migration is performed.
+On a miss, it streams the ISO, installs the official VBA, Login Manager and core
+MSI packages, stops Fast Start,
 exports the required SOLIDWORKS registry keys, and saves the clean installation
 before applying the program overlay. The cache also contains the private test
 overlay, FlexNet files, and licensing registry input so an exact hit can skip
-rclone, WinFsp, ImDisk, ISO access, and both MSI packages entirely. These
+rclone, WinFsp, ImDisk, ISO access, and the large core MSI. These
 private inputs remain confined to the repository cache: they are never uploaded
 as artifacts or published as release contents. The workflow is intentionally
 not enabled for pull requests; trusted push and manual runs use GitHub's default
@@ -151,9 +179,13 @@ cache-write access.
 
 On a hit, the workflow restores the program and shared directories, template
 data, the clean registry snapshot, and the private test inputs. Windows
-Installer state cannot be reconstructed safely from copied Login Manager files,
-so its small official MSI and its external CAB media are also cached with their
-relative layout and silently reapplied; the large core MSI remains skipped.
+Installer state cannot be reconstructed safely from copied VBA or Login Manager
+files. Their complete official media directories, including external CABs, are
+cached with relative layouts. On every hit, `install-vba-prerequisites.ps1`
+reapplies `vba71.msi` followed by `vba71_1033.msi`, then the Login Manager MSI is
+reapplied before importing the SW registry snapshot; the large core MSI remains
+skipped. No MSI product/component registration is synthesized and no copied VBA
+DLL is used as a replacement for installation.
 The workflow also skips the multi-minute aggressive runner cleanup because the
 initial free space is sufficient for restoring the approximately 7 GB
 installation. Cache restoration is never sufficient evidence on its own: the

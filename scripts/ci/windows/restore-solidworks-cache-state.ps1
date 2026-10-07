@@ -4,7 +4,10 @@ param(
     [string]$StateDirectory,
 
     [Parameter(Mandatory = $true)]
-    [string]$LogDirectory
+    [string]$LogDirectory,
+
+    [Parameter(Mandatory = $true)]
+    [string]$InventoryPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,20 +16,33 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "SOLIDWORKS cache manifest is missing: $manifestPath"
 }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding utf8 | ConvertFrom-Json
-if ($manifest.format -ne 1) {
+if ($manifest.format -ne 2) {
     throw "Unsupported SOLIDWORKS cache format: $($manifest.format)"
 }
 if (-not (Test-Path -LiteralPath $manifest.solidworks_executable -PathType Leaf)) {
     throw "Cached SOLIDWORKS executable is missing: $($manifest.solidworks_executable)"
 }
 
-# Login Manager's installed state is maintained by Windows Installer and is not
-# reproduced by restoring its shared files. Reapply the small cached official
-# MSI instead of trying to synthesize MSI product/component registration.
+# VBA and Login Manager installed state cannot be reconstructed from shared
+# files. Reapply the complete small official media using Windows Installer.
 $loginManagerMsi = Join-Path $StateDirectory $manifest.login_manager_installer
 if (-not (Test-Path -LiteralPath $loginManagerMsi -PathType Leaf)) {
     throw "Cached SOLIDWORKS Login Manager MSI is missing: $loginManagerMsi"
 }
+foreach ($relativePath in @($manifest.vba_installer, $manifest.vba_language_installer)) {
+    if ([string]::IsNullOrWhiteSpace($relativePath) -or
+        -not (Test-Path -LiteralPath (Join-Path $StateDirectory $relativePath) -PathType Leaf)) {
+        throw "Cached official VBA prerequisite is missing: $relativePath"
+    }
+}
+if ([string]::IsNullOrWhiteSpace($manifest.vba_media_directory)) {
+    throw "Cached official VBA media directory is missing"
+}
+& "$PSScriptRoot\install-vba-prerequisites.ps1" `
+    -VbaSourceDirectory (Join-Path $StateDirectory $manifest.vba_media_directory) `
+    -LogDirectory $LogDirectory `
+    -InventoryPath $InventoryPath
+
 New-Item -ItemType Directory -Force -Path $LogDirectory | Out-Null
 $loginManagerLog = Join-Path $LogDirectory "login-manager-cache-restore.log"
 $loginManager = Start-Process -FilePath "msiexec.exe" -ArgumentList @(
@@ -56,4 +72,4 @@ $serverCommand = [string](Get-ItemProperty -Path "Registry::HKEY_CLASSES_ROOT\CL
 if ($serverCommand -notmatch [regex]::Escape("SLDWORKS.exe")) {
     throw "Restored SOLIDWORKS COM registration has an invalid LocalServer32 command"
 }
-Write-Host "[cache] Restored SOLIDWORKS files, Login Manager, and registry registration"
+Write-Host "[cache] Restored SOLIDWORKS files, official VBA, Login Manager, and registry registration"

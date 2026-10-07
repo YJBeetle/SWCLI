@@ -178,7 +178,7 @@ jobs:
         id: solidworks-cache
         uses: actions/cache/restore@v6
         with:
-          key: windows-2025-solidworks-2025-sp5-core-v3
+          key: windows-2025-solidworks-2025-sp5-core-v4-vba71
           path: |
             C:\Program Files\SOLIDWORKS
             C:\Program Files\Common Files\SOLIDWORKS Shared
@@ -269,7 +269,8 @@ jobs:
           scripts/ci/windows/install-solidworks.ps1 `
             -MediaRoot $env:SW_MEDIA_ROOT `
             -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
-            -LogDirectory "$env:PRIVATE_ROOT\install-logs"
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
 
       - name: Prepare clean installation cache state
         if: steps.solidworks-cache.outputs.cache-hit != 'true'
@@ -277,7 +278,8 @@ jobs:
         run: |
           scripts/ci/windows/export-solidworks-cache-state.ps1 `
             -StateDirectory $env:SW_CACHE_STATE `
-            -LoginManagerSourceDirectory "$env:SW_MEDIA_ROOT\swloginmgr"
+            -LoginManagerSourceDirectory "$env:SW_MEDIA_ROOT\swloginmgr" `
+            -VbaSourceDirectory "$env:SW_MEDIA_ROOT\prereqs\VBA"
 
       - name: Save clean SOLIDWORKS installation cache
         if: steps.solidworks-cache.outputs.cache-hit != 'true'
@@ -293,13 +295,14 @@ jobs:
             ${{ runner.temp }}\swcli-solidworks-cache-state
             ${{ runner.temp }}\swcli-private-runtime\assets
 
-      - name: Restore cached SOLIDWORKS registry and Login Manager state
+      - name: Restore cached SOLIDWORKS registry and official prerequisites
         if: steps.solidworks-cache.outputs.cache-hit == 'true'
         shell: powershell
         run: |
           scripts/ci/windows/restore-solidworks-cache-state.ps1 `
             -StateDirectory $env:SW_CACHE_STATE `
-            -LogDirectory "$env:PRIVATE_ROOT\install-logs"
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
 
       - name: Apply private runtime overlay and start test license service
         shell: powershell

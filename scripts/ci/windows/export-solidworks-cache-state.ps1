@@ -6,6 +6,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LoginManagerSourceDirectory,
 
+    [Parameter(Mandatory = $true)]
+    [string]$VbaSourceDirectory,
+
     [string]$InstallDirectory = "C:\Program Files\SOLIDWORKS"
 )
 
@@ -13,6 +16,12 @@ $ErrorActionPreference = "Stop"
 $solidworksExe = Join-Path $InstallDirectory "SLDWORKS.exe"
 if (-not (Test-Path -LiteralPath $solidworksExe -PathType Leaf)) {
     throw "Cannot cache a missing SOLIDWORKS installation: $solidworksExe"
+}
+foreach ($package in @("vba71.msi", "vba71_1033.msi")) {
+    $packagePath = Join-Path $VbaSourceDirectory $package
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+        throw "Cannot cache missing official VBA media: $packagePath"
+    }
 }
 
 $installPrefix = [IO.Path]::GetFullPath($InstallDirectory).TrimEnd("\") + "\"
@@ -46,6 +55,9 @@ $cachedLoginManagerMedia = Join-Path $StateDirectory "login-manager-media"
 New-Item -ItemType Directory -Force -Path $cachedLoginManagerMedia | Out-Null
 Copy-Item -Path (Join-Path $LoginManagerSourceDirectory "*") -Destination $cachedLoginManagerMedia -Recurse -Force
 $cachedLoginManagerMsi = Join-Path $cachedLoginManagerMedia "SOLIDWORKS Login Manager.msi"
+$cachedVbaMedia = Join-Path $StateDirectory "vba-media"
+New-Item -ItemType Directory -Force -Path $cachedVbaMedia | Out-Null
+Copy-Item -Path (Join-Path $VbaSourceDirectory "*") -Destination $cachedVbaMedia -Recurse -Force
 
 $registryKeys = [ordered]@{
     "hklm-solidworks.reg" = "HKLM\SOFTWARE\SolidWorks"
@@ -84,10 +96,13 @@ foreach ($entry in $registryKeys.GetEnumerator()) {
 }
 
 $manifest = [ordered]@{
-    format = 1
+    format = 2
     install_directory = $InstallDirectory
     solidworks_executable = $solidworksExe
     login_manager_installer = "login-manager-media\SOLIDWORKS Login Manager.msi"
+    vba_media_directory = "vba-media"
+    vba_installer = "vba-media\vba71.msi"
+    vba_language_installer = "vba-media\vba71_1033.msi"
     versioned_progid = $versionedProgId
     application_clsid = $applicationClsid
     registry_exports = $exported

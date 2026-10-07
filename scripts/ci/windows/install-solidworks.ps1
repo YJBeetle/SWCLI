@@ -9,6 +9,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LogDirectory,
 
+    [Parameter(Mandatory = $true)]
+    [string]$InventoryPath,
+
     [string]$InstallDirectory = "C:\Program Files\SOLIDWORKS",
 
     [int]$TimeoutSeconds = 3600
@@ -21,7 +24,10 @@ if ($TimeoutSeconds -le 0) {
 
 $coreMsi = Join-Path $MediaRoot "swwi\data\solidworks.msi"
 $loginManagerMsi = Join-Path $MediaRoot "swloginmgr\SOLIDWORKS Login Manager.msi"
-foreach ($requiredFile in @($coreMsi, $loginManagerMsi, $LicensingRegistryFile)) {
+$vbaSourceDirectory = Join-Path $MediaRoot "prereqs\VBA"
+$vbaMsi = Join-Path $vbaSourceDirectory "vba71.msi"
+$vbaLanguageMsi = Join-Path $vbaSourceDirectory "vba71_1033.msi"
+foreach ($requiredFile in @($coreMsi, $loginManagerMsi, $LicensingRegistryFile, $vbaMsi, $vbaLanguageMsi)) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required private installation input is unavailable: $requiredFile"
     }
@@ -46,6 +52,12 @@ function Invoke-Installer {
         throw "$Name failed with exit code $($process.ExitCode); protected logs remain on the disposable runner only"
     }
 }
+
+& "$PSScriptRoot\install-vba-prerequisites.ps1" `
+    -VbaSourceDirectory $vbaSourceDirectory `
+    -LogDirectory $LogDirectory `
+    -InventoryPath $InventoryPath `
+    -TimeoutSeconds $TimeoutSeconds
 
 $loginLog = Join-Path $LogDirectory "login-manager-install.log"
 Invoke-Installer -Name "SOLIDWORKS Login Manager" -FilePath "msiexec.exe" -Arguments @(
