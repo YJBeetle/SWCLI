@@ -91,6 +91,7 @@ class Document:
 class Manager:
     def __init__(self, document):
         self.document, self.ActiveSketch = document, None
+        self.AddToDB = False
         self.InsertSketch = mock.Mock(side_effect=self.toggle)
         self.CreateCenterRectangle = mock.Mock(side_effect=self.rectangle)
         self.on_close = lambda: None
@@ -249,6 +250,138 @@ class WindowsCircleTests(unittest.TestCase):
         manager.CreateCircleByRadius.return_value = None
         result, feature = self.create()
         self.assertEqual(result["error"]["type"], "SketchCreationFailed")
+        self.assertIsNotNone(feature)
+        self.assertIsNone(manager.ActiveSketch)
+
+    def test_direct_creation_prevents_the_ci_origin_snap_without_changing_expected_geometry(
+        self,
+    ):
+        manager = self.document.SketchManager
+        create_circle = manager.CreateCircleByRadius.side_effect
+
+        def infer_or_create(x, y, z, radius):
+            # The native UI path can snap X=3mm to the origin and preserve the
+            # requested endpoint X=8mm, changing radius5 to radius8. This fake
+            # models that documented inference, not a replacement native proof.
+            if not manager.AddToDB:
+                x, radius = 0, x + radius
+            return create_circle(x, y, z, radius)
+
+        manager.CreateCircleByRadius.side_effect = infer_or_create
+        result, feature = self.create(radius_mm=5, center_x_mm=3, center_y_mm=4)
+        self.assertTrue(result["ok"], result)
+        self.assertIsNotNone(feature)
+        self.assertEqual(result["geometry_verification"]["actual_radius_mm"], 5)
+        self.assertEqual(
+            result["geometry_verification"]["actual_center_mm"],
+            {"x": 3, "y": 4, "z": 0},
+        )
+        self.assertFalse(manager.AddToDB)
+
+    def test_original_creation_mode_is_restored_before_closing_the_sketch(self):
+        for original in (False, True):
+            with self.subTest(original=original):
+                self.setUp()
+                manager = self.document.SketchManager
+                manager.AddToDB = original
+                manager.DisplayWhenAdded = False
+                manager.AutoSolve = True
+                create_circle = manager.CreateCircleByRadius.side_effect
+
+                def create_direct(*arguments):
+                    self.assertTrue(manager.AddToDB)
+                    return create_circle(*arguments)
+
+                manager.CreateCircleByRadius.side_effect = create_direct
+                manager.on_close = lambda: self.assertEqual(manager.AddToDB, original)
+                result, _ = self.create()
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(manager.AddToDB, original)
+                self.assertFalse(manager.DisplayWhenAdded)
+                self.assertTrue(manager.AutoSolve)
+
+    def test_native_creation_exception_restores_mode_and_preserves_original_failure(
+        self,
+    ):
+        manager = self.document.SketchManager
+        manager.CreateCircleByRadius.side_effect = RuntimeError(
+            "native creation failed"
+        )
+        result, feature = self.create()
+        self.assertEqual(
+            result["error"],
+            {"type": "RuntimeError", "message": "native creation failed"},
+        )
+        self.assertIsNotNone(feature)
+        self.assertFalse(manager.AddToDB)
+        self.assertIsNone(manager.ActiveSketch)
+
+    def test_unavailable_or_rejected_direct_mode_does_not_create_ui_geometry(self):
+        manager = self.document.SketchManager
+        del manager.AddToDB
+        result, _ = self.create()
+        self.assertEqual(result["error"]["type"], "AttributeError")
+        manager.CreateCircleByRadius.assert_not_called()
+        self.assertIsNone(manager.ActiveSketch)
+        self.setUp()
+        manager = self.document.SketchManager
+        with mock.patch.object(
+            Manager,
+            "AddToDB",
+            new_callable=mock.PropertyMock,
+            create=True,
+            return_value=False,
+        ):
+            result, _ = self.create()
+            self.assertFalse(result["ok"])
+            self.assertIn(
+                "could not enable direct circle creation", result["error"]["message"]
+            )
+            manager.CreateCircleByRadius.assert_not_called()
+            self.assertIsNone(manager.ActiveSketch)
+
+    def test_silent_mode_restoration_failure_is_fail_closed_with_partial_geometry_evidence(
+        self,
+    ):
+        with mock.patch.object(
+            Manager,
+            "AddToDB",
+            new_callable=mock.PropertyMock,
+            create=True,
+            side_effect=[False, None, True, None, True],
+        ):
+            result, feature = self.create()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "SketchStateRestoreFailed")
+        self.assertTrue(result["geometry_verification"]["passed"])
+        self.assertIsNotNone(feature)
+        self.assertFalse(result["editing"])
+        self.assertEqual(
+            result["warnings"][0]["code"], "sketch-creation-mode-restore-failed"
+        )
+        validate_operation_result("sketch.circle", result)
+
+    def test_thrown_restore_failure_does_not_hide_an_existing_creation_error(self):
+        manager = self.document.SketchManager
+        manager.CreateCircleByRadius.side_effect = RuntimeError("create failed")
+        with mock.patch.object(
+            Manager,
+            "AddToDB",
+            new_callable=mock.PropertyMock,
+            create=True,
+            side_effect=[False, None, True, RuntimeError("restore failed")],
+        ):
+            result, feature = self.create()
+        self.assertEqual(
+            result["error"], {"type": "RuntimeError", "message": "create failed"}
+        )
+        self.assertEqual(
+            result["warnings"][0],
+            {
+                "code": "sketch-creation-mode-restore-failed",
+                "message": "restore failed",
+            },
+        )
         self.assertIsNotNone(feature)
         self.assertIsNone(manager.ActiveSketch)
 

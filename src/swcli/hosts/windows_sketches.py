@@ -211,7 +211,8 @@ def create_circle_sketch_windows_with_handle(
             "message": "circle requires a supported plane and positive finite, representable radius and center",
         }
         return result, None
-    return _create_profile_sketch_windows_with_handle(
+    state_warnings = []
+    result, feature = _create_profile_sketch_windows_with_handle(
         app=app,
         document=document,
         plane=plane,
@@ -222,13 +223,52 @@ def create_circle_sketch_windows_with_handle(
             "center_x": center_x_mm,
             "center_y": center_y_mm,
         },
-        create_segments=lambda manager: manager.CreateCircleByRadius(
-            center_x_mm / 1000, center_y_mm / 1000, 0, radius_mm / 1000
+        create_segments=lambda manager: _create_circle_without_inference(
+            manager,
+            center_x_mm / 1000,
+            center_y_mm / 1000,
+            radius_mm / 1000,
+            state_warnings,
         ),
         verify_sketch=lambda sketch: _circle_verification(
             sketch, radius_mm, center_x_mm, center_y_mm
         ),
     )
+    if state_warnings:
+        result.setdefault("warnings", []).extend(state_warnings)
+        if result["ok"]:
+            result["ok"] = False
+            result["error"] = {
+                "type": "SketchStateRestoreFailed",
+                "message": "circle geometry was created but the original sketch creation mode could not be restored",
+            }
+    return result, feature
+
+
+def _create_circle_without_inference(
+    manager: Any, x: float, y: float, radius: float, state_warnings: list
+) -> Any:
+    """Create exact API geometry rather than letting UI snapping redefine it."""
+    # CreateCircleByRadius otherwise participates in UI inferencing, automatic
+    # relations and grid/entity snapping. AddToDB is the documented escape from
+    # these side effects; do not alter global inference or display preferences.
+    original = bool(_com_value(manager, "AddToDB"))
+    try:
+        manager.AddToDB = True
+        if not bool(_com_value(manager, "AddToDB")):
+            raise RuntimeError("SOLIDWORKS could not enable direct circle creation")
+        return manager.CreateCircleByRadius(x, y, 0, radius)
+    finally:
+        try:
+            manager.AddToDB = original
+            if bool(_com_value(manager, "AddToDB")) != original:
+                raise RuntimeError(
+                    "SOLIDWORKS did not restore the original AddToDB mode"
+                )
+        except Exception as exc:
+            state_warnings.append(
+                {"code": "sketch-creation-mode-restore-failed", "message": str(exc)}
+            )
 
 
 def create_rectangle_sketch_windows_with_handle(
