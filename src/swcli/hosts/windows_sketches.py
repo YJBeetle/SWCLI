@@ -249,19 +249,26 @@ def _create_circle_without_inference(
     manager: Any, x: float, y: float, radius: float, state_warnings: list
 ) -> Any:
     """Create exact API geometry rather than letting UI snapping redefine it."""
+
     # CreateCircleByRadius otherwise participates in UI inferencing, automatic
     # relations and grid/entity snapping. AddToDB is the documented escape from
     # these side effects; do not alter global inference or display preferences.
-    original = bool(_com_value(manager, "AddToDB"))
+    def read_mode():
+        value = _com_value(manager, "AddToDB")
+        if not isinstance(value, bool):
+            raise RuntimeError("SOLIDWORKS returned an invalid AddToDB mode")
+        return value
+
+    original = read_mode()
     try:
         manager.AddToDB = True
-        if not bool(_com_value(manager, "AddToDB")):
+        if not read_mode():
             raise RuntimeError("SOLIDWORKS could not enable direct circle creation")
         return manager.CreateCircleByRadius(x, y, 0, radius)
     finally:
         try:
             manager.AddToDB = original
-            if bool(_com_value(manager, "AddToDB")) != original:
+            if read_mode() != original:
                 raise RuntimeError(
                     "SOLIDWORKS did not restore the original AddToDB mode"
                 )

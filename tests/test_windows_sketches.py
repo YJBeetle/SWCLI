@@ -340,6 +340,36 @@ class WindowsCircleTests(unittest.TestCase):
             manager.CreateCircleByRadius.assert_not_called()
             self.assertIsNone(manager.ActiveSketch)
 
+    def test_invalid_mode_observation_and_failed_enable_never_create_circle(self):
+        for original in (None, "false", 2):
+            with self.subTest(original=original):
+                self.setUp()
+                manager = self.document.SketchManager
+                manager.AddToDB = original
+                result, _ = self.create()
+                self.assertFalse(result["ok"])
+                self.assertIn("invalid AddToDB mode", result["error"]["message"])
+                self.assertEqual(manager.AddToDB, original)
+                manager.CreateCircleByRadius.assert_not_called()
+        for effects in (
+            [False, RuntimeError("enable failed"), None, False],
+            [False, None, RuntimeError("readback failed"), None, False],
+        ):
+            with self.subTest(effects=effects):
+                self.setUp()
+                with mock.patch.object(
+                    Manager,
+                    "AddToDB",
+                    new_callable=mock.PropertyMock,
+                    create=True,
+                    side_effect=effects,
+                ) as mode:
+                    result, _ = self.create()
+                self.assertFalse(result["ok"])
+                self.document.SketchManager.CreateCircleByRadius.assert_not_called()
+                self.assertEqual(mode.call_args_list[-2], mock.call(False))
+                self.assertNotIn("warnings", result)
+
     def test_silent_mode_restoration_failure_is_fail_closed_with_partial_geometry_evidence(
         self,
     ):
