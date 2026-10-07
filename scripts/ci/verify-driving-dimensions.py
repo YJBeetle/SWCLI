@@ -432,8 +432,9 @@ class DrivingSmoke:
         if owner["lease_id"] is not None:
             self.call(
                 "document.lease.renew",
-                {"lease_id": owner["lease_id"], "ttl_seconds": LEASE_TTL_SECONDS},
+                {"ttl_seconds": LEASE_TTL_SECONDS},
                 session_id=owner["session_id"],
+                lease_id=owner["lease_id"],
             )
 
     def write(self, operation, parameters=None, **context):

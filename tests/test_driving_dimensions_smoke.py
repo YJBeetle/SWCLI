@@ -13,6 +13,8 @@ import time
 import unittest
 from unittest import mock
 
+from swcli.operation_schemas import validate_operation_request
+
 script = Path(__file__).resolve().parents[1] / "scripts/ci/verify-driving-dimensions.py"
 spec = importlib.util.spec_from_file_location("driving_smoke", script)
 driving_smoke = importlib.util.module_from_spec(spec)
@@ -102,11 +104,24 @@ class FakeDaemon:
 
     def call(self, operation, parameters=None, **context):
         self.calls.append((operation, parameters, context))
+        values = parameters or {}
+        try:
+            validate_operation_request(
+                operation,
+                values,
+                document_id=context.get("document_id"),
+                expected_update_stamp=context.get("expected_update_stamp"),
+                lease_id=context.get("lease_id"),
+            )
+        except ValueError as exc:
+            return {
+                "success": False,
+                "error": {"code": "ValueError", "message": str(exc)},
+            }
         self.now += self.operation_seconds
         for key, expires in self.lease_expiry.items():
             if expires <= self.now and key in self.documents:
                 self.documents[key]["lease"] = None
-        values = parameters or {}
         session = context["session_id"]
         document_id = context.get("document_id")
         if operation == "daemon.health":
@@ -166,7 +181,7 @@ class FakeDaemon:
                 (
                     key
                     for key, document in self.documents.items()
-                    if document["lease"] == (session, values["lease_id"])
+                    if document["lease"] == (session, context["lease_id"])
                 ),
                 None,
             )
@@ -174,7 +189,7 @@ class FakeDaemon:
                 return self.error("DocumentLeaseNotFound")
             self.lease_expiry[document_id] = self.now + values["ttl_seconds"]
             return self.response(
-                {"ok": True, "lease": {"lease_id": values["lease_id"]}}
+                {"ok": True, "lease": {"lease_id": context["lease_id"]}}
             )
         document = self.documents[document_id]
         result = {"ok": True, "document": self.descriptor(document_id, session)}
@@ -588,11 +603,44 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 self.assertEqual(
                     parameters["ttl_seconds"], driving_smoke.LEASE_TTL_SECONDS
                 )
-            if context.get("lease_id") is not None:
+            if (
+                context.get("lease_id") is not None
+                and operation != "document.lease.renew"
+            ):
                 previous, values, owner = self.daemon.calls[index - 1]
                 self.assertEqual(previous, "document.lease.renew")
-                self.assertEqual(values["lease_id"], context["lease_id"])
+                self.assertNotIn("lease_id", values)
+                self.assertEqual(owner["lease_id"], context["lease_id"])
                 self.assertEqual(owner["session_id"], context["session_id"])
+
+    def test_fake_rejects_renew_token_in_parameters_like_real_daemon(self):
+        response = self.daemon.call(
+            "document.lease.renew",
+            {"lease_id": "l-000000000001", "ttl_seconds": 600},
+            session_id=self.smoke.session,
+        )
+        self.assertFalse(response["success"])
+        self.assertEqual(response["error"]["code"], "ValueError")
+        self.assertIn(
+            "unsupported document.lease.renew parameters: lease_id",
+            response["error"]["message"],
+        )
+
+    def test_all_gate_protocol_calls_match_live_parameter_and_context_policy(self):
+        self.run_smoke()
+        renewals = [
+            event
+            for event in self.smoke.record["events"]
+            if event.get("operation") == "document.lease.renew"
+        ]
+        self.assertTrue(renewals)
+        for event in renewals:
+            self.assertEqual(
+                event["parameters"], {"ttl_seconds": driving_smoke.LEASE_TTL_SECONDS}
+            )
+            self.assertIn("lease_id", event["context"])
+            self.assertNotIn("document_id", event["context"])
+            self.assertTrue(event["response"]["success"])
 
     def test_expired_holder_lease_is_not_reacquired_and_write_is_not_attempted(self):
         with mock.patch.object(
