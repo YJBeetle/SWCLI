@@ -296,6 +296,37 @@ def build_parser() -> argparse.ArgumentParser:
     circle_parser.add_argument("--center-y-mm", type=float, default=0.0)
     circle_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    diameter_parser = sketch_commands.add_parser(
+        "dimension-diameter",
+        help="add a driving diameter to a registered circle sketch",
+    )
+    diameter_parser.add_argument("sketch_id")
+    diameter_parser.add_argument("--diameter-mm", type=float, required=True)
+    add_document_selector(diameter_parser)
+    add_lease_token(diameter_parser)
+    diameter_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    dimension_parser = subcommands.add_parser(
+        "dimension", help="inspect or modify registered driving dimensions"
+    )
+    dimension_commands = dimension_parser.add_subparsers(
+        dest="dimension_command", required=True
+    )
+    dimension_inspect_parser = dimension_commands.add_parser(
+        "inspect", help="read a registered dimension in the current configuration"
+    )
+    dimension_inspect_parser.add_argument("dimension_id")
+    add_document_selector(dimension_inspect_parser)
+    dimension_inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+    dimension_set_parser = dimension_commands.add_parser(
+        "set", help="set and verify a driving diameter in the current configuration"
+    )
+    dimension_set_parser.add_argument("dimension_id")
+    dimension_set_parser.add_argument("--value-mm", type=float, required=True)
+    add_document_selector(dimension_set_parser)
+    add_lease_token(dimension_set_parser)
+    dimension_set_parser.add_argument("--json", action="store_true", dest="as_json")
+
     feature_parser = subcommands.add_parser(
         "feature", help="create explicit part features"
     )
@@ -732,6 +763,27 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "sketch" and args.sketch_command == "dimension-diameter":
+        return (
+            "sketch.dimension-diameter",
+            {"sketch_id": args.sketch_id, "diameter_mm": args.diameter_mm},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
+    if args.command == "dimension":
+        parameters = {"dimension_id": args.dimension_id}
+        if args.dimension_command == "set":
+            parameters["value_mm"] = args.value_mm
+        return (
+            f"dimension.{args.dimension_command}",
+            parameters,
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            getattr(args, "lease_id", None),
+        )
     if args.command == "sketch" and args.sketch_command == "inspect":
         return (
             "sketch.inspect",

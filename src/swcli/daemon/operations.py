@@ -36,6 +36,11 @@ from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
 from ..hosts.windows_cuts import cut_extrude_sketch_windows
 from ..hosts.windows_sketch_inspection import inspect_sketch_windows
+from ..hosts.windows_dimensions import (
+    create_circle_diameter_windows_with_handle,
+    inspect_dimension_windows,
+    set_dimension_windows,
+)
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -489,6 +494,80 @@ def sketch_circle(context: OperationContext, values: Dict[str, Any]) -> Dict[str
     return result
 
 
+def _with_dimension_ids(
+    result: Dict[str, Any], dimension_id: str, sketch_id: str
+) -> Dict[str, Any]:
+    result["sketch_id"] = sketch_id
+    if isinstance(result.get("dimension"), dict):
+        result["dimension"].update(dimension_id=dimension_id, sketch_id=sketch_id)
+    return result
+
+
+@_register_handler
+def sketch_dimension_diameter(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    sketch_feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, native_dimension = create_circle_diameter_windows_with_handle(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=sketch_feature,
+        diameter_mm=float(values["diameter_mm"]),
+    )
+    result["sketch_id"] = sketch_id
+    if native_dimension is not None:
+        dimension_id = context.documents.register_dimension(
+            context.entry, sketch_id, native_dimension
+        )
+        # Even a failed post-mutation verification must expose its live handle.
+        result.setdefault("dimension", {})
+        _with_dimension_ids(result, dimension_id, sketch_id)
+    return result
+
+
+@_register_handler
+def dimension_inspect(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    dimension_id = values["dimension_id"]
+    item = context.documents.resolve_dimension(context.entry, dimension_id)
+    feature = context.documents.resolve_sketch(context.entry, item.sketch_id)
+    result = inspect_dimension_windows(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        dimension=item.dimension,
+    )
+    return _with_document(
+        _with_dimension_ids(result, dimension_id, item.sketch_id),
+        context.documents,
+        context.entry,
+        session_id=context.session_id,
+    )
+
+
+@_register_handler
+def dimension_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    dimension_id = values["dimension_id"]
+    item = context.documents.resolve_dimension(context.entry, dimension_id)
+    feature = context.documents.resolve_sketch(context.entry, item.sketch_id)
+    result = set_dimension_windows(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        dimension=item.dimension,
+        value_mm=float(values["value_mm"]),
+    )
+    return _with_dimension_ids(result, dimension_id, item.sketch_id)
+
+
 @_register_handler
 def feature_extrude(
     context: OperationContext, values: Dict[str, Any]
@@ -604,6 +683,12 @@ def execute_operation(
             documents.require_lease(
                 context.entry, session_id=session_id, lease_id=lease_id
             )
+        # Reject unknown document-local references before temporary activation.
+        # A malformed target must not touch even the foreground selection.
+        if "sketch_id" in values:
+            documents.resolve_sketch(context.entry, values["sketch_id"])
+        if "dimension_id" in values:
+            documents.resolve_dimension(context.entry, values["dimension_id"])
     activation = (
         documents.temporarily_activate(context.entry)
         if spec.temporary_activation
@@ -611,8 +696,16 @@ def execute_operation(
         and context.entry is not None
         else nullcontext()
     )
-    with activation:
+    with activation as activation_warnings:
         result = _HANDLERS[spec.handler](context, values)
+    if isinstance(activation_warnings, list) and activation_warnings:
+        result.setdefault("warnings", []).extend(activation_warnings)
+        if result.get("ok"):
+            result["ok"] = False
+            result["error"] = {
+                "type": "DocumentActivationFailed",
+                "message": "operation completed but the previous foreground document could not be restored",
+            }
     if (
         spec.temporary_activation
         and documents is not None

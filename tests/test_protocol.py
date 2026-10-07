@@ -11,6 +11,45 @@ from swcli.protocol import SCHEMA_NAMES, load_schema
 
 class ProtocolSchemaTests(unittest.TestCase):
 
+    def test_dimension_operations_require_typed_handles_and_finite_positive_lengths(
+        self,
+    ):
+        requests = {
+            "sketch.dimension-diameter": {"sketch_id": "s-ab12cd", "diameter_mm": 16},
+            "dimension.inspect": {"dimension_id": "m-ab12cd"},
+            "dimension.set": {"dimension_id": "m-ab12cd", "value_mm": 20},
+        }
+        for operation, parameters in requests.items():
+            with self.subTest(operation=operation):
+                validate_operation_request(operation, parameters)
+                spec = OPERATION_CATALOG[operation]
+                self.assertTrue(spec.selected_document)
+                writes = operation != "dimension.inspect"
+                self.assertEqual(spec.lease_guarded, writes)
+                self.assertEqual(spec.temporary_activation, writes)
+                handle = next(name for name in parameters if name.endswith("_id"))
+                for invalid in (
+                    "D1@Sketch1",
+                    "m-short",
+                    "s-ab12cd" if handle == "dimension_id" else "m-ab12cd",
+                ):
+                    with self.assertRaises(ValueError):
+                        validate_operation_request(
+                            operation, {**parameters, handle: invalid}
+                        )
+                if writes:
+                    length = next(name for name in parameters if name.endswith("_mm"))
+                    for invalid in (0, -1, True, float("nan"), float("inf")):
+                        with self.assertRaises(ValueError):
+                            validate_operation_request(
+                                operation, {**parameters, length: invalid}
+                            )
+                else:
+                    with self.assertRaises(ValueError):
+                        validate_operation_request(
+                            operation, parameters, lease_id="l-ab12cd34ef56"
+                        )
+
     def test_sketch_inspect_has_read_only_policy_and_bounded_segment_limit(self):
         valid = {"sketch_id": "s-ab12cd"}
         validate_operation_request("sketch.inspect", valid)

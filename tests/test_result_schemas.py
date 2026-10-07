@@ -19,9 +19,172 @@ DOCUMENT = {
     "current": True,
     "active": False,
 }
+DIMENSION = {
+    "dimension_id": "m-ab12cd",
+    "sketch_id": "s-ab12cd",
+    "kind": "diameter",
+    "unit": "millimeter",
+    "value": 16,
+    "driven_state": 2,
+    "read_only": False,
+    "configuration": "默认",
+    "native_name": "D1@草图1",
+}
+CIRCLE_VERIFICATION = {
+    "passed": True,
+    "method": "sketch-local-circle",
+    "segment_count": 1,
+    "profile_segment_count": 1,
+    "complete_circle": True,
+    "actual_radius_mm": 8,
+    "actual_center_mm": {"x": 3, "y": 4, "z": 0},
+    "absolute_tolerance_mm": 1e-6,
+}
+
+
+def diameter_result(action):
+    return {
+        "ok": True,
+        "action": action,
+        "document": DOCUMENT,
+        "sketch_id": "s-ab12cd",
+        "dimension": copy.deepcopy(DIMENSION),
+        "geometry_verification": copy.deepcopy(CIRCLE_VERIFICATION),
+        "constraint_status": 2,
+        "editing": False,
+    }
 
 
 class ResultSchemaTests(unittest.TestCase):
+    def test_diameter_creation_success_requires_native_and_geometric_evidence(self):
+        result = {**diameter_result("sketch.dimension-diameter"), "native_status": 0}
+        validate_operation_result("sketch.dimension-diameter", result)
+        for field, value in (
+            ("value", None),
+            ("value", 0),
+            ("driven_state", 1),
+            ("read_only", True),
+            ("dimension_id", "D1@Sketch1"),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["dimension"][field] = value
+            with (
+                self.subTest(field=field, value=value),
+                self.assertRaises(OperationResultInvalid),
+            ):
+                validate_operation_result("sketch.dimension-diameter", invalid)
+        for field, value in (("native_status", 1), ("editing", True)):
+            with self.subTest(field=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result(
+                    "sketch.dimension-diameter", {**result, field: value}
+                )
+        invalid = copy.deepcopy(result)
+        invalid["geometry_verification"]["passed"] = False
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("sketch.dimension-diameter", invalid)
+        invalid = copy.deepcopy(result)
+        del invalid["dimension"]["native_name"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("sketch.dimension-diameter", invalid)
+
+    def test_diameter_failure_preserves_a_partially_created_handle(self):
+        result = {
+            "ok": False,
+            "action": "sketch.dimension-diameter",
+            "document": DOCUMENT,
+            "sketch_id": "s-ab12cd",
+            "dimension": {"dimension_id": "m-ab12cd", "sketch_id": "s-ab12cd"},
+            "native_status": 1,
+            "editing": True,
+            "error": {"type": "DimensionSetFailed", "message": "native rejection"},
+        }
+        validate_operation_result("sketch.dimension-diameter", result)
+        result["ok"] = True
+        del result["error"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("sketch.dimension-diameter", result)
+
+    def test_dimension_inspect_observes_controls_and_editing_without_mutation_claims(
+        self,
+    ):
+        result = {
+            **diameter_result("dimension.inspect"),
+            "equation_control": {"controlled": True, "equation_indices": [0]},
+            "design_table_controlled": True,
+            "editing": True,
+        }
+        result["dimension"].update(driven_state=1, read_only=True)
+        result["geometry_verification"]["passed"] = False
+        validate_operation_result("dimension.inspect", result)
+        invalid = copy.deepcopy(result)
+        del invalid["equation_control"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.inspect", invalid)
+        invalid = copy.deepcopy(result)
+        invalid["equation_control"]["equation_indices"] = [-1]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.inspect", invalid)
+
+    def test_dimension_set_success_requires_rebuild_and_controlled_downstream_evidence(
+        self,
+    ):
+        result = {
+            **diameter_result("dimension.set"),
+            "value_mm": 16,
+            "before_value_mm": 10,
+            "native_status": 0,
+            "rebuilt": True,
+            "needs_rebuild": 0,
+            "equation_control": {"controlled": False, "equation_indices": []},
+            "design_table_controlled": False,
+            "diagnostics": {
+                "healthy": True,
+                "issues": [],
+                "issue_count": 0,
+                "scanned_feature_count": 5,
+                "truncated": False,
+                "limit": 500,
+            },
+            "downstream": {
+                "applicable": False,
+                "measurement_before": None,
+                "measurement_after": None,
+            },
+        }
+        validate_operation_result("dimension.set", result)
+        for field, value in (
+            ("rebuilt", False),
+            ("needs_rebuild", 1),
+            ("before_value_mm", None),
+        ):
+            with self.subTest(field=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("dimension.set", {**result, field: value})
+        invalid = copy.deepcopy(result)
+        invalid["downstream"]["applicable"] = True
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.set", invalid)
+        invalid = copy.deepcopy(result)
+        invalid["design_table_controlled"] = True
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.set", invalid)
+        invalid = copy.deepcopy(result)
+        invalid["equation_control"].update(controlled=True, equation_indices=[0])
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.set", invalid)
+        invalid["ok"] = False
+        invalid["error"] = {"type": "DimensionEquationControlled", "message": "native equation"}
+        validate_operation_result("dimension.set", invalid)
+        invalid = copy.deepcopy(result)
+        invalid["diagnostics"]["healthy"] = False
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.set", invalid)
+        invalid["ok"] = False
+        invalid["error"] = {
+            "type": "DimensionVerificationFailed",
+            "message": "rebuild unhealthy",
+        }
+        validate_operation_result("dimension.set", invalid)
+
     def test_result_validation_rejects_nonfinite_json_even_in_partial_measurement(self):
         for value in (float("nan"), float("inf"), float("-inf")):
             result = {

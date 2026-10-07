@@ -239,6 +239,32 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.dimension-diameter": _operation(
+        "sketch.dimension-diameter",
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "diameter_mm": _number(exclusiveMinimum=0),
+        },
+        required=("sketch_id", "diameter_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "dimension.inspect": _operation(
+        "dimension.inspect",
+        {"dimension_id": _string(pattern="^m-[a-z0-9]{6}$")},
+        required=("dimension_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
+    "dimension.set": _operation(
+        "dimension.set",
+        {
+            "dimension_id": _string(pattern="^m-[a-z0-9]{6}$"),
+            "value_mm": _number(exclusiveMinimum=0),
+        },
+        required=("dimension_id", "value_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "feature.extrude": _operation(
         "feature.extrude",
         {

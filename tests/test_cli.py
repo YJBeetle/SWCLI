@@ -13,10 +13,103 @@ from swcli.cli import (
     main,
     translate_parameter_paths,
 )
-from swcli.operation_schemas import operation_schemas, operation_result_schemas, validate_operation_request
+from swcli.operation_schemas import (
+    operation_schemas,
+    operation_result_schemas,
+    validate_operation_request,
+)
 
 
 class CliTests(unittest.TestCase):
+
+    def test_driving_diameter_maps_the_sketch_and_write_guards(self):
+        args = build_parser().parse_args(
+            [
+                "--session",
+                "modeler",
+                "sketch",
+                "dimension-diameter",
+                "s-ab12cd",
+                "--diameter-mm",
+                "16",
+                "--document",
+                "d-ab12cd",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(args.session, "modeler")
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "sketch.dimension-diameter",
+                {"sketch_id": "s-ab12cd", "diameter_mm": 16},
+                True,
+                "d-ab12cd",
+                0,
+                "l-ab12cd34ef56",
+            ),
+        )
+
+    def test_dimension_read_and_write_commands_map_distinct_guards(self):
+        parser = build_parser()
+        inspect = parser.parse_args(
+            [
+                "dimension",
+                "inspect",
+                "m-ab12cd",
+                "--document",
+                "active",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(inspect),
+            (
+                "dimension.inspect",
+                {"dimension_id": "m-ab12cd"},
+                True,
+                "active",
+                0,
+                None,
+            ),
+        )
+        update = parser.parse_args(
+            [
+                "dimension",
+                "set",
+                "m-ab12cd",
+                "--value-mm",
+                "20",
+                "--document",
+                "d-ab12cd",
+                "--lease",
+                "l-ab12cd34ef56",
+                "--if-update-stamp",
+                "7",
+                "--json",
+            ]
+        )
+        self.assertEqual(
+            _typed_operation(update),
+            (
+                "dimension.set",
+                {"dimension_id": "m-ab12cd", "value_mm": 20},
+                True,
+                "d-ab12cd",
+                7,
+                "l-ab12cd34ef56",
+            ),
+        )
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parser.parse_args(
+                ["dimension", "inspect", "m-ab12cd", "--lease", "l-ab12cd34ef56"]
+            )
 
     def test_sketch_inspect_is_read_only_and_maps_target_stamp_and_limit(self):
         args = build_parser().parse_args(

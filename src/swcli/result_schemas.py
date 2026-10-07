@@ -731,6 +731,120 @@ _CIRCLE_FIELDS["geometry_verification"] = _object(
 _RESULT_FIELDS["sketch.circle"] = (_CIRCLE_FIELDS, _CIRCLE_REQUIRED)
 
 
+_DIMENSION = _object(
+    {
+        "dimension_id": {"type": "string", "pattern": "^m-[a-z0-9]{6}$"},
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "kind": {"const": "diameter"},
+        "unit": {"const": "millimeter"},
+        "value": {"type": ["number", "null"]},
+        "driven_state": INTEGER,
+        "read_only": BOOL,
+        "configuration": STRING,
+        "native_name": STRING,
+    },
+)
+_DIMENSION_CONTROL_FIELDS = {
+    "equation_control": _object(
+        {
+            "controlled": BOOL,
+            "equation_indices": {
+                "type": "array",
+                "items": {"type": "integer", "minimum": 0},
+            },
+        },
+        ("controlled", "equation_indices"),
+    ),
+    "design_table_controlled": BOOL,
+}
+_RESULT_FIELDS["sketch.dimension-diameter"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "diameter_mm": NUMBER,
+        "dimension": _DIMENSION,
+        "native_status": INTEGER,
+        "geometry_verification": deepcopy(_CIRCLE_FIELDS["geometry_verification"]),
+        "constraint_status": INTEGER,
+        "editing": BOOL,
+    },
+    (
+        "document",
+        "sketch_id",
+        "dimension",
+        "native_status",
+        "geometry_verification",
+        "constraint_status",
+        "editing",
+    ),
+)
+_RESULT_FIELDS["dimension.inspect"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "dimension": _DIMENSION,
+        "geometry_verification": deepcopy(_CIRCLE_FIELDS["geometry_verification"]),
+        "constraint_status": INTEGER,
+        "editing": BOOL,
+        **_DIMENSION_CONTROL_FIELDS,
+    },
+    (
+        "document",
+        "dimension",
+        "geometry_verification",
+        "constraint_status",
+        "editing",
+        "equation_control",
+        "design_table_controlled",
+    ),
+)
+_RESULT_FIELDS["dimension.set"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "dimension": _DIMENSION,
+        "value_mm": NUMBER,
+        "before_value_mm": {"type": ["number", "null"]},
+        "native_status": INTEGER,
+        "geometry_verification": deepcopy(_CIRCLE_FIELDS["geometry_verification"]),
+        "constraint_status": INTEGER,
+        "editing": BOOL,
+        "rebuilt": BOOL,
+        "needs_rebuild": INTEGER,
+        "diagnostics": DIAGNOSTICS,
+        "downstream": _object(
+            {
+                "applicable": BOOL,
+                **{
+                    field: {
+                        "anyOf": [
+                            deepcopy(_RESULT_FIELDS["document.measure"][0]["metrics"]),
+                            {"type": "null"},
+                        ]
+                    }
+                    for field in ("measurement_before", "measurement_after")
+                },
+            },
+            ("applicable", "measurement_before", "measurement_after"),
+        ),
+        **_DIMENSION_CONTROL_FIELDS,
+    },
+    (
+        "document",
+        "dimension",
+        "value_mm",
+        "before_value_mm",
+        "native_status",
+        "geometry_verification",
+        "constraint_status",
+        "editing",
+        "rebuilt",
+        "needs_rebuild",
+        "diagnostics",
+        "downstream",
+        "equation_control",
+        "design_table_controlled",
+    ),
+)
+
+
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
@@ -811,6 +925,69 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                     "profile_segment_count": {"const": 1},
                     "actual_radius_mm": {"type": "number", "exclusiveMinimum": 0},
                     "actual_center_mm": VECTOR,
+                }
+            )
+    if name in ("sketch.dimension-diameter", "dimension.inspect", "dimension.set"):
+        schema["then"]["properties"] = {
+            "dimension": {
+                "required": list(_DIMENSION["properties"]),
+                "properties": {"value": {"type": "number", "exclusiveMinimum": 0}},
+            }
+        }
+        if name != "dimension.inspect":
+            schema["then"]["properties"].update(
+                {
+                    "native_status": {"const": 0},
+                    "editing": {"const": False},
+                    "geometry_verification": {
+                        "properties": {
+                            "passed": {"const": True},
+                            "complete_circle": {"const": True},
+                            "profile_segment_count": {"const": 1},
+                            "actual_radius_mm": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                            },
+                            "actual_center_mm": VECTOR,
+                        }
+                    },
+                }
+            )
+            schema["then"]["properties"]["dimension"]["properties"].update(
+                {"driven_state": {"const": 2}, "read_only": {"const": False}}
+            )
+        if name == "dimension.set":
+            schema["then"]["properties"].update(
+                {
+                    "value_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "before_value_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "rebuilt": {"const": True},
+                    "needs_rebuild": {"const": 0},
+                    "diagnostics": {
+                        "properties": {
+                            "healthy": {"const": True},
+                            "truncated": {"const": False},
+                        }
+                    },
+                    "equation_control": {
+                        "properties": {
+                            "controlled": {"const": False},
+                            "equation_indices": {"maxItems": 0},
+                        }
+                    },
+                    "design_table_controlled": {"const": False},
+                    "downstream": {
+                        "if": {"properties": {"applicable": {"const": True}}},
+                        "then": {
+                            "properties": {
+                                field: {"type": "object"}
+                                for field in (
+                                    "measurement_before",
+                                    "measurement_after",
+                                )
+                            }
+                        },
+                    },
                 }
             )
     if name in ("document.render", "document.export"):
