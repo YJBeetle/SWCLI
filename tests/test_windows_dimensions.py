@@ -1,9 +1,18 @@
+import json
 import math
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
 from swcli.hosts import windows_dimensions as dimensions
+
+INVALID_METADATA = (
+    ("ReadOnly", (None, 2, -2, 0.0, 1.0, "false")),
+    ("DrivenState", (None, True, 2.9, "2", 3)),
+    ("FullName", (None, 0, "", " ")),
+    ("IsDesignTableDimension", (None, 0, 1, "false")),
+)
+INVALID_NATIVE_VALUES = (None, True, False, "0.016", 0, -1, math.nan, math.inf)
 
 
 class DiameterFixture:
@@ -92,6 +101,17 @@ class DiameterFixture:
     def set_preference(self, flag, value):
         self.preference = value
         return True
+
+    def set_metadata(self, member, value):
+        if member == "IsDesignTableDimension":
+            setattr(self.dimension, member, lambda: value)
+        else:
+            setattr(self.dimension, member, value)
+
+    def native_equations(self, count, entry=None):
+        self.document.GetEquationMgr = lambda: SimpleNamespace(
+            GetCount=lambda: count, Equation=lambda index: entry
+        )
 
     def call(self, diameter=16):
         return dimensions.create_circle_diameter_windows_with_handle(
@@ -236,10 +256,160 @@ class DiameterCreationTests(DiameterFixture, unittest.TestCase):
         self.assertFalse(result["geometry_verification"]["passed"])
 
     def test_nonfinite_native_value_is_not_leaked_to_wire_json(self):
-        self.dimension.GetSystemValue2 = lambda name: math.nan
-        result, _ = self.call()
-        self.assertEqual(result["error"]["type"], "DimensionVerificationFailed")
-        self.assertIsNone(result["dimension"]["value"])
+        def corrupted_readback(value, configuration, names):
+            self.set_value(value, configuration, names)
+            self.dimension.GetSystemValue2 = lambda name: math.nan
+            return 0
+
+        self.dimension.SetSystemValue3.side_effect = corrupted_readback
+        result, handle = self.call()
+        self.assertEqual(result["error"]["type"], "DimensionObservationUnavailable")
+        self.assertIs(handle, self.dimension)
+        self.assertEqual(result["native_status"], 0)
+        json.dumps(result, allow_nan=False)
+
+    def test_unknown_creation_metadata_never_sets_but_retains_partial_handle(self):
+        for member, values in INVALID_METADATA:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.setUp()
+                    self.set_metadata(member, value)
+                    result, handle = self.call()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.document.AddDiameterDimension2.assert_called_once()
+                    self.dimension.SetSystemValue3.assert_not_called()
+                    self.assertIs(handle, self.dimension)
+                    self.assertIsNone(self.manager.ActiveSketch)
+                    self.assertTrue(self.preference)
+                    json.dumps(result, allow_nan=False)
+
+    def test_creation_accepts_native_readonly_zero_but_rejects_true_encodings(self):
+        for value in (0, 1, -1):
+            with self.subTest(value=value):
+                self.setUp()
+                self.dimension.ReadOnly = value
+                result, handle = self.call()
+                self.assertIs(handle, self.dimension)
+                if value == 0:
+                    self.assertTrue(result["ok"], result)
+                    self.assertIs(result["dimension"]["read_only"], False)
+                    self.dimension.SetSystemValue3.assert_called_once()
+                else:
+                    self.assertEqual(result["error"]["type"], "DimensionNotDriving")
+                    self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_invalid_creation_configuration_never_mutates(self):
+        for name in (None, True, 0, "", " "):
+            with self.subTest(name=name):
+                self.setUp()
+                self.document.ConfigurationManager.ActiveConfiguration.Name = name
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertIsNone(handle)
+                self.document.AddDiameterDimension2.assert_not_called()
+                self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_invalid_created_native_value_prevents_setting_and_retains_handle(self):
+        for value in INVALID_NATIVE_VALUES:
+            with self.subTest(value=value):
+                self.setUp()
+                self.dimension.GetSystemValue2 = lambda name: value
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_not_called()
+                json.dumps(result, allow_nan=False)
+
+    def test_creation_requires_readable_equation_and_table_control_before_setting(self):
+        for count in (None, True, 0.9, "0", -1, 10001):
+            with self.subTest(count=count):
+                self.setUp()
+                self.native_equations(count)
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_not_called()
+        for entry in (None, 0, "", " ", "invalid equation"):
+            with self.subTest(entry=entry):
+                self.setUp()
+                self.native_equations(1, entry)
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_not_called()
+        for controlled in ("equation", "table"):
+            with self.subTest(controlled=controlled):
+                self.setUp()
+                if controlled == "equation":
+                    self.native_equations(1, '"D1@renamed-sketch" = 20')
+                else:
+                    self.set_metadata("IsDesignTableDimension", True)
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionExternallyControlled"
+                )
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_post_creation_unknown_metadata_retains_successful_native_status(self):
+        for member, value in (
+            ("ReadOnly", None),
+            ("DrivenState", 2.9),
+            ("FullName", None),
+            ("IsDesignTableDimension", None),
+        ):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_metadata(value_mm, configuration, names):
+                    self.set_value(value_mm, configuration, names)
+                    self.set_metadata(member, value)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = changed_metadata
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(result["native_status"], 0)
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_called_once()
+                self.assertIsNone(self.manager.ActiveSketch)
+                self.assertTrue(self.preference)
+                json.dumps(result, allow_nan=False)
+
+    def test_post_creation_external_control_is_not_reported_as_success(self):
+        for controlled in ("equation", "table"):
+            with self.subTest(controlled=controlled):
+                self.setUp()
+
+                def externally_controlled(value, configuration, names):
+                    self.set_value(value, configuration, names)
+                    if controlled == "equation":
+                        self.native_equations(1, '"D1@renamed-sketch" = 20')
+                    else:
+                        self.set_metadata("IsDesignTableDimension", True)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = externally_controlled
+                result, handle = self.call()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionExternallyControlled"
+                )
+                self.assertEqual(result["native_status"], 0)
+                self.assertIs(handle, self.dimension)
+                self.dimension.SetSystemValue3.assert_called_once()
 
     def test_preference_restoration_failure_reports_warning(self):
         def restore_failure(flag, value):
@@ -695,8 +865,143 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
         self.dimension.GetSystemValue2 = lambda configuration: math.nan
         result = self.inspect()
         self.assertEqual(result["error"]["type"], "DimensionObservationUnavailable")
-        self.assertIsNone(result["dimension"]["value"])
+        json.dumps(result, allow_nan=False)
         self.assert_read_only()
+
+    def test_unknown_public_metadata_fails_inspect_and_blocks_set(self):
+        for member, values in INVALID_METADATA:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.setUp()
+                    self.set_metadata(member, value)
+                    for result in (self.inspect(), self.set()):
+                        self.assertFalse(result["ok"], result)
+                        self.assertEqual(
+                            result["error"]["type"], "DimensionObservationUnavailable"
+                        )
+                        json.dumps(result, allow_nan=False)
+                    self.assert_read_only()
+
+    def test_readonly_native_integer_bindings_are_observed_without_broad_coercion(self):
+        for value, expected in ((0, False), (1, True), (-1, True)):
+            with self.subTest(value=value):
+                self.setUp()
+                self.dimension.ReadOnly = value
+                inspected = self.inspect()
+                self.assertTrue(inspected["ok"], inspected)
+                self.assertIs(inspected["dimension"]["read_only"], expected)
+                result = self.set()
+                if expected:
+                    self.assertEqual(result["error"]["type"], "DimensionNotDriving")
+                    self.assert_read_only()
+                else:
+                    self.assertTrue(result["ok"], result)
+                    self.dimension.SetSystemValue3.assert_called_once()
+
+    def test_unknown_name_does_not_hide_actual_equation_control(self):
+        self.equations('"D1@renamed-sketch" = 20')
+        self.dimension.FullName = None
+        result = self.set()
+        self.assertEqual(result["error"]["type"], "DimensionObservationUnavailable")
+        self.dimension.SetSystemValue3.assert_not_called()
+        self.assert_read_only()
+
+    def test_invalid_configuration_or_value_fails_before_setting(self):
+        for name in (None, True, 0, "", " "):
+            with self.subTest(configuration=name):
+                self.setUp()
+                self.document.ConfigurationManager.ActiveConfiguration.Name = name
+                self.assertEqual(
+                    self.inspect()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(
+                    self.set()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assert_read_only()
+        for value in INVALID_NATIVE_VALUES:
+            with self.subTest(value=value):
+                self.setUp()
+                self.dimension.GetSystemValue2 = lambda name: value
+                for result in (self.inspect(), self.set()):
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    json.dumps(result, allow_nan=False)
+                self.assert_read_only()
+
+    def test_invalid_equation_count_or_entry_is_not_coerced_to_no_control(self):
+        for count in (None, True, 0.9, "0", -1, 10001):
+            with self.subTest(count=count):
+                self.setUp()
+                self.native_equations(count)
+                self.assertEqual(
+                    self.inspect()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(
+                    self.set()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assert_read_only()
+        for entry in (None, 0, "", " ", "invalid equation"):
+            with self.subTest(entry=entry):
+                self.setUp()
+                self.native_equations(1, entry)
+                self.assertEqual(
+                    self.inspect()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(
+                    self.set()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assert_read_only()
+
+    def test_post_set_unknown_metadata_preserves_native_and_before_evidence(self):
+        for member, value in (
+            ("ReadOnly", None),
+            ("DrivenState", 2.9),
+            ("FullName", None),
+            ("IsDesignTableDimension", None),
+        ):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_metadata(value_mm, configuration, names):
+                    self.set_value(value_mm, configuration, names)
+                    self.set_metadata(member, value)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = changed_metadata
+                result = self.set()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(result["native_status"], 0)
+                self.assertEqual(result["before_value_mm"], 10)
+                self.assertIn("dimension", result)
+                self.assertIn("downstream", result)
+                self.dimension.SetSystemValue3.assert_called_once()
+                json.dumps(result, allow_nan=False)
+
+    def test_post_set_external_control_fails_without_hiding_completed_write(self):
+        for controlled in ("equation", "table"):
+            with self.subTest(controlled=controlled):
+                self.setUp()
+
+                def externally_controlled(value, configuration, names):
+                    self.set_value(value, configuration, names)
+                    if controlled == "equation":
+                        self.equations('"D1@renamed-sketch" = 20')
+                    else:
+                        self.set_metadata("IsDesignTableDimension", True)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = externally_controlled
+                result = self.set()
+                self.assertEqual(
+                    result["error"]["type"], "DimensionExternallyControlled"
+                )
+                self.assertEqual(result["native_status"], 0)
+                self.assertEqual(result["before_value_mm"], 10)
+                self.assertIn("downstream", result)
+                self.dimension.SetSystemValue3.assert_called_once()
 
 
 if __name__ == "__main__":

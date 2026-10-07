@@ -42,6 +42,13 @@ sketch, and never resolve by localized name. The adapter rechecks native feature
 and display-dimension identity on every inspect/set. Same-path external
 close/reopen is distinguished by native document identity, not filename reuse.
 Set observes equation/design-table ownership before mutation and refuses it.
+Public creation, inspection/editing and internal discovery share strict native
+metadata readers: unknown booleans/enums, empty names/configurations or invalid
+numeric values fail closed. `ReadOnly` explicitly accepts its native boolean
+encodings (`false`/`true` and integer `0`/`1`/`-1`), not arbitrary truthiness.
+Creation/editing recheck ownership controls after native mutation. An unreadable
+post-mutation observation retains available status/handle evidence and reports
+that modification may have happened; it does not claim rollback.
 
 `sketch list` provides a read-only bridge for opened/reopened native parts:
 discover exact live 2D profile features (including absorbed profiles), reuse

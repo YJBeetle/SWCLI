@@ -19,37 +19,18 @@ from .windows import _com_value
 from .windows_dimensions import (
     _DimensionError,
     _TOLERANCE_MM,
+    _boolean,
     _circle,
+    _configuration,
+    _descriptor,
     _equation_control,
     _failure,
+    _integer,
 )
 from .windows_sketch_inspection import _feature_id, _list_features
 from .windows_sketches import _circle_verification
 
 _DISPLAY_LIMIT = 10000
-
-
-def _integer(obj: Any, member: str) -> int:
-    value = _com_value(obj, member)
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise _DimensionError(
-            "DimensionObservationUnavailable", f"native {member} is not an integer"
-        )
-    return value
-
-
-def _boolean(obj: Any, member: str, *, integer_binding: bool = False) -> bool:
-    value = _com_value(obj, member)
-    # This native late-bound ReadOnly property returns integer 0 on SW2025,
-    # unlike the IsDesignTableDimension method's Python bool. Accept only
-    # explicit boolean encodings, never arbitrary truthiness or null values.
-    if integer_binding and type(value) is int and value in (-1, 0, 1):
-        return value != 0
-    if not isinstance(value, bool):
-        raise _DimensionError(
-            "DimensionObservationUnavailable", f"native {member} is not a boolean"
-        )
-    return value
 
 
 def _same(app: Any, first: Any, second: Any) -> bool:
@@ -61,19 +42,6 @@ def _same(app: Any, first: Any, second: Any) -> bool:
     return status == 1
 
 
-def _configuration(document: Any) -> str:
-    configuration = _com_value(
-        _com_value(_com_value(document, "ConfigurationManager"), "ActiveConfiguration"),
-        "Name",
-    )
-    if not isinstance(configuration, str) or not configuration.strip():
-        raise _DimensionError(
-            "DimensionObservationUnavailable",
-            "native current configuration is unreadable",
-        )
-    return configuration
-
-
 def _state(document: Any) -> Tuple[Dict[str, Any], Optional[Any]]:
     stamp = _integer(document, "GetUpdateStamp")
     configuration = _configuration(document)
@@ -83,39 +51,6 @@ def _state(document: Any) -> Tuple[Dict[str, Any], Optional[Any]]:
         "configuration": configuration,
         "editing": edit is not None,
     }, edit
-
-
-def _discovered_descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
-    # Do not reuse _descriptor's int/bool/str coercions for discovery: an
-    # unreadable control property must not fabricate a safe-looking status.
-    configuration = _configuration(document)
-    driven_state = _integer(dimension, "DrivenState")
-    if driven_state not in (0, 1, 2):
-        raise _DimensionError(
-            "DimensionObservationUnavailable",
-            "native DrivenState is not a supported enum value",
-        )
-    read_only = _boolean(dimension, "ReadOnly", integer_binding=True)
-    native_name = _com_value(dimension, "FullName")
-    if not isinstance(native_name, str) or not native_name.strip():
-        raise _DimensionError(
-            "DimensionObservationUnavailable", "native dimension name is unreadable"
-        )
-    value = dimension.GetSystemValue2(configuration)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise _DimensionError(
-            "DimensionObservationUnavailable", "native diameter value is not numeric"
-        )
-    value = float(value) * 1000
-    return {
-        "kind": "diameter",
-        "unit": "millimeter",
-        "value": value if math.isfinite(value) else None,
-        "driven_state": driven_state,
-        "read_only": read_only,
-        "configuration": configuration,
-        "native_name": native_name,
-    }
 
 
 def _profile(app: Any, document: Any, sketch_feature: Any) -> Tuple[Any, Any]:
@@ -202,7 +137,7 @@ def discover_circle_diameter_windows_with_handle(
                 )
             if any(_same(app, previous, candidate) for previous, _ in candidates):
                 continue
-            descriptor = _discovered_descriptor(document, candidate)
+            descriptor = _descriptor(document, candidate)
             configuration_matched = (
                 descriptor["configuration"] == before["configuration"]
             )

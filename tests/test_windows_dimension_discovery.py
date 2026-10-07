@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from swcli.hosts import windows_dimension_discovery as discovery
+from swcli.hosts import windows_dimensions as dimensions
 
 
 class Native:
@@ -253,7 +254,11 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         for value in (0, -0.02, 0.01, 0.021, math.nan, math.inf):
             with self.subTest(value=value):
                 self.dimension.value = value
-                self.assert_failure("DimensionVerificationFailed")
+                self.assert_failure(
+                    "DimensionVerificationFailed"
+                    if value > 0 and math.isfinite(value)
+                    else "DimensionObservationUnavailable"
+                )
 
     def test_busy_and_unreadable_native_value_fail_closed(self):
         for error in (ComError(0x80010001), RuntimeError("unreadable value")):
@@ -469,10 +474,48 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         self.dimension.GetSystemValue2.assert_called_once_with("Other")
 
     def test_nonnumeric_diameter_value_is_not_coerced_to_length(self):
-        for value in (None, True, "0.02"):
+        for value in (None, True, False, "0.02"):
             with self.subTest(value=value):
                 self.dimension.value = value
                 self.assert_failure("DimensionObservationUnavailable")
+
+    def test_discovery_uses_public_strict_native_metadata_helpers(self):
+        for helper in (
+            "_integer",
+            "_boolean",
+            "_configuration",
+            "_descriptor",
+            "_equation_control",
+        ):
+            with self.subTest(helper=helper):
+                self.assertIs(getattr(discovery, helper), getattr(dimensions, helper))
+
+    def test_invalid_configuration_is_not_coerced_to_an_observation(self):
+        for value in (None, True, 0, "", " "):
+            with self.subTest(value=value):
+                self.configuration.Name = value
+                self.assert_failure("DimensionObservationUnavailable")
+        self.dimension.GetSystemValue2.assert_not_called()
+
+    def test_equation_count_and_entries_must_be_readable_native_values(self):
+        for count in (None, True, 0.9, "0", -1, 10001):
+            with self.subTest(count=count):
+                self.document.GetEquationMgr = lambda: SimpleNamespace(
+                    GetCount=lambda: count, Equation=lambda index: '"global" = 20'
+                )
+                self.assert_failure("DimensionObservationUnavailable")
+        for entry in (None, 0, "", " ", "invalid equation"):
+            with self.subTest(entry=entry):
+                self.document.GetEquationMgr = lambda: SimpleNamespace(
+                    GetCount=lambda: 1, Equation=lambda index: entry
+                )
+                self.assert_failure("DimensionObservationUnavailable")
+
+    def test_unknown_native_name_does_not_fabricate_uncontrolled_status(self):
+        self.dimension.FullName = None
+        self.equations = ['"D1@renamed-sketch" = 20']
+        result = self.assert_failure("DimensionObservationUnavailable")
+        self.assertNotIn("equation_control", result)
 
     def test_geometry_change_cannot_hide_behind_unchanged_stamp(self):
         def changed_circle(name):

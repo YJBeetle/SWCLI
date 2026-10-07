@@ -42,6 +42,41 @@ def _positive_length(value: Any) -> bool:
         return False
 
 
+def _integer(obj: Any, member: str) -> int:
+    value = _com_value(obj, member)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", f"native {member} is not an integer"
+        )
+    return value
+
+
+def _boolean(obj: Any, member: str, *, integer_binding: bool = False) -> bool:
+    value = _com_value(obj, member)
+    # Native SW2025 late binding exposes ReadOnly as integer 0; explicitly
+    # accept boolean encodings without treating arbitrary truthiness as fact.
+    if integer_binding and type(value) is int and value in (-1, 0, 1):
+        return value != 0
+    if not isinstance(value, bool):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", f"native {member} is not a boolean"
+        )
+    return value
+
+
+def _configuration(document: Any) -> str:
+    configuration = _com_value(
+        _com_value(_com_value(document, "ConfigurationManager"), "ActiveConfiguration"),
+        "Name",
+    )
+    if not isinstance(configuration, str) or not configuration.strip():
+        raise _DimensionError(
+            "DimensionObservationUnavailable",
+            "native current configuration is unreadable",
+        )
+    return configuration
+
+
 def _live_profile(app: Any, document: Any, sketch_feature: Any) -> Any:
     """Find the exact native sketch, including a profile absorbed by a feature."""
     pending = [(_com_value(document, "FirstFeature"), "GetNextFeature")]
@@ -126,20 +161,43 @@ def _circle(sketch: Any) -> Tuple[float, float, float]:
 
 
 def _descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
-    configuration = str(
-        _com_value(
-            _com_value(document, "ConfigurationManager"), "ActiveConfiguration"
-        ).Name
-    )
-    value = float(dimension.GetSystemValue2(configuration)) * 1000
+    """Shared factual metadata; unknown native controls never imply writable."""
+    configuration = _configuration(document)
+    driven_state = _integer(dimension, "DrivenState")
+    if driven_state not in (0, 1, 2):
+        raise _DimensionError(
+            "DimensionObservationUnavailable",
+            "native DrivenState is not a supported enum value",
+        )
+    read_only = _boolean(dimension, "ReadOnly", integer_binding=True)
+    native_name = _com_value(dimension, "FullName")
+    if not isinstance(native_name, str) or not native_name.strip():
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native dimension name is unreadable"
+        )
+    value = dimension.GetSystemValue2(configuration)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native diameter value is not numeric"
+        )
+    try:
+        value = float(value) * 1000
+    except OverflowError as exc:
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native diameter value is invalid"
+        ) from exc
+    if not math.isfinite(value) or value <= 0:
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native diameter value is invalid"
+        )
     return {
         "kind": "diameter",
         "unit": "millimeter",
-        "value": value if math.isfinite(value) else None,
-        "driven_state": int(_com_value(dimension, "DrivenState")),
-        "read_only": bool(_com_value(dimension, "ReadOnly")),
+        "value": value,
+        "driven_state": driven_state,
+        "read_only": read_only,
         "configuration": configuration,
-        "native_name": str(_com_value(dimension, "FullName")),
+        "native_name": native_name,
     }
 
 
@@ -150,7 +208,7 @@ def _equation_control(document: Any, native_name: str) -> Dict[str, Any]:
         raise _DimensionError(
             "DimensionObservationUnavailable", "native equation manager is unavailable"
         )
-    count = int(_com_value(manager, "GetCount"))
+    count = _integer(manager, "GetCount")
     if not 0 <= count <= _TRAVERSAL_LIMIT:
         raise _DimensionError(
             "DimensionObservationUnavailable",
@@ -160,8 +218,8 @@ def _equation_control(document: Any, native_name: str) -> Dict[str, Any]:
     aliases = {native_name.casefold(), "@".join(native_name.split("@")[:2]).casefold()}
     indices = []
     for index in range(count):
-        equation = str(manager.Equation(index))
-        match = _EQUATION_LHS.match(equation)
+        equation = manager.Equation(index)
+        match = _EQUATION_LHS.match(equation) if isinstance(equation, str) else None
         if match is None:
             raise _DimensionError(
                 "DimensionObservationUnavailable",
@@ -172,6 +230,29 @@ def _equation_control(document: Any, native_name: str) -> Dict[str, Any]:
             # the first slice does not overwrite any equation-managed parameter.
             indices.append(index)
     return {"controlled": bool(indices), "equation_indices": indices}
+
+
+def _require_writable(
+    descriptor: Dict[str, Any],
+    equation_control: Dict[str, Any],
+    design_table: bool,
+    *,
+    post_mutation: bool = False,
+) -> None:
+    if equation_control["controlled"] or design_table:
+        raise _DimensionError(
+            "DimensionExternallyControlled",
+            "do not overwrite an equation or design-table controlled diameter",
+        )
+    if descriptor["driven_state"] != _DRIVING or descriptor["read_only"]:
+        raise _DimensionError(
+            "DimensionVerificationFailed" if post_mutation else "DimensionNotDriving",
+            (
+                "final diameter is not a writable driving dimension"
+                if post_mutation
+                else "do not override a driven or read-only dimension"
+            ),
+        )
 
 
 def _failure(result: Dict[str, Any], exc: Exception) -> Dict[str, Any]:
@@ -208,9 +289,7 @@ def inspect_dimension_windows(
             editing=_com_value(_com_value(document, "SketchManager"), "ActiveSketch")
             is not None,
             equation_control=_equation_control(document, descriptor["native_name"]),
-            design_table_controlled=bool(
-                _com_value(dimension, "IsDesignTableDimension")
-            ),
+            design_table_controlled=_boolean(dimension, "IsDesignTableDimension"),
         )
         if descriptor["value"] is None or descriptor["value"] <= 0:
             raise _DimensionError(
@@ -275,21 +354,11 @@ def set_dimension_windows(
             equation_control=before["equation_control"],
             design_table_controlled=before["design_table_controlled"],
         )
-        if (
-            before["equation_control"]["controlled"]
-            or before["design_table_controlled"]
-        ):
-            raise _DimensionError(
-                "DimensionExternallyControlled",
-                "do not overwrite an equation or design-table controlled diameter",
-            )
-        if (
-            before["dimension"]["driven_state"] != _DRIVING
-            or before["dimension"]["read_only"]
-        ):
-            raise _DimensionError(
-                "DimensionNotDriving", "do not override a driven or read-only dimension"
-            )
+        _require_writable(
+            before["dimension"],
+            before["equation_control"],
+            before["design_table_controlled"],
+        )
         if not before["geometry_verification"]["passed"]:
             raise _DimensionError(
                 "DimensionVerificationFailed",
@@ -322,11 +391,18 @@ def set_dimension_windows(
         # live, correctly driven geometry or unchanged configuration scope.
         sketch = _owned_dimension(app, document, sketch_feature, dimension)
         descriptor = _descriptor(document, dimension)
+        equation_control = _equation_control(document, descriptor["native_name"])
+        design_table = _boolean(dimension, "IsDesignTableDimension")
         result.update(
             dimension=descriptor,
             geometry_verification=_circle_verification(sketch, value_mm / 2, x, y),
             constraint_status=int(_com_value(sketch, "GetConstrainedStatus")),
             editing=_com_value(manager, "ActiveSketch") is not None,
+            equation_control=equation_control,
+            design_table_controlled=design_table,
+        )
+        _require_writable(
+            descriptor, equation_control, design_table, post_mutation=True
         )
         measurement_after = _measurement(document)
         result["downstream"].update(
@@ -362,7 +438,10 @@ def set_dimension_windows(
         result["ok"] = True
         return result
     except Exception as exc:
-        return _failure(result, exc)
+        _failure(result, exc)
+        if result.get("native_status") == 0:
+            result["error"]["message"] += "; modification may have happened"
+        return result
 
 
 def _variant(kind: str, value: Any) -> Any:
@@ -465,11 +544,7 @@ def create_circle_diameter_windows_with_handle(
         radius = float(_com_value(arc, "GetRadius"))
         if not all(math.isfinite(v) for v in (x, y, z, radius)) or radius <= 0:
             raise RuntimeError("SOLIDWORKS returned invalid source circle geometry")
-        configuration = str(
-            _com_value(
-                _com_value(document, "ConfigurationManager"), "ActiveConfiguration"
-            ).Name
-        )
+        configuration = _configuration(document)
         location = _annotation_location(app, sketch, x + radius * 2, y + radius * 2)
         document.ClearSelection2(True)
         selected = True
@@ -510,14 +585,17 @@ def create_circle_diameter_windows_with_handle(
         dimension = display.GetDimension2(0)
         if dimension is None:
             raise RuntimeError("SOLIDWORKS did not return the created dimension")
-        if int(_com_value(dimension, "DrivenState")) != _DRIVING or bool(
-            _com_value(dimension, "ReadOnly")
-        ):
-            result["error"] = {
-                "type": "DimensionNotDriving",
-                "message": "created dimension is not a writable driving dimension",
-            }
-            return result, dimension
+        descriptor = _descriptor(document, dimension)
+        if descriptor["configuration"] != configuration:
+            raise _DimensionError(
+                "DimensionObservationUnavailable",
+                "native configuration changed during diameter creation",
+            )
+        _require_writable(
+            descriptor,
+            _equation_control(document, descriptor["native_name"]),
+            _boolean(dimension, "IsDesignTableDimension"),
+        )
         status = int(
             dimension.SetSystemValue3(
                 diameter_mm / 1000, _CURRENT_CONFIGURATION, _variant("empty", None)
@@ -534,21 +612,20 @@ def create_circle_diameter_windows_with_handle(
         if _com_value(manager, "ActiveSketch") is not None:
             raise RuntimeError("SOLIDWORKS did not exit the dimension edit")
         entered = False
-        actual = float(dimension.GetSystemValue2(configuration)) * 1000
+        descriptor = _descriptor(document, dimension)
+        actual = descriptor["value"]
         verification = _circle_verification(sketch, diameter_mm / 2, x * 1000, y * 1000)
         result.update(
-            dimension={
-                "kind": "diameter",
-                "unit": "millimeter",
-                "value": actual if math.isfinite(actual) else None,
-                "driven_state": int(_com_value(dimension, "DrivenState")),
-                "read_only": bool(_com_value(dimension, "ReadOnly")),
-                "configuration": configuration,
-                "native_name": str(_com_value(dimension, "FullName")),
-            },
+            dimension=descriptor,
             geometry_verification=verification,
             constraint_status=int(_com_value(sketch, "GetConstrainedStatus")),
             editing=False,
+        )
+        _require_writable(
+            descriptor,
+            _equation_control(document, descriptor["native_name"]),
+            _boolean(dimension, "IsDesignTableDimension"),
+            post_mutation=True,
         )
         if (
             not math.isfinite(actual)
@@ -556,6 +633,7 @@ def create_circle_diameter_windows_with_handle(
             or not verification["passed"]
             or result["dimension"]["driven_state"] != _DRIVING
             or result["dimension"]["read_only"]
+            or descriptor["configuration"] != configuration
         ):
             result["error"] = {
                 "type": "DimensionVerificationFailed",
@@ -565,7 +643,9 @@ def create_circle_diameter_windows_with_handle(
         result["ok"] = True
         return result, dimension
     except Exception as exc:
-        result["error"] = _error(exc)
+        _failure(result, exc)
+        if dimension is not None:
+            result["error"]["message"] += "; modification may have happened"
         return result, dimension
     finally:
 
