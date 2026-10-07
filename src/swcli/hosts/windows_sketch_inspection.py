@@ -22,6 +22,21 @@ class SketchListLimitExceeded(RuntimeError):
     """The selected document has more 2D sketches than the caller allows."""
 
 
+class SketchFeatureIdConflict(RuntimeError):
+    """A supposedly document-unique ID belongs to different native features."""
+
+
+def _feature_id(feature: Any) -> int:
+    value = _com_value(feature, "GetID")
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not -(2**31) <= value < 2**31
+    ):
+        raise RuntimeError("SOLIDWORKS returned an invalid native feature ID")
+    return value
+
+
 def _same_feature(app: Any, first: Any, second: Any) -> bool:
     status = int(app.IsSame(first, second))
     if status not in (0, 1):
@@ -35,13 +50,22 @@ def _list_features(app: Any, document: Any):
     A feature can legitimately appear both as a root and under its consuming
     feature. Skip those duplicate observations, but reject repetitions inside
     one sibling chain or the current ancestor path. An explicit stack avoids
-    Python recursion limits on deeply nested native features.
+    Python recursion limits on deeply nested native features. GetID is unique
+    within this document; only repeated IDs require a native IsSame comparison.
+    Names never serve as identity, and no cross-document/persistent handle is
+    inferred from this private traversal key.
     """
-    visited: List[Any] = []
-    frames = [(_com_value(document, "FirstFeature"), "GetNextFeature", [], [])]
+    visited: Dict[int, Any] = {}
+    ancestors = set()
+    frames = [
+        ("feature", _com_value(document, "FirstFeature"), "GetNextFeature", set())
+    ]
     observations = 0
     while frames:
-        feature, next_member, siblings, ancestors = frames.pop()
+        event, feature, next_member, siblings = frames.pop()
+        if event == "leave":
+            ancestors.remove(feature)
+            continue
         if feature is None:
             continue
         observations += 1
@@ -49,23 +73,28 @@ def _list_features(app: Any, document: Any):
             raise SketchTraversalLimitExceeded(
                 "feature/subfeature traversal exceeded the sketch-list safety limit"
             )
-        if any(
-            _same_feature(app, feature, previous)
-            for previous in (*siblings, *ancestors)
-        ):
+        identity = _feature_id(feature)
+        previous = visited.get(identity)
+        if previous is not None and not _same_feature(app, feature, previous):
+            raise SketchFeatureIdConflict(
+                "a native feature ID refers to different objects in this document"
+            )
+        if identity in siblings or identity in ancestors:
             raise SketchTraversalCycle(
                 "native feature/subfeature traversal repeats an ancestor or sibling"
             )
-        siblings.append(feature)
+        siblings.add(identity)
         next_feature = _com_value(feature, next_member)
-        frames.append((next_feature, next_member, siblings, ancestors))
-        if any(_same_feature(app, feature, previous) for previous in visited):
+        frames.append(("feature", next_feature, next_member, siblings))
+        if previous is not None:
             continue
-        visited.append(feature)
+        visited[identity] = feature
         yield feature
         subfeature = _com_value(feature, "GetFirstSubFeature")
         if subfeature is not None:
-            frames.append((subfeature, "GetNextSubFeature", [], [*ancestors, feature]))
+            ancestors.add(identity)
+            frames.append(("leave", identity, None, None))
+            frames.append(("feature", subfeature, "GetNextSubFeature", set()))
 
 
 def _sketch_descriptor(feature: Any, sketch: Any) -> Dict[str, Any]:

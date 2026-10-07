@@ -40,6 +40,7 @@ class SketchInspectionTests(unittest.TestCase):
         )
         self.feature = SimpleNamespace(
             Name="renamed-sketch",
+            GetID=lambda: 1,
             GetTypeName2=lambda: "ProfileFeature",
             GetSpecificFeature2=lambda: self.sketch,
             GetOwnerFeature=lambda: None,
@@ -246,12 +247,20 @@ class SketchInspectionTests(unittest.TestCase):
 
 
 class FeatureFixture:
+    _ids_by_identity = {}
+
     def __init__(self, identity, *, kind="ProfileFeature", name=None):
         self.identity = identity
+        self.feature_id = self._ids_by_identity.setdefault(
+            identity, len(self._ids_by_identity) + 100
+        )
         self.Name = name or str(identity)
         self.kind = kind
         self.root_next = self.sub_next = self.child = self.owner = None
         self.sketch = SimpleNamespace(GetConstrainedStatus=lambda: 2)
+
+    def GetID(self):
+        return self.feature_id
 
     def GetTypeName2(self):
         return self.kind
@@ -365,6 +374,59 @@ class SketchListingTests(unittest.TestCase):
         self.assertEqual(result["count"], 2)
         self.assertEqual(handles, [self.feature, second])
 
+    def test_thousand_unique_features_have_linear_native_identity_reads(self):
+        nodes = [FeatureFixture(index, kind="RefPlane") for index in range(1000)]
+        reads = []
+        for node in nodes:
+            identity = node.GetID()
+
+            def get_id(identity=identity):
+                reads.append(identity)
+                return identity
+
+            node.GetID = get_id
+        for first, second in zip(nodes, nodes[1:]):
+            first.root_next = second
+        self.document.FirstFeature = lambda: nodes[0]
+        self.app.IsSame = mock.Mock(side_effect=self.app.IsSame)
+        result, handles = self.call()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual((result["count"], handles), (0, []))
+        self.assertEqual(len(reads), 1000)
+        self.assertEqual(len(set(reads)), 1000)
+        self.app.IsSame.assert_not_called()
+
+    def test_duplicate_native_id_for_different_features_fails_closed(self):
+        second = FeatureFixture("different", name=self.feature.Name)
+        second.feature_id = self.feature.feature_id
+        self.feature.root_next = second
+        self.assert_failure(*self.call(), "SketchFeatureIdConflict")
+
+    def test_invalid_unavailable_or_unreadable_feature_ids_fail_closed(self):
+        for value in (None, True, 1.5, "1", 2**31, -(2**31) - 1):
+            with self.subTest(value=value):
+                self.setUp()
+                self.feature.GetID = lambda value=value: value
+                self.assert_failure(*self.call(), "RuntimeError")
+        self.setUp()
+        self.feature.GetID = None
+        self.assert_failure(*self.call(), "RuntimeError")
+        self.setUp()
+
+        def unreadable():
+            raise RuntimeError("native GetID unavailable")
+
+        self.feature.GetID = unreadable
+        self.assert_failure(*self.call(), "RuntimeError")
+
+    def test_zero_and_signed_feature_ids_are_not_assumed_positive(self):
+        for identity in (0, -1, -(2**31), 2**31 - 1):
+            with self.subTest(identity=identity):
+                self.feature.feature_id = identity
+                result, handles = self.call()
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(handles, [self.feature])
+
     def test_empty_part_and_only_non_2d_profiles_return_complete_empty_list(self):
         for first in (
             None,
@@ -444,6 +506,7 @@ class SketchListingTests(unittest.TestCase):
     ):
         for read in (
             "GetOwnerFeature",
+            "GetID",
             "GetSpecificFeature2",
             "GetTypeName2",
             "GetFirstSubFeature",
@@ -469,11 +532,13 @@ class SketchListingTests(unittest.TestCase):
         self.assert_failure(*self.call(), "RuntimeError")
         self.setUp()
         self.feature.root_next = FeatureFixture("other")
+        self.feature.root_next.feature_id = self.feature.feature_id
         self.app.IsSame = lambda first, second: 2
         self.assert_failure(*self.call(), "RuntimeError")
 
     def test_native_identity_exception_is_not_swallowed_as_a_distinct_object(self):
         self.feature.root_next = FeatureFixture("other")
+        self.feature.root_next.feature_id = self.feature.feature_id
 
         def fail(first, second):
             raise RuntimeError("native identity unavailable")
