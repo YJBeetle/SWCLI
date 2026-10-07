@@ -31,6 +31,10 @@ These features are available in the v0.1.0a4 pre-release, not the older a3 wheel
 
 ## Next modeling increments
 
+The a5 driving-dimension slice is scoped in
+[driving dimensions](design/driving-dimensions.md). Native feasibility is proven,
+but the internal adapter is not yet an available typed CLI operation.
+
 1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
 2. Extend profiles/end conditions and selected-body/face support only with
