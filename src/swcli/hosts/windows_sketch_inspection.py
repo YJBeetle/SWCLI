@@ -3,10 +3,135 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from .windows import _com_value, _error
-from .windows_sketches import _features
+
+_LIST_TRAVERSAL_LIMIT = 10000
+
+
+class SketchTraversalCycle(RuntimeError):
+    """The native feature/subfeature traversal contains an identity cycle."""
+
+
+class SketchTraversalLimitExceeded(RuntimeError):
+    """The bounded native traversal cannot establish a complete sketch list."""
+
+
+class SketchListLimitExceeded(RuntimeError):
+    """The selected document has more 2D sketches than the caller allows."""
+
+
+def _same_feature(app: Any, first: Any, second: Any) -> bool:
+    status = int(app.IsSame(first, second))
+    if status not in (0, 1):
+        raise RuntimeError("SOLIDWORKS could not compare native feature identity")
+    return status == 1
+
+
+def _list_features(app: Any, document: Any):
+    """Traverse model roots and absorbed subfeatures, with native identity bounds.
+
+    A feature can legitimately appear both as a root and under its consuming
+    feature. Skip those duplicate observations, but reject repetitions inside
+    one sibling chain or the current ancestor path. An explicit stack avoids
+    Python recursion limits on deeply nested native features.
+    """
+    visited: List[Any] = []
+    frames = [(_com_value(document, "FirstFeature"), "GetNextFeature", [], [])]
+    observations = 0
+    while frames:
+        feature, next_member, siblings, ancestors = frames.pop()
+        if feature is None:
+            continue
+        observations += 1
+        if observations > _LIST_TRAVERSAL_LIMIT:
+            raise SketchTraversalLimitExceeded(
+                "feature/subfeature traversal exceeded the sketch-list safety limit"
+            )
+        if any(
+            _same_feature(app, feature, previous)
+            for previous in (*siblings, *ancestors)
+        ):
+            raise SketchTraversalCycle(
+                "native feature/subfeature traversal repeats an ancestor or sibling"
+            )
+        siblings.append(feature)
+        next_feature = _com_value(feature, next_member)
+        frames.append((next_feature, next_member, siblings, ancestors))
+        if any(_same_feature(app, feature, previous) for previous in visited):
+            continue
+        visited.append(feature)
+        yield feature
+        subfeature = _com_value(feature, "GetFirstSubFeature")
+        if subfeature is not None:
+            frames.append((subfeature, "GetNextSubFeature", [], [*ancestors, feature]))
+
+
+def _sketch_descriptor(feature: Any, sketch: Any) -> Dict[str, Any]:
+    owner = _com_value(feature, "GetOwnerFeature")
+    return {
+        "name": str(_com_value(feature, "Name")),
+        "type": "ProfileFeature",
+        "constraint_status": int(_com_value(sketch, "GetConstrainedStatus")),
+        "absorbed": owner is not None,
+        "owner": (
+            None
+            if owner is None
+            else {
+                "name": str(_com_value(owner, "Name")),
+                "type": str(_com_value(owner, "GetTypeName2")),
+            }
+        ),
+    }
+
+
+def list_sketches_windows_with_handles(
+    *, app: Any, document: Any, max_sketches: int = 1000
+) -> Tuple[Dict[str, Any], List[Any]]:
+    """List exact 2D sketch features without native activation or mutation.
+
+    Includes absorbed profiles; 3D sketches and other feature types are outside
+    this operation's declared 2D scope. Incomplete traversal/read failures never
+    return a partial successful list or publish partial native handles.
+    """
+    result: Dict[str, Any] = {"ok": False, "action": "sketch.list"}
+    if (
+        isinstance(max_sketches, bool)
+        or not isinstance(max_sketches, int)
+        or max_sketches < 1
+    ):
+        result["error"] = {
+            "type": "InvalidArgument",
+            "message": "max_sketches must be a positive integer",
+        }
+        return result, []
+    try:
+        if int(_com_value(document, "GetType")) != 1:
+            result["error"] = {
+                "type": "UnsupportedDocumentType",
+                "message": "sketch listing currently requires a part",
+            }
+            return result, []
+        descriptors = []
+        features = []
+        for feature in _list_features(app, document):
+            if _com_value(feature, "GetTypeName2") != "ProfileFeature":
+                continue
+            if len(features) >= max_sketches:
+                raise SketchListLimitExceeded(
+                    f"part has more than {max_sketches} 2D sketches; increase max_sketches"
+                )
+            sketch = _com_value(feature, "GetSpecificFeature2")
+            if sketch is None:
+                raise RuntimeError("SOLIDWORKS did not return an enumerated 2D sketch")
+            descriptors.append(_sketch_descriptor(feature, sketch))
+            features.append(feature)
+        result.update(ok=True, sketches=descriptors, count=len(features))
+        return result, features
+    except Exception as exc:
+        result["error"] = _error(exc)
+        return result, []
 
 
 def _point_mm(point: Any) -> Dict[str, float]:
@@ -70,9 +195,12 @@ def inspect_sketch_windows(
                 "message": "sketch inspection currently requires a part",
             }
             return result
+        # Complete the same bounded root/subfeature traversal used by list.
+        # Stopping at the first match could hide a later cycle or COM failure
+        # and would reject profiles exposed only beneath their owning feature.
+        live_features = tuple(_list_features(app, document))
         feature = next(
-            (f for f in _features(document) if int(app.IsSame(f, sketch_feature)) == 1),
-            None,
+            (f for f in live_features if _same_feature(app, f, sketch_feature)), None
         )
         if feature is None or _com_value(feature, "GetTypeName2") != "ProfileFeature":
             result["error"] = {
@@ -101,27 +229,11 @@ def inspect_sketch_windows(
             raise RuntimeError(
                 "SOLIDWORKS returned an invalid sketch coordinate transform"
             )
-        owner = _com_value(feature, "GetOwnerFeature")
         active = _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
         unreported = [item["index"] for item in items if item["geometry"] is None]
         result.update(
             {
-                "sketch": {
-                    "name": str(_com_value(feature, "Name")),
-                    "type": "ProfileFeature",
-                    "constraint_status": int(
-                        _com_value(sketch, "GetConstrainedStatus")
-                    ),
-                    "absorbed": owner is not None,
-                    "owner": (
-                        None
-                        if owner is None
-                        else {
-                            "name": str(_com_value(owner, "Name")),
-                            "type": str(_com_value(owner, "GetTypeName2")),
-                        }
-                    ),
-                },
+                "sketch": _sketch_descriptor(feature, sketch),
                 "editing": active is not None and int(app.IsSame(active, sketch)) == 1,
                 "coordinate_system": "sketch-local",
                 "unit": "millimeter",
