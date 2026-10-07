@@ -254,8 +254,20 @@ class DocumentRegistry:
         existing_id = self._ids_by_key.get(key)
         if existing_id is not None:
             entry = self._entries[existing_id]
-            entry.document = document
-            return entry
+            if entry.document is document:
+                return entry
+            try:
+                compare = self.app.IsSame
+            except AttributeError:
+                same = False
+            else:
+                # COM wrappers can differ for the same native object. A path is
+                # not identity: external close/reopen can reuse it between calls.
+                same = int(compare(entry.document, document)) == 1
+            if same:
+                entry.document = document
+                return entry
+            self.forget(existing_id)
         entry = DocumentEntry(self._new_id(), document)
         self._entries[entry.document_id] = entry
         self._ids_by_key[key] = entry.document_id

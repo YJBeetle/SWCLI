@@ -105,6 +105,33 @@ class DimensionRegistryTests(unittest.TestCase):
         with self.assertRaises(DimensionNotFound):
             replacement.resolve_dimension(new_entry, self.dimension_id)
 
+    def test_external_reopen_with_same_path_expires_handles_and_lease(self):
+        self.document.path = r"C:\Workspace\Same.SLDPRT"
+        self.registry.refresh_key(self.entry)
+        self.registry.set_current(self.entry, session_id="writer")
+        self.registry.acquire_lease(self.entry, session_id="writer", ttl_seconds=60)
+        reopened = Document("Same.SLDPRT", self.document.path)
+        self.app.IsSame = lambda first, second: 1 if first is second else 0
+        self.app.GetDocuments = lambda: (reopened, self.other)
+        self.registry.sync()
+        replacement = self.registry.register(reopened)
+        self.assertNotEqual(replacement.document_id, self.entry.document_id)
+        self.assertFalse(self.entry.dimensions or self.entry.sketches)
+        self.assertIsNone(self.registry.active_lease(replacement))
+        with self.assertRaises(DimensionNotFound):
+            self.registry.resolve_dimension(replacement, self.dimension_id)
+
+    def test_another_com_wrapper_for_same_native_document_keeps_handles(self):
+        wrapper = Document(self.document.title)
+        self.app.IsSame = lambda first, second: 1
+        registered = self.registry.register(wrapper)
+        self.assertIs(registered, self.entry)
+        self.assertIs(registered.document, wrapper)
+        self.assertIs(
+            self.registry.resolve_dimension(registered, self.dimension_id).dimension,
+            self.dimension,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
