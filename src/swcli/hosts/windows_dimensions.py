@@ -7,15 +7,362 @@ the sketch; the returned handle is evidence, not a transaction/rollback claim.
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
+from .windows_documents import _diagnose_features
+from .windows_measurements import measure_part_windows
 from .windows_sketches import _circle_verification, _unabsorbed_profile
 
 _INPUT_VALUE_ON_CREATE = 10
 _DRIVING = 2
 _CURRENT_CONFIGURATION = 1
 _TOLERANCE_MM = 1e-6
+_TRAVERSAL_LIMIT = 10000
+_EQUATION_LHS = re.compile(r'^\s*"((?:[^"\r\n]|"")+)"\s*=')
+
+
+class _DimensionError(Exception):
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+def _positive_length(value: Any) -> bool:
+    try:
+        return (
+            not isinstance(value, bool)
+            and isinstance(value, (int, float))
+            and math.isfinite(value)
+            and value > 0
+            and value / 2000 > 0
+        )
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
+def _live_profile(app: Any, document: Any, sketch_feature: Any) -> Any:
+    """Find the exact native sketch, including a profile absorbed by a feature."""
+    pending = [(_com_value(document, "FirstFeature"), "GetNextFeature")]
+    for _ in range(_TRAVERSAL_LIMIT):
+        if not pending:
+            raise _DimensionError(
+                "SketchUnavailable",
+                "the exact owning sketch is no longer live in the selected part",
+            )
+        feature, next_member = pending.pop()
+        if feature is None:
+            continue
+        if int(app.IsSame(feature, sketch_feature)) == 1:
+            if _com_value(feature, "GetTypeName2") != "ProfileFeature":
+                raise _DimensionError(
+                    "SketchUnavailable", "the owning feature is not a 2D profile"
+                )
+            return _com_value(feature, "GetSpecificFeature2")
+        pending.append((_com_value(feature, next_member), next_member))
+        pending.append((_com_value(feature, "GetFirstSubFeature"), "GetNextSubFeature"))
+    raise _DimensionError(
+        "DimensionObservationUnavailable", "native feature traversal exceeded its limit"
+    )
+
+
+def _owned_dimension(
+    app: Any, document: Any, sketch_feature: Any, dimension: Any
+) -> Any:
+    if int(_com_value(document, "GetType")) != 1:
+        raise _DimensionError(
+            "UnsupportedDocumentType", "driving diameter operations require a part"
+        )
+    sketch = _live_profile(app, document, sketch_feature)
+    owner = _com_value(dimension, "GetFeatureOwner")
+    if owner is None or int(app.IsSame(owner, sketch_feature)) != 1:
+        raise _DimensionError(
+            "DimensionUnavailable",
+            "the native dimension does not belong to its registered sketch",
+        )
+    display = _com_value(sketch_feature, "GetFirstDisplayDimension")
+    for _ in range(_TRAVERSAL_LIMIT):
+        if display is None:
+            raise _DimensionError(
+                "DimensionUnavailable",
+                "the exact dimension is no longer live in its owning sketch",
+            )
+        native = display.GetDimension2(0)
+        if native is not None and int(app.IsSame(native, dimension)) == 1:
+            return sketch
+        display = sketch_feature.GetNextDisplayDimension(display)
+    raise _DimensionError(
+        "DimensionObservationUnavailable",
+        "native dimension traversal exceeded its limit",
+    )
+
+
+def _circle(sketch: Any) -> Tuple[float, float, float]:
+    segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
+    if (
+        len(segments) != 1
+        or bool(_com_value(segments[0], "ConstructionGeometry"))
+        or int(_com_value(segments[0], "GetType")) != 1
+        or int(_com_value(segments[0], "IsCircle")) != 1
+    ):
+        raise _DimensionError(
+            "UnsupportedDimensionProfile",
+            "require exactly one complete non-construction circle",
+        )
+    arc = segments[0]
+    point = _com_value(arc, "GetCenterPoint2")
+    coordinates = tuple(float(_com_value(point, axis)) * 1000 for axis in "XYZ")
+    radius = float(_com_value(arc, "GetRadius")) * 1000
+    if (
+        not all(math.isfinite(v) for v in (*coordinates, radius))
+        or radius <= 0
+        or not math.isclose(coordinates[2], 0, rel_tol=0, abs_tol=_TOLERANCE_MM)
+    ):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native circle geometry is invalid"
+        )
+    return radius, coordinates[0], coordinates[1]
+
+
+def _descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
+    configuration = str(
+        _com_value(
+            _com_value(document, "ConfigurationManager"), "ActiveConfiguration"
+        ).Name
+    )
+    value = float(dimension.GetSystemValue2(configuration)) * 1000
+    return {
+        "kind": "diameter",
+        "unit": "millimeter",
+        "value": value if math.isfinite(value) else None,
+        "driven_state": int(_com_value(dimension, "DrivenState")),
+        "read_only": bool(_com_value(dimension, "ReadOnly")),
+        "configuration": configuration,
+        "native_name": str(_com_value(dimension, "FullName")),
+    }
+
+
+def _equation_control(document: Any, native_name: str) -> Dict[str, Any]:
+    """Observe assignment targets; names never substitute for native identity."""
+    manager = _com_value(document, "GetEquationMgr")
+    if manager is None:
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native equation manager is unavailable"
+        )
+    count = int(_com_value(manager, "GetCount"))
+    if not 0 <= count <= _TRAVERSAL_LIMIT:
+        raise _DimensionError(
+            "DimensionObservationUnavailable",
+            "native equation count is invalid or exceeds its limit",
+        )
+    # Native equations commonly omit the @model suffix of Dimension.FullName.
+    aliases = {native_name.casefold(), "@".join(native_name.split("@")[:2]).casefold()}
+    indices = []
+    for index in range(count):
+        equation = str(manager.Equation(index))
+        match = _EQUATION_LHS.match(equation)
+        if match is None:
+            raise _DimensionError(
+                "DimensionObservationUnavailable",
+                "cannot safely identify a native equation assignment target",
+            )
+        if match.group(1).replace('""', '"').casefold() in aliases:
+            # Disabled or other-configuration equations still express ownership;
+            # the first slice does not overwrite any equation-managed parameter.
+            indices.append(index)
+    return {"controlled": bool(indices), "equation_indices": indices}
+
+
+def _failure(result: Dict[str, Any], exc: Exception) -> Dict[str, Any]:
+    result["error"] = (
+        {"type": exc.code, "message": str(exc)}
+        if isinstance(exc, _DimensionError)
+        else _error(exc)
+    )
+    return result
+
+
+def inspect_dimension_windows(
+    *, app: Any, document: Any, sketch_feature: Any, dimension: Any
+) -> Dict[str, Any]:
+    """Read exact diameter state without activation, selection, edit or rebuild."""
+    result: Dict[str, Any] = {"ok": False, "action": "dimension.inspect"}
+    try:
+        sketch = _owned_dimension(app, document, sketch_feature, dimension)
+        _, x, y = _circle(sketch)
+        descriptor = _descriptor(document, dimension)
+        result.update(
+            dimension=descriptor,
+            geometry_verification=_circle_verification(
+                sketch,
+                (
+                    descriptor["value"] / 2
+                    if descriptor["value"] is not None
+                    else math.nan
+                ),
+                x,
+                y,
+            ),
+            constraint_status=int(_com_value(sketch, "GetConstrainedStatus")),
+            editing=_com_value(_com_value(document, "SketchManager"), "ActiveSketch")
+            is not None,
+            equation_control=_equation_control(document, descriptor["native_name"]),
+            design_table_controlled=bool(
+                _com_value(dimension, "IsDesignTableDimension")
+            ),
+        )
+        if descriptor["value"] is None or descriptor["value"] <= 0:
+            raise _DimensionError(
+                "DimensionObservationUnavailable", "native diameter value is invalid"
+            )
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        return _failure(result, exc)
+
+
+def _measurement(document: Any) -> Optional[Dict[str, Any]]:
+    observation = measure_part_windows(document=document)
+    if observation["ok"]:
+        return observation["metrics"]
+    if observation["error"]["type"] == "NoSolidBodies":
+        return None
+    raise _DimensionError(
+        "DownstreamObservationUnavailable", observation["error"]["message"]
+    )
+
+
+def set_dimension_windows(
+    *, app: Any, document: Any, sketch_feature: Any, dimension: Any, value_mm: float
+) -> Dict[str, Any]:
+    """Set a registered diameter in the current configuration, then verify it."""
+    result: Dict[str, Any] = {"ok": False, "action": "dimension.set"}
+    if not _positive_length(value_mm):
+        return _failure(
+            result,
+            _DimensionError(
+                "InvalidArgument",
+                "value_mm must be a positive finite, representable length",
+            ),
+        )
+    result["value_mm"] = value_mm
+    try:
+        manager = _com_value(document, "SketchManager")
+        if _com_value(manager, "ActiveSketch") is not None:
+            raise _DimensionError(
+                "SketchEditInProgress",
+                "finish the existing sketch edit before setting a dimension",
+            )
+        before = inspect_dimension_windows(
+            app=app,
+            document=document,
+            sketch_feature=sketch_feature,
+            dimension=dimension,
+        )
+        if not before["ok"]:
+            result.update(
+                {
+                    key: value
+                    for key, value in before.items()
+                    if key not in ("ok", "action")
+                }
+            )
+            return result
+        result.update(
+            dimension=before["dimension"],
+            before_value_mm=before["dimension"]["value"],
+            equation_control=before["equation_control"],
+            design_table_controlled=before["design_table_controlled"],
+        )
+        if (
+            before["equation_control"]["controlled"]
+            or before["design_table_controlled"]
+        ):
+            raise _DimensionError(
+                "DimensionExternallyControlled",
+                "do not overwrite an equation or design-table controlled diameter",
+            )
+        if (
+            before["dimension"]["driven_state"] != _DRIVING
+            or before["dimension"]["read_only"]
+        ):
+            raise _DimensionError(
+                "DimensionNotDriving", "do not override a driven or read-only dimension"
+            )
+        if not before["geometry_verification"]["passed"]:
+            raise _DimensionError(
+                "DimensionVerificationFailed",
+                "native diameter and source circle do not agree before editing",
+            )
+        center = before["geometry_verification"]["actual_center_mm"]
+        x, y = center["x"], center["y"]
+        measurement_before = _measurement(document)
+        result["downstream"] = {
+            "applicable": measurement_before is not None,
+            "measurement_before": measurement_before,
+            "measurement_after": None,
+        }
+        status = int(
+            dimension.SetSystemValue3(
+                value_mm / 1000, _CURRENT_CONFIGURATION, _variant("empty", None)
+            )
+        )
+        result["native_status"] = status
+        if status != 0:
+            raise _DimensionError(
+                "DimensionSetFailed", "SOLIDWORKS rejected the driving diameter value"
+            )
+        result["rebuilt"] = bool(_com_value(document, "EditRebuild3"))
+        result["needs_rebuild"] = int(
+            _com_value(_com_value(document, "Extension"), "NeedsRebuild2")
+        )
+        result["diagnostics"] = _diagnose_features(document, 500)
+        # Re-resolve ownership after the rebuild; COM success is not evidence of
+        # live, correctly driven geometry or unchanged configuration scope.
+        sketch = _owned_dimension(app, document, sketch_feature, dimension)
+        descriptor = _descriptor(document, dimension)
+        result.update(
+            dimension=descriptor,
+            geometry_verification=_circle_verification(sketch, value_mm / 2, x, y),
+            constraint_status=int(_com_value(sketch, "GetConstrainedStatus")),
+            editing=_com_value(manager, "ActiveSketch") is not None,
+        )
+        measurement_after = _measurement(document)
+        result["downstream"].update(
+            applicable=measurement_before is not None or measurement_after is not None,
+            measurement_after=measurement_after,
+        )
+        if (
+            not result["rebuilt"]
+            or result["needs_rebuild"] != 0
+            or not result["diagnostics"]["healthy"]
+            or result["diagnostics"]["truncated"]
+        ):
+            raise _DimensionError(
+                "ModelInvalid",
+                "updated diameter did not pass complete rebuild diagnostics",
+            )
+        if (
+            descriptor["value"] is None
+            or not math.isclose(
+                descriptor["value"], value_mm, rel_tol=0, abs_tol=_TOLERANCE_MM
+            )
+            or descriptor["configuration"] != before["dimension"]["configuration"]
+            or descriptor["driven_state"] != _DRIVING
+            or descriptor["read_only"]
+            or not result["geometry_verification"]["passed"]
+            or result["editing"]
+            or (measurement_before is not None and measurement_after is None)
+        ):
+            raise _DimensionError(
+                "DimensionVerificationFailed",
+                "final diameter, configuration, circle geometry or downstream evidence did not match",
+            )
+        result["ok"] = True
+        return result
+    except Exception as exc:
+        return _failure(result, exc)
 
 
 def _variant(kind: str, value: Any) -> Any:

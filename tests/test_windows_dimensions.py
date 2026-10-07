@@ -6,7 +6,7 @@ from unittest import mock
 from swcli.hosts import windows_dimensions as dimensions
 
 
-class DiameterCreationTests(unittest.TestCase):
+class DiameterFixture:
     def setUp(self):
         self.radius = 0.005
         self.arc = SimpleNamespace(
@@ -26,7 +26,10 @@ class DiameterCreationTests(unittest.TestCase):
             GetSpecificFeature2=lambda: self.sketch,
             GetOwnerFeature=lambda: None,
             GetNextFeature=lambda: None,
+            GetFirstSubFeature=lambda: None,
+            GetNextSubFeature=lambda: None,
             GetFirstDisplayDimension=lambda: None,
+            GetNextDisplayDimension=lambda display: None,
             Select2=mock.Mock(return_value=True),
         )
         self.manager = SimpleNamespace(ActiveSketch=None)
@@ -37,6 +40,8 @@ class DiameterCreationTests(unittest.TestCase):
             FullName="D1@renamed-sketch@part.Part",
             GetSystemValue2=lambda name: self.radius * 2,
             SetSystemValue3=mock.Mock(side_effect=self.set_value),
+            GetFeatureOwner=lambda: self.feature,
+            IsDesignTableDimension=lambda: False,
         )
         self.edit_call = mock.Mock(side_effect=self.enter_edit)
         self.document = SimpleNamespace(
@@ -51,6 +56,10 @@ class DiameterCreationTests(unittest.TestCase):
             AddDiameterDimension2=mock.Mock(
                 return_value=SimpleNamespace(GetDimension2=lambda index: self.dimension)
             ),
+            GetEquationMgr=lambda: SimpleNamespace(GetCount=lambda: 0),
+            EditRebuild3=lambda: True,
+            Extension=SimpleNamespace(NeedsRebuild2=0),
+            GetBodies2=lambda kind, hidden: (),
         )
         self.preference = True
         self.app = SimpleNamespace(
@@ -92,6 +101,8 @@ class DiameterCreationTests(unittest.TestCase):
             diameter_mm=diameter,
         )
 
+
+class DiameterCreationTests(DiameterFixture, unittest.TestCase):
     def test_actual_driving_value_geometry_and_exact_handle_with_cleanup(self):
         result, handle = self.call()
         self.assertTrue(result["ok"], result)
@@ -298,6 +309,394 @@ class DiameterCreationTests(unittest.TestCase):
         self.assertIs(self.manager.ActiveSketch, self.sketch)
         self.assertTrue(self.preference)
         self.assertEqual(result["warnings"][0]["code"], "sketch-edit-cleanup-failed")
+
+
+class DiameterObservationTests(DiameterFixture, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.feature.GetFirstDisplayDimension = lambda: SimpleNamespace(
+            GetDimension2=lambda index: self.dimension
+        )
+        patcher = mock.patch.object(
+            dimensions,
+            "_diagnose_features",
+            return_value={
+                "healthy": True,
+                "issues": [],
+                "issue_count": 0,
+                "scanned_feature_count": 1,
+                "truncated": False,
+                "limit": 500,
+            },
+        )
+        self.diagnostics = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def inspect(self):
+        return dimensions.inspect_dimension_windows(
+            app=self.app,
+            document=self.document,
+            sketch_feature=self.feature,
+            dimension=self.dimension,
+        )
+
+    def set(self, value=16):
+        return dimensions.set_dimension_windows(
+            app=self.app,
+            document=self.document,
+            sketch_feature=self.feature,
+            dimension=self.dimension,
+            value_mm=value,
+        )
+
+    def assert_read_only(self):
+        self.dimension.SetSystemValue3.assert_not_called()
+        self.document.ClearSelection2.assert_not_called()
+        self.feature.Select2.assert_not_called()
+        self.edit_call.assert_not_called()
+        self.manager.InsertSketch.assert_not_called()
+        self.app.SetUserPreferenceToggle.assert_not_called()
+        self.diagnostics.assert_not_called()
+
+    def equations(self, *expressions):
+        self.document.GetEquationMgr = lambda: SimpleNamespace(
+            GetCount=lambda: len(expressions), Equation=lambda index: expressions[index]
+        )
+
+    def test_inspect_is_factual_read_only_even_for_existing_edit_or_driven_dimension(
+        self,
+    ):
+        self.dimension.DrivenState = 1
+        self.dimension.ReadOnly = True
+        self.manager.ActiveSketch = object()
+        result = self.inspect()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["action"], "dimension.inspect")
+        self.assertEqual(result["dimension"]["value"], 10)
+        self.assertEqual(result["dimension"]["driven_state"], 1)
+        self.assertTrue(result["dimension"]["read_only"])
+        self.assertTrue(result["editing"])
+        self.assertTrue(result["geometry_verification"]["passed"])
+        self.assertFalse(result["equation_control"]["controlled"])
+        self.assert_read_only()
+
+    def test_inspect_and_set_find_absorbed_sketch_by_native_identity(self):
+        owner = SimpleNamespace(
+            GetTypeName2=lambda: "Boss",
+            GetNextFeature=lambda: None,
+            GetFirstSubFeature=lambda: self.feature,
+        )
+        self.feature.GetOwnerFeature = lambda: owner
+        self.document.FirstFeature = lambda: owner
+        self.assertTrue(self.inspect()["ok"])
+        result = self.set()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["dimension"]["value"], 16)
+        self.assertEqual(result["before_value_mm"], 10)
+        self.assertEqual(result["native_status"], 0)
+        self.assertEqual(
+            result["downstream"],
+            {
+                "applicable": False,
+                "measurement_before": None,
+                "measurement_after": None,
+            },
+        )
+        self.dimension.SetSystemValue3.assert_called_once_with(
+            0.016, 1, ("empty", None)
+        )
+        self.edit_call.assert_not_called()
+
+    def test_deleted_cross_document_or_replaced_same_name_dimension_is_rejected(self):
+        for setup, code in (
+            (
+                lambda: setattr(self.document, "FirstFeature", lambda: None),
+                "SketchUnavailable",
+            ),
+            (
+                lambda: setattr(self.dimension, "GetFeatureOwner", lambda: object()),
+                "DimensionUnavailable",
+            ),
+            (
+                lambda: setattr(self.feature, "GetFirstDisplayDimension", lambda: None),
+                "DimensionUnavailable",
+            ),
+            (
+                lambda: setattr(
+                    self.feature,
+                    "GetFirstDisplayDimension",
+                    lambda: SimpleNamespace(
+                        GetDimension2=lambda index: SimpleNamespace(
+                            FullName=self.dimension.FullName
+                        )
+                    ),
+                ),
+                "DimensionUnavailable",
+            ),
+        ):
+            with self.subTest(code=code):
+                self.setUp()
+                setup()
+                self.assertEqual(self.inspect()["error"]["type"], code)
+                self.assertEqual(self.set()["error"]["type"], code)
+                self.assert_read_only()
+
+    def test_exact_dimension_can_follow_another_display_dimension(self):
+        first = SimpleNamespace(GetDimension2=lambda index: object())
+        last = SimpleNamespace(GetDimension2=lambda index: self.dimension)
+        self.feature.GetFirstDisplayDimension = lambda: first
+        self.feature.GetNextDisplayDimension = lambda display: (
+            last if display is first else None
+        )
+        self.assertTrue(self.inspect()["ok"])
+        self.assert_read_only()
+
+    def test_equations_are_observed_and_never_overridden_or_matched_by_rhs(self):
+        self.equations('"global" = 20', '"D2@other" = "D1@renamed-sketch"')
+        self.assertFalse(self.inspect()["equation_control"]["controlled"])
+        for lhs in ("D1@renamed-sketch", self.dimension.FullName.upper()):
+            with self.subTest(lhs=lhs):
+                self.equations('"global" = 20', '"' + lhs + '" = "global"')
+                result = self.inspect()
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(
+                    result["equation_control"],
+                    {"controlled": True, "equation_indices": [1]},
+                )
+                self.assertEqual(
+                    self.set()["error"]["type"], "DimensionExternallyControlled"
+                )
+                self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_unavailable_or_malformed_equation_observation_fails_closed(self):
+        for setup in (
+            lambda: setattr(self.document, "GetEquationMgr", lambda: None),
+            lambda: self.equations("unparseable equation"),
+            lambda: setattr(
+                self.document,
+                "GetEquationMgr",
+                lambda: SimpleNamespace(GetCount=lambda: -1),
+            ),
+            lambda: setattr(
+                self.document,
+                "GetEquationMgr",
+                lambda: SimpleNamespace(GetCount=lambda: 10001),
+            ),
+        ):
+            with self.subTest(setup=setup):
+                self.setUp()
+                setup()
+                self.assertEqual(
+                    self.set()["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assert_read_only()
+
+    def test_external_driven_read_only_or_existing_edit_is_not_overridden(self):
+        for setup, code in (
+            (
+                lambda: setattr(self.dimension, "IsDesignTableDimension", lambda: True),
+                "DimensionExternallyControlled",
+            ),
+            (lambda: setattr(self.dimension, "DrivenState", 1), "DimensionNotDriving"),
+            (lambda: setattr(self.dimension, "ReadOnly", True), "DimensionNotDriving"),
+            (
+                lambda: setattr(self.manager, "ActiveSketch", object()),
+                "SketchEditInProgress",
+            ),
+        ):
+            with self.subTest(code=code):
+                self.setUp()
+                setup()
+                self.assertEqual(self.set()["error"]["type"], code)
+                self.assert_read_only()
+
+    def test_invalid_lengths_are_rejected_before_native_observation(self):
+        self.document.SketchManager = None
+        for value in (0, -1, True, None, "16", math.nan, math.inf, 5e-324, 10**1000):
+            with self.subTest(value=str(value)[:20]):
+                self.assertEqual(self.set(value)["error"]["type"], "InvalidArgument")
+        self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_invalid_or_ambiguous_profile_is_rejected_before_setting(self):
+        for setup in (
+            lambda: setattr(self.arc, "ConstructionGeometry", True),
+            lambda: setattr(self.arc, "IsCircle", lambda: 0),
+            lambda: setattr(
+                self.sketch, "GetSketchSegments", lambda: (self.arc, self.arc)
+            ),
+        ):
+            with self.subTest(setup=setup):
+                self.setUp()
+                setup()
+                self.assertEqual(
+                    self.set()["error"]["type"], "UnsupportedDimensionProfile"
+                )
+                self.assert_read_only()
+
+    def test_native_set_rejection_reports_status_without_rollback(self):
+        self.dimension.SetSystemValue3.side_effect = None
+        self.dimension.SetSystemValue3.return_value = 3
+        result = self.set()
+        self.assertEqual(result["error"]["type"], "DimensionSetFailed")
+        self.assertEqual(result["native_status"], 3)
+        self.diagnostics.assert_not_called()
+        self.dimension.SetSystemValue3.assert_called_once()
+
+    def test_preexisting_dimension_geometry_mismatch_prevents_mutation(self):
+        self.dimension.GetSystemValue2 = lambda configuration: 0.016
+        result = self.inspect()
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["geometry_verification"]["passed"])
+        self.assertEqual(self.set()["error"]["type"], "DimensionVerificationFailed")
+        self.assert_read_only()
+
+    def test_final_value_geometry_center_and_configuration_are_verified_independently(
+        self,
+    ):
+        for defect in (
+            "value",
+            "radius",
+            "center",
+            "configuration",
+            "state",
+            "read_only",
+        ):
+            with self.subTest(defect=defect):
+                self.setUp()
+
+                def false_success(value, configuration, names):
+                    self.radius = 0.008
+                    if defect == "value":
+                        self.dimension.GetSystemValue2 = lambda name: 0.020
+                    elif defect == "radius":
+                        self.radius = 0.006
+                        self.dimension.GetSystemValue2 = lambda name: 0.016
+                    elif defect == "center":
+                        self.arc.GetCenterPoint2 = lambda: SimpleNamespace(
+                            X=0.006, Y=0.004, Z=0
+                        )
+                    elif defect == "configuration":
+                        self.document.ConfigurationManager.ActiveConfiguration.Name = (
+                            "Other"
+                        )
+                    elif defect == "state":
+                        self.dimension.DrivenState = 1
+                    else:
+                        self.dimension.ReadOnly = True
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = false_success
+                result = self.set()
+                self.assertEqual(result["error"]["type"], "DimensionVerificationFailed")
+                self.assertEqual(result["native_status"], 0)
+                self.dimension.SetSystemValue3.assert_called_once()
+
+    def test_rebuild_error_pending_rebuild_warning_and_truncation_are_not_false_success(
+        self,
+    ):
+        for defect in ("rebuild", "pending", "unhealthy", "truncated"):
+            with self.subTest(defect=defect):
+                self.setUp()
+                if defect == "rebuild":
+                    self.document.EditRebuild3 = lambda: False
+                elif defect == "pending":
+                    self.document.Extension.NeedsRebuild2 = 1
+                else:
+                    self.diagnostics.return_value = {
+                        **self.diagnostics.return_value,
+                        "healthy": defect != "unhealthy",
+                        "truncated": defect == "truncated",
+                    }
+                result = self.set()
+                self.assertEqual(result["error"]["type"], "ModelInvalid")
+                self.assertEqual(result["dimension"]["value"], 16)
+
+    def test_downstream_evidence_is_fresh_and_failed_measurement_blocks_success(self):
+        body = SimpleNamespace(
+            GetMassProperties=lambda density: (
+                0,
+                0,
+                0,
+                math.pi * self.radius**2 * 0.01,
+                0.001,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            )
+        )
+        self.document.GetBodies2 = lambda kind, hidden: (body,)
+        result = self.set(20)
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["downstream"]["applicable"])
+        self.assertAlmostEqual(
+            result["downstream"]["measurement_before"]["volume_mm3"],
+            math.pi * 5**2 * 10,
+        )
+        self.assertAlmostEqual(
+            result["downstream"]["measurement_after"]["volume_mm3"],
+            math.pi * 10**2 * 10,
+        )
+        self.setUp()
+        self.document.GetBodies2 = lambda kind, hidden: (
+            SimpleNamespace(GetMassProperties=lambda density: ()),
+        )
+        self.assertEqual(
+            self.set()["error"]["type"], "DownstreamObservationUnavailable"
+        )
+        self.dimension.SetSystemValue3.assert_not_called()
+
+    def test_disappearing_solid_body_or_dimension_after_rebuild_blocks_success(self):
+        for defect in ("body", "dimension"):
+            with self.subTest(defect=defect):
+                self.setUp()
+                if defect == "body":
+                    body = SimpleNamespace(
+                        GetMassProperties=lambda density: (
+                            0,
+                            0,
+                            0,
+                            1e-6,
+                            0.001,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        )
+                    )
+                    self.document.GetBodies2 = lambda kind, hidden: (body,)
+
+                def rebuild():
+                    if defect == "body":
+                        self.document.GetBodies2 = lambda kind, hidden: ()
+                    else:
+                        self.feature.GetFirstDisplayDimension = lambda: None
+                    return True
+
+                self.document.EditRebuild3 = rebuild
+                result = self.set()
+                self.assertEqual(
+                    result["error"]["type"],
+                    (
+                        "DimensionVerificationFailed"
+                        if defect == "body"
+                        else "DimensionUnavailable"
+                    ),
+                )
+                self.assertEqual(result["native_status"], 0)
+
+    def test_nonfinite_value_never_leaks_nan_and_inspect_never_rebuilds(self):
+        self.dimension.GetSystemValue2 = lambda configuration: math.nan
+        result = self.inspect()
+        self.assertEqual(result["error"]["type"], "DimensionObservationUnavailable")
+        self.assertIsNone(result["dimension"]["value"])
+        self.assert_read_only()
 
 
 if __name__ == "__main__":
