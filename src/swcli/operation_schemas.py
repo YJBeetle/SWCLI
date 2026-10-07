@@ -205,6 +205,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.list": _operation(
+        "sketch.list",
+        {"max_sketches": _integer(minimum=1)},
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "sketch.inspect": _operation(
         "sketch.inspect",
         {

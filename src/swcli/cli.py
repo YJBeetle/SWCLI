@@ -264,6 +264,12 @@ def build_parser() -> argparse.ArgumentParser:
         "sketch", help="create or inspect explicit part sketches"
     )
     sketch_commands = sketch_parser.add_subparsers(dest="sketch_command", required=True)
+    sketch_list_parser = sketch_commands.add_parser(
+        "list", help="discover live part sketches without activating or editing"
+    )
+    sketch_list_parser.add_argument("--max-sketches", type=int, default=1000)
+    add_document_selector(sketch_list_parser)
+    sketch_list_parser.add_argument("--json", action="store_true", dest="as_json")
     sketch_inspect_parser = sketch_commands.add_parser(
         "inspect", help="read a registered sketch without editing it"
     )
@@ -763,6 +769,15 @@ def _typed_operation(
     ]
 ]:
     """Map public typed CLI arguments to the daemon-only protocol surface."""
+    if args.command == "sketch" and args.sketch_command == "list":
+        return (
+            "sketch.list",
+            {"max_sketches": args.max_sketches},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            None,
+        )
     if args.command == "sketch" and args.sketch_command == "dimension-diameter":
         return (
             "sketch.dimension-diameter",

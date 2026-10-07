@@ -309,6 +309,26 @@ class DocumentRegistry:
             raise DocumentNotFound(
                 f"document '{entry.document_id}' is no longer registered"
             )
+        for sketch_id, registered in tuple(entry.sketches.items()):
+            if registered is feature:
+                return sketch_id
+            try:
+                compare = self.app.IsSame
+            except AttributeError:
+                continue
+            try:
+                same = int(compare(registered, feature)) == 1
+            except Exception as exc:
+                if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
+                    raise
+                del entry.sketches[sketch_id]
+                for dimension_id, dimension in tuple(entry.dimensions.items()):
+                    if dimension.sketch_id == sketch_id:
+                        del entry.dimensions[dimension_id]
+                continue
+            if same:
+                entry.sketches[sketch_id] = feature
+                return sketch_id
         while True:
             token = "s-" + "".join(
                 secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)

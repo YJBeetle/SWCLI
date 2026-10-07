@@ -654,6 +654,16 @@ _RESULT_FIELDS["sketch.inspect"] = (
         "geometry_complete",
     ),
 )
+_RESULT_FIELDS["sketch.list"] = (
+    {
+        "sketches": {
+            "type": "array",
+            "items": deepcopy(_RESULT_FIELDS["sketch.inspect"][0]["sketch"]),
+        },
+        "count": {"type": "integer", "minimum": 0},
+    },
+    ("document", "sketches", "count"),
+)
 
 
 _CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])

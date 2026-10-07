@@ -56,6 +56,73 @@ def diameter_result(action):
 
 
 class ResultSchemaTests(unittest.TestCase):
+    def test_sketch_list_accepts_empty_or_exact_native_sketch_observations(self):
+        result = {
+            "ok": True,
+            "action": "sketch.list",
+            "document": DOCUMENT,
+            "session_id": "reader",
+            "sketches": [],
+            "count": 0,
+        }
+        validate_operation_result("sketch.list", result)
+        result["sketches"] = [
+            {
+                "sketch_id": "s-ab12cd",
+                "name": "草图1",
+                "type": "ProfileFeature",
+                "constraint_status": 2,
+                "absorbed": False,
+                "owner": None,
+            },
+            {
+                "sketch_id": "s-ab12ef",
+                "name": "Renamed circle",
+                "type": "ProfileFeature",
+                "constraint_status": 1,
+                "absorbed": True,
+                "owner": {"name": "拉伸1", "type": "Boss"},
+            },
+        ]
+        result["count"] = 2
+        validate_operation_result("sketch.list", result)
+        for field, value in (
+            ("sketch_id", "Sketch1"),
+            ("type", "3DProfileFeature"),
+            ("constraint_status", "fully defined"),
+            ("owner", {"name": "Boss1"}),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["sketches"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("sketch.list", invalid)
+        for field in ("document", "sketches", "count"):
+            invalid = copy.deepcopy(result)
+            del invalid[field]
+            with self.subTest(missing=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("sketch.list", invalid)
+
+    def test_sketch_list_failure_can_preserve_only_complete_partial_observations(self):
+        result = {
+            "ok": False,
+            "action": "sketch.list",
+            "error": {
+                "type": "SketchObservationUnavailable",
+                "message": "native read failed",
+            },
+        }
+        validate_operation_result("sketch.list", result)
+        result.update(sketches=[], count=0)
+        validate_operation_result("sketch.list", result)
+        result["sketches"] = [{"name": "partial without native identity"}]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("sketch.list", result)
+        result["sketches"] = []
+        result["ok"] = True
+        del result["error"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("sketch.list", result)
+
     def test_diameter_creation_success_requires_native_and_geometric_evidence(self):
         result = {**diameter_result("sketch.dimension-diameter"), "native_status": 0}
         validate_operation_result("sketch.dimension-diameter", result)

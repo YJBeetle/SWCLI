@@ -457,6 +457,30 @@ def sketch_rectangle(
 
 
 @_register_handler
+def sketch_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_sketch_inspection import list_sketches_windows_with_handles
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result, features = list_sketches_windows_with_handles(
+        app=context.app,
+        document=context.entry.document,
+        max_sketches=values.get("max_sketches", 1000),
+    )
+    if result.get("ok"):
+        sketches = result["sketches"]
+        if len(sketches) != len(features) or result["count"] != len(sketches):
+            raise RuntimeError("native sketch discovery returned inconsistent handles")
+        if any(feature is None for feature in features):
+            raise RuntimeError("native sketch discovery returned an absent feature")
+        for sketch, feature in zip(result["sketches"], features):
+            sketch["sketch_id"] = context.documents.register_sketch(context.entry, feature)
+    return _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+
+
+@_register_handler
 def sketch_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")

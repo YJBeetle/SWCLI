@@ -11,6 +11,25 @@ from swcli.protocol import SCHEMA_NAMES, load_schema
 
 class ProtocolSchemaTests(unittest.TestCase):
 
+    def test_sketch_list_requires_read_policy_and_positive_integer_limit(self):
+        validate_operation_request("sketch.list", {})
+        validate_operation_request(
+            "sketch.list",
+            {"max_sketches": 12},
+            document_id="d-ab12cd",
+            expected_update_stamp=0,
+        )
+        spec = OPERATION_CATALOG["sketch.list"]
+        self.assertTrue(spec.selected_document)
+        self.assertFalse(spec.lease_guarded or spec.temporary_activation)
+        for invalid in (0, -1, True, 1.5, "12"):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                validate_operation_request("sketch.list", {"max_sketches": invalid})
+        with self.assertRaises(ValueError):
+            validate_operation_request("sketch.list", {"sketch_id": "s-ab12cd"})
+        with self.assertRaises(ValueError):
+            validate_operation_request("sketch.list", {}, lease_id="l-ab12cd34ef56")
+
     def test_dimension_operations_require_typed_handles_and_finite_positive_lengths(
         self,
     ):

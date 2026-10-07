@@ -22,6 +22,43 @@ from swcli.operation_schemas import (
 
 class CliTests(unittest.TestCase):
 
+    def test_sketch_list_maps_read_context_and_limit_without_write_options(self):
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "--session",
+                "reader",
+                "sketch",
+                "list",
+                "--max-sketches",
+                "12",
+                "--document",
+                "d-ab12cd",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(args.session, "reader")
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "sketch.list",
+                {"max_sketches": 12},
+                True,
+                "d-ab12cd",
+                0,
+                None,
+            ),
+        )
+        default = parser.parse_args(["sketch", "list"])
+        self.assertEqual(
+            _typed_operation(default),
+            ("sketch.list", {"max_sketches": 1000}, False, None, None, None),
+        )
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parser.parse_args(["sketch", "list", "--lease", "l-ab12cd34ef56"])
+
     def test_driving_diameter_maps_the_sketch_and_write_guards(self):
         args = build_parser().parse_args(
             [
