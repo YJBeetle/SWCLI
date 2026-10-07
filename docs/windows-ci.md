@@ -97,7 +97,8 @@ it also applies to native Windows:
    request;
 11. require graceful daemon shutdown to succeed with the host already absent,
    reject `--attach-existing` when no host exists without creating SOLIDWORKS,
-   then manually launch a visible host and explicitly attach. Verify that daemon
+   then launch a visible host from a separate COM fixture and explicitly attach.
+   Verify that daemon
    stop preserves that host's process, ownership and visibility; attach again,
    terminate only this fixture host, and require the same truthful disconnected
    state, blocked business request and graceful stop as for an owned host;
@@ -106,24 +107,21 @@ it also applies to native Windows:
    then upload the generated native part, render, export, JSON responses, and
    desktop/window diagnostics as evidence.
 
-The manual-start fixture temporarily disables the optional 3DEXPERIENCE
-Marketplace startup flag: it can block normal interactive startup while waiting
-for external services, independently of core CAD/COM operations. The helper
-restores the original default value and registry type in `finally`, or removes
-only a newly created empty fixture key. This is test isolation, not a SWCLI
-startup policy or proof that Marketplace works offline. Product attach mode
-does not change user add-in settings.
+The external-host fixture uses `DispatchEx` from an independent Python STA
+process, with no SWCLI import or daemon connection. It sets the foreground
+`UserControl`/`Visible` properties and waits for native startup completion, then
+exits. The PowerShell gate requires that exact visible SOLIDWORKS PID to survive
+the fixture process exit before attaching swclid. This tests external-instance
+ownership, not whether a human's first double-click startup is fully configured.
+It does not change any add-in or license registry setting, click a dialog or
+accept terms. Startup failure retains desktop diagnostics and fails the gate.
 
-A fresh interactive launch can also display the SOLIDWORKS License Agreement
-before its main window becomes usable, even when automation-created hosts have
-already completed CAD operations. This was observed on the disposable hosted
-runner, not on the user's previously initialized Windows VM. COM registration
-alone does not establish interactive readiness. The test retains the dialog
-screenshot and fails; it does not click Accept or write an acceptance flag.
-Resolve the first-use consent prerequisite through the responsible user and an
-approved test-environment setup, or explicitly redesign that gate's scope.
-Do not treat successful local/native modeling as proof that this hosted manual
-startup gate passed. See the [a4 verification record](verification/a4-2026-10-07.md).
+The previous direct-EXE fixture was replaced: a fresh interactive launch on the
+hosted runner displayed the SOLIDWORKS License Agreement even though its
+COM-created host had already completed modeling/export. That historical failure
+is retained in the [a4 verification record](verification/a4-2026-10-07.md).
+The new fixture does not claim to resolve that first-use GUI prerequisite or
+prove every interactive startup path. Product attach mode remains unchanged.
 
 The Wine `win32u.so` and Wine-Mono patches from DockerSW are intentionally not
 used on native Windows. Only SWCLI-created model/export evidence and disk/cache
