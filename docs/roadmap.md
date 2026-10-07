@@ -39,8 +39,12 @@ Windows evidence. Complete the independent Wine gate before a5 release.
 Read-only `sketch.list` is also implemented on the development branch to recover
 fresh exact 2D sketch handles from opened/reopened native parts. Native Windows
 and Wine discovery gates must pass before release. Discovery of saved diameter
-handles is the next narrow candidate; do not infer dimensions from names or
-claim support for arbitrary dimension types.
+handles is the next narrow candidate. An internal read-only adapter now has
+three-plane Windows source-probe evidence, including background observation,
+but is not a public operation or Wine-verified. Before public wiring, preserve
+explicit unobservable/ambiguous outcomes, strict native metadata and unchanged
+configuration/edit/stamp checks; an empty display chain is not absence proof.
+Do not infer dimensions from names or claim arbitrary dimension support.
 
 1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
