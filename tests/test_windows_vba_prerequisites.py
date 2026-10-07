@@ -12,7 +12,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 WINDOWS_SCRIPTS = ROOT / "scripts" / "ci" / "windows"
 HELPER = WINDOWS_SCRIPTS / "install-vba-prerequisites.ps1"
-CACHE_KEY = "windows-2025-solidworks-2025-sp5-core-v4-vba71"
 
 
 def script(name):
@@ -111,32 +110,54 @@ class WindowsVbaPrerequisiteContractsTests(unittest.TestCase):
         self.assertEqual(source.count('Start-Process -FilePath "msiexec.exe"'), 1)
         self.assertNotIn("solidworks.msi", source.lower())
 
-    def test_cold_and_cache_hit_paths_share_inventory_and_bumped_cache_key(self):
+    def test_hosted_ci_always_uses_full_installation_without_snapshot_replay(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"
         )
-        restore_cache = workflow_step(
-            workflow, "Restore clean SOLIDWORKS installation cache"
-        )
-        save_cache = workflow_step(workflow, "Save clean SOLIDWORKS installation cache")
-        self.assertIn("key: " + CACHE_KEY, restore_cache)
-        self.assertIn(
-            "key: ${{ steps.solidworks-cache.outputs.cache-primary-key }}", save_cache
-        )
-        self.assertEqual(workflow.count(CACHE_KEY), 1)
-        self.assertNotRegex(workflow, r"core-v[123]\b")
-        for step in (
-            "Install native SOLIDWORKS",
-            "Restore cached SOLIDWORKS registry and official prerequisites",
+        hosted = workflow.split("  solidworks-e2e:", 1)[1]
+        for forbidden in (
+            "actions/cache/restore",
+            "actions/cache/save",
+            "solidworks-cache",
+            "SW_CACHE_STATE",
+            "export-solidworks-cache-state.ps1",
+            "restore-solidworks-cache-state.ps1",
         ):
-            self.assertIn(
-                '-InventoryPath "$env:SWCLI_SMOKE_ROOT\\vba-runtime.json"',
-                workflow_step(workflow, step),
-            )
-        self.assertIn(
-            '-VbaSourceDirectory "$env:SW_MEDIA_ROOT\\prereqs\\VBA"',
-            workflow_step(workflow, "Prepare clean installation cache state"),
+            self.assertNotIn(forbidden, hosted)
+        ordered_steps = (
+            "Free disposable runner disk for installation",
+            "Install rclone, WinFsp, and ImDisk",
+            "Prepare protected Google Drive configuration",
+            "Stream Google Drive through WinFsp",
+            "Mount complete streamed ISO with ImDisk proxy",
+            "Fetch private smoke-test runtime",
+            "Install native SOLIDWORKS",
+            "Apply private runtime overlay and start test license service",
+            "Run real SOLIDWORKS modeling and export smoke test",
         )
+        positions = []
+        for name in ordered_steps:
+            step = workflow_step(hosted, name)
+            self.assertNotRegex(step, r"(?m)^\s*if:")
+            positions.append(hosted.index("      - name: " + name))
+        self.assertEqual(positions, sorted(positions))
+        install = workflow_step(hosted, "Install native SOLIDWORKS")
+        self.assertIn("scripts/ci/windows/install-solidworks.ps1", install)
+        self.assertIn("-MediaRoot $env:SW_MEDIA_ROOT", install)
+        self.assertIn(
+            '-InventoryPath "$env:SWCLI_SMOKE_ROOT\\vba-runtime.json"', install
+        )
+        self.assertIn(
+            "scripts/ci/windows/smoke-solidworks.ps1",
+            workflow_step(hosted, "Run real SOLIDWORKS modeling and export smoke test"),
+        )
+        self.assertIn("verify-equation-dimension.py", script("smoke-solidworks.ps1"))
+        # Standalone experimental helpers remain available, not invoked by CI.
+        for step in (
+            "export-solidworks-cache-state.ps1",
+            "restore-solidworks-cache-state.ps1",
+        ):
+            self.assertTrue((WINDOWS_SCRIPTS / step).is_file())
 
     def test_common_helper_uses_bounded_msi_calls_and_safe_inventory(self):
         source = HELPER.read_text(encoding="utf-8")

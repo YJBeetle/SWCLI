@@ -146,7 +146,7 @@ uses the core MSI directly and must install them explicitly. VSTA is a separate
 optional component, not a substitute for VBA. No historical VBA repair patch
 is added to this installation path.
 
-Both fresh installation and cache restoration write `vba-runtime.json` into
+The official VBA prerequisite helper writes `vba-runtime.json` into
 the public smoke-evidence directory, even when a VBA installer fails. It records
 only VBA product names/versions/Installer product keys and the existence/version
 of the native `VBE7.DLL` and English `VBE7INTL.DLL`. Registry inspection does not
@@ -156,39 +156,33 @@ failure cannot replace the original installation failure; with no original
 failure it fails the installation step. The inventory proves neither successful
 VBA initialization inside SOLIDWORKS nor equation evaluation: those still need
 real execution evidence. If either required DLL remains absent after successful
-MSI calls, the installation step fails and no clean cache is saved; an earlier
+MSI calls, the installation step fails; an earlier
 installer failure always keeps its original error. The [official installation FAQ](https://www.solidworks.com/support/frequently-asked-questions?page=1&term_id=417)
 connects failed VBA initialization to unavailable equations/macros, but does not
 establish that every `EquationMgr.Add2` failure has this cause.
 
 ## Installation cache boundary
 
-The hosted workflow restores and saves a versioned repository Actions cache.
-The `core-v4-vba71` cache uses manifest format 2. The previous cache key and
-format are intentionally incompatible; no old-cache migration is performed.
-On a miss, it streams the ISO, installs the official VBA, Login Manager and core
-MSI packages, stops Fast Start,
-exports the required SOLIDWORKS registry keys, and saves the clean installation
-before applying the program overlay. The cache also contains the private test
-overlay, FlexNet files, and licensing registry input so an exact hit can skip
-rclone, WinFsp, ImDisk, ISO access, and the large core MSI. These
-private inputs remain confined to the repository cache: they are never uploaded
-as artifacts or published as release contents. The workflow is intentionally
-not enabled for pull requests; trusted push and manual runs use GitHub's default
-cache-write access.
+SOLIDWORKS installation snapshot restore/save is temporarily disabled. Every
+hosted run performs runner cleanup, streams the ISO, and installs the official
+VBA engine, VBA language package, Login Manager and core MSI before applying the
+private test overlay. The normal modeling, equation, lifecycle and export gates
+remain mandatory; Python package caching is unrelated and remains enabled.
 
-On a hit, the workflow restores the program and shared directories, template
-data, the clean registry snapshot, and the private test inputs. Windows
-Installer state cannot be reconstructed safely from copied VBA or Login Manager
-files. Their complete official media directories, including external CABs, are
-cached with relative layouts. On every hit, `install-vba-prerequisites.ps1`
-reapplies `vba71.msi` followed by `vba71_1033.msi`, then the Login Manager MSI is
-reapplied before importing the SW registry snapshot; the large core MSI remains
-skipped. No MSI product/component registration is synthesized and no copied VBA
-DLL is used as a replacement for installation.
-The workflow also skips the multi-minute aggressive runner cleanup because the
-initial free space is sufficient for restoring the approximately 7 GB
-installation. Cache restoration is never sufficient evidence on its own: the
-same real SWCLI model, render, and export smoke still has to pass before the run
-is successful. Installer logs, mounted media, rclone credentials, and generated
-smoke outputs remain outside the installation cache.
+[Run 37596644263](https://github.com/YJBeetle/SWCLI/actions/runs/37596644263)
+passed with a full fresh installation. The next
+[cache-hit run 37599969164](https://github.com/YJBeetle/SWCLI/actions/runs/37599969164)
+passed the three-plane driving-dimension gate but rejected the unchanged native
+equation fixture (`Add2 = -1`, equation count remained zero). Both runs recorded
+the same VBA product and DLL versions; the cache-hit VBA and Login Manager MSI
+logs reported success. This establishes a behavior difference, not its cause:
+DLL presence does not prove successful VBA initialization inside SOLIDWORKS.
+
+The retained export/restore scripts use manifest format 2 and preserve program
+files plus selected SW configuration and application COM keys. They reinstall
+the official VBA and Login Manager media, but do not recreate the complete
+native core installation or prove parity of its registration state. The hosted
+workflow no longer calls these scripts. Snapshot caching must remain disabled
+until fresh-runner restoration proves native core/VBA integration and passes
+the same real gates. Broad registry imports and fabricated Windows Installer
+product/component registration are not a substitute for that proof.
