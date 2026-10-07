@@ -35,6 +35,7 @@ class CutExtrusionTests(unittest.TestCase):
             FeatureManager=self.manager,
             ClearSelection2=mock.Mock(),
             EditRebuild3=mock.Mock(spec=[], return_value=True),
+            SetPickMode=mock.Mock(spec=[], return_value=None),
         )
         self.app = SimpleNamespace(IsSame=lambda a, b: int(a is b))
         self.before = {
@@ -93,6 +94,7 @@ class CutExtrusionTests(unittest.TestCase):
         self.document.ClearSelection2.assert_has_calls(
             [mock.call(True), mock.call(True)]
         )
+        self.document.SetPickMode.assert_not_called()
 
     def test_reverse_consistently_means_against_sketch_normal(self):
         self.definition.ReverseDirection = False
@@ -113,6 +115,7 @@ class CutExtrusionTests(unittest.TestCase):
         self.assertEqual(self.cut()["error"]["type"], "SketchUnavailable")
         self.measure.assert_not_called()
         self.manager.FeatureCut4.assert_not_called()
+        self.document.SetPickMode.assert_not_called()
 
     def test_missing_before_measurement_or_failed_selection_prevents_cut(self):
         self.measure.side_effect = None
@@ -126,6 +129,69 @@ class CutExtrusionTests(unittest.TestCase):
         self.sketch.Select2.return_value = False
         self.assertEqual(self.cut()["error"]["type"], "SketchSelectionFailed")
         self.manager.FeatureCut4.assert_not_called()
+        self.document.SetPickMode.assert_not_called()
+
+    def test_rejected_cut_finishes_native_command_before_selection_cleanup(self):
+        calls = []
+        state = {"command": -3}
+
+        def native_cut(*arguments):
+            calls.append("cut")
+            state["command"] = 10
+            return None
+
+        def finish():
+            calls.append("pick")
+            state["command"] = -3
+            # SetPickMode is void, not a boolean success API.
+            return None
+
+        self.manager.FeatureCut4.side_effect = native_cut
+        self.document.SetPickMode.side_effect = finish
+        self.document.ClearSelection2.side_effect = lambda value: calls.append("clear")
+        result = self.cut()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "CutExtrusionFailed")
+        self.assertEqual(state["command"], -3)
+        self.assertEqual(calls, ["clear", "cut", "pick", "clear"])
+        self.assertNotIn("warnings", result)
+        self.manager.FeatureCut4.assert_called_once()
+        self.measure.assert_called_once()
+        self.document.EditRebuild3.assert_not_called()
+
+    def test_cut_and_both_cleanup_failures_preserve_the_primary_error(self):
+        self.manager.FeatureCut4.side_effect = RuntimeError("native cut failed")
+        self.document.SetPickMode.side_effect = OSError("cannot finish cut command")
+        self.document.ClearSelection2.side_effect = [None, OSError("cannot clear selection")]
+        result = self.cut()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["message"], "native cut failed")
+        self.assertEqual(
+            [item["code"] for item in result["warnings"]],
+            ["cut-command-cleanup-failed", "selection-cleanup-failed"],
+        )
+        self.document.SetPickMode.assert_called_once_with()
+        self.manager.FeatureCut4.assert_called_once()
+
+    def test_failed_feature_manager_lookup_does_not_cancel_a_native_command(self):
+        class MissingManager:
+            @property
+            def FeatureManager(inner):
+                raise RuntimeError("manager unavailable")
+
+            def __getattr__(inner, name):
+                return getattr(self.document, name)
+
+        result = cuts.cut_extrude_sketch_windows(
+            app=self.app, document=MissingManager(), sketch_feature=self.sketch, depth_mm=20
+        )
+        self.assertEqual(result["error"]["message"], "manager unavailable")
+        self.document.SetPickMode.assert_not_called()
+
+    def test_created_cut_with_later_verification_error_is_not_cancelled(self):
+        self.document.EditRebuild3.return_value = False
+        self.assertEqual(self.cut()["error"]["type"], "ModelInvalid")
+        self.document.SetPickMode.assert_not_called()
 
     def test_no_created_feature_or_unhealthy_rebuild_never_claims_success(self):
         self.manager.FeatureCut4.return_value = None

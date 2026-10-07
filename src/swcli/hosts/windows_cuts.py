@@ -28,6 +28,7 @@ def cut_extrude_sketch_windows(
         }
         return result
     selected = False
+    incomplete_native_cut = False
     try:
         if int(_com_value(document, "GetType")) != 1:
             result["error"] = {
@@ -66,7 +67,9 @@ def cut_extrude_sketch_windows(
         # Native cuts default opposite the sketch normal, unlike bosses. Invert
         # Dir so this CLI's --reverse consistently means opposite the normal.
         # UseFeatScope=False affects all solids; no implicit body selection.
-        feature = _com_value(document, "FeatureManager").FeatureCut4(
+        manager = _com_value(document, "FeatureManager")
+        incomplete_native_cut = True
+        feature = manager.FeatureCut4(
             True,
             False,
             not reverse,
@@ -101,6 +104,7 @@ def cut_extrude_sketch_windows(
                 "message": "SOLIDWORKS did not create the cut feature",
             }
             return result
+        incomplete_native_cut = False
         result.update(
             {
                 "depth_mm": depth_mm,
@@ -167,6 +171,17 @@ def cut_extrude_sketch_windows(
         result["error"] = _error(exc)
         return result
     finally:
+        if incomplete_native_cut:
+            try:
+                # A failed FeatureCut4 can leave ExtrudedCut running even with
+                # no active sketch/UI. ClearSelection2 alone does not end it;
+                # hidden hosts can fault after this document is closed. Finish
+                # only our incomplete native command, preserving the cut error.
+                document.SetPickMode()
+            except Exception as exc:
+                result.setdefault("warnings", []).append(
+                    {"code": "cut-command-cleanup-failed", "message": str(exc)}
+                )
         if selected:
             try:
                 document.ClearSelection2(True)
