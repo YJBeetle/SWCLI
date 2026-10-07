@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 from .windows import _com_value, _error
 from .windows_documents import _diagnose_features
 from .windows_measurements import measure_part_windows
-from .windows_sketches import _circle_verification, _unabsorbed_profile
+from .windows_sketches import _unabsorbed_profile
 
 _INPUT_VALUE_ON_CREATE = 10
 _DRIVING = 2
@@ -133,31 +133,90 @@ def _owned_dimension(
     )
 
 
-def _circle(sketch: Any) -> Tuple[float, float, float]:
+def _millimeters(obj: Any, member: str) -> float:
+    value = _com_value(obj, member)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", f"native {member} is not numeric"
+        )
+    try:
+        value = float(value) * 1000
+    except OverflowError as exc:
+        raise _DimensionError(
+            "DimensionObservationUnavailable", f"native {member} is invalid"
+        ) from exc
+    if not math.isfinite(value):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", f"native {member} is invalid"
+        )
+    return value
+
+
+def _circle_geometry(sketch: Any) -> Tuple[Any, float, float, float, float]:
     segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
     if (
         len(segments) != 1
-        or bool(_com_value(segments[0], "ConstructionGeometry"))
-        or int(_com_value(segments[0], "GetType")) != 1
-        or int(_com_value(segments[0], "IsCircle")) != 1
+        or _boolean(segments[0], "ConstructionGeometry")
+        or _integer(segments[0], "GetType") != 1
     ):
         raise _DimensionError(
             "UnsupportedDimensionProfile",
             "require exactly one complete non-construction circle",
         )
     arc = segments[0]
+    complete = _integer(arc, "IsCircle")
+    if complete not in (0, 1):
+        raise _DimensionError(
+            "DimensionObservationUnavailable",
+            "native IsCircle is not a supported value",
+        )
+    if complete != 1:
+        raise _DimensionError(
+            "UnsupportedDimensionProfile",
+            "require exactly one complete non-construction circle",
+        )
     point = _com_value(arc, "GetCenterPoint2")
-    coordinates = tuple(float(_com_value(point, axis)) * 1000 for axis in "XYZ")
-    radius = float(_com_value(arc, "GetRadius")) * 1000
-    if (
-        not all(math.isfinite(v) for v in (*coordinates, radius))
-        or radius <= 0
-        or not math.isclose(coordinates[2], 0, rel_tol=0, abs_tol=_TOLERANCE_MM)
+    coordinates = tuple(_millimeters(point, axis) for axis in "XYZ")
+    radius = _millimeters(arc, "GetRadius")
+    if radius <= 0 or not math.isclose(
+        coordinates[2], 0, rel_tol=0, abs_tol=_TOLERANCE_MM
     ):
         raise _DimensionError(
             "DimensionObservationUnavailable", "native circle geometry is invalid"
         )
-    return radius, coordinates[0], coordinates[1]
+    return arc, radius, *coordinates
+
+
+def _circle(sketch: Any) -> Tuple[float, float, float]:
+    _, radius, x, y, _ = _circle_geometry(sketch)
+    return radius, x, y
+
+
+def _diameter_circle_verification(
+    sketch: Any, radius_mm: float, center_x_mm: float, center_y_mm: float
+) -> Dict[str, Any]:
+    # Build the proof from one strict native snapshot. The generic sketch
+    # verifier's truthiness/integer conversions cannot establish eligibility.
+    _, radius, x, y, z = _circle_geometry(sketch)
+    center = {"x": x, "y": y, "z": z}
+    return {
+        "passed": all(
+            math.isclose(actual, expected, rel_tol=0, abs_tol=_TOLERANCE_MM)
+            for actual, expected in (
+                (radius, radius_mm),
+                (x, center_x_mm),
+                (y, center_y_mm),
+                (z, 0),
+            )
+        ),
+        "method": "sketch-local-circle",
+        "segment_count": 1,
+        "profile_segment_count": 1,
+        "complete_circle": True,
+        "actual_radius_mm": radius,
+        "actual_center_mm": center,
+        "absolute_tolerance_mm": _TOLERANCE_MM,
+    }
 
 
 def _descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
@@ -275,7 +334,7 @@ def inspect_dimension_windows(
         descriptor = _descriptor(document, dimension)
         result.update(
             dimension=descriptor,
-            geometry_verification=_circle_verification(
+            geometry_verification=_diameter_circle_verification(
                 sketch,
                 (
                     descriptor["value"] / 2
@@ -395,7 +454,9 @@ def set_dimension_windows(
         design_table = _boolean(dimension, "IsDesignTableDimension")
         result.update(
             dimension=descriptor,
-            geometry_verification=_circle_verification(sketch, value_mm / 2, x, y),
+            geometry_verification=_diameter_circle_verification(
+                sketch, value_mm / 2, x, y
+            ),
             constraint_status=int(_com_value(sketch, "GetConstrainedStatus")),
             editing=_com_value(manager, "ActiveSketch") is not None,
             equation_control=equation_control,
@@ -520,32 +581,17 @@ def create_circle_diameter_windows_with_handle(
             }
             return result, None
         sketch = _com_value(sketch_feature, "GetSpecificFeature2")
-        segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
-        if (
-            len(segments) != 1
-            or bool(_com_value(segments[0], "ConstructionGeometry"))
-            or int(_com_value(segments[0], "GetType")) != 1
-            or int(_com_value(segments[0], "IsCircle")) != 1
-        ):
-            result["error"] = {
-                "type": "UnsupportedDimensionProfile",
-                "message": "require exactly one complete non-construction circle",
-            }
-            return result, None
+        arc, radius_mm, x_mm, y_mm, _ = _circle_geometry(sketch)
         if _com_value(sketch_feature, "GetFirstDisplayDimension") is not None:
             result["error"] = {
                 "type": "SketchAlreadyDimensioned",
                 "message": "the profile already has dimensions; do not add an ambiguous duplicate",
             }
             return result, None
-        arc = segments[0]
-        center = _com_value(arc, "GetCenterPoint2")
-        x, y, z = (float(_com_value(center, axis)) for axis in "XYZ")
-        radius = float(_com_value(arc, "GetRadius"))
-        if not all(math.isfinite(v) for v in (x, y, z, radius)) or radius <= 0:
-            raise RuntimeError("SOLIDWORKS returned invalid source circle geometry")
         configuration = _configuration(document)
-        location = _annotation_location(app, sketch, x + radius * 2, y + radius * 2)
+        location = _annotation_location(
+            app, sketch, (x_mm + radius_mm * 2) / 1000, (y_mm + radius_mm * 2) / 1000
+        )
         document.ClearSelection2(True)
         selected = True
         if not sketch_feature.Select2(False, 0):
@@ -614,7 +660,9 @@ def create_circle_diameter_windows_with_handle(
         entered = False
         descriptor = _descriptor(document, dimension)
         actual = descriptor["value"]
-        verification = _circle_verification(sketch, diameter_mm / 2, x * 1000, y * 1000)
+        verification = _diameter_circle_verification(
+            sketch, diameter_mm / 2, x_mm, y_mm
+        )
         result.update(
             dimension=descriptor,
             geometry_verification=verification,

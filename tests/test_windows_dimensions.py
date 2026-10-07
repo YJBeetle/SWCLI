@@ -13,6 +13,12 @@ INVALID_METADATA = (
     ("IsDesignTableDimension", (None, 0, 1, "false")),
 )
 INVALID_NATIVE_VALUES = (None, True, False, "0.016", 0, -1, math.nan, math.inf)
+INVALID_CIRCLE_FLAGS = (
+    ("ConstructionGeometry", (None, 0, 1, 0.0, 1.5, "false")),
+    ("GetType", (None, True, False, 1.0, 1.5, "1")),
+    ("IsCircle", (None, True, False, 1.0, 1.5, "1", -1, 2)),
+)
+INVALID_CIRCLE_NUMBERS = (None, True, False, "0.005", math.nan, math.inf, 10**1000)
 
 
 class DiameterFixture:
@@ -113,6 +119,16 @@ class DiameterFixture:
             GetCount=lambda: count, Equation=lambda index: entry
         )
 
+    def set_circle_member(self, member, value):
+        if member in "XYZ":
+            point = SimpleNamespace(X=0.003, Y=0.004, Z=0.0)
+            setattr(point, member, value)
+            self.arc.GetCenterPoint2 = lambda: point
+        elif member == "ConstructionGeometry":
+            setattr(self.arc, member, value)
+        else:
+            setattr(self.arc, member, lambda: value)
+
     def call(self, diameter=16):
         return dimensions.create_circle_diameter_windows_with_handle(
             app=self.app,
@@ -211,6 +227,120 @@ class DiameterCreationTests(DiameterFixture, unittest.TestCase):
         self.assertIsNone(handle)
         self.assertIsNone(self.manager.ActiveSketch)
         self.app.SetUserPreferenceToggle.assert_not_called()
+
+    def test_unknown_circle_flags_fail_before_creation_or_setting(self):
+        for member, values in INVALID_CIRCLE_FLAGS:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    result, handle = self.call()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.assertIsNone(handle)
+                    self.document.AddDiameterDimension2.assert_not_called()
+                    self.dimension.SetSystemValue3.assert_not_called()
+                    self.document.ClearSelection2.assert_not_called()
+                    self.edit_call.assert_not_called()
+
+    def test_unknown_circle_numbers_fail_before_creation_or_setting(self):
+        for member in ("GetRadius", "X", "Y", "Z"):
+            for value in INVALID_CIRCLE_NUMBERS:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    result, handle = self.call()
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.assertIsNone(handle)
+                    self.document.AddDiameterDimension2.assert_not_called()
+                    self.dimension.SetSystemValue3.assert_not_called()
+                    self.edit_call.assert_not_called()
+                    json.dumps(result, allow_nan=False)
+
+    def test_unreadable_circle_flags_or_geometry_do_not_create_a_dimension(self):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def failing():
+                    raise RuntimeError("native circle unavailable")
+
+                self.set_circle_member(member, failing)
+                if member not in ("ConstructionGeometry", "X"):
+                    setattr(self.arc, member, failing)
+                result, handle = self.call()
+                self.assertEqual(result["error"]["type"], "RuntimeError")
+                self.assertIsNone(handle)
+                self.document.AddDiameterDimension2.assert_not_called()
+                self.dimension.SetSystemValue3.assert_not_called()
+                self.edit_call.assert_not_called()
+
+    def test_unknown_post_creation_circle_retains_partial_handle_and_native_status(
+        self,
+    ):
+        for member, values in INVALID_CIRCLE_FLAGS + tuple(
+            (member, INVALID_CIRCLE_NUMBERS) for member in ("GetRadius", "X", "Y", "Z")
+        ):
+            for value in values:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+
+                    def changed_circle(native_value, configuration, names):
+                        self.set_value(native_value, configuration, names)
+                        self.set_circle_member(member, value)
+                        return 0
+
+                    self.dimension.SetSystemValue3.side_effect = changed_circle
+                    result, handle = self.call()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.assertIs(handle, self.dimension)
+                    self.assertEqual(result["native_status"], 0)
+                    self.assertIn(
+                        "modification may have happened", result["error"]["message"]
+                    )
+                    self.dimension.SetSystemValue3.assert_called_once()
+                    self.assertIsNone(self.manager.ActiveSketch)
+                    self.assertTrue(self.preference)
+                    self.assertNotIn("geometry_verification", result)
+                    json.dumps(result, allow_nan=False)
+
+    def test_failed_post_creation_circle_readback_retains_native_write_and_cleanup(
+        self,
+    ):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_circle(native_value, configuration, names):
+                    self.set_value(native_value, configuration, names)
+
+                    def failing():
+                        raise RuntimeError("native circle unavailable after creation")
+
+                    self.set_circle_member(member, failing)
+                    if member not in ("ConstructionGeometry", "X"):
+                        setattr(self.arc, member, failing)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = changed_circle
+                result, handle = self.call()
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["error"]["type"], "RuntimeError")
+                self.assertIs(handle, self.dimension)
+                self.assertEqual(result["native_status"], 0)
+                self.assertIn(
+                    "modification may have happened", result["error"]["message"]
+                )
+                self.dimension.SetSystemValue3.assert_called_once()
+                self.assertIsNone(self.manager.ActiveSketch)
+                self.assertTrue(self.preference)
 
     def test_creation_failure_restores_preference_and_exits_our_edit(self):
         self.document.AddDiameterDimension2.side_effect = RuntimeError(
@@ -702,6 +832,144 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
                     self.set()["error"]["type"], "UnsupportedDimensionProfile"
                 )
                 self.assert_read_only()
+
+    def test_unknown_circle_flags_block_inspect_and_native_setting(self):
+        for member, values in INVALID_CIRCLE_FLAGS:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    for observe in (self.inspect, self.set):
+                        result = observe()
+                        self.assertFalse(result["ok"], result)
+                        self.assertEqual(
+                            result["error"]["type"], "DimensionObservationUnavailable"
+                        )
+                        self.assertNotIn("geometry_verification", result)
+                    self.assert_read_only()
+
+    def test_unknown_circle_numbers_block_inspect_and_native_setting(self):
+        for member in ("GetRadius", "X", "Y", "Z"):
+            for value in INVALID_CIRCLE_NUMBERS:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    for observe in (self.inspect, self.set):
+                        result = observe()
+                        self.assertEqual(
+                            result["error"]["type"], "DimensionObservationUnavailable"
+                        )
+                        json.dumps(result, allow_nan=False)
+                    self.assert_read_only()
+
+    def test_native_numeric_circle_preserves_exact_observed_center(self):
+        self.radius = 1
+        self.arc.GetCenterPoint2 = lambda: SimpleNamespace(X=-1, Y=1, Z=2e-10)
+        result = self.inspect()
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["geometry_verification"]["passed"])
+        self.assertEqual(result["geometry_verification"]["actual_radius_mm"], 1000)
+        center = result["geometry_verification"]["actual_center_mm"]
+        self.assertEqual((center["x"], center["y"]), (-1000, 1000))
+        self.assertAlmostEqual(center["z"], 2e-7)
+        self.assert_read_only()
+
+    def test_unreadable_circle_blocks_inspect_and_setting_without_mutation(self):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def failing():
+                    raise RuntimeError("native circle unavailable")
+
+                self.set_circle_member(member, failing)
+                if member not in ("ConstructionGeometry", "X"):
+                    setattr(self.arc, member, failing)
+                for observe in (self.inspect, self.set):
+                    result = observe()
+                    self.assertEqual(result["error"]["type"], "RuntimeError")
+                self.assert_read_only()
+
+    def test_unknown_later_circle_readback_is_not_a_successful_inspection(self):
+        for member, value in (
+            ("ConstructionGeometry", None),
+            ("GetType", 1.5),
+            ("IsCircle", True),
+            ("GetRadius", "0.005"),
+            ("X", False),
+        ):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_circle(configuration):
+                    self.set_circle_member(member, value)
+                    return self.radius * 2
+
+                self.dimension.GetSystemValue2 = changed_circle
+                result = self.inspect()
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertNotIn("geometry_verification", result)
+                self.assert_read_only()
+
+    def test_unknown_post_set_circle_preserves_successful_native_write_evidence(self):
+        for member, values in INVALID_CIRCLE_FLAGS + tuple(
+            (member, INVALID_CIRCLE_NUMBERS) for member in ("GetRadius", "X", "Y", "Z")
+        ):
+            for value in values:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+
+                    def changed_circle(native_value, configuration, names):
+                        self.set_value(native_value, configuration, names)
+                        self.set_circle_member(member, value)
+                        return 0
+
+                    self.dimension.SetSystemValue3.side_effect = changed_circle
+                    result = self.set()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.assertEqual(result["native_status"], 0)
+                    self.assertEqual(result["before_value_mm"], 10)
+                    self.assertIn("downstream", result)
+                    self.assertIn(
+                        "modification may have happened", result["error"]["message"]
+                    )
+                    self.dimension.SetSystemValue3.assert_called_once()
+                    self.assertNotIn("geometry_verification", result)
+                    json.dumps(result, allow_nan=False)
+
+    def test_failed_post_set_circle_readback_retains_native_and_before_evidence(self):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_circle(native_value, configuration, names):
+                    self.set_value(native_value, configuration, names)
+
+                    def failing():
+                        raise RuntimeError("native circle unavailable after setting")
+
+                    self.set_circle_member(member, failing)
+                    if member not in ("ConstructionGeometry", "X"):
+                        setattr(self.arc, member, failing)
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = changed_circle
+                result = self.set()
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["error"]["type"], "RuntimeError")
+                self.assertEqual(result["native_status"], 0)
+                self.assertEqual(result["before_value_mm"], 10)
+                self.assertIn("downstream", result)
+                self.assertIn(
+                    "modification may have happened", result["error"]["message"]
+                )
+                self.dimension.SetSystemValue3.assert_called_once()
 
     def test_native_set_rejection_reports_status_without_rollback(self):
         self.dimension.SetSystemValue3.side_effect = None

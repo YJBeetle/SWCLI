@@ -22,13 +22,13 @@ from .windows_dimensions import (
     _boolean,
     _circle,
     _configuration,
+    _diameter_circle_verification,
     _descriptor,
     _equation_control,
     _failure,
     _integer,
 )
 from .windows_sketch_inspection import _feature_id, _list_features
-from .windows_sketches import _circle_verification
 
 _DISPLAY_LIMIT = 10000
 
@@ -172,7 +172,7 @@ def discover_circle_diameter_windows_with_handle(
         native, descriptor = candidates[0]
         result.update(
             dimension=descriptor,
-            geometry_verification=_circle_verification(
+            geometry_verification=_diameter_circle_verification(
                 sketch, descriptor["value"] / 2, x, y
             ),
             constraint_status=_integer(sketch, "GetConstrainedStatus"),

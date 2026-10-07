@@ -9,6 +9,13 @@ from unittest import mock
 from swcli.hosts import windows_dimension_discovery as discovery
 from swcli.hosts import windows_dimensions as dimensions
 
+INVALID_CIRCLE_FLAGS = (
+    ("ConstructionGeometry", (None, 0, 1, 0.0, 1.5, "false")),
+    ("GetType", (None, True, False, 1.0, 1.5, "1")),
+    ("IsCircle", (None, True, False, 1.0, 1.5, "1", -1, 2)),
+)
+INVALID_CIRCLE_NUMBERS = (None, True, False, "0.01", math.nan, math.inf, 10**1000)
+
 
 class Native:
     def __init__(self, *, identity=None):
@@ -179,6 +186,16 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             self.assertEqual(result["error"]["type"], expected, result)
         return result
 
+    def set_circle_member(self, member, value):
+        if member in "XYZ":
+            point = SimpleNamespace(X=0.003, Y=0.004, Z=0)
+            setattr(point, member, value)
+            self.arc.GetCenterPoint2 = lambda: point
+        elif member == "ConstructionGeometry":
+            setattr(self.arc, member, value)
+        else:
+            setattr(self.arc, member, lambda: value)
+
     def test_exact_current_configuration_diameter_is_observed_without_mutation(self):
         result, native = self.call()
         self.assertTrue(result["ok"], result)
@@ -281,6 +298,82 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         self.assert_failure("UnsupportedDimensionProfile")
         self.document.GetType = lambda: 2
         self.assert_failure("UnsupportedDocumentType")
+
+    def test_unknown_circle_flags_cannot_publish_a_native_handle(self):
+        for member, values in INVALID_CIRCLE_FLAGS:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    result = self.assert_failure("DimensionObservationUnavailable")
+                    self.assertNotIn("dimension", result)
+                    self.assertNotIn("geometry_verification", result)
+                    self.dimension.GetSystemValue2.assert_not_called()
+
+    def test_unknown_circle_numbers_cannot_publish_a_native_handle(self):
+        for member in ("GetRadius", "X", "Y", "Z"):
+            for value in INVALID_CIRCLE_NUMBERS:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+                    self.set_circle_member(member, value)
+                    result = self.assert_failure("DimensionObservationUnavailable")
+                    self.assertNotIn("dimension", result)
+                    self.assertNotIn("geometry_verification", result)
+                    self.dimension.GetSystemValue2.assert_not_called()
+
+    def test_unreadable_circle_flags_or_geometry_never_publish_a_native_handle(self):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            for error in (
+                RuntimeError("native circle unavailable"),
+                ComError(0x80010001),
+            ):
+                with self.subTest(member=member, error=type(error).__name__):
+                    self.setUp()
+
+                    def failing():
+                        raise error
+
+                    self.set_circle_member(member, failing)
+                    if member not in ("ConstructionGeometry", "X"):
+                        setattr(self.arc, member, failing)
+                    self.assert_failure(type(error).__name__)
+                    self.dimension.GetSystemValue2.assert_not_called()
+
+    def test_unknown_later_circle_observation_cannot_hide_behind_unchanged_stamp(self):
+        for member, values in INVALID_CIRCLE_FLAGS + tuple(
+            (member, INVALID_CIRCLE_NUMBERS) for member in ("GetRadius", "X", "Y", "Z")
+        ):
+            for value in values:
+                with self.subTest(member=member, value=str(value)[:20]):
+                    self.setUp()
+
+                    def changed_circle(configuration):
+                        self.set_circle_member(member, value)
+                        return self.dimension.value
+
+                    self.dimension.GetSystemValue2.side_effect = changed_circle
+                    result = self.assert_failure("DimensionObservationUnavailable")
+                    self.assertTrue(result["observation"]["unchanged"])
+                    self.assertNotIn("geometry_verification", result)
+
+    def test_failed_later_circle_readback_does_not_publish_observed_candidate(self):
+        for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
+            with self.subTest(member=member):
+                self.setUp()
+
+                def changed_circle(configuration):
+                    def failing():
+                        raise ComError(0x80010001)
+
+                    self.set_circle_member(member, failing)
+                    if member not in ("ConstructionGeometry", "X"):
+                        setattr(self.arc, member, failing)
+                    return self.dimension.value
+
+                self.dimension.GetSystemValue2.side_effect = changed_circle
+                result = self.assert_failure("ComError")
+                self.assertTrue(result["observation"]["unchanged"])
+                self.assertNotIn("geometry_verification", result)
 
     def test_exact_native_feature_not_its_id_or_name_selects_target(self):
         wrapper = Feature(73, sketch=self.sketch)
