@@ -448,3 +448,11 @@ The late-bound Windows adapter may choose a simpler compatible API overload
 when pywin32 cannot marshal optional COM interface parameters. Such fallbacks
 must preserve native error codes and require runtime evidence, not merely a
 successful dispatch call.
+
+An attempted `FeatureCut4` that returns no feature or raises can retain its
+native ExtrudedCut command even when no sketch edit/UI is active. The cut
+adapter finishes that incomplete command with the documented `SetPickMode`
+before selection cleanup. It retains the original cut failure and reports any
+command/selection cleanup failures independently; it neither retries the cut,
+restarts the host nor treats cleanup as geometric rollback. Successful native
+cuts and rejections before the native call do not take this cleanup path.

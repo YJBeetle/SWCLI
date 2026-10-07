@@ -168,10 +168,55 @@ None return must not be misclassified as failure.
 
 These controls support incomplete native-command cleanup as an actionable
 adapter defect on both hosts. They do not prove an internal Wine source defect.
-The proposed narrow runtime change ends only an attempted native cut that
+The narrow runtime change in `e164b50` ends only an attempted native cut that
 returned no feature or raised, preserves its original failure and independently
 reports cleanup errors; successful cuts and pre-call rejections are unchanged.
-Direct controls are not yet full installed public CLI/gate proof of that change.
+Direct controls alone are not full installed public CLI/gate proof.
+
+## Candidate adapter verification
+
+The portable suite after runtime/CI changes ran **568 tests**: **560 passed**,
+eight Windows-only execution tests skipped on macOS. All Windows CI PowerShell
+scripts parsed on the native VM. The cleanup tests cover void return semantics,
+ordering before selection cleanup, one native attempt, retention of the primary
+error, independent cleanup warnings, and no command cancellation on pre-call
+rejections or completed features with later verification errors.
+
+A wheel containing the `e164b50` runtime change was built and passed Twine
+validation. SHA-256:
+`1e9828245ef7baf9e697a78ab7bcffb119e60b01743cfd431417fcc126a2ea12`.
+It was force-installed without dependency/source overrides into the existing
+isolated Windows environment. Isolated Python imported `windows_cuts.py` from
+that environment's `Lib\site-packages`, not the checkout; regular/global a4
+installations were not upgraded.
+
+| Hidden public sequence | Evidence / result |
+| --- | --- |
+| Windows installed wheel, core modeling then driving | `C:\Workspace\SWCLI-tests\pick-cleanup-public-hidden-20261008-v2`; 85 modeling events, all three core cases; 242 driving events on front/top/right; unchanged PID 3992, empty cleanup errors, clean daemon stop |
+| Windows updated complete host wrapper (`-Hidden`) | `C:\Workspace\SWCLI-tests\pick-cleanup-wrapper-hidden-20261008-v2`; installed-sample/modeling/driving gates, native save/reopen/render/STEP, public Unicode plate example and owned/attached disconnect/shutdown checks passed |
+| Wine fresh foreground CLI reproduction | `fresh-hidden-adapter-cleanup`; no diagnostic SetPickMode call, no restart/retry; target passed, same PID 608, empty cleanup errors/documents |
+| Wine fresh background CLI reproduction + complete shared modeling/driving | `fresh-hidden-adapter-gates`; 97 modeling events including samples and rejected-cut continuation, 242 driving events on front/top/right; unchanged PID 616, empty cleanup errors, empty final document list |
+
+The Wine candidate uses a separate `source-pick-cleanup` snapshot; the earlier
+unfixed source remains intact for the controls above. No native retries or
+intervening daemon/host restarts occurred within these consecutive sequences.
+The six DockerSW delivery exports and fresh hosted promotion remain independent
+proof boundaries, not implied by modeling success.
+
+Two diagnostic harness mistakes were preserved rather than counted as native
+failures: the first Windows public-gate launcher passed Select-String arguments
+positionally and failed before modeling; the first Wine driving invocation
+omitted `--cli-command`, so isolated Linux Python reported `No module named
+swcli` during its CLI projection. Corrected invocations used new evidence
+directories/fresh owned hosts and did not retry a failed native operation.
+
+The first complete hidden Windows wrapper passed public modeling/driving but
+its Windows-only equation fixture could not attach via `GetActiveObject`
+(`0x800401E3`, stage `attach-existing-host`). That fixture now remains mandatory
+in the separate visible CI run. Hidden mode does not switch visibility or
+Dispatch another host for equation setup; all public gates and lifecycle
+assertions remain mandatory. Its failed first record is retained under the
+original `pick-cleanup-wrapper-hidden-20261008` directory.
 
 ## Interpretation and remaining work
 
@@ -196,10 +241,10 @@ Direct controls are not yet full installed public CLI/gate proof of that change.
   timed out during new-document creation; subsequent startup failed. That
   confounded result is retained as `hidden-foreground-v2`, but is not used as
   a fresh-prefix cut-trigger proof.
-- Next verification moves the selection-mode cleanup inside the native adapter
-  and runs the shared public modeling/driving gates on both hosts. A successful
-  cancellation return alone is insufficient. Any runtime change must pass that
-  full sequence without retries, weakened assertions or hidden host replacement.
+- The adapter cleanup has passed the shared public modeling/driving sequences
+  above on both hidden hosts. Fresh hosted Windows dual-mode CI and DockerSW
+  hidden-mode export/modeling/driving/promotion are still separate requirements.
+  A successful cancellation return alone remains insufficient evidence.
 
 For earlier CI and Windows evidence, see
 [the a5 verification record](a5-2026-10-07.md).
