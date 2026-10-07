@@ -200,8 +200,34 @@ installations were not upgraded.
 The Wine candidate uses a separate `source-pick-cleanup` snapshot; the earlier
 unfixed source remains intact for the controls above. No native retries or
 intervening daemon/host restarts occurred within these consecutive sequences.
-The six DockerSW delivery exports and fresh hosted promotion remain independent
-proof boundaries, not implied by modeling success.
+The same hidden Wine PID 616 subsequently completed the unmodified DockerSW
+six-export script. Both STEP files contain `ISO-10303-21;`, both PDF files were
+identified as PDF 1.4, and both DWG files were identified as AutoCAD 2000 DWG.
+The formal script returned zero and the final document list was empty:
+
+| Artifact | Bytes |
+| --- | ---: |
+| `Paper Airplane.STEP` | 113426 |
+| `bezel moldbase.STEP` | 3491004 |
+| `bezel moldbase.PDF` | 222097 |
+| `bezel moldbase.DWG` | 424267 |
+| `cabinet_bath.PDF` | 320213 |
+| `cabinet_bath.DWG` | 472759 |
+
+Files and `export.log` are retained in `fresh-hidden-adapter-gates/output` and
+its case directory. This local order was modeling -> driving -> exports; the
+fresh hosted DockerSW candidate must independently verify its delivery order
+exports -> modeling -> driving and image promotion. No publication/promotion
+is implied by the local artifact or gate passes.
+
+A read-only audit against the current Schemas checked 479 complete captured
+protocol-response positions, 404 CLI result positions, 474 business-result
+positions and 18 capabilities positions across the installed hidden Windows
+and hidden Wine public records, with no mismatch. These counts include repeated
+evidence positions, not independent calls. Only documented CLI metadata absent
+from an operation's result Schema was removed; business `session_id` fields
+required by an operation were retained. Missing original request packets were
+not reconstructed as evidence.
 
 Two diagnostic harness mistakes were preserved rather than counted as native
 failures: the first Windows public-gate launcher passed Select-String arguments
@@ -248,3 +274,26 @@ original `pick-cleanup-wrapper-hidden-20261008` directory.
 
 For earlier CI and Windows evidence, see
 [the a5 verification record](a5-2026-10-07.md).
+
+## Earlier visible DockerSW CI timeout
+
+[DockerSW run 37697651663](https://github.com/YJBeetle/DockerSW/actions/runs/37697651663)
+at `9067827` completed with a failure in `Build & Verify SolidWorks Images` /
+`Smoke test SWCLI modeling & protocol`: the step exceeded its ten-minute limit.
+The public artifact `sw-cli-export-smoke-37697651663` contains all six formal
+exports, but modeling checkpoint state is `running`, stage
+`sketch.circle.started`, with zero completed cases. Its last in-flight command
+is a Top-plane radius-8 mm circle centered at (120,20) mm in the first model.
+The prior extrusion completed successfully; the recorded host was visible,
+owned and PID 608. Several ordinary modeling calls consumed 40–80 seconds.
+
+There is no recorded `InsertSketch / 0x800703E6` or lease-expiry failure in that
+unfinished checkpoint, and it never reached the later rejected-cut continuation
+case. The empty cleanup-error array in a killed/running record is not proof of
+successful cleanup. Driving/localized gates and image promotion did not run.
+The timeout is distinct from the hidden-mode native defect above.
+
+DockerSW `ac0959c` retains the ten-minute budget and tests the actual default
+hidden delivery host, including a strict `host.visible=false` startup readback.
+Visible-mode performance remains a separate observation; switching the delivery
+gate to its real default is not a claim that the slower visible path was fixed.
