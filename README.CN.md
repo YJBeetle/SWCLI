@@ -392,7 +392,7 @@ python -m unittest discover -s tests -v
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-CI 会在 Windows 2025 上使用 Python 3.9 和 3.14 运行单元测试，并在 Linux 上构建和检查发行包；这两类任务都不声称能够证明 Wine 兼容性。真实 SOLIDWORKS 建模会在一次性的 GitHub-hosted Windows runner 上，使用带版本的安装缓存进行验证；经过补丁的 Wine 集成仍由 DockerSW 和 MacSW 负责。另一个手动 probe 用于诊断磁盘清理和 Google Drive ISO 流式访问，但不会宣称 Windows Server 是受支持的 SOLIDWORKS 客户端环境。详见 [Windows CI](docs/windows-ci.md)。
+CI 会在 Windows 2025 上使用 Python 3.9 和 3.14 运行单元测试，并在 Linux 上构建和检查发行包；这两类任务都不声称能够证明 Wine 兼容性。真实 SOLIDWORKS 建模会在一次性的 GitHub-hosted Windows runner 上，通过官方介质全新安装后验证；经过补丁的 Wine 集成仍由 DockerSW 和 MacSW 负责。这不代表 Windows Server 是官方支持的 SOLIDWORKS 工作站。详见 [Windows CI](docs/windows-ci.md) 和 [共享运行时测试](docs/runtime-tests.md)，后者说明通用建模与驱动尺寸脚本，以及离线契约测试和真实宿主证据的区别。
 
 ## 许可证
 

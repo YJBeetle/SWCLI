@@ -697,11 +697,12 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 CI runs the unit suite on Windows 2025 with Python 3.9 and 3.14, and builds and
 checks distributions on Linux without claiming either job proves Wine
 compatibility. Real SOLIDWORKS modeling is
-verified on a disposable GitHub-hosted Windows runner using a versioned
-installation cache; patched Wine integration remains the responsibility of
-DockerSW and MacSW. A separate manual probe diagnoses disk cleanup and streamed
-Google Drive ISO access without claiming that Windows Server is a supported
-SOLIDWORKS client environment. See [Windows CI](docs/windows-ci.md).
+verified on a disposable GitHub-hosted Windows runner using a fresh official
+installation; patched Wine integration remains the responsibility of DockerSW
+and MacSW. This does not claim Windows Server is an officially supported
+SOLIDWORKS workstation. See [Windows CI](docs/windows-ci.md) and
+[shared runtime tests](docs/runtime-tests.md) for the common modeling/driving
+scripts and the distinction between portable checks and real host evidence.
 
 ## License
 
