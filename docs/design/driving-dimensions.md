@@ -42,6 +42,13 @@ sketch, and never resolve by localized name. The adapter rechecks native feature
 and display-dimension identity on every inspect/set. Same-path external
 close/reopen is distinguished by native document identity, not filename reuse.
 Set observes equation/design-table ownership before mutation and refuses it.
+
+`sketch list` provides a read-only bridge for opened/reopened native parts:
+discover exact live 2D profile features (including absorbed profiles), reuse
+their worker-local IDs on repeat observations and inspect them without
+activation or edits. A closed document's IDs remain invalid. This slice does
+not yet discover saved dimension handles; name-based parameter lookup is not
+a substitute for that missing operation.
 Background activation is checked on restoration; restoration failure retains
 partial evidence but cannot return a successful operation.
 

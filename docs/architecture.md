@@ -158,7 +158,11 @@ part of this command.
 millimeter radius and sketch-local center. Post-edit verification reads native
 `ISketchArc::IsCircle`, `GetRadius` and `GetCenterPoint2`, requiring exactly one
 full-circle profile. It does not add driving dimensions or persistent entity
-references. See [native circle creation](https://help.solidworks.com/2018/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketchManager~CreateCircleByRadius.html)
+references. Creation temporarily enables and verifies `SketchManager.AddToDB`
+to bypass UI inference/snapping, then restores and verifies its original value.
+Unknown mode or failed restoration is an error, not guessed state or a reason
+to relax final geometry checks. Global inference/display preferences are untouched.
+See [native circle creation](https://help.solidworks.com/2018/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketchManager~CreateCircleByRadius.html)
 and [full-circle detection](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchArc~IsCircle.html).
 
 `feature.extrude` resolves a document-scoped sketch handle, verifies native
@@ -223,6 +227,17 @@ does not preserve identity; native `IsSame` distinguishes external same-path
 reopening from another COM wrapper for the existing document.
 Writes retain common lease/stamp/session semantics. Failure to restore the prior
 foreground is reported without discarding completed native mutation evidence.
+
+`sketch.list` discovers live 2D profile features, including absorbed subfeatures,
+without activation, selection, editing or rebuilding. It publishes short
+document/worker-local handles, reuses the same live sketch ID on repeat listing,
+and enables inspection after opening/reopening a native part. Expired handles
+stay invalid; saved dimensions and 3D sketches are not part of this discovery.
+Traversal must complete within its bounds before publishing a successful list.
+The private traversal index uses document-unique
+[IFeature.GetID](https://help.solidworks.com/2022/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.ifeature~getid.html),
+with exact native identity checks for repeated IDs. It is not a new public
+persistent-reference contract or a name-based lookup mechanism.
 These development operations are not present in the released a4 wheel.
 
 ## Compatibility policy

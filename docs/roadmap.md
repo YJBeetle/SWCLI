@@ -36,6 +36,12 @@ The a5 driving-dimension slice is scoped in
 operations are implemented on the development branch and have installed-wheel
 Windows evidence. Complete the independent Wine gate before a5 release.
 
+Read-only `sketch.list` is also implemented on the development branch to recover
+fresh exact 2D sketch handles from opened/reopened native parts. Native Windows
+and Wine discovery gates must pass before release. Discovery of saved diameter
+handles is the next narrow candidate; do not infer dimensions from names or
+claim support for arbitrary dimension types.
+
 1. Add driving dimensions/relations and supported feature edits, so the basic
    native model is not merely editable but intentionally parameterized.
 2. Extend profiles/end conditions and selected-body/face support only with

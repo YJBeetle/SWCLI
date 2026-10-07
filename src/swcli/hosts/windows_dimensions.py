@@ -1,7 +1,7 @@
-"""Internal driving-dimension adapters on the owning worker COM thread.
+"""Driving-diameter adapters on the owning worker COM thread.
 
-Not exposed by the operation catalog yet. Native creation may partially mutate
-the sketch; the returned handle is evidence, not a transaction/rollback claim.
+The typed development operations use these internal adapters. Native creation
+may partially mutate the sketch; a handle is evidence, not a rollback claim.
 """
 
 from __future__ import annotations

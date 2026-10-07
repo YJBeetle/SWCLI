@@ -511,6 +511,17 @@ document/stamp selectors but not a write lease, and leaves session current and
 foreground unchanged. It only accepts live IDs registered by this worker, not
 names, segment indices, or expired IDs from a reopened file.
 
+On the **a5 development branch** (not the published a4 wheel),
+`sw-cli sketch list --document DOCUMENT_ID --json` discovers live 2D profiles,
+including absorbed sketches, after opening or reopening a part. It returns
+fresh document/worker-local IDs and native constraint/owner metadata. Repeated
+listing reuses the ID of the same live native sketch; it never resurrects an
+expired ID or guesses by name. Use a returned ID with `sketch inspect`.
+Listing is read-only, accepts a document/update-stamp context but no lease,
+and preserves foreground and session current. `--max-sketches` defaults to
+1000; a limit or traversal failure is an error, not a partial successful list.
+This does not yet rediscover saved dimension handles or cover 3D sketches.
+
 ## Driving diameter (a5 development branch)
 
 These commands are implemented on the development branch, **not in the published

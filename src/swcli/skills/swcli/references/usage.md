@@ -124,6 +124,14 @@ segment limit and never use these array indices as stable entity references.
 The constraint code is `swConstrainedStatus_e`, not a promise that the sketch
 is dimensioned or design intent has been verified.
 
+If `sketch.list` is advertised, `sw-cli sketch list --document DOCUMENT_ID --json`
+discovers 2D profiles in an opened/reopened part, including absorbed profiles.
+Use the returned IDs with `sketch inspect`; listing preserves foreground,
+session current and native document state. Repeated listing retains IDs for
+the same live native sketch, but close/reopen requires fresh discovery.
+Respect `--max-sketches` (default 1000); traversal/limit errors are not a partial
+successful list. It does not discover 3D sketches or saved dimension handles.
+
 If capabilities advertises the a5 driving-diameter operations, an exact registered
 single circle can become a parameterized profile:
 

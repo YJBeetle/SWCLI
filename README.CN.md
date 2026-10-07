@@ -280,6 +280,14 @@ sw-cli document close --discard
 更新戳检查，保持 session current 和前台不变。只能使用本 worker 登记且仍有效的草图 ID，
 不能用名称或序号代替；关闭重开后原 ID 失效。
 
+在 **a5 开发分支**（已发布的 a4 wheel 尚无此命令）中，
+`sw-cli sketch list --document DOCUMENT_ID --json` 可以发现打开或重开的零件内仍存活的
+二维草图，包括被特征吸收的草图，返回新的文档/worker 内短句柄及原生约束、归属元数据。
+重复列举同一个存活原生草图会复用其 ID；不会复活过期 ID，也不按名称猜对象。
+用返回的 ID 调用 `sketch inspect`。列举只读，支持文档/更新戳上下文但不接受 lease，
+保持前台和 session current 不变。`--max-sketches` 默认 1000；超限或遍历失败会报错，
+不会把部分列表当成功返回。目前不重新发现已保存的尺寸句柄，也不覆盖三维草图。
+
 ## 驱动直径（a5 开发分支）
 
 以下命令已在开发分支实现，**尚未包含在已发布的 a4 wheel 中**。调用前请核对 capabilities：
