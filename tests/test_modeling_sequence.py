@@ -53,6 +53,10 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
         self.assertIn('-ArgumentList $daemonArguments', wrapper)
+        self.assertIn(
+            'if (-not $Hidden) {\n        & python -I (Join-Path $PSScriptRoot "verify-equation-dimension.py")',
+            wrapper,
+        )
 
     def record(self):
         return {

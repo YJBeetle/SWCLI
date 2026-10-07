@@ -29,6 +29,9 @@ Windows hosted CI runs that same wrapper in visible and `-Hidden` modes using
 one installation and independent evidence directories. Modeling and driving
 share one unchanged native PID within each mode; passing visible mode is not
 proof of hidden/background behavior.
+The Windows-only equation setup attaches through ROT and is required in the
+visible run only. Its hidden-host ROT limitation does not make the public
+modeling/driving gates optional and is not resolved by starting another host.
 
 ## Calling the gates
 

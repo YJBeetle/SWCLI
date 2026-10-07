@@ -59,6 +59,12 @@ host between these two independent mode runs is not native-failure recovery.
 The hidden run is mandatory: visible-only success did not expose the rejected
 cut's residual native command state. See the
 [matched investigation](verification/linux-wine-rejected-cut-2026-10-08.md).
+The Windows-only equation fixture remains mandatory in the visible run: its
+native setup uses `GetActiveObject` to attach the exact existing ROT host, and
+the hidden background host in the matched VM does not expose that entry. The
+hidden run neither substitutes Dispatch nor changes visibility to bootstrap
+this fixture. It still runs all public modeling/driving guards and lifecycle
+checks; it does not claim separate hidden-mode native equation-fixture proof.
 
 The second stage of `.github/workflows/ci.yml` is an integration test, not a
 release pipeline or a declaration that Windows Server is an officially
