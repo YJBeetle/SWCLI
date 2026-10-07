@@ -53,6 +53,9 @@ class FakeDaemon:
         self.dimension_discovery_serial = 0
         self.list_serial = 0
         self.calls = []
+        self.now = 0
+        self.operation_seconds = 0
+        self.lease_expiry = {}
 
     @staticmethod
     def response(result):
@@ -99,6 +102,10 @@ class FakeDaemon:
 
     def call(self, operation, parameters=None, **context):
         self.calls.append((operation, parameters, context))
+        self.now += self.operation_seconds
+        for key, expires in self.lease_expiry.items():
+            if expires <= self.now and key in self.documents:
+                self.documents[key]["lease"] = None
         values = parameters or {}
         session = context["session_id"]
         document_id = context.get("document_id")
@@ -154,10 +161,26 @@ class FakeDaemon:
                     ],
                 }
             )
+        if operation == "document.lease.renew":
+            document_id = next(
+                (
+                    key
+                    for key, document in self.documents.items()
+                    if document["lease"] == (session, values["lease_id"])
+                ),
+                None,
+            )
+            if document_id is None:
+                return self.error("DocumentLeaseNotFound")
+            self.lease_expiry[document_id] = self.now + values["ttl_seconds"]
+            return self.response(
+                {"ok": True, "lease": {"lease_id": values["lease_id"]}}
+            )
         document = self.documents[document_id]
         result = {"ok": True, "document": self.descriptor(document_id, session)}
         if operation == "document.lease.acquire":
             document["lease"] = (session, "l-000000000001")
+            self.lease_expiry[document_id] = self.now + values["ttl_seconds"]
             result["lease"] = {"lease_id": document["lease"][1]}
         elif operation == "document.inspect":
             if "detail" in values:
@@ -344,6 +367,8 @@ class FakeDaemon:
                 != document["stamp"]
             ):
                 return self.error("DocumentUpdateConflict")
+            if context.get("lease_id") is not None and document["lease"] is None:
+                return self.error("DocumentLeaseNotFound")
             if (
                 document["lease"]
                 and (session, context.get("lease_id")) != document["lease"]
@@ -547,6 +572,58 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 for plane in ("front", "top", "right")
                 for phase in ("starting", "passed")
             ],
+        )
+
+    def test_slow_holder_writes_cli_and_cleanup_renew_without_changing_guards(self):
+        # A whole plane exceeds one lease lifetime, but bounded observation
+        # groups do not. Advance a virtual clock; no real delays or retries.
+        self.daemon.operation_seconds = 20
+        self.run_smoke()
+        self.assertEqual(len(self.smoke.record["planes"]), 3)
+        self.assertFalse(self.smoke.record["cleanup_errors"])
+        self.assertFalse(self.daemon.documents)
+        self.assertGreater(self.daemon.now, driving_smoke.LEASE_TTL_SECONDS)
+        for index, (operation, parameters, context) in enumerate(self.daemon.calls):
+            if operation in ("document.lease.acquire", "document.lease.renew"):
+                self.assertEqual(
+                    parameters["ttl_seconds"], driving_smoke.LEASE_TTL_SECONDS
+                )
+            if context.get("lease_id") is not None:
+                previous, values, owner = self.daemon.calls[index - 1]
+                self.assertEqual(previous, "document.lease.renew")
+                self.assertEqual(values["lease_id"], context["lease_id"])
+                self.assertEqual(owner["session_id"], context["session_id"])
+
+    def test_expired_holder_lease_is_not_reacquired_and_write_is_not_attempted(self):
+        with mock.patch.object(
+            driving_smoke, "call_daemon", side_effect=self.daemon.call
+        ):
+            document_id = self.smoke.create()
+            lease = self.smoke.call(
+                "document.lease.acquire",
+                {"ttl_seconds": driving_smoke.LEASE_TTL_SECONDS},
+                document_id=document_id,
+            )["lease"]["lease_id"]
+            self.daemon.now += driving_smoke.LEASE_TTL_SECONDS + 1
+            with self.assertRaisesRegex(RuntimeError, "DocumentLeaseNotFound"):
+                self.smoke.write(
+                    "sketch.circle",
+                    {"plane": "front", "radius_mm": 5},
+                    document_id=document_id,
+                    lease_id=lease,
+                )
+            errors = self.smoke.cleanup()
+        self.assertEqual(len(errors), 1)
+        self.assertIn(document_id, self.daemon.documents)
+        self.assertFalse(
+            any(operation == "sketch.circle" for operation, _, _ in self.daemon.calls)
+        )
+        self.assertEqual(
+            sum(
+                operation == "document.lease.acquire"
+                for operation, _, _ in self.daemon.calls
+            ),
+            1,
         )
 
     def test_wrapper_is_one_exact_executable_without_shell(self):

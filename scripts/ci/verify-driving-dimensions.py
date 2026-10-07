@@ -25,6 +25,10 @@ import uuid
 from swcli.daemon.client import DEFAULT_ENDPOINT, call_daemon
 
 
+# Match the ten-minute CI phase, without extending any command/phase deadline.
+LEASE_TTL_SECONDS = 600
+
+
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
@@ -423,6 +427,23 @@ class DrivingSmoke:
         )
         return result["document"]["document_id"]
 
+    def renew_lease(self, document_id):
+        owner = self.owned[document_id]
+        if owner["lease_id"] is not None:
+            self.call(
+                "document.lease.renew",
+                {"lease_id": owner["lease_id"], "ttl_seconds": LEASE_TTL_SECONDS},
+                session_id=owner["session_id"],
+            )
+
+    def write(self, operation, parameters=None, **context):
+        self.renew_lease(context["document_id"])
+        return self.call(operation, parameters, **context)
+
+    def write_command(self, arguments, *, document_id):
+        self.renew_lease(document_id)
+        return self.command(arguments)
+
     def stamp(self, document_id):
         result = self.call("document.inspect", document_id=document_id)
         stamp = result["document"]["update_stamp"]
@@ -713,6 +734,7 @@ class DrivingSmoke:
 
     def close(self, document_id):
         owner = self.owned[document_id]
+        self.renew_lease(document_id)
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
 
     def cleanup(self):
@@ -737,10 +759,12 @@ class DrivingSmoke:
         document_id = self.create()
         foreground_id = self.create()
         lease = self.call(
-            "document.lease.acquire", {"ttl_seconds": 300}, document_id=document_id
+            "document.lease.acquire",
+            {"ttl_seconds": LEASE_TTL_SECONDS},
+            document_id=document_id,
         )["lease"]["lease_id"]
         write = {"document_id": document_id, "lease_id": lease}
-        circle = self.call(
+        circle = self.write(
             "sketch.circle",
             {"plane": plane, "radius_mm": 5, "center_x_mm": 3, "center_y_mm": 4},
             **write,
@@ -755,7 +779,7 @@ class DrivingSmoke:
             document_id=document_id,
             session_id=self.session + "-contender",
         )
-        self.call(
+        self.write(
             "sketch.dimension-diameter",
             {"sketch_id": sketch_id, "diameter_mm": 16},
             expected_error="DocumentUpdateConflict",
@@ -766,7 +790,7 @@ class DrivingSmoke:
             self.stamp(document_id) == stamp, "rejected creation changed native stamp"
         )
         created = (
-            self.command(
+            self.write_command(
                 [
                     "sketch",
                     "dimension-diameter",
@@ -779,10 +803,11 @@ class DrivingSmoke:
                     lease,
                     "--if-update-stamp",
                     str(stamp),
-                ]
+                ],
+                document_id=document_id,
             )
             if use_cli
-            else self.call(
+            else self.write(
                 "sketch.dimension-diameter",
                 {"sketch_id": sketch_id, "diameter_mm": 16},
                 expected_update_stamp=stamp,
@@ -801,7 +826,7 @@ class DrivingSmoke:
             document_id, sketch_id, dimension_id, 16, absorbed=False, cli=use_cli
         )
         stamp = self.stamp(document_id)
-        self.call(
+        self.write(
             "sketch.dimension-diameter",
             {"sketch_id": sketch_id, "diameter_mm": 18},
             expected_error="SketchAlreadyDimensioned",
@@ -810,7 +835,7 @@ class DrivingSmoke:
         require(
             self.stamp(document_id) == stamp, "duplicate creation changed native stamp"
         )
-        extrusion = self.call(
+        extrusion = self.write(
             "feature.extrude", {"sketch_id": sketch_id, "depth_mm": 10}, **write
         )
         assert_measurement(self.call("document.measure", document_id=document_id), 8)
@@ -823,7 +848,7 @@ class DrivingSmoke:
             document_id=document_id,
             session_id=self.session + "-contender",
         )
-        self.call(
+        self.write(
             "dimension.set",
             {"dimension_id": dimension_id, "value_mm": 22},
             expected_error="DocumentUpdateConflict",
@@ -834,7 +859,7 @@ class DrivingSmoke:
             self.stamp(document_id) == stamp, "rejected value edit changed native stamp"
         )
         changed = (
-            self.command(
+            self.write_command(
                 [
                     "dimension",
                     "set",
@@ -847,10 +872,11 @@ class DrivingSmoke:
                     lease,
                     "--if-update-stamp",
                     str(stamp),
-                ]
+                ],
+                document_id=document_id,
             )
             if use_cli
-            else self.call(
+            else self.write(
                 "dimension.set",
                 {"dimension_id": dimension_id, "value_mm": 20},
                 expected_update_stamp=stamp,
@@ -874,7 +900,7 @@ class DrivingSmoke:
             "edited cylinder needs rebuild or has feature diagnostics",
         )
         native_path = host_path(self.output_directory, f"{self.session}-{plane}.SLDPRT")
-        saved = self.call("document.save-as", {"output": native_path}, **write)
+        saved = self.write("document.save-as", {"output": native_path}, **write)
         require(
             saved["artifact"]["size_bytes"] >= 512
             and saved["document"]["document_id"] == document_id,
