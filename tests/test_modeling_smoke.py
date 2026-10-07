@@ -32,6 +32,8 @@ class FakeCLI:
         self.rejected = False
         self.defect = None
         self.health_calls = 0
+        self.now = 0
+        self.operation_seconds = 0
 
     def descriptor(self, document, session):
         return {
@@ -57,6 +59,10 @@ class FakeCLI:
         start = command.index("--endpoint")
         args = self.parser.parse_args(command[start:])
         self.calls.append(args)
+        self.now += self.operation_seconds
+        for document in self.documents.values():
+            if document["lease"] and document["lease"]["expires_at"] <= self.now:
+                document["lease"] = None
         result = self.dispatch(args)
         return subprocess.CompletedProcess(
             command,
@@ -106,6 +112,7 @@ class FakeCLI:
                     )
                 )
                 document["path"] = args.path
+                document["lease"] = None
             else:
                 document = {
                     "path": "",
@@ -140,19 +147,34 @@ class FakeCLI:
             and args.lease_command in ("renew", "release")
         ):
             document_id = next(
-                key
-                for key, value in self.documents.items()
-                if value["lease"] and value["lease"]["lease_id"] == args.lease_id
+                (
+                    key
+                    for key, value in self.documents.items()
+                    if value["lease"] and value["lease"]["lease_id"] == args.lease_id
+                ),
+                None,
             )
+            if document_id is None:
+                return self.failure("DocumentLeaseNotFound")
         document = self.documents[document_id]
         descriptor = self.descriptor(document, session)
         if action == "document" and subcommand == "lease":
             if args.lease_command == "acquire":
-                document["lease"] = {"lease_id": "l-0123456789ab", "session": session}
-            result = {"ok": True, "lease": document["lease"]}
+                document["lease"] = {
+                    "lease_id": "l-0123456789ab",
+                    "session": session,
+                    "expires_at": self.now + args.ttl_seconds,
+                }
+            elif args.lease_command == "renew":
+                document["lease"]["expires_at"] = self.now + args.ttl_seconds
+            result = {"ok": True, "lease": copy.deepcopy(document["lease"])}
             if args.lease_command == "release":
                 document["lease"] = None
             return result
+        if getattr(args, "lease_id", None) is not None and (
+            not document["lease"] or document["lease"]["lease_id"] != args.lease_id
+        ):
+            return self.failure("DocumentLeaseNotFound")
         if action == "document" and subcommand == "close":
             self.documents.pop(document_id)
             if self.active == document_id:
@@ -441,6 +463,86 @@ class ModelingSmokeTests(unittest.TestCase):
                         for args in self.fake.calls
                     )
                 )
+
+    def test_slow_operations_preserve_leases_including_negative_tests(self):
+        # No sleeps: every CLI call consumes 75 virtual seconds, exceeding
+        # the old 60-second TTL while remaining below the 120-second deadline.
+        self.fake.operation_seconds = 75
+        self.run_gate(samples=True)
+        self.assertTrue(self.record()["success"])
+        self.assertEqual(self.record()["cleanup_errors"], [])
+        self.assertGreater(self.fake.now, gate.LEASE_TTL_SECONDS)
+        for index, args in enumerate(self.fake.calls):
+            if args.command == "document" and args.document_command == "lease":
+                if args.lease_command in ("acquire", "renew"):
+                    self.assertEqual(args.ttl_seconds, gate.LEASE_TTL_SECONDS)
+                continue
+            if getattr(args, "lease_id", None) is not None:
+                previous = self.fake.calls[index - 1]
+                self.assertEqual(previous.command, "document")
+                self.assertEqual(previous.document_command, "lease")
+                self.assertEqual(previous.lease_command, "renew")
+                self.assertEqual(previous.lease_id, args.lease_id)
+                self.assertEqual(previous.session, args.session)
+
+    def smoke_with_document(self):
+        self.directory.mkdir()
+        smoke = gate.ModelingSmoke(
+            directory=self.directory, host_directory="C:\\proof", endpoint="local"
+        )
+        smoke.record_path.write_text("{}", encoding="utf-8")
+        with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run):
+            document = smoke.create()
+            smoke.command(
+                "document",
+                "lease",
+                "acquire",
+                "--ttl-seconds",
+                gate.LEASE_TTL_SECONDS,
+                document=document,
+            )
+        return smoke, document
+
+    def test_cleanup_renews_holder_lease_before_closing(self):
+        smoke, document = self.smoke_with_document()
+        self.fake.now += gate.LEASE_TTL_SECONDS - 5
+        with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run):
+            smoke.cleanup()
+        self.assertEqual(smoke.record["cleanup_errors"], [])
+        self.assertNotIn(document, self.fake.documents)
+        renew, close = self.fake.calls[-2:]
+        self.assertEqual(renew.lease_command, "renew")
+        self.assertEqual(close.document_command, "close")
+        self.assertEqual(close.lease_id, renew.lease_id)
+
+    def test_expired_lease_fails_without_reacquiring_or_attempting_write(self):
+        smoke, document = self.smoke_with_document()
+        self.fake.now += gate.LEASE_TTL_SECONDS + 1
+        with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run):
+            with self.assertRaisesRegex(RuntimeError, "DocumentLeaseNotFound"):
+                smoke.write(
+                    "document", "save-as", "C:\\proof\\denied.SLDPRT", document=document
+                )
+            smoke.cleanup()
+        self.assertEqual(len(smoke.record["cleanup_errors"]), 1)
+        self.assertIn(document, self.fake.documents)
+        self.assertFalse((self.directory / "denied.SLDPRT").exists())
+        self.assertFalse(
+            any(
+                args.document_command in ("save-as", "close")
+                for args in self.fake.calls
+                if args.command == "document"
+            )
+        )
+        self.assertEqual(
+            sum(
+                args.command == "document"
+                and args.document_command == "lease"
+                and args.lease_command == "acquire"
+                for args in self.fake.calls
+            ),
+            1,
+        )
 
     def test_existing_evidence_refused_before_any_cli_call(self):
         self.directory.mkdir()

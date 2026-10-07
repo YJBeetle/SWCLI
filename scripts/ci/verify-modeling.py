@@ -24,6 +24,11 @@ import uuid
 from swcli.daemon.client import DEFAULT_ENDPOINT
 
 
+# Covers the ten-minute CI phase, including bounded read-only observation
+# groups. The daemon default/deadlines stay unchanged; holder writes still renew.
+LEASE_TTL_SECONDS = 600
+
+
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
@@ -212,11 +217,27 @@ class ModelingSmoke:
         self.checkpoint(stage + ".completed")
         return result
 
-    def write(self, *arguments, document):
+    def renew(self, document):
         lease = self.leases.get(document)
         if lease:
-            self.command("document", "lease", "renew", lease)
-        return self.command(*arguments, document=document, lease=lease)
+            self.command(
+                "document",
+                "lease",
+                "renew",
+                lease,
+                "--ttl-seconds",
+                LEASE_TTL_SECONDS,
+                session=self.owned[document],
+            )
+        return lease
+
+    def write(self, *arguments, document, expected_error=None):
+        return self.command(
+            *arguments,
+            document=document,
+            lease=self.renew(document),
+            expected_error=expected_error,
+        )
 
     def create(self):
         result = self.command("document", "create", "--type", "part")
@@ -230,13 +251,14 @@ class ModelingSmoke:
         return descriptor["document_id"]
 
     def close(self, document):
+        lease = self.renew(document)
         return self.command(
             "document",
             "close",
             "--discard",
             document=document,
             session=self.owned[document],
-            lease=self.leases.get(document),
+            lease=lease,
         )
 
     def background(self, result, document):
@@ -359,9 +381,14 @@ class ModelingSmoke:
         self.background(selected, a)
         stamp = selected["document"]["update_stamp"]
         require(type(stamp) is int, "GetUpdateStamp unavailable on this host")
-        lease = self.command("document", "lease", "acquire", document=a)["lease"][
-            "lease_id"
-        ]
+        lease = self.command(
+            "document",
+            "lease",
+            "acquire",
+            "--ttl-seconds",
+            LEASE_TTL_SECONDS,
+            document=a,
+        )["lease"]["lease_id"]
         self.command(
             "sketch",
             "rectangle",
@@ -375,7 +402,7 @@ class ModelingSmoke:
             session=self.session + "-contender",
             expected_error="DocumentLeaseConflict",
         )
-        self.command(
+        self.write(
             "sketch",
             "rectangle",
             "--plane",
@@ -387,7 +414,6 @@ class ModelingSmoke:
             "--if-update-stamp",
             stamp + 1,
             document=a,
-            lease=lease,
             expected_error="DocumentUpdateConflict",
         )
         sketches = []
@@ -479,14 +505,13 @@ class ModelingSmoke:
                     "absorbed profile lost its exact owner or changed update stamp",
                 )
                 self.background(absorbed, a)
-                self.command(
+                self.write(
                     "feature",
                     "cut-extrude",
                     profile,
                     "--depth-mm",
                     20,
                     document=a,
-                    lease=lease,
                     expected_error="SketchUnavailable",
                 )
         require(
@@ -525,26 +550,24 @@ class ModelingSmoke:
             "daemon-visible output did not produce a local native artifact",
         )
         digest = hashlib.sha256(local_model.read_bytes()).hexdigest()
-        self.command(
+        self.write(
             "document",
             "save-as",
             native,
             document=a,
-            lease=lease,
             expected_error="OutputExists",
         )
         require(
             hashlib.sha256(local_model.read_bytes()).hexdigest() == digest,
             "save-as modified an existing native target",
         )
-        self.command(
+        self.write(
             "feature",
             "extrude",
             sketches[0],
             "--depth-mm",
             20,
             document=a,
-            lease=lease,
             expected_error="SketchUnavailable",
         )
         self.command("document", "lease", "release", lease)
@@ -603,7 +626,12 @@ class ModelingSmoke:
             type(stamp) is int, "GetUpdateStamp unavailable on the installed sample"
         )
         lease = self.command(
-            "document", "lease", "acquire", "--ttl-seconds", 60, document=document
+            "document",
+            "lease",
+            "acquire",
+            "--ttl-seconds",
+            LEASE_TTL_SECONDS,
+            document=document,
         )["lease"]["lease_id"]
         denied = str(PureWindowsPath(self.host_directory) / "lease-denied.STEP")
         self.command(
@@ -619,7 +647,7 @@ class ModelingSmoke:
             not (self.directory / "lease-denied.STEP").exists(),
             "denied export created an artifact",
         )
-        self.command("document", "lease", "renew", lease)
+        self.renew(document)
         self.command(
             "document",
             "export",

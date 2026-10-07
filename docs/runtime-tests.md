@@ -34,6 +34,12 @@ failures: that can hide process-state contamination. The scripts never install,
 start, stop or restart SOLIDWORKS. Cleanup closes only their own documents and
 retains cleanup errors; it does not turn a failed gate into success.
 
+The modeling gate explicitly acquires/renews ten-minute leases, covering its CI
+phase and bounded observation groups. Every holder write renews first, including
+expected-rejection checks and cleanup closes. This does not extend command/CI
+deadlines or change the daemon's 60-second default. An expired lease still fails;
+the gate never silently reacquires it or retries the native operation.
+
 On Windows, use the Python environment with the current SWCLI installed:
 
 ```powershell
