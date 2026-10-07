@@ -51,6 +51,15 @@ def _integer(obj: Any, member: str) -> int:
     return value
 
 
+def _same(app: Any, first: Any, second: Any) -> bool:
+    status = app.IsSame(first, second)
+    if isinstance(status, bool) or not isinstance(status, int) or status not in (0, 1):
+        raise _DimensionError(
+            "DimensionObservationUnavailable", "native object identity is unreadable"
+        )
+    return status == 1
+
+
 def _boolean(obj: Any, member: str, *, integer_binding: bool = False) -> bool:
     value = _com_value(obj, member)
     # Native SW2025 late binding exposes ReadOnly as integer 0; explicitly
@@ -89,7 +98,7 @@ def _live_profile(app: Any, document: Any, sketch_feature: Any) -> Any:
         feature, next_member = pending.pop()
         if feature is None:
             continue
-        if int(app.IsSame(feature, sketch_feature)) == 1:
+        if _same(app, feature, sketch_feature):
             if _com_value(feature, "GetTypeName2") != "ProfileFeature":
                 raise _DimensionError(
                     "SketchUnavailable", "the owning feature is not a 2D profile"
@@ -105,13 +114,13 @@ def _live_profile(app: Any, document: Any, sketch_feature: Any) -> Any:
 def _owned_dimension(
     app: Any, document: Any, sketch_feature: Any, dimension: Any
 ) -> Any:
-    if int(_com_value(document, "GetType")) != 1:
+    if _integer(document, "GetType") != 1:
         raise _DimensionError(
             "UnsupportedDocumentType", "driving diameter operations require a part"
         )
     sketch = _live_profile(app, document, sketch_feature)
     owner = _com_value(dimension, "GetFeatureOwner")
-    if owner is None or int(app.IsSame(owner, sketch_feature)) != 1:
+    if owner is None or not _same(app, owner, sketch_feature):
         raise _DimensionError(
             "DimensionUnavailable",
             "the native dimension does not belong to its registered sketch",
@@ -124,7 +133,7 @@ def _owned_dimension(
                 "the exact dimension is no longer live in its owning sketch",
             )
         native = display.GetDimension2(0)
-        if native is not None and int(app.IsSame(native, dimension)) == 1:
+        if native is not None and _same(app, native, dimension):
             return sketch
         display = sketch_feature.GetNextDisplayDimension(display)
     raise _DimensionError(

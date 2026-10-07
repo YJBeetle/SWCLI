@@ -434,6 +434,24 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                 self.app.IsSame.return_value = value
                 self.assert_failure("DimensionObservationUnavailable")
 
+    def test_discovery_reuses_public_strict_native_identity_reader(self):
+        self.assertIs(discovery._same, dimensions._same)
+        for value in (None, True, False, 1.0, 1.5, "1", -1, 2):
+            with self.subTest(value=value):
+                self.setUp()
+                self.app.IsSame.side_effect = None
+                self.app.IsSame.return_value = value
+                self.assert_failure("DimensionObservationUnavailable")
+
+    def test_unknown_discovery_document_type_is_not_a_part(self):
+        for value in (None, True, False, 1.0, 1.5, "1"):
+            with self.subTest(value=value):
+                self.setUp()
+                self.document.GetType = lambda: value
+                self.assert_failure("DimensionObservationUnavailable")
+                self.app.IsSame.assert_not_called()
+                self.dimension.GetSystemValue2.assert_not_called()
+
     def test_unreadable_display_type_and_constraint_status_fail_closed(self):
         self.display.Type2 = None
         self.assert_failure("DimensionObservationUnavailable")

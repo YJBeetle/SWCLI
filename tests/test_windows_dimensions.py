@@ -751,6 +751,156 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
         self.assertTrue(self.inspect()["ok"])
         self.assert_read_only()
 
+    def test_unknown_native_identity_at_each_owner_stage_blocks_inspect_and_set(self):
+        for stage in (1, 2, 3):
+            for value in (None, True, False, 1.0, 1.5, "1", "0", -1, 2):
+                for operation in ("inspect", "set"):
+                    with self.subTest(stage=stage, value=value, operation=operation):
+                        self.setUp()
+                        self.app.IsSame = mock.Mock(
+                            side_effect=[1] * (stage - 1) + [value]
+                        )
+                        result = getattr(self, operation)()
+                        self.assertFalse(result["ok"], result)
+                        self.assertEqual(
+                            result["error"]["type"], "DimensionObservationUnavailable"
+                        )
+                        self.assertEqual(self.app.IsSame.call_count, stage)
+                        self.assertNotIn("geometry_verification", result)
+                        self.assert_read_only()
+
+    def test_unknown_document_type_does_not_become_a_part(self):
+        for value in (None, True, False, 1.0, 1.5, "1"):
+            with self.subTest(value=value):
+                self.setUp()
+                self.document.GetType = lambda: value
+                self.app.IsSame = mock.Mock()
+                for observe in (self.inspect, self.set):
+                    result = observe()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                self.app.IsSame.assert_not_called()
+                self.assert_read_only()
+        for value in (-1, 0, 2, 3, 4, 99):
+            with self.subTest(nonpart_enum=value):
+                self.setUp()
+                self.document.GetType = lambda: value
+                self.assertEqual(
+                    self.inspect()["error"]["type"], "UnsupportedDocumentType"
+                )
+                self.assertEqual(self.set()["error"]["type"], "UnsupportedDocumentType")
+                self.assert_read_only()
+
+    def test_native_identity_zero_is_not_same_and_one_remains_supported(self):
+        for stage, error in (
+            (1, "SketchUnavailable"),
+            (2, "DimensionUnavailable"),
+            (3, "DimensionUnavailable"),
+        ):
+            for operation in ("inspect", "set"):
+                with self.subTest(stage=stage, operation=operation):
+                    self.setUp()
+                    self.app.IsSame = mock.Mock(side_effect=[1] * (stage - 1) + [0])
+                    self.assertEqual(getattr(self, operation)()["error"]["type"], error)
+                    self.assert_read_only()
+        self.setUp()
+        self.app.IsSame = mock.Mock(return_value=1)
+        self.assertTrue(self.inspect()["ok"])
+        self.assertTrue(self.set()["ok"])
+        self.dimension.SetSystemValue3.assert_called_once()
+
+    def test_unreadable_native_identity_blocks_prewrite_and_preserves_postwrite_failure(
+        self,
+    ):
+        for stage in (1, 2, 3):
+            for operation in ("inspect", "set"):
+                with self.subTest(stage=stage, operation=operation):
+                    self.setUp()
+                    self.app.IsSame = mock.Mock(
+                        side_effect=[1] * (stage - 1)
+                        + [RuntimeError("native identity unavailable")]
+                    )
+                    result = getattr(self, operation)()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(result["error"]["type"], "RuntimeError")
+                    self.assert_read_only()
+            with self.subTest(postwrite_stage=stage):
+                self.setUp()
+
+                def unreadable_identity(native_value, configuration, names):
+                    self.set_value(native_value, configuration, names)
+                    self.app.IsSame = mock.Mock(
+                        side_effect=[1] * (stage - 1)
+                        + [RuntimeError("native identity unavailable")]
+                    )
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = unreadable_identity
+                result = self.set()
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["error"]["type"], "RuntimeError")
+                self.assertEqual(result["native_status"], 0)
+                self.assertEqual(result["before_value_mm"], 10)
+                self.assertIn("downstream", result)
+                self.assertIn(
+                    "modification may have happened", result["error"]["message"]
+                )
+                self.dimension.SetSystemValue3.assert_called_once()
+
+    def test_post_set_unknown_identity_retains_native_write_and_original_evidence(self):
+        for stage in (1, 2, 3):
+            for value in (None, True, False, 1.5, "1", -1, 2):
+                with self.subTest(stage=stage, value=value):
+                    self.setUp()
+
+                    def changed_identity(native_value, configuration, names):
+                        self.set_value(native_value, configuration, names)
+                        self.app.IsSame = mock.Mock(
+                            side_effect=[1] * (stage - 1) + [value]
+                        )
+                        return 0
+
+                    self.dimension.SetSystemValue3.side_effect = changed_identity
+                    result = self.set()
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(
+                        result["error"]["type"], "DimensionObservationUnavailable"
+                    )
+                    self.assertEqual(result["native_status"], 0)
+                    self.assertEqual(result["before_value_mm"], 10)
+                    self.assertIn("downstream", result)
+                    self.assertIn(
+                        "modification may have happened", result["error"]["message"]
+                    )
+                    self.dimension.SetSystemValue3.assert_called_once()
+                    self.assertEqual(self.app.IsSame.call_count, stage)
+
+    def test_post_set_unknown_document_type_retains_successful_native_status(self):
+        for value in (None, True, False, 1.5, "1"):
+            with self.subTest(value=value):
+                self.setUp()
+
+                def changed_type(native_value, configuration, names):
+                    self.set_value(native_value, configuration, names)
+                    self.document.GetType = lambda: value
+                    return 0
+
+                self.dimension.SetSystemValue3.side_effect = changed_type
+                result = self.set()
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(
+                    result["error"]["type"], "DimensionObservationUnavailable"
+                )
+                self.assertEqual(result["native_status"], 0)
+                self.assertEqual(result["before_value_mm"], 10)
+                self.assertIn("downstream", result)
+                self.assertIn(
+                    "modification may have happened", result["error"]["message"]
+                )
+                self.dimension.SetSystemValue3.assert_called_once()
+
     def test_equations_are_observed_and_never_overridden_or_matched_by_rhs(self):
         self.equations('"global" = 20', '"D2@other" = "D1@renamed-sketch"')
         self.assertFalse(self.inspect()["equation_control"]["controlled"])

@@ -28,19 +28,11 @@ from .windows_dimensions import (
     _equation_control,
     _failure,
     _integer,
+    _same,
 )
 from .windows_sketch_inspection import _feature_id, _list_features
 
 _DISPLAY_LIMIT = 10000
-
-
-def _same(app: Any, first: Any, second: Any) -> bool:
-    status = app.IsSame(first, second)
-    if isinstance(status, bool) or not isinstance(status, int) or status not in (0, 1):
-        raise _DimensionError(
-            "DimensionObservationUnavailable", "native object identity is unreadable"
-        )
-    return status == 1
 
 
 def _state(document: Any) -> Tuple[Dict[str, Any], Optional[Any]]:
