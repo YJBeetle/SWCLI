@@ -7,7 +7,11 @@ from jsonschema import Draft202012Validator
 from swcli.daemon.server import WorkerManager
 from swcli.operation_schemas import OPERATIONS, operation_result_schemas
 from swcli.protocol import load_schema
-from swcli.result_schemas import OperationResultInvalid, validate_operation_result
+from swcli.result_schemas import (
+    OperationResultInvalid,
+    validate_dimension_discovery_observation,
+    validate_operation_result,
+)
 
 DOCUMENT = {
     "title": "part.SLDPRT",
@@ -55,7 +59,157 @@ def diameter_result(action):
     }
 
 
+def diameter_discovery_result():
+    state = {"update_stamp": 0, "configuration": "默认", "editing": False}
+    return {
+        **diameter_result("dimension.discover-diameter"),
+        "equation_control": {"controlled": False, "equation_indices": []},
+        "design_table_controlled": False,
+        "observation": {
+            "before": copy.deepcopy(state),
+            "after": copy.deepcopy(state),
+            "configuration_matched": True,
+            "unchanged": True,
+        },
+    }
+
+
 class ResultSchemaTests(unittest.TestCase):
+    def test_diameter_discovery_requires_complete_read_only_evidence(self):
+        result = diameter_discovery_result()
+        validate_operation_result("dimension.discover-diameter", result)
+        for field in (
+            "sketch_id",
+            "dimension",
+            "observation",
+            "geometry_verification",
+            "constraint_status",
+            "editing",
+            "equation_control",
+            "design_table_controlled",
+        ):
+            invalid = copy.deepcopy(result)
+            del invalid[field]
+            with self.subTest(missing=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("dimension.discover-diameter", invalid)
+        for field in ("before", "after", "configuration_matched", "unchanged"):
+            invalid = copy.deepcopy(result)
+            del invalid["observation"][field]
+            with self.subTest(missing=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("dimension.discover-diameter", invalid)
+        for field in DIMENSION:
+            invalid = copy.deepcopy(result)
+            del invalid["dimension"][field]
+            with (
+                self.subTest(dimension_missing=field),
+                self.assertRaises(OperationResultInvalid),
+            ):
+                validate_operation_result("dimension.discover-diameter", invalid)
+
+    def test_diameter_discovery_can_observe_editing_and_external_controls(self):
+        result = diameter_discovery_result()
+        result.update(editing=True, design_table_controlled=True)
+        result["equation_control"].update(controlled=True, equation_indices=[0, 3])
+        result["dimension"].update(driven_state=1, read_only=True)
+        for state in ("before", "after"):
+            result["observation"][state]["editing"] = True
+        validate_operation_result("dimension.discover-diameter", result)
+
+    def test_diameter_discovery_rejects_unknown_metadata_and_false_success(self):
+        result = diameter_discovery_result()
+        for field, value in (
+            ("driven_state", 2.9),
+            ("driven_state", True),
+            ("driven_state", 3),
+            ("read_only", None),
+            ("configuration", ""),
+            ("configuration", " "),
+            ("native_name", None),
+            ("native_name", ""),
+            ("value", None),
+            ("value", float("nan")),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["dimension"][field] = value
+            with (
+                self.subTest(field=field, value=value),
+                self.assertRaises(OperationResultInvalid),
+            ):
+                validate_operation_result("dimension.discover-diameter", invalid)
+        for field in ("unchanged", "configuration_matched"):
+            invalid = copy.deepcopy(result)
+            invalid["observation"][field] = False
+            with self.subTest(field=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("dimension.discover-diameter", invalid)
+        for field, value in (
+            ("passed", False),
+            ("complete_circle", False),
+            ("profile_segment_count", 2),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["geometry_verification"][field] = value
+            with self.subTest(field=field), self.assertRaises(OperationResultInvalid):
+                validate_operation_result("dimension.discover-diameter", invalid)
+
+    def test_diameter_discovery_checks_cross_field_state_before_and_after_ids(self):
+        result = diameter_discovery_result()
+        invalid_results = []
+        for field, value in (
+            ("update_stamp", 1),
+            ("configuration", "Other"),
+            ("editing", True),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid["observation"]["after"][field] = value
+            invalid_results.append(invalid)
+        for parent, field, value in (
+            ("dimension", "configuration", "Other"),
+            ("dimension", "sketch_id", "s-ab12ef"),
+            ("document", "update_stamp", 1),
+        ):
+            invalid = copy.deepcopy(result)
+            invalid[parent][field] = value
+            invalid_results.append(invalid)
+        invalid_results.append({**result, "editing": True})
+        for invalid in invalid_results:
+            with (
+                self.subTest(invalid=invalid),
+                self.assertRaises(OperationResultInvalid),
+            ):
+                validate_operation_result("dimension.discover-diameter", invalid)
+        result["dimension"].pop("dimension_id")
+        result["dimension"].pop("sketch_id")
+        validate_dimension_discovery_observation(result)
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.discover-diameter", result)
+        result["observation"]["after"]["update_stamp"] = 1
+        with self.assertRaises(OperationResultInvalid):
+            validate_dimension_discovery_observation(result)
+
+    def test_diameter_discovery_failure_keeps_partial_observation_without_handle(self):
+        result = {
+            "ok": False,
+            "action": "dimension.discover-diameter",
+            "sketch_id": "s-ab12cd",
+            "dimension": {"native_name": "D1@草图1"},
+            "observation": {
+                "before": {
+                    "update_stamp": 0,
+                    "configuration": "默认",
+                    "editing": False,
+                },
+                "unchanged": False,
+            },
+            "error": {
+                "type": "DimensionObservationUnavailable",
+                "message": "native read",
+            },
+        }
+        validate_operation_result("dimension.discover-diameter", result)
+        result["dimension"]["dimension_id"] = "m-ab12cd"
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("dimension.discover-diameter", result)
+
     def test_sketch_list_accepts_empty_or_exact_native_sketch_observations(self):
         result = {
             "ok": True,
@@ -239,7 +393,10 @@ class ResultSchemaTests(unittest.TestCase):
         with self.assertRaises(OperationResultInvalid):
             validate_operation_result("dimension.set", invalid)
         invalid["ok"] = False
-        invalid["error"] = {"type": "DimensionEquationControlled", "message": "native equation"}
+        invalid["error"] = {
+            "type": "DimensionEquationControlled",
+            "message": "native equation",
+        }
         validate_operation_result("dimension.set", invalid)
         invalid = copy.deepcopy(result)
         invalid["diagnostics"]["healthy"] = False
@@ -328,7 +485,9 @@ class ResultSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(OperationResultInvalid, "needs_rebuild"):
             validate_operation_result("document.inspect", invalid)
 
-    def test_unserializable_cyclic_and_unencodable_native_results_fail_structurally(self):
+    def test_unserializable_cyclic_and_unencodable_native_results_fail_structurally(
+        self,
+    ):
         cyclic = []
         cyclic.append(cyclic)
         for title in (b"binary", object(), cyclic, "bad\ud800title"):

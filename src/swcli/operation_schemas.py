@@ -254,6 +254,12 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "dimension.discover-diameter": _operation(
+        "dimension.discover-diameter",
+        {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$")},
+        required=("sketch_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "dimension.inspect": _operation(
         "dimension.inspect",
         {"dimension_id": _string(pattern="^m-[a-z0-9]{6}$")},

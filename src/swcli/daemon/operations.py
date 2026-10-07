@@ -41,6 +41,13 @@ from ..hosts.windows_dimensions import (
     inspect_dimension_windows,
     set_dimension_windows,
 )
+from ..hosts.windows_dimension_discovery import (
+    discover_circle_diameter_windows_with_handle,
+)
+from ..result_schemas import (
+    OperationResultInvalid,
+    validate_dimension_discovery_observation,
+)
 from .documents import (
     DEFAULT_SESSION_ID,
     DocumentEntry,
@@ -474,7 +481,9 @@ def sketch_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, 
         if any(feature is None for feature in features):
             raise RuntimeError("native sketch discovery returned an absent feature")
         for sketch, feature in zip(result["sketches"], features):
-            sketch["sketch_id"] = context.documents.register_sketch(context.entry, feature)
+            sketch["sketch_id"] = context.documents.register_sketch(
+                context.entry, feature
+            )
     return _with_document(
         result, context.documents, context.entry, session_id=context.session_id
     )
@@ -548,6 +557,42 @@ def sketch_dimension_diameter(
         )
         # Even a failed post-mutation verification must expose its live handle.
         result.setdefault("dimension", {})
+        _with_dimension_ids(result, dimension_id, sketch_id)
+    return result
+
+
+@_register_handler
+def dimension_discover_diameter(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, native_dimension = discover_circle_diameter_windows_with_handle(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+    )
+    result["action"] = "dimension.discover-diameter"
+    result["sketch_id"] = sketch_id
+    if isinstance(result.get("dimension"), dict):
+        # Only this registry can confer an ID. In particular a failed native
+        # read must not expose a stale or accidentally supplied wire handle.
+        result["dimension"].pop("dimension_id", None)
+        result["dimension"].pop("sketch_id", None)
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    if result.get("ok") is True:
+        if native_dimension is None:
+            raise OperationResultInvalid(
+                "dimension.discover-diameter: native observation returned no dimension"
+            )
+        validate_dimension_discovery_observation(result)
+        dimension_id = context.documents.register_dimension(
+            context.entry, sketch_id, native_dimension
+        )
         _with_dimension_ids(result, dimension_id, sketch_id)
     return result
 

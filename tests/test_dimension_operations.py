@@ -1,6 +1,7 @@
 """Dimension operations share document/session, lease and update-stamp guards."""
 
 from contextlib import contextmanager
+from copy import deepcopy
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -12,6 +13,44 @@ from swcli.daemon.documents import (
     DocumentRegistry,
     SketchNotFound,
 )
+from swcli.result_schemas import OperationResultInvalid, validate_operation_result
+
+
+def discovery_result():
+    state = {"update_stamp": 10, "configuration": "Default", "editing": False}
+    return {
+        "ok": True,
+        "action": "dimension.discover",
+        "dimension": {
+            "kind": "diameter",
+            "unit": "millimeter",
+            "value": 16,
+            "driven_state": 2,
+            "read_only": False,
+            "configuration": "Default",
+            "native_name": "D1@Sketch1",
+        },
+        "geometry_verification": {
+            "passed": True,
+            "method": "sketch-local-circle",
+            "segment_count": 1,
+            "profile_segment_count": 1,
+            "complete_circle": True,
+            "actual_radius_mm": 8,
+            "actual_center_mm": {"x": 3, "y": 4, "z": 0},
+            "absolute_tolerance_mm": 1e-6,
+        },
+        "constraint_status": 2,
+        "editing": False,
+        "equation_control": {"controlled": False, "equation_indices": []},
+        "design_table_controlled": False,
+        "observation": {
+            "before": deepcopy(state),
+            "after": deepcopy(state),
+            "configuration_matched": True,
+            "unchanged": True,
+        },
+    }
 
 
 class Document:
@@ -91,6 +130,166 @@ class DimensionOperationTests(unittest.TestCase):
         self.assertFalse(result["document"]["current"])
         self.assertIs(self.app.ActiveDoc, self.foreground)
         self.assertIs(self.registry.resolve(None, session_id="writer"), self.other)
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_discovery_observes_another_sessions_leased_background_without_activation(
+        self, discover
+    ):
+        self.registry.set_current(self.other, session_id="observer")
+        discover.return_value = (discovery_result(), self.dimension)
+        with mock.patch.object(self.registry, "temporarily_activate") as activate:
+            result = self.call(
+                "dimension.discover-diameter",
+                {"sketch_id": self.sketch_id},
+                session_id="observer",
+                expected_update_stamp=10,
+            )
+        activate.assert_not_called()
+        discover.assert_called_once_with(
+            app=self.app,
+            document=self.target,
+            sketch_feature=self.sketch,
+        )
+        self.assertEqual(result["action"], "dimension.discover-diameter")
+        self.assertEqual(result["dimension"]["dimension_id"], self.dimension_id)
+        self.assertEqual(result["dimension"]["sketch_id"], self.sketch_id)
+        self.assertEqual(self.target.stamp, 10)
+        self.assert_context_retained(result)
+        self.assertIs(self.registry.resolve(None, session_id="observer"), self.other)
+        validate_operation_result("dimension.discover-diameter", result)
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_discovery_reuses_exact_native_handle_on_repeated_observation(
+        self, discover
+    ):
+        native = object()
+        discover.side_effect = [
+            (discovery_result(), native),
+            (discovery_result(), native),
+        ]
+        results = [
+            self.call("dimension.discover-diameter", {"sketch_id": self.sketch_id})
+            for _ in range(2)
+        ]
+        recovered_id = results[0]["dimension"]["dimension_id"]
+        self.assertEqual(results[1]["dimension"]["dimension_id"], recovered_id)
+        self.assertNotEqual(recovered_id, self.dimension_id)
+        self.assertEqual(len(self.entry.dimensions), 2)
+        self.assertIs(
+            self.registry.resolve_dimension(self.entry, recovered_id).dimension, native
+        )
+        for result in results:
+            self.assert_context_retained(result)
+            validate_operation_result("dimension.discover-diameter", result)
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_discovery_guards_stale_stamp_wrong_document_and_unknown_sketch(
+        self, discover
+    ):
+        values = {"sketch_id": self.sketch_id}
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            self.call("dimension.discover-diameter", values, expected_update_stamp=9)
+        with self.assertRaises(SketchNotFound):
+            self.call(
+                "dimension.discover-diameter",
+                values,
+                document_id=self.other.document_id,
+            )
+        with self.assertRaises(SketchNotFound):
+            self.call("dimension.discover-diameter", {"sketch_id": "s-000000"})
+        with self.assertRaisesRegex(ValueError, "lease_id is not supported"):
+            self.call("dimension.discover-diameter", values, lease_id=self.lease)
+        discover.assert_not_called()
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_discovery_cannot_recover_closed_or_replaced_sketch_handles(self, discover):
+        values = {"sketch_id": self.sketch_id}
+        self.registry.forget(self.entry.document_id)
+        replacement = self.registry.register(self.target)
+        with self.assertRaises(SketchNotFound):
+            self.call(
+                "dimension.discover-diameter",
+                values,
+                document_id=replacement.document_id,
+            )
+        discover.assert_not_called()
+        self.assertFalse(replacement.dimensions)
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_failed_discovery_preserves_error_and_observation_without_any_dimension_id(
+        self, discover
+    ):
+        native_result = {
+            "ok": False,
+            "action": "dimension.discover",
+            "dimension": {
+                "native_name": "D1@Sketch1",
+                "dimension_id": "m-stale1",
+                "sketch_id": "s-stale1",
+            },
+            "observation": {
+                "before": {
+                    "update_stamp": 10,
+                    "configuration": "Default",
+                    "editing": False,
+                },
+                "unchanged": False,
+            },
+            "error": {
+                "type": "DimensionObservationUnavailable",
+                "message": "ReadOnly returned unknown native metadata",
+            },
+        }
+        before = deepcopy(native_result)
+        # Even an unexpected native object on a failed read conveys no authority.
+        discover.return_value = (native_result, object())
+        result = self.call("dimension.discover-diameter", {"sketch_id": self.sketch_id})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], before["error"])
+        self.assertEqual(result["observation"], before["observation"])
+        self.assertEqual(result["dimension"], {"native_name": "D1@Sketch1"})
+        self.assertEqual(len(self.entry.dimensions), 1)
+        self.assert_context_retained(result)
+        validate_operation_result("dimension.discover-diameter", result)
+
+    @mock.patch("swcli.daemon.operations.discover_circle_diameter_windows_with_handle")
+    def test_incomplete_or_inconsistent_discovery_success_never_registers(
+        self, discover
+    ):
+        native = object()
+        invalid_results = []
+        for field, value in (
+            ("read_only", None),
+            ("driven_state", 2.9),
+            ("native_name", None),
+            ("value", float("nan")),
+        ):
+            result = discovery_result()
+            result["dimension"][field] = value
+            invalid_results.append(result)
+        result = discovery_result()
+        del result["dimension"]["configuration"]
+        invalid_results.append(result)
+        result = discovery_result()
+        result["observation"]["after"]["update_stamp"] = 11
+        invalid_results.append(result)
+        result = discovery_result()
+        result["dimension"]["configuration"] = "Other"
+        invalid_results.append(result)
+        result = discovery_result()
+        result["observation"]["unchanged"] = False
+        invalid_results.append(result)
+        for result in invalid_results:
+            with self.subTest(result=result), self.assertRaises(OperationResultInvalid):
+                discover.return_value = (result, native)
+                self.call("dimension.discover-diameter", {"sketch_id": self.sketch_id})
+            self.assertEqual(len(self.entry.dimensions), 1)
+            self.assertNotIn("dimension_id", result["dimension"])
+            self.assertIs(self.app.ActiveDoc, self.foreground)
+        discover.return_value = (discovery_result(), None)
+        with self.assertRaisesRegex(OperationResultInvalid, "returned no dimension"):
+            self.call("dimension.discover-diameter", {"sketch_id": self.sketch_id})
+        self.assertEqual(len(self.entry.dimensions), 1)
 
     @mock.patch("swcli.daemon.operations.create_circle_diameter_windows_with_handle")
     def test_creation_guarded_before_mutation_and_retains_partial_native_handle(

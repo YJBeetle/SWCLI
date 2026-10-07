@@ -313,10 +313,19 @@ def build_parser() -> argparse.ArgumentParser:
     diameter_parser.add_argument("--json", action="store_true", dest="as_json")
 
     dimension_parser = subcommands.add_parser(
-        "dimension", help="inspect or modify registered driving dimensions"
+        "dimension", help="discover, inspect or modify native circle diameters"
     )
     dimension_commands = dimension_parser.add_subparsers(
         dest="dimension_command", required=True
+    )
+    dimension_discover_parser = dimension_commands.add_parser(
+        "discover-diameter",
+        help="recover an observable diameter from an exact circle sketch without editing",
+    )
+    dimension_discover_parser.add_argument("sketch_id")
+    add_document_selector(dimension_discover_parser)
+    dimension_discover_parser.add_argument(
+        "--json", action="store_true", dest="as_json"
     )
     dimension_inspect_parser = dimension_commands.add_parser(
         "inspect", help="read a registered dimension in the current configuration"
@@ -788,7 +797,11 @@ def _typed_operation(
             args.lease_id,
         )
     if args.command == "dimension":
-        parameters = {"dimension_id": args.dimension_id}
+        parameters = (
+            {"sketch_id": args.sketch_id}
+            if args.dimension_command == "discover-diameter"
+            else {"dimension_id": args.dimension_id}
+        )
         if args.dimension_command == "set":
             parameters["value_mm"] = args.value_mm
         return (

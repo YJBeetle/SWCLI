@@ -806,6 +806,28 @@ _RESULT_FIELDS["dimension.inspect"] = (
         "design_table_controlled",
     ),
 )
+_DIMENSION_DISCOVERY_STATE = _object(
+    {
+        "update_stamp": INTEGER,
+        "configuration": {"type": "string", "minLength": 1, "pattern": r"\S"},
+        "editing": BOOL,
+    },
+    ("update_stamp", "configuration", "editing"),
+)
+_RESULT_FIELDS["dimension.discover-diameter"] = (
+    {
+        **deepcopy(_RESULT_FIELDS["dimension.inspect"][0]),
+        "observation": _object(
+            {
+                "before": _DIMENSION_DISCOVERY_STATE,
+                "after": _DIMENSION_DISCOVERY_STATE,
+                "configuration_matched": BOOL,
+                "unchanged": BOOL,
+            }
+        ),
+    },
+    _RESULT_FIELDS["dimension.inspect"][1] + ("sketch_id", "observation"),
+)
 _RESULT_FIELDS["dimension.set"] = (
     {
         "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
@@ -937,14 +959,19 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                     "actual_center_mm": VECTOR,
                 }
             )
-    if name in ("sketch.dimension-diameter", "dimension.inspect", "dimension.set"):
+    if name in (
+        "sketch.dimension-diameter",
+        "dimension.discover-diameter",
+        "dimension.inspect",
+        "dimension.set",
+    ):
         schema["then"]["properties"] = {
             "dimension": {
                 "required": list(_DIMENSION["properties"]),
                 "properties": {"value": {"type": "number", "exclusiveMinimum": 0}},
             }
         }
-        if name != "dimension.inspect":
+        if name not in ("dimension.inspect", "dimension.discover-diameter"):
             schema["then"]["properties"].update(
                 {
                     "native_status": {"const": 0},
@@ -966,6 +993,55 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             schema["then"]["properties"]["dimension"]["properties"].update(
                 {"driven_state": {"const": 2}, "read_only": {"const": False}}
             )
+        if name == "dimension.discover-diameter":
+            schema["then"]["properties"].update(
+                {
+                    "document": {"properties": {"update_stamp": INTEGER}},
+                    "observation": {
+                        "required": [
+                            "before",
+                            "after",
+                            "configuration_matched",
+                            "unchanged",
+                        ],
+                        "properties": {
+                            "configuration_matched": {"const": True},
+                            "unchanged": {"const": True},
+                        },
+                    },
+                    "geometry_verification": {
+                        "properties": {
+                            "passed": {"const": True},
+                            "complete_circle": {"const": True},
+                            "profile_segment_count": {"const": 1},
+                            "actual_radius_mm": {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                            },
+                            "actual_center_mm": VECTOR,
+                        }
+                    },
+                }
+            )
+            schema["then"]["properties"]["dimension"]["properties"].update(
+                {
+                    "driven_state": {"type": "integer", "enum": [0, 1, 2]},
+                    "configuration": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": r"\S",
+                    },
+                    "native_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": r"\S",
+                    },
+                }
+            )
+            # A failed read must not claim that a native handle was recovered.
+            schema["else"]["properties"] = {
+                "dimension": {"not": {"required": ["dimension_id"]}}
+            }
         if name == "dimension.set":
             schema["then"]["properties"].update(
                 {
@@ -1026,7 +1102,7 @@ class OperationResultInvalid(RuntimeError):
     """An adapter returned a result outside its advertised contract."""
 
 
-def validate_operation_result(name: str, result: Any) -> None:
+def _validate_result(name: str, result: Any, validator: Any) -> None:
     # jsonschema accepts Python NaN/Infinity as numbers; wire JSON does not.
     # Check the actual UTF-8 encoding too, so malformed native text cannot make
     # a later socket write fail instead of returning a structured adapter error.
@@ -1036,7 +1112,53 @@ def validate_operation_result(name: str, result: Any) -> None:
         raise OperationResultInvalid(
             f"{name}: result is not finite UTF-8 JSON: {exc}"
         ) from exc
-    error = next(_validator(name).iter_errors(result), None)
+    error = next(validator.iter_errors(result), None)
     if error is not None:
         path = ".".join(str(item) for item in error.absolute_path) or "result"
         raise OperationResultInvalid(f"{name}: {path}: {error.message}")
+
+
+def _validate_dimension_discovery_state(result: Dict[str, Any]) -> None:
+    if result["ok"] is not True:
+        return
+    observation = result["observation"]
+    before, after = observation["before"], observation["after"]
+    dimension = result["dimension"]
+    if (
+        before != after
+        or dimension["configuration"] != before["configuration"]
+        or result["editing"] != before["editing"]
+        or result["document"]["update_stamp"] != after["update_stamp"]
+        or ("sketch_id" in dimension and dimension["sketch_id"] != result["sketch_id"])
+    ):
+        raise OperationResultInvalid(
+            "dimension.discover-diameter: inconsistent read-only observation state"
+        )
+
+
+@lru_cache(maxsize=1)
+def _dimension_discovery_observation_validator():
+    from jsonschema import Draft202012Validator
+
+    schema = operation_result_schema("dimension.discover-diameter")
+    # Native observations have no wire handles yet. Validate every other
+    # success field before allowing registration to create/reuse an m-ID.
+    required = schema["then"]["properties"]["dimension"]["required"]
+    required.remove("dimension_id")
+    required.remove("sketch_id")
+    return Draft202012Validator(schema)
+
+
+def validate_dimension_discovery_observation(result: Dict[str, Any]) -> None:
+    _validate_result(
+        "dimension.discover-diameter",
+        result,
+        _dimension_discovery_observation_validator(),
+    )
+    _validate_dimension_discovery_state(result)
+
+
+def validate_operation_result(name: str, result: Any) -> None:
+    _validate_result(name, result, _validator(name))
+    if name == "dimension.discover-diameter":
+        _validate_dimension_discovery_state(result)

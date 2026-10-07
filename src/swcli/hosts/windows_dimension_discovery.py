@@ -1,6 +1,7 @@
-"""Internal, read-only discovery of an observable circle diameter.
+"""Read-only discovery of an observable circle diameter on the worker thread.
 
-Not connected to a public operation and not validated on Wine. Native Windows
+The a5 development protocol exposes this narrow adapter; Wine is a separate
+delivery gate. Native Windows
 saved-model experiments show that a feature display chain can be readable, but
 the official GetFirstDisplayDimension/GetNextDisplayDimension documentation has
 a display prerequisite. An empty chain therefore does not prove that persisted

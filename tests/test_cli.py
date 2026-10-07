@@ -22,6 +22,58 @@ from swcli.operation_schemas import (
 
 class CliTests(unittest.TestCase):
 
+    def test_diameter_discovery_maps_exact_sketch_and_read_context(self):
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "--session",
+                "reader",
+                "dimension",
+                "discover-diameter",
+                "s-ab12cd",
+                "--document",
+                "d-ab12cd",
+                "--if-update-stamp",
+                "0",
+                "--json",
+            ]
+        )
+        self.assertEqual(args.session, "reader")
+        self.assertEqual(
+            _typed_operation(args),
+            (
+                "dimension.discover-diameter",
+                {"sketch_id": "s-ab12cd"},
+                True,
+                "d-ab12cd",
+                0,
+                None,
+            ),
+        )
+        self.assertEqual(
+            _typed_operation(
+                parser.parse_args(["dimension", "discover-diameter", "s-ab12cd"])
+            ),
+            (
+                "dimension.discover-diameter",
+                {"sketch_id": "s-ab12cd"},
+                False,
+                None,
+                None,
+                None,
+            ),
+        )
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parser.parse_args(
+                [
+                    "dimension",
+                    "discover-diameter",
+                    "s-ab12cd",
+                    "--lease",
+                    "l-ab12cd34ef56",
+                ]
+            )
+
     def test_sketch_list_maps_read_context_and_limit_without_write_options(self):
         parser = build_parser()
         args = parser.parse_args(
