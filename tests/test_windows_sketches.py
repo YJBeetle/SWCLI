@@ -1,4 +1,5 @@
 import copy
+from contextlib import nullcontext
 import math
 import unittest
 from types import SimpleNamespace
@@ -315,6 +316,127 @@ class WindowsCircleTests(unittest.TestCase):
         self.assertIsNotNone(feature)
         self.assertFalse(manager.AddToDB)
         self.assertIsNone(manager.ActiveSketch)
+
+    def test_com_failures_report_the_precise_stage_and_preserve_native_error(self):
+        native_type = type("com_error", (Exception,), {})
+        native = native_type(-2147023898, "No access to memory location", None, None)
+        native.hresult = -2147023898
+        expected_error = {"type": "com_error", "message": str(native)}
+        cases = (
+            ("plane-resolve", "GetSpecificFeature2"),
+            ("plane-select", "Select2"),
+            ("sketch-enter", "InsertSketch"),
+            ("exact-feature", "IsSame"),
+            ("transform", "ModelToSketchTransform"),
+            ("create", "CreateCircleByRadius"),
+            ("close", "InsertSketch"),
+            ("verify", "GetRadius"),
+        )
+        for stage, member in cases:
+            with self.subTest(stage=stage, member=member):
+                self.setUp()
+                manager = self.document.SketchManager
+                patcher = None
+
+                def raise_native(*arguments):
+                    raise native
+
+                if stage == "plane-resolve":
+                    self.document.features[0].GetSpecificFeature2 = raise_native
+                elif stage == "plane-select":
+                    self.document.features[0].Select2.side_effect = native
+                elif stage == "sketch-enter":
+                    manager.InsertSketch.side_effect = native
+                elif stage == "exact-feature":
+                    self.app.IsSame = mock.Mock(side_effect=native)
+                elif stage == "transform":
+                    patcher = mock.patch.object(
+                        Sketch, "ModelToSketchTransform", new_callable=mock.PropertyMock,
+                        side_effect=native,
+                    )
+                elif stage == "create":
+                    manager.CreateCircleByRadius.side_effect = native
+                elif stage == "close":
+                    calls = 0
+
+                    def close_failure(update):
+                        nonlocal calls
+                        calls += 1
+                        if calls == 2:
+                            raise native
+                        manager.toggle(update)
+
+                    manager.InsertSketch.side_effect = close_failure
+                elif stage == "verify":
+                    patcher = mock.patch.object(CircleSegment, "GetRadius", new=raise_native)
+                with patcher if patcher is not None else nullcontext():
+                    result, feature = self.create()
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"], expected_error)
+                warning = result["warnings"][0]
+                self.assertEqual(warning["code"], "sketch-com-call-failed")
+                self.assertEqual((warning["stage"], warning["call"]), (stage, member))
+                self.assertEqual(warning["native_error"], {
+                    **expected_error, "hresult": -2147023898, "hresult_hex": "0x800703E6",
+                })
+                self.assertIsNone(manager.ActiveSketch)
+                self.assertFalse(manager.AddToDB)
+                if stage in ("plane-resolve", "plane-select", "sketch-enter", "exact-feature"):
+                    self.assertIsNone(feature)
+                    manager.CreateCircleByRadius.assert_not_called()
+                else:
+                    self.assertIsNotNone(feature)
+                if stage in ("create", "close", "verify"):
+                    self.assertEqual(manager.CreateCircleByRadius.call_count, 1)
+                validate_operation_result("sketch.circle", result)
+
+    def test_com_creation_mode_failure_keeps_failed_enable_not_restore_as_its_call(self):
+        native_type = type("com_error", (Exception,), {})
+        native = native_type(-2147023898, "No access to memory location")
+        with mock.patch.object(
+            Manager, "AddToDB", new_callable=mock.PropertyMock, create=True,
+            side_effect=[False, native, None, False],
+        ):
+            result, _ = self.create()
+        warning = result["warnings"][0]
+        self.assertEqual((warning["stage"], warning["call"]), ("create", "AddToDB.set(True)"))
+        self.assertEqual(result["error"], {"type": "com_error", "message": str(native)})
+        self.assertEqual(warning["native_error"]["hresult"], -2147023898)
+        self.document.SketchManager.CreateCircleByRadius.assert_not_called()
+        self.assertIsNone(self.document.SketchManager.ActiveSketch)
+        validate_operation_result("sketch.circle", result)
+
+    def test_com_failure_context_is_not_overwritten_by_failed_cleanup(self):
+        native_type = type("com_error", (Exception,), {})
+        creation_error = native_type(-2147023898, "creation memory error")
+        cleanup_error = native_type(-2147417848, "cleanup disconnect")
+        manager = self.document.SketchManager
+        manager.CreateCircleByRadius.side_effect = creation_error
+
+        def fail_cleanup(update):
+            if manager.ActiveSketch is None:
+                manager.toggle(update)
+            else:
+                raise cleanup_error
+
+        manager.InsertSketch.side_effect = fail_cleanup
+        result, feature = self.create()
+        self.assertIsNotNone(feature)
+        self.assertEqual(result["error"], {"type": "com_error", "message": str(creation_error)})
+        self.assertEqual(result["warnings"][0]["stage"], "create")
+        self.assertEqual(result["warnings"][0]["call"], "CreateCircleByRadius")
+        self.assertEqual(result["warnings"][1]["code"], "sketch-cleanup-failed")
+        self.assertIn("cleanup disconnect", result["warnings"][1]["message"])
+        self.assertTrue(result["editing"])
+        validate_operation_result("sketch.circle", result)
+
+    def test_success_and_domain_failures_do_not_emit_com_failure_context(self):
+        result, _ = self.create()
+        self.assertNotIn("warnings", result)
+        self.setUp()
+        result, _ = self.create(radius_mm=0)
+        self.assertNotIn("warnings", result)
+        self.assertEqual(result["error"]["type"], "InvalidArgument")
 
     def test_unavailable_or_rejected_direct_mode_does_not_create_ui_geometry(self):
         manager = self.document.SketchManager

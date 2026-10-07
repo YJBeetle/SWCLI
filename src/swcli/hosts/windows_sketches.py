@@ -6,32 +6,61 @@ import math
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
+from .com_errors import com_hresult
 
 STANDARD_PLANES = {"front": 2, "top": 1, "right": 0}
 _FEATURE_LIMIT = 10000
 _GEOMETRY_TOLERANCE_MM = 1e-6
 
 
-def _features(document: Any):
-    feature = _com_value(document, "FirstFeature")
+def _observe(value: Any, member: str, context: Optional[Dict[str, str]]) -> Any:
+    if context is not None:
+        context["call"] = member
+    return _com_value(value, member)
+
+
+def _mark(context: Optional[Dict[str, str]], stage: str, call: str) -> None:
+    if context is not None:
+        context.update(stage=stage, call=call)
+
+
+def _com_failure_warning(exc: Exception, context: Dict[str, str]) -> Dict[str, Any]:
+    """Add evidence without rewriting the exception or its primary error."""
+    native_error = _error(exc)
+    hresult = com_hresult(exc)
+    if hresult is not None:
+        native_error["hresult"] = hresult if hresult < 2**31 else hresult - 2**32
+        native_error["hresult_hex"] = f"0x{hresult:08X}"
+    return {
+        "code": "sketch-com-call-failed",
+        "message": f"native sketch.circle failed during {context['stage']} ({context['call']})",
+        **context,
+        "native_error": native_error,
+    }
+
+
+def _features(document: Any, context: Optional[Dict[str, str]] = None):
+    feature = _observe(document, "FirstFeature", context)
     for _ in range(_FEATURE_LIMIT):
         if feature is None:
             return
         yield feature
-        feature = _com_value(feature, "GetNextFeature")
+        feature = _observe(feature, "GetNextFeature", context)
     raise RuntimeError("feature traversal exceeded the modeling safety limit")
 
 
-def _standard_plane(document: Any, plane: str) -> Any:
+def _standard_plane(
+    document: Any, plane: str, context: Optional[Dict[str, str]] = None
+) -> Any:
     """Find the first origin plane with the requested world-axis normal."""
 
     axis = STANDARD_PLANES[plane]
-    for feature in _features(document):
-        if _com_value(feature, "GetTypeName2") != "RefPlane":
+    for feature in _features(document, context):
+        if _observe(feature, "GetTypeName2", context) != "RefPlane":
             continue
-        reference = _com_value(feature, "GetSpecificFeature2")
-        transform = _com_value(reference, "Transform")
-        values = tuple(float(v) for v in _com_value(transform, "ArrayData"))
+        reference = _observe(feature, "GetSpecificFeature2", context)
+        transform = _observe(reference, "Transform", context)
+        values = tuple(float(v) for v in _observe(transform, "ArrayData", context))
         if len(values) < 13 or not all(math.isfinite(v) for v in values):
             continue
         # SOLIDWORKS uses row vectors: the local Z basis is entries 6..8;
@@ -59,12 +88,16 @@ def _unabsorbed_profile(app: Any, document: Any, sketch_feature: Any) -> Optiona
     return feature
 
 
-def _sketch_feature(app: Any, document: Any, sketch: Any) -> Any:
-    for feature in _features(document):
-        if (
-            _com_value(feature, "GetTypeName2") == "ProfileFeature"
-            and int(app.IsSame(_com_value(feature, "GetSpecificFeature2"), sketch)) == 1
-        ):
+def _sketch_feature(
+    app: Any, document: Any, sketch: Any, context: Optional[Dict[str, str]] = None
+) -> Any:
+    for feature in _features(document, context):
+        if _observe(feature, "GetTypeName2", context) != "ProfileFeature":
+            continue
+        native = _observe(feature, "GetSpecificFeature2", context)
+        if context is not None:
+            context["call"] = "IsSame"
+        if int(app.IsSame(native, sketch)) == 1:
             return feature
     return None
 
@@ -140,19 +173,20 @@ def _rectangle_verification(sketch: Any, expected: Dict[str, float]) -> Dict[str
 
 
 def _circle_verification(
-    sketch: Any, radius_mm: float, center_x_mm: float, center_y_mm: float
+    sketch: Any, radius_mm: float, center_x_mm: float, center_y_mm: float,
+    context: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
-    segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
-    profile = [s for s in segments if not bool(_com_value(s, "ConstructionGeometry"))]
+    segments = tuple(_observe(sketch, "GetSketchSegments", context) or ())
+    profile = [s for s in segments if not bool(_observe(s, "ConstructionGeometry", context))]
     actual_radius, center, complete = None, None, False
-    if len(profile) == 1 and int(_com_value(profile[0], "GetType")) == 1:
+    if len(profile) == 1 and int(_observe(profile[0], "GetType", context)) == 1:
         arc = profile[0]
-        complete = int(_com_value(arc, "IsCircle")) == 1
-        value = float(_com_value(arc, "GetRadius")) * 1000
+        complete = int(_observe(arc, "IsCircle", context)) == 1
+        value = float(_observe(arc, "GetRadius", context)) * 1000
         actual_radius = value if math.isfinite(value) else None
-        point = _com_value(arc, "GetCenterPoint2")
+        point = _observe(arc, "GetCenterPoint2", context)
         coordinates = [
-            float(_com_value(point, axis)) * 1000 for axis in ("X", "Y", "Z")
+            float(_observe(point, axis, context)) * 1000 for axis in ("X", "Y", "Z")
         ]
         if all(math.isfinite(v) for v in coordinates):
             center = dict(zip(("x", "y", "z"), coordinates))
@@ -212,6 +246,7 @@ def create_circle_sketch_windows_with_handle(
         }
         return result, None
     state_warnings = []
+    failure_context = {}
     result, feature = _create_profile_sketch_windows_with_handle(
         app=app,
         document=document,
@@ -229,10 +264,12 @@ def create_circle_sketch_windows_with_handle(
             center_y_mm / 1000,
             radius_mm / 1000,
             state_warnings,
+            failure_context,
         ),
         verify_sketch=lambda sketch: _circle_verification(
-            sketch, radius_mm, center_x_mm, center_y_mm
+            sketch, radius_mm, center_x_mm, center_y_mm, failure_context
         ),
+        failure_context=failure_context,
     )
     if state_warnings:
         result.setdefault("warnings", []).extend(state_warnings)
@@ -246,29 +283,34 @@ def create_circle_sketch_windows_with_handle(
 
 
 def _create_circle_without_inference(
-    manager: Any, x: float, y: float, radius: float, state_warnings: list
+    manager: Any, x: float, y: float, radius: float, state_warnings: list,
+    context: Optional[Dict[str, str]] = None,
 ) -> Any:
     """Create exact API geometry rather than letting UI snapping redefine it."""
 
     # CreateCircleByRadius otherwise participates in UI inferencing, automatic
     # relations and grid/entity snapping. AddToDB is the documented escape from
     # these side effects; do not alter global inference or display preferences.
-    def read_mode():
-        value = _com_value(manager, "AddToDB")
+    def read_mode(*, observing=True):
+        value = _observe(manager, "AddToDB", context if observing else None)
         if not isinstance(value, bool):
             raise RuntimeError("SOLIDWORKS returned an invalid AddToDB mode")
         return value
 
     original = read_mode()
     try:
+        if context is not None:
+            context["call"] = "AddToDB.set(True)"
         manager.AddToDB = True
         if not read_mode():
             raise RuntimeError("SOLIDWORKS could not enable direct circle creation")
+        if context is not None:
+            context["call"] = "CreateCircleByRadius"
         return manager.CreateCircleByRadius(x, y, 0, radius)
     finally:
         try:
             manager.AddToDB = original
-            if read_mode() != original:
+            if read_mode(observing=False) != original:
                 raise RuntimeError(
                     "SOLIDWORKS did not restore the original AddToDB mode"
                 )
@@ -353,6 +395,7 @@ def _create_profile_sketch_windows_with_handle(
     dimensions: Dict[str, Any],
     create_segments: Callable[[Any], Any],
     verify_sketch: Callable[[Any], Dict[str, Any]],
+    failure_context: Optional[Dict[str, str]] = None,
 ) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Own the fresh sketch edit lifecycle and return its exact feature handle."""
     result: Dict[str, Any] = {"ok": False, "action": action}
@@ -360,27 +403,32 @@ def _create_profile_sketch_windows_with_handle(
     manager = None
     entered = False
     try:
-        if int(_com_value(document, "GetType")) != 1:
+        _mark(failure_context, "document-preflight", "GetType")
+        if int(_observe(document, "GetType", failure_context)) != 1:
             result["error"] = {
                 "type": "UnsupportedDocumentType",
                 "message": "profile sketches currently require a part document",
             }
             return result, None
-        manager = _com_value(document, "SketchManager")
-        if _com_value(manager, "ActiveSketch") is not None:
+        _mark(failure_context, "existing-edit-check", "SketchManager")
+        manager = _observe(document, "SketchManager", failure_context)
+        if _observe(manager, "ActiveSketch", failure_context) is not None:
             result["error"] = {
                 "type": "SketchEditInProgress",
                 "message": "finish the existing sketch edit before creating a new sketch",
             }
             return result, None
-        reference = _standard_plane(document, plane)
+        _mark(failure_context, "plane-resolve", "_standard_plane")
+        reference = _standard_plane(document, plane, failure_context)
         if reference is None:
             result["error"] = {
                 "type": "StandardPlaneUnavailable",
                 "message": f"no origin plane aligned with '{plane}' was found",
             }
             return result, None
+        _mark(failure_context, "plane-select", "ClearSelection2")
         document.ClearSelection2(True)
+        _mark(failure_context, "plane-select", "Select2")
         if not reference.Select2(False, 0):
             result["error"] = {
                 "type": "PlaneSelectionFailed",
@@ -388,23 +436,27 @@ def _create_profile_sketch_windows_with_handle(
             }
             return result, None
         entered = True
+        _mark(failure_context, "sketch-enter", "InsertSketch")
         manager.InsertSketch(True)
-        sketch = _com_value(manager, "ActiveSketch")
+        sketch = _observe(manager, "ActiveSketch", failure_context)
         if sketch is None:
             raise RuntimeError("SOLIDWORKS did not enter a new sketch")
-        feature = _sketch_feature(app, document, sketch)
+        _mark(failure_context, "exact-feature", "_sketch_feature")
+        feature = _sketch_feature(app, document, sketch, failure_context)
         if feature is None:
             raise RuntimeError(
                 "the new sketch could not be identified by native object identity"
             )
-        transform = _com_value(sketch, "ModelToSketchTransform")
-        transform_values = [float(v) for v in _com_value(transform, "ArrayData")]
+        _mark(failure_context, "transform", "ModelToSketchTransform")
+        transform = _observe(sketch, "ModelToSketchTransform", failure_context)
+        transform_values = [float(v) for v in _observe(transform, "ArrayData", failure_context)]
         if len(transform_values) != 16 or not all(
             math.isfinite(v) for v in transform_values
         ):
             raise RuntimeError(
                 "SOLIDWORKS returned an invalid sketch coordinate transform"
             )
+        _mark(failure_context, "create", "create_segments")
         segments = create_segments(manager)
         if not segments:
             result["error"] = {
@@ -416,22 +468,26 @@ def _create_profile_sketch_windows_with_handle(
         result["coordinate_system"] = "sketch-local"
         result["model_to_sketch_transform"] = transform_values
         result["dimensions"] = dimensions
+        _mark(failure_context, "exact-feature", "Name")
         result["sketch"] = {
-            "name": str(_com_value(feature, "Name")),
+            "name": str(_observe(feature, "Name", failure_context)),
             "type": "ProfileFeature",
-            "constraint_status": int(_com_value(sketch, "GetConstrainedStatus")),
+            "constraint_status": int(_observe(sketch, "GetConstrainedStatus", failure_context)),
             "dimensions_created": False,
         }
+        _mark(failure_context, "close", "InsertSketch")
         manager.InsertSketch(True)
-        if _com_value(manager, "ActiveSketch") is not None:
+        if _observe(manager, "ActiveSketch", failure_context) is not None:
             raise RuntimeError("SOLIDWORKS did not exit sketch editing")
         entered = False
+        _mark(failure_context, "close", "ClearSelection2")
         document.ClearSelection2(True)
         result["editing"] = False
         # Closing a sketch can trigger solving: verify the final native geometry,
         # not just the arguments or segments returned by the creation API.
+        _mark(failure_context, "verify", "GetConstrainedStatus")
         result["sketch"]["constraint_status"] = int(
-            _com_value(sketch, "GetConstrainedStatus")
+            _observe(sketch, "GetConstrainedStatus", failure_context)
         )
         result["geometry_verification"] = verify_sketch(sketch)
         if not result["geometry_verification"]["passed"]:
@@ -444,6 +500,10 @@ def _create_profile_sketch_windows_with_handle(
         return result, feature
     except Exception as exc:
         result["error"] = _error(exc)
+        if failure_context is not None and com_hresult(exc) is not None:
+            result.setdefault("warnings", []).append(
+                _com_failure_warning(exc, failure_context)
+            )
         return result, feature
     finally:
         if entered and manager is not None:
