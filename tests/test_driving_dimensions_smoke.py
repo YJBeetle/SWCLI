@@ -4,9 +4,12 @@ import importlib.util
 import io
 import json
 import math
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -579,5 +582,372 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 )
             )
             self.assertFalse(record["success"])
+            self.assertEqual(record["state"], "completed")
             self.assertEqual(record["error"]["message"], "original failure")
             self.assertEqual(record["cleanup_errors"], [])
+
+    def test_main_reserves_valid_running_record_before_any_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+
+            def inspect_initial_record():
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+                self.assertEqual(record["state"], "running")
+                self.assertEqual(record["stage"], "initializing")
+                self.assertNotIn("success", record)
+                self.assertEqual(record["events"], [])
+
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ),
+                mock.patch.object(
+                    self.smoke, "run", side_effect=inspect_initial_record
+                ),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+            ):
+                driving_smoke.main(["--output-dir", directory])
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            self.assertEqual(record["state"], "completed")
+            self.assertTrue(record["success"])
+
+    def test_completed_events_and_stages_are_atomically_checkpointed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+            snapshots = []
+            write = driving_smoke.EvidenceCheckpoint.write
+
+            def capture(checkpoint, record):
+                write(checkpoint, record)
+                snapshots.append(json.loads(record_path.read_text(encoding="utf-8")))
+                self.assertEqual(record_path.stat().st_mode & 0o777, checkpoint.mode)
+
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ),
+                mock.patch.object(
+                    driving_smoke, "call_daemon", side_effect=self.daemon.call
+                ),
+                mock.patch.object(
+                    driving_smoke.subprocess, "run", side_effect=self.daemon.command
+                ),
+                mock.patch.object(
+                    driving_smoke.EvidenceCheckpoint, "write", new=capture
+                ),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+            ):
+                driving_smoke.main(["--output-dir", directory])
+            self.assertEqual(snapshots[0]["stage"], "daemon.health.completed")
+            for record in snapshots[:-1]:
+                self.assertEqual(record["state"], "running")
+                self.assertNotIn("success", record)
+            cli_snapshots = [
+                item for item in snapshots if item["stage"] == "cli.completed"
+            ]
+            self.assertTrue(cli_snapshots)
+            self.assertTrue(
+                all(item["events"][-1]["result"]["ok"] for item in cli_snapshots)
+            )
+            for plane in ("front", "top", "right"):
+                verified = next(
+                    item
+                    for item in snapshots
+                    if item["stage"] == f"plane.{plane}.verified"
+                )
+                self.assertEqual(verified["planes"][-1]["plane"], plane)
+                self.assertEqual(verified["current_plane"], plane)
+            self.assertTrue(
+                any(
+                    item["stage"] == "reopened-sketch-discovery.observed"
+                    for item in snapshots
+                )
+            )
+            self.assertEqual(snapshots[-1]["state"], "completed")
+            self.assertTrue(snapshots[-1]["success"])
+            self.assertFalse(self.daemon.documents)
+
+    def test_atomic_replacement_failure_keeps_last_record_and_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+            checkpoint = driving_smoke.EvidenceCheckpoint(record_path)
+            original = {"state": "running", "events": []}
+            checkpoint.reserve(original)
+            original_mode = record_path.stat().st_mode & 0o777
+            original_bytes = record_path.read_bytes()
+            with mock.patch.object(
+                Path, "replace", side_effect=OSError("replace denied")
+            ):
+                with self.assertRaisesRegex(OSError, "replace denied"):
+                    checkpoint.write({"state": "running", "events": ["latest"]})
+            self.assertEqual(record_path.read_bytes(), original_bytes)
+            self.assertEqual(
+                list(Path(directory).glob(".driving-dimensions.*.tmp")), []
+            )
+            checkpoint.write({"state": "running", "events": ["latest"]})
+            self.assertEqual(record_path.stat().st_mode & 0o777, original_mode)
+            self.assertEqual(
+                json.loads(record_path.read_text(encoding="utf-8"))["events"],
+                ["latest"],
+            )
+
+    def test_checkpoint_failure_tracks_resources_before_cleanup(self):
+        for failed_operation in (
+            "document.create",
+            "document.lease.acquire",
+            "document.open",
+        ):
+            with (
+                self.subTest(operation=failed_operation),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                self.setUp()
+                record_path = Path(directory) / "driving-dimensions.json"
+                write = driving_smoke.EvidenceCheckpoint.write
+                failed = False
+
+                def fail_once(checkpoint, record):
+                    nonlocal failed
+                    if (
+                        record["stage"] == failed_operation + ".completed"
+                        and not failed
+                    ):
+                        failed = True
+                        raise OSError("evidence disk unavailable")
+                    write(checkpoint, record)
+
+                with (
+                    mock.patch.object(
+                        driving_smoke, "DrivingSmoke", return_value=self.smoke
+                    ),
+                    mock.patch.object(
+                        driving_smoke, "call_daemon", side_effect=self.daemon.call
+                    ),
+                    mock.patch.object(
+                        driving_smoke.subprocess, "run", side_effect=self.daemon.command
+                    ),
+                    mock.patch.object(
+                        driving_smoke.EvidenceCheckpoint, "write", new=fail_once
+                    ),
+                    mock.patch("sys.stdout", new_callable=io.StringIO),
+                    mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+                ):
+                    with self.assertRaisesRegex(OSError, "evidence disk unavailable"):
+                        driving_smoke.main(["--output-dir", directory])
+                self.assertTrue(failed)
+                self.assertFalse(self.daemon.documents)
+                self.assertFalse(self.smoke.owned)
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+                self.assertEqual(record["state"], "completed")
+                self.assertFalse(record["success"])
+                self.assertEqual(
+                    record["error"]["message"], "evidence disk unavailable"
+                )
+                self.assertEqual(
+                    record["checkpoint_errors"][0]["stage"],
+                    failed_operation + ".completed",
+                )
+                self.assertEqual(record["cleanup_errors"], [])
+                self.assertIn("evidence checkpoint failed", warnings.getvalue())
+
+    def test_persistent_checkpoint_failure_does_not_interrupt_owned_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+
+            def run():
+                self.smoke.create()
+                self.smoke.create()
+                self.smoke.checkpoint_writer = mock.Mock(
+                    side_effect=OSError("disk gone")
+                )
+                self.smoke.checkpoint("fixture.write")
+
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ),
+                mock.patch.object(
+                    driving_smoke, "call_daemon", side_effect=self.daemon.call
+                ),
+                mock.patch.object(self.smoke, "run", side_effect=run),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+                mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+            ):
+                with self.assertRaisesRegex(OSError, "disk gone"):
+                    driving_smoke.main(["--output-dir", directory])
+            self.assertFalse(self.daemon.documents)
+            self.assertFalse(self.smoke.owned)
+            self.assertEqual(self.smoke.record["cleanup_errors"], [])
+            self.assertGreater(len(self.smoke.record["checkpoint_errors"]), 2)
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            self.assertEqual(record["state"], "running")
+            self.assertNotIn("success", record)
+            self.assertEqual(len(record["events"]), 2)
+            self.assertIn("disk gone", warnings.getvalue())
+
+    def test_business_failure_survives_cleanup_and_final_checkpoint_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+
+            def run():
+                self.smoke.create()
+                self.smoke.create()
+                self.smoke.checkpoint_writer = mock.Mock(
+                    side_effect=OSError("disk gone")
+                )
+                raise RuntimeError("original business failure")
+
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ),
+                mock.patch.object(
+                    driving_smoke, "call_daemon", side_effect=self.daemon.call
+                ),
+                mock.patch.object(self.smoke, "run", side_effect=run),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+                mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "original business failure"):
+                    driving_smoke.main(["--output-dir", directory])
+            self.assertFalse(self.daemon.documents)
+            self.assertEqual(
+                self.smoke.record["error"]["message"], "original business failure"
+            )
+            self.assertFalse(self.smoke.record["success"])
+            self.assertIn("disk gone", warnings.getvalue())
+
+    def test_failed_business_response_is_checkpointed_without_masking_primary_error(
+        self,
+    ):
+        self.smoke.checkpoint_writer = mock.Mock(side_effect=OSError("disk gone"))
+        with (
+            mock.patch.object(
+                driving_smoke,
+                "call_daemon",
+                return_value=FakeDaemon.error("COMFailure"),
+            ),
+            mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "COMFailure"):
+                self.smoke.call("sketch.circle")
+        event = self.smoke.record["events"][-1]
+        self.assertEqual(event["response"]["error"]["code"], "COMFailure")
+        self.assertIn("COMFailure", event["error"]["message"])
+        self.assertIn("disk gone", warnings.getvalue())
+
+    def test_failed_cli_response_is_checkpointed_without_masking_primary_error(self):
+        self.smoke.checkpoint_writer = mock.Mock(side_effect=OSError("disk gone"))
+        with (
+            mock.patch.object(
+                driving_smoke.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    [],
+                    1,
+                    b'{"ok":false,"error":{"code":"CLIComFailure"}}',
+                    b"native diagnostic",
+                ),
+            ),
+            mock.patch("sys.stderr", new_callable=io.StringIO) as warnings,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "CLIComFailure"):
+                self.smoke.command(["dimension", "inspect", "m-ab12cd"])
+        event = self.smoke.record["events"][-1]
+        self.assertEqual(event["returncode"], 1)
+        self.assertEqual(json.loads(event["stdout"])["error"]["code"], "CLIComFailure")
+        self.assertEqual(event["stderr"], "native diagnostic")
+        self.assertIn("disk gone", warnings.getvalue())
+
+    def test_final_checkpoint_failure_leaves_running_proof_and_exits_unsuccessfully(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+            write = driving_smoke.EvidenceCheckpoint.write
+
+            def fail_final(checkpoint, record):
+                if record["state"] == "completed":
+                    raise OSError("terminal write failed")
+                write(checkpoint, record)
+
+            with (
+                mock.patch.object(
+                    driving_smoke, "DrivingSmoke", return_value=self.smoke
+                ),
+                mock.patch.object(self.smoke, "run"),
+                mock.patch.object(
+                    driving_smoke.EvidenceCheckpoint, "write", new=fail_final
+                ),
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+                mock.patch("sys.stderr", new_callable=io.StringIO),
+            ):
+                with self.assertRaisesRegex(OSError, "terminal write failed"):
+                    driving_smoke.main(["--output-dir", directory])
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            self.assertEqual(record["state"], "running")
+            self.assertEqual(record["stage"], "cleanup.completed")
+            self.assertNotIn("success", record)
+            self.assertFalse(self.smoke.record["success"])
+            self.assertEqual(
+                self.smoke.record["error"]["message"], "terminal write failed"
+            )
+
+    @unittest.skipIf(os.name == "nt", "POSIX SIGKILL fixture; Windows has no SIGKILL")
+    def test_killed_fake_gate_retains_latest_running_json_without_daemon(self):
+        fixture = """
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location('driving_smoke_fixture', sys.argv[1])
+gate = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(gate)
+gate.call_daemon = lambda *args, **kwargs: {'success': True, 'result': {'fixture': 'completed'}}
+def paused_run(self):
+    self.call('daemon.health')
+    self.checkpoint('fixture.paused')
+    sys.stdin.read()
+gate.DrivingSmoke.run = paused_run
+gate.main(['--output-dir', sys.argv[2]])
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            record_path = Path(directory) / "driving-dimensions.json"
+            process = subprocess.Popen(
+                [sys.executable, "-c", fixture, str(script), directory],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env={**os.environ, "PYTHONPATH": str(script.parents[2] / "src")},
+            )
+            try:
+                deadline = time.monotonic() + 5
+                record = None
+                while time.monotonic() < deadline:
+                    if record_path.exists():
+                        try:
+                            record = json.loads(record_path.read_text(encoding="utf-8"))
+                        except json.JSONDecodeError:
+                            # Exclusive initial reservation is written before
+                            # any fake/native work starts; wait for that flush.
+                            pass
+                        else:
+                            if record["stage"] == "fixture.paused":
+                                break
+                    if process.poll() is not None:
+                        self.fail(
+                            f"fixture unexpectedly exited: {process.communicate()}"
+                        )
+                    time.sleep(0.01)
+                else:
+                    self.fail("fixture did not checkpoint before its deadline")
+                process.kill()
+                process.communicate(timeout=5)
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+                self.assertEqual(record["state"], "running")
+                self.assertEqual(record["stage"], "fixture.paused")
+                self.assertNotIn("success", record)
+                self.assertEqual(
+                    record["events"][0]["response"]["result"], {"fixture": "completed"}
+                )
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate(timeout=5)

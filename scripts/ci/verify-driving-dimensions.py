@@ -19,6 +19,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -75,6 +76,60 @@ def cli_executable(value):
             "cli-command must be an executable file, not a directory or command line"
         )
     return str(resolved)
+
+
+class EvidenceCheckpoint:
+    """Reserve one run's evidence, then replace it with complete JSON snapshots."""
+
+    def __init__(self, path):
+        self.path = path
+        self.mode = None
+
+    @staticmethod
+    def serialize(record):
+        return json.dumps(record, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
+
+    def reserve(self, record):
+        # Refuse existing evidence before any daemon call. Serialize first so
+        # invalid JSON data cannot leave an empty newly reserved record.
+        payload = self.serialize(record)
+        with self.path.open("x", encoding="utf-8") as stream:
+            stream.write(payload)
+            stream.flush()
+        self.mode = self.path.stat().st_mode & 0o777
+
+    def write(self, record):
+        payload = self.serialize(record)
+        temporary = None
+        try:
+            # A killed process can leave this scratch file, but readers retain
+            # the previous complete JSON until the same-directory replacement.
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.path.parent,
+                prefix=".driving-dimensions.",
+                suffix=".tmp",
+                delete=False,
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(payload)
+                stream.flush()
+            # NamedTemporaryFile defaults to 0600. Preserve the reserved
+            # record's mode so a host runner can still collect container JSON.
+            temporary.chmod(self.mode)
+            temporary.replace(self.path)
+        except BaseException:
+            if temporary is not None:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError as exc:
+                    print(
+                        f"Driving-dimension checkpoint scratch cleanup failed: {temporary}: {exc}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+            raise
 
 
 def assert_dimension(result, dimension_id, sketch_id, value):
@@ -146,37 +201,89 @@ class DrivingSmoke:
         # caller's shell still has PYTHONPATH pointing at a development tree.
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
         self.record = {
+            "state": "running",
+            "stage": "initializing",
             "session_id": session,
             "endpoint": endpoint,
             "planes": [],
             "events": [],
         }
         self.owned = {}
+        self.checkpoint_writer = None
+        self.checkpoint_error = None
+        self._cleaning_up = False
+
+    def checkpoint(self, stage, *, required=True):
+        self.record["stage"] = stage
+        if self.checkpoint_writer is None:
+            return None
+        try:
+            self.checkpoint_writer(self.record)
+        except Exception as exc:
+            if self.checkpoint_error is None:
+                self.checkpoint_error = exc
+            self.record.setdefault("checkpoint_errors", []).append(
+                {"stage": stage, "type": type(exc).__name__, "message": str(exc)}
+            )
+            print(
+                f"Driving-dimension evidence checkpoint failed at {stage}: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
+            if required and not self._cleaning_up:
+                raise
+            return exc
+        return None
+
+    def remember_owned_result(self, operation, result, context):
+        # Register native resources before checkpoint I/O can fail. Otherwise
+        # a successful create/open/lease response could become an orphan when
+        # its evidence write aborts the gate.
+        document_id = context.get("document_id")
+        if operation in ("document.create", "document.open"):
+            document_id = result["document"]["document_id"]
+            self.owned[document_id] = {
+                "session_id": context["session_id"],
+                "lease_id": None,
+            }
+        elif operation == "document.lease.acquire" and document_id in self.owned:
+            self.owned[document_id]["lease_id"] = result["lease"]["lease_id"]
+        elif operation == "document.close":
+            self.owned.pop(document_id, None)
 
     def call(self, operation, parameters=None, *, expected_error=None, **context):
         context.setdefault("session_id", self.session)
-        response = call_daemon(
-            operation,
-            parameters,
-            endpoint=self.endpoint,
-            timeout_seconds=120,
-            **context,
-        )
-        self.record["events"].append(
-            {"transport": "protocol", "operation": operation, "response": response}
-        )
-        if expected_error is not None:
-            require(
-                not response.get("success")
-                and response.get("error", {}).get("code") == expected_error,
-                f"{operation} did not reject with {expected_error}: {response}",
+        event = {"transport": "protocol", "operation": operation}
+        self.record["events"].append(event)
+        try:
+            response = call_daemon(
+                operation,
+                parameters,
+                endpoint=self.endpoint,
+                timeout_seconds=120,
+                **context,
             )
-            return response
-        require(response.get("success"), f"{operation} failed: {response}")
-        result = response["result"]
-        require(
-            result.get("ok", True), f"{operation} returned a failed result: {result}"
-        )
+            event["response"] = response
+            if expected_error is not None:
+                require(
+                    not response.get("success")
+                    and response.get("error", {}).get("code") == expected_error,
+                    f"{operation} did not reject with {expected_error}: {response}",
+                )
+                result = response
+            else:
+                require(response.get("success"), f"{operation} failed: {response}")
+                result = response["result"]
+                require(
+                    result.get("ok", True),
+                    f"{operation} returned a failed result: {result}",
+                )
+                self.remember_owned_result(operation, result, context)
+        except Exception as exc:
+            event["error"] = {"type": type(exc).__name__, "message": str(exc)}
+            self.checkpoint(f"{operation}.failed", required=False)
+            raise
+        self.checkpoint(f"{operation}.completed")
         return result
 
     def command(self, arguments):
@@ -192,39 +299,42 @@ class DrivingSmoke:
             "--json",
         ]
         environment = {**os.environ, "PYTHONIOENCODING": "utf-8"}
-        completed = subprocess.run(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=135,
-            env=environment,
-        )
-        stdout = completed.stdout.decode("utf-8-sig")
-        stderr = completed.stderr.decode("utf-8", errors="replace")
         event = {
             "transport": "cli",
             "arguments": arguments,
-            "returncode": completed.returncode,
-            "stdout": stdout,
-            "stderr": stderr,
         }
         self.record["events"].append(event)
-        require(completed.returncode == 0, f"installed CLI failed: {event}")
-        result = json.loads(stdout)
-        require(result.get("ok"), f"installed CLI returned a failed result: {result}")
-        event["result"] = result
+        try:
+            completed = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=135,
+                env=environment,
+            )
+            event.update(
+                returncode=completed.returncode,
+                stdout=completed.stdout.decode("utf-8-sig"),
+                stderr=completed.stderr.decode("utf-8", errors="replace"),
+            )
+            require(completed.returncode == 0, f"installed CLI failed: {event}")
+            result = json.loads(event["stdout"])
+            require(
+                result.get("ok"), f"installed CLI returned a failed result: {result}"
+            )
+            event["result"] = result
+        except Exception as exc:
+            event["error"] = {"type": type(exc).__name__, "message": str(exc)}
+            self.checkpoint("cli.failed", required=False)
+            raise
+        self.checkpoint("cli.completed")
         return result
 
     def create(self, *, session_id=None):
         result = self.call(
             "document.create", {"type": "part"}, session_id=session_id or self.session
         )
-        document_id = result["document"]["document_id"]
-        self.owned[document_id] = {
-            "session_id": session_id or self.session,
-            "lease_id": None,
-        }
-        return document_id
+        return result["document"]["document_id"]
 
     def stamp(self, document_id):
         result = self.call("document.inspect", document_id=document_id)
@@ -315,6 +425,7 @@ class DrivingSmoke:
             "selection_before": before_selection,
         }
         self.record.setdefault("reopened_sketch_discoveries", []).append(proof)
+        self.checkpoint("reopened-sketch-discovery.started")
 
         def list_sketches():
             return (
@@ -341,6 +452,7 @@ class DrivingSmoke:
             and bool(descriptor["owner"]["type"]),
             "discovered sketch lacks exact registered/absorbed ownership metadata",
         )
+        self.checkpoint("reopened-sketch-discovery.listed")
         repeated = list_sketches()
         proof["repeated"] = repeated
         require(
@@ -349,6 +461,7 @@ class DrivingSmoke:
             and repeated["sketches"][0]["sketch_id"] == sketch_id,
             "repeated sketch discovery changed a live native sketch handle",
         )
+        self.checkpoint("reopened-sketch-discovery.repeated")
         # This handle comes only from the reopened native feature traversal.
         # Never select by a remembered native name or reuse the expired handle.
         observed = self.call(
@@ -360,6 +473,7 @@ class DrivingSmoke:
             "reopened sketch inspection returned a different registered handle",
         )
         assert_circle(observed, 10, absorbed=True)
+        self.checkpoint("reopened-sketch-discovery.observed")
         after_stamp = self.stamp(document_id)
         after_selection = {
             "main": self.selection_state(session_id=self.session),
@@ -381,21 +495,28 @@ class DrivingSmoke:
             after_selection == before_selection,
             "sketch discovery changed foreground or session current",
         )
+        self.checkpoint("reopened-sketch-discovery.completed")
         return proof
 
     def close(self, document_id):
         owner = self.owned[document_id]
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
-        del self.owned[document_id]
 
     def cleanup(self):
         errors = []
-        for document_id in reversed(tuple(self.owned)):
-            try:
-                self.close(document_id)
-            except Exception as exc:
-                errors.append({"document_id": document_id, "message": str(exc)})
         self.record["cleanup_errors"] = errors
+        self._cleaning_up = True
+        try:
+            self.checkpoint("cleanup.started", required=False)
+            for document_id in reversed(tuple(self.owned)):
+                try:
+                    self.close(document_id)
+                except Exception as exc:
+                    errors.append({"document_id": document_id, "message": str(exc)})
+                self.checkpoint("cleanup.document.completed", required=False)
+        finally:
+            self._cleaning_up = False
+        self.checkpoint("cleanup.completed", required=False)
         return errors
 
     def plane(self, plane):
@@ -405,7 +526,6 @@ class DrivingSmoke:
         lease = self.call(
             "document.lease.acquire", {"ttl_seconds": 300}, document_id=document_id
         )["lease"]["lease_id"]
-        self.owned[document_id]["lease_id"] = lease
         write = {"document_id": document_id, "lease_id": lease}
         circle = self.call(
             "sketch.circle",
@@ -556,10 +676,6 @@ class DrivingSmoke:
             session_id=self.session + "-reopen",
         )
         reopened_id = reopened["document"]["document_id"]
-        self.owned[reopened_id] = {
-            "session_id": self.session + "-reopen",
-            "lease_id": None,
-        }
         require(
             reopened_id != document_id,
             "native reopen reused an expired document handle",
@@ -626,6 +742,7 @@ class DrivingSmoke:
                 "reopened_sketch_discovery": discovered,
             }
         )
+        self.checkpoint(f"plane.{plane}.verified")
         self.close(reopened_id)
         self.close(reopened_foreground_id)
         self.close(foreground_id)
@@ -645,9 +762,13 @@ class DrivingSmoke:
             require(
                 operation in health["operations"], f"installed daemon lacks {operation}"
             )
+        self.checkpoint("host.verified")
         for plane in ("front", "top", "right"):
+            self.record["current_plane"] = plane
+            self.checkpoint(f"plane.{plane}.starting")
             print(f"Driving-dimension gate: {plane} starting", flush=True)
             self.plane(plane)
+            self.checkpoint(f"plane.{plane}.completed")
             print(f"Driving-dimension gate: {plane} passed", flush=True)
 
 
@@ -677,22 +798,33 @@ def main(argv=None):
         output_directory=arguments.host_output_dir or str(directory),
         cli=[arguments.cli_command] if arguments.cli_command else None,
     )
-    # Reserve evidence before calling the daemon; never mutate the host and
-    # only afterwards discover that a previous run's record would be replaced.
-    with record_path.open("x", encoding="utf-8") as stream:
-        error = None
-        try:
-            smoke.run()
-        except Exception as exc:
-            error = exc
-            smoke.record["error"] = {"type": type(exc).__name__, "message": str(exc)}
-        finally:
-            cleanup_errors = smoke.cleanup()
-            smoke.record["success"] = error is None and not cleanup_errors
-            json.dump(
-                smoke.record, stream, ensure_ascii=False, allow_nan=False, indent=2
-            )
-            stream.write("\n")
+    checkpoint = EvidenceCheckpoint(record_path)
+    checkpoint.reserve(smoke.record)
+    smoke.checkpoint_writer = checkpoint.write
+    error = None
+    try:
+        smoke.run()
+    except Exception as exc:
+        error = exc
+        smoke.record["error"] = {"type": type(exc).__name__, "message": str(exc)}
+    finally:
+        cleanup_errors = smoke.cleanup()
+        if error is None and smoke.checkpoint_error is not None:
+            error = smoke.checkpoint_error
+            smoke.record["error"] = {
+                "type": type(error).__name__,
+                "message": str(error),
+            }
+        smoke.record["state"] = "completed"
+        smoke.record["success"] = error is None and not cleanup_errors
+        final_write_error = smoke.checkpoint("completed", required=False)
+        if final_write_error is not None and error is None:
+            error = final_write_error
+            smoke.record["success"] = False
+            smoke.record["error"] = {
+                "type": type(error).__name__,
+                "message": str(error),
+            }
     if error is not None:
         raise error
     require(not cleanup_errors, f"driving gate cleanup failed: {cleanup_errors}")
