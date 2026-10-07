@@ -297,3 +297,40 @@ DockerSW `ac0959c` retains the ten-minute budget and tests the actual default
 hidden delivery host, including a strict `host.visible=false` startup readback.
 Visible-mode performance remains a separate observation; switching the delivery
 gate to its real default is not a claim that the slower visible path was fixed.
+
+## Hosted hidden Wine delivery verified
+
+[DockerSW run 37702494347](https://github.com/YJBeetle/DockerSW/actions/runs/37702494347)
+passed the full workflow at DockerSW `60840b1`, pinning SWCLI `4657a27` with the
+`e164b50` runtime cleanup. It reused the verified SOLIDWORKS installation layers;
+it is a fresh candidate/container delivery test, not a new official MSI install.
+
+The downloaded `sw-cli-export-smoke-37702494347` artifact confirms:
+
+- Startup, all four shared modeling cases (**97 events**) and all three driving
+  planes (**242 events**) use the same hidden owned PID **608**, revision 33.5.0.
+  No worker/host restart, native retry or cleanup-warning acceptance occurs.
+  The negative cut retains `CutExtrusionFailed`; both gate records are completed
+  and successful, with empty cleanup errors and unchanged final host descriptors.
+- All six formal exports have valid STEP/PDF/DWG signatures, independently
+  checked after artifact download. The sequence is exports -> modeling ->
+  driving, unlike the earlier local candidate order.
+- The export/startup step took **74 seconds**, shared modeling **57 seconds**,
+  and driving **57 seconds**. Every phase retained its existing ten-minute
+  budget; no timeout was increased to obtain this pass.
+- Reopened diameter-discovery stamps remain **166 -> 166** on front/top/right,
+  and expired handles are rejected. A separate Schema audit of captured JSON
+  checked 239 complete protocol-response positions, 214 CLI result positions,
+  237 business-result positions and nine capabilities positions, with no drift.
+
+The separate `sw-language-smoke-37702494347` artifact verifies the zh-cn UI
+language and a real Paper Airplane STEP export. It does not claim that the full
+driving suite ran under that locale.
+
+The `Publish verified CLI images & promote atomically` step completed after
+these gates. It published immutable `sw-executable:sha-60840b1-cli` and promoted
+`sw-executable:2025-cli` to OCI index digest
+`sha256:18c0d4aec22eff2de35f22b023675a5facd3cb64811884cba1d1e460df479c40`.
+The preinstalled and zh-cn image variants were also promoted. This closes the
+hosted Wine delivery gate for this exact candidate; Windows dual-mode hosted
+proof and a5 release publication remain distinct boundaries.
