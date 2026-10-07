@@ -75,6 +75,9 @@ class DocumentEntry:
     sketches: Dict[str, Any] = field(default_factory=dict)
     sketch_ids_by_native_id: Dict[int, str] = field(default_factory=dict)
     dimensions: Dict[str, DimensionEntry] = field(default_factory=dict)
+    dimensions_by_sketch: Dict[str, Dict[str, DimensionEntry]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass
@@ -344,9 +347,8 @@ class DocumentRegistry:
                 if expired_id is not None:
                     del entry.sketches[expired_id]
                     del entry.sketch_ids_by_native_id[native_id]
-                    for dimension_id, dimension in tuple(entry.dimensions.items()):
-                        if dimension.sketch_id == expired_id:
-                            del entry.dimensions[dimension_id]
+                    for dimension_id in entry.dimensions_by_sketch.pop(expired_id, {}):
+                        del entry.dimensions[dimension_id]
                 entry.sketches[token] = feature
                 entry.sketch_ids_by_native_id[native_id] = token
                 return token
@@ -364,17 +366,59 @@ class DocumentRegistry:
     def register_dimension(
         self, entry: DocumentEntry, sketch_id: str, dimension: Any
     ) -> str:
-        """Keep partial native creations observable while their document is live."""
+        """Keep partial creations observable and reuse exact native owner-local IDs.
+
+        Dimensions have no native ID used here, so comparisons are bounded to
+        the registered owning sketch, not all dimensions in the document. This
+        is per-owner indexing, not a constant-time identity lookup for arbitrary
+        dimensions. Names and Python wrapper identity never select a handle.
+        """
         self.resolve_sketch(entry, sketch_id)
         if dimension is None:
             raise ValueError("cannot register an absent native dimension")
-        while True:
-            token = "m-" + "".join(
-                secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
-            )
-            if not any(token in item.dimensions for item in self._entries.values()):
-                entry.dimensions[token] = DimensionEntry(sketch_id, dimension)
-                return token
+        owned = entry.dimensions_by_sketch.get(sketch_id, {})
+        expired_ids = []
+        matched_id = None
+        for dimension_id, registered in owned.items():
+            try:
+                status = self.app.IsSame(registered.dimension, dimension)
+                if (
+                    isinstance(status, bool)
+                    or not isinstance(status, int)
+                    or status not in (0, 1)
+                ):
+                    raise RuntimeError(
+                        "SOLIDWORKS could not compare native dimension identity"
+                    )
+            except Exception as exc:
+                if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
+                    raise
+                expired_ids.append(dimension_id)
+            else:
+                if status == 1:
+                    matched_id = dimension_id
+                    break
+
+        # Defer cleanup until every required comparison and token allocation
+        # succeeds. A later busy/unknown COM error must leave all handles intact.
+        if matched_id is None:
+            while True:
+                token = "m-" + "".join(
+                    secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
+                )
+                if not any(token in item.dimensions for item in self._entries.values()):
+                    break
+        for dimension_id in expired_ids:
+            del entry.dimensions[dimension_id]
+            del owned[dimension_id]
+        if matched_id is not None:
+            owned[matched_id].dimension = dimension
+            return matched_id
+
+        registered = DimensionEntry(sketch_id, dimension)
+        entry.dimensions[token] = registered
+        entry.dimensions_by_sketch.setdefault(sketch_id, {})[token] = registered
+        return token
 
     def resolve_dimension(
         self, entry: DocumentEntry, dimension_id: str
@@ -414,6 +458,7 @@ class DocumentRegistry:
         entry.sketches.clear()
         entry.sketch_ids_by_native_id.clear()
         entry.dimensions.clear()
+        entry.dimensions_by_sketch.clear()
         lease_id = self._lease_id_by_document.get(document_id)
         if lease_id is not None:
             self._forget_lease(lease_id)
@@ -522,7 +567,9 @@ class DocumentRegistry:
                     except AttributeError:
                         same = active is previous
                     else:
-                        same = active is not None and int(compare(active, previous)) == 1
+                        same = (
+                            active is not None and int(compare(active, previous)) == 1
+                        )
                     if restored is None or not same:
                         raise DocumentActivationFailed(
                             "SOLIDWORKS did not restore the previous foreground "
@@ -532,7 +579,10 @@ class DocumentRegistry:
                     # Do not discard a completed native mutation or its handles
                     # merely because restoring the user's foreground failed.
                     warnings.append(
-                        {"code": "document-foreground-restore-failed", "message": str(exc)}
+                        {
+                            "code": "document-foreground-restore-failed",
+                            "message": str(exc),
+                        }
                     )
 
     def list(self, *, session_id: str) -> Dict[str, Any]:

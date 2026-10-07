@@ -43,6 +43,9 @@ class App:
     def GetDocuments(self):
         return self.documents
 
+    def IsSame(self, first, second):
+        return int(first is second)
+
 
 class DimensionOperationTests(unittest.TestCase):
     def setUp(self):
