@@ -132,6 +132,28 @@ class DimensionRegistryTests(unittest.TestCase):
             self.dimension,
         )
 
+    def test_known_disconnected_proxy_expires_but_busy_and_unknown_preserve_state(self):
+        class ComError(Exception):
+            def __init__(self, hresult):
+                self.hresult = hresult
+                super().__init__(hresult)
+
+        for hresult, disconnected in ((-2147417848, True), (0x800401FD, True),
+                                      (0x80010001, False), (0x80004005, False)):
+            with self.subTest(hresult=hresult):
+                self.setUp()
+                wrapper = Document(self.document.title)
+                self.app.IsSame = mock.Mock(side_effect=ComError(hresult))
+                if disconnected:
+                    replacement = self.registry.register(wrapper)
+                    self.assertNotEqual(replacement.document_id, self.entry.document_id)
+                    self.assertFalse(self.entry.dimensions)
+                else:
+                    with self.assertRaises(ComError):
+                        self.registry.register(wrapper)
+                    self.assertIs(self.registry.resolve_dimension(
+                        self.entry, self.dimension_id).dimension, self.dimension)
+
 
 if __name__ == "__main__":
     unittest.main()

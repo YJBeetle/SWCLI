@@ -16,6 +16,11 @@ from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
+from ..hosts.com_errors import (
+    TRANSIENT_COM_HRESULTS,
+    DISCONNECTED_COM_HRESULTS,
+    com_hresult as _com_hresult,
+)
 from ..operation_schemas import operation_schemas, operation_result_schemas, validate_operation_request
 from ..result_schemas import validate_operation_result
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
@@ -33,16 +38,6 @@ REQUEST_REPLAY_MAX_ENTRIES = 1024
 REQUEST_REPLAY_MAX_BYTES = 64 * 1024 * 1024
 HOST_PROBE_INTERVAL_SECONDS = 1.0
 HOST_PROBE_FAILURE_LIMIT = 3
-TRANSIENT_COM_HRESULTS = {
-    0x80010001,  # RPC_E_CALL_REJECTED
-    0x8001010A,  # RPC_E_SERVERCALL_RETRYLATER
-    0x8001010B,  # RPC_E_SERVERCALL_REJECTED
-}
-DISCONNECTED_COM_HRESULTS = {
-    0x800401FD,  # CO_E_OBJNOTCONNECTED
-    0x80010108,  # RPC_E_DISCONNECTED
-    0x800706BA,  # HRESULT_FROM_WIN32(RPC_S_SERVER_UNAVAILABLE)
-}
 DOCUMENT_ID_PATTERN = re.compile(r"^d-[0-9a-hjkmnp-tv-z]{6}$")
 LEASE_ID_PATTERN = re.compile(r"^l-[0-9a-hjkmnp-tv-z]{12}$")
 
@@ -240,17 +235,6 @@ def _host_disconnected_error(exc: BaseException) -> Dict[str, str]:
             f"SOLIDWORKS COM host is no longer available: {exc}"
         ),
     }
-
-
-def _com_hresult(exc: BaseException) -> Optional[int]:
-    """Return an unsigned HRESULT from pywin32 or a compatible exception."""
-
-    value = getattr(exc, "hresult", None)
-    if not isinstance(value, int) and exc.args and isinstance(exc.args[0], int):
-        value = exc.args[0]
-    if not isinstance(value, int):
-        return None
-    return value & 0xFFFFFFFF
 
 
 def _wait_for_worker_request(

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
+from ..hosts.com_errors import DISCONNECTED_COM_HRESULTS, com_hresult
 
 _HANDLE_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
 _HANDLE_LENGTH = 6
@@ -263,7 +264,15 @@ class DocumentRegistry:
             else:
                 # COM wrappers can differ for the same native object. A path is
                 # not identity: external close/reopen can reuse it between calls.
-                same = int(compare(entry.document, document)) == 1
+                try:
+                    same = int(compare(entry.document, document)) == 1
+                except Exception as exc:
+                    if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
+                        raise
+                    # GetDocuments returned a fresh live native object, but the
+                    # formerly registered proxy is disconnected. Expire only
+                    # the old document; busy/unknown errors remain fail-closed.
+                    same = False
             if same:
                 entry.document = document
                 return entry
