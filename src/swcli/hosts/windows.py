@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from .native_trace import native_call
+
 
 PROG_ID = "SldWorks.Application"
 _VERSION_KEY = re.compile(r"^SOLIDWORKS\s+(\d{4})$", re.IGNORECASE)
@@ -171,10 +173,13 @@ def _discover_installations(winreg: Any) -> List[Dict[str, Any]]:
 def _com_value(obj: Any, name: str) -> Any:
     """Read a COM member exposed by pywin32 as either a property or method."""
 
-    value = getattr(obj, name)
-    if hasattr(value, "_oleobj_"):
-        return value
-    return value() if callable(value) else value
+    def read_member():
+        value = getattr(obj, name)
+        if hasattr(value, "_oleobj_"):
+            return value
+        return value() if callable(value) else value
+
+    return native_call("read", name, read_member)
 
 
 def _describe_document(document: Any) -> Dict[str, Any]:

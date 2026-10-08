@@ -10,6 +10,7 @@ from unittest import mock
 
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
+from swcli.hosts.native_trace import native_call
 from swcli.daemon.documents import (
     DocumentLeaseConflict,
     DocumentNotFound,
@@ -1442,6 +1443,39 @@ class DaemonProtocolTests(unittest.TestCase):
         error = RuntimeError(-2147418111, "call rejected")
 
         self.assertEqual(server._com_hresult(error), 0x80010001)
+
+    def test_worker_correlates_native_trace_only_with_dispatched_business_request(self):
+        pythoncom, com_client = mock.Mock(), mock.Mock()
+        responses, lifecycle = mock.Mock(), mock.Mock()
+        request = {"request_id": "req-native", "operation": "document.list", "parameters": {}}
+        stream = io.StringIO()
+
+        def execute(*args, **kwargs):
+            native_call("read", "GetDocuments", lambda: ())
+            return {"ok": True}
+
+        with mock.patch.dict("sys.modules", {
+            "pythoncom": pythoncom, "win32com": mock.Mock(client=com_client),
+            "win32com.client": com_client,
+        }), mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \
+                mock.patch("swcli.hosts.native_trace.sys.stderr", stream), \
+                mock.patch.object(server, "acquire_resident_app", return_value=(object(), False)), \
+                mock.patch.object(server, "wait_windows_host_ready", return_value=0), \
+                mock.patch.object(server, "DocumentRegistry"), \
+                mock.patch.object(server, "_describe_app", return_value={"process_id": 1234}), \
+                mock.patch.object(server, "_wait_for_worker_request", side_effect=[request, None]), \
+                mock.patch.object(server, "_com_value", side_effect=[1234, "33.5.0"]), \
+                mock.patch.object(server, "execute_operation", side_effect=execute), \
+                mock.patch.object(server, "validate_operation_result"):
+            server._worker_main(mock.Mock(), responses, lifecycle, True, 120, True)
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual([(e["call"], e["phase"]) for e in events], [
+            ("document.list", "begin"), ("GetDocuments", "begin"),
+            ("GetDocuments", "end"), ("document.list", "end"),
+        ])
+        self.assertTrue(all(e["request_id"] == "req-native" for e in events))
+        self.assertTrue(responses.put.call_args.args[0]["success"])
+        pythoncom.CoUninitialize.assert_called_once()
 
     def test_health_discards_stale_host_after_idle_disconnect(self):
         for owned_by_daemon in (True, False):

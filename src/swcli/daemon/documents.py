@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
+from ..hosts.native_trace import native_call
 from ..hosts.com_errors import DISCONNECTED_COM_HRESULTS, com_hresult
 from ..hosts.windows_sketch_inspection import (
     SketchFeatureIdConflict,
@@ -543,7 +544,10 @@ class DocumentRegistry:
 
         errors = win32com.client.VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
         title = str(_com_value(entry.document, "GetTitle"))
-        activated = self.app.ActivateDoc3(title, False, 1, errors)
+        activated = native_call(
+            "document-activate", "SldWorks.ActivateDoc3",
+            lambda: self.app.ActivateDoc3(title, False, 1, errors),
+        )
         if activated is None or not self.is_active(entry):
             raise DocumentActivationFailed(
                 f"SOLIDWORKS could not activate document '{entry.document_id}' "
@@ -558,8 +562,9 @@ class DocumentRegistry:
                         pythoncom.VT_BYREF | pythoncom.VT_I4, 0
                     )
                     previous_title = str(_com_value(previous, "GetTitle"))
-                    restored = self.app.ActivateDoc3(
-                        previous_title, False, 1, restore_errors
+                    restored = native_call(
+                        "document-restore", "SldWorks.ActivateDoc3",
+                        lambda: self.app.ActivateDoc3(previous_title, False, 1, restore_errors),
                     )
                     active = _com_value(self.app, "ActiveDoc")
                     try:
@@ -568,7 +573,10 @@ class DocumentRegistry:
                         same = active is previous
                     else:
                         same = (
-                            active is not None and int(compare(active, previous)) == 1
+                            active is not None and int(native_call(
+                                "document-restore", "SldWorks.IsSame",
+                                lambda: compare(active, previous),
+                            )) == 1
                         )
                     if restored is None or not same:
                         raise DocumentActivationFailed(

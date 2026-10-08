@@ -6,6 +6,7 @@ import math
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
+from .native_trace import native_call
 from .com_errors import com_hresult
 
 STANDARD_PLANES = {"front": 2, "top": 1, "right": 0}
@@ -97,7 +98,9 @@ def _sketch_feature(
         native = _observe(feature, "GetSpecificFeature2", context)
         if context is not None:
             context["call"] = "IsSame"
-        if int(app.IsSame(native, sketch)) == 1:
+        if int(native_call(
+            "exact-feature", "SldWorks.IsSame", lambda: app.IsSame(native, sketch)
+        )) == 1:
             return feature
     return None
 
@@ -374,13 +377,12 @@ def create_rectangle_sketch_windows_with_handle(
             "center_x": center_x_mm,
             "center_y": center_y_mm,
         },
-        create_segments=lambda manager: manager.CreateCenterRectangle(
-            center_x_mm / 1000,
-            center_y_mm / 1000,
-            0.0,
-            expected["max_x"] / 1000,
-            expected["max_y"] / 1000,
-            0.0,
+        create_segments=lambda manager: native_call(
+            "create", "SketchManager.CreateCenterRectangle",
+            lambda: manager.CreateCenterRectangle(
+                center_x_mm / 1000, center_y_mm / 1000, 0.0,
+                expected["max_x"] / 1000, expected["max_y"] / 1000, 0.0,
+            ),
         ),
         verify_sketch=lambda sketch: _rectangle_verification(sketch, expected),
     )
@@ -427,9 +429,11 @@ def _create_profile_sketch_windows_with_handle(
             }
             return result, None
         _mark(failure_context, "plane-select", "ClearSelection2")
-        document.ClearSelection2(True)
+        native_call(
+            "plane-select", "ClearSelection2", lambda: document.ClearSelection2(True)
+        )
         _mark(failure_context, "plane-select", "Select2")
-        if not reference.Select2(False, 0):
+        if not native_call("plane-select", "Select2", lambda: reference.Select2(False, 0)):
             result["error"] = {
                 "type": "PlaneSelectionFailed",
                 "message": "SOLIDWORKS could not select the requested plane",
@@ -437,7 +441,9 @@ def _create_profile_sketch_windows_with_handle(
             return result, None
         entered = True
         _mark(failure_context, "sketch-enter", "InsertSketch")
-        manager.InsertSketch(True)
+        native_call(
+            "sketch-enter", "SketchManager.InsertSketch", lambda: manager.InsertSketch(True)
+        )
         sketch = _observe(manager, "ActiveSketch", failure_context)
         if sketch is None:
             raise RuntimeError("SOLIDWORKS did not enter a new sketch")
@@ -457,7 +463,7 @@ def _create_profile_sketch_windows_with_handle(
                 "SOLIDWORKS returned an invalid sketch coordinate transform"
             )
         _mark(failure_context, "create", "create_segments")
-        segments = create_segments(manager)
+        segments = native_call("create", "create_segments", lambda: create_segments(manager))
         if not segments:
             result["error"] = {
                 "type": "SketchCreationFailed",
@@ -476,12 +482,16 @@ def _create_profile_sketch_windows_with_handle(
             "dimensions_created": False,
         }
         _mark(failure_context, "close", "InsertSketch")
-        manager.InsertSketch(True)
+        native_call(
+            "sketch-close", "SketchManager.InsertSketch", lambda: manager.InsertSketch(True)
+        )
         if _observe(manager, "ActiveSketch", failure_context) is not None:
             raise RuntimeError("SOLIDWORKS did not exit sketch editing")
         entered = False
         _mark(failure_context, "close", "ClearSelection2")
-        document.ClearSelection2(True)
+        native_call(
+            "sketch-close", "ClearSelection2", lambda: document.ClearSelection2(True)
+        )
         result["editing"] = False
         # Closing a sketch can trigger solving: verify the final native geometry,
         # not just the arguments or segments returned by the creation API.
@@ -489,7 +499,9 @@ def _create_profile_sketch_windows_with_handle(
         result["sketch"]["constraint_status"] = int(
             _observe(sketch, "GetConstrainedStatus", failure_context)
         )
-        result["geometry_verification"] = verify_sketch(sketch)
+        result["geometry_verification"] = native_call(
+            "verify", "profile-geometry", lambda: verify_sketch(sketch)
+        )
         if not result["geometry_verification"]["passed"]:
             result["error"] = {
                 "type": "SketchVerificationFailed",
@@ -510,11 +522,13 @@ def _create_profile_sketch_windows_with_handle(
             try:
                 result["editing"] = _com_value(manager, "ActiveSketch") is not None
                 if result["editing"]:
-                    manager.InsertSketch(True)
+                    native_call(
+                        "cleanup", "SketchManager.InsertSketch", lambda: manager.InsertSketch(True)
+                    )
                 result["editing"] = _com_value(manager, "ActiveSketch") is not None
                 if result["editing"]:
                     raise RuntimeError("sketch editing remained active after cleanup")
-                document.ClearSelection2(True)
+                native_call("cleanup", "ClearSelection2", lambda: document.ClearSelection2(True))
                 result["editing"] = False
             except Exception as exc:
                 result.setdefault("warnings", []).append(

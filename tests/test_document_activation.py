@@ -1,11 +1,15 @@
 """Foreground restoration is verified, without losing native mutation evidence."""
 
+import io
+import json
+import os
 from types import SimpleNamespace
 import unittest
 from unittest import mock
 
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon import operations
+from swcli.hosts.native_trace import trace_native_request
 
 
 class Document:
@@ -117,6 +121,42 @@ class ActivationTests(unittest.TestCase):
             with self.registry.temporarily_activate(self.entry) as warnings:
                 raise ValueError("original failure")
         self.assertEqual(len(warnings), 1)
+
+    def test_trace_separates_background_activation_and_foreground_restoration(self):
+        self.activation()
+        stream = io.StringIO()
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \
+                mock.patch("swcli.hosts.native_trace.sys.stderr", stream):
+            with trace_native_request("req-activate", "sketch.rectangle"):
+                with self.registry.temporarily_activate(self.entry) as warnings:
+                    self.assertIs(self.app.ActiveDoc, self.target)
+                self.assertEqual(warnings, [])
+        self.assertIs(self.app.ActiveDoc, self.previous)
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        activation = [e for e in events if e["call"] == "SldWorks.ActivateDoc3"]
+        self.assertEqual([(e["stage"], e["phase"]) for e in activation], [
+            ("document-activate", "begin"), ("document-activate", "end"),
+            ("document-restore", "begin"), ("document-restore", "end"),
+        ])
+        self.assertTrue(all(e["request_id"] == "req-activate" for e in events))
+
+    def test_restore_trace_error_keeps_warning_and_original_business_exception(self):
+        self.activation(raises=True)
+        stream = io.StringIO()
+        original = ValueError("original failure")
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \
+                mock.patch("swcli.hosts.native_trace.sys.stderr", stream):
+            with self.assertRaises(ValueError) as caught:
+                with trace_native_request("req-fail", "sketch.rectangle"):
+                    with self.registry.temporarily_activate(self.entry) as warnings:
+                        raise original
+        self.assertIs(caught.exception, original)
+        self.assertEqual(warnings[0]["code"], "document-foreground-restore-failed")
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        failed = [e for e in events if e["stage"] == "document-restore"
+                  and e["phase"] == "error"]
+        self.assertEqual(len(failed), 1)
+        self.assertEqual(failed[0]["exception_type"], "RuntimeError")
 
 
 if __name__ == "__main__":

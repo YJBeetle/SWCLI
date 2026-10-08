@@ -1,11 +1,15 @@
 import copy
 from contextlib import nullcontext
+import io
+import json
 import math
+import os
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
 from swcli.hosts import windows_sketches as sketches
+from swcli.hosts.native_trace import trace_native_request
 from swcli.result_schemas import OperationResultInvalid, validate_operation_result
 
 TRANSFORMS = {
@@ -594,6 +598,53 @@ class WindowsSketchTests(unittest.TestCase):
                 self.assertFalse(result["editing"])
                 self.assertFalse(result["sketch"]["dimensions_created"])
                 self.assertIsNone(self.document.SketchManager.ActiveSketch)
+
+    def test_rectangle_trace_covers_native_edit_create_close_and_verification(self):
+        stream = io.StringIO()
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \
+                mock.patch("swcli.hosts.native_trace.sys.stderr", stream):
+            with trace_native_request("req-rectangle", "sketch.rectangle"):
+                result, feature = self.create()
+        self.assertTrue(result["ok"], result)
+        self.assertIs(feature, self.document.features[-1])
+        self.assertIsNone(self.document.SketchManager.ActiveSketch)
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        beginnings = {e["sequence"]: e for e in events if e["phase"] == "begin"}
+        endings = {e["sequence"]: e for e in events if e["phase"] == "end"}
+        self.assertEqual(set(beginnings), set(endings))
+        self.assertTrue(all(e["request_id"] == "req-rectangle" for e in events))
+        boundaries = {(e["stage"], e["call"]) for e in beginnings.values()}
+        self.assertTrue({
+            ("plane-select", "Select2"),
+            ("sketch-enter", "SketchManager.InsertSketch"),
+            ("create", "SketchManager.CreateCenterRectangle"),
+            ("sketch-close", "SketchManager.InsertSketch"),
+            ("verify", "profile-geometry"),
+        }.issubset(boundaries))
+        self.document.SketchManager.CreateCenterRectangle.assert_called_once()
+        self.assertEqual(self.document.SketchManager.InsertSketch.call_count, 2)
+
+    def test_rectangle_trace_keeps_native_failure_and_owned_edit_cleanup_without_retry(self):
+        manager = self.document.SketchManager
+        manager.CreateCenterRectangle.side_effect = RuntimeError("native creation failed")
+        stream = io.StringIO()
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \
+                mock.patch("swcli.hosts.native_trace.sys.stderr", stream):
+            with trace_native_request("req-fail", "sketch.rectangle"):
+                result, _ = self.create()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "RuntimeError")
+        self.assertEqual(result["error"]["message"], "native creation failed")
+        self.assertFalse(result["editing"])
+        self.assertIsNone(manager.ActiveSketch)
+        manager.CreateCenterRectangle.assert_called_once()
+        self.assertEqual(manager.InsertSketch.call_count, 2)
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertTrue(any(e["call"] == "SketchManager.CreateCenterRectangle"
+                            and e["phase"] == "error" for e in events))
+        self.assertTrue(any(e["stage"] == "cleanup"
+                            and e["call"] == "SketchManager.InsertSketch"
+                            and e["phase"] == "end" for e in events))
 
     def test_success_contract_requires_verified_closed_sketch_and_registered_id(self):
         result, _ = self.create()

@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
+from ..hosts.native_trace import trace_native_request
 from ..hosts.com_errors import (
     TRANSIENT_COM_HRESULTS,
     DISCONNECTED_COM_HRESULTS,
@@ -364,18 +365,19 @@ def _worker_main(
                         _success_response(request_id, {"stopping": True})
                     )
                     break
-                result = execute_operation(
-                    app,
-                    str(request["operation"]),
-                    dict(request["parameters"]),
-                    documents=documents,
-                    session_id=str(
-                        request.get("session_id") or DEFAULT_SESSION_ID
-                    ),
-                    document_id=request.get("document_id"),
-                    expected_update_stamp=request.get("expected_update_stamp"),
-                    lease_id=request.get("lease_id"),
-                )
+                with trace_native_request(request_id, str(request["operation"])):
+                    result = execute_operation(
+                        app,
+                        str(request["operation"]),
+                        dict(request["parameters"]),
+                        documents=documents,
+                        session_id=str(
+                            request.get("session_id") or DEFAULT_SESSION_ID
+                        ),
+                        document_id=request.get("document_id"),
+                        expected_update_stamp=request.get("expected_update_stamp"),
+                        lease_id=request.get("lease_id"),
+                    )
                 validate_operation_result(str(request["operation"]), result)
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):
