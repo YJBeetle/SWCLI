@@ -1,4 +1,4 @@
-"""Driving-diameter adapters on the owning worker COM thread.
+"""Strict length metadata and driving-diameter adapters on the COM thread.
 
 The typed development operations use these internal adapters. Native creation
 may partially mutate the sketch; a handle is evidence, not a rollback claim.
@@ -228,8 +228,17 @@ def _diameter_circle_verification(
     }
 
 
-def _descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
-    """Shared factual metadata; unknown native controls never imply writable."""
+def _descriptor(
+    document: Any, dimension: Any, *, kind: str = "diameter"
+) -> Dict[str, Any]:
+    """Read length facts for an explicitly verified kind, never infer its role.
+
+    Callers establish native type, exact ownership and profile geometry. Width
+    and height are internal adapter roles, not new public dimension support.
+    Unknown native controls never imply writable.
+    """
+    if kind not in ("diameter", "width", "height"):
+        raise ValueError("unsupported length dimension kind")
     configuration = _configuration(document)
     driven_state = _integer(dimension, "DrivenState")
     if driven_state not in (0, 1, 2):
@@ -246,20 +255,20 @@ def _descriptor(document: Any, dimension: Any) -> Dict[str, Any]:
     value = dimension.GetSystemValue2(configuration)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise _DimensionError(
-            "DimensionObservationUnavailable", "native diameter value is not numeric"
+            "DimensionObservationUnavailable", f"native {kind} value is not numeric"
         )
     try:
         value = float(value) * 1000
     except OverflowError as exc:
         raise _DimensionError(
-            "DimensionObservationUnavailable", "native diameter value is invalid"
+            "DimensionObservationUnavailable", f"native {kind} value is invalid"
         ) from exc
     if not math.isfinite(value) or value <= 0:
         raise _DimensionError(
-            "DimensionObservationUnavailable", "native diameter value is invalid"
+            "DimensionObservationUnavailable", f"native {kind} value is invalid"
         )
     return {
-        "kind": "diameter",
+        "kind": kind,
         "unit": "millimeter",
         "value": value,
         "driven_state": driven_state,
@@ -310,13 +319,13 @@ def _require_writable(
     if equation_control["controlled"] or design_table:
         raise _DimensionError(
             "DimensionExternallyControlled",
-            "do not overwrite an equation or design-table controlled diameter",
+            "do not overwrite an equation or design-table controlled dimension",
         )
     if descriptor["driven_state"] != _DRIVING or descriptor["read_only"]:
         raise _DimensionError(
             "DimensionVerificationFailed" if post_mutation else "DimensionNotDriving",
             (
-                "final diameter is not a writable driving dimension"
+                "final dimension is not a writable driving dimension"
                 if post_mutation
                 else "do not override a driven or read-only dimension"
             ),

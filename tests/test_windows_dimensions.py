@@ -138,6 +138,51 @@ class DiameterFixture:
         )
 
 
+class LengthDescriptorTests(DiameterFixture, unittest.TestCase):
+    def test_explicit_kind_preserves_exact_length_metadata(self):
+        expected = dimensions._descriptor(self.document, self.dimension)
+        self.assertEqual(expected["kind"], "diameter")
+        for kind in ("diameter", "width", "height"):
+            with self.subTest(kind=kind):
+                actual = dimensions._descriptor(
+                    self.document, self.dimension, kind=kind
+                )
+                self.assertEqual(actual, dict(expected, kind=kind))
+
+    def test_unknown_kind_is_rejected_before_any_native_read(self):
+        for kind in (None, True, 0, "length", "radius", "", "WIDTH"):
+            with self.subTest(kind=kind):
+                document, dimension = mock.Mock(), mock.Mock()
+                with self.assertRaises(ValueError):
+                    dimensions._descriptor(document, dimension, kind=kind)
+                self.assertEqual(document.mock_calls, [])
+                self.assertEqual(dimension.mock_calls, [])
+
+    def test_linear_roles_keep_strict_native_value_and_control_readers(self):
+        for kind in ("width", "height"):
+            for value in INVALID_NATIVE_VALUES + (10**1000,):
+                with self.subTest(kind=kind, value=str(value)[:20]):
+                    self.dimension.GetSystemValue2 = lambda name: value
+                    with self.assertRaises(dimensions._DimensionError) as caught:
+                        dimensions._descriptor(
+                            self.document, self.dimension, kind=kind
+                        )
+                    self.assertEqual(
+                        caught.exception.code, "DimensionObservationUnavailable"
+                    )
+                    self.assertIn(f"native {kind} value", str(caught.exception))
+        self.dimension.GetSystemValue2 = lambda name: 0.01
+        for member, values in INVALID_METADATA[:3]:
+            for value in values:
+                with self.subTest(member=member, value=value):
+                    self.set_metadata(member, value)
+                    with self.assertRaises(dimensions._DimensionError):
+                        dimensions._descriptor(
+                            self.document, self.dimension, kind="width"
+                        )
+            self.setUp()
+
+
 class DiameterCreationTests(DiameterFixture, unittest.TestCase):
     def test_actual_driving_value_geometry_and_exact_handle_with_cleanup(self):
         result, handle = self.call()

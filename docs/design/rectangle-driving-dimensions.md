@@ -5,6 +5,12 @@ The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
 Schemas are committed by this design note.
 
+The strict read-only rectangle observation primitive is implemented and has
+portable topology/metadata/ordering tests. Shared native length metadata now
+accepts an explicit internal diameter/width/height role; it does not infer that
+role from a name or reinterpret a diameter response as a rectangle dimension.
+Public inspect/set/registry contracts still support diameters only.
+
 ## Narrow acceptance target
 
 An exact axis-aligned native center-rectangle profile gets width/height driving
