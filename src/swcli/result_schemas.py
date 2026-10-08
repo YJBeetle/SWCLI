@@ -3,6 +3,7 @@
 from copy import deepcopy
 from functools import lru_cache
 import json
+from math import isclose
 from typing import Any, Dict
 
 from .protocol import load_schema
@@ -741,6 +742,108 @@ _CIRCLE_FIELDS["geometry_verification"] = _object(
 _RESULT_FIELDS["sketch.circle"] = (_CIRCLE_FIELDS, _CIRCLE_REQUIRED)
 
 
+_RECTANGLE_GEOMETRY = _object(
+    {
+        "width_mm": {"type": "number", "exclusiveMinimum": 0},
+        "height_mm": {"type": "number", "exclusiveMinimum": 0},
+        "center_mm": VECTOR,
+        "bounds_mm": {"type": "array", "items": NUMBER, "minItems": 4, "maxItems": 4},
+        "profile_segment_count": {"const": 4},
+        "construction_segment_count": {"const": 2},
+        "max_abs_z_mm": {"type": "number", "minimum": 0},
+    },
+    (
+        "width_mm",
+        "height_mm",
+        "center_mm",
+        "bounds_mm",
+        "profile_segment_count",
+        "construction_segment_count",
+        "max_abs_z_mm",
+    ),
+)
+_SKETCH_ENTITY_SNAPSHOT_KEY = {
+    "type": "array",
+    "items": {"type": "integer", "minimum": -(2**31), "maximum": 2**31 - 1},
+    "minItems": 2,
+    "maxItems": 2,
+}
+_RECTANGLE_CENTER = _object(
+    {
+        "method": {"const": "sketch-local-center-relations"},
+        "attached_to_both_diagonals": {"const": True},
+        "fixed": BOOL,
+        "native_point_id": _SKETCH_ENTITY_SNAPSHOT_KEY,
+        "native_diagonal_ids": {
+            "type": "array",
+            "items": _SKETCH_ENTITY_SNAPSHOT_KEY,
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": True,
+        },
+        "identity_scope": {"const": "exact-sketch-and-entity-kind-snapshot"},
+        "geometry": _RECTANGLE_GEOMETRY,
+    },
+    (
+        "method",
+        "attached_to_both_diagonals",
+        "fixed",
+        "native_point_id",
+        "native_diagonal_ids",
+        "identity_scope",
+        "geometry",
+    ),
+)
+_RESULT_FIELDS["sketch.fix-center"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "created": BOOL,
+        "center_before": _RECTANGLE_CENTER,
+        "center_in_edit": _RECTANGLE_CENTER,
+        "center": _RECTANGLE_CENTER,
+        "constraint_status_before": {"type": "integer", "enum": [2, 3]},
+        "constraint_status": {"type": "integer", "enum": [2, 3]},
+        "editing": BOOL,
+        "modification_may_have_happened": {"const": True},
+        "geometry_verification": _object(
+            {
+                "method": {"const": "sketch-local-rectangle"},
+                "passed": BOOL,
+                "size_matched": BOOL,
+                "center_preserved": BOOL,
+                "expected_width_mm": {"type": "number", "exclusiveMinimum": 0},
+                "expected_height_mm": {"type": "number", "exclusiveMinimum": 0},
+                "expected_center_mm": VECTOR,
+                "actual": _RECTANGLE_GEOMETRY,
+                "absolute_tolerance_mm": {"const": 1e-6},
+            },
+            (
+                "method",
+                "passed",
+                "size_matched",
+                "center_preserved",
+                "expected_width_mm",
+                "expected_height_mm",
+                "expected_center_mm",
+                "actual",
+                "absolute_tolerance_mm",
+            ),
+        ),
+    },
+    (
+        "document",
+        "sketch_id",
+        "created",
+        "center_before",
+        "center",
+        "constraint_status_before",
+        "constraint_status",
+        "editing",
+        "geometry_verification",
+    ),
+)
+
+
 _DIMENSION = _object(
     {
         "dimension_id": {"type": "string", "pattern": "^m-[a-z0-9]{6}$"},
@@ -959,6 +1062,47 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                     "actual_center_mm": VECTOR,
                 }
             )
+    if name == "sketch.fix-center":
+        schema["then"].update(
+            properties={
+                "editing": {"const": False},
+                "center": {"properties": {"fixed": {"const": True}}},
+                "center_in_edit": {"properties": {"fixed": {"const": True}}},
+                "geometry_verification": {
+                    "properties": {
+                        field: {"const": True}
+                        for field in ("passed", "size_matched", "center_preserved")
+                    }
+                },
+            },
+            allOf=[
+                {
+                    "if": {"properties": {"created": {"const": True}}},
+                    "then": {
+                        "required": ["center_in_edit"],
+                        "properties": {
+                            "constraint_status_before": {"const": 2},
+                            "center_before": {
+                                "properties": {"fixed": {"const": False}}
+                            },
+                        },
+                    },
+                    "else": {
+                        "properties": {
+                            "center_before": {"properties": {"fixed": {"const": True}}},
+                        },
+                    },
+                }
+            ],
+            **{
+                "not": {
+                    "anyOf": [
+                        {"required": ["error"]},
+                        {"required": ["modification_may_have_happened"]},
+                    ]
+                }
+            },
+        )
     if name in (
         "sketch.dimension-diameter",
         "dimension.discover-diameter",
@@ -1162,3 +1306,44 @@ def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
     if name == "dimension.discover-diameter":
         _validate_dimension_discovery_state(result)
+    if name == "sketch.fix-center" and result["ok"] is True:
+        before, after = result["center_before"], result["center"]
+        verification = result["geometry_verification"]
+        expected = before["geometry"]
+        observations = [after]
+        if result["created"]:
+            observations.append(result["center_in_edit"])
+        if (
+            any(
+                before[field] != observation[field]
+                for observation in observations
+                for field in (
+                    "native_point_id",
+                    "native_diagonal_ids",
+                    "identity_scope",
+                )
+            )
+            or verification["actual"] != after["geometry"]
+            or verification["expected_width_mm"] != expected["width_mm"]
+            or verification["expected_height_mm"] != expected["height_mm"]
+            or verification["expected_center_mm"] != expected["center_mm"]
+            or any(
+                not isclose(value, reference, rel_tol=0, abs_tol=1e-6)
+                for observation in observations
+                for value, reference in (
+                    (observation["geometry"]["width_mm"], expected["width_mm"]),
+                    (observation["geometry"]["height_mm"], expected["height_mm"]),
+                    *[
+                        (
+                            observation["geometry"]["center_mm"][axis],
+                            expected["center_mm"][axis],
+                        )
+                        for axis in ("x", "y", "z")
+                    ],
+                    *zip(observation["geometry"]["bounds_mm"], expected["bounds_mm"]),
+                )
+            )
+        ):
+            raise OperationResultInvalid(
+                "sketch.fix-center: inconsistent native center/geometry evidence"
+            )

@@ -31,6 +31,9 @@ from ..hosts.windows_sketches import (
     create_rectangle_sketch_windows_with_handle,
     create_circle_sketch_windows_with_handle,
 )
+from ..hosts.windows_rectangle_constraints import (
+    fix_rectangle_center_windows_with_handle,
+)
 from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
@@ -537,6 +540,29 @@ def _with_dimension_ids(
     result["sketch_id"] = sketch_id
     if isinstance(result.get("dimension"), dict):
         result["dimension"].update(dimension_id=dimension_id, sketch_id=sketch_id)
+    return result
+
+
+@_register_handler
+def sketch_fix_center(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, _relation = fix_rectangle_center_windows_with_handle(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+    )
+    if result.get("ok") is True and _relation is None:
+        raise OperationResultInvalid(
+            "sketch.fix-center: native verification returned no fixed relation"
+        )
+    # The exact relation stays in the worker. Snapshot point/diagonal IDs are
+    # evidence scoped to this sketch, not stable constraint handles.
+    result.update(action="sketch.fix-center", sketch_id=sketch_id)
     return result
 
 

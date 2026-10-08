@@ -1,10 +1,12 @@
 # Next slice: rectangle driving dimensions
 
-Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**,
-not an a5 or public CLI capability.
+Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**.
+The development typed operation `sketch.fix-center` is now wired to the CLI,
+catalog, result contract and document/lease/stamp/foreground guards. Installed
+public Windows and Wine gates are still pending; this is not an a5 capability.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
-Schemas are committed by this design note.
+Schemas are committed here for the size/discovery slice.
 
 The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now
@@ -19,7 +21,10 @@ refuse contradictory roles for the same native object. Public inspect/set
 contracts still support diameters only and reject internal linear bindings
 before activation. The original fixed-center fixture has now been replaced in
 an independent source-only probe by the explicitly invoked internal center-fix
-adapter; neither is a public positioning operation yet.
+adapter. Its development typed wrapper fixes only the verified current center;
+it accepts no coordinates, guessed point IDs or implicit size changes. Existing
+exact fixes are verified no-ops. Native snapshot IDs in results are evidence,
+not persistent references or registered constraint handles.
 The internal read adapter verifies the bound native type, complete display chain
 and independent rectangle geometry without activation, selection, rebuild or
 sketch editing. It observes driven/read-only/external controls without overriding

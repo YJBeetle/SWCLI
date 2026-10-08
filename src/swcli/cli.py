@@ -302,6 +302,15 @@ def build_parser() -> argparse.ArgumentParser:
     circle_parser.add_argument("--center-y-mm", type=float, default=0.0)
     circle_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    center_fix_parser = sketch_commands.add_parser(
+        "fix-center",
+        help="explicitly fix an exact unabsorbed center-rectangle's current center",
+    )
+    center_fix_parser.add_argument("sketch_id")
+    add_document_selector(center_fix_parser)
+    add_lease_token(center_fix_parser)
+    center_fix_parser.add_argument("--json", action="store_true", dest="as_json")
+
     diameter_parser = sketch_commands.add_parser(
         "dimension-diameter",
         help="add a driving diameter to a registered circle sketch",
@@ -791,6 +800,15 @@ def _typed_operation(
         return (
             "sketch.dimension-diameter",
             {"sketch_id": args.sketch_id, "diameter_mm": args.diameter_mm},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
+    if args.command == "sketch" and args.sketch_command == "fix-center":
+        return (
+            "sketch.fix-center",
+            {"sketch_id": args.sketch_id},
             args.as_json,
             args.document_id,
             args.expected_update_stamp,

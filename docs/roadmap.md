@@ -61,9 +61,11 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    has internal creation/read/edit and separate explicit center-fix adapters
    with visible Windows size/center, background-read, volume, exact relation
    and partial-failure evidence. Center fixing initially rejects extra/origin
-   relations instead of adding redundant constraints. Public linear/positioning
-   contracts, saved discovery and installed public gates remain pending; none
-   of these internal adapters is a public CLI capability.
+   relations instead of adding redundant constraints. Its development
+   `sketch.fix-center` CLI/protocol contract now preserves native evidence and
+   enforces the existing document/lease/stamp/foreground guards. Installed
+   public gates remain pending; public linear contracts and saved linear
+   discovery are still separate unfinished steps. None is an a5 wheel feature.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

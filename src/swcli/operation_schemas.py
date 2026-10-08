@@ -244,6 +244,13 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.fix-center": _operation(
+        "sketch.fix-center",
+        {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$")},
+        required=("sketch_id",),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "sketch.dimension-diameter": _operation(
         "sketch.dimension-diameter",
         {
