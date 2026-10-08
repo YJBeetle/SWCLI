@@ -75,6 +75,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 "host_connected": True,
                 "host": {"process_id": pid},
                 "operations": [
+                    "sketch.fix-center",
                     "sketch.dimension-diameter",
                     "dimension.discover-diameter",
                     "dimension.inspect",
@@ -97,10 +98,15 @@ class ModelingSequenceTests(unittest.TestCase):
             with (
                 mock.patch.object(gate, "call_daemon", return_value=self.health()),
                 mock.patch.object(smoke, "plane") as plane,
+                mock.patch.object(smoke, "center_constraints") as centers,
                 mock.patch("sys.stdout", new=io.StringIO()),
             ):
                 smoke.run()
             self.assertEqual(plane.call_count, 3)
+            self.assertEqual(
+                centers.call_args_list,
+                [mock.call(plane) for plane in ("front", "top", "right")],
+            )
             self.assertEqual(smoke.record["host_after"]["process_id"], 123)
             self.assertEqual(smoke.record["modeling_record"], str(path))
             with (
@@ -140,6 +146,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 gate, "call_daemon", side_effect=[self.health(), self.health(999)]
             ),
             mock.patch.object(smoke, "plane"),
+            mock.patch.object(smoke, "center_constraints"),
             mock.patch("sys.stdout", new=io.StringIO()),
         ):
             with self.assertRaisesRegex(RuntimeError, "during the driving gate"):

@@ -1,4 +1,4 @@
-"""Exercise installed driving-dimension commands against an existing daemon.
+"""Exercise installed dimensions and explicit center fixes on one daemon.
 
 No COM objects are imported here. The front plane goes through the installed
 CLI entry point; the other planes use its public daemon client. A remote/Wine
@@ -23,6 +23,7 @@ import tempfile
 import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT, call_daemon
+from swcli.result_schemas import validate_operation_result
 
 
 # Match the ten-minute CI phase, without extending any command/phase deadline.
@@ -194,6 +195,23 @@ def assert_measurement(result, radius):
         2 * math.pi * radius * (radius + 10),
         "cylinder surface area is incorrect",
     )
+
+
+def assert_fixed_center(result, sketch_id, *, created):
+    validate_operation_result("sketch.fix-center", result)
+    require(
+        result["sketch_id"] == sketch_id and result["created"] is created,
+        "center fixing targeted a different sketch or duplicated an existing fix",
+    )
+    geometry = result["center"]["geometry"]
+    close_enough(geometry["width_mm"], 40, "center fixing changed rectangle width")
+    close_enough(geometry["height_mm"], 30, "center fixing changed rectangle height")
+    for axis, value in (("x", 3), ("y", 4), ("z", 0)):
+        close_enough(
+            geometry["center_mm"][axis], value, "center fixing moved the center"
+        )
+    for actual, expected in zip(geometry["bounds_mm"], (-17, -11, 23, 19)):
+        close_enough(actual, expected, "center fixing changed rectangle bounds")
 
 
 def assert_discovered_diameter(result, dimension_id, sketch_id, stamp):
@@ -738,6 +756,157 @@ class DrivingSmoke:
         self.renew_lease(document_id)
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
 
+    def center_constraints(self, plane):
+        """Public proof, including native persistence; no COM fixture or retry."""
+        document_id = self.create()
+        origin_id = self.create() if plane == "front" else None
+        foreground_id = self.create()
+        lease = self.call(
+            "document.lease.acquire",
+            {"ttl_seconds": LEASE_TTL_SECONDS},
+            document_id=document_id,
+        )["lease"]["lease_id"]
+        write = {"document_id": document_id, "lease_id": lease}
+        rectangle = self.write(
+            "sketch.rectangle",
+            {
+                "plane": plane,
+                "width_mm": 40,
+                "height_mm": 30,
+                "center_x_mm": 3,
+                "center_y_mm": 4,
+            },
+            **write,
+        )
+        sketch_id = rectangle["sketch"]["sketch_id"]
+        values = {"sketch_id": sketch_id}
+        stamp = self.stamp(document_id)
+        self.call(
+            "sketch.fix-center",
+            values,
+            expected_error="DocumentLeaseConflict",
+            document_id=document_id,
+            session_id=self.session + "-contender",
+        )
+        self.write(
+            "sketch.fix-center",
+            values,
+            expected_error="DocumentUpdateConflict",
+            expected_update_stamp=stamp + 1,
+            **write,
+        )
+        require(self.stamp(document_id) == stamp, "rejected center fix changed stamp")
+        self.assert_background(document_id, foreground_id)
+        fixed = (
+            self.write_command(
+                [
+                    "sketch",
+                    "fix-center",
+                    "--document",
+                    document_id,
+                    sketch_id,
+                    "--lease",
+                    lease,
+                    "--if-update-stamp",
+                    str(stamp),
+                ],
+                document_id=document_id,
+            )
+            if plane == "front"
+            else self.write(
+                "sketch.fix-center", values, expected_update_stamp=stamp, **write
+            )
+        )
+        assert_fixed_center(fixed, sketch_id, created=True)
+        self.assert_background(document_id, foreground_id)
+        fixed_stamp = self.stamp(document_id)
+        repeated = self.write("sketch.fix-center", values, **write)
+        assert_fixed_center(repeated, sketch_id, created=False)
+        require(self.stamp(document_id) == fixed_stamp, "existing fix changed stamp")
+        self.assert_background(document_id, foreground_id)
+        proof = {
+            "plane": plane,
+            "sketch_id": sketch_id,
+            "fixed": fixed,
+            "repeated": repeated,
+        }
+        self.record.setdefault("center_constraints", []).append(proof)
+        self.checkpoint(f"center.{plane}.fixed")
+
+        if origin_id is not None:
+            origin_lease = self.call(
+                "document.lease.acquire",
+                {"ttl_seconds": LEASE_TTL_SECONDS},
+                document_id=origin_id,
+            )["lease"]["lease_id"]
+            origin_write = {"document_id": origin_id, "lease_id": origin_lease}
+            origin = self.write(
+                "sketch.rectangle",
+                {"plane": plane, "width_mm": 40, "height_mm": 30},
+                **origin_write,
+            )
+            origin_stamp = self.stamp(origin_id)
+            proof["origin_refusal"] = self.write(
+                "sketch.fix-center",
+                {"sketch_id": origin["sketch"]["sketch_id"]},
+                expected_error="UnsupportedCenterConstraint",
+                **origin_write,
+            )
+            require(
+                self.stamp(origin_id) == origin_stamp, "origin refusal changed stamp"
+            )
+            inspected = self.call(
+                "sketch.inspect",
+                {"sketch_id": origin["sketch"]["sketch_id"]},
+                document_id=origin_id,
+            )
+            require(inspected["editing"] is False, "origin refusal left an edit active")
+            self.assert_background(origin_id, foreground_id)
+            self.close(origin_id)
+
+        path = host_path(self.output_directory, f"rectangle-center-{plane}.SLDPRT")
+        saved = self.write("document.save-as", {"output": path}, **write)
+        proof["artifact"] = saved["artifact"]
+        self.close(document_id)
+        self.call(
+            "sketch.fix-center",
+            values,
+            expected_error="SketchNotFound",
+            document_id=foreground_id,
+        )
+        reopened = self.call("document.open", {"path": path, "read_only": True})
+        reopened_id = reopened["document"]["document_id"]
+        reopened_foreground = self.create()
+        before = self.stamp(reopened_id)
+        listed = self.call("sketch.list", document_id=reopened_id)
+        require(listed["count"] == 1, "reopened rectangle has an ambiguous sketch list")
+        recovered_id = listed["sketches"][0]["sketch_id"]
+        require(recovered_id != sketch_id, "closed sketch handle was reused")
+        require(self.stamp(reopened_id) == before, "sketch discovery changed stamp")
+        self.call(
+            "sketch.fix-center",
+            values,
+            expected_error="SketchNotFound",
+            document_id=reopened_id,
+        )
+        recovered = self.write(
+            "sketch.fix-center",
+            {"sketch_id": recovered_id},
+            document_id=reopened_id,
+        )
+        assert_fixed_center(recovered, recovered_id, created=False)
+        require(self.stamp(reopened_id) == before, "saved fix readback changed stamp")
+        self.assert_background(reopened_id, reopened_foreground)
+        proof.update(
+            reopened=recovered,
+            recovered_sketch_id=recovered_id,
+            expired_handles_rejected=True,
+        )
+        self.checkpoint(f"center.{plane}.verified")
+        self.close(reopened_id)
+        self.close(reopened_foreground)
+        self.close(foreground_id)
+
     def cleanup(self):
         errors = []
         self.record["cleanup_errors"] = errors
@@ -1012,6 +1181,7 @@ class DrivingSmoke:
             )
             self.record["modeling_record"] = str(self.after_modeling)
         for operation in (
+            "sketch.fix-center",
             "sketch.dimension-diameter",
             "dimension.discover-diameter",
             "dimension.inspect",
@@ -1027,6 +1197,7 @@ class DrivingSmoke:
             self.checkpoint(f"plane.{plane}.starting")
             print(f"Driving-dimension gate: {plane} starting", flush=True)
             self.plane(plane)
+            self.center_constraints(plane)
             self.checkpoint(f"plane.{plane}.completed")
             print(f"Driving-dimension gate: {plane} passed", flush=True)
         after = self.call("daemon.health")
@@ -1100,7 +1271,9 @@ def main(argv=None):
     if error is not None:
         raise error
     require(not cleanup_errors, f"driving gate cleanup failed: {cleanup_errors}")
-    print(f"Driving dimensions verified on front/top/right; record: {record_path}")
+    print(
+        f"Driving dimensions and center fixes verified on front/top/right; record: {record_path}"
+    )
 
 
 if __name__ == "__main__":

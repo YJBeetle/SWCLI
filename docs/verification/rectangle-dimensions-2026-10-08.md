@@ -316,9 +316,34 @@ References: [AddRelation](https://help.solidworks.com/2022/english/api/sldworksa
 [native solver states](https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swConstrainedStatus_e.html?id=2.10.1.179).
 
 Current proof boundary: internal visible-Windows size creation/inspection/edit
-and explicit center fixing are verified. Public catalog/request/result/CLI
-contracts, saved linear discovery, hidden Windows and Wine remain pending.
+and explicit center fixing are verified. The development `sketch.fix-center`
+catalog/request/result/CLI contract is implemented in `720c637`, but installed
+public Windows, saved linear discovery, hidden Windows and Wine remain pending.
 The 763-test portable suite passes with eight Windows-only cases skipped on
 macOS; that skip is not native proof. Existing hosted public gates at `08ffaee`
 passed before these center adapters and do not exercise them. DockerSW stays
 at its published a5 production gitlink until a6 delivery is independently gated.
+
+## Development public center gate (2026-10-09)
+
+The existing `scripts/ci/verify-driving-dimensions.py` now checks explicit
+center fixing after each plane's diameter workflow on the same daemon/SW PID.
+It verifies exact 40×30 mm geometry at (3,4) mm, first creation and repeated
+no-op, contender/old-stamp refusal, foreground/current restoration, front-plane
+origin refusal and native save/close/reopen with newly discovered sketch handles.
+Closed handles are rejected; persisted fixes remain read-only no-ops, including
+when the saved part is reopened read-only. It uses public typed operations only.
+The installed front-plane CLI places `--document` before the positional ID.
+The updated portable suite runs 774 tests successfully, with eight Windows-only
+cases skipped on macOS.
+
+Portable gate tests inject geometry drift, false success, duplicate fixes,
+unexpected stamp mutation, lost saved fixes and foreground changes. These are
+gate/contract evidence, not SOLIDWORKS execution evidence. Windows CI already
+runs this shared gate in visible and hidden modes after modeling; no duplicate
+PowerShell modeling flow or extra host restart was added.
+
+Local public VM verification is blocked: Parallels refused to start Windows
+because its disk requires at least 6537 MB of additional free space. No user
+files were removed. Hosted installed-package proof is still required before
+advertising this capability or updating DockerSW's production pin.

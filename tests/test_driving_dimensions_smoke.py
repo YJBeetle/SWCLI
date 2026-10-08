@@ -52,6 +52,8 @@ class FakeDaemon:
         self.discovery_changes_reopen_current = False
         self.discovered_inspect_wrong_id = False
         self.discovery_missing_capability = False
+        self.center_missing_capability = False
+        self.center_defect = None
         self.dimension_discovery_serial = 0
         self.list_serial = 0
         self.calls = []
@@ -70,6 +72,10 @@ class FakeDaemon:
     def descriptor(self, document_id, session):
         document = self.documents[document_id]
         return {
+            "title": "Part",
+            "path": "",
+            "type": 1,
+            "modified": True,
             "document_id": document_id,
             "active": self.active == document_id,
             "current": self.current.get(session) == document_id,
@@ -135,6 +141,7 @@ class FakeDaemon:
                         "dimension.set",
                         "sketch.list",
                     ]
+                    + ([] if self.center_missing_capability else ["sketch.fix-center"])
                     + (
                         []
                         if self.discovery_missing_capability
@@ -405,6 +412,78 @@ class FakeDaemon:
                 document["sketch"] = f"s-{self.serial:06d}"
                 document["radius"] = values["radius_mm"]
                 result["sketch"] = {"sketch_id": document["sketch"]}
+            elif operation == "sketch.rectangle":
+                document["sketch"] = f"s-{self.serial:06d}"
+                document["fixed"] = False
+                document["origin"] = (
+                    values.get("center_x_mm", 0) == values.get("center_y_mm", 0) == 0
+                )
+                result["sketch"] = {"sketch_id": document["sketch"]}
+            elif operation == "sketch.fix-center":
+                if document["sketch"] != values["sketch_id"]:
+                    return self.error("SketchNotFound")
+                if document.get("origin"):
+                    if self.center_defect == "origin_stamp":
+                        document["stamp"] += 1
+                    return self.error("UnsupportedCenterConstraint")
+                created = not document["fixed"]
+                geometry = {
+                    "width_mm": 40,
+                    "height_mm": 30,
+                    "center_mm": {"x": 3, "y": 4, "z": 0},
+                    "bounds_mm": [-17, -11, 23, 19],
+                    "profile_segment_count": 4,
+                    "construction_segment_count": 2,
+                    "max_abs_z_mm": 0,
+                }
+                center = {
+                    "method": "sketch-local-center-relations",
+                    "attached_to_both_diagonals": True,
+                    "fixed": True,
+                    "native_point_id": [0, 1],
+                    "native_diagonal_ids": [[5, 6], [6, 7]],
+                    "identity_scope": "exact-sketch-and-entity-kind-snapshot",
+                    "geometry": geometry,
+                }
+                result.update(
+                    action="sketch.fix-center",
+                    sketch_id=values["sketch_id"],
+                    created=created,
+                    center_before={**copy.deepcopy(center), "fixed": not created},
+                    center=copy.deepcopy(center),
+                    constraint_status_before=2,
+                    constraint_status=2,
+                    editing=False,
+                    geometry_verification={
+                        "method": "sketch-local-rectangle",
+                        "passed": True,
+                        "size_matched": True,
+                        "center_preserved": True,
+                        "expected_width_mm": 40,
+                        "expected_height_mm": 30,
+                        "expected_center_mm": {"x": 3, "y": 4, "z": 0},
+                        "actual": copy.deepcopy(geometry),
+                        "absolute_tolerance_mm": 1e-6,
+                    },
+                )
+                if created:
+                    result["center_in_edit"] = copy.deepcopy(center)
+                    document["fixed"] = True
+                    document["stamp"] += 1
+                if self.center_defect == "geometry":
+                    result["geometry_verification"]["passed"] = False
+                elif self.center_defect == "moved":
+                    result["center"]["geometry"]["center_mm"]["x"] = 4
+                elif self.center_defect == "duplicate" and not created:
+                    result["created"] = True
+                elif self.center_defect == "stamp" and not created:
+                    document["stamp"] += 1
+                elif self.center_defect == "lost_saved" and document.get("reopened"):
+                    result["center"]["fixed"] = False
+                elif self.center_defect == "foreground":
+                    self.active = document_id
+                result["document"] = self.descriptor(document_id, session)
+                return self.response(result)
             elif operation == "sketch.dimension-diameter":
                 if document["dimension"]:
                     return self.error("SketchAlreadyDimensioned")
@@ -465,6 +544,8 @@ class FakeDaemon:
             values = {}
         elif operation == "dimension.discover-diameter":
             values = {"sketch_id": arguments[2]}
+        elif operation == "sketch.fix-center":
+            values = {"sketch_id": arguments[4]}
         else:
             values = {"dimension_id": arguments[2]}
         response = self.call(operation, values, **context)
@@ -515,7 +596,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     if item["transport"] == "cli"
                 ]
             ),
-            8,
+            9,
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
@@ -588,6 +669,77 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 for phase in ("starting", "passed")
             ],
         )
+
+    def test_center_fixes_cover_three_planes_persistence_guards_and_cli_selector_order(
+        self,
+    ):
+        self.run_smoke()
+        proofs = self.smoke.record["center_constraints"]
+        self.assertEqual(
+            [proof["plane"] for proof in proofs], ["front", "top", "right"]
+        )
+        for proof in proofs:
+            self.assertTrue(proof["fixed"]["created"])
+            self.assertFalse(proof["repeated"]["created"])
+            self.assertFalse(proof["reopened"]["created"])
+            self.assertTrue(proof["reopened"]["center"]["fixed"])
+            self.assertNotEqual(proof["recovered_sketch_id"], proof["sketch_id"])
+            self.assertTrue(proof["expired_handles_rejected"])
+        self.assertEqual(
+            proofs[0]["origin_refusal"]["error"]["code"], "UnsupportedCenterConstraint"
+        )
+        fix_calls = [
+            (values, context)
+            for operation, values, context in self.daemon.calls
+            if operation == "sketch.fix-center"
+        ]
+        self.assertTrue(
+            any(
+                context.get("expected_update_stamp") is not None
+                for _, context in fix_calls
+            )
+        )
+        self.assertTrue(
+            any(
+                context["session_id"].endswith("-contender") for _, context in fix_calls
+            )
+        )
+        cli = [
+            event
+            for event in self.smoke.record["events"]
+            if event.get("arguments", [])[:2] == ["sketch", "fix-center"]
+        ]
+        self.assertEqual(len(cli), 1)
+        self.assertEqual(cli[0]["arguments"][2], "--document")
+        self.assertFalse(self.daemon.documents)
+
+    def test_center_capability_missing_refuses_before_native_resources(self):
+        self.daemon.center_missing_capability = True
+        with self.assertRaisesRegex(
+            RuntimeError, "installed daemon lacks sketch.fix-center"
+        ):
+            self.run_smoke()
+        self.assertFalse(
+            any(operation == "document.create" for operation, _, _ in self.daemon.calls)
+        )
+
+    def test_center_false_success_stamp_and_foreground_drift_stop_the_gate(self):
+        for defect in (
+            "geometry",
+            "moved",
+            "duplicate",
+            "stamp",
+            "lost_saved",
+            "foreground",
+            "origin_stamp",
+        ):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.daemon.center_defect = defect
+                with self.assertRaises(RuntimeError):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
+                self.assertEqual(len(self.smoke.record["planes"]), 1)
 
     def test_slow_holder_writes_cli_and_cleanup_renew_without_changing_guards(self):
         # A whole plane exceeds one lease lifetime, but bounded observation

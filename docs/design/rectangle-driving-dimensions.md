@@ -3,7 +3,13 @@
 Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**.
 The development typed operation `sketch.fix-center` is now wired to the CLI,
 catalog, result contract and document/lease/stamp/foreground guards. Installed
-public Windows and Wine gates are still pending; this is not an a5 capability.
+public Windows and Wine verification is still pending; this is not an a5 capability.
+The existing shared driving gate now exercises explicit fixing on three planes,
+repeated no-ops, lease/stamp refusal, background restoration and native
+save/close/reopen readback with fresh sketch handles. The front-plane case uses
+the installed CLI with `--document` before the positional sketch ID. It also
+checks origin-relation refusal without mutation. No host restart or retry is
+inserted between modeling, diameter edits and these center checks.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
 Schemas are committed here for the size/discovery slice.
