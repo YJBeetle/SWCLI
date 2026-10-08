@@ -181,6 +181,38 @@ to the foreground and confirmed its state. An otherwise identical CLI render
 of the same open document remained white; the before/after BMP SHA-256 values
 were identical. The user also confirmed that the actual model area displays
 the solid. Thus simply foregrounding the window did not fix this observation;
-the visible scene and BMP capture diverge. This does not yet identify the
-responsible native API or Wine module. Keep it separate from hosted accumulated
+the visible scene and BMP capture diverge. That foreground comparison alone
+does not identify the responsible native API or Wine module. Keep it separate from hosted accumulated
 call latency and from the earlier native close exception.
+
+### Linux BMP content comparison
+
+A subsequent workspaceroot check used SWCLI
+`fb147c19e65a4d4b2a84e8e8c140c1589171c54e` over the same existing
+`localhost/swcli-a5-probe:20261008` runtime: Wine 11.16, SOLIDWORKS 33.5.0,
+Xvfb and Mesa llvmpipe. The daemon-owned hidden PID was 616 and the separate
+visible PID was 1464. Each host opened both model copies read-only and rendered
+800 × 600 isometric BMPs through the actual CLI, then closed both documents.
+
+| Model source | Hidden distinct RGB colors | Visible distinct RGB colors |
+| --- | --- | --- |
+| Exact MacSW model that produced white BMPs locally | 3683 | 3700 |
+| Previous Linux shared modeling gate | 3650 | 3737 |
+
+All four BMPs were visually inspected and contain the modeled solids, not only
+a background gradient. All measurements returned five solid bodies and total
+volume approximately 308558.406140636 mm³. The transferred Mac model SHA-256
+matches the local source:
+`e77c6e4c461226ffd507700824e8d4a609ea318944eab2bdfc633ebeb2d5c438`.
+An independent 8 × 8 memory-DC OpenGL probe also succeeded: bitmap/GDI/OpenGL
+pixel format selected, context made current and all 64 DIB pixels read back red.
+
+The daemon stopped normally with empty document lists; only the dedicated test
+container was removed. Evidence remains at workspaceroot
+`/tmp/swcli-bmp.ETxLrC/output` and locally at
+`/private/tmp/swcli-bmp-linux.En0KlH`. No image or release was changed.
+This check did not reproduce the white BMP on Linux, narrowing this observation
+to the tested MacSW winemac/CGL path, not proving every Wine host is unaffected.
+Native Mac capture diagnostics and the unsuccessful pixel-format advertisement
+experiment are recorded in
+[MacSW's investigation](https://github.com/YJBeetle/MacSW/blob/master/docs/native-modeling-investigation.md#位图像素格式与离屏-drawable-对照).
