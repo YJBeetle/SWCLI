@@ -347,3 +347,17 @@ Local public VM verification is blocked: Parallels refused to start Windows
 because its disk requires at least 6537 MB of additional free space. No user
 files were removed. Hosted installed-package proof is still required before
 advertising this capability or updating DockerSW's production pin.
+
+## First installed public Windows gate — 2026-10-09
+
+[SWCLI CI 37830499698](https://github.com/YJBeetle/SWCLI/actions/runs/37830499698)
+at `138cbb61050e543878af202e325061b5bf636e4c` passed both Python unit-test
+matrices, packaging and native installation. The real smoke step failed in the
+first front-plane center case **before** invoking `sketch.fix-center`:
+`sketch.rectangle` returned `SketchVerificationFailed` for 40×30 mm at (3,4) mm.
+Its reported line bounds were x=[-23,23], y=[-11,19] mm, versus requested
+x=[-17,23], y=[-11,19] mm; it reported six segments, four profile segments.
+Keep the assertion unchanged and investigate the native geometry/creation
+state separately. This is not proof of a center-fix failure or of the unrelated
+MacSW hosted cut timeout. Public center delivery remains blocked pending
+native evidence and a passing unchanged gate.
