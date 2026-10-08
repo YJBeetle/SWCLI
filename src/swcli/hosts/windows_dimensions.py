@@ -539,6 +539,7 @@ def _variant(kind: str, value: Any) -> Any:
         "dispatch": pythoncom.VT_DISPATCH,
         "empty": pythoncom.VT_EMPTY,
         "double-array": pythoncom.VT_ARRAY | pythoncom.VT_R8,
+        "dispatch-array": pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH,
     }
     return VARIANT(types[kind], value)
 
