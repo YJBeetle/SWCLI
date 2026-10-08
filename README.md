@@ -45,8 +45,11 @@ feature editing, stable entity references, transactions, SDK, and MCP remain fut
 work. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. Since `v0.1.0a4`, it also advertises
 `operation_result_schemas` and validates worker results before returning them.
-The release adds unsaved part creation, verified rectangle/circle sketches,
+The a4 release added unsaved part creation, verified rectangle/circle sketches,
 blind bosses/cuts, native volume/area observation and new-filename part save-as.
+Since `v0.1.0a5`, single-circle driving diameters can be created/edited and
+rediscovered after native save/reopen. This is not general dimension editing
+or a promise of fully defined sketches.
 
 ## Installation
 
@@ -58,19 +61,24 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a4` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a5` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a4/swcli-0.1.0a4-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a5/swcli-0.1.0a5-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a4` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a5` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
+
+Stop the old daemon before upgrading, then explicitly start the matching version.
+Temporary document/sketch/dimension handles and leases expire on restart.
+See the [a5 release notes](docs/releases/v0.1.0a5.md) for portable-client
+installation, exact verification evidence and known limits.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
 terminal cannot find `sw-cli`, add that directory to the user `PATH`, then
@@ -511,7 +519,7 @@ document/stamp selectors but not a write lease, and leaves session current and
 foreground unchanged. It only accepts live IDs registered by this worker, not
 names, segment indices, or expired IDs from a reopened file.
 
-On the **a5 development branch** (not the published a4 wheel),
+Since `v0.1.0a5`,
 `sw-cli sketch list --document DOCUMENT_ID --json` discovers live 2D profiles,
 including absorbed sketches, after opening or reopening a part. It returns
 fresh document/worker-local IDs and native constraint/owner metadata. Repeated
@@ -522,10 +530,10 @@ and preserves foreground and session current. `--max-sketches` defaults to
 1000; a limit or traversal failure is an error, not a partial successful list.
 Listing itself does not discover dimensions or cover 3D sketches.
 
-## Driving diameter (a5 development branch)
+## Driving diameter (since v0.1.0a5)
 
-These commands are implemented on the development branch, **not in the published
-a4 wheel**. Check capabilities before using them:
+Check the running daemon's capabilities before using these commands; older
+a4 hosts do not provide them:
 
 ```powershell
 sw-cli document create --json
@@ -568,8 +576,9 @@ IDs. Discovering a handle does not grant authority to edit or save the source;
 
 Windows installed-wheel and fresh hosted visible/hidden verification, plus the
 independent DockerSW hidden Wine delivery pass, are recorded in the
-[a5 verification notes](docs/verification/a5-2026-10-07.md). These exact-candidate
-passes do not imply MacSW runtime proof or an a5 release announcement.
+[a5 verification notes](docs/verification/a5-2026-10-07.md). The
+[a5 release notes](docs/releases/v0.1.0a5.md) distinguish development proofs
+from final-version verification. Neither claims MacSW runtime proof.
 
 ## Feature operations (since v0.1.0a4)
 

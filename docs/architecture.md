@@ -213,7 +213,7 @@ The scalar signature, body scope and direction were verified from the installed
 SOLIDWORKS 2025 official API help. See
 [native cut extrusion](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeatureManager~FeatureCut4.html).
 
-On the a5 development branch, `sketch.dimension-diameter` adds a real driving
+Since v0.1.0a5, `sketch.dimension-diameter` adds a real driving
 diameter to one exact unabsorbed full-circle sketch. It registers an `m-xxxxxx`
 dimension handle alongside its owning sketch, including a partial native
 creation when verification fails. `dimension.inspect` rechecks native ownership
@@ -250,7 +250,8 @@ display chain is `DimensionObservationUnavailable`, not absence proof, because
 native display APIs can omit hidden/unloaded dimensions. This operation does
 not modify display preferences, create dimensions or provide arbitrary dimension
 discovery. Editing the recovered handle still uses `dimension.set` and its guards.
-These development operations are not present in the released a4 wheel.
+These operations are not present in the older a4 wheel. The a5 release notes
+record the exact Windows/Wine verification and installation boundaries.
 
 ## Compatibility policy
 

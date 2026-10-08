@@ -33,15 +33,16 @@ These features are available in the v0.1.0a4 pre-release, not the older a3 wheel
 
 The a5 driving-dimension slice is scoped in
 [driving dimensions](design/driving-dimensions.md). Its typed creation/inspect/set
-operations are implemented on the development branch. Installed-wheel Windows,
+operations are available in **v0.1.0a5**. Installed-wheel Windows,
 fresh hosted Windows visible/hidden modes and independent hidden Wine delivery
-have passed at the candidate recorded below. Preparing/publishing a5 remains
-separate from these completed verification gates; the public release is still a4.
+have passed at the exact formal-version candidate recorded in the
+[a5 release notes](releases/v0.1.0a5.md). Release assets and runtime CI have
+distinct provenance; a green development gate is not itself a publication.
 
-Read-only `sketch.list` is also implemented on the development branch to recover
+Read-only `sketch.list` is also available since a5 to recover
 fresh exact 2D sketch handles from opened/reopened native parts. Native Windows
 and Wine discovery gates have passed for the verified development candidate.
-Discovery of saved diameter handles is exposed as the narrow development operation
+Discovery of saved diameter handles is exposed as the narrow operation
 `dimension.discover-diameter SKETCH_ID`, following its three-plane internal
 Windows proof. It preserves explicit unobservable/ambiguous outcomes, strict
 native metadata and unchanged configuration/edit/stamp checks; an empty display
@@ -83,7 +84,7 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a4 release notes](releases/v0.1.0a4.md). A pre-release does not imply a
+[v0.1.0a5 release notes](releases/v0.1.0a5.md). A pre-release does not imply a
 stable compatibility commitment.
 
 Continue pre-releases until the protocol and recovery boundaries can support a

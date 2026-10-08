@@ -1,10 +1,10 @@
 # a5 driving-dimension increment
 
-Status: typed CLI/protocol implemented on the **a5 development branch**, with
+Status: typed CLI/protocol implemented for **v0.1.0a5**, with
 installed-wheel Windows, fresh hosted Windows visible/hidden and independent
 DockerSW hidden Wine delivery verification. Exact candidate/evidence boundaries
 are in [the a5 verification record](../verification/a5-2026-10-07.md).
-The published a4 capabilities remain unchanged. Keep one public
+The older a4 capabilities remain unchanged. Keep one public
 daemon-backed execution surface, not a direct-COM/debug mode.
 
 ## First slice
@@ -19,7 +19,7 @@ dimension: return evidence/handle, not an automatic rollback claim.
 
 The short document/worker-local dimension registry, exact owning-sketch
 validation, request/result Schemas and catalog guards are implemented.
-Development commands:
+Commands available since a5:
 
 ```text
 sketch dimension-diameter SKETCH_ID --diameter-mm ...
@@ -56,7 +56,7 @@ that modification may have happened; it does not claim rollback.
 discover exact live 2D profile features (including absorbed profiles), reuse
 their worker-local IDs on repeat observations and inspect them without
 activation or edits. A closed document's IDs remain invalid. This slice does
-not itself discover dimension handles. The development operation
+not itself discover dimension handles. The operation
 `dimension.discover-diameter SKETCH_ID` observes the exact profile's display
 chain and registers its unique current-configuration full-circle diameter,
 including absorbed profiles. It is read-only, uses document/update-stamp context
@@ -99,5 +99,7 @@ Official API references: [AddDiameterDimension2](https://help.solidworks.com/202
    verified public operations.
 
 These gates passed for SWCLI `4657a27`, including failed-cut -> fresh sketch ->
-driving-dimension continuation without a host restart. This does not publish a5,
-claim MacSW runtime verification or expand the first slice's modeling scope.
+driving-dimension continuation without a host restart. The formal-version
+Windows/Wine gates also passed at `08eedde`; exact provenance is recorded in
+[the a5 release notes](../releases/v0.1.0a5.md). Neither result claims MacSW
+runtime verification or expands the first slice's modeling scope.

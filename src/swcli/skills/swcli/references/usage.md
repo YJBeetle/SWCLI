@@ -76,7 +76,7 @@ re-plan; do not blindly replace the stamp to force the original action.
 
 ## Model and verify
 
-On development versions advertising these operations:
+On hosts advertising these operations:
 
 ```bash
 sw-cli --session bracket document create --type part --json
@@ -164,7 +164,7 @@ value, rebuild health and actual downstream body metrics against the task.
 Neither adding a diameter nor changing its value fully constrains the center.
 Failure may leave a partial dimension with a usable handle. Foreground recovery
 failure is an error with retained native evidence, not permission to repeat the
-mutation. These commands do not exist in the older published a4 package.
+mutation. These commands are available since a5, not in the older a4 package.
 
 Inspect/diagnose have additional structure and feature evidence; status reports
 document state, not an invented `export_ready` flag. `modified` means the native

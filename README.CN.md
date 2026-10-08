@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及可复用的原生零件建模闭环。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。本版新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现；这不代表通用尺寸编辑或草图完全定义。
 
 ## 安装
 
@@ -42,15 +42,19 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a4` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a5` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a4/swcli-0.1.0a4-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a5/swcli-0.1.0a5-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a4` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a5` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+
+升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸句柄和 lease
+会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
+[a5 发行说明](docs/releases/v0.1.0a5.md)。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -280,7 +284,7 @@ sw-cli document close --discard
 更新戳检查，保持 session current 和前台不变。只能使用本 worker 登记且仍有效的草图 ID，
 不能用名称或序号代替；关闭重开后原 ID 失效。
 
-在 **a5 开发分支**（已发布的 a4 wheel 尚无此命令）中，
+自 `v0.1.0a5` 起，
 `sw-cli sketch list --document DOCUMENT_ID --json` 可以发现打开或重开的零件内仍存活的
 二维草图，包括被特征吸收的草图，返回新的文档/worker 内短句柄及原生约束、归属元数据。
 重复列举同一个存活原生草图会复用其 ID；不会复活过期 ID，也不按名称猜对象。
@@ -288,9 +292,9 @@ sw-cli document close --discard
 保持前台和 session current 不变。`--max-sketches` 默认 1000；超限或遍历失败会报错，
 不会把部分列表当成功返回。列举本身不发现尺寸，也不覆盖三维草图。
 
-## 驱动直径（a5 开发分支）
+## 驱动直径（自 v0.1.0a5 起）
 
-以下命令已在开发分支实现，**尚未包含在已发布的 a4 wheel 中**。调用前请核对 capabilities：
+调用前请核对当前 daemon 的 capabilities；旧版 a4 宿主尚无这些命令：
 
 ```powershell
 sw-cli document create --json
@@ -314,7 +318,7 @@ sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --
 
 发现支持被特征吸收的草图，重复观察同一个存活原生尺寸会复用其 ID，保持前台、session current、配置、编辑状态和更新戳不变，不创建尺寸也不开启尺寸显示。显示链为空意味着无法观察，不意味着文件没有尺寸；有歧义、遍历不完整或原生状态不一致时会失败，不发布句柄。当前仅支持当前配置中单个完整圆的直径，不覆盖任意尺寸或持久 ID。获得句柄不代表获得修改、保存源文件的授权，`dimension set` 仍遵守参数归属和写操作守卫。
 
-Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独立的 DockerSW 隐藏 Wine 交付通过记录，见 [a5 验证记录](docs/verification/a5-2026-10-07.md)。这些结论只针对记录中的确切候选，不代表 MacSW 实际运行验证，也不是 a5 发布公告。
+Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独立的 DockerSW 隐藏 Wine 交付通过记录，见 [a5 验证记录](docs/verification/a5-2026-10-07.md)。[a5 发行说明](docs/releases/v0.1.0a5.md) 区分开发候选与正式版本验证；两者都不代表 MacSW 实际运行验证。
 
 ## 特征操作（自 v0.1.0a4 起）
 
