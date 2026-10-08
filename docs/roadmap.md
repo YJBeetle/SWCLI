@@ -33,26 +33,29 @@ These features are available in the v0.1.0a4 pre-release, not the older a3 wheel
 
 The a5 driving-dimension slice is scoped in
 [driving dimensions](design/driving-dimensions.md). Its typed creation/inspect/set
-operations are implemented on the development branch and have installed-wheel
-Windows evidence. Complete the independent Wine gate before a5 release.
+operations are implemented on the development branch. Installed-wheel Windows,
+fresh hosted Windows visible/hidden modes and independent hidden Wine delivery
+have passed at the candidate recorded below. Preparing/publishing a5 remains
+separate from these completed verification gates; the public release is still a4.
 
 Read-only `sketch.list` is also implemented on the development branch to recover
 fresh exact 2D sketch handles from opened/reopened native parts. Native Windows
-and Wine discovery gates must pass before release. Discovery of saved diameter
-handles is now exposed as the narrow development operation
+and Wine discovery gates have passed for the verified development candidate.
+Discovery of saved diameter handles is exposed as the narrow development operation
 `dimension.discover-diameter SKETCH_ID`, following its three-plane internal
 Windows proof. It preserves explicit unobservable/ambiguous outcomes, strict
 native metadata and unchanged configuration/edit/stamp checks; an empty display
 chain is not absence proof. The installed public gate repeats discovery after
-native reopen and checks the recovered ID through typed inspection. Complete
-its independent Wine proof before release. Fresh hosted Windows verification
-has now passed the public discovery slice; its exact commit, artifact and
-state-preservation checks are recorded in
+native reopen and checks the recovered ID through typed inspection. Fresh hosted
+Windows dual-mode verification and independent DockerSW Wine delivery now pass
+this slice, including failed-cut continuation in the same hidden host. The exact
+commit, artifacts, image promotion and state-preservation checks are recorded in
 [the a5 verification record](verification/a5-2026-10-07.md).
 Do not infer dimensions from names or claim arbitrary dimension support.
 
-1. Add driving dimensions/relations and supported feature edits, so the basic
-   native model is not merely editable but intentionally parameterized.
+1. Extend driving dimensions/relations beyond the verified single-circle
+   diameter slice and add supported feature edits, so the native model is not
+   merely editable but intentionally parameterized.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

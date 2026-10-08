@@ -1,7 +1,9 @@
 # Linux/Wine rejected-cut sequence investigation — 2026-10-08
 
-This is development diagnostic evidence, not an a5 release gate pass or a
-confirmed Wine source defect. Earlier native Windows **visible-mode** sequences
+The early probes below are diagnostic controls, not release gate passes; later
+sections record independently verified candidate delivery. This is not an a5
+release announcement or a confirmed Wine source defect. Earlier native Windows
+**visible-mode** sequences
 passed. Subsequent matched **hidden-mode** controls reproduce a related native
 Windows failure as well, at a different COM call/HRESULT. Calling this a
 Wine-only defect is no longer supported by the evidence.
@@ -34,6 +36,11 @@ COM objects. Completed case directories preserve helper copies/checksums.
 The user's Windows VM uses that same helper/current checkout under
 `C:\Workspace\SWCLI-tests\wine-sequence-controls-20261008`. These source-adapter
 experiments are not installed-wheel or hosted-installer proof.
+The VM is ARM64 Windows 10.0.26100 with AMD64 Python 3.14.7 (`win-amd64`)
+running under Windows emulation; native Windows here means the Windows COM
+host rather than Wine, not a physical x86_64 workstation. The final read-only
+inventory confirmed no remaining SOLIDWORKS process, an isolated installed
+`0.1.0a5.dev0` candidate, and unchanged global/regular-project `0.1.0a4` installs.
 
 ## Minimal public sequence
 
@@ -267,9 +274,9 @@ original `pick-cleanup-wrapper-hidden-20261008` directory.
   timed out during new-document creation; subsequent startup failed. That
   confounded result is retained as `hidden-foreground-v2`, but is not used as
   a fresh-prefix cut-trigger proof.
-- The adapter cleanup has passed the shared public modeling/driving sequences
-  above on both hidden hosts. Fresh hosted Windows dual-mode CI and DockerSW
-  hidden-mode export/modeling/driving/promotion are still separate requirements.
+- The adapter cleanup passed the shared public modeling/driving sequences
+  above on both hidden hosts. The later hosted Windows dual-mode and DockerSW
+  delivery passes below are independent evidence, not implied by local success.
   A successful cancellation return alone remains insufficient evidence.
 
 For earlier CI and Windows evidence, see
@@ -332,5 +339,55 @@ these gates. It published immutable `sw-executable:sha-60840b1-cli` and promoted
 `sw-executable:2025-cli` to OCI index digest
 `sha256:18c0d4aec22eff2de35f22b023675a5facd3cb64811884cba1d1e460df479c40`.
 The preinstalled and zh-cn image variants were also promoted. This closes the
-hosted Wine delivery gate for this exact candidate; Windows dual-mode hosted
-proof and a5 release publication remain distinct boundaries.
+hosted Wine delivery gate for this exact candidate. The separate Windows
+dual-mode proof follows; a5 publication remains a distinct, unfinished step.
+An independent read-only registry check from `workspaceroot` compared the full
+manifests of `2025-cli` and `sha-60840b1-cli`; they were identical after promotion.
+The five idle containers from this investigation were then stopped after their
+last host/document/log snapshots were saved under `closure-20261008`. Container
+filesystems and bind-mounted evidence were retained; no unrelated workloads or
+base images were removed. The Windows VM remained running.
+
+## Hosted Windows dual-mode verification
+
+[SWCLI run 37702208212](https://github.com/YJBeetle/SWCLI/actions/runs/37702208212)
+passed every job at `4657a27`: Python 3.9/3.14 unit tests, built/installed wheel
+resource checks, and a fresh official SOLIDWORKS installation followed by the
+same complete Windows wrapper in both modes. The real COM job used AMD64
+Windows 10.0.26100 and AMD64 Python **3.12.10**, distinct from the local ARM64 VM
+control and the unit-test matrix. Its complete dual-mode smoke step took
+**8 minutes 43 seconds**.
+
+The downloaded `swcli-windows-hosted-37702208212-1` artifact confirms:
+
+| Mode | Readback | Modeling | Driving | Continuous native PID |
+| --- | --- | --- | --- | --- |
+| Visible | `host.visible=true` | Four cases, 97 events | All planes, 242 events | 9144 |
+| Hidden | `host.visible=false` | Four cases, 97 events | All planes, 242 events | 9080 |
+
+Each mode's modeling/driving records completed successfully, with unchanged
+host descriptors, empty cleanup errors, rejection continuation and native
+save/reopen discovery. The modes intentionally start separate owned hosts;
+there is no restart or retry within either consecutive modeling/driving chain.
+Both STEP signatures and both **800×600×24-bit** BMP headers were independently
+checked after download.
+
+The visible equation fixture remains mandatory and passed: native Add2 index 0,
+Status 0, count 0 -> 1; typed mutation returns `DimensionExternallyControlled`
+with diameter 16 mm, geometry/measurement and stamp **164 -> 164** unchanged.
+Hidden mode does not claim ROT equation-bootstrap proof. Both wrapper modes
+also passed their owned/attached disconnect, explicit recovery and shutdown
+assertions, including preserving the live interactive host when stopping an
+attached daemon.
+
+A Schema audit checked 521 complete protocol-response positions, 464 CLI result
+positions, 497 business-result positions and 46 capabilities positions, without
+drift. Counts include duplicated evidence positions. The auditor honors explicit
+UTF-8/UTF-16 evidence BOMs; it neither reconstructs absent packets nor treats
+Schema objects embedded in capabilities as runtime results.
+
+The hidden-mode failed-cut continuation is now covered by portable failure
+tests, the user's installed-wheel VM, fresh hosted AMD64 Windows and the
+independent hidden Wine delivery gate. MacSW/macOS execution and a published a5
+package are not inferred from these passes. Visible Wine performance remains
+the separate limitation recorded above; no Wine source patch/MR is claimed.

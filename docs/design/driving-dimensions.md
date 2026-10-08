@@ -1,7 +1,9 @@
 # a5 driving-dimension increment
 
 Status: typed CLI/protocol implemented on the **a5 development branch**, with
-installed-wheel Windows verification; Wine delivery remains a separate gate.
+installed-wheel Windows, fresh hosted Windows visible/hidden and independent
+DockerSW hidden Wine delivery verification. Exact candidate/evidence boundaries
+are in [the a5 verification record](../verification/a5-2026-10-07.md).
 The published a4 capabilities remain unchanged. Keep one public
 daemon-backed execution surface, not a direct-COM/debug mode.
 
@@ -95,3 +97,7 @@ Official API references: [AddDiameterDimension2](https://help.solidworks.com/202
 4. DockerSW Wine smoke without changing its six standard export artifacts.
 5. Update both READMEs and the packaged agent guide only for implemented and
    verified public operations.
+
+These gates passed for SWCLI `4657a27`, including failed-cut -> fresh sketch ->
+driving-dimension continuation without a host restart. This does not publish a5,
+claim MacSW runtime verification or expand the first slice's modeling scope.

@@ -566,9 +566,10 @@ single full-circle diameter is supported, not arbitrary dimensions or persistent
 IDs. Discovering a handle does not grant authority to edit or save the source;
 `dimension set` retains all ownership and write guards.
 
-Windows installed-wheel verification is recorded in the
-[a5 verification notes](docs/verification/a5-2026-10-07.md); Wine delivery remains
-a separate gate. This is not an a5 release announcement.
+Windows installed-wheel and fresh hosted visible/hidden verification, plus the
+independent DockerSW hidden Wine delivery pass, are recorded in the
+[a5 verification notes](docs/verification/a5-2026-10-07.md). These exact-candidate
+passes do not imply MacSW runtime proof or an a5 release announcement.
 
 ## Feature operations (since v0.1.0a4)
 

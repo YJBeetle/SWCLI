@@ -314,7 +314,7 @@ sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --
 
 发现支持被特征吸收的草图，重复观察同一个存活原生尺寸会复用其 ID，保持前台、session current、配置、编辑状态和更新戳不变，不创建尺寸也不开启尺寸显示。显示链为空意味着无法观察，不意味着文件没有尺寸；有歧义、遍历不完整或原生状态不一致时会失败，不发布句柄。当前仅支持当前配置中单个完整圆的直径，不覆盖任意尺寸或持久 ID。获得句柄不代表获得修改、保存源文件的授权，`dimension set` 仍遵守参数归属和写操作守卫。
 
-Windows 已安装 wheel 验证见 [a5 验证记录](docs/verification/a5-2026-10-07.md)；Wine 交付仍是独立门禁。本节不是 a5 发布公告。
+Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独立的 DockerSW 隐藏 Wine 交付通过记录，见 [a5 验证记录](docs/verification/a5-2026-10-07.md)。这些结论只针对记录中的确切候选，不代表 MacSW 实际运行验证，也不是 a5 发布公告。
 
 ## 特征操作（自 v0.1.0a4 起）
 
