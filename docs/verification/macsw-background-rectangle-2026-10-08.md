@@ -139,10 +139,27 @@ and export job all passed. Local portable tests ran 619 tests with eight
 Windows-only skips; MacSW's established `make test` and `make app` passed.
 
 [MacSW CI 37741088903](https://github.com/YJBeetle/MacSW/actions/runs/37741088903)
-uses MacSW `71f23a7909e71e870b06bb083b2af634d293b681` and the same SWCLI pin.
-Build, fresh installation and official-base snapshot completed; at this record
-the shared runtime gate is still in progress. The local and Linux passes
-must not be represented as this hosted macOS pass.
+used MacSW `71f23a7909e71e870b06bb083b2af634d293b681` and the same SWCLI pin.
+Build, fresh installation and official-base snapshot passed, but the runtime
+job failed in `Shared modeling then driving dimensions on one host`. Its
+first failure was saved background document close, request
+`0d553828-551f-47ff-b946-b85ef048e0e0`, returning native `0x800703e6` rather
+than a worker timeout. It reached 56 modeling events; driving and hidden
+mode were not reached. Two further close failures belong to cleanup.
+
+The preceding rectangle, extrusion and cut operation trace maxima were
+23.107, 18.648 and 13.419 seconds. All three planes, inspection, measurement
+and native save returned successfully before close. This demonstrates that
+this run progressed beyond the earlier accumulated-call timeouts, not that
+the hosted workflow is fixed. The same native close error predates the
+request-scoped implementation. Twenty-seven host samples still had native
+CPU median 176.1%, versus 0% for Python.
+
+The captured server-side access exception is not proof of a whole-process
+crash or a responsible vendor/module. The next diagnostic adds opt-in,
+immediately flushed `SldWorks.CloseDoc` begin/end/error boundaries through
+the existing logger; no title/arguments are logged. The call, document
+selection, original failure result and test assertions remain unchanged.
 
 ## Separate unresolved local rendering observation
 
@@ -157,6 +174,13 @@ RGB color across all 480,000 pixels. A subsequent comparison explicitly
 calling `IModelView.GraphicsRedraw` before capture was also white in all three
 states. Thus enabling the flag is not necessary for this observation; this
 does not identify its origin or establish that rendering was correct before
-the implementation. The foreground/occlusion hypothesis has not yet been
-verified. Keep this issue separate from hosted accumulated-call latency and
-from the earlier native close exception.
+the implementation.
+
+In another owned visible instance, PID 1880, the user brought the SW window
+to the foreground and confirmed its state. An otherwise identical CLI render
+of the same open document remained white; the before/after BMP SHA-256 values
+were identical. The user also confirmed that the actual model area displays
+the solid. Thus simply foregrounding the window did not fix this observation;
+the visible scene and BMP capture diverge. This does not yet identify the
+responsible native API or Wine module. Keep it separate from hosted accumulated
+call latency and from the earlier native close exception.

@@ -7,6 +7,7 @@ from unittest import mock
 
 from swcli.hosts.native_trace import native_call, trace_native_request
 from swcli.hosts.windows import _com_value
+from swcli.hosts import windows_documents
 
 
 class NativeTraceTests(unittest.TestCase):
@@ -130,6 +131,50 @@ class NativeTraceTests(unittest.TestCase):
             self.assertIs(_com_value(obj, 'dispatch'), dispatch)
         self.assertEqual([e['call'] for e in self.records() if e['stage'] == 'read' and e['phase'] == 'begin'],
                          ['property', 'method', 'dispatch'])
+
+    def traced_close(self, side_effect):
+        title = 'private-document-title'
+        app = SimpleNamespace(CloseDoc=mock.Mock(side_effect=side_effect))
+        document = object()
+        com_client = SimpleNamespace()
+        with mock.patch.object(windows_documents.sys, 'platform', 'win32'), \
+                mock.patch.dict('sys.modules', {
+                    'pythoncom': SimpleNamespace(),
+                    'win32com': SimpleNamespace(client=com_client),
+                    'win32com.client': com_client,
+                }), \
+                mock.patch.object(windows_documents, '_describe_document',
+                                  return_value={'modified': False, 'title': title}):
+            with trace_native_request('req-close', 'document.close'):
+                result = windows_documents.close_active_windows_document(
+                    discard=True, app=app, document=document)
+        app.CloseDoc.assert_called_once_with(title)
+        self.assertNotIn(title, self.stream.getvalue())
+        return result
+
+    def test_close_boundary_precedes_native_call_and_records_its_return(self):
+        def close(title):
+            self.assertEqual(self.records()[-1]['phase'], 'begin')
+            self.assertEqual(self.records()[-1]['call'], 'SldWorks.CloseDoc')
+
+        result = self.traced_close(close)
+        self.assertTrue(result['ok'])
+        self.assertTrue(result['closed'])
+        records = [e for e in self.records() if e['stage'] == 'document-close']
+        self.assertEqual([e['phase'] for e in records], ['begin', 'end'])
+        self.assertEqual(records[0]['sequence'], records[1]['sequence'])
+
+    def test_close_native_error_remains_a_failure_without_diagnostic_message_leak(self):
+        error = RuntimeError('private native failure message')
+        result = self.traced_close(error)
+        self.assertFalse(result['ok'])
+        self.assertFalse(result['closed'])
+        self.assertEqual(result['error']['type'], 'RuntimeError')
+        self.assertEqual(result['error']['message'], str(error))
+        records = [e for e in self.records() if e['stage'] == 'document-close']
+        self.assertEqual([e['phase'] for e in records], ['begin', 'error'])
+        self.assertEqual(records[-1]['exception_type'], 'RuntimeError')
+        self.assertNotIn(str(error), self.stream.getvalue())
 
 
 if __name__ == '__main__':

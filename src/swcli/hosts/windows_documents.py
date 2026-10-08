@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+from .native_trace import native_call
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -949,7 +950,10 @@ def close_active_windows_document(
             }
             return result
 
-        app.CloseDoc(snapshot["title"])
+        native_call(
+            "document-close", "SldWorks.CloseDoc",
+            lambda: app.CloseDoc(snapshot["title"]),
+        )
         result.update({"ok": True, "closed": True})
         return result
     except Exception as exc:
