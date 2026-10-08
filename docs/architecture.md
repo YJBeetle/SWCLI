@@ -139,7 +139,10 @@ silently changing document or modeling semantics.
 For host-call triage, `SWCLI_TRACE_NATIVE_CALLS=1` on the daemon opts into
 request-correlated, immediately flushed JSON lines on stderr. Covered COM reads,
 background activation/restoration and profile creation/edit/verification retain
-their original call order and STA thread. The logger does not record arguments,
+their original call order and STA thread. Cut extrusion also brackets exact
+profile selection, `FeatureCut4`, measurement/diagnostic groups, definition
+reads and incomplete-command/selection cleanup; it adds no native calls.
+The logger does not record arguments,
 results or exception messages, and does not implement retry/recovery. It is off
 by default and idle probes stay silent. A missing terminal event identifies an
 entered covered call, not its root cause; an `end` event means returned, not

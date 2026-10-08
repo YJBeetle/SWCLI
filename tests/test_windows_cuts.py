@@ -1,10 +1,14 @@
 import copy
+import io
+import json
 import math
+import os
 import unittest
 from types import SimpleNamespace
 from unittest import mock
 
 from swcli.hosts import windows_cuts as cuts
+from swcli.hosts.native_trace import trace_native_request
 from swcli.result_schemas import OperationResultInvalid, validate_operation_result
 
 
@@ -79,6 +83,148 @@ class CutExtrusionTests(unittest.TestCase):
             sketch_feature=self.sketch,
             **{"depth_mm": 20, **values},
         )
+
+    def traced_cut(self, stream=None):
+        stream = stream if stream is not None else io.StringIO()
+        with (
+            mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}),
+            mock.patch("swcli.hosts.native_trace.sys.stderr", stream),
+            trace_native_request("req-cut", "feature.cut-extrude"),
+        ):
+            result = self.cut()
+        return result, stream
+
+    def test_cut_trace_is_flushed_before_call_and_covers_definition_and_cleanup(self):
+        output = io.StringIO()
+        stream = mock.Mock(spec=io.StringIO, wraps=output)
+
+        def feature_cut(*arguments):
+            last = json.loads(output.getvalue().splitlines()[-1])
+            self.assertEqual(last["call"], "FeatureManager.FeatureCut4")
+            self.assertEqual(last["phase"], "begin")
+            self.assertEqual(
+                stream.flush.call_count, len(output.getvalue().splitlines())
+            )
+            return self.created
+
+        self.manager.FeatureCut4.side_effect = feature_cut
+        result, _ = self.traced_cut(stream)
+        self.assertTrue(result["ok"], result)
+        records = [json.loads(line) for line in output.getvalue().splitlines()]
+        begin = [
+            item
+            for item in records
+            if item["phase"] == "begin" and item["stage"] != "read"
+        ]
+        self.assertEqual(
+            [(item["stage"], item["call"]) for item in begin],
+            [
+                ("operation", "feature.cut-extrude"),
+                ("cut-preflight", "measure_part_windows"),
+                ("profile-select", "ModelDoc.ClearSelection2"),
+                ("profile-select", "Feature.Select2"),
+                ("feature-create", "FeatureManager.FeatureCut4"),
+                ("cut-verify", "diagnose_features"),
+                ("cut-verify", "measure_part_windows"),
+                ("cut-verify", "inspect_bodies"),
+                ("cut-definition", "ExtrudeFeatureData.GetDepth"),
+                ("cut-definition", "ExtrudeFeatureData.GetEndCondition"),
+                ("selection-cleanup", "ModelDoc.ClearSelection2"),
+            ],
+        )
+        for item in begin:
+            matching = [
+                event for event in records if event["sequence"] == item["sequence"]
+            ]
+            self.assertEqual([event["phase"] for event in matching], ["begin", "end"])
+        self.assertTrue(all(item["request_id"] == "req-cut" for item in records))
+        self.assertTrue(
+            all(item["operation"] == "feature.cut-extrude" for item in records)
+        )
+        self.assertNotIn("native-cut", output.getvalue())
+        self.assertEqual(len(self.manager.FeatureCut4.call_args.args), 27)
+        self.manager.FeatureCut4.assert_called_once()
+
+    def test_cut_trace_returned_none_is_not_native_exception_or_business_success(self):
+        self.manager.FeatureCut4.return_value = None
+        result, output = self.traced_cut()
+        self.assertEqual(result["error"]["type"], "CutExtrusionFailed")
+        records = [json.loads(line) for line in output.getvalue().splitlines()]
+        cut = [item for item in records if item["call"] == "FeatureManager.FeatureCut4"]
+        self.assertEqual([item["phase"] for item in cut], ["begin", "end"])
+        cleanup = [
+            item
+            for item in records
+            if item["stage"] in ("cut-cleanup", "selection-cleanup")
+        ]
+        self.assertEqual(
+            [(item["call"], item["phase"]) for item in cleanup],
+            [
+                ("ModelDoc.SetPickMode", "begin"),
+                ("ModelDoc.SetPickMode", "end"),
+                ("ModelDoc.ClearSelection2", "begin"),
+                ("ModelDoc.ClearSelection2", "end"),
+            ],
+        )
+        self.diagnose.assert_not_called()
+
+    def test_cut_trace_errors_distinguish_cut_from_cleanup_without_leaking_messages(
+        self,
+    ):
+        self.manager.FeatureCut4.side_effect = RuntimeError("private cut failure")
+        self.document.SetPickMode.side_effect = OSError(
+            "private command cleanup failure"
+        )
+        self.document.ClearSelection2.side_effect = [
+            None,
+            ValueError("private selection failure"),
+        ]
+        result, output = self.traced_cut()
+        self.assertEqual(result["error"]["message"], "private cut failure")
+        self.assertEqual(
+            [item["code"] for item in result["warnings"]],
+            [
+                "cut-command-cleanup-failed",
+                "selection-cleanup-failed",
+            ],
+        )
+        records = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual(
+            [
+                (item["call"], item["exception_type"])
+                for item in records
+                if item["phase"] == "error"
+            ],
+            [
+                ("FeatureManager.FeatureCut4", "RuntimeError"),
+                ("ModelDoc.SetPickMode", "OSError"),
+                ("ModelDoc.ClearSelection2", "ValueError"),
+            ],
+        )
+        self.assertNotIn("private", output.getvalue())
+        self.manager.FeatureCut4.assert_called_once()
+
+    def test_cut_trace_definition_failure_does_not_cancel_a_created_feature(self):
+        self.definition.GetDepth = mock.Mock(
+            side_effect=RuntimeError("definition unavailable")
+        )
+        result, output = self.traced_cut()
+        self.assertEqual(result["error"]["message"], "definition unavailable")
+        records = [json.loads(line) for line in output.getvalue().splitlines()]
+        failed = [item for item in records if item["phase"] == "error"]
+        self.assertEqual(
+            [item["call"] for item in failed], ["ExtrudeFeatureData.GetDepth"]
+        )
+        self.document.SetPickMode.assert_not_called()
+        self.definition.GetDepth.assert_called_once_with(True)
+
+    def test_cut_trace_output_failure_does_not_change_cad_result(self):
+        stream = mock.Mock(spec=io.StringIO)
+        stream.write.side_effect = OSError("output unavailable")
+        result, _ = self.traced_cut(stream)
+        self.assertTrue(result["ok"], result)
+        self.manager.FeatureCut4.assert_called_once()
+        self.document.SetPickMode.assert_not_called()
 
     def test_scalar_native_call_inverts_cut_default_and_affects_all_solids(self):
         result = self.cut()

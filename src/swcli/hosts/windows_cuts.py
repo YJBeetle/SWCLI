@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict
 
+from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
 from .windows_measurements import measure_part_windows
@@ -51,14 +52,26 @@ def cut_extrude_sketch_windows(
                 "message": "the sketch is no longer an unabsorbed 2D profile in the selected document",
             }
             return result
-        before = measure_part_windows(document=document)
+        before = native_call(
+            "cut-preflight",
+            "measure_part_windows",
+            lambda: measure_part_windows(document=document),
+        )
         if not before["ok"]:
             result["error"] = before["error"]
             return result
         result["measurement_before"] = before["metrics"]
-        document.ClearSelection2(True)
+        native_call(
+            "profile-select",
+            "ModelDoc.ClearSelection2",
+            lambda: document.ClearSelection2(True),
+        )
         selected = True
-        if not sketch_feature.Select2(False, 0):
+        if not native_call(
+            "profile-select",
+            "Feature.Select2",
+            lambda: sketch_feature.Select2(False, 0),
+        ):
             result["error"] = {
                 "type": "SketchSelectionFailed",
                 "message": "SOLIDWORKS could not select the registered sketch",
@@ -69,34 +82,38 @@ def cut_extrude_sketch_windows(
         # UseFeatScope=False affects all solids; no implicit body selection.
         manager = _com_value(document, "FeatureManager")
         incomplete_native_cut = True
-        feature = manager.FeatureCut4(
-            True,
-            False,
-            not reverse,
-            0,
-            0,
-            depth_mm / 1000,
-            0.0,
-            False,
-            False,
-            False,
-            False,
-            0.0,
-            0.0,
-            False,
-            False,
-            False,
-            False,
-            False,
-            False,
-            True,
-            False,
-            False,
-            False,
-            0,
-            0.0,
-            False,
-            False,
+        feature = native_call(
+            "feature-create",
+            "FeatureManager.FeatureCut4",
+            lambda: manager.FeatureCut4(
+                True,
+                False,
+                not reverse,
+                0,
+                0,
+                depth_mm / 1000,
+                0.0,
+                False,
+                False,
+                False,
+                False,
+                0.0,
+                0.0,
+                False,
+                False,
+                False,
+                False,
+                False,
+                False,
+                True,
+                False,
+                False,
+                False,
+                0,
+                0.0,
+                False,
+                False,
+            ),
         )
         if feature is None:
             result["error"] = {
@@ -117,26 +134,53 @@ def cut_extrude_sketch_windows(
             }
         )
         result["rebuilt"] = bool(_com_value(document, "EditRebuild3"))
-        result["diagnostics"] = _diagnose_features(document, 500)
+        result["diagnostics"] = native_call(
+            "cut-verify",
+            "diagnose_features",
+            lambda: _diagnose_features(document, 500),
+        )
         if not result["rebuilt"] or not result["diagnostics"]["healthy"]:
             result["error"] = {
                 "type": "ModelInvalid",
                 "message": "created cut did not pass rebuild diagnostics",
             }
             return result
-        after = measure_part_windows(document=document)
+        after = native_call(
+            "cut-verify",
+            "measure_part_windows",
+            lambda: measure_part_windows(document=document),
+        )
         if not after["ok"]:
             result["error"] = after["error"]
             return result
         result["measurement_after"] = after["metrics"]
-        result["bodies"] = _inspect_bodies(document)
+        result["bodies"] = native_call(
+            "cut-verify",
+            "inspect_bodies",
+            lambda: _inspect_bodies(document),
+        )
         definition = _com_value(feature, "GetDefinition")
-        actual_depth = float(definition.GetDepth(True)) * 1000
+        actual_depth = (
+            float(
+                native_call(
+                    "cut-definition",
+                    "ExtrudeFeatureData.GetDepth",
+                    lambda: definition.GetDepth(True),
+                )
+            )
+            * 1000
+        )
         if not math.isfinite(actual_depth):
             raise RuntimeError("SOLIDWORKS returned a nonfinite cut depth")
         native_reverse = bool(_com_value(definition, "ReverseDirection"))
         actual_reverse = not native_reverse
-        end = int(definition.GetEndCondition(True))
+        end = int(
+            native_call(
+                "cut-definition",
+                "ExtrudeFeatureData.GetEndCondition",
+                lambda: definition.GetEndCondition(True),
+            )
+        )
         both = bool(_com_value(definition, "BothDirections"))
         removed = before["metrics"]["volume_mm3"] - after["metrics"]["volume_mm3"]
         tolerance = max(1e-6, before["metrics"]["volume_mm3"] * 1e-12)
@@ -177,14 +221,22 @@ def cut_extrude_sketch_windows(
                 # no active sketch/UI. ClearSelection2 alone does not end it;
                 # hidden hosts can fault after this document is closed. Finish
                 # only our incomplete native command, preserving the cut error.
-                document.SetPickMode()
+                native_call(
+                    "cut-cleanup",
+                    "ModelDoc.SetPickMode",
+                    lambda: document.SetPickMode(),
+                )
             except Exception as exc:
                 result.setdefault("warnings", []).append(
                     {"code": "cut-command-cleanup-failed", "message": str(exc)}
                 )
         if selected:
             try:
-                document.ClearSelection2(True)
+                native_call(
+                    "selection-cleanup",
+                    "ModelDoc.ClearSelection2",
+                    lambda: document.ClearSelection2(True),
+                )
             except Exception as exc:
                 result.setdefault("warnings", []).append(
                     {"code": "selection-cleanup-failed", "message": str(exc)}

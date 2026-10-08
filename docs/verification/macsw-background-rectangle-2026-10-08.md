@@ -216,3 +216,45 @@ to the tested MacSW winemac/CGL path, not proving every Wine host is unaffected.
 Native Mac capture diagnostics and the unsuccessful pixel-format advertisement
 experiment are recorded in
 [MacSW's investigation](https://github.com/YJBeetle/MacSW/blob/master/docs/native-modeling-investigation.md#位图像素格式与离屏-drawable-对照).
+
+## Hosted cut timeout after the bitmap probe fix — 2026-10-09
+
+[MacSW CI 37822674940](https://github.com/YJBeetle/MacSW/actions/runs/37822674940)
+used MacSW `2edce5cd0e8578f43c5b556dc05c6ed6dae2a26d` and SWCLI
+`fb147c19e65a4d4b2a84e8e8c140c1589171c54e`. Build and installed-base cache
+validation passed. All eight memory-DC bitmap/OpenGL cases completed with
+correct pixels under Apple Software Renderer; the prior process/pipe wait
+failure was not reproduced. The owned visible host acquired PID **504**,
+revision **33.5.0**, and entered shared modeling.
+
+The background front rectangle (100×50 mm at 10,20 mm), 20 mm boss, measured
+volume approximately 100000 mm³ and radius 4 mm circle all passed. First failure
+was the 20 mm cut, request `11e763f6-f503-4e45-8119-47a52b9f8adc`, exceeding
+the unchanged 120-second worker deadline. Driving dimensions, model close
+verification and hidden mode were not reached. Subsequent cleanup registration
+failures occurred after the supervisor terminated the owned host; they are not
+evidence that its original startup failed.
+
+The cut trace starts at monotonic 730.643. Target activation returned at 736.796;
+the last covered read was `FeatureManager`, ending at 741.831. That leaves
+roughly 109 seconds unaccounted for by covered calls. `FeatureCut4`, native
+definition reads and cleanup were previously unbracketed, so this is not yet
+proof that `FeatureCut4` itself blocked or that a particular Wine/SW module is
+responsible. The cut adapter and request-scoped API sequence are unchanged
+between this pin and the later development mainline; upgrading alone is not
+an established fix.
+
+The next diagnostic uses the existing opt-in logger to bracket selection,
+`FeatureManager.FeatureCut4`, before/after measurement and diagnostics, exact
+depth/end-condition reads, and `SetPickMode`/selection cleanup. Calls retain
+their existing arguments, order and STA thread. Native errors and cleanup
+warnings are preserved, with no retry, deadline extension or intermediate host
+restart. A returned `None` still produces `CutExtrusionFailed` even though the
+native trace reports `end`, not `error`.
+
+Five adapter trace tests cover flushed begin before invocation, matching
+boundaries, returned failure versus exception, separate cleanup errors, later
+definition failure without cancelling a created cut, and broken output without
+changing the CAD result. These are portable instrumentation tests, not a native
+macOS runtime pass. MacSW already enables `SWCLI_TRACE_NATIVE_CALLS=1`; its next
+runtime run must use the new fixed source and preserve the same modeling chain.
