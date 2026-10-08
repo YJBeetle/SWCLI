@@ -448,6 +448,44 @@ class DimensionOperationTests(unittest.TestCase):
             self.call("dimension.inspect", values, document_id=replacement.document_id)
         inspect.assert_not_called()
 
+    def test_internal_linear_bindings_never_enter_diameter_adapter_or_activation(self):
+        for kind in ("width", "height"):
+            handle = self.registry.register_dimension(
+                self.entry,
+                self.sketch_id,
+                object(),
+                kind=kind,
+                profile_kind="rectangle",
+            )
+            for operation, values in (
+                ("dimension.inspect", {"dimension_id": handle}),
+                ("dimension.set", {"dimension_id": handle, "value_mm": 50}),
+            ):
+                with (
+                    self.subTest(kind=kind, operation=operation),
+                    mock.patch.object(
+                        self.registry, "temporarily_activate"
+                    ) as activate,
+                    mock.patch.object(
+                        operations, "inspect_dimension_windows"
+                    ) as inspect,
+                    mock.patch.object(operations, "set_dimension_windows") as setter,
+                    self.assertRaises(operations.UnsupportedDimensionKind),
+                ):
+                    self.call(
+                        operation,
+                        values,
+                        **(
+                            {"lease_id": self.lease}
+                            if operation == "dimension.set"
+                            else {}
+                        ),
+                    )
+                activate.assert_not_called()
+                inspect.assert_not_called()
+                setter.assert_not_called()
+                self.assertIs(self.app.ActiveDoc, self.foreground)
+
 
 if __name__ == "__main__":
     unittest.main()

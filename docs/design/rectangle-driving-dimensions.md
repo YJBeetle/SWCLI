@@ -14,8 +14,11 @@ The internal creation adapter now creates exact width/height native handles,
 verifies each solver step's dimensions and unchanged center, and retains partial
 failure evidence. Three-plane Windows probes cover same-size creation, an
 explicitly positioned fixture's resize and refusal of unanchored center drift.
-Public inspect/set/registry contracts still support diameters only; the probe's
-explicit fixed-center fixture is not an implemented positioning operation.
+Internal registry entries retain an explicit profile/dimension binding and
+refuse contradictory roles for the same native object. Public inspect/set
+contracts still support diameters only and reject internal linear bindings
+before activation; the probe's explicit fixed-center fixture is not an
+implemented positioning operation.
 
 ## Narrow acceptance target
 
@@ -44,8 +47,10 @@ must report/refuse unintended placement changes rather than hiding them.
 - Reuse native type/value, exact owning-sketch identity, current configuration,
   equation/design-table/read-only refusal, edit and preference cleanup. Do not
   reinterpret the existing diameter-specific result as a generic length.
-- Generalize dimension registry metadata with explicit profile/dimension kind
-  before exposing linear handles through inspect/set/discovery.
+- Dimension registry metadata now carries explicit profile/dimension kind;
+  still verify linear inspect/set/discovery before exposing those bindings.
+  Re-observation cannot change a live object's semantic role or discard handles
+  when a conflicting binding is detected.
 - Two dimension creations are not an atomic transaction. A failed second step
   may leave the first dimension; return its exact handle/evidence. Do not retry,
   claim rollback or discard the original native failure during cleanup.

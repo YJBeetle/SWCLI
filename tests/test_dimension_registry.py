@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest import mock
 
 from swcli.daemon.documents import (
+    DimensionBindingConflict,
     DimensionNotFound,
     DocumentNotFound,
     DocumentRegistry,
@@ -69,12 +70,22 @@ class DimensionRegistryTests(unittest.TestCase):
     def state(self):
         return (
             {
-                dimension_id: (item.sketch_id, item.dimension)
+                dimension_id: (
+                    item.sketch_id,
+                    item.dimension,
+                    item.kind,
+                    item.profile_kind,
+                )
                 for dimension_id, item in self.entry.dimensions.items()
             },
             {
                 sketch_id: {
-                    dimension_id: (item.sketch_id, item.dimension)
+                    dimension_id: (
+                        item.sketch_id,
+                        item.dimension,
+                        item.kind,
+                        item.profile_kind,
+                    )
                     for dimension_id, item in dimensions.items()
                 }
                 for sketch_id, dimensions in self.entry.dimensions_by_sketch.items()
@@ -86,6 +97,7 @@ class DimensionRegistryTests(unittest.TestCase):
         item = self.registry.resolve_dimension(self.entry, self.dimension_id)
         self.assertIs(item.dimension, self.dimension)
         self.assertEqual(item.sketch_id, self.sketch_id)
+        self.assertEqual((item.kind, item.profile_kind), ("diameter", "circle"))
         self.assertIs(
             self.registry.resolve_sketch(self.entry, item.sketch_id), self.sketch
         )
@@ -106,6 +118,144 @@ class DimensionRegistryTests(unittest.TestCase):
         )
         self.app.IsSame.assert_called_once_with(self.dimension, wrapper)
         self.assertEqual(len(self.entry.dimensions), 1)
+
+    def test_explicit_linear_roles_keep_distinct_native_ids_and_metadata(self):
+        for kind in ("width", "height"):
+            with self.subTest(kind=kind):
+                native = Dimension()
+                handle = self.registry.register_dimension(
+                    self.entry,
+                    self.sketch_id,
+                    native,
+                    kind=kind,
+                    profile_kind="rectangle",
+                )
+                item = self.registry.resolve_dimension(self.entry, handle)
+                self.assertIs(item.dimension, native)
+                self.assertEqual((item.kind, item.profile_kind), (kind, "rectangle"))
+                wrapper = Dimension(identity=native.identity)
+                self.assertEqual(
+                    self.registry.register_dimension(
+                        self.entry,
+                        self.sketch_id,
+                        wrapper,
+                        kind=kind,
+                        profile_kind="rectangle",
+                    ),
+                    handle,
+                )
+                self.assertIs(item.dimension, wrapper)
+        self.assertEqual(len(self.entry.dimensions), 3)
+
+    def test_invalid_semantic_pairs_do_not_compare_or_change_registry(self):
+        before = self.state()
+        for kind, profile in (
+            ("width", "circle"),
+            ("height", "circle"),
+            ("diameter", "rectangle"),
+            ("radius", "circle"),
+            (None, "circle"),
+            ("width", None),
+            (True, "rectangle"),
+            ([], "rectangle"),
+        ):
+            with (
+                self.subTest(kind=kind, profile=profile),
+                self.assertRaises(ValueError),
+            ):
+                self.registry.register_dimension(
+                    self.entry,
+                    self.sketch_id,
+                    Dimension(),
+                    kind=kind,
+                    profile_kind=profile,
+                )
+            self.assertEqual(self.state(), before)
+        self.app.IsSame.assert_not_called()
+
+    def test_same_native_object_cannot_be_rebound_as_linear_or_diameter(self):
+        before = self.state()
+        wrapper = Dimension(identity=self.dimension.identity)
+        with self.assertRaises(DimensionBindingConflict):
+            self.registry.register_dimension(
+                self.entry,
+                self.sketch_id,
+                wrapper,
+                kind="width",
+                profile_kind="rectangle",
+            )
+        self.assertEqual(self.state(), before)
+        width = Dimension()
+        width_id = self.registry.register_dimension(
+            self.entry,
+            self.sketch_id,
+            width,
+            kind="width",
+            profile_kind="rectangle",
+        )
+        before = self.state()
+        for kind, profile in (("height", "rectangle"), ("diameter", "circle")):
+            with self.subTest(kind=kind), self.assertRaises(DimensionBindingConflict):
+                self.registry.register_dimension(
+                    self.entry,
+                    self.sketch_id,
+                    Dimension(identity=width.identity),
+                    kind=kind,
+                    profile_kind=profile,
+                )
+            self.assertEqual(self.state(), before)
+        self.assertIs(self.entry.dimensions[width_id].dimension, width)
+
+    def test_binding_conflict_does_not_apply_staged_disconnected_cleanup(self):
+        live = Dimension()
+        self.registry.register_dimension(
+            self.entry,
+            self.sketch_id,
+            live,
+            kind="width",
+            profile_kind="rectangle",
+        )
+        before = self.state()
+        self.app.IsSame.side_effect = [ComError(0x80010108), 1]
+        with self.assertRaises(DimensionBindingConflict):
+            self.registry.register_dimension(
+                self.entry,
+                self.sketch_id,
+                Dimension(identity=live.identity),
+                kind="height",
+                profile_kind="rectangle",
+            )
+        self.assertEqual(self.state(), before)
+
+    def test_disconnected_linear_replacement_never_reuses_old_semantic_binding(self):
+        width = Dimension()
+        width_id = self.registry.register_dimension(
+            self.entry,
+            self.sketch_id,
+            width,
+            kind="width",
+            profile_kind="rectangle",
+        )
+
+        def compare(first, second):
+            if first is width:
+                raise ComError(0x80010108)
+            return 0
+
+        self.app.IsSame.side_effect = compare
+        height = Dimension()
+        height_id = self.registry.register_dimension(
+            self.entry,
+            self.sketch_id,
+            height,
+            kind="height",
+            profile_kind="rectangle",
+        )
+        self.assertNotEqual(width_id, height_id)
+        self.assertNotIn(width_id, self.entry.dimensions)
+        item = self.registry.resolve_dimension(self.entry, height_id)
+        self.assertEqual((item.kind, item.profile_kind), ("height", "rectangle"))
+        self.assertIs(item.dimension, height)
 
     def test_python_wrapper_identity_does_not_bypass_native_comparison(self):
         self.app.IsSame.side_effect = None
@@ -142,9 +292,12 @@ class DimensionRegistryTests(unittest.TestCase):
         self.app.IsSame.side_effect = None
         self.app.IsSame.return_value = 2
         for failure in (ComError(0x80010001), RuntimeError("unreadable identity")):
-            with self.subTest(failure=failure), mock.patch(
-                "swcli.hosts.windows_dimension_identity._query_iunknown",
-                side_effect=failure,
+            with (
+                self.subTest(failure=failure),
+                mock.patch(
+                    "swcli.hosts.windows_dimension_identity._query_iunknown",
+                    side_effect=failure,
+                ),
             ):
                 with self.assertRaises(RuntimeError) as caught:
                     self.registry.register_dimension(

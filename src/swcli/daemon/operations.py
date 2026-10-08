@@ -77,6 +77,10 @@ class DocumentUpdateStampUnavailable(RuntimeError):
     """The selected host cannot provide a native document update stamp."""
 
 
+class UnsupportedDimensionKind(RuntimeError):
+    """Internal linear bindings are not yet public inspect/set capabilities."""
+
+
 def _lease_ttl(parameters: Dict[str, Any]) -> float:
     value = parameters.get("ttl_seconds", 60)
     if (
@@ -553,7 +557,11 @@ def sketch_dimension_diameter(
     result["sketch_id"] = sketch_id
     if native_dimension is not None:
         dimension_id = context.documents.register_dimension(
-            context.entry, sketch_id, native_dimension
+            context.entry,
+            sketch_id,
+            native_dimension,
+            kind="diameter",
+            profile_kind="circle",
         )
         # Even a failed post-mutation verification must expose its live handle.
         result.setdefault("dimension", {})
@@ -591,7 +599,11 @@ def dimension_discover_diameter(
             )
         validate_dimension_discovery_observation(result)
         dimension_id = context.documents.register_dimension(
-            context.entry, sketch_id, native_dimension
+            context.entry,
+            sketch_id,
+            native_dimension,
+            kind="diameter",
+            profile_kind="circle",
         )
         _with_dimension_ids(result, dimension_id, sketch_id)
     return result
@@ -757,7 +769,11 @@ def execute_operation(
         if "sketch_id" in values:
             documents.resolve_sketch(context.entry, values["sketch_id"])
         if "dimension_id" in values:
-            documents.resolve_dimension(context.entry, values["dimension_id"])
+            binding = documents.resolve_dimension(context.entry, values["dimension_id"])
+            if (binding.kind, binding.profile_kind) != ("diameter", "circle"):
+                raise UnsupportedDimensionKind(
+                    "public dimension inspect/set currently supports circle diameters only"
+                )
     activation = (
         documents.temporarily_activate(context.entry)
         if spec.temporary_activation

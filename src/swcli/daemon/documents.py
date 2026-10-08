@@ -58,6 +58,10 @@ class DimensionNotFound(RuntimeError):
     """A dimension handle is absent from the selected document's live registry."""
 
 
+class DimensionBindingConflict(RuntimeError):
+    """A live native dimension cannot acquire a different semantic binding."""
+
+
 class DocumentPathConflict(RuntimeError):
     """A new native filename belongs to another open document."""
 
@@ -68,6 +72,8 @@ class DimensionEntry:
 
     sketch_id: str
     dimension: Any
+    kind: str
+    profile_kind: str
 
 
 @dataclass
@@ -366,7 +372,13 @@ class DocumentRegistry:
         return entry.sketches[sketch_id]
 
     def register_dimension(
-        self, entry: DocumentEntry, sketch_id: str, dimension: Any
+        self,
+        entry: DocumentEntry,
+        sketch_id: str,
+        dimension: Any,
+        *,
+        kind: str = "diameter",
+        profile_kind: str = "circle",
     ) -> str:
         """Keep partial creations observable and reuse exact native owner-local IDs.
 
@@ -374,10 +386,18 @@ class DocumentRegistry:
         the registered owning sketch, not all dimensions in the document. This
         is per-owner indexing, not a constant-time identity lookup for arbitrary
         dimensions. Names and Python wrapper identity never select a handle.
+        The defaults describe the original diameter-only caller, not native
+        type inference. Linear callers must supply both explicit role fields.
         """
         self.resolve_sketch(entry, sketch_id)
         if dimension is None:
             raise ValueError("cannot register an absent native dimension")
+        if (kind, profile_kind) not in (
+            ("diameter", "circle"),
+            ("width", "rectangle"),
+            ("height", "rectangle"),
+        ):
+            raise ValueError("unsupported dimension/profile binding")
         owned = entry.dimensions_by_sketch.get(sketch_id, {})
         expired_ids = []
         matched_id = None
@@ -390,6 +410,14 @@ class DocumentRegistry:
                 expired_ids.append(dimension_id)
             else:
                 if same:
+                    if (registered.kind, registered.profile_kind) != (
+                        kind,
+                        profile_kind,
+                    ):
+                        raise DimensionBindingConflict(
+                            "the same native dimension already has a different "
+                            "dimension/profile binding"
+                        )
                     matched_id = dimension_id
                     break
 
@@ -409,7 +437,7 @@ class DocumentRegistry:
             owned[matched_id].dimension = dimension
             return matched_id
 
-        registered = DimensionEntry(sketch_id, dimension)
+        registered = DimensionEntry(sketch_id, dimension, kind, profile_kind)
         entry.dimensions[token] = registered
         entry.dimensions_by_sketch.setdefault(sketch_id, {})[token] = registered
         return token
