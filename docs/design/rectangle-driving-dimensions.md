@@ -1,6 +1,6 @@
 # Next slice: rectangle driving dimensions
 
-Status: internal creation, read and edit adapters verified on **visible Windows**,
+Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**,
 not an a5 or public CLI capability.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
@@ -17,8 +17,9 @@ explicitly positioned fixture's resize and refusal of unanchored center drift.
 Internal registry entries retain an explicit profile/dimension binding and
 refuse contradictory roles for the same native object. Public inspect/set
 contracts still support diameters only and reject internal linear bindings
-before activation; the probe's explicit fixed-center fixture is not an
-implemented positioning operation.
+before activation. The original fixed-center fixture has now been replaced in
+an independent source-only probe by the explicitly invoked internal center-fix
+adapter; neither is a public positioning operation yet.
 The internal read adapter verifies the bound native type, complete display chain
 and independent rectangle geometry without activation, selection, rebuild or
 sketch editing. It observes driven/read-only/external controls without overriding
@@ -27,6 +28,22 @@ The internal single-axis edit verifies both dimensions and the original center,
 current configuration, complete rebuild diagnostics and fresh downstream
 measurement. It refuses external controls and existing edits, reports possible
 mutation for any attempted setter failure and never adds a position constraint.
+The internal center observer proves native corner connectivity, two exact
+construction diagonals and two unsuppressed center/diagonal coincidences. It
+uses entity-kind-scoped GetID pairs within the exact owning sketch, not point
+wrapper equality, localized names or coordinate coincidence. These are snapshot
+keys, not persistent IDs. Its read adapter verifies unchanged stamp/config/edit.
+The separate internal center-fix adapter adds one native FIXED relation to that
+verified point, checks relation definitions, unchanged geometry/configuration
+and valid solver state before/after sketch exit, and preserves partial failure
+evidence. An already verified fixed center is a read-only no-op.
+
+This first positioning slice deliberately rejects absorbed profiles, additional
+or suppressed center relations and fully constrained profiles without an exact
+existing fix. In particular, a rectangle created at the origin can already have
+an automatic point/origin coincidence: reject it before selection/edit rather
+than adding a redundant FIXED relation or pretending arbitrary position controls
+were analyzed. Size operations themselves are unchanged by this restriction.
 
 ## Narrow acceptance target
 
@@ -77,8 +94,10 @@ must report/refuse unintended placement changes rather than hiding them.
    size, failed/partial creation and owned cleanup tests. Creation has portable
    tests and visible Windows proof. Read-only width/height inspection also has
    absorbed/background-document proof. Single-axis edits of absorbed profiles
-   have visible three-plane size/center and volume proof. Explicit positioning,
-   saved-model discovery and installed public contracts remain pending.
+   have visible three-plane size/center and volume proof. The explicit center-fix
+   adapter also has same-host three-plane size/edit/volume proof, exact native
+   relation readback and origin preflight refusal. Saved-model discovery and
+   installed public contracts remain pending.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
 4. Installed public Windows gates on front/top/right, visible and hidden, with

@@ -58,10 +58,12 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    diameter slice and add supported feature edits, so the native model is not
    merely editable but intentionally parameterized.
    The next [rectangle size/positioning slice](design/rectangle-driving-dimensions.md)
-   has internal creation/read/edit adapters with visible Windows size/center,
-   background-read, volume and partial-failure evidence. Positioning, public
-   linear handle contracts and installed public gates remain pending; it is not
-   a public CLI capability.
+   has internal creation/read/edit and separate explicit center-fix adapters
+   with visible Windows size/center, background-read, volume, exact relation
+   and partial-failure evidence. Center fixing initially rejects extra/origin
+   relations instead of adding redundant constraints. Public linear/positioning
+   contracts, saved discovery and installed public gates remain pending; none
+   of these internal adapters is a public CLI capability.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

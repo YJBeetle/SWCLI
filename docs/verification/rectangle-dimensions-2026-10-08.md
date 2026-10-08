@@ -1,8 +1,10 @@
 # Rectangle size / positioning feasibility — 2026-10-08
 
-This is an internal direct-STA probe of installed SWCLI a5 primitives plus
-native COM dimension calls. It is not an implemented CLI operation, a release
-gate, general constraint support or Wine/macOS proof.
+The first sections record internal direct-STA feasibility probes of installed
+SWCLI a5 primitives plus native COM dimension calls. Later sections record
+source-only a6 internal adapters. None is a public CLI/release gate, general
+constraint support or Wine/macOS proof; pending lists in earlier sections
+describe that stage's evidence boundary, not the latest adapter state.
 
 ## Matched independent cases
 
@@ -219,3 +221,104 @@ were empty. This is source-only internal adapter proof, not a typed/public CLI
 or installed-wheel gate. Explicit native relation readback, saved discovery,
 public Schema/guards, hidden Windows and Wine remain pending. The DockerSW
 production gitlink is not advanced to unverified a6 development code.
+
+## Exact center relation identity and readback
+
+The first native center-relation probe (owned visible PID 828, revision `33.5.0`)
+created a FIXED relation but failed its point-object `IsSame == 1` assertion.
+Native `IsSame` returned **0** for the point obtained from relation entities
+versus the point from `GetSketchPoints2`. Both had point ID `(0,1)`, identical
+coordinates and the same exact owning sketch. This was a failed probe, not a
+successful gate or an unsupported-2 COM identity fallback. Do not override
+native equality results in the dimension or feature comparers.
+
+The documented point/segment GetID semantics instead allow typed ID-pair
+comparison **within the exact owning sketch**. Points and lines may share a
+pair; identical pairs in different sketches also do not establish identity.
+These IDs are not persistent-reference IDs. An independent native probe on
+PID 8368 observed front/top/right centers at (3,4) mm and a front-plane origin
+case, checking exact owner/type/ID and both internal/definition entities.
+
+For each off-origin case, the center point had exactly two unsuppressed
+COINCIDENT (9) relations, each binding Point (2) to one distinct construction
+Line (3) joining opposite native profile corners. FIXED (17), added through
+`SketchRelationManager.AddRelation` with a dispatch array containing only the
+center point, read back that same point and survived sketch exit. The origin
+case also had an automatic point/origin coincidence, so it cannot be treated as
+an unpositioned off-origin profile or safely given another constraint blindly.
+This native relation experiment is not a solver-validity proof for the origin
+case after its experimental extra fix.
+
+The internal read adapter (`2849d68`) then passed on a new visible host,
+PID 4164: three planes before/after an explicit fixture fix returned exact
+attachment/fix evidence with unchanged update stamp, configuration and edit
+state. The origin case returned `UnsupportedCenterConstraint` with unchanged
+state. The primitive validates native corner/diagonal connectivity, relation
+definitions, counts, types and suppression; coordinates alone are insufficient.
+Portable tests cover ID/owner/type collisions, stray centers, inconsistent
+definitions, disconnected corners, ordering and changing/incomplete reads.
+
+Evidence under `C:\Workspace\SWCLI-tests\a6-center-relations-20261008`:
+
+- `native-relations.json` and `identity-first-probe.py`: failed equality assertion.
+- `owner-local-identity.json` and `identity-probe.py`: independent native ID observation.
+- `adapter-read.json` and `read-adapter.py`: internal read adapter and origin refusal.
+
+Primary references: [point GetID scope](https://help.solidworks.com/2026/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketchPoint~GetID.html),
+[segment GetID scope](https://help.solidworks.com/2023/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isketchsegment~getid.html?format=P&value=),
+[relation definitions](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchRelation~IGetDefinitionEntities2.html),
+[relation suppression](https://help.solidworks.com/2019/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchRelation~Suppressed.html).
+
+## Explicit center-fix adapter proof
+
+The separate internal fix adapter (`973bcf0`) completed a fresh source-only
+probe on one owned **visible** host, PID 2996, revision `33.5.0`. It invoked
+the product's internal adapter instead of the earlier `sgFIXED` fixture.
+On each front/top/right plane, in the same STA/host without restarting or
+retrying an operation:
+
+1. Create the native 40×30 mm center rectangle at (3,4) mm.
+2. Explicitly fix the verified center point through `AddRelation`; independently
+   re-observe its exact relation and unchanged geometry after sketch exit.
+3. Invoke fix again: read-only success with `created: false` and unchanged stamp.
+4. Create exact native driving width/height 50×35 mm, then a 10 mm boss:
+   one native solid body, volume 17500 mm³.
+5. Edit the absorbed width to 60 mm, then height to 45 mm: volumes 21000 and
+   27000 mm³ respectively; unchanged center (3,4) mm within 1e-6 mm.
+6. After each edit, read the retained exact fixed-center relation from the
+   absorbed sketch without changing its stamp, configuration or edit state.
+
+The independent origin case refused the extra position relation **before
+mutation**, with no returned relation, unchanged stamp and no active edit.
+All cases closed their own unsaved parts; the owned host exited cleanly and
+the VM stayed running. Native source hashes are retained in the result.
+
+The initial fix/edit harness stopped on its own incorrect `body_count` JSON
+field after successful front-plane fix/no-op/dimension/extrusion steps. The
+failure is retained separately; a corrected harness reads the measurement
+`metrics.solid_body_count` and `metrics.volume_mm3` and independently completed
+the full new-model run above. It did not retry a failed CAD mutation or hide a
+runtime failure by restarting partway through the successful sequence.
+
+Evidence in the same directory:
+
+- `adapter-fix-edit.json` and `measurement-field-first-probe.py`: harness field error.
+- `adapter-fix-edit-verified.json` and `fix-adapter.py`: full adapter proof.
+
+25 additional portable tests cover exact single-point dispatch arrays, existing
+fix no-ops, external/fully constrained/unknown/autosolve-off refusals, changed
+configurations, lost/suppressed/wrong returned relations, failed native
+creation and possible partial mutation. Both normal exit and failure cleanup
+verify the exact owned edit; a newly active foreign sketch is never closed.
+Cleanup failure cannot turn into success or erase the primary native failure.
+
+References: [AddRelation](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchRelationManager~AddRelation.html),
+[native solver states](https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swConstrainedStatus_e.html?id=2.10.1.179).
+
+Current proof boundary: internal visible-Windows size creation/inspection/edit
+and explicit center fixing are verified. Public catalog/request/result/CLI
+contracts, saved linear discovery, hidden Windows and Wine remain pending.
+The 763-test portable suite passes with eight Windows-only cases skipped on
+macOS; that skip is not native proof. Existing hosted public gates at `08ffaee`
+passed before these center adapters and do not exercise them. DockerSW stays
+at its published a5 production gitlink until a6 delivery is independently gated.
