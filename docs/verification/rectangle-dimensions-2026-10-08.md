@@ -133,3 +133,43 @@ creation, independently checked size/center, configuration changes, owned edit
 cleanup and preference/selection failures. Installed public protocol, linear
 handle ownership metadata, relation readback, save/reopen discovery, hidden
 Windows and Wine remain unproved; no release or shared gate is claimed here.
+
+## Read-only linear inspection proof
+
+The next source-checkout probe (base commit `7464b99` plus the internal read
+adapter) repeated the nine creation cases on one owned **visible** Windows
+host, PID 6024, revision `33.5.0`. It completed with no cleanup errors and the
+same expected size/placement outcomes. Exact source-file SHA-256 values are in
+the evidence, so the source-only adapter result is distinguishable from an
+installed wheel or later implementation.
+
+For each of the six successful parts, width and height were inspected both
+before absorption and after creating the 10 mm boss. The latter two reads ran
+with a second fresh part in the foreground. All **24 exact dimension reads**
+matched the rectangle geometry and reported unchanged update stamp,
+configuration and edit state. All six background cases retained the second
+part in the foreground, without activation/selection/edit/rebuild. Semantic
+registry entries explicitly read back `width/rectangle` and `height/rectangle`;
+repeat observations reused their respective IDs.
+
+Each background case also deliberately supplied the width handle with the
+height role. It returned `DimensionVerificationFailed`, preserved the update
+stamp and foreground document, and never reinterpreted the parameter as a
+height. This is an internal adapter misuse refusal, not an added public command.
+The existing public inspect/set surface still rejects internal linear bindings
+before activation while its result contracts remain diameter-only.
+
+Portable tests additionally cover stale ownership, absorbed traversal, cyclic
+or incomplete display chains, contradictory duplicate presentations, strict
+native metadata, externally controlled/driven/read-only observation, geometry
+mismatch and changed configuration/stamp/edit state. Reading does not claim
+writability, full definition or preserved positioning under a future mutation.
+
+Evidence and exact probe:
+
+- `C:\Workspace\SWCLI-tests\a6-linear-inspection-20261008\verified-inspection.json`
+- `C:\Workspace\SWCLI-tests\a6-linear-inspection-20261008\probe.py`
+
+The host exited after closing its own parts; the VM remains running. Native
+linear set/positioning, save/reopen discovery, installed public contracts,
+hidden Windows and Wine are still separate pending gates.

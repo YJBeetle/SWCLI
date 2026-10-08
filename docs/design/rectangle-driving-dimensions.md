@@ -1,7 +1,7 @@
 # Next slice: rectangle driving dimensions
 
-Status: internal creation adapter verified on **visible Windows**, not an a5
-or public CLI capability.
+Status: internal creation and read adapters verified on **visible Windows**,
+not an a5 or public CLI capability.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
 Schemas are committed by this design note.
@@ -19,6 +19,10 @@ refuse contradictory roles for the same native object. Public inspect/set
 contracts still support diameters only and reject internal linear bindings
 before activation; the probe's explicit fixed-center fixture is not an
 implemented positioning operation.
+The internal read adapter verifies the bound native type, complete display chain
+and independent rectangle geometry without activation, selection, rebuild or
+sketch editing. It observes driven/read-only/external controls without overriding
+them, reports geometry mismatch, and rejects changing/incomplete reads.
 
 ## Narrow acceptance target
 
@@ -67,7 +71,8 @@ must report/refuse unintended placement changes rather than hiding them.
    large/nonfinite geometry, near-corner ambiguity and shuffled edge order.
 2. Internal adapters: independent size/center verification, unchanged other
    size, failed/partial creation and owned cleanup tests. Creation has portable
-   tests and visible Windows proof; explicit positioning and existing-dimension
+   tests and visible Windows proof. Read-only width/height inspection also has
+   absorbed/background-document proof; explicit positioning and existing-dimension
    edits still need their own native readback and verification.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
