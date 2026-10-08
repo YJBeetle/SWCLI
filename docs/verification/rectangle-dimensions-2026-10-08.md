@@ -173,3 +173,49 @@ Evidence and exact probe:
 The host exited after closing its own parts; the VM remains running. Native
 linear set/positioning, save/reopen discovery, installed public contracts,
 hidden Windows and Wine are still separate pending gates.
+
+## Single-axis linear edit proof
+
+A source-checkout probe (base `f64c0d1` plus the internal edit adapter) completed
+the same nine creation/inspection cases on one owned **visible** Windows host,
+PID 5300, revision `33.5.0`, then tested the registered absorbed dimensions.
+Exact adapter source hashes are retained in the evidence.
+
+On each of front/top/right, the explicit fixed-center fixture's 50×35 mm profile
+and 10 mm boss were edited sequentially without a host restart:
+
+| Edit | Final width / height | Verified unchanged center | Measured volume |
+| --- | --- | --- | --- |
+| Exact width handle → 60 mm | 60×35 mm | (3,4) mm | 21000 mm³ |
+| Exact height handle → 45 mm | 60×45 mm | (3,4) mm | 27000 mm³ |
+
+All six positive edits passed native value/type/owner/control/configuration
+reads, independently observed rectangle size/center, complete rebuild
+diagnostics and fresh before/after body measurements. The fixed relation still
+belongs to the explicit fixture, not the size adapter. No dimension was looked
+up by name and no position relation was created during an edit.
+
+Each of the three unanchored 40×30 mm parts also received a width edit to 50 mm
+after absorption. The native setter returned 0 and the requested size matched,
+but the center drifted. Every case returned `DimensionVerificationFailed` with
+`center_preserved: false` and `modification_may_have_happened: true`, rather than
+claiming a correct model or undo. Failed mutations were never retried.
+
+Portable edit tests additionally cover height/width scope, changed other axis,
+pre-existing/foreign edits, exact ownership, corrupted profiles, controlled
+dimensions, unknown setter/rebuild metadata, false native success, changed
+configuration/stamp, failed measurements, disappearing bodies and truncated
+or unhealthy diagnostics. State changes before mutation block the setter;
+failure after any attempted setter reports possible mutation, including a
+nonzero result or a COM exception.
+
+Evidence and exact probe:
+
+- `C:\Workspace\SWCLI-tests\a6-linear-set-20261008\verified-linear-edits.json`
+- `C:\Workspace\SWCLI-tests\a6-linear-set-20261008\probe.py`
+
+All parts were closed without saving, the owned host exited, and cleanup errors
+were empty. This is source-only internal adapter proof, not a typed/public CLI
+or installed-wheel gate. Explicit native relation readback, saved discovery,
+public Schema/guards, hidden Windows and Wine remain pending. The DockerSW
+production gitlink is not advanced to unverified a6 development code.
