@@ -102,3 +102,61 @@ the independent native `CloseDoc` exception, and does not supersede the Linux
 rejected-cut investigation where this flag alone did not fix the failure.
 The unchanged shared gates must still validate the implementation on Windows,
 Linux Wine and macOS Wine.
+
+## Request-scoped implementation validation
+
+The implementation under test is SWCLI
+`f75a56f05ae8246749514dbaf36d49a79b2cf495` (`0.1.0a6.dev0`), not the published
+a5 package. Every row below completed modeling followed by driving dimensions
+on the same owned native PID, without a restart between gates. All result
+files report `success=true`, `state=completed` and zero cleanup errors.
+
+| Host and evidence | Mode | Native PID | Modeling events | Driving events |
+| --- | --- | --- | --- | --- |
+| [Windows CI 37740915090](https://github.com/YJBeetle/SWCLI/actions/runs/37740915090) | Visible | 2424 | 97 | 242 |
+| Same Windows CI | Hidden | 1744 | 97 | 242 |
+| Local MacSW existing main bottle | Visible | 1332 | 85 | 242 |
+| Same local bottle, separate complete sequence | Hidden | 1972 | 85 | 242 |
+| workspaceroot Linux Wine, source-overlay integration check | Hidden | 620 | 97 | 242 |
+
+Local MacSW used the rebuilt App and an explicitly synchronized Windows Python
+backend, with a recoverable copy of the previous package. Its generated files
+are confined to `C:\Workspace\MacSW-trace-20261008.6A0yEq`. Both sequences
+ended with an empty document list and normal daemon shutdown. The optional
+installed sample case remains absent, explaining the 85-event count.
+
+Linux used the existing `localhost/swcli-a5-probe:20261008` runtime with the
+current `src` and shared CI scripts mounted into a dedicated Podman container.
+The original image and public tags were not changed. The test daemon stopped
+normally with no open documents; the dedicated container was subsequently
+removed, while generated results remain on the host. This is integration
+evidence, not an image build, promotion or release.
+
+The Windows CI artifact was downloaded and its four result files inspected.
+Visible and hidden box BMPs were also visually checked: both show the modeled
+solid. The workflow's packaging, both Python unit-test matrices, real modeling
+and export job all passed. Local portable tests ran 619 tests with eight
+Windows-only skips; MacSW's established `make test` and `make app` passed.
+
+[MacSW CI 37741088903](https://github.com/YJBeetle/MacSW/actions/runs/37741088903)
+uses MacSW `71f23a7909e71e870b06bb083b2af634d293b681` and the same SWCLI pin.
+Build, fresh installation and official-base snapshot completed; at this record
+the shared runtime gate is still in progress. The local and Linux passes
+must not be represented as this hosted macOS pass.
+
+## Separate unresolved local rendering observation
+
+After the hidden local sequence, reopening its saved `model.SLDPRT` and strict
+STEP export succeeded. An 800 × 600 isometric BMP also satisfied the existing
+file/dimension checks, but visual inspection found a uniformly white image.
+Those checks establish a bitmap artifact, not useful scene content.
+
+A separate owned visible host, PID 396, rendered the same read-only model in
+false → true → false `CommandInProgress` order. All three BMPs contained one
+RGB color across all 480,000 pixels. A subsequent comparison explicitly
+calling `IModelView.GraphicsRedraw` before capture was also white in all three
+states. Thus enabling the flag is not necessary for this observation; this
+does not identify its origin or establish that rendering was correct before
+the implementation. The foreground/occlusion hypothesis has not yet been
+verified. Keep this issue separate from hosted accumulated-call latency and
+from the earlier native close exception.
