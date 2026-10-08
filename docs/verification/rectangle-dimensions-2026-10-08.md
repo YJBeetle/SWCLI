@@ -90,3 +90,46 @@ and candidate disconnect, as well as strict metadata readers.
 Primary references: [SOLIDWORKS object equality enum](https://help.solidworks.com/2024/english/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swObjectEquality.html),
 [COM identity rules](https://learn.microsoft.com/en-us/windows/win32/com/rules-for-implementing-queryinterface),
 [pywin32 canonical comparison implementation](https://github.com/mhammond/pywin32/blob/main/com/win32com/src/PyIUnknown.cpp).
+
+## Internal creation adapter and live registry proof
+
+After the identity repair, a source-checkout probe on one independently owned
+**visible** Windows host (PID 2312, revision `33.5.0`) completed nine independent
+cases: front/top/right, each with the following three explicit positioning
+conditions. Native calls ran on the same COM STA inside the existing API batch
+wrapper. Each case closed its own part without saving it; the host exited after
+all cases. The VM stayed running.
+
+| Case on each plane | Expected result | Native geometry / downstream evidence |
+| --- | --- | --- |
+| Unanchored 40×30 mm rectangle, dimensions set to its current size | Success | Center (3,4) mm preserved; 10 mm boss volume 12000 mm³ |
+| Explicit fixed-center fixture, dimensions set to 50×35 mm | Success | Center (3,4) mm preserved; 10 mm boss volume 17500 mm³ |
+| Unanchored rectangle, width requested as 50 mm | Refusal after the width mutation | Width matched, center drifted to (8,4) mm; `DimensionVerificationFailed`, exact width handle retained, no height dimension created |
+
+The fixed-center relation was an explicit test-fixture action performed before
+calling the adapter, never a fallback or silent constraint added by it. The
+refusals are expected evidence of placement checking, not successful mutations
+or rollback. The adapter reports `modification_may_have_happened: true` and
+retains the observed failed step.
+
+All six successful cases also registered the exact width/height handles under
+distinct internal dimension IDs. Fresh `GetDimension2(0)` observations from the
+native display chain reused the respective IDs, demonstrating canonical COM
+identity without names or Python proxy identity. This is internal registry
+identity proof only: public linear inspect/set metadata is not yet implemented.
+
+All nine cases restored the dimension-value prompt, left sketch editing closed
+and reported no cleanup errors. No failed mutation was retried; neither daemon
+nor SOLIDWORKS was restarted between cases.
+
+Evidence and the exact probe are retained at:
+
+- `C:\Workspace\SWCLI-tests\a6-rectangle-adapter-20261008\verified-with-registry.json`
+- `C:\Workspace\SWCLI-tests\a6-rectangle-adapter-20261008\probe.py`
+
+The isolated Windows Python environment used the shared source checkout, not a
+new installed wheel. Portable tests cover strict metadata, topology, partial
+creation, independently checked size/center, configuration changes, owned edit
+cleanup and preference/selection failures. Installed public protocol, linear
+handle ownership metadata, relation readback, save/reopen discovery, hidden
+Windows and Wine remain unproved; no release or shared gate is claimed here.

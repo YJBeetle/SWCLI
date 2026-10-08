@@ -1,6 +1,7 @@
 # Next slice: rectangle driving dimensions
 
-Status: native **visible Windows feasibility only**, not an a5 capability.
+Status: internal creation adapter verified on **visible Windows**, not an a5
+or public CLI capability.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
 distinguishes size control from positioning. No public command names or result
 Schemas are committed by this design note.
@@ -9,7 +10,12 @@ The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now
 accepts an explicit internal diameter/width/height role; it does not infer that
 role from a name or reinterpret a diameter response as a rectangle dimension.
-Public inspect/set/registry contracts still support diameters only.
+The internal creation adapter now creates exact width/height native handles,
+verifies each solver step's dimensions and unchanged center, and retains partial
+failure evidence. Three-plane Windows probes cover same-size creation, an
+explicitly positioned fixture's resize and refusal of unanchored center drift.
+Public inspect/set/registry contracts still support diameters only; the probe's
+explicit fixed-center fixture is not an implemented positioning operation.
 
 ## Narrow acceptance target
 
@@ -43,6 +49,10 @@ must report/refuse unintended placement changes rather than hiding them.
 - Two dimension creations are not an atomic transaction. A failed second step
   may leave the first dimension; return its exact handle/evidence. Do not retry,
   claim rollback or discard the original native failure during cleanup.
+  An unsuccessful or cleanup-failed adapter result must not publish its partial
+  handles as verified width/height bindings. Initial creation accepts an empty
+  observable display chain, not proof that arbitrary saved or hidden dimensions
+  are absent.
 - Keep document/session selection, foreground restoration, lease/update-stamp
   guards and terminal request replay on the same daemon-only surface.
 
@@ -51,7 +61,9 @@ must report/refuse unintended placement changes rather than hiding them.
 1. Pure profile observation: malformed/native metadata, topology, degeneracy,
    large/nonfinite geometry, near-corner ambiguity and shuffled edge order.
 2. Internal adapters: independent size/center verification, unchanged other
-   size, failed/partial creation and owned cleanup tests.
+   size, failed/partial creation and owned cleanup tests. Creation has portable
+   tests and visible Windows proof; explicit positioning and existing-dimension
+   edits still need their own native readback and verification.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
 4. Installed public Windows gates on front/top/right, visible and hidden, with
