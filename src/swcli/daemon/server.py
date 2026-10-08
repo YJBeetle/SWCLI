@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Optional
 from .. import PROTOCOL_VERSION, __version__
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
 from ..hosts.native_trace import trace_native_request
+from ..hosts.native_sequence import NativeCommandRestoreFailed, native_api_sequence
 from ..hosts.com_errors import (
     TRANSIENT_COM_HRESULTS,
     DISCONNECTED_COM_HRESULTS,
@@ -326,6 +327,7 @@ def _worker_main(
                 break
             started_at = time.monotonic()
             request_id = str(request["request_id"])
+            command_state_failed = False
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -365,7 +367,8 @@ def _worker_main(
                         _success_response(request_id, {"stopping": True})
                     )
                     break
-                with trace_native_request(request_id, str(request["operation"])):
+                with trace_native_request(request_id, str(request["operation"])), \
+                        native_api_sequence(app, enabled=owned_by_daemon):
                     result = execute_operation(
                         app,
                         str(request["operation"]),
@@ -394,6 +397,7 @@ def _worker_main(
                         request_id, result, duration_ms=duration_ms
                     )
             except Exception as exc:
+                command_state_failed = isinstance(exc, NativeCommandRestoreFailed)
                 response = _error_response(
                     request_id,
                     type(exc).__name__,
@@ -401,6 +405,11 @@ def _worker_main(
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
             response_queue.put(response)
+            if command_state_failed:
+                lifecycle_queue.put(
+                    {"event": "host-disconnected", "error": response["error"]}
+                )
+                break
     except Exception as exc:
         lifecycle_queue.put(
             {"ok": False, "error": {"type": type(exc).__name__, "message": str(exc)}}
@@ -531,8 +540,8 @@ class WorkerManager:
                     ),
                 }
 
-    def _terminate_worker(self) -> None:
-        forced = False
+    def _terminate_worker(self, *, force_owned_host: bool = False) -> None:
+        forced = force_owned_host
         if self._process is not None and self._process.is_alive():
             self._process.terminate()
             self._process.join(timeout=5.0)
@@ -607,15 +616,19 @@ class WorkerManager:
                 )
                 self._remember_response(request, response)
                 return response
-            if (response.get("error") or {}).get("code") == "HostDisconnected":
+            recovery_code = (response.get("error") or {}).get("code")
+            if recovery_code in {"HostDisconnected", "NativeCommandRestoreFailed"}:
                 error = response["error"]
                 self._recovery_required = {
                     "code": str(error["code"]),
                     "message": str(error["message"]),
                 }
                 self._process.join(timeout=5.0)
-                if self._process.is_alive():
-                    self._terminate_worker()
+                if self._process.is_alive() or recovery_code == "NativeCommandRestoreFailed":
+                    if recovery_code == "NativeCommandRestoreFailed":
+                        self._terminate_worker(force_owned_host=True)
+                    else:
+                        self._terminate_worker()
                 else:
                     self._process = None
                     self.host = {}

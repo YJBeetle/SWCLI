@@ -73,6 +73,20 @@ daemon or attach to a host implicitly. Attach mode requires an active COM host
 and never falls back to `DispatchEx`; absence is reported as
 `ExistingHostNotFound`.
 
+On daemon-owned hosts, each dispatched typed request is an out-of-process API
+sequence: the worker reads `CommandInProgress`, temporarily sets it to `True`
+when it was `False`, and restores the prior value before publishing a result.
+SOLIDWORKS' [official API contract](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~CommandInProgress.html?format=P&value=)
+reduces intermediate updates for such sequences. This does not disable rebuild,
+diagnostics, geometry checks, or timeouts, and the flag is not held across idle
+requests. An already-true flag is left unchanged. Shared `--attach-existing`
+hosts do not opt in, so their interactive command state is not modified.
+Original operation exceptions survive successful restoration. A failed
+restoration returns `NativeCommandRestoreFailed`, terminates the owned host
+even if the worker has already exited, and requires explicit daemon restart;
+no later request is dispatched against unknown application state. The failure
+retains the original operation error in its exception context where applicable.
+
 While idle, the worker waits on its request queue with a one-second timeout and
 probes `RevisionNumber` before waiting again. This probe stays on the worker's
 owning STA thread. Known disconnect HRESULTs take effect immediately, temporary
