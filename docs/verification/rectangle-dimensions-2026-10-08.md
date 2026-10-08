@@ -63,3 +63,30 @@ API reference entry points:
 [AddHorizontalDimension2](https://help.solidworks.com/2016/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~AddHorizontalDimension2.html),
 [AddVerticalDimension2](https://help.solidworks.com/2016/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~AddVerticalDimension2.html),
 [SketchAddConstraints](https://help.solidworks.com/2022/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.imodeldoc2~sketchaddconstraints.html).
+
+## Native dimension identity boundary
+
+The first internal rectangle adapter attempt stopped after creating two native
+dimensions. On an independent visible Windows host (PID 6452, revision
+`33.5.0`), `IsSame(width, height)` returned **2**, not 0. That is the documented
+`swObjectUnsupported` outcome, not proof of different dimensions. Comparing
+each dimension to itself returned 1. The width/height display chain reported
+types 11/12; repeated `GetDimension2(0)` observations matched their respective
+canonical `IUnknown` interfaces and differed from the other axis's interface.
+
+The dimension-specific identity reader therefore preserves known native 0/1
+results and uses canonical COM identity only for the explicit native result 2.
+Unknown enums, busy/failed native comparisons and unavailable QI identity fail
+closed. A QI/equality failure cannot establish which interface failed, so it
+must not expire an otherwise registered dimension. Feature/display comparisons
+are unchanged; this is not a generic truthiness or name-based identity fallback.
+References are live STA-local COM objects, not persisted addresses.
+
+Evidence: `C:\Workspace\SWCLI-tests\a6-rectangle-adapter-20261008\identity-before-fix.json`.
+This intentionally failed probe is identity evidence, not a successful public
+modeling gate. Portable tests cover registry reuse, deferred cleanup, failed QI
+and candidate disconnect, as well as strict metadata readers.
+
+Primary references: [SOLIDWORKS object equality enum](https://help.solidworks.com/2024/english/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swObjectEquality.html),
+[COM identity rules](https://learn.microsoft.com/en-us/windows/win32/com/rules-for-implementing-queryinterface),
+[pywin32 canonical comparison implementation](https://github.com/mhammond/pywin32/blob/main/com/win32com/src/PyIUnknown.cpp).

@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Iterable, Iterator, Optional
 
 from ..hosts.windows import _com_value, _describe_document
 from ..hosts.native_trace import native_call
+from ..hosts.windows_dimension_identity import same_dimension
 from ..hosts.com_errors import DISCONNECTED_COM_HRESULTS, com_hresult
 from ..hosts.windows_sketch_inspection import (
     SketchFeatureIdConflict,
@@ -382,21 +383,13 @@ class DocumentRegistry:
         matched_id = None
         for dimension_id, registered in owned.items():
             try:
-                status = self.app.IsSame(registered.dimension, dimension)
-                if (
-                    isinstance(status, bool)
-                    or not isinstance(status, int)
-                    or status not in (0, 1)
-                ):
-                    raise RuntimeError(
-                        "SOLIDWORKS could not compare native dimension identity"
-                    )
+                same = same_dimension(self.app, registered.dimension, dimension)
             except Exception as exc:
                 if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
                     raise
                 expired_ids.append(dimension_id)
             else:
-                if status == 1:
+                if same:
                     matched_id = dimension_id
                     break
 

@@ -29,6 +29,7 @@ from .windows_dimensions import (
     _failure,
     _integer,
     _same,
+    _same_dimension,
 )
 from .windows_sketch_inspection import _feature_id, _list_features
 
@@ -128,7 +129,7 @@ def discover_circle_diameter_windows_with_handle(
                     "DimensionVerificationFailed",
                     "an observable diameter does not belong to the exact target profile",
                 )
-            if any(_same(app, previous, candidate) for previous, _ in candidates):
+            if any(_same_dimension(app, previous, candidate) for previous, _ in candidates):
                 continue
             descriptor = _descriptor(document, candidate)
             configuration_matched = (

@@ -117,6 +117,58 @@ class DimensionRegistryTests(unittest.TestCase):
         self.app.IsSame.assert_called_once_with(self.dimension, self.dimension)
         self.assertEqual(len(self.entry.dimensions_by_sketch[self.sketch_id]), 2)
 
+    def test_unsupported_native_comparison_uses_canonical_identity_for_reuse(self):
+        self.app.IsSame.side_effect = None
+        self.app.IsSame.return_value = 2
+        with mock.patch(
+            "swcli.hosts.windows_dimension_identity._query_iunknown",
+            side_effect=lambda dimension: dimension.identity,
+        ):
+            second = Dimension()
+            second_id = self.registry.register_dimension(
+                self.entry, self.sketch_id, second
+            )
+            self.assertNotEqual(second_id, self.dimension_id)
+            wrapper = Dimension(identity=second.identity)
+            self.assertEqual(
+                self.registry.register_dimension(self.entry, self.sketch_id, wrapper),
+                second_id,
+            )
+            self.assertIs(self.entry.dimensions[second_id].dimension, wrapper)
+            self.assertEqual(len(self.entry.dimensions), 2)
+
+    def test_unsupported_query_failure_preserves_all_registry_handles(self):
+        before = self.state()
+        self.app.IsSame.side_effect = None
+        self.app.IsSame.return_value = 2
+        for failure in (ComError(0x80010001), RuntimeError("unreadable identity")):
+            with self.subTest(failure=failure), mock.patch(
+                "swcli.hosts.windows_dimension_identity._query_iunknown",
+                side_effect=failure,
+            ):
+                with self.assertRaises(RuntimeError) as caught:
+                    self.registry.register_dimension(
+                        self.entry, self.sketch_id, Dimension()
+                    )
+                self.assertIs(caught.exception.__cause__, failure)
+                self.assertEqual(self.state(), before)
+
+    def test_candidate_query_disconnect_does_not_expire_registered_proxy(self):
+        before = self.state()
+        self.app.IsSame.side_effect = None
+        self.app.IsSame.return_value = 2
+        failure = ComError(0x80010108)
+        with mock.patch(
+            "swcli.hosts.windows_dimension_identity._query_iunknown",
+            side_effect=[self.dimension.identity, failure],
+        ):
+            with self.assertRaises(RuntimeError) as caught:
+                self.registry.register_dimension(
+                    self.entry, self.sketch_id, Dimension()
+                )
+            self.assertIs(caught.exception.__cause__, failure)
+        self.assertEqual(self.state(), before)
+
     def test_different_native_dimensions_in_one_owner_do_not_reuse_by_name(self):
         second = Dimension()
         second_id = self.registry.register_dimension(self.entry, self.sketch_id, second)

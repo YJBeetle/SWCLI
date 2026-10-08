@@ -14,6 +14,7 @@ from .windows import _com_value, _error
 from .windows_documents import _diagnose_features
 from .windows_measurements import measure_part_windows
 from .windows_sketches import _unabsorbed_profile
+from .windows_dimension_identity import DimensionIdentityUnavailable, same_dimension
 
 _INPUT_VALUE_ON_CREATE = 10
 _DRIVING = 2
@@ -58,6 +59,13 @@ def _same(app: Any, first: Any, second: Any) -> bool:
             "DimensionObservationUnavailable", "native object identity is unreadable"
         )
     return status == 1
+
+
+def _same_dimension(app: Any, first: Any, second: Any) -> bool:
+    try:
+        return same_dimension(app, first, second)
+    except DimensionIdentityUnavailable as exc:
+        raise _DimensionError("DimensionObservationUnavailable", str(exc)) from exc
 
 
 def _boolean(obj: Any, member: str, *, integer_binding: bool = False) -> bool:
@@ -133,7 +141,7 @@ def _owned_dimension(
                 "the exact dimension is no longer live in its owning sketch",
             )
         native = display.GetDimension2(0)
-        if native is not None and _same(app, native, dimension):
+        if native is not None and _same_dimension(app, native, dimension):
             return sketch
         display = sketch_feature.GetNextDisplayDimension(display)
     raise _DimensionError(
