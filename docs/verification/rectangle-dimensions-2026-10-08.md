@@ -381,3 +381,31 @@ eight Windows-only skips. These tests establish the adapter's mode handling,
 not the native root cause or installed delivery; the unchanged hosted gate must
 still pass. Local Parallels startup now reports 1591 MB of missing disk space;
 no unrelated user files were removed.
+
+### Native inference comparison and follow-up — 2026-10-09
+
+[SWCLI CI 37884860398](https://github.com/YJBeetle/SWCLI/actions/runs/37884860398)
+at `e06313680f5e410b29ea0ffb457b738252f20eb5` still returned x=[-23,23] mm.
+The preceding AddToDB-only candidate was therefore insufficient, despite its
+portable tests. A correctly installed local Mac/Wine package reproduced exactly
+the same failure after shared modeling on the same visible SW 2025 instance.
+Do not count the earlier local run importing an older installed package as
+candidate verification.
+
+An independent native comparison used fresh parts on front/top/right planes,
+the unchanged requested center (3,4) and 40x30 mm size, and AddToDB enabled.
+With application `swSketchInference` enabled, all three returned x=[-23,23].
+Disabling only that toggle made all three return x=[-17,23], y=[-11,19] mm,
+with six native segments and four profile edges. The preference was restored
+and the exclusively created instance exited normally. Enum value 249 was read
+from the installed SOLIDWORKS 2025 `swconst.tlb`, not guessed from UI labels.
+
+The follow-up adapter scopes this toggle around the single native rectangle
+creation, reads it back, and restores it before closing the sketch. It does not
+retry creation or adjust final coordinates. Four added portable tests cover
+inference remaining active despite AddToDB, original on/off restoration, unknown
+or rejected state, native failure, and failed restore without false success.
+The suite passes 788 tests with eight Windows-only skips. The complete unchanged
+modeling/dimension gate and hosted Windows verification remain required;
+this local hardware-rendered Wine comparison does not establish the cause of
+MacSW hosted software-renderer stalls.

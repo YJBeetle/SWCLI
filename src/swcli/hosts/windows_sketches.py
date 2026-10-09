@@ -12,6 +12,7 @@ from .com_errors import com_hresult
 STANDARD_PLANES = {"front": 2, "top": 1, "right": 0}
 _FEATURE_LIMIT = 10000
 _GEOMETRY_TOLERANCE_MM = 1e-6
+_SKETCH_INFERENCE = 249  # swUserPreferenceToggle_e.swSketchInference (SW 2025)
 
 
 def _observe(value: Any, member: str, context: Optional[Dict[str, str]]) -> Any:
@@ -307,7 +308,8 @@ def _create_without_inference(
 
     # CreateCircleByRadius otherwise participates in UI inferencing, automatic
     # relations and grid/entity snapping. AddToDB is the documented escape from
-    # these side effects; do not alter global inference or display preferences.
+    # these side effects. Composite rectangle creation additionally needs the
+    # scoped application inference guard below; AddToDB alone is insufficient.
     def read_mode(*, observing=True):
         value = _observe(manager, "AddToDB", context if observing else None)
         if not isinstance(value, bool):
@@ -334,6 +336,46 @@ def _create_without_inference(
         except Exception as exc:
             state_warnings.append(
                 {"code": "sketch-creation-mode-restore-failed", "message": str(exc)}
+            )
+
+
+def _create_rectangle_without_inference(
+    app: Any, manager: Any, create: Callable[[], Any], state_warnings: list,
+) -> Any:
+    """The native rectangle tool still snaps its center with AddToDB enabled."""
+
+    def read_inference():
+        value = native_call(
+            "rectangle-inference", "SldWorks.GetUserPreferenceToggle(swSketchInference)",
+            lambda: app.GetUserPreferenceToggle(_SKETCH_INFERENCE),
+        )
+        if not isinstance(value, bool):
+            raise RuntimeError("SOLIDWORKS returned an invalid sketch inference mode")
+        return value
+
+    def set_inference(value):
+        native_call(
+            "rectangle-inference", "SldWorks.SetUserPreferenceToggle(swSketchInference)",
+            lambda: app.SetUserPreferenceToggle(_SKETCH_INFERENCE, value),
+        )
+
+    original = read_inference()
+    try:
+        set_inference(False)
+        if read_inference():
+            raise RuntimeError("SOLIDWORKS could not disable rectangle inference")
+        return _create_without_inference(
+            manager, create, state_warnings,
+            native_method="CreateCenterRectangle", shape="rectangle",
+        )
+    finally:
+        try:
+            set_inference(original)
+            if read_inference() != original:
+                raise RuntimeError("SOLIDWORKS did not restore sketch inference mode")
+        except Exception as exc:
+            state_warnings.append(
+                {"code": "sketch-inference-restore-failed", "message": str(exc)}
             )
 
 
@@ -392,8 +434,8 @@ def create_rectangle_sketch_windows_with_handle(
             "center_x": center_x_mm,
             "center_y": center_y_mm,
         },
-        create_segments=lambda manager: _create_without_inference(
-            manager,
+        create_segments=lambda manager: _create_rectangle_without_inference(
+            app, manager,
             lambda: native_call(
                 "create", "SketchManager.CreateCenterRectangle",
                 lambda: manager.CreateCenterRectangle(
@@ -402,8 +444,6 @@ def create_rectangle_sketch_windows_with_handle(
                 ),
             ),
             state_warnings,
-            native_method="CreateCenterRectangle",
-            shape="rectangle",
         ),
         verify_sketch=lambda sketch: _rectangle_verification(sketch, expected),
     )

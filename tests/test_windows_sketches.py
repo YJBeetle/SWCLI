@@ -569,7 +569,18 @@ class WindowsCircleTests(unittest.TestCase):
 class WindowsSketchTests(unittest.TestCase):
     def setUp(self):
         self.document = Document()
-        self.app = SimpleNamespace(IsSame=lambda a, b: int(a is b))
+        self.inference = True
+
+        def set_inference(flag, value):
+            self.assertEqual(flag, 249)
+            self.inference = value
+            return True
+
+        self.app = SimpleNamespace(
+            IsSame=lambda a, b: int(a is b),
+            GetUserPreferenceToggle=mock.Mock(side_effect=lambda flag: self.inference),
+            SetUserPreferenceToggle=mock.Mock(side_effect=set_inference),
+        )
 
     def create(self, **arguments):
         values = dict(
@@ -604,7 +615,9 @@ class WindowsSketchTests(unittest.TestCase):
         create_rectangle = manager.CreateCenterRectangle.side_effect
 
         def infer_or_create(x, y, z, xmax, ymax, zmax):
-            if not manager.AddToDB:
+            # Native Windows and Wine still snap this composite tool with
+            # AddToDB=True when application sketch inference remains enabled.
+            if not manager.AddToDB or self.inference:
                 x = 0  # UI snapping produces the CI's [-23,23] instead of [-17,23].
             return create_rectangle(x, y, z, xmax, ymax, zmax)
 
@@ -617,8 +630,70 @@ class WindowsSketchTests(unittest.TestCase):
                          {"min_x": -17, "max_x": 23, "min_y": -11, "max_y": 19})
         manager.CreateCenterRectangle.assert_called_once_with(.003, .004, 0, .023, .019, 0)
         self.assertFalse(manager.AddToDB)
+        self.assertTrue(self.inference)
 
-    def test_rectangle_creation_mode_is_restored_before_close_without_other_preferences(self):
+    def test_rectangle_inference_is_scoped_and_restored_before_close(self):
+        for original in (False, True):
+            with self.subTest(original=original):
+                self.setUp()
+                self.inference = original
+                manager = self.document.SketchManager
+                create_rectangle = manager.CreateCenterRectangle.side_effect
+
+                def create(*arguments):
+                    self.assertFalse(self.inference)
+                    return create_rectangle(*arguments)
+
+                manager.CreateCenterRectangle.side_effect = create
+                manager.on_close = lambda: self.assertEqual(self.inference, original)
+                result, _ = self.create()
+                self.assertTrue(result["ok"], result)
+                self.app.SetUserPreferenceToggle.assert_has_calls(
+                    [mock.call(249, False), mock.call(249, original)]
+                )
+                self.assertEqual(self.inference, original)
+
+    def test_rectangle_refuses_unknown_or_unchanged_inference_without_geometry(self):
+        for observed in (None, 1, "false", True):
+            with self.subTest(observed=observed):
+                self.setUp()
+                self.app.GetUserPreferenceToggle.side_effect = lambda flag: observed
+                result, _ = self.create()
+                self.assertFalse(result["ok"])
+                self.document.SketchManager.CreateCenterRectangle.assert_not_called()
+                self.assertIsNone(self.document.SketchManager.ActiveSketch)
+
+    def test_rectangle_native_failure_restores_inference_without_retry(self):
+        self.document.SketchManager.CreateCenterRectangle.side_effect = RuntimeError("native")
+        result, _ = self.create()
+        self.assertEqual(result["error"], {"type": "RuntimeError", "message": "native"})
+        self.assertTrue(self.inference)
+        self.document.SketchManager.CreateCenterRectangle.assert_called_once()
+
+    def test_rectangle_failed_inference_restore_is_not_success(self):
+        for rejected in (False, True):
+            with self.subTest(rejected=rejected):
+                self.setUp()
+                setter = self.app.SetUserPreferenceToggle.side_effect
+
+                def fail_restore(flag, value):
+                    if value:
+                        if rejected:
+                            return False
+                        raise RuntimeError("restore failure")
+                    return setter(flag, value)
+
+                self.app.SetUserPreferenceToggle.side_effect = fail_restore
+                result, feature = self.create()
+                self.assertIsNotNone(feature)
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"]["type"], "SketchStateRestoreFailed")
+                self.assertEqual(result["warnings"][0]["code"], "sketch-inference-restore-failed")
+                self.assertTrue(result["geometry_verification"]["passed"])
+                self.assertFalse(result["editing"])
+                validate_operation_result("sketch.rectangle", result)
+
+    def test_rectangle_creation_mode_is_restored_without_display_or_solver_changes(self):
         for original in (False, True):
             with self.subTest(original=original):
                 self.setUp()

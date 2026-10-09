@@ -181,8 +181,13 @@ geometry. Failure does not imply rollback; cleanup warnings report an edit that
 could not be closed. Driving dimensions and full constraint solving are not yet
 part of this command. Like circle creation, rectangle creation temporarily
 enables and verifies `SketchManager.AddToDB` to avoid UI snapping changing the
-requested coordinates. It restores the previous mode before closing the sketch;
+requested coordinates. This alone is insufficient for `CreateCenterRectangle`:
+it also temporarily disables and verifies the application `swSketchInference`
+toggle. Both original settings are restored and checked before sketch close;
 failed restoration is reported as `SketchStateRestoreFailed`, not success.
+No grid/display or solver preferences are changed. Because the inference toggle
+is application-scoped, an explicitly shared interactive host can observe this
+brief change; document leases do not isolate the human UI.
 
 `sketch.circle` uses the same lifecycle to create a full circle with explicit
 millimeter radius and sketch-local center. Post-edit verification reads native
