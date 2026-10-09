@@ -218,6 +218,91 @@ def list_extrusion_features_windows_with_handles(
     return _observe(action="feature.list", app=app, document=document, read=read)
 
 
+def _read_exact_extrusion(app: Any, document: Any, feature: Any):
+    """Return read evidence and its exact definition, without selection access."""
+    target_id = _feature_id(feature)
+    # Exhaust first: an early match must not hide a later malformed chain.
+    features = tuple(_list_features(app, document))
+    live = next((item for item in features if _feature_id(item) == target_id), None)
+    if live is None or not _same(app, live, feature):
+        raise _FeatureError(
+            "FeatureUnavailable", "the exact feature is not live in this part"
+        )
+    displayed, underlying = _types(live)
+    if underlying not in _KINDS:
+        raise _FeatureError(
+            "UnsupportedFeatureType",
+            "only part boss/cut extrusion definitions are observed",
+        )
+    definition = _com_value(live, "GetDefinition")
+    if definition is None:
+        raise _FeatureError(
+            "FeatureObservationUnavailable",
+            "native extrusion definition is unavailable",
+        )
+
+    depth = native_call(
+        "feature-observe",
+        "ExtrudeFeatureData.GetDepth",
+        lambda: definition.GetDepth(True),
+    )
+    if (
+        isinstance(depth, bool)
+        or not isinstance(depth, (int, float))
+        or not math.isfinite(depth)
+        or depth < 0
+        or not math.isfinite(depth * 1000)
+    ):
+        raise _FeatureError(
+            "FeatureObservationUnavailable", "native forward depth is invalid"
+        )
+    snapshot = {
+        "depth_mm": depth * 1000,
+        "end_condition": _integer(
+            native_call(
+                "feature-observe",
+                "ExtrudeFeatureData.GetEndCondition",
+                lambda: definition.GetEndCondition(True),
+            ),
+            "GetEndCondition",
+        ),
+        "reverse_direction": _boolean(
+            _com_value(definition, "ReverseDirection"), "ReverseDirection"
+        ),
+        "both_directions": _boolean(
+            _com_value(definition, "BothDirections"), "BothDirections"
+        ),
+        "thin": _boolean(_com_value(definition, "IsThinFeature"), "IsThinFeature"),
+        "from_type": _integer(_com_value(definition, "FromType"), "FromType"),
+        "forward_draft": _boolean(
+            native_call(
+                "feature-observe",
+                "ExtrudeFeatureData.GetDraftWhileExtruding",
+                lambda: definition.GetDraftWhileExtruding(True),
+            ),
+            "GetDraftWhileExtruding",
+        ),
+        "reverse_draft": _boolean(
+            native_call(
+                "feature-observe",
+                "ExtrudeFeatureData.GetDraftWhileExtruding",
+                lambda: definition.GetDraftWhileExtruding(False),
+            ),
+            "GetDraftWhileExtruding",
+        ),
+    }
+    if underlying != "Cut":
+        snapshot["merge"] = _boolean(_com_value(definition, "Merge"), "Merge")
+    else:
+        snapshot["feature_scope"] = _boolean(
+            _com_value(definition, "FeatureScope"), "FeatureScope"
+        )
+    return {
+        "feature": _descriptor(live, displayed, underlying),
+        "definition": snapshot,
+    }, definition
+
+
 def inspect_extrusion_feature_windows(
     *,
     app: Any,
@@ -227,87 +312,8 @@ def inspect_extrusion_feature_windows(
     """Observe the exact live definition, without asserting edit eligibility."""
 
     def read():
-        target_id = _feature_id(feature)
-        # Exhaust first: an early match must not hide a later malformed chain.
-        features = tuple(_list_features(app, document))
-        live = next((item for item in features if _feature_id(item) == target_id), None)
-        if live is None or not _same(app, live, feature):
-            raise _FeatureError(
-                "FeatureUnavailable", "the exact feature is not live in this part"
-            )
-        displayed, underlying = _types(live)
-        if underlying not in _KINDS:
-            raise _FeatureError(
-                "UnsupportedFeatureType",
-                "only part boss/cut extrusion definitions are observed",
-            )
-        definition = _com_value(live, "GetDefinition")
-        if definition is None:
-            raise _FeatureError(
-                "FeatureObservationUnavailable",
-                "native extrusion definition is unavailable",
-            )
-
-        depth = native_call(
-            "feature-observe",
-            "ExtrudeFeatureData.GetDepth",
-            lambda: definition.GetDepth(True),
-        )
-        if (
-            isinstance(depth, bool)
-            or not isinstance(depth, (int, float))
-            or not math.isfinite(depth)
-            or depth < 0
-            or not math.isfinite(depth * 1000)
-        ):
-            raise _FeatureError(
-                "FeatureObservationUnavailable", "native forward depth is invalid"
-            )
-        snapshot = {
-            "depth_mm": depth * 1000,
-            "end_condition": _integer(
-                native_call(
-                    "feature-observe",
-                    "ExtrudeFeatureData.GetEndCondition",
-                    lambda: definition.GetEndCondition(True),
-                ),
-                "GetEndCondition",
-            ),
-            "reverse_direction": _boolean(
-                _com_value(definition, "ReverseDirection"), "ReverseDirection"
-            ),
-            "both_directions": _boolean(
-                _com_value(definition, "BothDirections"), "BothDirections"
-            ),
-            "thin": _boolean(_com_value(definition, "IsThinFeature"), "IsThinFeature"),
-            "from_type": _integer(_com_value(definition, "FromType"), "FromType"),
-            "forward_draft": _boolean(
-                native_call(
-                    "feature-observe",
-                    "ExtrudeFeatureData.GetDraftWhileExtruding",
-                    lambda: definition.GetDraftWhileExtruding(True),
-                ),
-                "GetDraftWhileExtruding",
-            ),
-            "reverse_draft": _boolean(
-                native_call(
-                    "feature-observe",
-                    "ExtrudeFeatureData.GetDraftWhileExtruding",
-                    lambda: definition.GetDraftWhileExtruding(False),
-                ),
-                "GetDraftWhileExtruding",
-            ),
-        }
-        if underlying != "Cut":
-            snapshot["merge"] = _boolean(_com_value(definition, "Merge"), "Merge")
-        else:
-            snapshot["feature_scope"] = _boolean(
-                _com_value(definition, "FeatureScope"), "FeatureScope"
-            )
-        return {
-            "feature": _descriptor(live, displayed, underlying),
-            "definition": snapshot,
-        }, []
+        payload, _ = _read_exact_extrusion(app, document, feature)
+        return payload, []
 
     result, _ = _observe(
         action="feature.inspect", app=app, document=document, read=read
