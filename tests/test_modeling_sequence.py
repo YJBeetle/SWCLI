@@ -77,6 +77,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 "operations": [
                     "sketch.fix-center",
                     "sketch.dimension-diameter",
+                    "sketch.dimension-rectangle",
                     "dimension.discover-diameter",
                     "dimension.inspect",
                     "dimension.set",
@@ -100,6 +101,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 mock.patch.object(gate, "call_daemon", return_value=self.health()),
                 mock.patch.object(smoke, "plane") as plane,
                 mock.patch.object(smoke, "center_constraints") as centers,
+                mock.patch.object(smoke, "rectangle_dimensions") as sizes,
                 mock.patch("sys.stdout", new=io.StringIO()),
             ):
                 smoke.run()
@@ -108,6 +110,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 centers.call_args_list,
                 [mock.call(plane) for plane in ("front", "top", "right")],
             )
+            self.assertEqual(sizes.call_args_list, centers.call_args_list)
             self.assertEqual(smoke.record["host_after"]["process_id"], 123)
             self.assertEqual(smoke.record["modeling_record"], str(path))
             with (
@@ -148,6 +151,7 @@ class ModelingSequenceTests(unittest.TestCase):
             ),
             mock.patch.object(smoke, "plane"),
             mock.patch.object(smoke, "center_constraints"),
+            mock.patch.object(smoke, "rectangle_dimensions"),
             mock.patch.object(smoke, "prepare_origin_fixture"),
             mock.patch("sys.stdout", new=io.StringIO()),
         ):

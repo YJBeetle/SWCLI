@@ -15,6 +15,8 @@ from unittest import mock
 
 from swcli.operation_schemas import validate_operation_request
 from swcli.cli import _typed_payload
+import test_windows_rectangle_dimensions as rectangle_creation
+import test_windows_linear_dimensions as rectangle_edits
 
 script = Path(__file__).resolve().parents[1] / "scripts/ci/verify-driving-dimensions.py"
 spec = importlib.util.spec_from_file_location("driving_smoke", script)
@@ -55,6 +57,8 @@ class FakeDaemon:
         self.discovery_missing_capability = False
         self.center_missing_capability = False
         self.center_defect = None
+        self.linear_defect = None
+        self.linear_missing_capability = False
         self.dimension_discovery_serial = 0
         self.list_serial = 0
         self.calls = []
@@ -95,6 +99,101 @@ class FakeDaemon:
             "configuration": "默认",
             "native_name": "D1@草图1@零件",
         }
+
+    @staticmethod
+    def rectangle_metrics(width, height):
+        return {
+            "solid_body_count": 1,
+            "volume_mm3": width * height * 10,
+            "surface_area_mm2": 2 * (width * height + width * 10 + height * 10),
+            "centroid_mm": {"x": 3, "y": 4, "z": 5},
+        }
+
+    def rectangle_result(self, operation, values, document_id, session):
+        """Contract-only fixtures reuse real adapter shapes, not COM evidence."""
+        document = self.documents[document_id]
+        if operation == "sketch.dimension-rectangle":
+            if document.get("linear_ids"):
+                return self.error("SketchAlreadyDimensioned")
+            fixture = rectangle_creation.RectangleDimensionTests()
+            fixture.setUp()
+            try:
+                result, _ = fixture.call(values["width_mm"], values["height_mm"])
+            finally:
+                fixture.doCleanups()
+            document.update(
+                width=values["width_mm"],
+                height=values["height_mm"],
+                linear_ids={
+                    kind: f"m-{self.serial:05d}{kind[0]}"
+                    for kind in ("width", "height")
+                },
+            )
+            document["stamp"] += 1
+            for kind, handle in document["linear_ids"].items():
+                result["dimensions"][kind].update(
+                    dimension_id=handle, sketch_id=document["sketch"]
+                )
+        else:
+            kind = next(
+                (
+                    kind
+                    for kind, handle in document.get("linear_ids", {}).items()
+                    if handle == values["dimension_id"]
+                ),
+                None,
+            )
+            if kind is None:
+                return self.error("DimensionNotFound")
+            fixture = rectangle_edits.RectangleSetTests()
+            fixture.setUp()
+            try:
+                fixture.axis = kind
+                fixture.width, fixture.height, fixture.stamp = (
+                    document["width"],
+                    document["height"],
+                    document["stamp"],
+                )
+                for axis in ("width", "height"):
+                    fixture.parameters[axis].value = document[axis] / 1000
+                fixture.parameters[kind].SetSystemValue3 = fixture.setter
+                fixture._diagnose_features.side_effect = lambda document, limit: {
+                    "healthy": True,
+                    "truncated": False,
+                    "issues": [],
+                    "issue_count": 0,
+                    "scanned_feature_count": 10,
+                    "limit": 500,
+                }
+                fixture._measurement.side_effect = lambda native: (
+                    self.rectangle_metrics(fixture.width, fixture.height)
+                    if document["absorbed"]
+                    else None
+                )
+                if operation == "dimension.inspect":
+                    result = fixture.call(kind)
+                else:
+                    result = fixture.set_call(values["value_mm"])
+                    document.update(
+                        width=fixture.width, height=fixture.height, stamp=fixture.stamp
+                    )
+            finally:
+                fixture.doCleanups()
+            result["dimension"].update(
+                dimension_id=values["dimension_id"], sketch_id=document["sketch"]
+            )
+        result.update(
+            document=self.descriptor(document_id, session), sketch_id=document["sketch"]
+        )
+        if self.linear_defect == "center" and operation == "dimension.set":
+            result["geometry_verification"]["actual"]["center_mm"]["x"] += 1
+        elif self.linear_defect == "role" and operation == "dimension.inspect":
+            result["dimension"]["kind"] = "diameter"
+        elif self.linear_defect == "stamp" and operation == "dimension.inspect":
+            document["stamp"] += 1
+        elif self.linear_defect == "foreground":
+            self.active = document_id
+        return self.response(result)
 
     @staticmethod
     def geometry(document):
@@ -143,6 +242,7 @@ class FakeDaemon:
                         "sketch.list",
                     ]
                     + ([] if self.center_missing_capability else ["sketch.fix-center"])
+                    + ([] if self.linear_missing_capability else ["sketch.dimension-rectangle"])
                     + (
                         []
                         if self.discovery_missing_capability
@@ -217,6 +317,11 @@ class FakeDaemon:
                     "features": {"truncated": False, "items": [{"name": "Boss1"}]},
                 }
         elif operation == "document.measure":
+            if document.get("linear_ids"):
+                result["metrics"] = self.rectangle_metrics(document["width"], document["height"])
+                if self.linear_defect == "volume":
+                    result["metrics"]["volume_mm3"] += 1
+                return self.response(result)
             radius = document["radius"]
             result["metrics"] = {
                 "solid_body_count": 1,
@@ -227,6 +332,8 @@ class FakeDaemon:
         elif operation == "document.diagnose":
             result.update(diagnostics={"healthy": True}, needs_rebuild=0)
         elif operation == "dimension.inspect":
+            if document.get("linear_ids"):
+                return self.rectangle_result(operation, values, document_id, session)
             if document["dimension"] != values["dimension_id"]:
                 return self.error("DimensionNotFound")
             result.update(
@@ -499,10 +606,14 @@ class FakeDaemon:
                     geometry_verification={"passed": True},
                     editing=False,
                 )
+            elif operation == "sketch.dimension-rectangle":
+                return self.rectangle_result(operation, values, document_id, session)
             elif operation == "feature.extrude":
                 document["absorbed"] = True
                 result["feature"] = {"name": "Boss1"}
             elif operation == "dimension.set":
+                if document.get("linear_ids"):
+                    return self.rectangle_result(operation, values, document_id, session)
                 if document["dimension"] != values["dimension_id"]:
                     return self.error("DimensionNotFound")
                 document["radius"] = values["value_mm"] / 2
@@ -539,9 +650,11 @@ class FakeDaemon:
                 "sketch_id": arguments[2],
                 "diameter_mm": float(flag("--diameter-mm")),
             }
+        elif operation == "sketch.dimension-rectangle":
+            values = {"sketch_id": arguments[4], "width_mm": float(flag("--width-mm")), "height_mm": float(flag("--height-mm"))}
         elif operation == "dimension.set":
             values = {
-                "dimension_id": arguments[2],
+                "dimension_id": arguments[4] if arguments[2] == "--document" else arguments[2],
                 "value_mm": float(flag("--value-mm")),
             }
         elif operation == "sketch.list":
@@ -612,7 +725,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     if item["transport"] == "cli"
                 ]
             ),
-            9,
+            11,
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
@@ -668,7 +781,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 self.assertNotIn("lease_id", context)
         self.assertEqual(
             sum(operation == "dimension.set" for operation, _, _ in self.daemon.calls),
-            12,
+            24,
         )
         self.assertTrue(
             all(
@@ -738,6 +851,50 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         self.assertFalse(
             any(operation == "document.create" for operation, _, _ in self.daemon.calls)
         )
+
+    def test_rectangle_sizes_three_planes_background_reads_edits_and_native_volume(
+        self,
+    ):
+        self.run_smoke()
+        proofs = self.smoke.record["rectangle_dimensions"]
+        self.assertEqual(
+            [proof["plane"] for proof in proofs], ["front", "top", "right"]
+        )
+        for proof in proofs:
+            self.assertTrue(proof["expired_handles_rejected"])
+            self.assertEqual(
+                [edit["kind"] for edit in proof["edits"]], ["width", "height"]
+            )
+            self.assertEqual(
+                [edit["measured"]["metrics"]["volume_mm3"] for edit in proof["edits"]],
+                [15000, 17500],
+            )
+        self.assertFalse(self.daemon.documents)
+        self.assertEqual(self.smoke.record["host"], self.smoke.record["host_after"])
+        cli = [
+            event
+            for event in self.smoke.record["events"]
+            if event.get("arguments", [])[:2] == ["sketch", "dimension-rectangle"]
+        ]
+        self.assertEqual(len(cli), 1)
+        self.assertEqual(cli[0]["arguments"][2], "--document")
+
+    def test_missing_linear_capability_fails_before_allocating_documents(self):
+        self.daemon.linear_missing_capability = True
+        with self.assertRaisesRegex(
+            RuntimeError, "installed daemon lacks sketch.dimension-rectangle"
+        ):
+            self.run_smoke()
+        self.assertFalse(self.daemon.documents)
+
+    def test_linear_false_success_state_drift_and_wrong_volume_stop_the_gate(self):
+        for defect in ("center", "role", "stamp", "foreground", "volume"):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.daemon.linear_defect = defect
+                with self.assertRaises(RuntimeError):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
 
     def test_origin_fixture_is_exact_and_never_overwrites_existing_output(self):
         self.smoke.prepare_origin_fixture()

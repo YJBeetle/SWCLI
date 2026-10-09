@@ -234,6 +234,39 @@ def assert_fixed_center(result, sketch_id, *, created):
         close_enough(actual, expected, "center fixing changed rectangle bounds")
 
 
+def assert_linear_dimension(result, dimension_id, sketch_id, kind, width, height):
+    validate_operation_result("dimension.inspect", result)
+    dimension = result["dimension"]
+    require(
+        dimension["dimension_id"] == dimension_id
+        and dimension["sketch_id"] == sketch_id
+        and dimension["kind"] == kind
+        and dimension["driven_state"] == 2
+        and dimension["read_only"] is False
+        and result["editing"] is False
+        and result["equation_control"]["controlled"] is False
+        and result["design_table_controlled"] is False,
+        "linear dimension identity or native controls are incorrect",
+    )
+    close_enough(
+        dimension["value"],
+        width if kind == "width" else height,
+        "linear native value is incorrect",
+    )
+    geometry = result["geometry_verification"]
+    require(
+        geometry["passed"] is True, "rectangle geometry disagrees with its dimension"
+    )
+    close_enough(geometry["actual_width_mm"], width, "rectangle width is incorrect")
+    close_enough(geometry["actual_height_mm"], height, "rectangle height is incorrect")
+    for axis, expected in (("x", 3), ("y", 4), ("z", 0)):
+        close_enough(
+            geometry["actual_center_mm"][axis],
+            expected,
+            "size edit moved the fixed rectangle center",
+        )
+
+
 def assert_discovered_diameter(result, dimension_id, sketch_id, stamp):
     assert_dimension(result, dimension_id, sketch_id, 20)
     dimension = result["dimension"]
@@ -806,6 +839,189 @@ class DrivingSmoke:
         self.renew_lease(document_id)
         self.call("document.close", {"discard": True}, document_id=document_id, **owner)
 
+    def rectangle_dimensions(self, plane):
+        """Installed exact size edits on a leased background part, same host."""
+        document_id = self.create()
+        foreground_id = self.create()
+        lease = self.call(
+            "document.lease.acquire",
+            {"ttl_seconds": LEASE_TTL_SECONDS},
+            document_id=document_id,
+        )["lease"]["lease_id"]
+        write = {"document_id": document_id, "lease_id": lease}
+        rectangle = self.write(
+            "sketch.rectangle",
+            {
+                "plane": plane,
+                "width_mm": 40,
+                "height_mm": 30,
+                "center_x_mm": 3,
+                "center_y_mm": 4,
+            },
+            **write,
+        )
+        sketch_id = rectangle["sketch"]["sketch_id"]
+        # Positioning is explicit and independently covered by the center gate.
+        self.write("sketch.fix-center", {"sketch_id": sketch_id}, **write)
+        values = {"sketch_id": sketch_id, "width_mm": 40, "height_mm": 30}
+        stamp = self.stamp(document_id)
+        self.call(
+            "sketch.dimension-rectangle",
+            values,
+            document_id=document_id,
+            expected_error="DocumentLeaseConflict",
+            session_id=self.session + "-contender",
+        )
+        self.write(
+            "sketch.dimension-rectangle",
+            values,
+            expected_update_stamp=stamp + 1,
+            expected_error="DocumentUpdateConflict",
+            **write,
+        )
+        require(
+            self.stamp(document_id) == stamp, "rejected size creation changed stamp"
+        )
+        created = (
+            self.write_command(
+                [
+                    "sketch",
+                    "dimension-rectangle",
+                    "--document",
+                    document_id,
+                    sketch_id,
+                    "--width-mm",
+                    "40",
+                    "--height-mm",
+                    "30",
+                    "--lease",
+                    lease,
+                    "--if-update-stamp",
+                    str(stamp),
+                ],
+                document_id=document_id,
+            )
+            if plane == "front"
+            else self.write("sketch.dimension-rectangle", values, **write)
+        )
+        validate_operation_result("sketch.dimension-rectangle", created)
+        ids = {
+            kind: created["dimensions"][kind]["dimension_id"]
+            for kind in ("width", "height")
+        }
+        require(len(set(ids.values())) == 2, "width/height share a wire dimension ID")
+        proof = {
+            "plane": plane,
+            "sketch_id": sketch_id,
+            "created": created,
+            "edits": [],
+        }
+        self.record.setdefault("rectangle_dimensions", []).append(proof)
+        self.checkpoint(f"rectangle-dimensions.{plane}.created")
+        self.assert_background(document_id, foreground_id)
+        stamp = self.stamp(document_id)
+        self.write(
+            "sketch.dimension-rectangle",
+            values,
+            expected_error="SketchAlreadyDimensioned",
+            **write,
+        )
+        require(self.stamp(document_id) == stamp, "duplicate dimensions changed stamp")
+
+        def observe(width, height):
+            before = self.stamp(document_id)
+            for kind, dimension_id in ids.items():
+                read = self.call(
+                    "dimension.inspect",
+                    {"dimension_id": dimension_id},
+                    document_id=document_id,
+                    session_id=self.session + "-observer",
+                )
+                assert_linear_dimension(
+                    read, dimension_id, sketch_id, kind, width, height
+                )
+                self.assert_background(document_id, foreground_id)
+            require(
+                self.stamp(document_id) == before,
+                "background linear reads changed stamp",
+            )
+
+        observe(40, 30)
+        self.write("feature.extrude", {"sketch_id": sketch_id, "depth_mm": 10}, **write)
+        stamp = self.stamp(document_id)
+        edit = {"dimension_id": ids["width"], "value_mm": 50}
+        self.call(
+            "dimension.set",
+            edit,
+            document_id=document_id,
+            expected_error="DocumentLeaseConflict",
+        )
+        self.write(
+            "dimension.set",
+            edit,
+            expected_update_stamp=stamp + 1,
+            expected_error="DocumentUpdateConflict",
+            **write,
+        )
+        require(self.stamp(document_id) == stamp, "rejected linear edits changed stamp")
+        for kind, value, width, height in (
+            ("width", 50, 50, 30),
+            ("height", 35, 50, 35),
+        ):
+            changed = (
+                self.write_command(
+                    [
+                        "dimension",
+                        "set",
+                        "--document",
+                        document_id,
+                        ids[kind],
+                        "--value-mm",
+                        str(value),
+                        "--lease",
+                        lease,
+                    ],
+                    document_id=document_id,
+                )
+                if plane == "front" and kind == "width"
+                else self.write(
+                    "dimension.set",
+                    {"dimension_id": ids[kind], "value_mm": value},
+                    **write,
+                )
+            )
+            validate_operation_result("dimension.set", changed)
+            require(
+                changed["downstream"]["applicable"] is True,
+                "absorbed linear edit lacks downstream evidence",
+            )
+            observe(width, height)
+            measured = self.call("document.measure", document_id=document_id)
+            require(
+                measured["metrics"]["solid_body_count"] == 1,
+                "rectangle edit changed solid body count",
+            )
+            close_enough(
+                measured["metrics"]["volume_mm3"],
+                width * height * 10,
+                "rectangle edit produced incorrect native volume",
+            )
+            proof["edits"].append(
+                {"kind": kind, "changed": changed, "measured": measured}
+            )
+            self.assert_background(document_id, foreground_id)
+        self.checkpoint(f"rectangle-dimensions.{plane}.verified")
+        self.close(document_id)
+        for dimension_id in ids.values():
+            self.call(
+                "dimension.inspect",
+                {"dimension_id": dimension_id},
+                document_id=foreground_id,
+                expected_error="DimensionNotFound",
+            )
+        proof["expired_handles_rejected"] = True
+        self.close(foreground_id)
+
     def center_constraints(self, plane):
         """Public proof, including native persistence; no COM fixture or retry."""
         document_id = self.create()
@@ -1235,6 +1451,7 @@ class DrivingSmoke:
         for operation in (
             "sketch.fix-center",
             "sketch.dimension-diameter",
+            "sketch.dimension-rectangle",
             "dimension.discover-diameter",
             "dimension.inspect",
             "dimension.set",
@@ -1251,6 +1468,7 @@ class DrivingSmoke:
             print(f"Driving-dimension gate: {plane} starting", flush=True)
             self.plane(plane)
             self.center_constraints(plane)
+            self.rectangle_dimensions(plane)
             self.checkpoint(f"plane.{plane}.completed")
             print(f"Driving-dimension gate: {plane} passed", flush=True)
         after = self.call("daemon.health")
@@ -1332,7 +1550,7 @@ def main(argv=None):
         raise error
     require(not cleanup_errors, f"driving gate cleanup failed: {cleanup_errors}")
     print(
-        f"Driving dimensions and center fixes verified on front/top/right; record: {record_path}"
+        f"Driving diameter/rectangle dimensions and center fixes verified on front/top/right; record: {record_path}"
     )
 
 

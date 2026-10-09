@@ -24,7 +24,11 @@ does not activate or edit; it reports native controls and geometric disagreement
 Single-axis edits verify the other size, original center, configuration, complete
 rebuild diagnostics and fresh downstream metrics. Contradictory readback cannot
 pass the result contract merely by setting a boolean `passed` flag.
-Installed public proof and saved-model discovery remain separate pending steps;
+The shared driving script now tests creation and absorbed single-axis edits on
+front/top/right, after the existing diameter and center gates on the same host.
+It checks exact background/session restoration, lease/stamp/duplicate refusal,
+read-only state preservation, native downstream volumes and expired IDs.
+Installed public execution proof and saved-model discovery remain separate pending steps;
 do not infer that these development contracts are already in a published wheel.
 
 The strict read-only rectangle observation primitive is implemented and has

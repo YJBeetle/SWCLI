@@ -16,7 +16,13 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   creates a new background circle **without restarting the host**.
 - `scripts/ci/verify-driving-dimensions.py`: three-plane driving diameter
   creation, inspect/edit, guards, native save/reopen and discovery of fresh
-  sketch/dimension handles. Run it after modeling on the same ready daemon.
+  sketch/dimension handles; explicit center fixing and saved fix readback;
+  rectangle width/height creation, leased background inspection, single-axis
+  edits with preserved other size/center, downstream native volume and expired
+  handle rejection. The front-plane size creation/edit also uses the installed
+  CLI with its document selector before the positional handle. Saved linear
+  dimension discovery remains pending and is not claimed by this gate.
+  Run it after modeling on the same ready daemon.
 - `scripts/ci/verify-invalid-requests.py`: invalid wire requests must leave
   the host and documents unchanged.
 
