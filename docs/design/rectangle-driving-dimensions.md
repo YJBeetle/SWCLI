@@ -5,7 +5,8 @@ The development typed operation `sketch.fix-center` is now wired to the CLI,
 catalog, result contract and document/lease/stamp/foreground guards. Installed
 public center-fix verification has passed Windows and MacSW dual-mode gates;
 size creation/read/edit has passed installed local Windows visible/hidden gates
-(candidate `9380bc9`). Saved size discovery and Wine remain separate gates.
+(candidate `9380bc9`). Saved size discovery also passes local Windows dual-mode
+gates at `c402c23`; its hosted Windows and Wine gates remain pending.
 Neither is an a5 capability.
 The existing shared driving gate now exercises explicit fixing on three planes,
 repeated no-ops, lease/stamp refusal, background restoration and native
@@ -30,7 +31,7 @@ The shared driving script now tests creation and absorbed single-axis edits on
 front/top/right, after the existing diameter and center gates on the same host.
 It checks exact background/session restoration, lease/stamp/duplicate refusal,
 read-only state preservation, native downstream volumes and expired IDs.
-Installed Windows size execution passed; saved-model discovery and Wine remain pending steps;
+Installed Windows size execution and saved-model discovery passed; Wine remains pending;
 do not infer that these development contracts are already in a published wheel.
 
 The internal saved-rectangle discovery adapter now requires one distinct native
@@ -45,7 +46,8 @@ apply the caller's update-stamp check before any native read. Only a complete
 verified pair obtains/reuses IDs from the worker registry; native inspection
 snapshots remain ID-free evidence. The result contract cross-checks both native
 snapshots, geometry, configuration, solver state and the outer document stamp.
-Saved-model installed execution and Wine proof remain pending.
+Saved-model installed execution has passed local Windows visible/hidden gates
+at `c402c23`; hosted Windows and Wine proof for that candidate remain pending.
 The shared gate now saves each three-plane 50×35 mm result, closes it, reopens
 it read-only, discovers a fresh profile and dimension pair, repeats discovery,
 inspects both recovered axes and remeasures 17500 mm³. It checks stamp and both
@@ -151,8 +153,8 @@ must report/refuse unintended placement changes rather than hiding them.
    have visible three-plane size/center and volume proof. The explicit center-fix
    adapter also has same-host three-plane size/edit/volume proof, exact native
    relation readback and origin preflight refusal. Installed public size creation,
-   inspection and edits have passed local Windows dual-mode gates. Saved size
-   discovery and Wine remain pending.
+   inspection, edits and saved-size discovery have passed local Windows dual-mode
+   gates. Hosted saved-size discovery and Wine remain pending.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
 4. Installed public Windows gates on front/top/right, visible and hidden, with

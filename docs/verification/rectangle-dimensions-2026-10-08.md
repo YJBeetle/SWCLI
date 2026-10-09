@@ -1,10 +1,42 @@
 # Rectangle size / positioning feasibility — 2026-10-08
 
-The first sections record internal direct-STA feasibility probes of installed
-SWCLI a5 primitives plus native COM dimension calls. Later sections record
-source-only a6 internal adapters. None is a public CLI/release gate, general
-constraint support or Wine/macOS proof; pending lists in earlier sections
-describe that stage's evidence boundary, not the latest adapter state.
+Historical internal sections record direct-STA feasibility probes of installed
+a5 primitives plus native COM calls and source-only a6 adapters. Installed public
+candidate gates are identified separately below. A development gate is not a
+published release, general constraint support or Wine/macOS proof; pending lists
+in historical sections describe their stage, not the latest adapter state.
+
+## Installed saved-size discovery — 2026-10-10
+
+Candidate **`c402c23d7f867bf8444b53c5a39adc39c6f5cc40`** passed local installed
+Windows visible/hidden modeling and driving gates. The isolated wheel reports
+`0.1.0a6.dev0`; its SHA-256 is
+`e2a849e4fdf8016ca1ea9c17921720f60e318be947ef51134f256a7555ba45d2`.
+This is not the global/user installation or a formal release.
+
+Each mode completed the full shared modeling gate and **598 driving events**
+without a retry or host replacement. Owned SW PIDs were **1236 visible** and
+**9976 hidden**, unchanged throughout each modeling/driving chain. In addition
+to the size-control checks below, front/top/right parts were saved at 50×35×10 mm,
+closed, reopened read-only and observed as background documents. New sketches
+and width/height IDs came from native discovery; old IDs remained invalid.
+Repeated `dimension.discover-rectangle` reused the new pair, both `dimension.inspect`
+calls matched their exact role/value and center, and independent native measures
+again gave one solid / 17500 mm³. All three reopened documents retained native
+stamp **152**; configuration, editing, geometry and both sessions' current/active
+state stayed unchanged. Front-plane discovery used the installed CLI with
+`--document` before the sketch ID.
+
+All four terminal records have `success: true`, `stage: completed` and empty
+cleanup errors. Both daemons stopped normally, no test SW/Python processes remained,
+and the VM stayed running. Evidence is at
+`C:\Workspace\SWCLI-tests\a6-public-rectangle-discovery-04cab621`, with a local copy
+at `/private/tmp/swcli-a6-public-discovery-proof`; exact wheel/source/script hashes
+and per-mode native call logs are retained. The same shared gate is now exercised
+by [SWCLI CI 37978542292](https://github.com/YJBeetle/SWCLI/actions/runs/37978542292)
+and DockerSW candidate `3a25ea7` /
+[Wine CI 37978886175](https://github.com/YJBeetle/DockerSW/actions/runs/37978886175),
+but those running jobs are **not yet** complete native/Wine proof.
 
 ## Installed public size controls — 2026-10-10
 
