@@ -79,6 +79,7 @@ class ModelingSequenceTests(unittest.TestCase):
                     "sketch.dimension-diameter",
                     "sketch.dimension-rectangle",
                     "dimension.discover-diameter",
+                    "dimension.discover-rectangle",
                     "dimension.inspect",
                     "dimension.set",
                     "sketch.list",

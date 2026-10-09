@@ -44,6 +44,11 @@ verified pair obtains/reuses IDs from the worker registry; native inspection
 snapshots remain ID-free evidence. The result contract cross-checks both native
 snapshots, geometry, configuration, solver state and the outer document stamp.
 Saved-model installed execution and Wine proof remain pending.
+The shared gate now saves each three-plane 50×35 mm result, closes it, reopens
+it read-only, discovers a fresh profile and dimension pair, repeats discovery,
+inspects both recovered axes and remeasures 17500 mm³. It checks stamp and both
+sessions' foreground/current state without restart, retry or display changes.
+Gate implementation and portable tests are not native execution proof.
 
 Discovery uses the official horizontal/vertical display roles, not a generic
 length or a matching name. The display traversal's prerequisite is retained:

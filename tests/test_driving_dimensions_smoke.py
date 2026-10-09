@@ -17,6 +17,7 @@ from swcli.operation_schemas import validate_operation_request
 from swcli.cli import _typed_payload
 import test_windows_rectangle_dimensions as rectangle_creation
 import test_windows_linear_dimensions as rectangle_edits
+import test_windows_rectangle_dimension_discovery as rectangle_discovery
 
 script = Path(__file__).resolve().parents[1] / "scripts/ci/verify-driving-dimensions.py"
 spec = importlib.util.spec_from_file_location("driving_smoke", script)
@@ -59,6 +60,8 @@ class FakeDaemon:
         self.center_defect = None
         self.linear_defect = None
         self.linear_missing_capability = False
+        self.rectangle_discovery_missing_capability = False
+        self.rectangle_discovery_defect = None
         self.dimension_discovery_serial = 0
         self.list_serial = 0
         self.calls = []
@@ -134,6 +137,53 @@ class FakeDaemon:
                 result["dimensions"][kind].update(
                     dimension_id=handle, sketch_id=document["sketch"]
                 )
+        elif operation == "dimension.discover-rectangle":
+            if not document.get("linear_ids"):
+                document["linear_ids"] = {
+                    kind: f"m-{self.serial:05d}{kind[0]}"
+                    for kind in ("width", "height")
+                }
+            fixture = rectangle_discovery.RectangleDiscoveryTests()
+            fixture.setUp()
+            fixture.width, fixture.height, fixture.stamp = (
+                document["width"],
+                document["height"],
+                document["stamp"],
+            )
+            for axis in ("width", "height"):
+                fixture.parameters[axis].value = document[axis] / 1000
+            result, _ = fixture.call()
+            result["action"] = "dimension.discover-rectangle"
+            for kind, token in document["linear_ids"].items():
+                result["dimensions"][kind].update(
+                    dimension_id=token, sketch_id=document["sketch"]
+                )
+            defect = self.rectangle_discovery_defect
+            if defect == "expired":
+                result["dimensions"]["width"]["dimension_id"] = document[
+                    "expired_linear_ids"
+                ]["width"]
+            elif defect == "pair":
+                result["dimensions"]["height"]["dimension_id"] = result["dimensions"][
+                    "width"
+                ]["dimension_id"]
+            elif defect == "value":
+                result["dimensions"]["height"]["value"] += 1
+            elif defect == "stamp":
+                document["stamp"] += 1
+            elif defect == "foreground":
+                self.active = document_id
+            elif defect == "current":
+                self.current[session] = document_id
+            elif defect == "reopen-current":
+                self.current[session + "-reopen"] = document_id
+            elif defect == "drift":
+                result["dimensions"]["height"]["native_name"] += "changed"
+                result["inspections"]["height"]["dimension"]["native_name"] += "changed"
+                document["height_name"] = document.get("height_name", 0) + 1
+                suffix = str(document["height_name"])
+                result["dimensions"]["height"]["native_name"] += suffix
+                result["inspections"]["height"]["dimension"]["native_name"] += suffix
         else:
             kind = next(
                 (
@@ -243,6 +293,7 @@ class FakeDaemon:
                     ]
                     + ([] if self.center_missing_capability else ["sketch.fix-center"])
                     + ([] if self.linear_missing_capability else ["sketch.dimension-rectangle"])
+                    + ([] if self.rectangle_discovery_missing_capability else ["dimension.discover-rectangle"])
                     + (
                         []
                         if self.discovery_missing_capability
@@ -263,6 +314,9 @@ class FakeDaemon:
                 document["lease"] = None
                 document["reopened"] = True
                 document["expired_dimension"] = document["dimension"]
+                if document.get("linear_ids"):
+                    document["expired_linear_ids"] = document["linear_ids"]
+                    document["linear_ids"] = None
                 if not self.stale_dimensions:
                     document["dimension"] = None
                     document["sketch"] = None
@@ -348,6 +402,12 @@ class FakeDaemon:
                 result["dimension"]["dimension_id"] = "m-999999"
             if self.modify_inspect:
                 document["stamp"] += 1
+        elif operation == "dimension.discover-rectangle":
+            if context.get("expected_update_stamp", document["stamp"]) != document["stamp"]:
+                return self.error("DocumentUpdateConflict")
+            if document["sketch"] != values["sketch_id"]:
+                return self.error("SketchNotFound")
+            return self.rectangle_result(operation, values, document_id, session)
         elif operation == "dimension.discover-diameter":
             if self.discovery_error:
                 return self.error(self.discovery_error)
@@ -661,6 +721,8 @@ class FakeDaemon:
             values = {}
         elif operation == "dimension.discover-diameter":
             values = {"sketch_id": arguments[2]}
+        elif operation == "dimension.discover-rectangle":
+            values = {"sketch_id": arguments[4]}
         elif operation == "sketch.fix-center":
             values = {"sketch_id": arguments[4]}
         else:
@@ -725,7 +787,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                     if item["transport"] == "cli"
                 ]
             ),
-            11,
+            13,
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
@@ -886,6 +948,57 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         ):
             self.run_smoke()
         self.assertFalse(self.daemon.documents)
+
+    def test_reopened_rectangle_pair_has_fresh_stable_ids_and_read_only_scope(self):
+        self.run_smoke()
+        for proof in self.smoke.record["rectangle_dimensions"]:
+            reopened = proof["reopened"]
+            original = proof["created"]["dimensions"]
+            discovered = reopened["discovered"]["dimensions"]
+            self.assertEqual(discovered, reopened["repeated"]["dimensions"])
+            self.assertFalse(
+                {item["dimension_id"] for item in discovered.values()}
+                & {item["dimension_id"] for item in original.values()}
+            )
+            self.assertEqual(
+                reopened["update_stamp_before"], reopened["update_stamp_after"]
+            )
+            self.assertEqual(reopened["selection_before"], reopened["selection_after"])
+            self.assertEqual(reopened["measured"]["metrics"]["volume_mm3"], 17500)
+        cli = [
+            event
+            for event in self.smoke.record["events"]
+            if event.get("arguments", [])[:2] == ["dimension", "discover-rectangle"]
+        ]
+        self.assertEqual(len(cli), 2)
+        self.assertTrue(all(event["arguments"][2] == "--document" for event in cli))
+        self.assertFalse(self.daemon.documents)
+
+    def test_saved_rectangle_discovery_capability_is_required_before_allocation(self):
+        self.daemon.rectangle_discovery_missing_capability = True
+        with self.assertRaisesRegex(
+            RuntimeError, "installed daemon lacks dimension.discover-rectangle"
+        ):
+            self.run_smoke()
+        self.assertFalse(self.daemon.documents)
+
+    def test_saved_rectangle_pair_corruption_expiry_and_read_side_effects_fail(self):
+        for defect in (
+            "expired",
+            "pair",
+            "value",
+            "stamp",
+            "foreground",
+            "current",
+            "reopen-current",
+            "drift",
+        ):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.daemon.rectangle_discovery_defect = defect
+                with self.assertRaises(RuntimeError):
+                    self.run_smoke()
+                self.assertFalse(self.daemon.documents)
 
     def test_linear_false_success_state_drift_and_wrong_volume_stop_the_gate(self):
         for defect in ("center", "role", "stamp", "foreground", "volume"):

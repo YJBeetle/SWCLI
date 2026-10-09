@@ -19,9 +19,12 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   sketch/dimension handles; explicit center fixing and saved fix readback;
   rectangle width/height creation, leased background inspection, single-axis
   edits with preserved other size/center, downstream native volume and expired
-  handle rejection. The front-plane size creation/edit also uses the installed
-  CLI with its document selector before the positional handle. Saved linear
-  dimension discovery remains pending and is not claimed by this gate.
+  handle rejection. Saved rectangles are closed/reopened read-only and expose
+  fresh exact width/height handles via `dimension.discover-rectangle`; repeated
+  discovery and inspection must preserve IDs, stamp, geometry, configuration
+  and both sessions' foreground/current state. The front-plane size commands
+  and discovery use the installed CLI with the selector before the handle.
+  This describes the gate's required checks, not a completed host proof.
   Run it after modeling on the same ready daemon.
 - `scripts/ci/verify-invalid-requests.py`: invalid wire requests must leave
   the host and documents unchanged.
