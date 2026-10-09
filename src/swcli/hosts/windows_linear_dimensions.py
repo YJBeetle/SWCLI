@@ -1,6 +1,6 @@
-"""Internal exact rectangle-dimension reads on the owning COM STA.
+"""Exact rectangle-dimension reads/edits on the owning COM STA.
 
-This is not generic length discovery or a public linear inspect/set capability.
+This is not generic length discovery.
 The role comes from a verified live binding, never a name or a matching value.
 """
 
@@ -175,7 +175,7 @@ def set_rectangle_dimension_windows(
     kind: str,
     value_mm: float,
 ) -> Dict[str, Any]:
-    """Edit one internal width/height, preserving the other size and center.
+    """Edit one exact width/height, preserving the other size and center.
 
     The caller owns activation and protocol guards. No implicit positioning,
     sketch editing, retry or rollback; even a failed setter may have mutated.

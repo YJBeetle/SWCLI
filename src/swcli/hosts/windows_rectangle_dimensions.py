@@ -1,4 +1,4 @@
-"""Internal rectangle-size creation on the owning COM STA, not a public API.
+"""Rectangle-size creation used by the typed worker on its owning COM STA.
 
 Two native dimensions are not a transaction. Return exact partial handles on
 failure and never add a positioning constraint implicitly. A caller must not

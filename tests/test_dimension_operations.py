@@ -448,7 +448,7 @@ class DimensionOperationTests(unittest.TestCase):
             self.call("dimension.inspect", values, document_id=replacement.document_id)
         inspect.assert_not_called()
 
-    def test_internal_linear_bindings_never_enter_diameter_adapter_or_activation(self):
+    def test_unsupported_bindings_never_enter_adapter_or_activation(self):
         for kind in ("width", "height"):
             handle = self.registry.register_dimension(
                 self.entry,
@@ -457,6 +457,9 @@ class DimensionOperationTests(unittest.TestCase):
                 kind=kind,
                 profile_kind="rectangle",
             )
+            # A valid linear role is now public. Simulate contradictory
+            # internal metadata rather than forbidding that supported role.
+            self.registry.resolve_dimension(self.entry, handle).profile_kind = "circle"
             for operation, values in (
                 ("dimension.inspect", {"dimension_id": handle}),
                 ("dimension.set", {"dimension_id": handle, "value_mm": 50}),

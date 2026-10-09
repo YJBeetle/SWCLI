@@ -18,8 +18,14 @@ It preserves document/session/lease/stamp/foreground guards and requires verifie
 native width and height plus per-step geometry/center evidence before publishing
 two exact dimension IDs. Failure retains partial mutation/cleanup evidence but
 publishes no unverified dimension ID. It does not call `fix-center` implicitly.
-Read/edit and saved-model discovery are separate pending public steps; do not
-infer that this development contract is already in a published wheel.
+`dimension inspect/set` now dispatches verified width/height bindings to the
+linear adapter, preserving the unchanged diameter contract. Read-only inspection
+does not activate or edit; it reports native controls and geometric disagreement.
+Single-axis edits verify the other size, original center, configuration, complete
+rebuild diagnostics and fresh downstream metrics. Contradictory readback cannot
+pass the result contract merely by setting a boolean `passed` flag.
+Installed public proof and saved-model discovery remain separate pending steps;
+do not infer that these development contracts are already in a published wheel.
 
 The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now
@@ -31,8 +37,8 @@ failure evidence. Three-plane Windows probes cover same-size creation, an
 explicitly positioned fixture's resize and refusal of unanchored center drift.
 Internal registry entries retain an explicit profile/dimension binding and
 refuse contradictory roles for the same native object. Public inspect/set
-contracts still support diameters only and reject internal linear bindings
-before activation. The original fixed-center fixture has now been replaced in
+contracts now support the explicit circle/diameter and rectangle/width/height
+pairs; unsupported bindings are rejected before activation. The original fixed-center fixture has now been replaced in
 an independent source-only probe by the explicitly invoked internal center-fix
 adapter. Its development typed wrapper fixes only the verified current center;
 it accepts no coordinates, guessed point IDs or implicit size changes. Existing

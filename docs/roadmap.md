@@ -70,8 +70,10 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    gates, with independent terminal-artifact review; exact versions and proof
    boundaries are recorded in the
    [rectangle verification record](verification/rectangle-dimensions-2026-10-08.md).
-   Public linear contracts and saved linear discovery remain separate unfinished
-   steps. These development results are not an a6 release or an a5 wheel feature.
+   Development `sketch.dimension-rectangle` and role-specific `dimension.inspect/set`
+   contracts are now wired with exact IDs, per-step native evidence and existing
+   guards; installed public linear proof and saved linear discovery remain
+   unfinished steps. These development results are not an a6 release or an a5 wheel feature.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

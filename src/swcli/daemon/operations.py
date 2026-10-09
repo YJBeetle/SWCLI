@@ -37,6 +37,10 @@ from ..hosts.windows_rectangle_constraints import (
 from ..hosts.windows_rectangle_dimensions import (
     create_rectangle_dimensions_windows_with_handles,
 )
+from ..hosts.windows_linear_dimensions import (
+    inspect_rectangle_dimension_windows,
+    set_rectangle_dimension_windows,
+)
 from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
@@ -85,7 +89,7 @@ class DocumentUpdateStampUnavailable(RuntimeError):
 
 
 class UnsupportedDimensionKind(RuntimeError):
-    """Internal linear bindings are not yet public inspect/set capabilities."""
+    """The registered native dimension/profile pair has no public adapter."""
 
 
 def _lease_ttl(parameters: Dict[str, Any]) -> float:
@@ -692,12 +696,20 @@ def dimension_inspect(
     dimension_id = values["dimension_id"]
     item = context.documents.resolve_dimension(context.entry, dimension_id)
     feature = context.documents.resolve_sketch(context.entry, item.sketch_id)
-    result = inspect_dimension_windows(
+    adapter = (
+        inspect_dimension_windows
+        if item.kind == "diameter"
+        else inspect_rectangle_dimension_windows
+    )
+    result = adapter(
         app=context.app,
         document=context.entry.document,
         sketch_feature=feature,
         dimension=item.dimension,
+        **({"kind": item.kind} if item.kind != "diameter" else {}),
     )
+    if item.kind != "diameter":
+        result.setdefault("dimension", {"kind": item.kind})
     return _with_document(
         _with_dimension_ids(result, dimension_id, item.sketch_id),
         context.documents,
@@ -713,13 +725,21 @@ def dimension_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str
     dimension_id = values["dimension_id"]
     item = context.documents.resolve_dimension(context.entry, dimension_id)
     feature = context.documents.resolve_sketch(context.entry, item.sketch_id)
-    result = set_dimension_windows(
+    adapter = (
+        set_dimension_windows
+        if item.kind == "diameter"
+        else set_rectangle_dimension_windows
+    )
+    result = adapter(
         app=context.app,
         document=context.entry.document,
         sketch_feature=feature,
         dimension=item.dimension,
         value_mm=float(values["value_mm"]),
+        **({"kind": item.kind} if item.kind != "diameter" else {}),
     )
+    if item.kind != "diameter":
+        result.setdefault("dimension", {"kind": item.kind})
     return _with_dimension_ids(result, dimension_id, item.sketch_id)
 
 
@@ -844,9 +864,13 @@ def execute_operation(
             documents.resolve_sketch(context.entry, values["sketch_id"])
         if "dimension_id" in values:
             binding = documents.resolve_dimension(context.entry, values["dimension_id"])
-            if (binding.kind, binding.profile_kind) != ("diameter", "circle"):
+            if (binding.kind, binding.profile_kind) not in (
+                ("diameter", "circle"),
+                ("width", "rectangle"),
+                ("height", "rectangle"),
+            ):
                 raise UnsupportedDimensionKind(
-                    "public dimension inspect/set currently supports circle diameters only"
+                    "unsupported native dimension/profile binding"
                 )
     activation = (
         documents.temporarily_activate(context.entry)

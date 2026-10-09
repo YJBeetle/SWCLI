@@ -335,7 +335,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     dimension_parser = subcommands.add_parser(
-        "dimension", help="discover, inspect or modify native circle diameters"
+        "dimension", help="discover diameters or inspect/modify verified native dimensions"
     )
     dimension_commands = dimension_parser.add_subparsers(
         dest="dimension_command", required=True
@@ -356,7 +356,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(dimension_inspect_parser)
     dimension_inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     dimension_set_parser = dimension_commands.add_parser(
-        "set", help="set and verify a driving diameter in the current configuration"
+        "set", help="set and verify a driving diameter, rectangle width or height"
     )
     dimension_set_parser.add_argument("dimension_id")
     dimension_set_parser.add_argument("--value-mm", type=float, required=True)
