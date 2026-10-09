@@ -546,6 +546,15 @@ class SketchListingTests(unittest.TestCase):
         self.app.IsSame = fail
         self.assert_failure(*self.call(), "RuntimeError")
 
+    def test_duplicate_identity_requires_native_enum_not_boolean_or_coercion(self):
+        for value in (True, False, "1", "0", 1.0, None):
+            with self.subTest(value=value):
+                self.setUp()
+                self.feature.root_next = FeatureFixture("other")
+                self.feature.root_next.feature_id = self.feature.feature_id
+                self.app.IsSame = lambda first, second: value
+                self.assert_failure(*self.call(), "RuntimeError")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -38,8 +38,8 @@ def _feature_id(feature: Any) -> int:
 
 
 def _same_feature(app: Any, first: Any, second: Any) -> bool:
-    status = int(app.IsSame(first, second))
-    if status not in (0, 1):
+    status = app.IsSame(first, second)
+    if isinstance(status, bool) or not isinstance(status, int) or status not in (0, 1):
         raise RuntimeError("SOLIDWORKS could not compare native feature identity")
     return status == 1
 
