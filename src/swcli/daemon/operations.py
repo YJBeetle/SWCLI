@@ -41,10 +41,10 @@ from ..hosts.windows_linear_dimensions import (
     inspect_rectangle_dimension_windows,
     set_rectangle_dimension_windows,
 )
-from ..hosts.windows_features import extrude_sketch_windows
+from ..hosts.windows_features import extrude_sketch_windows_with_handle
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
-from ..hosts.windows_cuts import cut_extrude_sketch_windows
+from ..hosts.windows_cuts import cut_extrude_sketch_windows_with_handle
 from ..hosts.windows_sketch_inspection import inspect_sketch_windows
 from ..hosts.windows_dimensions import (
     create_circle_diameter_windows_with_handle,
@@ -839,6 +839,30 @@ def dimension_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str
     return _with_dimension_ids(result, dimension_id, item.sketch_id)
 
 
+def _bind_created_feature(
+    context: OperationContext, result: Dict[str, Any], feature: Any
+) -> Dict[str, Any]:
+    descriptor = result.get("feature")
+    if result.get("ok") and (feature is None or not isinstance(descriptor, dict)):
+        raise OperationResultInvalid(
+            "feature creation succeeded without an exact object"
+        )
+    if feature is not None and isinstance(descriptor, dict):
+        try:
+            descriptor["feature_id"] = context.documents.register_feature(
+                context.entry, feature
+            )
+        except Exception as exc:
+            if result.get("ok"):
+                raise
+            # A registry problem must not replace the native mutation's first
+            # failure, or falsely suggest the created feature was rolled back.
+            result.setdefault("warnings", []).append(
+                {"code": "feature-handle-unavailable", "message": str(exc)}
+            )
+    return result
+
+
 @_register_handler
 def feature_extrude(
     context: OperationContext, values: Dict[str, Any]
@@ -846,17 +870,17 @@ def feature_extrude(
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     sketch_id = values["sketch_id"]
-    feature = context.documents.resolve_sketch(context.entry, sketch_id)
-    result = extrude_sketch_windows(
+    sketch_feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, feature = extrude_sketch_windows_with_handle(
         app=context.app,
         document=context.entry.document,
-        sketch_feature=feature,
+        sketch_feature=sketch_feature,
         depth_mm=float(values["depth_mm"]),
         reverse=values.get("reverse", False),
         merge=values.get("merge", True),
     )
     result["sketch_id"] = sketch_id
-    return result
+    return _bind_created_feature(context, result, feature)
 
 
 @_register_handler
@@ -866,16 +890,16 @@ def feature_cut_extrude(
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     sketch_id = values["sketch_id"]
-    feature = context.documents.resolve_sketch(context.entry, sketch_id)
-    result = cut_extrude_sketch_windows(
+    sketch_feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, feature = cut_extrude_sketch_windows_with_handle(
         app=context.app,
         document=context.entry.document,
-        sketch_feature=feature,
+        sketch_feature=sketch_feature,
         depth_mm=float(values["depth_mm"]),
         reverse=values.get("reverse", False),
     )
     result["sketch_id"] = sketch_id
-    return result
+    return _bind_created_feature(context, result, feature)
 
 
 @_register_handler

@@ -424,6 +424,7 @@ class CutExtrusionTests(unittest.TestCase):
     def test_success_schema_requires_actual_removal_and_healthy_native_result(self):
         result = self.cut()
         result["sketch_id"] = "s-ab12cd"
+        result["feature"]["feature_id"] = "f-ab12cd"
         result["document"] = {
             "title": "Part1",
             "path": "",
@@ -432,6 +433,10 @@ class CutExtrusionTests(unittest.TestCase):
             "update_stamp": 0,
         }
         validate_operation_result("feature.cut-extrude", result)
+        missing_handle = copy.deepcopy(result)
+        del missing_handle["feature"]["feature_id"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("feature.cut-extrude", missing_handle)
         for field, value in (
             ("volume_removed_mm3", 0),
             ("end_condition", 1),

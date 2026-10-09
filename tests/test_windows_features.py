@@ -224,6 +224,7 @@ class ExtrusionTests(unittest.TestCase):
     def test_success_contract_rejects_unverified_or_unrebuilt_results(self):
         result = self.extrude()
         result["sketch_id"] = "s-ab12cd"
+        result["feature"]["feature_id"] = "f-ab12cd"
         result["document"] = {
             "title": "Part1",
             "path": "",
@@ -232,6 +233,10 @@ class ExtrusionTests(unittest.TestCase):
             "update_stamp": 0,
         }
         validate_operation_result("feature.extrude", result)
+        missing_handle = copy.deepcopy(result)
+        del missing_handle["feature"]["feature_id"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("feature.extrude", missing_handle)
         for key in ("rebuilt", "geometry_verification", "diagnostics"):
             invalid = copy.deepcopy(result)
             if key == "rebuilt":

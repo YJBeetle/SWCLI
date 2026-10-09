@@ -11,7 +11,12 @@ from jsonschema import Draft202012Validator
 
 from swcli.cli import _typed_operation, build_parser
 from swcli.daemon.documents import DocumentRegistry, FeatureNotFound
-from swcli.daemon.operations import DocumentUpdateConflict, execute_operation
+from swcli.daemon.operations import (
+    DocumentUpdateConflict,
+    OperationContext,
+    _bind_created_feature,
+    execute_operation,
+)
 from swcli.operation_schemas import OPERATION_CATALOG, validate_operation_request
 from swcli.result_schemas import OperationResultInvalid, validate_operation_result
 
@@ -360,6 +365,95 @@ class FeatureObservationOperationTests(unittest.TestCase):
             _typed_operation(parser.parse_args(["feature", "list"])),
             ("feature.list", {"max_features": 1000}, False, None, None, None),
         )
+
+
+class FeatureCreationBindingTests(unittest.TestCase):
+    def setUp(self):
+        self.document = Document("target")
+        self.foreground = Document("other")
+        self.app = SimpleNamespace(
+            ActiveDoc=self.foreground,
+            GetDocuments=lambda: (self.document, self.foreground),
+            IsSame=lambda a, b: int(a.identity is b.identity),
+        )
+        self.registry = DocumentRegistry(self.app)
+        self.entry = self.registry.register(self.document)
+        self.context = OperationContext(
+            self.app,
+            "feature.extrude",
+            self.registry,
+            "modeler",
+            None,
+            None,
+            self.entry,
+        )
+        self.created = Feature(12, "Extrusion")
+        self.result = {
+            "ok": True,
+            "action": "feature.extrude",
+            "sketch_id": "s-ab12cd",
+            "feature": {"name": "created native boss", "type": "Extrusion"},
+        }
+
+    def test_binds_only_exact_returned_object_and_live_listing_reuses_it(self):
+        result = _bind_created_feature(self.context, self.result, self.created)
+        handle = result["feature"]["feature_id"]
+        self.assertIs(self.registry.resolve_feature(self.entry, handle), self.created)
+        self.assertEqual(result["sketch_id"], "s-ab12cd")
+        self.assertIs(self.app.ActiveDoc, self.foreground)
+        wrapper = Feature(12, "Extrusion", identity=self.created.identity)
+        self.assertEqual(self.registry.register_feature(self.entry, wrapper), handle)
+
+    def test_failed_native_verification_keeps_created_object_and_primary_error(self):
+        self.result.update(
+            ok=False, error={"type": "ModelInvalid", "message": "rebuild failed"}
+        )
+        result = _bind_created_feature(self.context, self.result, self.created)
+        self.assertEqual(result["error"]["type"], "ModelInvalid")
+        self.assertIs(
+            self.registry.resolve_feature(self.entry, result["feature"]["feature_id"]),
+            self.created,
+        )
+
+    def test_absent_object_or_metadata_cannot_be_success(self):
+        with self.assertRaises(OperationResultInvalid):
+            _bind_created_feature(self.context, self.result, None)
+        del self.result["feature"]
+        with self.assertRaises(OperationResultInvalid):
+            _bind_created_feature(self.context, self.result, self.created)
+        self.assertEqual(self.entry.features, {})
+
+    def test_failed_creation_does_not_invent_or_recover_a_handle(self):
+        self.result = {
+            "ok": False,
+            "action": "feature.extrude",
+            "error": {"type": "ExtrusionFailed", "message": "no feature"},
+        }
+        self.assertIs(
+            _bind_created_feature(self.context, self.result, None), self.result
+        )
+        self.assertNotIn("feature", self.result)
+        self.assertEqual(self.entry.features, {})
+
+    def test_registration_failure_does_not_replace_original_mutation_error(self):
+        self.result.update(
+            ok=False, error={"type": "ModelInvalid", "message": "native failure"}
+        )
+        with mock.patch.object(
+            self.registry, "register_feature", side_effect=RuntimeError("bad native ID")
+        ):
+            result = _bind_created_feature(self.context, self.result, self.created)
+        self.assertEqual(result["error"]["message"], "native failure")
+        self.assertEqual(result["warnings"][0]["code"], "feature-handle-unavailable")
+        self.assertNotIn("feature_id", result["feature"])
+
+    def test_success_with_unregistrable_native_handle_is_an_explicit_failure(self):
+        with mock.patch.object(
+            self.registry, "register_feature", side_effect=RuntimeError("bad native ID")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "bad native ID"):
+                _bind_created_feature(self.context, self.result, self.created)
+        self.assertNotIn("feature_id", self.result["feature"])
 
 
 if __name__ == "__main__":

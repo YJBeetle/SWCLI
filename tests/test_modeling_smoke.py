@@ -370,10 +370,12 @@ class FakeCLI:
                     else profile["width"] * profile["height"] * args.depth_mm
                 )
                 document["area"] += 16000
+            self.serial += 1
+            feature_id = self.feature_ids[(document_id, args.sketch_id)] = f"f-{self.serial:06x}"
             return {
                 "ok": True,
                 "document": self.descriptor(document, session),
-                "feature": {"name": "Cut1"},
+                "feature": {"name": "Cut1", "feature_id": feature_id},
                 "bodies": {
                     "count": document["count"],
                     "items": [

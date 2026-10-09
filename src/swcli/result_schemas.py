@@ -212,7 +212,14 @@ _RESULT_FIELDS = {
             "depth_mm": NUMBER,
             "reverse": BOOL,
             "merge": BOOL,
-            "feature": _object({"name": STRING, "type": STRING}, ("name", "type")),
+            "feature": _object(
+                {
+                    "name": STRING,
+                    "type": STRING,
+                    "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"},
+                },
+                ("name", "type"),
+            ),
             "rebuilt": BOOL,
             "diagnostics": DIAGNOSTICS,
             "bodies": BODIES,
@@ -1206,6 +1213,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         }
     if name in ("feature.extrude", "feature.cut-extrude"):
         schema["then"]["properties"] = {
+            "feature": {"required": ["feature_id"]},
             "rebuilt": {"const": True},
             "diagnostics": {"properties": {"healthy": {"const": True}}},
             "geometry_verification": {"properties": {"passed": {"const": True}}},

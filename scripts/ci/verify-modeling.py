@@ -368,6 +368,10 @@ class ModelingSmoke:
         if not cut and not merge:
             arguments.append("--no-merge")
         result = self.write(*arguments, document=document)
+        require(
+            re.fullmatch(r"f-[a-z0-9]{6}", result["feature"]["feature_id"]),
+            "native creation did not return an exact feature handle",
+        )
         geometry = result["geometry_verification"]
         require(
             geometry["passed"] is True and geometry["actual_reverse"] is reverse,
@@ -592,6 +596,14 @@ class ModelingSmoke:
                 self.background(absorbed, a)
                 feature_ids = self.observe_features(
                     a, bosses=1, cuts=1, background=True
+                )
+                require(
+                    set(feature_ids)
+                    == {
+                        extrusion["feature"]["feature_id"],
+                        cut["feature"]["feature_id"],
+                    },
+                    "live discovery did not reuse the exact created feature handles",
                 )
                 limited = self.command(
                     "feature", "list", "--max-features", 1,

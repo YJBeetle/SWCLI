@@ -461,7 +461,7 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(app.ActiveDoc, foreground)
         self.assertIs(registry.resolve(None, session_id="observer"), other)
 
-    @mock.patch("swcli.daemon.operations.cut_extrude_sketch_windows")
+    @mock.patch("swcli.daemon.operations.cut_extrude_sketch_windows_with_handle")
     def test_cut_extrude_requires_lease_and_stamp_and_resolves_exact_background_sketch(
         self, cut
     ):
@@ -498,7 +498,15 @@ class DaemonProtocolTests(unittest.TestCase):
                 expected_update_stamp=1,
             )
         cut.assert_not_called()
-        cut.return_value = {"ok": True, "action": "feature.cut-extrude"}
+        created = SimpleNamespace(GetID=lambda: 2)
+        cut.return_value = (
+            {
+                "ok": True,
+                "action": "feature.cut-extrude",
+                "feature": {"name": "native-cut", "type": "Cut"},
+            },
+            created,
+        )
 
         @contextmanager
         def activate(selected):
@@ -525,9 +533,12 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertFalse(result["document"]["active"])
         self.assertFalse(result["document"]["current"])
         self.assertEqual(result["sketch_id"], sketch_id)
+        self.assertIs(
+            registry.resolve_feature(entry, result["feature"]["feature_id"]), created
+        )
         self.assertIs(registry.resolve(None, session_id="modeler"), other)
 
-    @mock.patch("swcli.daemon.operations.extrude_sketch_windows")
+    @mock.patch("swcli.daemon.operations.extrude_sketch_windows_with_handle")
     def test_extrude_resolves_sketch_within_guarded_document_and_restores_foreground(
         self, extrude
     ):
@@ -578,7 +589,15 @@ class DaemonProtocolTests(unittest.TestCase):
             finally:
                 app.ActiveDoc = foreground
 
-        extrude.return_value = {"ok": True, "action": "feature.extrude"}
+        created = SimpleNamespace(GetID=lambda: 2)
+        extrude.return_value = (
+            {
+                "ok": True,
+                "action": "feature.extrude",
+                "feature": {"name": "native-boss", "type": "Extrusion"},
+            },
+            created,
+        )
         with mock.patch.object(registry, "temporarily_activate", side_effect=activate):
             with self.assertRaises(SketchNotFound):
                 operations.execute_operation(
@@ -609,6 +628,9 @@ class DaemonProtocolTests(unittest.TestCase):
             merge=False,
         )
         self.assertEqual(result["sketch_id"], sketch_id)
+        self.assertIs(
+            registry.resolve_feature(entry, result["feature"]["feature_id"]), created
+        )
         self.assertFalse(result["document"]["current"])
         self.assertFalse(result["document"]["active"])
         self.assertIs(registry.resolve(None, session_id="modeler"), other)
