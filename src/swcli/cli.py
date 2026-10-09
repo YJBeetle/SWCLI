@@ -321,6 +321,19 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(diameter_parser)
     diameter_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    rectangle_dimension_parser = sketch_commands.add_parser(
+        "dimension-rectangle",
+        help="add verified driving width/height without implicitly fixing the center",
+    )
+    rectangle_dimension_parser.add_argument("sketch_id")
+    rectangle_dimension_parser.add_argument("--width-mm", type=float, required=True)
+    rectangle_dimension_parser.add_argument("--height-mm", type=float, required=True)
+    add_document_selector(rectangle_dimension_parser)
+    add_lease_token(rectangle_dimension_parser)
+    rectangle_dimension_parser.add_argument(
+        "--json", action="store_true", dest="as_json"
+    )
+
     dimension_parser = subcommands.add_parser(
         "dimension", help="discover, inspect or modify native circle diameters"
     )
@@ -809,6 +822,19 @@ def _typed_operation(
         return (
             "sketch.fix-center",
             {"sketch_id": args.sketch_id},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
+    if args.command == "sketch" and args.sketch_command == "dimension-rectangle":
+        return (
+            "sketch.dimension-rectangle",
+            {
+                "sketch_id": args.sketch_id,
+                "width_mm": args.width_mm,
+                "height_mm": args.height_mm,
+            },
             args.as_json,
             args.document_id,
             args.expected_update_stamp,

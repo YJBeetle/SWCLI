@@ -3,7 +3,8 @@
 Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**.
 The development typed operation `sketch.fix-center` is now wired to the CLI,
 catalog, result contract and document/lease/stamp/foreground guards. Installed
-public Windows and Wine verification is still pending; this is not an a5 capability.
+public center-fix verification has passed Windows and MacSW dual-mode gates;
+size creation/read/edit still needs installed public proof. Neither is an a5 capability.
 The existing shared driving gate now exercises explicit fixing on three planes,
 repeated no-ops, lease/stamp refusal, background restoration and native
 save/close/reopen readback with fresh sketch handles. The front-plane case uses
@@ -11,8 +12,14 @@ the installed CLI with `--document` before the positional sketch ID. It also
 checks origin-relation refusal without mutation. No host restart or retry is
 inserted between modeling, diameter edits and these center checks.
 The [probe record](../verification/rectangle-dimensions-2026-10-08.md)
-distinguishes size control from positioning. No public command names or result
-Schemas are committed here for the size/discovery slice.
+distinguishes size control from positioning. The development creation command
+is now `sketch dimension-rectangle SKETCH_ID --width-mm W --height-mm H`.
+It preserves document/session/lease/stamp/foreground guards and requires verified
+native width and height plus per-step geometry/center evidence before publishing
+two exact dimension IDs. Failure retains partial mutation/cleanup evidence but
+publishes no unverified dimension ID. It does not call `fix-center` implicitly.
+Read/edit and saved-model discovery are separate pending public steps; do not
+infer that this development contract is already in a published wheel.
 
 The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now

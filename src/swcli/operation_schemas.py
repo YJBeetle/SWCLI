@@ -261,6 +261,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.dimension-rectangle": _operation(
+        "sketch.dimension-rectangle",
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "width_mm": _number(exclusiveMinimum=0),
+            "height_mm": _number(exclusiveMinimum=0),
+        },
+        required=("sketch_id", "width_mm", "height_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "dimension.discover-diameter": _operation(
         "dimension.discover-diameter",
         {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$")},

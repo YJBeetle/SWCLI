@@ -34,6 +34,9 @@ from ..hosts.windows_sketches import (
 from ..hosts.windows_rectangle_constraints import (
     fix_rectangle_center_windows_with_handle,
 )
+from ..hosts.windows_rectangle_dimensions import (
+    create_rectangle_dimensions_windows_with_handles,
+)
 from ..hosts.windows_features import extrude_sketch_windows
 from ..hosts.windows_native_files import save_as_part_windows
 from ..hosts.windows_measurements import measure_part_windows
@@ -50,6 +53,7 @@ from ..hosts.windows_dimension_discovery import (
 from ..result_schemas import (
     OperationResultInvalid,
     validate_dimension_discovery_observation,
+    validate_rectangle_creation_observation,
 )
 from .documents import (
     DEFAULT_SESSION_ID,
@@ -632,6 +636,50 @@ def dimension_discover_diameter(
             profile_kind="circle",
         )
         _with_dimension_ids(result, dimension_id, sketch_id)
+    return result
+
+
+@_register_handler
+def sketch_dimension_rectangle(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, handles = create_rectangle_dimensions_windows_with_handles(
+        app=context.app,
+        document=context.entry.document,
+        sketch_feature=feature,
+        width_mm=float(values["width_mm"]),
+        height_mm=float(values["height_mm"]),
+    )
+    result["sketch_id"] = sketch_id
+    # Failed/cleanup-failed partial creations retain native evidence, not
+    # verified public bindings. Only this registry may confer live IDs.
+    for descriptor in result.get("dimensions", {}).values():
+        descriptor.pop("dimension_id", None)
+        descriptor.pop("sketch_id", None)
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    if result.get("ok") is True:
+        validate_rectangle_creation_observation(result)
+        if any(handles.get(kind) is None for kind in ("width", "height")):
+            raise OperationResultInvalid(
+                "sketch.dimension-rectangle: verified pair has missing native handles"
+            )
+        for kind in ("width", "height"):
+            dimension_id = context.documents.register_dimension(
+                context.entry,
+                sketch_id,
+                handles[kind],
+                kind=kind,
+                profile_kind="rectangle",
+            )
+            result["dimensions"][kind].update(
+                dimension_id=dimension_id, sketch_id=sketch_id
+            )
     return result
 
 

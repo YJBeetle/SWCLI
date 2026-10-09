@@ -870,6 +870,52 @@ _DIMENSION_CONTROL_FIELDS = {
     ),
     "design_table_controlled": BOOL,
 }
+
+
+def _linear_dimension(kind):
+    schema = deepcopy(_DIMENSION)
+    schema["properties"]["kind"] = {"const": kind}
+    return schema
+
+
+# Size operations also accept rectangles without the two center diagonals.
+# Requiring those belongs to explicit center fixing, not size control.
+_RECTANGLE_SIZE_GEOMETRY = deepcopy(_RECTANGLE_GEOMETRY)
+_RECTANGLE_SIZE_GEOMETRY["properties"]["construction_segment_count"] = {
+    "type": "integer",
+    "minimum": 0,
+}
+_RECTANGLE_SIZE_VERIFICATION = deepcopy(
+    _RESULT_FIELDS["sketch.fix-center"][0]["geometry_verification"]
+)
+_RECTANGLE_SIZE_VERIFICATION["properties"]["actual"] = _RECTANGLE_SIZE_GEOMETRY
+_LINEAR_PAIR = _object({kind: _linear_dimension(kind) for kind in ("width", "height")})
+_RESULT_FIELDS["sketch.dimension-rectangle"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "dimensions": _LINEAR_PAIR,
+        "native_status": _object({"width": INTEGER, "height": INTEGER}),
+        "geometry_before": _RECTANGLE_SIZE_GEOMETRY,
+        "steps": _object(
+            {kind: _RECTANGLE_SIZE_VERIFICATION for kind in ("width", "height")}
+        ),
+        "geometry_verification": _RECTANGLE_SIZE_VERIFICATION,
+        "constraint_status": INTEGER,
+        "editing": BOOL,
+        "modification_may_have_happened": {"const": True},
+    },
+    (
+        "document",
+        "sketch_id",
+        "dimensions",
+        "native_status",
+        "geometry_before",
+        "steps",
+        "geometry_verification",
+        "constraint_status",
+        "editing",
+    ),
+)
 _RESULT_FIELDS["sketch.dimension-diameter"] = (
     {
         "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
@@ -1103,6 +1149,48 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 }
             },
         )
+    if name == "sketch.dimension-rectangle":
+        verified = {
+            "properties": {
+                field: {"const": True}
+                for field in ("passed", "size_matched", "center_preserved")
+            }
+        }
+        schema["then"]["properties"] = {
+            "editing": {"const": False},
+            "dimensions": {
+                "required": ["width", "height"],
+                "properties": {
+                    kind: {
+                        "required": list(_DIMENSION["properties"]),
+                        "properties": {
+                            "value": {"type": "number", "exclusiveMinimum": 0},
+                            "driven_state": {"const": 2},
+                            "read_only": {"const": False},
+                        },
+                    }
+                    for kind in ("width", "height")
+                },
+            },
+            "native_status": {
+                "required": ["width", "height"],
+                "properties": {kind: {"const": 0} for kind in ("width", "height")},
+            },
+            "steps": {
+                "required": ["width", "height"],
+                "properties": {kind: verified for kind in ("width", "height")},
+            },
+            "geometry_verification": verified,
+        }
+        schema["then"]["not"] = {"required": ["modification_may_have_happened"]}
+        schema["else"]["properties"] = {
+            "dimensions": {
+                "properties": {
+                    kind: {"not": {"required": ["dimension_id"]}}
+                    for kind in ("width", "height")
+                }
+            }
+        }
     if name in (
         "sketch.dimension-diameter",
         "dimension.discover-diameter",
@@ -1302,10 +1390,92 @@ def validate_dimension_discovery_observation(result: Dict[str, Any]) -> None:
     _validate_dimension_discovery_state(result)
 
 
+def _validate_rectangle_creation(result: Dict[str, Any]) -> None:
+    if result["ok"] is not True:
+        return
+    verification = result["geometry_verification"]
+    before = result["geometry_before"]
+    for phase, evidence in (
+        ("width", result["steps"]["width"]),
+        ("height", result["steps"]["height"]),
+        ("final", verification),
+    ):
+        actual = evidence["actual"]
+        expected_height = (
+            before["height_mm"]
+            if phase == "width"
+            else verification["expected_height_mm"]
+        )
+        if (
+            evidence["expected_width_mm"] != verification["expected_width_mm"]
+            or evidence["expected_height_mm"] != expected_height
+            or evidence["expected_center_mm"] != before["center_mm"]
+            or any(
+                not isclose(value, expected, rel_tol=0, abs_tol=1e-6)
+                for value, expected in (
+                    (actual["width_mm"], evidence["expected_width_mm"]),
+                    (actual["height_mm"], expected_height),
+                    *[
+                        (actual["center_mm"][axis], before["center_mm"][axis])
+                        for axis in ("x", "y", "z")
+                    ],
+                )
+            )
+        ):
+            raise OperationResultInvalid(
+                "sketch.dimension-rectangle: inconsistent native size/center evidence"
+            )
+    if (
+        any(
+            not isclose(
+                result["dimensions"][kind]["value"],
+                verification[f"expected_{kind}_mm"],
+                rel_tol=0,
+                abs_tol=1e-6,
+            )
+            or (
+                "sketch_id" in result["dimensions"][kind]
+                and result["dimensions"][kind]["sketch_id"] != result["sketch_id"]
+            )
+            for kind in ("width", "height")
+        )
+        or result["dimensions"]["width"]["configuration"]
+        != result["dimensions"]["height"]["configuration"]
+    ):
+        raise OperationResultInvalid(
+            "sketch.dimension-rectangle: inconsistent dimension bindings"
+        )
+
+
+@lru_cache(maxsize=1)
+def _rectangle_creation_observation_validator():
+    from jsonschema import Draft202012Validator
+
+    schema = operation_result_schema("sketch.dimension-rectangle")
+    for kind in ("width", "height"):
+        required = schema["then"]["properties"]["dimensions"]["properties"][kind][
+            "required"
+        ]
+        required.remove("dimension_id")
+        required.remove("sketch_id")
+    return Draft202012Validator(schema)
+
+
+def validate_rectangle_creation_observation(result: Dict[str, Any]) -> None:
+    _validate_result(
+        "sketch.dimension-rectangle",
+        result,
+        _rectangle_creation_observation_validator(),
+    )
+    _validate_rectangle_creation(result)
+
+
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
     if name == "dimension.discover-diameter":
         _validate_dimension_discovery_state(result)
+    if name == "sketch.dimension-rectangle":
+        _validate_rectangle_creation(result)
     if name == "sketch.fix-center" and result["ok"] is True:
         before, after = result["center_before"], result["center"]
         verification = result["geometry_verification"]
