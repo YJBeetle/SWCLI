@@ -452,3 +452,18 @@ distribution contains the fixture, generator and README. Local native front
 center persistence and the real origin refusal pass after shared modeling on
 the same visible SW instance. The complete three-plane and hosted gates remain
 the delivery requirement, not this partial observation.
+
+The complete local visible sequence subsequently passed: 85 modeling and 361
+driving/center events, the same SW PID 504 throughout, all three planes including
+native save/reopen persistence, actual origin-relation refusal and zero cleanup
+errors. The final document list was empty and the owned daemon stopped normally.
+This uses the local hardware renderer, not the hosted software-only environment.
+
+[SWCLI CI 37889825232](https://github.com/YJBeetle/SWCLI/actions/runs/37889825232)
+passed both Windows unit jobs but stopped at `Build wheel / Build and inspect
+distributions`: its existing no-CAD source policy also rejected this newly
+authorized, generated test fixture, so no native job ran. The packaging follow-up
+permits only this fixed path, checksum, regular file and <=64 KiB size; duplicates
+and every other CAD/media/registry payload still fail. A real built sdist passes
+the verifier; 793 portable tests pass (eight skipped). Hosted runtime proof is
+still required separately.

@@ -19,6 +19,10 @@ The shared gate checks this hash and copies the fixture to its existing shared
 output directory, then opens it read-only. It never saves or regenerates it.
 Missing/corrupt assets fail instead of skipping the negative assertion.
 
+The source-distribution verifier allows only this exact CAD path and checksum
+(at most 64 KiB, no duplicate entry). Other CAD models, installation media and
+registry payloads remain forbidden. The fixture is not bundled in the wheel.
+
 To regenerate with Windows Python/pywin32, close SOLIDWORKS and run:
 
 ```powershell
