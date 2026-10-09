@@ -409,3 +409,20 @@ The suite passes 788 tests with eight Windows-only skips. The complete unchanged
 modeling/dimension gate and hosted Windows verification remain required;
 this local hardware-rendered Wine comparison does not establish the cause of
 MacSW hosted software-renderer stalls.
+
+### CLI presentation metadata in the shared gate — 2026-10-09
+
+With the inference guard installed, local shared modeling passed and the
+subsequent front rectangle and center-fix operation both returned the requested
+40x30 mm geometry at (3,4). The gate then rejected its CLI assertion view because
+the public CLI adds the response `request_id` to the flat business payload.
+The operation-result schema correctly excludes response-envelope metadata.
+
+The gate now retains complete CLI JSON in its evidence but removes only the
+known presentation keys `request_id` and `replayed` from its business assertion
+view. Unknown business keys still reach strict validation. Its fake CLI now
+uses the real `_typed_payload` formatter, so portable center tests exercise the
+same presentation boundary. This is a gate-format repair, not a change to the
+native result schema or geometry tolerances. The full suite passes 789 tests,
+eight skipped. The next local run advanced to the origin fixture, where a
+separate assumption about automatically inferred origin relations needs review.

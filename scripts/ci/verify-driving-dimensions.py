@@ -437,7 +437,14 @@ class DrivingSmoke:
             raise
         event["state"] = "completed"
         self.checkpoint("cli.completed")
-        return result
+        # CLI flattens response metadata into its presentation payload; the
+        # operation-result schema describes only the daemon's business result.
+        # Retain the full payload in evidence, stripping only these known keys
+        # from the assertion view (not arbitrary unexpected properties).
+        return {
+            key: value for key, value in result.items()
+            if key not in ("request_id", "replayed")
+        }
 
     def create(self, *, session_id=None):
         result = self.call(

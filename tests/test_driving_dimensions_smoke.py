@@ -14,6 +14,7 @@ import unittest
 from unittest import mock
 
 from swcli.operation_schemas import validate_operation_request
+from swcli.cli import _typed_payload
 
 script = Path(__file__).resolve().parents[1] / "scripts/ci/verify-driving-dimensions.py"
 spec = importlib.util.spec_from_file_location("driving_smoke", script)
@@ -549,10 +550,11 @@ class FakeDaemon:
         else:
             values = {"dimension_id": arguments[2]}
         response = self.call(operation, values, **context)
+        response["request_id"] = "fixture-request"
         return subprocess.CompletedProcess(
             command,
             0 if response["success"] else 1,
-            json.dumps(response.get("result", response)).encode("utf-8"),
+            json.dumps(_typed_payload(operation, response)).encode("utf-8"),
             b"",
         )
 
@@ -842,6 +844,19 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
 
     def test_default_cli_stays_isolated(self):
         self.assertEqual(self.smoke.cli[1:], ["-I", "-m", "swcli"])
+
+    def test_cli_metadata_is_preserved_in_evidence_but_not_business_schema_view(self):
+        payload = {
+            "ok": True, "request_id": "fixture-request", "replayed": True,
+            "unexpected_business_field": 7,
+        }
+        with mock.patch.object(
+            driving_smoke.subprocess, "run",
+            return_value=subprocess.CompletedProcess([], 0, json.dumps(payload).encode(), b""),
+        ):
+            result = self.smoke.command(["dimension", "inspect", "m-ab12cd"])
+        self.assertEqual(result, {"ok": True, "unexpected_business_field": 7})
+        self.assertEqual(self.smoke.record["events"][-1]["result"], payload)
 
     def test_cli_command_validation_rejects_ambiguous_paths(self):
         with tempfile.TemporaryDirectory() as directory:
