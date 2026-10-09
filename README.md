@@ -585,6 +585,57 @@ independent DockerSW hidden Wine delivery pass, are recorded in the
 [a5 release notes](docs/releases/v0.1.0a5.md) distinguish development proofs
 from final-version verification. Neither claims MacSW runtime proof.
 
+## Rectangle positioning and driving sizes (a6 candidate)
+
+These commands require a matching daemon advertising the a6 operations; the
+published a5 wheel does not contain them. Development candidates passed Windows
+visible/hidden and DockerSW hidden Wine gates. Formal-version verification and
+publication are tracked in the [a6 release checklist](docs/releases/v0.1.0a6.md).
+
+```powershell
+sw-cli document create --json
+$rectangle = sw-cli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
+sw-cli sketch fix-center $rectangle.sketch.sketch_id --json
+$size = sw-cli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
+sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
+sw-cli dimension inspect $size.dimensions.width.dimension_id --json
+sw-cli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
+sw-cli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
+sw-cli document measure --json
+```
+
+Positioning is explicit: `fix-center` fixes the verified current native center
+of a supported unabsorbed center rectangle. Size creation does **not** invoke it
+implicitly. An exact existing fix is a verified no-op; extra/suppressed/origin
+relations are refused rather than removed. Being centered at (0,0) alone does
+not prove an origin relation. Verified width/height does not mean arbitrary
+constraint support or mechanical-design approval.
+
+The returned `.dimensions.width` and `.dimensions.height` are exact live axis
+handles. Inspection is read-only; editing changes only the current configuration,
+preserving the other size and center and checking native/rebuild/downstream
+evidence. Driven/read-only/equation/design-table controls are not overridden.
+Writes retain document/session/lease/update-stamp guards. Failure may leave
+partial native dimensions without a public pair; it is not a rollback guarantee.
+
+After authorized native save/close/reopen, use `sketch list` for a fresh profile:
+
+```powershell
+$found = sw-cli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
+sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
+sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
+```
+
+Replace the placeholders with returned IDs. Discovery requires one observable,
+unambiguous native width/height pair agreeing with independent geometry and
+unchanged configuration/edit/stamp state. It preserves foreground and session
+current, does not select/activate or change display, and reuses IDs on repeated
+live discovery. An empty display chain means unavailable observation, not absent
+dimensions. Partial/ambiguous reads publish no IDs; closed-document IDs remain
+expired. A discovered handle is not permission to modify or save the source.
+Exact candidate evidence is in the
+[rectangle verification record](docs/verification/rectangle-dimensions-2026-10-08.md).
+
 ## Feature operations (since v0.1.0a4)
 
 ```powershell

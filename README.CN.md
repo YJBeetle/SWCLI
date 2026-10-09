@@ -322,6 +322,36 @@ sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --
 
 Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独立的 DockerSW 隐藏 Wine 交付通过记录，见 [a5 验证记录](docs/verification/a5-2026-10-07.md)。[a5 发行说明](docs/releases/v0.1.0a5.md) 区分开发候选与正式版本验证；两者都不代表 MacSW 实际运行验证。
 
+## 矩形定位与驱动宽高（a6 候选）
+
+这些命令需要匹配且通过 capabilities 发布 a6 操作的 daemon；已发布的 a5 wheel 不包含它们。开发候选已通过 Windows 可见/隐藏双模式及 DockerSW 隐藏 Wine 门禁。正式版本验证与发布进度见 [a6 发行清单](docs/releases/v0.1.0a6.md)。
+
+```powershell
+sw-cli document create --json
+$rectangle = sw-cli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
+sw-cli sketch fix-center $rectangle.sketch.sketch_id --json
+$size = sw-cli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
+sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
+sw-cli dimension inspect $size.dimensions.width.dimension_id --json
+sw-cli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
+sw-cli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
+sw-cli document measure --json
+```
+
+定位是显式选择：`fix-center` 只固定受支持、尚未被吸收的中心矩形的准确原生中心；宽高创建**不会隐式调用它**。准确已有固定关系会成为经过验证的无操作；额外、被抑制或原点关系会被拒绝，不会被删除。中心坐标为 (0,0) 本身不证明已有原点约束。宽高验证通过不代表通用约束求解或机械设计审批。
+
+返回的 `.dimensions.width` 与 `.dimensions.height` 是准确原生轴尺寸的存活句柄。inspect 只读；set 只修改当前配置，保持另一轴与中心，检查原生读回、重建诊断及适用的下游实体证据。不会覆盖从动、只读、方程或设计表控制，写操作仍遵守文档、session、lease 与更新戳守卫。失败可能留下部分原生尺寸但没有公开句柄对，不保证回滚。
+
+在获准保存原生零件并关闭重开后，先用 `sketch list` 取得新草图，再发现宽高：
+
+```powershell
+$found = sw-cli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
+sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
+sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
+```
+
+请把占位符换成返回的 ID。发现要求唯一可观察的准确原生宽高对，与独立几何及保持不变的配置、编辑状态、更新戳一致。它保持前台和 session current，不选择、激活或改变显示；对同一存活对象重复发现会复用 ID。显示链为空表示无法观察，不证明没有尺寸；不完整或歧义观察不会发布 ID，已关闭文档的旧 ID 始终失效。发现句柄不代表获得修改或保存源文件的授权。确切开发候选证据见 [矩形验证记录](docs/verification/rectangle-dimensions-2026-10-08.md)。
+
 ## 特征操作（自 v0.1.0a4 起）
 
 ```powershell
