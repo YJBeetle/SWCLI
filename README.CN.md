@@ -33,6 +33,7 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
 
 **a7 开发工作区**还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
+成功的拉伸和切除创建也会直接从原生创建返回对象提供 `.feature.feature_id`。
 这些命令不在已发布的 a6 wheel 中，深度编辑也尚未实现。设计与验证边界见
 [特征深度计划](docs/design/feature-depth-editing.md) 和
 [只读层验证记录](docs/verification/a7-feature-observation-2026-10-10.md)。
@@ -388,13 +389,23 @@ sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID -
 和以毫米计的正向深度参数，不代表允许编辑、实际材料厚度或非定深终止的行程。
 切除的原生 `reverse_direction` 与创建命令归一化后的 `--reverse` 不是同一语义。
 
+开发版创建结果可直接检查，不需要按名称反查：
+
+```powershell
+$boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
+sw-cli feature inspect $boss.feature.feature_id --json
+```
+
+使用与创建相同的目标文档、会话及所需写租约。创建之后重建或验证失败时仍可能返回
+已创建句柄；它标识部分修改，不代表模型成功，也不意味着自动回滚。
+
 ## 零件建模
 
 SWCLI 的 JSON stdout 使用 UTF-8。Windows PowerShell 5.1 中，将 CLI JSON 交给 `ConvertFrom-Json` 前应设置原生命令管道的解码方式：
 
 ```powershell
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-sw-cli document status --json | ConvertFrom-Json
+sw-cli document inspect --json | ConvertFrom-Json
 ```
 
 案例会在每次 CLI 调用期间设置 UTF-8，并在成功或失败后恢复调用者原编码。PowerShell 7 通常已默认使用 UTF-8。

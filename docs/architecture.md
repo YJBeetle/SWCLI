@@ -324,7 +324,10 @@ extrusions. A complete bounded traversal returns short document-local `f-` IDs;
 native `GetID` indexes `IsSame` verification, never a feature-name lookup or a
 persistent reference. Rename/repeated wrappers reuse live IDs, while retired
 IDs are not reissued during the worker's lifetime. Close/reopen requires new
-handles. Creation results do not yet expose these feature IDs.
+handles. Boss/cut creation results register the exact native creation return,
+not a subsequent active/last feature. Successful responses require a feature ID;
+post-creation failures preserve the first error and any available exact handle.
+Such a handle identifies partial mutation, not edit authority or a rollback.
 
 Reads preserve foreground, session current, configuration, edit identity,
 modified flag and update stamp. They do not activate/select/rebuild or call

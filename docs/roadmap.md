@@ -67,8 +67,9 @@ Next:
 
 1. Finish the [a7 feature-depth slice](design/feature-depth-editing.md). Exact
    feature handles and read-only `feature.list/inspect` are implemented and
-   locally proved through Windows CLI/TCP/COM. Hosted shared-gate evidence,
-   creation-result handles and guarded blind boss/cut depth writes are pending.
+   locally proved through Windows CLI/TCP/COM. Creation returns exact feature
+   handles and live discovery reuses them, with independent Windows proof.
+   Hosted shared-gate evidence and guarded blind boss/cut depth writes are pending.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.

@@ -53,9 +53,36 @@ non-holder session path is covered by portable contracts and the new shared gate
 - Hosted Windows execution of the extended shared modeling gate.
 - Linux/Wine and macOS/Wine runtime proof for these new operations; older a6
   host passes do not establish a7 feature support.
-- Exact feature handles in creation results and guarded blind depth edits,
+- Guarded blind depth edits,
   including protected-control checks and rollback/restoration ownership.
 - Formal a7 candidate, release assets and distribution verification.
 
 No setter, automatic retry, source save, transaction rollback or host restart is
 part of the feature read path.
+
+## Independent creation-handle proof
+
+Native-return refactor `9da7c80` and public wiring
+`5d7137320410753e6a7613cbb86e7635d2bd4839` add exact boss/cut creation handles.
+The portable suite passed **898 tests**, with eight Windows-only tests skipped.
+Contracts require handles on success, retain original post-creation failures,
+reject invented/missing objects and verify discovery reuses creation IDs.
+
+On the same Windows host/revision and shared SW PID **1096**, a separate probe
+used actual CLI/TCP/STA-worker calls to create only two new unsaved test parts.
+It created a background 100×50×20 mm boss and radius-3/depth-5 mm cut with
+lease and explicit update-stamp guards. Creation IDs `f-z9p6k0`/`f-d7cd9m`
+were immediately inspectable, reused by repeated lists, and rejected on the
+other document with `FeatureNotFound`. Foreground/session identity was retained.
+Both test documents were closed; original documents, initial foreground and SW
+PID remained unchanged, with no cleanup errors.
+
+Raw evidence: `C:\Workspace\SWCLI-tests\a7-feature-create-sisGJ3\feature-create.json`,
+copied to `/private/tmp/swcli-a7-feature-create.sisGJ3/feature-create.json`.
+SHA256: `607bd5a9babdd45e6d06c21b944cef3b5c3c32f37677c44cb0451db4e454530e`.
+An earlier probe-harness attempt called the nonexistent `document status`; it
+failed before creating any sketch/feature and cleaned up its two empty parts.
+The corrected probe used `document inspect` on fresh parts, not a CAD mutation retry.
+
+This separately proves local native creation IDs, not hosted Windows/Wine gates
+or depth editing. The read-layer probes above predate these creation changes.

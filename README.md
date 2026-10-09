@@ -53,8 +53,9 @@ fixing, driving width/height creation/editing and saved-pair discovery. This is
 not general dimension editing or a promise of fully defined sketches.
 
 The **a7 development checkout** additionally exposes read-only `feature list`
-and `feature inspect`, with exact short feature handles. This is not in the
-published a6 wheel; depth editing is not yet implemented. See the
+and `feature inspect`, with exact short feature handles. Successful boss/cut
+creation also returns `.feature.feature_id` from the exact native creation
+object. This is not in the published a6 wheel; depth editing is not yet implemented. See the
 [feature-depth plan](docs/design/feature-depth-editing.md) and
 [read-layer verification](docs/verification/a7-feature-observation-2026-10-10.md).
 
@@ -686,6 +687,17 @@ Inspection reports native definition flags and the forward depth parameter in
 mm, not edit eligibility, actual material thickness or nonblind travel distance.
 Native cut `reverse_direction` is not creation's normalized `--reverse`.
 
+Development creation results can be inspected directly without a name lookup:
+
+```powershell
+$boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
+sw-cli feature inspect $boss.feature.feature_id --json
+```
+
+Use the same selected document/session and required write lease as for creation.
+A failed post-creation rebuild/verification may still report the created handle;
+this identifies a partial mutation, not a successful model or an automatic rollback.
+
 ## Part modeling
 
 For a readable end-to-end Windows example, see
@@ -711,7 +723,7 @@ decoder before piping CLI JSON into `ConvertFrom-Json`:
 
 ```powershell
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-sw-cli document status --json | ConvertFrom-Json
+sw-cli document inspect --json | ConvertFrom-Json
 ```
 
 The example scopes that setting to each CLI call and restores the caller's

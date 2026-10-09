@@ -4,8 +4,9 @@ Status: **a7 development**, not a capability of the published a6 wheel.
 Document-local feature handles and public read-only `feature.list/inspect` are
 implemented, with portable contracts and native Windows CLI/TCP/COM proof.
 The existing shared modeling gate now includes these reads; its hosted Windows
-and Wine results are still pending. Depth writes and public creation-result
-feature handles remain pending; no native editing proof is claimed.
+and Wine results are still pending. Public creation-result handles are implemented
+with independent native Windows CLI/TCP/COM proof. Depth writes remain pending;
+no native editing proof is claimed.
 
 ## First slice
 
@@ -36,6 +37,10 @@ Its contract is not exposed yet; this is not a generic COM bridge.
 - Register creation's exact returned feature, never a subsequent active/last
   feature or a localized name. Register discovered handles only after complete
   supported observations; partial reads publish no successful list.
+- Successful boss/cut creation requires `.feature.feature_id`. If native
+  creation succeeded but a later rebuild/verification failed, preserve the first
+  error and any obtainable exact handle. A registry failure cannot replace the
+  first mutation failure; a handle is not proof of rollback or a valid model.
 
 ## Read-only boundary
 
