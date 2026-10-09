@@ -119,3 +119,30 @@ copied to `/private/tmp/swcli-a7-depth-preflight.PT5JW4/depth-preflight.json`.
 SHA256: `0faa1a83e5ddf258d71961dce30849c69ed756c6318591dd18f3673410bf77f1`.
 This is an internal Windows control-read proof, not setter, rollback-lifecycle,
 hosted CI or Wine verification.
+
+## Test-only native depth feasibility
+
+A separate, unexposed native probe used the preliminary guard from `05ff006`
+on an unsaved copy of the same simple single-configuration test part. It changed
+the exact boss from **20 → 25 mm**, then the exact cut from **5 → 8 mm**, using
+`SetDepth(True, meters)`, `SetChangeToConfigurations(1, empty)` and
+`ModifyDefinition(data, exact part, null component)`. It never called
+`AccessSelections`, selected a feature, saved a source or restarted the host.
+
+Both native changes passed rebuild, complete feature diagnostics, fresh depth
+and non-depth flag/control readback. Independent kernel volume matched
+`100 × 50 × boss_depth − π × 3² × cut_depth`. Before `ModifyDefinition`, staged
+feature-data setters left model stamp, modified flag and measured geometry
+unchanged. This is evidence for avoiding unnecessary selection-access rollback
+in this fixture, not a guarantee for arbitrary native references or feature data.
+
+The original documents/foreground/shared PID **1096** were preserved, with no
+cleanup errors. The unsaved test copy was closed, and its on-disk SHA256 remained
+unchanged. Raw evidence lives at
+`C:\Workspace\SWCLI-tests\a7-depth-native-WIzuJH\depth-native.json` and
+`/private/tmp/swcli-a7-depth-native.WIzuJH/depth-native.json`.
+SHA256: `f0f0874dc5694d109a20eb3142c49cef676d4f1791bf0c16bb1aa57d328a203d`.
+
+This probe is not a shipped adapter, typed protocol call, public editing
+capability, no-op/failure/restoration test or Windows/Wine CI gate. Production
+setter implementation and those contracts/evidence remain pending.

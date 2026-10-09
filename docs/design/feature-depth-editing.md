@@ -6,7 +6,8 @@ implemented, with portable contracts and native Windows CLI/TCP/COM proof.
 The existing shared modeling gate now includes these reads; its hosted Windows
 and Wine results are still pending. Public creation-result handles are implemented
 with independent native Windows CLI/TCP/COM proof. Depth writes remain pending;
-no native editing proof is claimed.
+no shipped depth-setter proof is claimed. Test-only native feasibility is
+recorded separately below.
 
 An internal, nonmutating preliminary depth guard is also implemented. It reads
 strict writable/view-only, suppression/freeze/rollback, native command,
@@ -93,6 +94,14 @@ Failures preserve the original error and available partial-mutation/cleanup
 evidence. No setter retry, implicit restart or automatic transaction rollback.
 No-op semantics must be independently proved, not implemented by skipping
 required native observations.
+
+A test-only SW2025 trial has proved `SetDepth` → current-configuration scope →
+`ModifyDefinition` → rebuild/readback on a simple single-config boss/cut part
+**without `AccessSelections`**. Feature-data staging left the model untouched;
+the committed modification matched independent analytical volumes. This is
+native feasibility for that fixture, not an implemented public setter or proof
+of arbitrary reference/body scopes. Prefer a non-selection-access depth path
+only after retaining the necessary scope, restoration and failure checks.
 
 ## Validation sequence
 
