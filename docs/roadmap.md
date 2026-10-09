@@ -72,8 +72,11 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    [rectangle verification record](verification/rectangle-dimensions-2026-10-08.md).
    Development `sketch.dimension-rectangle` and role-specific `dimension.inspect/set`
    contracts are now wired with exact IDs, per-step native evidence and existing
-   guards; installed public linear proof and saved linear discovery remain
-   unfinished steps. These development results are not an a6 release or an a5 wheel feature.
+   guards. Installed size creation/read/edit now pass local Windows visible/hidden
+   gates (`9380bc9`). The development `dimension.discover-rectangle` contract and
+   shared save/reopen gate are implemented; installed saved-size discovery and
+   Wine proof remain unfinished. These results are not an a6 release or an a5
+   wheel feature.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

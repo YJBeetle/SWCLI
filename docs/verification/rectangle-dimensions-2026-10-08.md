@@ -6,6 +6,40 @@ source-only a6 internal adapters. None is a public CLI/release gate, general
 constraint support or Wine/macOS proof; pending lists in earlier sections
 describe that stage's evidence boundary, not the latest adapter state.
 
+## Installed public size controls — 2026-10-10
+
+Candidate `9380bc9` passed the existing shared modeling and driving scripts from
+an isolated **installed wheel** on Windows ARM64 / Python `3.14.7` / SOLIDWORKS
+`33.5.0`. This is local native execution, not hosted CI, Wine or a published a6.
+
+| Mode | Owned SW PID throughout modeling and dimensions | Rectangle planes |
+| --- | --- | --- |
+| Visible | 7924 | front, top, right |
+| Hidden | 9180 | front, top, right |
+
+Each mode continuously ran modeling, diameter edits/discovery, explicit center
+fixes and rectangle size creation/inspection/editing without a host replacement
+or retry. Rectangles were explicitly fixed at (3,4,0) mm before size creation.
+After a 10 mm boss, width 40→50 mm preserved height 30 mm and measured 15000 mm³;
+height 30→35 mm preserved width 50 mm and measured 17500 mm³. Both edits preserved
+the center on all planes. Native controls, geometry, complete rebuild diagnostics
+and independent body measures passed. Lease/stamp/duplicate refusals, leased
+background read-only inspection, foreground restoration and expired IDs also
+passed. Front-plane creation/edit used the installed CLI with `--document`
+before the positional handle. All four terminal modeling/driving records have
+`success: true`, `stage: completed` and empty cleanup errors. Both daemons stopped
+normally; the VM remained running.
+
+Evidence: `C:\Workspace\SWCLI-tests\a6-public-linear-f44c8189`, copied locally to
+`/private/tmp/swcli-a6-public-linear-proof`. Each mode contains
+`modeling/modeling.json`, `driving/driving-dimensions.json`, native call logs and
+daemon status/stop records. Wheel SHA-256:
+`4062d60f2aa5aca4f9037bdf177d0c80b6b0efe63375bdd8e0bbf17da842c15e`.
+The exact shared-script hashes are retained in `gate-sha256.json`.
+
+This candidate predates public saved-size discovery. Its successful native
+center/diameter reopen tests are **not** rectangle-width/height reopen proof.
+
 ## Matched independent cases
 
 Two fresh owned **visible** Windows hosts, SOLIDWORKS revision `33.5.0`, tested
