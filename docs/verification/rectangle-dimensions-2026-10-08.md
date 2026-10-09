@@ -511,3 +511,11 @@ matched the candidate. Evidence is retained at
 The isolated test environment did not upgrade the normal Windows installation;
 owned test processes exited and an unrelated SW instance was left untouched.
 The portable suite passes 803 tests (eight skipped).
+
+The corrected wheel also passed a second fresh local macOS/Wine visible host
+(SW PID 1044 / 33.5.0): 85 modeling and 361 driving events, both cleanup arrays
+empty, three-plane center persistence and real origin refusal verified. Its
+owned instance stopped normally; the original GUI was restored and the two
+installed adapter source hashes still match the tested candidate. Thus both
+local Windows and macOS visible/hidden matrices pass. Local evidence remains
+distinct from the hosted software-renderer run.
