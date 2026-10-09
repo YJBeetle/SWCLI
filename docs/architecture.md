@@ -319,6 +319,22 @@ controls. The [rectangle design](design/rectangle-driving-dimensions.md) and
 [a6 verification record](verification/a6-2026-10-10.md) distinguish
 implemented contracts, development native gates and formal release proof.
 
+The a7 development catalog adds `feature.list/inspect` for exact part boss/cut
+extrusions. A complete bounded traversal returns short document-local `f-` IDs;
+native `GetID` indexes `IsSame` verification, never a feature-name lookup or a
+persistent reference. Rename/repeated wrappers reuse live IDs, while retired
+IDs are not reissued during the worker's lifetime. Close/reopen requires new
+handles. Creation results do not yet expose these feature IDs.
+
+Reads preserve foreground, session current, configuration, edit identity,
+modified flag and update stamp. They do not activate/select/rebuild or call
+`AccessSelections` (which would roll the model back). Native and wire contracts
+are checked before registering discovered handles; failed observations publish
+no usable partial list/definition. These reads can observe a leased or read-only
+document, but handles do not grant edit authority. Depth-only writes remain a
+separate pending slice. See [feature-depth design](design/feature-depth-editing.md)
+and [read-layer evidence](verification/a7-feature-observation-2026-10-10.md).
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli

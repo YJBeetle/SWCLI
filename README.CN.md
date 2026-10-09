@@ -32,6 +32,11 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
 
+**a7 开发工作区**还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
+这些命令不在已发布的 a6 wheel 中，深度编辑也尚未实现。设计与验证边界见
+[特征深度计划](docs/design/feature-depth-editing.md) 和
+[只读层验证记录](docs/verification/a7-feature-observation-2026-10-10.md)。
+
 ## 安装
 
 ### Windows 平台
@@ -52,7 +57,7 @@ python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/relea
 
 `v0.1.0a6` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
-升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸句柄和 lease
+升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸、特征句柄和 lease
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
 [a6 发行说明](docs/releases/v0.1.0a6.md)。
 
@@ -366,6 +371,22 @@ sw-cli document diagnose --json
 ```
 
 `feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。
+
+### 只读特征发现（a7 开发版）
+
+当匹配的开发版客户端与 daemon 广告这些操作时：
+
+```powershell
+$features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
+sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
+```
+
+把 `DOCUMENT_ID` 换成所选零件的 ID。列举仅涵盖受支持的实体拉伸和切除，不是整棵特征树；
+`--max-features` 超出限制时失败，不返回被截断的成功列表。句柄指向准确原生特征，重命名及
+重复存活观察会复用 ID，关闭重开后失效。只读操作不激活、选择、回滚或重建，可在不携带
+写 token 的情况下读取受租或只读零件，仍支持 `--if-update-stamp`。检查报告原生定义标志
+和以毫米计的正向深度参数，不代表允许编辑、实际材料厚度或非定深终止的行程。
+切除的原生 `reverse_direction` 与创建命令归一化后的 `--reverse` 不是同一语义。
 
 ## 零件建模
 

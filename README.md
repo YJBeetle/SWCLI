@@ -52,6 +52,12 @@ rediscovered after native save/reopen. `v0.1.0a6` adds explicit rectangle center
 fixing, driving width/height creation/editing and saved-pair discovery. This is
 not general dimension editing or a promise of fully defined sketches.
 
+The **a7 development checkout** additionally exposes read-only `feature list`
+and `feature inspect`, with exact short feature handles. This is not in the
+published a6 wheel; depth editing is not yet implemented. See the
+[feature-depth plan](docs/design/feature-depth-editing.md) and
+[read-layer verification](docs/verification/a7-feature-observation-2026-10-10.md).
+
 ## Installation
 
 ### Windows
@@ -77,7 +83,7 @@ The package installs pywin32 automatically when running on Windows. The
 change before `v0.1.0`.
 
 Stop the old daemon before upgrading, then explicitly start the matching version.
-Temporary document/sketch/dimension handles and leases expire on restart.
+Temporary document/sketch/dimension/feature handles and leases expire on restart.
 See the [a6 release notes](docs/releases/v0.1.0a6.md) for portable-client
 installation, exact verification evidence and known limits.
 
@@ -660,6 +666,25 @@ and reports solid-body evidence, not just echoed inputs. It does not verify all
 design dimensions or save the native document. Selection cleanup and foreground
 restoration follow the document guards; partial feature creation is not rolled
 back on failure.
+
+### Read-only feature discovery (a7 development)
+
+With a matching development client/daemon advertising these operations:
+
+```powershell
+$features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
+sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
+```
+
+Replace `DOCUMENT_ID` with the selected part's ID. Listing covers supported
+solid boss/cut extrusions, not the whole feature tree; `--max-features` limits
+the complete list and fails instead of truncating it. IDs refer to exact native
+features, survive rename/repeated live observations, and expire on close/reopen.
+Reads do not activate, select, roll back or rebuild, and may observe leased or
+read-only parts without a write token. `--if-update-stamp` remains available.
+Inspection reports native definition flags and the forward depth parameter in
+mm, not edit eligibility, actual material thickness or nonblind travel distance.
+Native cut `reverse_direction` is not creation's normalized `--reverse`.
 
 ## Part modeling
 
