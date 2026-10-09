@@ -166,6 +166,53 @@ Failure may leave a partial dimension with a usable handle. Foreground recovery
 failure is an error with retained native evidence, not permission to repeat the
 mutation. These commands are available since a5, not in the older a4 package.
 
+### Parameterized rectangle
+
+On a matching host advertising `sketch.fix-center`, `sketch.dimension-rectangle`
+and `dimension.discover-rectangle`, a supported axis-aligned center rectangle
+can have separate native width/height driving dimensions. These operations are
+not in the a5 wheel; use capabilities rather than assuming a version upgrade.
+
+```powershell
+sw-cli document create --json
+$rectangle = sw-cli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
+sw-cli sketch fix-center $rectangle.sketch.sketch_id --json
+$size = sw-cli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
+sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
+sw-cli dimension inspect $size.dimensions.width.dimension_id --json
+sw-cli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
+sw-cli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
+sw-cli document measure --json
+```
+
+Center fixing is an explicit design choice, not a hidden step in dimension
+creation. It fixes the verified current center of a supported unabsorbed native
+center rectangle; an exact existing fix is a verified no-op. Extra, suppressed
+or origin relations are refused, not removed. Coordinates at (0,0) alone do
+not prove an origin constraint. Do not move a profile or discard relations to
+make a refusal disappear.
+
+Size creation verifies both native driving dimensions and each solver step's
+geometry/placement before returning width/height IDs. Failure can leave partial
+dimensions without a public pair; observe state before a new attempt. `dimension
+inspect` is read-only and reports native controls; `dimension set` changes only
+the current configuration, preserving the other size and center and checking
+rebuild diagnostics and applicable downstream body measures. Equation/design-
+table, driven and read-only controls are not overridden. Verified width/height
+does not imply general constraint solving or engineering approval.
+
+After authorized native save/close/reopen, obtain a fresh profile with `sketch
+list`, then use `sw-cli dimension discover-rectangle --document DOCUMENT_ID
+SKETCH_ID --json`. It returns `.dimensions.width` and `.dimensions.height`, each
+with a fresh live dimension ID for `dimension inspect/set`. Repeated discovery
+of the same live native pair reuses those IDs; closed-document IDs stay expired.
+Discovery observes without activation, selection or display changes and requires
+one unambiguous exact native axis pair agreeing with independent geometry and
+unchanged state. Missing/partial/ambiguous observations publish no IDs; an empty
+display chain is not proof of absent dimensions. Do not create replacements or
+guess names. Reads may observe a leased background document, but discovered
+handles do not grant modification authority or bypass lease/stamp guards.
+
 Inspect/diagnose have additional structure and feature evidence; status reports
 document state, not an invented `export_ready` flag. `modified` means the native
 save flag is set; `needs_rebuild` is a separate native state. Neither should be

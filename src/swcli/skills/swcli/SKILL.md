@@ -38,6 +38,10 @@ skill; it does not depend on the developer's machine or repository checkout.
   and inspect parameter ownership before editing. A diameter is not a radius;
   edits target the current configuration and must not override equations or
   design tables. See the usage guide's parameterized-circle workflow.
+- For supported rectangles, positioning and size are separate: `sketch.fix-center`
+  is explicit; `sketch.dimension-rectangle` does not anchor the center implicitly.
+  Inspect/edit the returned width/height roles, not guessed native dimensions.
+  See the usage guide's parameterized-rectangle workflow and discovery limits.
 - Verify native state and geometry after a change. A failed operation can leave
   partial geometry; inspect before retrying. Do not claim automatic rollback,
   full constraint solving, or exact measurements from approximate body boxes.

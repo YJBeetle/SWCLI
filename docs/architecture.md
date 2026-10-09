@@ -298,6 +298,27 @@ discovery. Editing the recovered handle still uses `dimension.set` and its guard
 These operations are not present in the older a4 wheel. The a5 release notes
 record the exact Windows/Wine verification and installation boundaries.
 
+The a6 development rectangle slice keeps placement and size independent.
+`sketch.fix-center` explicitly fixes only a supported verified native center;
+`sketch.dimension-rectangle` never invokes it implicitly. Size creation verifies
+both exact driving handles and per-step width/height/center geometry before
+publishing a pair of IDs. The existing `dimension.inspect/set` operations use
+registered profile/axis roles rather than native names: reads preserve state,
+and single-axis writes verify the other axis, center, configuration, complete
+rebuild diagnostics and applicable downstream measures. Protected controls are
+reported/refused rather than removed. Partial native failures retain evidence,
+not an automatic rollback or unverified public pair.
+
+`dimension.discover-rectangle` is a read-only exact axis-pair discovery operation,
+including absorbed profiles after native reopen. It deduplicates observable
+displays by live native identity, requires a distinct width/height pair and
+cross-checks independent geometry and unchanged native snapshots. Incomplete,
+ambiguous or changing reads return no handles; an empty display chain remains
+unavailable evidence. It never activates, selects, forces display or overrides
+controls. The [rectangle design](design/rectangle-driving-dimensions.md) and
+[verification record](verification/rectangle-dimensions-2026-10-08.md) distinguish
+implemented contracts, development native gates and formal release proof.
+
 ## Compatibility policy
 
 Protocol and host implementation versions are independent. `sw-cli
