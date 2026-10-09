@@ -298,7 +298,7 @@ discovery. Editing the recovered handle still uses `dimension.set` and its guard
 These operations are not present in the older a4 wheel. The a5 release notes
 record the exact Windows/Wine verification and installation boundaries.
 
-The a6 development rectangle slice keeps placement and size independent.
+The rectangle slice available since v0.1.0a6 keeps placement and size independent.
 `sketch.fix-center` explicitly fixes only a supported verified native center;
 `sketch.dimension-rectangle` never invokes it implicitly. Size creation verifies
 both exact driving handles and per-step width/height/center geometry before
@@ -316,7 +316,7 @@ cross-checks independent geometry and unchanged native snapshots. Incomplete,
 ambiguous or changing reads return no handles; an empty display chain remains
 unavailable evidence. It never activates, selects, forces display or overrides
 controls. The [rectangle design](design/rectangle-driving-dimensions.md) and
-[verification record](verification/rectangle-dimensions-2026-10-08.md) distinguish
+[a6 verification record](verification/a6-2026-10-10.md) distinguish
 implemented contracts, development native gates and formal release proof.
 
 ## Compatibility policy
