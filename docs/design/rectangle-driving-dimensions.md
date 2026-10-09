@@ -1,4 +1,11 @@
-# Next slice: rectangle driving dimensions
+# Rectangle driving dimensions
+
+The public slice is implemented in **v0.1.0a6**, with formal-version Windows
+visible/hidden and DockerSW hidden Wine proof. See the
+[a6 release notes](../releases/v0.1.0a6.md) and
+[verification record](../verification/a6-2026-10-10.md) for current distribution
+and host boundaries. The development history below explains how the narrow
+contracts and native guards were established; it is not the publication status.
 
 Status: internal size creation/read/edit and explicit center-fix adapters verified on **visible Windows**.
 The development typed operation `sketch.fix-center` is now wired to the CLI,

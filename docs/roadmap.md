@@ -54,31 +54,20 @@ commit, artifacts, image promotion and state-preservation checks are recorded in
 [the a5 verification record](verification/a5-2026-10-07.md).
 Do not infer dimensions from names or claim arbitrary dimension support.
 
-1. Extend driving dimensions/relations beyond the verified single-circle
-   diameter slice and add supported feature edits, so the native model is not
-   merely editable but intentionally parameterized.
-   The next [rectangle size/positioning slice](design/rectangle-driving-dimensions.md)
-   has internal creation/read/edit and separate explicit center-fix adapters
-   with visible Windows size/center, background-read, volume, exact relation
-   and partial-failure evidence. Center fixing initially rejects extra/origin
-   relations instead of adding redundant constraints. Its development
-   `sketch.fix-center` CLI/protocol contract now preserves native evidence and
-   enforces the existing document/lease/stamp/foreground guards. The shared
-   driving gate now covers three-plane fixes/no-ops, origin refusal and native
-   reopen with expired-handle rejection. Installed public center-fix verification
-   now passes fresh hosted Windows and MacSW software-renderer visible/hidden
-   gates, with independent terminal-artifact review; exact versions and proof
-   boundaries are recorded in the
-   [rectangle verification record](verification/rectangle-dimensions-2026-10-08.md).
-   Development `sketch.dimension-rectangle` and role-specific `dimension.inspect/set`
-   contracts are now wired with exact IDs, per-step native evidence and existing
-   guards. Installed size creation/read/edit now pass local Windows visible/hidden
-   gates (`9380bc9`). The development `dimension.discover-rectangle` contract and
-   shared save/reopen gate are implemented, and local installed Windows dual-mode
-   discovery passed at `c402c23`; hosted Windows dual-mode discovery also passed
-   at `f4dd43c`. Hidden DockerSW Wine also passed the same candidate at parent
-   `3a25ea7`, including six exports and image promotion. These results are not an a6 release or an a5
-   wheel feature.
+The [rectangle size/positioning slice](design/rectangle-driving-dimensions.md)
+is implemented in **v0.1.0a6**: explicit center fixing, exact width/height
+creation, role-specific inspection/editing and saved-pair discovery. Installed
+formal-version Windows visible/hidden and hidden DockerSW Wine gates passed,
+including three-plane edits, background/session restoration, lease/stamp and
+origin-constraint refusal, native save/reopen and unchanged-read verification.
+The [a6 record](verification/a6-2026-10-10.md) separates development, formal host
+and distribution proof, including the independent MacSW verification boundary.
+
+Next:
+
+1. Add supported feature edits and more explicit dimensions/relations, so native
+   models can be modified beyond circle diameters and exact rectangle axis pairs.
+   Do not infer arbitrary constraint support from these narrow operations.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
@@ -106,7 +95,7 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a5 release notes](releases/v0.1.0a5.md). A pre-release does not imply a
+[v0.1.0a6 release notes](releases/v0.1.0a6.md). A pre-release does not imply a
 stable compatibility commitment.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
