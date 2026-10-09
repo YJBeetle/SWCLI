@@ -519,3 +519,20 @@ owned instance stopped normally; the original GUI was restored and the two
 installed adapter source hashes still match the tested candidate. Thus both
 local Windows and macOS visible/hidden matrices pass. Local evidence remains
 distinct from the hosted software-renderer run.
+
+[SWCLI CI 37893909056](https://github.com/YJBeetle/SWCLI/actions/runs/37893909056)
+passed at `a857b75`, including packaging, Windows/Python 3.9 and 3.14 tests,
+and fresh hosted native Windows installation/runtime. Downloaded artifacts
+independently confirm visible SW PID 7124 and hidden SW PID 8608: each mode
+completed 97 modeling and 361 driving events on its unchanged host, with empty
+cleanup arrays. The 12 additional modeling events are the installed-sample
+export case, not a change to the generated-part assertions.
+
+Both modes preserve the actual origin-relation refusal and stamp 142, closed
+edit state, three-plane center fixes, repeated no-op calls and saved/reopened
+fixed relations. Installed samples remain read-only. Each mode produced nine
+native parts, four STEP files and two 800x600 color BMPs; the copied origin
+fixture is input, not a generated output. Export/render records succeeded,
+STEP signatures and BMP dimensions/color content were checked. These are
+hosted Windows results; the separately pinned MacSW software-renderer run
+`37894268328` remains pending until its own complete runtime evidence passes.
