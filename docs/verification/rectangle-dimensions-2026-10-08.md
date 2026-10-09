@@ -40,6 +40,18 @@ The exact shared-script hashes are retained in `gate-sha256.json`.
 This candidate predates public saved-size discovery. Its successful native
 center/diameter reopen tests are **not** rectangle-width/height reopen proof.
 
+The same size candidate then passed
+[hosted Windows CI 37976308927](https://github.com/YJBeetle/SWCLI/actions/runs/37976308927).
+Downloaded public artifact `swcli-windows-hosted-37976308927-1` independently
+confirms visible PID **2812** and hidden PID **1384**. Each completed 97 modeling
+events and 532 driving events, including all three rectangle planes, with the
+same PID before/after both gates, `success: true`, terminal `completed` stages
+and empty cleanup errors. All six rectangle edits per mode measured 15000 then
+17500 mm³ and retained center (3,4,0) mm within 1e-6 mm. Python 3.9/3.14 unit
+jobs, distribution build and the native installation/runtime job also passed.
+This remains size-control proof, not the later saved-size discovery candidate.
+The downloaded evidence is retained at `/private/tmp/swcli-ci-37976308927.BIdU8v`.
+
 ## Matched independent cases
 
 Two fresh owned **visible** Windows hosts, SOLIDWORKS revision `33.5.0`, tested
