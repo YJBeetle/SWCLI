@@ -54,6 +54,14 @@ class SketchNotFound(RuntimeError):
     """A sketch handle is absent from the selected document's live registry."""
 
 
+class FeatureNotFound(RuntimeError):
+    """A feature handle is absent from the selected document's live registry."""
+
+
+class FeatureIdConflict(RuntimeError):
+    """A document-local native feature ID refers to a different live object."""
+
+
 class DimensionNotFound(RuntimeError):
     """A dimension handle is absent from the selected document's live registry."""
 
@@ -86,6 +94,8 @@ class DocumentEntry:
     dimensions_by_sketch: Dict[str, Dict[str, DimensionEntry]] = field(
         default_factory=dict
     )
+    features: Dict[str, Any] = field(default_factory=dict)
+    feature_ids_by_native_id: Dict[int, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -132,6 +142,9 @@ class DocumentRegistry:
         self._current_by_session: Dict[str, str] = {}
         self._leases_by_id: Dict[str, DocumentLease] = {}
         self._lease_id_by_document: Dict[str, str] = {}
+        # Keep retired tokens until worker replacement. A closed/deleted
+        # feature's short handle must not become valid for a later object.
+        self._issued_feature_ids: set[str] = set()
 
     def _new_id(self) -> str:
         while True:
@@ -321,6 +334,67 @@ class DocumentRegistry:
                 del self._ids_by_key[old_key]
         self._ids_by_key[key] = entry.document_id
 
+    def register_feature(self, entry: DocumentEntry, feature: Any) -> str:
+        """Register an exact feature; native IDs index, never replace identity.
+
+        This grants no edit permission or persistent-reference guarantee.
+        Callers must establish document membership and supported semantics
+        before publishing a handle or operating on the resolved object.
+        """
+        if self._entries.get(entry.document_id) is not entry:
+            raise DocumentNotFound(
+                f"document '{entry.document_id}' is no longer registered"
+            )
+        native_id = _feature_id(feature)
+        feature_id = entry.feature_ids_by_native_id.get(native_id)
+        expired_id = None
+        if feature_id is not None:
+            try:
+                status = self.app.IsSame(entry.features[feature_id], feature)
+                if (
+                    isinstance(status, bool)
+                    or not isinstance(status, int)
+                    or status not in (0, 1)
+                ):
+                    raise RuntimeError(
+                        "SOLIDWORKS could not compare native feature identity"
+                    )
+                same = status == 1
+            except Exception as exc:
+                if com_hresult(exc) not in DISCONNECTED_COM_HRESULTS:
+                    raise
+                expired_id = feature_id
+            else:
+                if not same:
+                    raise FeatureIdConflict(
+                        "a registered native feature ID refers to a different object"
+                    )
+                entry.features[feature_id] = feature
+                return feature_id
+        while True:
+            token = "f-" + "".join(
+                secrets.choice(_HANDLE_ALPHABET) for _ in range(_HANDLE_LENGTH)
+            )
+            if token not in self._issued_feature_ids:
+                break
+        # Delay all cleanup until native validation and token allocation finish.
+        if expired_id is not None:
+            del entry.features[expired_id]
+        entry.features[token] = feature
+        entry.feature_ids_by_native_id[native_id] = token
+        self._issued_feature_ids.add(token)
+        return token
+
+    def resolve_feature(self, entry: DocumentEntry, feature_id: str) -> Any:
+        if (
+            self._entries.get(entry.document_id) is not entry
+            or feature_id not in entry.features
+        ):
+            raise FeatureNotFound(
+                f"feature '{feature_id}' is not registered in document '{entry.document_id}'"
+            )
+        return entry.features[feature_id]
+
     def register_sketch(self, entry: DocumentEntry, feature: Any) -> str:
         if self._entries.get(entry.document_id) is not entry:
             raise DocumentNotFound(
@@ -477,6 +551,8 @@ class DocumentRegistry:
         entry = self._entries.pop(document_id, None)
         if entry is None:
             return
+        entry.features.clear()
+        entry.feature_ids_by_native_id.clear()
         entry.sketches.clear()
         entry.sketch_ids_by_native_id.clear()
         entry.dimensions.clear()
