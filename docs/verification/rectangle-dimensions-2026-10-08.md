@@ -498,3 +498,16 @@ were empty and the final document list was empty. Evidence is retained under
 `/private/tmp/swcli-nativecheck.V946aT/center-final-hidden-*`. This is a local
 hardware-host result, not proof of hosted macOS software-renderer CI. The latter
 must run the corrected source pin separately.
+
+The same wheel subsequently passed the full native Windows VM sequence in
+both visible (SW PID 6024) and hidden (SW PID 7400) modes: each completed 85
+modeling and 361 driving events, kept its original host throughout and cleaned
+all owned documents without errors. Three-plane center fixes, no-op repeated
+calls and saved/reopened fixes passed; the real origin fixture still returned
+`UnsupportedCenterConstraint`, with unchanged stamp 142 and no active edit.
+An independent read-only checker confirmed native installed source hashes
+matched the candidate. Evidence is retained at
+`C:\Workspace\SWCLI-tests\a6-center-repair-installed-20261009\{visible,hidden}`.
+The isolated test environment did not upgrade the normal Windows installation;
+owned test processes exited and an unrelated SW instance was left untouched.
+The portable suite passes 803 tests (eight skipped).
