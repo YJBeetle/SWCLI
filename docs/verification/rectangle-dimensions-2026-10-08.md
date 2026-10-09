@@ -48,7 +48,23 @@ selection state. The visible equation-control refusal also passed. Python
 3.9/3.14, distribution checks and fresh native installation passed; the native
 smoke step took 9 minutes 32 seconds. The evidence copy is retained at
 `/private/tmp/swcli-ci-37978542292.FbEgoa`. This proves the development candidate,
-not a formal a6 distribution. Wine completion is still a separate gate.
+not a formal a6 distribution.
+
+DockerSW [CI 37978886175](https://github.com/YJBeetle/DockerSW/actions/runs/37978886175)
+also completed successfully at parent `3a25ea7`, pinning SWCLI `f4dd43c`.
+Downloaded evidence confirms one owned hidden Wine SW PID **616** completed six
+real exports, 97 modeling events and 598 driving events without replacement,
+retry or cleanup errors. Front/top/right size edits and read-only saved-size
+discovery match the Windows results, including 17500 mm³ after reopen, stable
+recovered pairs, unchanged stamp **171** and preserved selection state.
+The six downloaded outputs retain valid PDF/DWG/STEP signatures. The localized
+Chinese UI/STEP gate and the verified CLI-image publication/promotion step also
+passed. This reused installation layers; it is not a fresh Wine MSI install.
+Artifacts are retained at `/private/tmp/dockersw-ci-37978886175.TrWpF9` and the
+job log at `/private/tmp/dockersw-ci-37978886175.log`. Promotion is evidenced by
+the completed job/log; an independent registry query was unavailable with the
+current credential's package scopes. This development runtime is not the
+formal-version a6 package and does not prove MacSW size delivery.
 
 ## Installed public size controls — 2026-10-10
 

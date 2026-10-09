@@ -6,7 +6,8 @@ catalog, result contract and document/lease/stamp/foreground guards. Installed
 public center-fix verification has passed Windows and MacSW dual-mode gates;
 size creation/read/edit has passed installed local Windows visible/hidden gates
 (candidate `9380bc9`). Saved size discovery also passes local Windows dual-mode
-gates at `c402c23` and hosted Windows at `f4dd43c`; Wine remains pending.
+gates at `c402c23` and hosted Windows at `f4dd43c`. DockerSW's hidden Wine gate
+also passed with `f4dd43c`, including all three saved-size cases.
 Neither is an a5 capability.
 The existing shared driving gate now exercises explicit fixing on three planes,
 repeated no-ops, lease/stamp refusal, background restoration and native
@@ -31,7 +32,7 @@ The shared driving script now tests creation and absorbed single-axis edits on
 front/top/right, after the existing diameter and center gates on the same host.
 It checks exact background/session restoration, lease/stamp/duplicate refusal,
 read-only state preservation, native downstream volumes and expired IDs.
-Installed Windows size execution and saved-model discovery passed; Wine remains pending;
+Installed Windows size execution and saved-model discovery passed, as did hidden Wine;
 do not infer that these development contracts are already in a published wheel.
 
 The internal saved-rectangle discovery adapter now requires one distinct native
@@ -47,7 +48,7 @@ verified pair obtains/reuses IDs from the worker registry; native inspection
 snapshots remain ID-free evidence. The result contract cross-checks both native
 snapshots, geometry, configuration, solver state and the outer document stamp.
 Saved-model installed execution has passed local Windows visible/hidden gates
-at `c402c23` and hosted Windows at `f4dd43c`; Wine proof remains pending.
+at `c402c23`, hosted Windows at `f4dd43c` and hidden DockerSW Wine at parent `3a25ea7`.
 The shared gate now saves each three-plane 50×35 mm result, closes it, reopens
 it read-only, discovers a fresh profile and dimension pair, repeats discovery,
 inspects both recovered axes and remeasures 17500 mm³. It checks stamp and both
@@ -154,7 +155,7 @@ must report/refuse unintended placement changes rather than hiding them.
    adapter also has same-host three-plane size/edit/volume proof, exact native
    relation readback and origin preflight refusal. Installed public size creation,
    inspection, edits and saved-size discovery have passed local Windows dual-mode
-   gates and hosted Windows CI. Wine remains pending.
+   gates, hosted Windows CI and hidden DockerSW Wine delivery.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
 4. Installed public Windows gates on front/top/right, visible and hidden, with
