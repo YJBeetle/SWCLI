@@ -8,6 +8,12 @@ and Wine results are still pending. Public creation-result handles are implement
 with independent native Windows CLI/TCP/COM proof. Depth writes remain pending;
 no native editing proof is claimed.
 
+An internal, nonmutating preliminary depth guard is also implemented. It reads
+strict writable/view-only, suppression/freeze/rollback, native command,
+configuration and equation/design-table state, then requires stable repeated
+definitions/controls and native snapshots. It is not a public command, a
+complete eligibility promise or permission to call a native setter.
+
 ## First slice
 
 Observe and edit exact solid blind bosses/cuts in part documents. Begin with
@@ -68,6 +74,13 @@ Only the current configuration and the selected exact supported feature are
 in scope. Observe native depth, direction/end/start conditions, profile/body
 scope and controls before mutation. Protected equations/design tables,
 suppression/freeze/rollback or existing edits must not be overridden.
+
+The first internal guard conservatively refuses **any** part containing equations
+or a design table, rather than guessing which named dimension owns depth. It
+also refuses multiple configurations until current-only modification scope has
+separate native proof. These are deliberate unsupported-scope outcomes, not
+claims that all parameters are externally controlled. Profile/body ownership,
+modification/restoration and independent post-change geometry remain pending.
 
 The explicit write path may require native selection access, which rolls the
 model back. Own and verify that lifecycle, modify the exact definition, then

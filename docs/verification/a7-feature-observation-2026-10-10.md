@@ -86,3 +86,36 @@ The corrected probe used `document inspect` on fresh parts, not a CAD mutation r
 
 This separately proves local native creation IDs, not hosted Windows/Wine gates
 or depth editing. The read-layer probes above predate these creation changes.
+
+## Preliminary depth controls (no mutation)
+
+The internal `prepare_extrusion_depth_edit_windows_with_definition` reuses exact
+definition observation and refuses unreadable/changing controls, readonly or
+view-only parts, existing sketches/commands, suppressed/frozen/rolled-back
+features, nonblind/thin/draft/two-direction/reference-start definitions. Its
+initial scope conservatively rejects any equations/design tables and multiple
+configurations. These checks are not a complete public edit-eligibility contract.
+
+The portable suite passed **920 tests**, with eight Windows-only skips, including
+22 new preflight/binding tests. Negative protected/control/shape cases here are
+fake evidence, not real suppression/freeze/design-table modification tests.
+
+On native SW2025 `33.5.0`/shared PID **1096**, both exact saved boss/cut definitions
+passed writable background preflight; reopening the test copy readonly refused
+both with `DocumentNotWritable`. Configuration, update stamp **146**, modified
+flag **false**, foreground, original documents and SW PID were retained. The
+test copy's SHA256 was unchanged, and cleanup reported no errors. No
+`SetDepth`, `AccessSelections`, `ModifyDefinition`, rebuild or source save ran.
+
+The first binding attempt failed closed because idle native
+`GetRunningCommandInfo` left PMTitle unwritten. A separate readonly BYREF probe
+proved SW2025 writes `command_id: -3` and **boolean** `ui_active: false` while
+leaving the title untouched. The guard reports that absent title as `null`; it
+initializes activity to **true**, so untouched activity can never prove idle.
+Partial/invalid active-command outputs still fail, with dedicated fake coverage.
+
+Raw evidence: `C:\Workspace\SWCLI-tests\a7-depth-preflight-PT5JW4\depth-preflight.json`,
+copied to `/private/tmp/swcli-a7-depth-preflight.PT5JW4/depth-preflight.json`.
+SHA256: `0faa1a83e5ddf258d71961dce30849c69ed756c6318591dd18f3673410bf77f1`.
+This is an internal Windows control-read proof, not setter, rollback-lifecycle,
+hosted CI or Wine verification.
