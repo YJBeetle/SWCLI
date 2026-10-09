@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
@@ -12,7 +12,7 @@ from .windows_sketches import _unabsorbed_profile
 _DEPTH_TOLERANCE_MM = 1e-6
 
 
-def extrude_sketch_windows(
+def extrude_sketch_windows_with_handle(
     *,
     app: Any,
     document: Any,
@@ -20,16 +20,17 @@ def extrude_sketch_windows(
     depth_mm: float,
     reverse: bool = False,
     merge: bool = True,
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Create a one-direction blind solid boss; never guess an active sketch."""
 
     result: Dict[str, Any] = {"ok": False, "action": "feature.extrude"}
+    feature = None
     if not math.isfinite(depth_mm) or depth_mm <= 0 or depth_mm / 1000 <= 0:
         result["error"] = {
             "type": "InvalidArgument",
             "message": "depth_mm must be a positive representable finite length",
         }
-        return result
+        return result, feature
     selected = False
     try:
         if int(_com_value(document, "GetType")) != 1:
@@ -37,7 +38,7 @@ def extrude_sketch_windows(
                 "type": "UnsupportedDocumentType",
                 "message": "solid extrusions currently require a part document",
             }
-            return result
+            return result, feature
         if (
             _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
             is not None
@@ -46,7 +47,7 @@ def extrude_sketch_windows(
                 "type": "SketchEditInProgress",
                 "message": "finish the existing sketch edit before creating an extrusion",
             }
-            return result
+            return result, feature
         # Only an unabsorbed top-level 2D sketch is currently supported. Native
         # identity detects deleted, consumed and cross-document handles before
         # changing selections. A feature name or most-recent sketch is not a fallback.
@@ -55,7 +56,7 @@ def extrude_sketch_windows(
                 "type": "SketchUnavailable",
                 "message": "the sketch is no longer an unabsorbed 2D profile in the selected document",
             }
-            return result
+            return result, feature
 
         document.ClearSelection2(True)
         selected = True
@@ -64,7 +65,7 @@ def extrude_sketch_windows(
                 "type": "SketchSelectionFailed",
                 "message": "SOLIDWORKS could not select the registered sketch",
             }
-            return result
+            return result, feature
         feature = _com_value(document, "FeatureManager").FeatureExtrusion3(
             True,
             False,
@@ -95,7 +96,7 @@ def extrude_sketch_windows(
                 "type": "ExtrusionFailed",
                 "message": "SOLIDWORKS did not create the extrusion feature",
             }
-            return result
+            return result, feature
         result.update(
             {
                 "depth_mm": depth_mm,
@@ -114,7 +115,7 @@ def extrude_sketch_windows(
                 "type": "ModelInvalid",
                 "message": "created extrusion did not pass rebuild diagnostics",
             }
-            return result
+            return result, feature
 
         result["bodies"] = _inspect_bodies(document)
         definition = _com_value(feature, "GetDefinition")
@@ -154,12 +155,12 @@ def extrude_sketch_windows(
                 "type": "ExtrusionVerificationFailed",
                 "message": "native extrusion definition or solid-body evidence did not match the request",
             }
-            return result
+            return result, feature
         result["ok"] = True
-        return result
+        return result, feature
     except Exception as exc:
         result["error"] = _error(exc)
-        return result
+        return result, feature
     finally:
         if selected:
             try:
@@ -168,3 +169,20 @@ def extrude_sketch_windows(
                 result.setdefault("warnings", []).append(
                     {"code": "selection-cleanup-failed", "message": str(exc)}
                 )
+
+
+def extrude_sketch_windows(
+    *,
+    app: Any,
+    document: Any,
+    sketch_feature: Any,
+    depth_mm: float,
+    reverse: bool = False,
+    merge: bool = True,
+) -> Dict[str, Any]:
+    """Result-only facade; the native creation path retains its exact feature."""
+    result, _ = extrude_sketch_windows_with_handle(
+        app=app, document=document, sketch_feature=sketch_feature,
+        depth_mm=depth_mm, reverse=reverse, merge=merge,
+    )
+    return result

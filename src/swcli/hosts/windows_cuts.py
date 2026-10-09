@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 from .native_trace import native_call
 from .windows import _com_value, _error
@@ -12,22 +12,23 @@ from .windows_measurements import measure_part_windows
 from .windows_sketches import _unabsorbed_profile
 
 
-def cut_extrude_sketch_windows(
+def cut_extrude_sketch_windows_with_handle(
     *,
     app: Any,
     document: Any,
     sketch_feature: Any,
     depth_mm: float,
     reverse: bool = False,
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Cut all intersected solids along sketch normal (or its explicit reverse)."""
     result: Dict[str, Any] = {"ok": False, "action": "feature.cut-extrude"}
+    feature = None
     if not math.isfinite(depth_mm) or depth_mm <= 0 or depth_mm / 1000 <= 0:
         result["error"] = {
             "type": "InvalidArgument",
             "message": "depth_mm must be a positive representable finite length",
         }
-        return result
+        return result, feature
     selected = False
     incomplete_native_cut = False
     try:
@@ -36,7 +37,7 @@ def cut_extrude_sketch_windows(
                 "type": "UnsupportedDocumentType",
                 "message": "cut extrusion currently requires a part document",
             }
-            return result
+            return result, feature
         if (
             _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
             is not None
@@ -45,13 +46,13 @@ def cut_extrude_sketch_windows(
                 "type": "SketchEditInProgress",
                 "message": "finish the existing sketch edit before creating a cut",
             }
-            return result
+            return result, feature
         if _unabsorbed_profile(app, document, sketch_feature) is None:
             result["error"] = {
                 "type": "SketchUnavailable",
                 "message": "the sketch is no longer an unabsorbed 2D profile in the selected document",
             }
-            return result
+            return result, feature
         before = native_call(
             "cut-preflight",
             "measure_part_windows",
@@ -59,7 +60,7 @@ def cut_extrude_sketch_windows(
         )
         if not before["ok"]:
             result["error"] = before["error"]
-            return result
+            return result, feature
         result["measurement_before"] = before["metrics"]
         native_call(
             "profile-select",
@@ -76,7 +77,7 @@ def cut_extrude_sketch_windows(
                 "type": "SketchSelectionFailed",
                 "message": "SOLIDWORKS could not select the registered sketch",
             }
-            return result
+            return result, feature
         # Native cuts default opposite the sketch normal, unlike bosses. Invert
         # Dir so this CLI's --reverse consistently means opposite the normal.
         # UseFeatScope=False affects all solids; no implicit body selection.
@@ -120,7 +121,7 @@ def cut_extrude_sketch_windows(
                 "type": "CutExtrusionFailed",
                 "message": "SOLIDWORKS did not create the cut feature",
             }
-            return result
+            return result, feature
         incomplete_native_cut = False
         result.update(
             {
@@ -144,7 +145,7 @@ def cut_extrude_sketch_windows(
                 "type": "ModelInvalid",
                 "message": "created cut did not pass rebuild diagnostics",
             }
-            return result
+            return result, feature
         after = native_call(
             "cut-verify",
             "measure_part_windows",
@@ -152,7 +153,7 @@ def cut_extrude_sketch_windows(
         )
         if not after["ok"]:
             result["error"] = after["error"]
-            return result
+            return result, feature
         result["measurement_after"] = after["metrics"]
         result["bodies"] = native_call(
             "cut-verify",
@@ -208,12 +209,12 @@ def cut_extrude_sketch_windows(
                 "type": "CutVerificationFailed",
                 "message": "cut definition or measured material removal did not match the requested operation",
             }
-            return result
+            return result, feature
         result["ok"] = True
-        return result
+        return result, feature
     except Exception as exc:
         result["error"] = _error(exc)
-        return result
+        return result, feature
     finally:
         if incomplete_native_cut:
             try:
@@ -241,3 +242,19 @@ def cut_extrude_sketch_windows(
                 result.setdefault("warnings", []).append(
                     {"code": "selection-cleanup-failed", "message": str(exc)}
                 )
+
+
+def cut_extrude_sketch_windows(
+    *,
+    app: Any,
+    document: Any,
+    sketch_feature: Any,
+    depth_mm: float,
+    reverse: bool = False,
+) -> Dict[str, Any]:
+    """Result-only facade; native cut cleanup and verification stay unchanged."""
+    result, _ = cut_extrude_sketch_windows_with_handle(
+        app=app, document=document, sketch_feature=sketch_feature,
+        depth_mm=depth_mm, reverse=reverse,
+    )
+    return result

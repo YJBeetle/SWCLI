@@ -84,6 +84,37 @@ class CutExtrusionTests(unittest.TestCase):
             **{"depth_mm": 20, **values},
         )
 
+    def with_handle(self, **values):
+        return cuts.cut_extrude_sketch_windows_with_handle(
+            app=self.app, document=self.document, sketch_feature=self.sketch,
+            **{"depth_mm": 20, **values},
+        )
+
+    def test_exact_created_cut_handle_is_not_a_foreground_or_last_feature_lookup(self):
+        self.app.ActiveDoc = object()
+        self.document.FeatureByPositionReverse = mock.Mock()
+        result, handle = self.with_handle()
+        self.assertTrue(result["ok"], result)
+        self.assertIs(handle, self.created)
+        self.document.FeatureByPositionReverse.assert_not_called()
+        self.document.SetPickMode.assert_not_called()
+
+    def test_rejected_cut_retains_no_handle_and_keeps_incomplete_command_cleanup(self):
+        self.manager.FeatureCut4.return_value = None
+        result, handle = self.with_handle()
+        self.assertEqual(result["error"]["type"], "CutExtrusionFailed")
+        self.assertIsNone(handle)
+        self.document.SetPickMode.assert_called_once_with()
+
+    def test_created_cut_handle_survives_later_failure_without_cancelling_feature(self):
+        self.document.EditRebuild3.return_value = False
+        self.document.ClearSelection2.side_effect = [None, RuntimeError("cleanup failed")]
+        result, handle = self.with_handle()
+        self.assertEqual(result["error"]["type"], "ModelInvalid")
+        self.assertIs(handle, self.created)
+        self.assertEqual(result["warnings"][0]["code"], "selection-cleanup-failed")
+        self.document.SetPickMode.assert_not_called()
+
     def traced_cut(self, stream=None):
         stream = stream if stream is not None else io.StringIO()
         with (

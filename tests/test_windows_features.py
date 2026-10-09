@@ -78,6 +78,37 @@ class ExtrusionTests(unittest.TestCase):
             **{"depth_mm": 20, **values},
         )
 
+    def with_handle(self, **values):
+        return features.extrude_sketch_windows_with_handle(
+            app=self.app, document=self.document, sketch_feature=self.sketch,
+            **{"depth_mm": 20, **values},
+        )
+
+    def test_exact_creation_handle_is_not_recovered_from_active_or_last_feature(self):
+        self.app.ActiveDoc = object()
+        self.document.FeatureByPositionReverse = mock.Mock()
+        result, handle = self.with_handle()
+        self.assertTrue(result["ok"], result)
+        self.assertIs(handle, self.created)
+        self.document.FeatureByPositionReverse.assert_not_called()
+
+    def test_pre_creation_failures_never_invent_a_feature_handle(self):
+        result, handle = self.with_handle(depth_mm=0)
+        self.assertFalse(result["ok"])
+        self.assertIsNone(handle)
+        self.manager.FeatureExtrusion3.return_value = None
+        result, handle = self.with_handle()
+        self.assertEqual(result["error"]["type"], "ExtrusionFailed")
+        self.assertIsNone(handle)
+
+    def test_created_handle_and_primary_error_survive_verification_and_cleanup_failure(self):
+        self.document.EditRebuild3.return_value = False
+        self.document.ClearSelection2.side_effect = [None, RuntimeError("cleanup failed")]
+        result, handle = self.with_handle()
+        self.assertEqual(result["error"]["type"], "ModelInvalid")
+        self.assertIs(handle, self.created)
+        self.assertEqual(result["warnings"][0]["code"], "selection-cleanup-failed")
+
     def test_exact_registered_feature_and_explicit_parameters_are_used(self):
         result = self.extrude()
         self.assertTrue(result["ok"], result)
