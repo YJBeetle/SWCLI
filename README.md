@@ -48,8 +48,9 @@ operation through capability discovery. Since `v0.1.0a4`, it also advertises
 The a4 release added unsaved part creation, verified rectangle/circle sketches,
 blind bosses/cuts, native volume/area observation and new-filename part save-as.
 Since `v0.1.0a5`, single-circle driving diameters can be created/edited and
-rediscovered after native save/reopen. This is not general dimension editing
-or a promise of fully defined sketches.
+rediscovered after native save/reopen. `v0.1.0a6` adds explicit rectangle center
+fixing, driving width/height creation/editing and saved-pair discovery. This is
+not general dimension editing or a promise of fully defined sketches.
 
 ## Installation
 
@@ -61,23 +62,23 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a5` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a6` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a5/swcli-0.1.0a5-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a6/swcli-0.1.0a6-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a5` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a6` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 Stop the old daemon before upgrading, then explicitly start the matching version.
 Temporary document/sketch/dimension handles and leases expire on restart.
-See the [a5 release notes](docs/releases/v0.1.0a5.md) for portable-client
+See the [a6 release notes](docs/releases/v0.1.0a6.md) for portable-client
 installation, exact verification evidence and known limits.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
@@ -585,12 +586,12 @@ independent DockerSW hidden Wine delivery pass, are recorded in the
 [a5 release notes](docs/releases/v0.1.0a5.md) distinguish development proofs
 from final-version verification. Neither claims MacSW runtime proof.
 
-## Rectangle positioning and driving sizes (a6 candidate)
+## Rectangle positioning and driving sizes (since v0.1.0a6)
 
-These commands require a matching daemon advertising the a6 operations; the
-published a5 wheel does not contain them. Development candidates passed Windows
-visible/hidden and DockerSW hidden Wine gates. Formal-version verification and
-publication are tracked in the [a6 release checklist](docs/releases/v0.1.0a6.md).
+These commands require a matching daemon advertising the a6 operations; the a5
+wheel does not contain them. Formal-version Windows visible/hidden and DockerSW
+hidden Wine gates passed. Host-specific evidence and limitations are tracked in
+the [a6 release notes](docs/releases/v0.1.0a6.md).
 
 ```powershell
 sw-cli document create --json
@@ -633,8 +634,8 @@ current, does not select/activate or change display, and reuses IDs on repeated
 live discovery. An empty display chain means unavailable observation, not absent
 dimensions. Partial/ambiguous reads publish no IDs; closed-document IDs remain
 expired. A discovered handle is not permission to modify or save the source.
-Exact candidate evidence is in the
-[rectangle verification record](docs/verification/rectangle-dimensions-2026-10-08.md).
+Exact formal-version evidence is in the
+[a6 verification record](docs/verification/a6-2026-10-10.md).
 
 ## Feature operations (since v0.1.0a4)
 

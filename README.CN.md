@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及可复用的原生零件建模闭环。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现；这不代表通用尺寸编辑或草图完全定义。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
 
 ## 安装
 
@@ -42,19 +42,19 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a5` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a6` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a5/swcli-0.1.0a5-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a6/swcli-0.1.0a6-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a5` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a6` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸句柄和 lease
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
-[a5 发行说明](docs/releases/v0.1.0a5.md)。
+[a6 发行说明](docs/releases/v0.1.0a6.md)。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -322,9 +322,9 @@ sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --
 
 Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独立的 DockerSW 隐藏 Wine 交付通过记录，见 [a5 验证记录](docs/verification/a5-2026-10-07.md)。[a5 发行说明](docs/releases/v0.1.0a5.md) 区分开发候选与正式版本验证；两者都不代表 MacSW 实际运行验证。
 
-## 矩形定位与驱动宽高（a6 候选）
+## 矩形定位与驱动宽高（自 v0.1.0a6 起）
 
-这些命令需要匹配且通过 capabilities 发布 a6 操作的 daemon；已发布的 a5 wheel 不包含它们。开发候选已通过 Windows 可见/隐藏双模式及 DockerSW 隐藏 Wine 门禁。正式版本验证与发布进度见 [a6 发行清单](docs/releases/v0.1.0a6.md)。
+这些命令需要匹配且通过 capabilities 发布 a6 操作的 daemon；a5 wheel 不包含它们。正式版本已通过 Windows 可见/隐藏双模式及 DockerSW 隐藏 Wine 门禁。各宿主的证据与限制见 [a6 发行说明](docs/releases/v0.1.0a6.md)。
 
 ```powershell
 sw-cli document create --json
@@ -350,7 +350,7 @@ sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimensio
 sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
 ```
 
-请把占位符换成返回的 ID。发现要求唯一可观察的准确原生宽高对，与独立几何及保持不变的配置、编辑状态、更新戳一致。它保持前台和 session current，不选择、激活或改变显示；对同一存活对象重复发现会复用 ID。显示链为空表示无法观察，不证明没有尺寸；不完整或歧义观察不会发布 ID，已关闭文档的旧 ID 始终失效。发现句柄不代表获得修改或保存源文件的授权。确切开发候选证据见 [矩形验证记录](docs/verification/rectangle-dimensions-2026-10-08.md)。
+请把占位符换成返回的 ID。发现要求唯一可观察的准确原生宽高对，与独立几何及保持不变的配置、编辑状态、更新戳一致。它保持前台和 session current，不选择、激活或改变显示；对同一存活对象重复发现会复用 ID。显示链为空表示无法观察，不证明没有尺寸；不完整或歧义观察不会发布 ID，已关闭文档的旧 ID 始终失效。发现句柄不代表获得修改或保存源文件的授权。确切正式版本证据见 [a6 验证记录](docs/verification/a6-2026-10-10.md)。
 
 ## 特征操作（自 v0.1.0a4 起）
 
