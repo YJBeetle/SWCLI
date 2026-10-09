@@ -12,6 +12,7 @@ by this gate and records failures instead of hiding the original error.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -28,6 +29,8 @@ from swcli.result_schemas import validate_operation_result
 
 # Match the ten-minute CI phase, without extending any command/phase deadline.
 LEASE_TTL_SECONDS = 600
+ORIGIN_FIXTURE = "rectangle-origin-bound.SLDPRT"
+ORIGIN_FIXTURE_SHA256 = "0cea2c4681bb6fe98ea8aea8c72790742faf1df5b50df88b9932ca7b9f08ce98"
 
 
 def require(condition, message):
@@ -285,11 +288,13 @@ def modeling_host(path):
 
 class DrivingSmoke:
     def __init__(
-        self, *, endpoint, session, output_directory, cli=None, after_modeling=None
+        self, *, endpoint, session, output_directory, cli=None, after_modeling=None,
+        local_output_directory=None,
     ):
         self.endpoint = endpoint
         self.session = session
         self.output_directory = output_directory
+        self.local_output_directory = Path(local_output_directory or output_directory)
         # Use the same installed package as this isolated script, even if the
         # caller's shell still has PYTHONPATH pointing at a development tree.
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
@@ -306,6 +311,21 @@ class DrivingSmoke:
         self.checkpoint_writer = None
         self.checkpoint_error = None
         self._cleaning_up = False
+
+    def prepare_origin_fixture(self):
+        # All host wrappers already share the physical output directory with
+        # the daemon. Copy an immutable native fixture, never infer constraints
+        # from coordinates or send a raw COM fixture-building escape hatch.
+        source = Path(__file__).resolve().parent / "fixtures" / ORIGIN_FIXTURE
+        contents = source.read_bytes()
+        require(hashlib.sha256(contents).hexdigest() == ORIGIN_FIXTURE_SHA256,
+                "origin fixture checksum mismatch")
+        destination = self.local_output_directory / ORIGIN_FIXTURE
+        with destination.open("xb") as stream:
+            stream.write(contents)
+        self.origin_path = host_path(self.output_directory, ORIGIN_FIXTURE)
+        self.record["origin_fixture"] = {"sha256": ORIGIN_FIXTURE_SHA256,
+                                         "host_path": self.origin_path}
 
     def checkpoint(self, stage, *, required=True):
         self.record["stage"] = stage
@@ -766,7 +786,10 @@ class DrivingSmoke:
     def center_constraints(self, plane):
         """Public proof, including native persistence; no COM fixture or retry."""
         document_id = self.create()
-        origin_id = self.create() if plane == "front" else None
+        origin_id = None
+        if plane == "front":
+            opened = self.call("document.open", {"path": self.origin_path, "read_only": True})
+            origin_id = opened["document"]["document_id"]
         foreground_id = self.create()
         lease = self.call(
             "document.lease.acquire",
@@ -847,15 +870,14 @@ class DrivingSmoke:
                 document_id=origin_id,
             )["lease"]["lease_id"]
             origin_write = {"document_id": origin_id, "lease_id": origin_lease}
-            origin = self.write(
-                "sketch.rectangle",
-                {"plane": plane, "width_mm": 40, "height_mm": 30},
-                **origin_write,
-            )
+            origin = self.call("sketch.list", document_id=origin_id)
+            require(origin["count"] == 1 and len(origin["sketches"]) == 1,
+                    "origin fixture must contain one exact native sketch")
+            origin_sketch = origin["sketches"][0]["sketch_id"]
             origin_stamp = self.stamp(origin_id)
             proof["origin_refusal"] = self.write(
                 "sketch.fix-center",
-                {"sketch_id": origin["sketch"]["sketch_id"]},
+                {"sketch_id": origin_sketch},
                 expected_error="UnsupportedCenterConstraint",
                 **origin_write,
             )
@@ -864,7 +886,7 @@ class DrivingSmoke:
             )
             inspected = self.call(
                 "sketch.inspect",
-                {"sketch_id": origin["sketch"]["sketch_id"]},
+                {"sketch_id": origin_sketch},
                 document_id=origin_id,
             )
             require(inspected["editing"] is False, "origin refusal left an edit active")
@@ -1199,6 +1221,7 @@ class DrivingSmoke:
                 operation in health["operations"], f"installed daemon lacks {operation}"
             )
         self.checkpoint("host.verified")
+        self.prepare_origin_fixture()
         for plane in ("front", "top", "right"):
             self.record["current_plane"] = plane
             self.checkpoint(f"plane.{plane}.starting")
@@ -1247,6 +1270,7 @@ def main(argv=None):
         output_directory=arguments.host_output_dir or str(directory),
         cli=[arguments.cli_command] if arguments.cli_command else None,
         after_modeling=arguments.after_modeling,
+        local_output_directory=directory,
     )
     checkpoint = EvidenceCheckpoint(record_path)
     checkpoint.reserve(smoke.record)

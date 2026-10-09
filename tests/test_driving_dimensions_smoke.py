@@ -154,7 +154,12 @@ class FakeDaemon:
             self.serial += 1
             document_id = f"d-{self.serial:06d}"
             if operation == "document.open":
-                document = copy.deepcopy(self.files[values["path"]])
+                if values["path"].endswith(driving_smoke.ORIGIN_FIXTURE):
+                    document = {"stamp": 1, "sketch": None, "dimension": None,
+                                "lease": None, "radius": 0, "absorbed": False,
+                                "origin_bound": True}
+                else:
+                    document = copy.deepcopy(self.files[values["path"]])
                 document["lease"] = None
                 document["reopened"] = True
                 document["expired_dimension"] = document["dimension"]
@@ -416,14 +421,12 @@ class FakeDaemon:
             elif operation == "sketch.rectangle":
                 document["sketch"] = f"s-{self.serial:06d}"
                 document["fixed"] = False
-                document["origin"] = (
-                    values.get("center_x_mm", 0) == values.get("center_y_mm", 0) == 0
-                )
+                document["origin_bound"] = False
                 result["sketch"] = {"sketch_id": document["sketch"]}
             elif operation == "sketch.fix-center":
                 if document["sketch"] != values["sketch_id"]:
                     return self.error("SketchNotFound")
-                if document.get("origin"):
+                if document.get("origin_bound"):
                     if self.center_defect == "origin_stamp":
                         document["stamp"] += 1
                     return self.error("UnsupportedCenterConstraint")
@@ -562,10 +565,13 @@ class FakeDaemon:
 class DrivingDimensionsSmokeTests(unittest.TestCase):
     def setUp(self):
         self.daemon = FakeDaemon()
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
         self.smoke = driving_smoke.DrivingSmoke(
             endpoint="127.0.0.1:1",
             session="test-driving",
             output_directory=r"C:\Workspace\test",
+            local_output_directory=directory.name,
         )
 
     def run_smoke(self):
@@ -724,6 +730,27 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         self.assertFalse(
             any(operation == "document.create" for operation, _, _ in self.daemon.calls)
         )
+
+    def test_origin_fixture_is_exact_and_never_overwrites_existing_output(self):
+        self.smoke.prepare_origin_fixture()
+        destination = self.smoke.local_output_directory / driving_smoke.ORIGIN_FIXTURE
+        original = destination.read_bytes()
+        self.assertEqual(driving_smoke.hashlib.sha256(original).hexdigest(),
+                         driving_smoke.ORIGIN_FIXTURE_SHA256)
+        self.assertEqual(self.smoke.record["origin_fixture"]["host_path"],
+                         r"C:\Workspace\test\rectangle-origin-bound.SLDPRT")
+        with self.assertRaises(FileExistsError):
+            self.smoke.prepare_origin_fixture()
+        self.assertEqual(destination.read_bytes(), original)
+
+    def test_corrupt_or_missing_origin_fixture_fails_instead_of_skipping_refusal(self):
+        for failure in (b"corrupt", FileNotFoundError("missing fixture")):
+            with self.subTest(failure=failure):
+                outcome = {"side_effect": failure} if isinstance(failure, Exception) else {"return_value": failure}
+                with mock.patch.object(Path, "read_bytes", **outcome):
+                    with self.assertRaises((RuntimeError, FileNotFoundError)):
+                        self.smoke.prepare_origin_fixture()
+        self.assertFalse((self.smoke.local_output_directory / driving_smoke.ORIGIN_FIXTURE).exists())
 
     def test_center_false_success_stamp_and_foreground_drift_stop_the_gate(self):
         for defect in (

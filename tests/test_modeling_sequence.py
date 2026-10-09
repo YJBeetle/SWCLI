@@ -94,6 +94,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 session="gate",
                 output_directory="C:\\proof",
                 after_modeling=path,
+                local_output_directory=temporary,
             )
             with (
                 mock.patch.object(gate, "call_daemon", return_value=self.health()),
@@ -147,6 +148,7 @@ class ModelingSequenceTests(unittest.TestCase):
             ),
             mock.patch.object(smoke, "plane"),
             mock.patch.object(smoke, "center_constraints"),
+            mock.patch.object(smoke, "prepare_origin_fixture"),
             mock.patch("sys.stdout", new=io.StringIO()),
         ):
             with self.assertRaisesRegex(RuntimeError, "during the driving gate"):

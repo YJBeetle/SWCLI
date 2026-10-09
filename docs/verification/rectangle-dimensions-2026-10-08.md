@@ -426,3 +426,29 @@ same presentation boundary. This is a gate-format repair, not a change to the
 native result schema or geometry tolerances. The full suite passes 789 tests,
 eight skipped. The next local run advanced to the origin fixture, where a
 separate assumption about automatically inferred origin relations needs review.
+
+### Real origin-bound negative fixture — 2026-10-09
+
+The user chose to retain the origin-rejection gate with an actually constrained
+native sample. With inference disabled, a newly created rectangle centered at
+(0,0) has no additional origin coincidence and can legitimately be fixed;
+the previous fixture inferred a relation from coordinates that are not proof.
+No origin-positive replacement or coordinate-based refusal was adopted.
+
+The new [native fixture](../../scripts/ci/fixtures/README.md) was generated with
+explicit inference enabled in an exclusively created visible SW 2025 instance.
+Native center relations show two point-line coincidences plus an additional
+point-point origin coincidence. Geometry and relation arrays remain identical
+after saving and reopening read-only, and the existing adapter rejects both
+observations as `UnsupportedCenterConstraint`. The shared gate checks a fixed
+checksum, copies to its existing shared output directory and opens read-only.
+It preserves refusal, unchanged update stamp, closed edit and exact foreground
+restoration assertions. No raw COM is sent by the shared gate; regeneration is
+a separate maintainer-only Windows tool. The source distribution includes the
+asset so all three host projects consume the same fixture.
+
+All 791 portable tests pass (eight Windows-only skips), and the built source
+distribution contains the fixture, generator and README. Local native front
+center persistence and the real origin refusal pass after shared modeling on
+the same visible SW instance. The complete three-plane and hosted gates remain
+the delivery requirement, not this partial observation.
