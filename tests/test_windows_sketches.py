@@ -599,6 +599,76 @@ class WindowsSketchTests(unittest.TestCase):
                 self.assertFalse(result["sketch"]["dimensions_created"])
                 self.assertIsNone(self.document.SketchManager.ActiveSketch)
 
+    def test_direct_rectangle_creation_preserves_the_ci_requested_center_and_width(self):
+        manager = self.document.SketchManager
+        create_rectangle = manager.CreateCenterRectangle.side_effect
+
+        def infer_or_create(x, y, z, xmax, ymax, zmax):
+            if not manager.AddToDB:
+                x = 0  # UI snapping produces the CI's [-23,23] instead of [-17,23].
+            return create_rectangle(x, y, z, xmax, ymax, zmax)
+
+        manager.CreateCenterRectangle.side_effect = infer_or_create
+        result, feature = self.create(width_mm=40, height_mm=30,
+                                      center_x_mm=3, center_y_mm=4)
+        self.assertTrue(result["ok"], result)
+        self.assertIsNotNone(feature)
+        self.assertEqual(result["geometry_verification"]["actual_bounds_mm"],
+                         {"min_x": -17, "max_x": 23, "min_y": -11, "max_y": 19})
+        manager.CreateCenterRectangle.assert_called_once_with(.003, .004, 0, .023, .019, 0)
+        self.assertFalse(manager.AddToDB)
+
+    def test_rectangle_creation_mode_is_restored_before_close_without_other_preferences(self):
+        for original in (False, True):
+            with self.subTest(original=original):
+                self.setUp()
+                manager = self.document.SketchManager
+                manager.AddToDB = original
+                manager.DisplayWhenAdded = True
+                manager.AutoSolve = True
+                create_rectangle = manager.CreateCenterRectangle.side_effect
+
+                def direct(*arguments):
+                    self.assertTrue(manager.AddToDB)
+                    return create_rectangle(*arguments)
+
+                manager.CreateCenterRectangle.side_effect = direct
+                manager.on_close = lambda: self.assertEqual(manager.AddToDB, original)
+                result, _ = self.create()
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(manager.AddToDB, original)
+                self.assertTrue(manager.DisplayWhenAdded)
+                self.assertTrue(manager.AutoSolve)
+
+    def test_failed_rectangle_creation_restores_mode_and_preserves_native_error(self):
+        manager = self.document.SketchManager
+        manager.CreateCenterRectangle.side_effect = RuntimeError("native rectangle failed")
+        result, _ = self.create()
+        self.assertEqual(result["error"], {"type": "RuntimeError", "message": "native rectangle failed"})
+        manager.CreateCenterRectangle.assert_called_once()
+        self.assertFalse(manager.AddToDB)
+        self.assertIsNone(manager.ActiveSketch)
+
+    def test_rectangle_creation_refuses_failed_enable_before_creating_geometry(self):
+        with mock.patch.object(Manager, "AddToDB", new_callable=mock.PropertyMock,
+                               create=True, side_effect=[False, None, False, None, False]):
+            result, _ = self.create()
+        self.assertFalse(result["ok"])
+        self.document.SketchManager.CreateCenterRectangle.assert_not_called()
+        self.assertIsNone(self.document.SketchManager.ActiveSketch)
+
+    def test_failed_rectangle_mode_restore_is_not_reported_as_success(self):
+        with mock.patch.object(Manager, "AddToDB", new_callable=mock.PropertyMock,
+                               create=True, side_effect=[False, None, True, RuntimeError("restore failed")]):
+            result, feature = self.create()
+        self.assertIsNotNone(feature)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "SketchStateRestoreFailed")
+        self.assertEqual(result["warnings"][0]["code"], "sketch-creation-mode-restore-failed")
+        self.assertTrue(result["geometry_verification"]["passed"])
+        self.assertFalse(result["editing"])
+        validate_operation_result("sketch.rectangle", result)
+
     def test_rectangle_trace_covers_native_edit_create_close_and_verification(self):
         stream = io.StringIO()
         with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), \

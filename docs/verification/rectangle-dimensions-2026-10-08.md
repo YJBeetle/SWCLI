@@ -361,3 +361,23 @@ Keep the assertion unchanged and investigate the native geometry/creation
 state separately. This is not proof of a center-fix failure or of the unrelated
 MacSW hosted cut timeout. Public center delivery remains blocked pending
 native evidence and a passing unchanged gate.
+
+### Exact rectangle creation repair — 2026-10-09
+
+[SWCLI CI 37832962358](https://github.com/YJBeetle/SWCLI/actions/runs/37832962358)
+at `d5fc84bf42c4672413ccfa3f2cbdd6e4cdf9905c` repeated the same bounds mismatch
+after passing the shared modeling gate. Rectangle creation still used the UI
+inference path, unlike the existing direct circle adapter. The repair shares
+the circle's scoped `SketchManager.AddToDB` enable/readback/restore logic with
+`CreateCenterRectangle`. It changes no global snapping/display preference,
+requested coordinates, final geometry assertions, retries or host lifetime.
+The documented direct-database mode bypasses grid/entity snapping:
+[SOLIDWORKS AddToDB](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isketchmanager~addtodb.html).
+
+Five additional portable tests cover the observed 40-to-46 mm drift model,
+restoration before sketch close, native failure, failed mode enable, and failed
+restore without false success. The full portable suite passes 784 tests with
+eight Windows-only skips. These tests establish the adapter's mode handling,
+not the native root cause or installed delivery; the unchanged hosted gate must
+still pass. Local Parallels startup now reports 1591 MB of missing disk space;
+no unrelated user files were removed.

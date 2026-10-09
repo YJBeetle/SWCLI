@@ -179,7 +179,10 @@ the former foreground document without changing session current. It rejects an
 existing sketch edit and exits its own edit before verifying final native edge
 geometry. Failure does not imply rollback; cleanup warnings report an edit that
 could not be closed. Driving dimensions and full constraint solving are not yet
-part of this command.
+part of this command. Like circle creation, rectangle creation temporarily
+enables and verifies `SketchManager.AddToDB` to avoid UI snapping changing the
+requested coordinates. It restores the previous mode before closing the sketch;
+failed restoration is reported as `SketchStateRestoreFailed`, not success.
 
 `sketch.circle` uses the same lifecycle to create a full circle with explicit
 millimeter radius and sketch-local center. Post-edit verification reads native

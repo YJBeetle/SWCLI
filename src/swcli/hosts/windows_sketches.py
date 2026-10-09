@@ -289,6 +289,20 @@ def _create_circle_without_inference(
     manager: Any, x: float, y: float, radius: float, state_warnings: list,
     context: Optional[Dict[str, str]] = None,
 ) -> Any:
+    return _create_without_inference(
+        manager,
+        lambda: manager.CreateCircleByRadius(x, y, 0, radius),
+        state_warnings,
+        context,
+        native_method="CreateCircleByRadius",
+        shape="circle",
+    )
+
+
+def _create_without_inference(
+    manager: Any, create: Callable[[], Any], state_warnings: list,
+    context: Optional[Dict[str, str]] = None, *, native_method: str, shape: str,
+) -> Any:
     """Create exact API geometry rather than letting UI snapping redefine it."""
 
     # CreateCircleByRadius otherwise participates in UI inferencing, automatic
@@ -306,10 +320,10 @@ def _create_circle_without_inference(
             context["call"] = "AddToDB.set(True)"
         manager.AddToDB = True
         if not read_mode():
-            raise RuntimeError("SOLIDWORKS could not enable direct circle creation")
+            raise RuntimeError(f"SOLIDWORKS could not enable direct {shape} creation")
         if context is not None:
-            context["call"] = "CreateCircleByRadius"
-        return manager.CreateCircleByRadius(x, y, 0, radius)
+            context["call"] = native_method
+        return create()
     finally:
         try:
             manager.AddToDB = original
@@ -365,7 +379,8 @@ def create_rectangle_sketch_windows_with_handle(
         }
         return result, None
 
-    return _create_profile_sketch_windows_with_handle(
+    state_warnings = []
+    result, feature = _create_profile_sketch_windows_with_handle(
         app=app,
         document=document,
         plane=plane,
@@ -377,15 +392,30 @@ def create_rectangle_sketch_windows_with_handle(
             "center_x": center_x_mm,
             "center_y": center_y_mm,
         },
-        create_segments=lambda manager: native_call(
-            "create", "SketchManager.CreateCenterRectangle",
-            lambda: manager.CreateCenterRectangle(
-                center_x_mm / 1000, center_y_mm / 1000, 0.0,
-                expected["max_x"] / 1000, expected["max_y"] / 1000, 0.0,
+        create_segments=lambda manager: _create_without_inference(
+            manager,
+            lambda: native_call(
+                "create", "SketchManager.CreateCenterRectangle",
+                lambda: manager.CreateCenterRectangle(
+                    center_x_mm / 1000, center_y_mm / 1000, 0.0,
+                    expected["max_x"] / 1000, expected["max_y"] / 1000, 0.0,
+                ),
             ),
+            state_warnings,
+            native_method="CreateCenterRectangle",
+            shape="rectangle",
         ),
         verify_sketch=lambda sketch: _rectangle_verification(sketch, expected),
     )
+    if state_warnings:
+        result.setdefault("warnings", []).extend(state_warnings)
+        if result["ok"]:
+            result["ok"] = False
+            result["error"] = {
+                "type": "SketchStateRestoreFailed",
+                "message": "rectangle geometry was created but the original sketch creation mode could not be restored",
+            }
+    return result, feature
 
 
 def _create_profile_sketch_windows_with_handle(
