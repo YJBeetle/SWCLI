@@ -526,7 +526,7 @@ class FakeDaemon:
         def flag(name):
             return command[command.index(name) + 1]
 
-        index = command.index("120") + 1
+        index = command.index("--request-timeout") + 2
         arguments = command[index:]
         context = {"session_id": flag("--session"), "document_id": flag("--document")}
         if "--lease" in arguments:
@@ -578,10 +578,10 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         with (
             mock.patch.object(
                 driving_smoke, "call_daemon", side_effect=self.daemon.call
-            ),
+            ) as rpc,
             mock.patch.object(
                 driving_smoke.subprocess, "run", side_effect=self.daemon.command
-            ),
+            ) as cli,
             mock.patch("sys.stdout", new_callable=io.StringIO) as progress,
         ):
             try:
@@ -589,9 +589,17 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             finally:
                 self.smoke.cleanup()
                 self.progress = progress.getvalue()
+        return rpc, cli
 
     def test_all_planes_and_installed_cli_route_pass(self):
-        self.run_smoke()
+        rpc, cli = self.run_smoke()
+        self.assertEqual(self.smoke.record["request_timeout_seconds"], 120)
+        self.assertEqual(self.smoke.record["cli_process_timeout_seconds"], 135)
+        self.assertTrue(all(call.kwargs["timeout_seconds"] == 120 for call in rpc.call_args_list))
+        for call in cli.call_args_list:
+            arguments = call.args[0]
+            self.assertEqual(float(arguments[arguments.index("--request-timeout") + 1]), 120)
+            self.assertEqual(call.kwargs["timeout"], 135)
         self.assertEqual(
             [item["plane"] for item in self.smoke.record["planes"]],
             ["front", "top", "right"],
@@ -871,6 +879,72 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
 
     def test_default_cli_stays_isolated(self):
         self.assertEqual(self.smoke.cli[1:], ["-I", "-m", "swcli"])
+
+    def test_main_custom_request_timeout_reaches_cli_protocol_and_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch.object(driving_smoke, "call_daemon", side_effect=self.daemon.call) as rpc,
+                mock.patch.object(driving_smoke.subprocess, "run", side_effect=self.daemon.command) as cli,
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+            ):
+                driving_smoke.main([
+                    "--output-dir", directory, "--host-output-dir", r"C:\Workspace\proof",
+                    "--request-timeout", "300",
+                ])
+            record = json.loads((Path(directory) / "driving-dimensions.json").read_text(encoding="utf-8"))
+        self.assertTrue(record["success"])
+        self.assertEqual(record["request_timeout_seconds"], 300)
+        self.assertEqual(record["cli_process_timeout_seconds"], 315)
+        self.assertTrue(rpc.call_args_list)
+        self.assertTrue(all(call.kwargs["timeout_seconds"] == 300 for call in rpc.call_args_list))
+        self.assertTrue(cli.call_args_list)
+        for call in cli.call_args_list:
+            arguments = call.args[0]
+            self.assertEqual(float(arguments[arguments.index("--request-timeout") + 1]), 300)
+            self.assertEqual(call.kwargs["timeout"], 315)
+        self.assertFalse(self.daemon.documents)
+
+    def test_invalid_request_timeout_refused_before_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "not-created"
+            for value in ("0", "-1", "nan", "inf", "-inf", "1e309", "3600.1", "invalid"):
+                with (
+                    self.subTest(value=value),
+                    mock.patch.object(driving_smoke, "call_daemon") as rpc,
+                    mock.patch.object(driving_smoke.subprocess, "run") as cli,
+                    mock.patch("sys.stderr", new=io.StringIO()),
+                    self.assertRaises(SystemExit) as error,
+                ):
+                    driving_smoke.main(["--output-dir", str(output), f"--request-timeout={value}"])
+                self.assertEqual(error.exception.code, 2)
+                rpc.assert_not_called()
+                cli.assert_not_called()
+                self.assertFalse(output.exists())
+
+    def test_request_timeout_preserves_fractional_and_maximum_values(self):
+        for value in (0.25, 300.25, 300.1239, 3599.9999, 3600):
+            smoke = driving_smoke.DrivingSmoke(
+                endpoint="local", session="test", output_directory=r"C:\proof",
+                request_timeout_seconds=value,
+            )
+            with mock.patch.object(driving_smoke, "call_daemon", return_value={
+                "success": True, "result": {"ok": True},
+            }) as rpc:
+                smoke.call("document.list")
+            self.assertEqual(rpc.call_args.kwargs["timeout_seconds"], value)
+            with mock.patch.object(driving_smoke.subprocess, "run", return_value=(
+                subprocess.CompletedProcess([], 0, b'{"ok":true}', b'')
+            )) as cli:
+                smoke.command(["dimension", "inspect", "m-ab12cd"])
+            arguments = cli.call_args.args[0]
+            self.assertEqual(float(arguments[arguments.index("--request-timeout") + 1]), value)
+            self.assertEqual(cli.call_args.kwargs["timeout"], value + 15)
+            self.assertEqual(smoke.record["request_timeout_seconds"], value)
+        with self.assertRaises(argparse.ArgumentTypeError):
+            driving_smoke.DrivingSmoke(
+                endpoint="local", session="test", output_directory=r"C:\proof",
+                request_timeout_seconds=True,
+            )
 
     def test_cli_metadata_is_preserved_in_evidence_but_not_business_schema_view(self):
         payload = {

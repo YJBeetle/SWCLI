@@ -368,10 +368,11 @@ class ModelingSmokeTests(unittest.TestCase):
             else []
         )
         with (
-            mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run),
+            mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run) as command,
             mock.patch("sys.stdout", new=io.StringIO()),
         ):
             gate.main(arguments)
+        return command
 
     def record(self):
         return json.loads(
@@ -379,8 +380,12 @@ class ModelingSmokeTests(unittest.TestCase):
         )
 
     def test_complete_shared_sequence_parses_real_cli_and_keeps_one_host(self):
-        self.run_gate(samples=True)
+        commands = self.run_gate(samples=True)
         record = self.record()
+        self.assertEqual(record["request_timeout_seconds"], 120)
+        self.assertEqual(record["cli_process_timeout_seconds"], 135)
+        self.assertTrue(all(call.kwargs["timeout"] == 135 for call in commands.call_args_list))
+        self.assertTrue(all(call.request_timeout == 120 for call in self.fake.calls))
         self.assertTrue(record["success"])
         self.assertEqual(
             record["cases"],
@@ -425,6 +430,50 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(
             all(event["stderr"] == "native stderr\n" for event in record["events"])
         )
+
+    def test_custom_request_timeout_reaches_all_cli_calls_and_evidence(self):
+        self.arguments.extend(["--request-timeout", "300"])
+        commands = self.run_gate(samples=True)
+        record = self.record()
+        self.assertTrue(record["success"])
+        self.assertEqual(record["request_timeout_seconds"], 300)
+        self.assertEqual(record["cli_process_timeout_seconds"], 315)
+        self.assertTrue(commands.call_args_list)
+        self.assertTrue(all(call.kwargs["timeout"] == 315 for call in commands.call_args_list))
+        self.assertTrue(all(call.request_timeout == 300 for call in self.fake.calls))
+
+    def test_invalid_request_timeout_refused_before_work(self):
+        for value in ("0", "-1", "nan", "inf", "-inf", "1e309", "3600.1", "invalid"):
+            with (
+                self.subTest(value=value),
+                mock.patch.object(gate.subprocess, "run") as command,
+                mock.patch("sys.stderr", new=io.StringIO()),
+                self.assertRaises(SystemExit) as error,
+            ):
+                gate.main(self.arguments + [f"--request-timeout={value}"])
+            self.assertEqual(error.exception.code, 2)
+            command.assert_not_called()
+            self.assertFalse(self.directory.exists())
+
+    def test_request_timeout_preserves_fractional_and_maximum_values(self):
+        for value in (0.25, 300.25, 300.1239, 3599.9999, 3600):
+            smoke = gate.ModelingSmoke(
+                directory=self.directory, host_directory=r"C:\proof", endpoint="local",
+                request_timeout_seconds=value,
+            )
+            with mock.patch.object(gate.subprocess, "run", return_value=(
+                subprocess.CompletedProcess([], 0, b'{"ok":true}', b'')
+            )) as command, mock.patch.object(smoke, "checkpoint"):
+                smoke.command("document", "list")
+            arguments = command.call_args.args[0]
+            self.assertEqual(float(arguments[arguments.index("--request-timeout") + 1]), value)
+            self.assertEqual(command.call_args.kwargs["timeout"], value + 15)
+            self.assertEqual(smoke.record["request_timeout_seconds"], value)
+        with self.assertRaises(gate.argparse.ArgumentTypeError):
+            gate.ModelingSmoke(
+                directory=self.directory, host_directory=r"C:\proof", endpoint="local",
+                request_timeout_seconds=True,
+            )
 
     def test_native_failure_state_and_host_defects_fail_without_restart(self):
         for defect in (

@@ -27,8 +27,11 @@ from swcli.daemon.client import DEFAULT_ENDPOINT, call_daemon
 from swcli.result_schemas import validate_operation_result
 
 
-# Match the ten-minute CI phase, without extending any command/phase deadline.
+# Lease guards remain independent of configured request/phase deadlines.
 LEASE_TTL_SECONDS = 600
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 120
+MAX_REQUEST_TIMEOUT_SECONDS = 3600
+CLI_TIMEOUT_GRACE_SECONDS = 15
 ORIGIN_FIXTURE = "rectangle-origin-bound.SLDPRT"
 ORIGIN_FIXTURE_SHA256 = "0cea2c4681bb6fe98ea8aea8c72790742faf1df5b50df88b9932ca7b9f08ce98"
 
@@ -84,6 +87,20 @@ def cli_executable(value):
             "cli-command must be an executable file, not a directory or command line"
         )
     return str(resolved)
+
+
+def request_timeout(value):
+    if isinstance(value, bool):
+        raise argparse.ArgumentTypeError("request-timeout must be a number, not bool")
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise argparse.ArgumentTypeError("request-timeout must be a number") from exc
+    if not math.isfinite(seconds) or not 0 < seconds <= MAX_REQUEST_TIMEOUT_SECONDS:
+        raise argparse.ArgumentTypeError(
+            f"request-timeout must be finite and greater than 0, at most {MAX_REQUEST_TIMEOUT_SECONDS} seconds"
+        )
+    return seconds
 
 
 class EvidenceCheckpoint:
@@ -290,6 +307,7 @@ class DrivingSmoke:
     def __init__(
         self, *, endpoint, session, output_directory, cli=None, after_modeling=None,
         local_output_directory=None,
+        request_timeout_seconds=DEFAULT_REQUEST_TIMEOUT_SECONDS,
     ):
         self.endpoint = endpoint
         self.session = session
@@ -298,12 +316,17 @@ class DrivingSmoke:
         # Use the same installed package as this isolated script, even if the
         # caller's shell still has PYTHONPATH pointing at a development tree.
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
+        self.request_timeout_seconds = request_timeout(request_timeout_seconds)
         self.after_modeling = after_modeling
         self.record = {
             "state": "running",
             "stage": "initializing",
             "session_id": session,
             "endpoint": endpoint,
+            "request_timeout_seconds": self.request_timeout_seconds,
+            "cli_process_timeout_seconds": (
+                self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS
+            ),
             "planes": [],
             "events": [],
         }
@@ -383,7 +406,7 @@ class DrivingSmoke:
                 operation,
                 parameters,
                 endpoint=self.endpoint,
-                timeout_seconds=120,
+                timeout_seconds=self.request_timeout_seconds,
                 **context,
             )
             event["response"] = response
@@ -419,7 +442,7 @@ class DrivingSmoke:
             "--session",
             self.session,
             "--request-timeout",
-            "120",
+            str(self.request_timeout_seconds),
             *arguments,
             "--json",
         ]
@@ -436,7 +459,7 @@ class DrivingSmoke:
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=135,
+                timeout=self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS,
                 env=environment,
             )
             event.update(
@@ -1260,6 +1283,11 @@ def main(argv=None):
     parser.add_argument(
         "--endpoint", default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
     )
+    parser.add_argument(
+        "--request-timeout", type=request_timeout,
+        default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        help="per-request timeout in seconds (0 < seconds <= 3600; default: 120); CLI process gets 15 extra seconds",
+    )
     arguments = parser.parse_args(argv)
     directory = arguments.output_dir.expanduser().resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -1271,6 +1299,7 @@ def main(argv=None):
         cli=[arguments.cli_command] if arguments.cli_command else None,
         after_modeling=arguments.after_modeling,
         local_output_directory=directory,
+        request_timeout_seconds=arguments.request_timeout,
     )
     checkpoint = EvidenceCheckpoint(record_path)
     checkpoint.reserve(smoke.record)

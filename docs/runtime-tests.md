@@ -41,8 +41,8 @@ failures: that can hide process-state contamination. The scripts never install,
 start, stop or restart SOLIDWORKS. Cleanup closes only their own documents and
 retains cleanup errors; it does not turn a failed gate into success.
 
-Both gates explicitly acquire/renew ten-minute leases, covering each CI
-phase and bounded observation groups. Every holder write renews first, including
+Both gates explicitly acquire/renew ten-minute leases for bounded observation
+groups. Every holder write renews first, including
 expected-rejection checks and cleanup closes. This does not extend command/CI
 deadlines or change the daemon's 60-second default. An expired lease still fails;
 neither gate silently reacquires it or retries the native operation. The driving
@@ -73,6 +73,14 @@ assume `Z:` exists, and ensure both paths identify the same writable directory.
 The default CLI is isolated installed Python (`python -I -m swcli`), not an
 old global executable. `SWCLI_ENDPOINT` is the default endpoint when set.
 
+Both scripts accept `--request-timeout` in seconds: a finite positive number,
+at most 3600, with an unchanged default of 120. Slower hosts can pass
+`--request-timeout 300` to both gates. The same configured budget is forwarded
+to the CLI and to the driving gate's direct daemon calls; each CLI subprocess
+gets an additional 15 seconds to return its result. Existing shorter CLI health
+probe limits remain unchanged. This does not extend the host wrapper's overall
+phase deadline, lease TTL or introduce retries.
+
 Pass the successful local `modeling.json` to the driving script using
 `--after-modeling`. It rejects failed/interrupted records, missing native cut
 continuation proof and any host PID change between the two gates **before**
@@ -95,6 +103,8 @@ dimension protocol/CLI events and native verification. Both exclusively reserve
 their records before host operations and checkpoint complete JSON atomically,
 so an externally killed script leaves an honest `running` record. Existing
 records and native artifacts are not overwritten on repeated runs.
+Both records include `request_timeout_seconds` (configured per-request budget)
+and `cli_process_timeout_seconds` (that budget plus the 15-second process margin).
 
 Portable fake-CLI tests validate the test control flow, exact CLI syntax,
 failure reporting and evidence. Only successful execution on actual Windows,

@@ -24,9 +24,12 @@ import uuid
 from swcli.daemon.client import DEFAULT_ENDPOINT
 
 
-# Covers the ten-minute CI phase, including bounded read-only observation
-# groups. The daemon default/deadlines stay unchanged; holder writes still renew.
+# Bound read-only observation groups independently of request/phase deadlines.
+# The daemon lease default stays unchanged; holder writes still renew.
 LEASE_TTL_SECONDS = 600
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 120
+MAX_REQUEST_TIMEOUT_SECONDS = 3600
+CLI_TIMEOUT_GRACE_SECONDS = 15
 
 
 def require(condition, message):
@@ -61,12 +64,30 @@ def host_directory(value):
     return value
 
 
+def request_timeout(value):
+    if isinstance(value, bool):
+        raise argparse.ArgumentTypeError("request-timeout must be a number, not bool")
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise argparse.ArgumentTypeError("request-timeout must be a number") from exc
+    if not math.isfinite(seconds) or not 0 < seconds <= MAX_REQUEST_TIMEOUT_SECONDS:
+        raise argparse.ArgumentTypeError(
+            f"request-timeout must be finite and greater than 0, at most {MAX_REQUEST_TIMEOUT_SECONDS} seconds"
+        )
+    return seconds
+
+
 class ModelingSmoke:
-    def __init__(self, *, directory, host_directory, endpoint, cli=None):
+    def __init__(
+        self, *, directory, host_directory, endpoint, cli=None,
+        request_timeout_seconds=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    ):
         self.directory = directory
         self.host_directory = host_directory
         self.endpoint = endpoint
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
+        self.request_timeout_seconds = request_timeout(request_timeout_seconds)
         self.session = "modeling-smoke-" + uuid.uuid4().hex[:12]
         self.owned = {}
         self.leases = {}
@@ -79,6 +100,10 @@ class ModelingSmoke:
             "success": False,
             "session_id": self.session,
             "endpoint": endpoint,
+            "request_timeout_seconds": self.request_timeout_seconds,
+            "cli_process_timeout_seconds": (
+                self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS
+            ),
             "events": [],
             "cases": [],
             "cleanup_errors": [],
@@ -133,7 +158,7 @@ class ModelingSmoke:
             "--session",
             session,
             "--request-timeout",
-            "120",
+            str(self.request_timeout_seconds),
             *map(str, arguments),
         ]
         if document is not None:
@@ -151,7 +176,7 @@ class ModelingSmoke:
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=135,
+                timeout=self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS,
                 env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             )
             event.update(
@@ -799,6 +824,11 @@ def main(argv=None):
     parser.add_argument("--host-output-dir", type=host_directory)
     parser.add_argument("--cli-command", type=executable)
     parser.add_argument(
+        "--request-timeout", type=request_timeout,
+        default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        help="per-request timeout in seconds (0 < seconds <= 3600; default: 120); CLI process gets 15 extra seconds",
+    )
+    parser.add_argument(
         "--endpoint", default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
     )
     parser.add_argument("--sample-part", type=host_directory)
@@ -815,6 +845,7 @@ def main(argv=None):
         host_directory=host,
         endpoint=arguments.endpoint,
         cli=[arguments.cli_command] if arguments.cli_command else None,
+        request_timeout_seconds=arguments.request_timeout,
     )
     # Never overwrite prior evidence, even before the first host operation.
     with smoke.record_path.open("x", encoding="utf-8") as stream:
