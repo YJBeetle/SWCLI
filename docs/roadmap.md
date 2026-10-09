@@ -75,8 +75,8 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    guards. Installed size creation/read/edit now pass local Windows visible/hidden
    gates (`9380bc9`). The development `dimension.discover-rectangle` contract and
    shared save/reopen gate are implemented, and local installed Windows dual-mode
-   discovery passed at `c402c23`. Hosted saved-size discovery and Wine proof remain
-   unfinished. These results are not an a6 release or an a5
+   discovery passed at `c402c23`; hosted Windows dual-mode discovery also passed
+   at `f4dd43c`. Wine proof remains unfinished. These results are not an a6 release or an a5
    wheel feature.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.

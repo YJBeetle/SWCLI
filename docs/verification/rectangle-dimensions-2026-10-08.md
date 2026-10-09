@@ -35,8 +35,20 @@ at `/private/tmp/swcli-a6-public-discovery-proof`; exact wheel/source/script has
 and per-mode native call logs are retained. The same shared gate is now exercised
 by [SWCLI CI 37978542292](https://github.com/YJBeetle/SWCLI/actions/runs/37978542292)
 and DockerSW candidate `3a25ea7` /
-[Wine CI 37978886175](https://github.com/YJBeetle/DockerSW/actions/runs/37978886175),
-but those running jobs are **not yet** complete native/Wine proof.
+[Wine CI 37978886175](https://github.com/YJBeetle/DockerSW/actions/runs/37978886175).
+
+The hosted Windows run has now completed successfully at `f4dd43c` (documentation
+only after `c402c23`). Downloaded artifact `swcli-windows-hosted-37978542292-1`
+confirms visible PID **4588** and hidden PID **8980**, unchanged through 97
+modeling and 598 driving events per mode. Every terminal record reports success,
+`completed` and no cleanup errors. Each front/top/right case measured 15000 then
+17500 mm³, recovered a fresh stable native width/height pair after read-only
+reopen, and retained stamp **171**, configuration, editing and both sessions'
+selection state. The visible equation-control refusal also passed. Python
+3.9/3.14, distribution checks and fresh native installation passed; the native
+smoke step took 9 minutes 32 seconds. The evidence copy is retained at
+`/private/tmp/swcli-ci-37978542292.FbEgoa`. This proves the development candidate,
+not a formal a6 distribution. Wine completion is still a separate gate.
 
 ## Installed public size controls — 2026-10-10
 

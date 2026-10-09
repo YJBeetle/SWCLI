@@ -6,7 +6,7 @@ catalog, result contract and document/lease/stamp/foreground guards. Installed
 public center-fix verification has passed Windows and MacSW dual-mode gates;
 size creation/read/edit has passed installed local Windows visible/hidden gates
 (candidate `9380bc9`). Saved size discovery also passes local Windows dual-mode
-gates at `c402c23`; its hosted Windows and Wine gates remain pending.
+gates at `c402c23` and hosted Windows at `f4dd43c`; Wine remains pending.
 Neither is an a5 capability.
 The existing shared driving gate now exercises explicit fixing on three planes,
 repeated no-ops, lease/stamp refusal, background restoration and native
@@ -47,7 +47,7 @@ verified pair obtains/reuses IDs from the worker registry; native inspection
 snapshots remain ID-free evidence. The result contract cross-checks both native
 snapshots, geometry, configuration, solver state and the outer document stamp.
 Saved-model installed execution has passed local Windows visible/hidden gates
-at `c402c23`; hosted Windows and Wine proof for that candidate remain pending.
+at `c402c23` and hosted Windows at `f4dd43c`; Wine proof remains pending.
 The shared gate now saves each three-plane 50×35 mm result, closes it, reopens
 it read-only, discovers a fresh profile and dimension pair, repeats discovery,
 inspects both recovered axes and remeasures 17500 mm³. It checks stamp and both
@@ -154,7 +154,7 @@ must report/refuse unintended placement changes rather than hiding them.
    adapter also has same-host three-plane size/edit/volume proof, exact native
    relation readback and origin preflight refusal. Installed public size creation,
    inspection, edits and saved-size discovery have passed local Windows dual-mode
-   gates. Hosted saved-size discovery and Wine remain pending.
+   gates and hosted Windows CI. Wine remains pending.
 3. Registry/catalog/request/result/CLI contracts, including background documents
    and stale/leased/stamp-conflicting handles.
 4. Installed public Windows gates on front/top/right, visible and hidden, with
