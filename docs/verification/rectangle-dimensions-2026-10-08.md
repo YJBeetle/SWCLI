@@ -61,10 +61,14 @@ The six downloaded outputs retain valid PDF/DWG/STEP signatures. The localized
 Chinese UI/STEP gate and the verified CLI-image publication/promotion step also
 passed. This reused installation layers; it is not a fresh Wine MSI install.
 Artifacts are retained at `/private/tmp/dockersw-ci-37978886175.TrWpF9` and the
-job log at `/private/tmp/dockersw-ci-37978886175.log`. Promotion is evidenced by
-the completed job/log; an independent registry query was unavailable with the
-current credential's package scopes. This development runtime is not the
-formal-version a6 package and does not prove MacSW size delivery.
+job log at `/private/tmp/dockersw-ci-37978886175.log`. Independent registry reads
+through the trusted `workspaceroot` host confirm the immutable
+`sw-executable:sha-3a25ea7-cli` and promoted `sw-executable:2025-cli` manifests
+are structurally identical (canonical JSON SHA-256
+`0dc04c226b001a4b5ab652400e38acce1e560150905bcf5c1d3d9d8862f2ce16`).
+This is an inspection of remote metadata, not a local image pull/runtime test.
+This development runtime is not the formal-version a6 package and does not
+prove MacSW size delivery.
 
 ## Installed public size controls — 2026-10-10
 
