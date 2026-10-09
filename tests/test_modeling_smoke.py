@@ -32,6 +32,7 @@ class FakeCLI:
         self.rejected = False
         self.defect = None
         self.health_calls = 0
+        self.feature_ids = {}
         self.now = 0
         self.operation_seconds = 0
 
@@ -216,6 +217,7 @@ class FakeCLI:
             document["lease"]
             and document["lease"]["session"] != session
             and not (action == "sketch" and subcommand == "inspect")
+            and not (action == "feature" and subcommand in ("list", "inspect"))
         ):
             return self.failure("DocumentLeaseConflict")
         if action == "document" and subcommand in ("save-as", "export"):
@@ -290,6 +292,56 @@ class FakeCLI:
             if self.rejected and self.defect == "lost-foreground":
                 result["document"]["active"] = True
             return result
+        if action == "feature" and subcommand in ("list", "inspect"):
+            state = {
+                "configuration": "Default", "update_stamp": document["stamp"],
+                "modified": document["modified"], "editing": False,
+                "foreground_present": self.active is not None,
+            }
+            observed = {
+                "before": state, "after": copy.deepcopy(state), "unchanged": True,
+            }
+            features = []
+            for profile_id, profile in document["profiles"].items():
+                if not profile["absorbed"]:
+                    continue
+                key = (document_id, profile_id)
+                if key not in self.feature_ids:
+                    self.serial += 1
+                    self.feature_ids[key] = f"f-{self.serial:06x}"
+                features.append({
+                    "feature_id": self.feature_ids[key], "name": profile_id,
+                    "type": "Cut" if profile["cut"] else "Extrusion",
+                    "native_type": "Cut" if profile["cut"] else "Extrusion",
+                    "kind": "cut-extrude" if profile["cut"] else "boss-extrude",
+                })
+            if subcommand == "list":
+                if len(features) > args.max_features:
+                    return self.failure("FeatureListLimitExceeded")
+                return {
+                    "ok": True, "document": descriptor,
+                    "scope": "part-extrusions", "count": len(features),
+                    "features": features, "observation": observed,
+                }
+            selected = next((f for f in features if f["feature_id"] == args.feature_id), None)
+            if selected is None:
+                return self.failure("FeatureNotFound")
+            profile = document["profiles"][selected["name"]]
+            definition = {
+                "depth_mm": profile["depth"], "end_condition": 0,
+                "reverse_direction": profile["reverse"], "both_directions": False,
+                "thin": False, "from_type": 0,
+                "forward_draft": False, "reverse_draft": False,
+                "feature_scope" if profile["cut"] else "merge": True,
+            }
+            if self.defect == "feature-read-depth":
+                definition["depth_mm"] += 1
+            if self.defect == "feature-read-state":
+                observed["after"]["modified"] = not observed["before"]["modified"]
+            return {
+                "ok": True, "document": descriptor, "feature": selected,
+                "definition": definition, "observation": observed,
+            }
         if action == "feature":
             profile = document["profiles"][args.sketch_id]
             if profile["absorbed"]:
@@ -303,6 +355,7 @@ class FakeCLI:
                     result["error"]["type"] = "HostDisconnected"
                 return result
             profile["absorbed"] = True
+            profile.update(depth=args.depth_mm, reverse=args.reverse, cut=subcommand == "cut-extrude")
             document["stamp"] += 1
             document["modified"] = True
             removed = math.pi * profile["radius"] ** 2 * args.depth_mm
@@ -479,6 +532,8 @@ class ModelingSmokeTests(unittest.TestCase):
         for defect in (
             "cleanup-warning",
             "wrong-rejection",
+            "feature-read-depth",
+            "feature-read-state",
             "editing",
             "editing-unknown",
             "rejected-volume",

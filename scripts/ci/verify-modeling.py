@@ -399,6 +399,66 @@ class ModelingSmoke:
             )
         return result
 
+    def observe_features(self, document, *, bosses, cuts, background=False):
+        """Read exact handles/definitions without the holder's write token."""
+        observer = self.session + "-observer"
+        self.renew(document)
+        listed = self.command("feature", "list", document=document, session=observer)
+        features = listed["features"]
+        observation = listed["observation"]
+        require(
+            listed["scope"] == "part-extrusions"
+            and listed["count"] == len(features) == bosses + cuts
+            and observation["unchanged"] is True
+            and observation["before"] == observation["after"]
+            and observation["after"]["editing"] is False
+            and listed["document"]["update_stamp"]
+            == observation["after"]["update_stamp"]
+            and listed["document"]["modified"] == observation["after"]["modified"],
+            "feature listing is incomplete or changed native state",
+        )
+        ids = [feature["feature_id"] for feature in features]
+        require(
+            len(set(ids)) == len(ids)
+            and all(re.fullmatch(r"f-[a-z0-9]{6}", value) for value in ids)
+            and sum(f["kind"] == "boss-extrude" for f in features) == bosses
+            and sum(f["kind"] == "cut-extrude" for f in features) == cuts,
+            "feature listing lost exact handles or native kind coverage",
+        )
+        if background:
+            self.background(listed, document)
+        for feature in features:
+            self.renew(document)
+            inspected = self.command(
+                "feature", "inspect", feature["feature_id"],
+                "--if-update-stamp", listed["document"]["update_stamp"],
+                document=document,
+                session=observer,
+            )
+            definition = inspected["definition"]
+            state = inspected["observation"]
+            require(
+                inspected["feature"] == feature
+                and state["unchanged"] is True
+                and state["before"] == state["after"] == observation["after"]
+                and definition["end_condition"] == 0
+                and definition["both_directions"] is False
+                and definition["thin"] is False
+                and definition["from_type"] == 0
+                and definition["forward_draft"] is False
+                and definition["reverse_draft"] is False,
+                "feature inspection lost exact definition or changed native state",
+            )
+            near(definition["depth_mm"], 20, "read-only native feature depth changed")
+            if background:
+                self.background(inspected, document)
+        repeated = self.command("feature", "list", document=document, session=observer)
+        require(
+            repeated["features"] == features and repeated["observation"] == observation,
+            "repeated live feature observation changed handles or state",
+        )
+        return ids
+
     def native_model(self):
         a, b = self.create(), self.create()
         require(a != b, "unsaved documents received the same handle")
@@ -530,6 +590,19 @@ class ModelingSmoke:
                     "absorbed profile lost its exact owner or changed update stamp",
                 )
                 self.background(absorbed, a)
+                feature_ids = self.observe_features(
+                    a, bosses=1, cuts=1, background=True
+                )
+                limited = self.command(
+                    "feature", "list", "--max-features", 1,
+                    document=a,
+                    session=self.session + "-observer",
+                    expected_error="FeatureListLimitExceeded",
+                )
+                require(
+                    "features" not in limited,
+                    "limited feature read exposed a partial list",
+                )
                 self.write(
                     "feature",
                     "cut-extrude",
@@ -610,6 +683,15 @@ class ModelingSmoke:
         )
         self.measure(
             reopened, volume=metrics["volume_mm3"], area=metrics["surface_area_mm2"]
+        )
+        reopened_ids = self.observe_features(reopened, bosses=6, cuts=1)
+        require(
+            not set(feature_ids) & set(reopened_ids),
+            "native close/reopen reused retired feature handles",
+        )
+        self.command(
+            "feature", "inspect", feature_ids[0], document=reopened,
+            expected_error="FeatureNotFound",
         )
         diagnosis = self.command("document", "diagnose", document=reopened)
         require(
