@@ -3,8 +3,9 @@
 Status: **a7 development**, not a capability of the published a6 wheel.
 Document-local feature handles and public read-only `feature.list/inspect` are
 implemented, with portable contracts and native Windows CLI/TCP/COM proof.
-The existing shared modeling gate now includes these reads; its hosted Windows
-and Wine results are still pending. Public creation-result handles are implemented
+The existing shared modeling gate now includes these reads; the read-only
+candidate passed hosted Windows visible/hidden modes in run `37993834203`.
+Wine results and later candidates remain pending. Public creation-result handles are implemented
 with independent native Windows CLI/TCP/COM proof. Depth writes remain pending;
 no shipped depth-setter proof is claimed. Test-only native feasibility is
 recorded separately below.

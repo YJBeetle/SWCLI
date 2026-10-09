@@ -50,7 +50,8 @@ non-holder session path is covered by portable contracts and the new shared gate
 
 ## Still pending
 
-- Hosted Windows execution of the extended shared modeling gate.
+- Hosted Windows verification of the later creation-handle and depth-guard
+  candidates; the read-only candidate below passed independently.
 - Linux/Wine and macOS/Wine runtime proof for these new operations; older a6
   host passes do not establish a7 feature support.
 - Guarded blind depth edits,
@@ -59,6 +60,32 @@ non-holder session path is covered by portable contracts and the new shared gate
 
 No setter, automatic retry, source save, transaction rollback or host restart is
 part of the feature read path.
+
+## Hosted Windows read-only gate
+
+[Run 37993834203](https://github.com/YJBeetle/SWCLI/actions/runs/37993834203)
+passed for source `fab41582fb49d150982be63bf47fbc5209717c1b`. Unit/package jobs
+and the real SOLIDWORKS modeling/export job succeeded. Its installed-wheel gate
+ran SW2025 `33.5.0` with Python 3.12.10, first visible (PID **3088**), then hidden
+(PID **2812**). Each mode retained its own SW process throughout modeling and
+driving-dimension verification; both records completed with no cleanup errors.
+
+The shared modeling gate verified leased background feature reads from a
+distinct non-holder session, exact boss/cut depth and flags, unchanged native
+state, repeated IDs, bounded-list refusal without partial results, native
+save/reopen and rejection of retired feature IDs. Existing modeling, dimension,
+export and host-disconnection gates also passed; assertions were not relaxed.
+
+Artifact: `swcli-windows-hosted-37993834203-1` (ID `11647535169`).
+
+| Generated evidence | SHA256 |
+| --- | --- |
+| `swcli-native-smoke/modeling/modeling.json` | `d65bd43ebb6cdb8b71d0ee418911c18be2e6ffad7671c8a80aa7be519cbbca09` |
+| `swcli-native-smoke/hidden/modeling/modeling.json` | `ab8f5e7474c1e2327ca6360672818fc8331cd0c027172897c0c74f1144efa825` |
+
+This source predates creation-result handles and preliminary depth controls.
+Its pass proves neither those later candidates nor a public depth setter, Wine
+delivery or an a7 release.
 
 ## Independent creation-handle proof
 
