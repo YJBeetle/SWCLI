@@ -28,10 +28,10 @@ class Segment:
         return 0
 
     def GetStartPoint2(self):
-        return SimpleNamespace(X=self.start[0], Y=self.start[1], Z=self.start[2])
+        return getattr(self, "start_point", SimpleNamespace(X=self.start[0], Y=self.start[1], Z=self.start[2]))
 
     def GetEndPoint2(self):
-        return SimpleNamespace(X=self.end[0], Y=self.end[1], Z=self.end[2])
+        return getattr(self, "end_point", SimpleNamespace(X=self.end[0], Y=self.end[1], Z=self.end[2]))
 
 
 class Sketch:
@@ -122,6 +122,28 @@ class Manager:
             Segment(corners[0], corners[2], True),
             Segment(corners[1], corners[3], True),
         ]
+        sketch = self.ActiveSketch
+        points = [SimpleNamespace(X=c[0], Y=c[1], Z=0, Type=0,
+                                 GetID=lambda i=i: (i + 1, i + 2),
+                                 GetSketch=lambda: sketch)
+                  for i, c in enumerate(corners)]
+        for i, segment in enumerate(sketch.segments):
+            first, last = ((i, (i + 1) % 4) if i < 4 else
+                           ((0, 2) if i == 4 else (1, 3)))
+            segment.start_point, segment.end_point = points[first], points[last]
+            segment.GetID = lambda i=i: (i + 1, i + 1)
+            segment.GetSketch = lambda: sketch
+        center = SimpleNamespace(X=x, Y=y, Z=0, Type=1,
+                                 GetID=lambda: (0, 1), GetSketch=lambda: sketch)
+        relations = [SimpleNamespace(
+            GetRelationType=lambda: 9, Suppressed=False,
+            GetEntitiesCount=lambda: 2, GetEntitiesType=lambda: (2, 3),
+            GetEntities=lambda line=line: (center, line),
+            GetDefinitionEntities2=lambda line=line: (center, line),
+        ) for line in sketch.segments[4:]]
+        center.GetRelations = lambda: relations
+        center.GetRelationsCount = lambda: len(relations)
+        sketch.GetSketchPoints2 = lambda: (center, *points)
         return self.ActiveSketch.segments
 
 
@@ -670,6 +692,31 @@ class WindowsSketchTests(unittest.TestCase):
         self.assertTrue(self.inference)
         self.document.SketchManager.CreateCenterRectangle.assert_called_once()
 
+    def test_center_completion_failure_restores_modes_and_closes_owned_edit(self):
+        with mock.patch("swcli.hosts.windows_rectangle_center.complete_created_rectangle_center",
+                        side_effect=RuntimeError("native center failure")) as complete:
+            result, feature = self.create()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["message"], "native center failure")
+        self.assertIsNotNone(feature)
+        self.assertFalse(result["editing"])
+        self.assertTrue(self.inference)
+        self.assertFalse(self.document.SketchManager.AddToDB)
+        self.document.SketchManager.CreateCenterRectangle.assert_called_once()
+        complete.assert_called_once()
+
+    def test_closed_creation_still_requires_actual_center_topology(self):
+        def remove_center():
+            sketch = self.document.SketchManager.ActiveSketch
+            corners = tuple(sketch.GetSketchPoints2())[1:]
+            sketch.GetSketchPoints2 = lambda: corners
+
+        self.document.SketchManager.on_close = remove_center
+        result, _ = self.create()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["type"], "UnsupportedCenterConstraint")
+        self.assertFalse(result["editing"])
+
     def test_rectangle_failed_inference_restore_is_not_success(self):
         for rejected in (False, True):
             with self.subTest(rejected=rejected):
@@ -887,7 +934,8 @@ class WindowsSketchTests(unittest.TestCase):
 
     def test_final_geometry_is_checked_after_close_triggers_solving(self):
         def change_geometry():
-            self.document.SketchManager.ActiveSketch.segments[0].start = (0.5, 0.5, 0)
+            point = self.document.SketchManager.ActiveSketch.segments[0].start_point
+            point.X, point.Y = .5, .5
 
         self.document.SketchManager.on_close = change_geometry
         result, feature = self.create()

@@ -13,7 +13,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from .windows import _com_value
 from .windows_dimension_discovery import _profile, _state
-from .windows_dimensions import _DimensionError, _failure, _same
+from .windows_dimensions import _DimensionError, _failure, _same, _variant
+from .native_trace import native_call
 from .windows_rectangle_dimensions import _geometry
 from .windows_rectangle_profiles import (
     RectangleObservationError,
@@ -172,12 +173,8 @@ def _relation(
     return kind, diagonal_key
 
 
-def observe_rectangle_center(app: Any, sketch: Any) -> RectangleCenter:
-    """Prove a five-point center rectangle with two live diagonal relations.
-
-    Additional/external/origin constraints are deliberately outside this slice;
-    never select a loose point merely because its coordinates match the center.
-    """
+def _rectangle_topology(app: Any, sketch: Any):
+    """Exact shared corners and opposite diagonals, before observing any center."""
     try:
         profile = observe_rectangle_profile(sketch)
         segments = _collection(sketch, "GetSketchSegments")
@@ -236,6 +233,91 @@ def observe_rectangle_center(app: Any, sketch: Any) -> RectangleCenter:
             raise _unsupported(
                 "construction lines do not join both pairs of opposite corners"
             )
+        return profile, corners, corner_keys, diagonals
+    except RectangleObservationError as exc:
+        raise _DimensionError(exc.code, str(exc)) from exc
+
+
+def complete_created_rectangle_center(app: Any, manager: Any) -> None:
+    """Complete only a fresh creation owned by SWCLI, not an existing sketch.
+
+    Hidden SW2025 can omit the UI-created center point. Create its native point
+    and both native relations explicitly, never a coordinate-only fix fallback.
+    The normal read-only observer remains strict for all existing sketches.
+    Caller holds AddToDB=True / inference=False and owns the active edit.
+    """
+    sketch = _com_value(manager, "ActiveSketch")
+    if sketch is None:
+        raise _unavailable("fresh rectangle edit is unavailable")
+    points = _collection(sketch, "GetSketchPoints2")
+    if len(points) == 5:
+        center = observe_rectangle_center(app, sketch)
+        if center.fixed_relation is not None:
+            raise _unsupported("fresh rectangle unexpectedly has a fixed center")
+        return
+    profile, corners, corner_keys, diagonals = _rectangle_topology(app, sketch)
+    observed = [_point(app, sketch, point) for point in points]
+    if len(observed) != 4 or {key for key, _ in observed} != set(corner_keys.values()):
+        raise _unsupported("fresh rectangle does not contain only its exact four corners")
+    for point, (key, coordinates) in zip(points, observed):
+        if _integer(point, "Type") != 0 or not any(
+            key == native and _matches(coordinates, corners[index])
+            for index, native in corner_keys.items()
+        ):
+            raise _unsupported("fresh rectangle corner identity/geometry disagree")
+    relation_manager = _com_value(sketch, "RelationManager")
+    if relation_manager is None:
+        raise _unavailable("fresh rectangle relation manager is unavailable")
+    point = native_call(
+        "rectangle-create-center", "SketchManager.CreatePoint",
+        lambda: manager.CreatePoint(*(value / 1000 for value in profile.center_mm), 0),
+    )
+    if point is None:
+        raise _DimensionError("SketchCreationFailed", "native center creation returned no point")
+    point_id, coordinates = _point(app, sketch, point)
+    relation_count = _integer(point, "GetRelationsCount")
+    # Native COM returns NULL, not necessarily an empty SAFEARRAY, for no
+    # relations. Accept it only alongside the independently observed zero count.
+    relations = _com_value(point, "GetRelations")
+    no_relations = relations is None or (
+        isinstance(relations, (tuple, list)) and len(relations) == 0
+    )
+    if (_integer(point, "Type") != 1
+            or not _matches(coordinates, (*profile.center_mm, 0))
+            or point_id in corner_keys.values()
+            or relation_count != 0 or not no_relations):
+        raise _unsupported("new native center has unexpected identity, geometry or relations")
+    created_points = [_point(app, sketch, p)[0]
+                      for p in _collection(sketch, "GetSketchPoints2")]
+    if len(created_points) != 5 or set(created_points) != {point_id, *corner_keys.values()}:
+        raise _unsupported("native center creation did not produce exactly five unique points")
+    center = RectangleCenter(profile, point, point_id, diagonals, None)
+    for key in diagonals:
+        active = _com_value(manager, "ActiveSketch")
+        if active is None or not _same(app, active, sketch):
+            raise _unavailable("fresh rectangle edit changed before adding its relation")
+        # Use the exact native line from this sketch, not an ID/coordinate proxy.
+        entity = next(s for s in _collection(sketch, "GetSketchSegments")
+                      if _key(app, sketch, s) == key)
+        relation = native_call(
+            "rectangle-create-center", "SketchRelationManager.AddRelation(COINCIDENT)",
+            lambda: relation_manager.AddRelation(
+                _variant("dispatch-array", (point, entity)), _COINCIDENT
+            ),
+        )
+        if relation is None or _relation(app, sketch, relation, center) != (_COINCIDENT, key):
+            raise _DimensionError("SketchVerificationFailed", "native center relation is not exact")
+    observe_rectangle_center(app, sketch)
+
+
+def observe_rectangle_center(app: Any, sketch: Any) -> RectangleCenter:
+    """Prove a five-point center rectangle with two live diagonal relations.
+
+    Additional/external/origin constraints are deliberately outside this slice;
+    never select a loose point merely because its coordinates match the center.
+    """
+    try:
+        profile, corners, corner_keys, diagonals = _rectangle_topology(app, sketch)
         points = _collection(sketch, "GetSketchPoints2")
         observed = [(point, *_point(app, sketch, point)) for point in points]
         if len(observed) != 5 or len({key for _, key, _ in observed}) != 5:

@@ -108,6 +108,157 @@ class RectangleCenterTests(unittest.TestCase):
         self.assertEqual(evidence["geometry"]["center_mm"], {"x": 3, "y": 4, "z": 0})
         json.dumps(evidence, allow_nan=False)
 
+    def creation_manager(self, *, missing=True):
+        self.manager.ActiveSketch = self.sketch
+        if missing:
+            self.points = self.corners[:]
+            self.relations = []
+
+        def create(x, y, z):
+            self.assertEqual((x, y, z), (.003, .004, 0))
+            self.points.append(self.center)
+            return self.center
+
+        def add(entities, kind):
+            relation = self.relation(kind, [2, 3], entities)
+            self.relations.append(relation)
+            return relation
+
+        self.manager.CreatePoint = mock.Mock(side_effect=create)
+        self.sketch.RelationManager = SimpleNamespace(AddRelation=mock.Mock(side_effect=add))
+        return self.manager
+
+    def complete(self):
+        with mock.patch.object(centers, "_variant", side_effect=lambda kind, value: value):
+            centers.complete_created_rectangle_center(self.app, self.manager)
+
+    def test_fresh_hidden_creation_adds_exact_native_point_and_both_relations_once(self):
+        manager = self.creation_manager()
+        self.complete()
+        manager.CreatePoint.assert_called_once_with(.003, .004, 0)
+        self.assertEqual(self.sketch.RelationManager.AddRelation.call_count, 2)
+        self.assertIsNone(self.observe().fixed_relation)
+        self.complete()
+        manager.CreatePoint.assert_called_once()
+        self.assertEqual(self.sketch.RelationManager.AddRelation.call_count, 2)
+
+    def test_visible_creation_preserves_existing_exact_center_without_writes(self):
+        manager = self.creation_manager(missing=False)
+        self.complete()
+        manager.CreatePoint.assert_not_called()
+        self.sketch.RelationManager.AddRelation.assert_not_called()
+
+    def test_new_center_null_relations_requires_an_independent_zero_count(self):
+        for count in (0, 1, None):
+            with self.subTest(count=count):
+                self.setUp()
+                self.creation_manager()
+                original_create = self.manager.CreatePoint.side_effect
+
+                def create(*args):
+                    point = original_create(*args)
+                    point.GetRelationsCount = lambda: count
+                    point.GetRelations = lambda: None
+                    return point
+
+                self.manager.CreatePoint.side_effect = create
+                if count == 0:
+                    # Restore normal reads when the first real relation exists.
+                    original_add = self.sketch.RelationManager.AddRelation.side_effect
+
+                    def add(*args):
+                        self.center.GetRelationsCount = lambda: len(self.relations)
+                        self.center.GetRelations = lambda: self.relations
+                        return original_add(*args)
+
+                    self.sketch.RelationManager.AddRelation.side_effect = add
+                    self.complete()
+                    self.assertEqual(len(self.relations), 2)
+                else:
+                    with self.assertRaises(centers._DimensionError):
+                        self.complete()
+                    self.sketch.RelationManager.AddRelation.assert_not_called()
+
+    def test_creation_does_not_repair_extra_or_origin_constraints(self):
+        manager = self.creation_manager(missing=False)
+        self.relations.append(self.relation(9, [2, 2], [self.center, self.point(30, 0, 0)]))
+        with self.assertRaises(centers._DimensionError) as caught:
+            self.complete()
+        self.assertEqual(caught.exception.code, "UnsupportedCenterConstraint")
+        manager.CreatePoint.assert_not_called()
+        self.sketch.RelationManager.AddRelation.assert_not_called()
+
+    def test_missing_center_requires_exact_corners_and_no_foreign_points_before_write(self):
+        for invalid in ("extra-point", "duplicate-id", "different-owner", "loose-corner"):
+            with self.subTest(invalid=invalid):
+                self.setUp()
+                manager = self.creation_manager()
+                if invalid == "extra-point":
+                    self.points.append(self.point(30, 9, 9))
+                elif invalid == "duplicate-id":
+                    self.points[-1] = self.points[0]
+                elif invalid == "different-owner":
+                    self.points[0].GetSketch = lambda: SimpleNamespace()
+                else:
+                    self.edges[0].GetStartPoint2 = lambda: self.point(30, -17, -11, kind=0)
+                with self.assertRaises(centers._DimensionError):
+                    self.complete()
+                manager.CreatePoint.assert_not_called()
+                self.sketch.RelationManager.AddRelation.assert_not_called()
+
+    def test_native_creation_failure_is_not_retried_or_accepted(self):
+        for failure in (None, RuntimeError("native center failure")):
+            with self.subTest(failure=failure):
+                self.setUp()
+                manager = self.creation_manager()
+                manager.CreatePoint.side_effect = failure
+                manager.CreatePoint.return_value = None
+                with self.assertRaises(Exception):
+                    self.complete()
+                manager.CreatePoint.assert_called_once()
+                self.sketch.RelationManager.AddRelation.assert_not_called()
+
+    def test_wrong_or_failed_native_relation_is_not_retried(self):
+        for failure in (None, RuntimeError("native relation failure"),
+                        self.relation(17, [2], [self.center])):
+            with self.subTest(failure=failure):
+                self.setUp()
+                self.creation_manager()
+                add = self.sketch.RelationManager.AddRelation
+                add.side_effect = failure if isinstance(failure, Exception) else None
+                add.return_value = failure
+                with self.assertRaises(Exception):
+                    self.complete()
+                self.manager.CreatePoint.assert_called_once()
+                add.assert_called_once()
+
+    def test_new_point_must_match_native_identity_geometry_and_relation_state_before_attach(self):
+        for invalid in ("position", "type", "owner", "identity", "extra-relation"):
+            with self.subTest(invalid=invalid):
+                self.setUp()
+                manager = self.creation_manager()
+                create = manager.CreatePoint.side_effect
+
+                def wrong_point(*args):
+                    point = create(*args)
+                    if invalid == "position":
+                        point.X = 99
+                    elif invalid == "type":
+                        point.Type = 0
+                    elif invalid == "owner":
+                        point.GetSketch = lambda: SimpleNamespace()
+                    elif invalid == "identity":
+                        point.GetID = self.corners[0].GetID
+                    else:
+                        self.relations.append(self.relation(17, [2], [point]))
+                    return point
+
+                manager.CreatePoint.side_effect = wrong_point
+                with self.assertRaises(centers._DimensionError):
+                    self.complete()
+                manager.CreatePoint.assert_called_once()
+                self.sketch.RelationManager.AddRelation.assert_not_called()
+
     def test_same_typed_native_ids_in_other_wrappers_do_not_require_point_issame(self):
         point = self.point(0, 3, 4)
         lines = [

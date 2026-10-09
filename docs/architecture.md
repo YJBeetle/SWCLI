@@ -189,6 +189,16 @@ No grid/display or solver preferences are changed. Because the inference toggle
 is application-scoped, an explicitly shared interactive host can observe this
 brief change; document leases do not isolate the human UI.
 
+The fresh rectangle has four shared native corner points, two construction
+diagonals and one center point coincident with both diagonals. SW2025's hidden
+creation tool can omit the last point and its relations. While still owning the
+fresh edit, SWCLI verifies the exact four-corner topology and explicitly adds
+the missing native point and both native relations; an existing valid center is
+left untouched. Unexpected points, owners, IDs or relations fail closed. Native
+topology is verified again after closing the edit. This is creation completion,
+not a repair/fallback in `sketch.fix-center`: imported sketches with extra origin
+relations remain rejected, and failures do not imply rollback or retry.
+
 `sketch.circle` uses the same lifecycle to create a full circle with explicit
 millimeter radius and sketch-local center. Post-edit verification reads native
 `ISketchArc::IsCircle`, `GetRadius` and `GetCenterPoint2`, requiring exactly one

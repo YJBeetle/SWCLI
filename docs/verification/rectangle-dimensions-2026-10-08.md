@@ -467,3 +467,34 @@ permits only this fixed path, checksum, regular file and <=64 KiB size; duplicat
 and every other CAD/media/registry payload still fail. A real built sdist passes
 the verifier; 793 portable tests pass (eight skipped). Hosted runtime proof is
 still required separately.
+
+### Explicit fresh center topology in hidden mode — 2026-10-09
+
+[SWCLI CI 37890798587](https://github.com/YJBeetle/SWCLI/actions/runs/37890798587)
+passed packaging, both portable Windows jobs and the complete visible native
+driving gate. Hidden mode failed at the first center fix: native creation had
+four corners but no center point. Independent local macOS/Wine observations
+reproduced four points in hidden and five points with two center-diagonal
+coincidences in visible mode on all three planes in the same SW instance.
+This is therefore not a Mac-only failure or an origin-fixture refusal.
+
+Fresh rectangle creation now completes only a verified four-corner/two-diagonal
+sketch with an actual native `CreatePoint` and two `AddRelation(COINCIDENT)`
+calls. Existing valid five-point topology is observed without mutation. The
+native owner, sketch-local IDs, geometry and relation entities must all agree,
+including after edit closure; no existing sketch or extra origin relation is
+repaired. A NULL empty relation array is accepted only with an independently
+observed zero relation count. Failures keep their public error code and restore
+the original inference/AddToDB settings, without a second creation attempt.
+See the official [point creation](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchManager~CreatePoint.html)
+and [relation creation](https://help.solidworks.com/2017/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchRelationManager~AddRelation.html)
+contracts; `CreateCenterRectangle` documents returned edges/diagonals, not a
+guarantee of the hidden UI center-point side effect.
+
+The corrected local hidden sequence passed 85 modeling and 361 driving events
+on the same SW PID 728 / 33.5.0, including the real origin refusal, three-plane
+center fixes, repeated no-op fixes and native save/reopen. Both cleanup arrays
+were empty and the final document list was empty. Evidence is retained under
+`/private/tmp/swcli-nativecheck.V946aT/center-final-hidden-*`. This is a local
+hardware-host result, not proof of hosted macOS software-renderer CI. The latter
+must run the corrected source pin separately.

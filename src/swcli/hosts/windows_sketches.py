@@ -422,6 +422,32 @@ def create_rectangle_sketch_windows_with_handle(
         return result, None
 
     state_warnings = []
+
+    def create_rectangle(manager):
+        # Import locally: dimension observation also uses sketch discovery.
+        from .windows_rectangle_center import complete_created_rectangle_center
+
+        segments = native_call(
+            "create", "SketchManager.CreateCenterRectangle",
+            lambda: manager.CreateCenterRectangle(
+                center_x_mm / 1000, center_y_mm / 1000, 0.0,
+                expected["max_x"] / 1000, expected["max_y"] / 1000, 0.0,
+            ),
+        )
+        if segments:
+            complete_created_rectangle_center(app, manager)
+        return segments
+
+    def verify_rectangle(sketch):
+        from .windows_rectangle_center import observe_rectangle_center
+
+        geometry = _rectangle_verification(sketch, expected)
+        if geometry["passed"]:
+            center = observe_rectangle_center(app, sketch)
+            if center.fixed_relation is not None:
+                raise RuntimeError("fresh rectangle unexpectedly has a fixed center")
+        return geometry
+
     result, feature = _create_profile_sketch_windows_with_handle(
         app=app,
         document=document,
@@ -435,17 +461,9 @@ def create_rectangle_sketch_windows_with_handle(
             "center_y": center_y_mm,
         },
         create_segments=lambda manager: _create_rectangle_without_inference(
-            app, manager,
-            lambda: native_call(
-                "create", "SketchManager.CreateCenterRectangle",
-                lambda: manager.CreateCenterRectangle(
-                    center_x_mm / 1000, center_y_mm / 1000, 0.0,
-                    expected["max_x"] / 1000, expected["max_y"] / 1000, 0.0,
-                ),
-            ),
-            state_warnings,
+            app, manager, lambda: create_rectangle(manager), state_warnings,
         ),
-        verify_sketch=lambda sketch: _rectangle_verification(sketch, expected),
+        verify_sketch=verify_rectangle,
     )
     if state_warnings:
         result.setdefault("warnings", []).extend(state_warnings)
@@ -581,7 +599,11 @@ def _create_profile_sketch_windows_with_handle(
         result["ok"] = True
         return result, feature
     except Exception as exc:
-        result["error"] = _error(exc)
+        # Creation can now encounter exact native center observation errors.
+        # Preserve their stable public code rather than the private class name.
+        from .windows_dimensions import _failure
+
+        _failure(result, exc)
         if failure_context is not None and com_hresult(exc) is not None:
             result.setdefault("warnings", []).append(
                 _com_failure_warning(exc, failure_context)

@@ -489,6 +489,11 @@ IDs identify exact sketch feature handles within their document and worker;
 they expire on document close or worker restart and are not persistent
 references across saving, reopening or topology changes.
 
+Creation verifies a real center point attached to both construction diagonals.
+If the native hidden-mode tool omits it, SWCLI explicitly creates that point and
+its two relations in the fresh sketch; it does not weaken center-constraint
+checks or repair imported sketches with extra origin relations.
+
 The command exits sketch editing before verifying the final geometry. It does
 not add driving dimensions or promise a fully defined sketch. An existing
 sketch edit is rejected rather than taken over. `--document`, `--lease` and
