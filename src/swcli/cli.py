@@ -335,7 +335,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     dimension_parser = subcommands.add_parser(
-        "dimension", help="discover diameters or inspect/modify verified native dimensions"
+        "dimension", help="discover or inspect/modify verified native dimensions"
     )
     dimension_commands = dimension_parser.add_subparsers(
         dest="dimension_command", required=True
@@ -347,6 +347,15 @@ def build_parser() -> argparse.ArgumentParser:
     dimension_discover_parser.add_argument("sketch_id")
     add_document_selector(dimension_discover_parser)
     dimension_discover_parser.add_argument(
+        "--json", action="store_true", dest="as_json"
+    )
+    rectangle_discover_parser = dimension_commands.add_parser(
+        "discover-rectangle",
+        help="recover an observable width/height pair from an exact rectangle without editing",
+    )
+    rectangle_discover_parser.add_argument("sketch_id")
+    add_document_selector(rectangle_discover_parser)
+    rectangle_discover_parser.add_argument(
         "--json", action="store_true", dest="as_json"
     )
     dimension_inspect_parser = dimension_commands.add_parser(
@@ -843,7 +852,7 @@ def _typed_operation(
     if args.command == "dimension":
         parameters = (
             {"sketch_id": args.sketch_id}
-            if args.dimension_command == "discover-diameter"
+            if args.dimension_command in ("discover-diameter", "discover-rectangle")
             else {"dimension_id": args.dimension_id}
         )
         if args.dimension_command == "set":

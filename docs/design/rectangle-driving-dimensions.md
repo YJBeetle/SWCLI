@@ -37,6 +37,18 @@ geometry and complete unchanged readbacks for both axes. It observes external
 controls without removing them. A partial/ambiguous/changing read publishes no
 handles; an empty display chain remains unavailable evidence. Portable adapter
 tests are not native save/reopen or public protocol proof.
+The development typed command is `dimension discover-rectangle SKETCH_ID`.
+It is a document-scoped read: lease-free, never temporarily activates, and can
+apply the caller's update-stamp check before any native read. Only a complete
+verified pair obtains/reuses IDs from the worker registry; native inspection
+snapshots remain ID-free evidence. The result contract cross-checks both native
+snapshots, geometry, configuration, solver state and the outer document stamp.
+Saved-model installed execution and Wine proof remain pending.
+
+Discovery uses the official horizontal/vertical display roles, not a generic
+length or a matching name. The display traversal's prerequisite is retained:
+see [GetFirstDisplayDimension](https://help.solidworks.com/2024/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetFirstDisplayDimension.html)
+and [native dimension types](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swDimensionType_e.html).
 
 The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now

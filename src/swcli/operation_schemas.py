@@ -278,6 +278,12 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         required=("sketch_id",),
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "dimension.discover-rectangle": _operation(
+        "dimension.discover-rectangle",
+        {"sketch_id": _string(pattern="^s-[a-z0-9]{6}$")},
+        required=("sketch_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "dimension.inspect": _operation(
         "dimension.inspect",
         {"dimension_id": _string(pattern="^m-[a-z0-9]{6}$")},

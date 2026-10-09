@@ -1015,6 +1015,26 @@ _RESULT_FIELDS["dimension.discover-diameter"] = (
     },
     _RESULT_FIELDS["dimension.inspect"][1] + ("sketch_id", "observation"),
 )
+_RESULT_FIELDS["dimension.discover-rectangle"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "dimensions": _LINEAR_PAIR,
+        "geometry_verification": _RECTANGLE_SIZE_VERIFICATION,
+        "constraint_status": INTEGER,
+        "editing": BOOL,
+        "observation": _LINEAR_OBSERVATION,
+    },
+    (
+        "document",
+        "sketch_id",
+        "dimensions",
+        "geometry_verification",
+        "constraint_status",
+        "editing",
+        "observation",
+        "inspections",
+    ),
+)
 _RESULT_FIELDS["dimension.set"] = (
     {
         "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
@@ -1363,6 +1383,58 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             artifact["required"].append("format")
     if name in ("dimension.inspect", "dimension.set"):
         schema = _extend_linear_result_schema(name, schema)
+    if name == "dimension.discover-rectangle":
+        schema["properties"]["inspections"] = _object(
+            {
+                kind: _native_linear_inspection_schema(kind)
+                for kind in ("width", "height")
+            }
+        )
+        schema["then"]["properties"] = {
+            "document": {"properties": {"update_stamp": INTEGER}},
+            "dimensions": {
+                "required": ["width", "height"],
+                "properties": {
+                    kind: {"required": list(_DIMENSION["properties"])}
+                    for kind in ("width", "height")
+                },
+            },
+            "inspections": {
+                "required": ["width", "height"],
+                "properties": {
+                    kind: {
+                        "properties": {
+                            "ok": {"const": True},
+                            "geometry_verification": {
+                                "properties": {"passed": {"const": True}}
+                            },
+                        }
+                    }
+                    for kind in ("width", "height")
+                },
+            },
+            "observation": {
+                "required": ["before", "after", "configuration_matched", "unchanged"],
+                "properties": {
+                    field: {"const": True}
+                    for field in ("configuration_matched", "unchanged")
+                },
+            },
+            "geometry_verification": {
+                "properties": {
+                    field: {"const": True}
+                    for field in ("passed", "size_matched", "center_preserved")
+                }
+            },
+        }
+        schema["else"]["properties"] = {
+            "dimensions": {
+                "properties": {
+                    kind: {"not": {"required": ["dimension_id"]}}
+                    for kind in ("width", "height")
+                }
+            }
+        }
     return deepcopy(schema)
 
 
@@ -1445,6 +1517,17 @@ def _linear_result_schema(name, diameter_schema):
             ]
         }
     return linear
+
+
+def _native_linear_inspection_schema(kind):
+    schema = _linear_result_schema("dimension.inspect", _diameter_inspect_schema())
+    schema["then"]["required"].remove("document")
+    descriptor = schema["properties"]["dimension"]["properties"]
+    descriptor["kind"] = {"const": kind}
+    for field in ("dimension_id", "sketch_id"):
+        del descriptor[field]
+        schema["then"]["properties"]["dimension"]["required"].remove(field)
+    return schema
 
 
 def _diameter_inspect_schema():
@@ -1665,6 +1748,100 @@ def validate_rectangle_creation_observation(result: Dict[str, Any]) -> None:
     _validate_rectangle_creation(result)
 
 
+def _validate_rectangle_discovery(result):
+    if result["ok"] is not True:
+        return
+    observation, geometry = result["observation"], result["geometry_verification"]
+    before, after = observation["before"], observation["after"]
+    actual = geometry["actual"]
+    if (
+        before != after
+        or result["document"]["update_stamp"] != after["update_stamp"]
+        or result["editing"] != after["editing"]
+    ):
+        raise OperationResultInvalid(
+            "dimension.discover-rectangle: inconsistent read-only state"
+        )
+    tokens = []
+    for kind in ("width", "height"):
+        descriptor = result["dimensions"][kind]
+        native = result["inspections"][kind]
+        _validate_linear_inspection(native)
+        snapshot = native["geometry_verification"]
+        if "dimension_id" in descriptor:
+            tokens.append(descriptor["dimension_id"])
+        if (
+            native["observation"]["before"] != before
+            or native["dimension"]
+            != {
+                key: value
+                for key, value in descriptor.items()
+                if key not in ("dimension_id", "sketch_id")
+            }
+            or descriptor["configuration"] != before["configuration"]
+            or native["constraint_status"] != result["constraint_status"]
+            or (
+                "sketch_id" in descriptor
+                and descriptor["sketch_id"] != result["sketch_id"]
+            )
+            or any(
+                not isclose(value, expected, rel_tol=0, abs_tol=1e-6)
+                for value, expected in (
+                    (descriptor["value"], geometry[f"expected_{kind}_mm"]),
+                    *[
+                        (actual[f"{axis}_mm"], geometry[f"expected_{axis}_mm"])
+                        for axis in ("width", "height")
+                    ],
+                    *[
+                        (snapshot[f"actual_{axis}_mm"], actual[f"{axis}_mm"])
+                        for axis in ("width", "height")
+                    ],
+                    *[
+                        (snapshot["actual_center_mm"][axis], actual["center_mm"][axis])
+                        for axis in ("x", "y", "z")
+                    ],
+                    *[
+                        (
+                            actual["center_mm"][axis],
+                            geometry["expected_center_mm"][axis],
+                        )
+                        for axis in ("x", "y", "z")
+                    ],
+                )
+            )
+        ):
+            raise OperationResultInvalid(
+                "dimension.discover-rectangle: inconsistent native pair/geometry"
+            )
+    if len(tokens) == 2 and tokens[0] == tokens[1]:
+        raise OperationResultInvalid(
+            "dimension.discover-rectangle: two roles share a live ID"
+        )
+
+
+@lru_cache(maxsize=1)
+def _rectangle_discovery_observation_validator():
+    from jsonschema import Draft202012Validator
+
+    schema = operation_result_schema("dimension.discover-rectangle")
+    for kind in ("width", "height"):
+        required = schema["then"]["properties"]["dimensions"]["properties"][kind][
+            "required"
+        ]
+        required.remove("dimension_id")
+        required.remove("sketch_id")
+    return Draft202012Validator(schema)
+
+
+def validate_rectangle_discovery_observation(result):
+    _validate_result(
+        "dimension.discover-rectangle",
+        result,
+        _rectangle_discovery_observation_validator(),
+    )
+    _validate_rectangle_discovery(result)
+
+
 def _validate_linear_inspection(result):
     if result["ok"] is not True:
         return
@@ -1758,6 +1935,8 @@ def validate_operation_result(name: str, result: Any) -> None:
         _validate_dimension_discovery_state(result)
     if name == "sketch.dimension-rectangle":
         _validate_rectangle_creation(result)
+    if name == "dimension.discover-rectangle":
+        _validate_rectangle_discovery(result)
     if result.get("ok") is True and result.get("dimension", {}).get("kind") in (
         "width",
         "height",

@@ -105,7 +105,9 @@ def discover_rectangle_dimensions_windows_with_handles(
             if not inspected["ok"]:
                 result["error"] = inspected["error"]
                 break
-            result["dimensions"][kind] = inspected["dimension"]
+            # Public IDs may later be added to the pair, never to these native
+            # readback snapshots. Keep their descriptor dictionaries separate.
+            result["dimensions"][kind] = dict(inspected["dimension"])
             matched = inspected["observation"]["before"] == before
             result["observation"]["configuration_matched"] = matched
             if not matched:

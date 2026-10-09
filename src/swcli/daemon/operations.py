@@ -54,10 +54,14 @@ from ..hosts.windows_dimensions import (
 from ..hosts.windows_dimension_discovery import (
     discover_circle_diameter_windows_with_handle,
 )
+from ..hosts.windows_rectangle_dimension_discovery import (
+    discover_rectangle_dimensions_windows_with_handles,
+)
 from ..result_schemas import (
     OperationResultInvalid,
     validate_dimension_discovery_observation,
     validate_rectangle_creation_observation,
+    validate_rectangle_discovery_observation,
 )
 from .documents import (
     DEFAULT_SESSION_ID,
@@ -640,6 +644,44 @@ def dimension_discover_diameter(
             profile_kind="circle",
         )
         _with_dimension_ids(result, dimension_id, sketch_id)
+    return result
+
+
+@_register_handler
+def dimension_discover_rectangle(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch_id = values["sketch_id"]
+    feature = context.documents.resolve_sketch(context.entry, sketch_id)
+    result, handles = discover_rectangle_dimensions_windows_with_handles(
+        app=context.app, document=context.entry.document, sketch_feature=feature
+    )
+    result.update(action="dimension.discover-rectangle", sketch_id=sketch_id)
+    for descriptor in result.get("dimensions", {}).values():
+        descriptor.pop("dimension_id", None)
+        descriptor.pop("sketch_id", None)
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    if result.get("ok") is True:
+        validate_rectangle_discovery_observation(result)
+        if any(handles.get(kind) is None for kind in ("width", "height")):
+            raise OperationResultInvalid(
+                "dimension.discover-rectangle: verified pair has missing native handles"
+            )
+        for kind in ("width", "height"):
+            dimension_id = context.documents.register_dimension(
+                context.entry,
+                sketch_id,
+                handles[kind],
+                kind=kind,
+                profile_kind="rectangle",
+            )
+            result["dimensions"][kind].update(
+                dimension_id=dimension_id, sketch_id=sketch_id
+            )
     return result
 
 
