@@ -62,6 +62,7 @@ from ..result_schemas import (
     validate_dimension_discovery_observation,
     validate_rectangle_creation_observation,
     validate_rectangle_discovery_observation,
+    validate_feature_observation,
 )
 from .documents import (
     DEFAULT_SESSION_ID,
@@ -509,6 +510,59 @@ def sketch_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, 
 
 
 @_register_handler
+def feature_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_feature_inspection import (
+        list_extrusion_features_windows_with_handles,
+    )
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result, features = list_extrusion_features_windows_with_handles(
+        app=context.app,
+        document=context.entry.document,
+        max_features=values.get("max_features", 1000),
+    )
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    validate_feature_observation("feature.list", result)
+    if result["ok"]:
+        if len(features) != result["count"] or any(
+            feature is None for feature in features
+        ):
+            raise OperationResultInvalid(
+                "feature.list: inconsistent exact native handles"
+            )
+        for descriptor, feature in zip(result["features"], features):
+            descriptor["feature_id"] = context.documents.register_feature(
+                context.entry, feature
+            )
+    return result
+
+
+@_register_handler
+def feature_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_feature_inspection import (
+        inspect_extrusion_feature_windows,
+    )
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    feature_id = values["feature_id"]
+    feature = context.documents.resolve_feature(context.entry, feature_id)
+    result = inspect_extrusion_feature_windows(
+        app=context.app, document=context.entry.document, feature=feature
+    )
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    validate_feature_observation("feature.inspect", result)
+    if result["ok"]:
+        result["feature"]["feature_id"] = feature_id
+    return result
+
+
+@_register_handler
 def sketch_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
@@ -904,6 +958,8 @@ def execute_operation(
         # A malformed target must not touch even the foreground selection.
         if "sketch_id" in values:
             documents.resolve_sketch(context.entry, values["sketch_id"])
+        if "feature_id" in values:
+            documents.resolve_feature(context.entry, values["feature_id"])
         if "dimension_id" in values:
             binding = documents.resolve_dimension(context.entry, values["dimension_id"])
             if (binding.kind, binding.profile_kind) not in (

@@ -1,7 +1,7 @@
-"""Internal read-only observations of exact part extrusion features.
+"""Read-only observations of exact part extrusion features.
 
 No selection access, rollback, activation, rebuild or native edit occurs here.
-These adapters are not exposed through the a6 operation catalog.
+The worker assigns public handles only after validating complete observations.
 """
 
 from __future__ import annotations

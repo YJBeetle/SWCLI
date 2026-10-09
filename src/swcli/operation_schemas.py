@@ -210,6 +210,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {"max_sketches": _integer(minimum=1)},
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "feature.list": _operation(
+        "feature.list",
+        {"max_features": _integer(minimum=1)},
+        **_DOCUMENT_READ_CONTEXT,
+    ),
+    "feature.inspect": _operation(
+        "feature.inspect",
+        {"feature_id": _string(pattern="^f-[a-z0-9]{6}$")},
+        required=("feature_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "sketch.inspect": _operation(
         "sketch.inspect",
         {

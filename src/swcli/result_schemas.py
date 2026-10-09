@@ -666,6 +666,66 @@ _RESULT_FIELDS["sketch.list"] = (
     ("document", "sketches", "count"),
 )
 
+_FEATURE_DESCRIPTOR = _object(
+    {
+        "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"},
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "native_type": {"enum": ["Boss", "Extrusion", "BaseBody", "Cut"]},
+        "kind": {"enum": ["boss-extrude", "cut-extrude"]},
+    },
+    ("feature_id", "name", "type", "native_type", "kind"),
+)
+_FEATURE_STATE = _object(
+    {
+        "configuration": {"type": "string", "minLength": 1},
+        "update_stamp": INTEGER,
+        "modified": BOOL,
+        "editing": BOOL,
+        "foreground_present": BOOL,
+    },
+    ("configuration", "update_stamp", "modified", "editing", "foreground_present"),
+)
+_FEATURE_OBSERVATION = _object(
+    {"before": _FEATURE_STATE, "after": _FEATURE_STATE, "unchanged": BOOL},
+    ("before", "unchanged"),
+)
+_FEATURE_DEFINITION_FIELDS = {
+    "depth_mm": {"type": "number", "minimum": 0},
+    "end_condition": INTEGER,
+    "reverse_direction": BOOL,
+    "both_directions": BOOL,
+    "thin": BOOL,
+    "from_type": INTEGER,
+    "forward_draft": BOOL,
+    "reverse_draft": BOOL,
+}
+_RESULT_FIELDS["feature.list"] = (
+    {
+        "scope": {"const": "part-extrusions"},
+        "features": {"type": "array", "items": _FEATURE_DESCRIPTOR},
+        "count": {"type": "integer", "minimum": 0},
+        "observation": _FEATURE_OBSERVATION,
+    },
+    ("document", "scope", "features", "count", "observation"),
+)
+_RESULT_FIELDS["feature.inspect"] = (
+    {
+        "feature": _FEATURE_DESCRIPTOR,
+        "definition": {
+            "oneOf": [
+                _object(
+                    {**_FEATURE_DEFINITION_FIELDS, branch: BOOL},
+                    (*_FEATURE_DEFINITION_FIELDS, branch),
+                )
+                for branch in ("merge", "feature_scope")
+            ]
+        },
+        "observation": _FEATURE_OBSERVATION,
+    },
+    ("document", "feature", "definition", "observation"),
+)
+
 
 _CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])
 del _CUT_FIELDS["merge"]
@@ -1136,6 +1196,13 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                     "minimum_size_valid": {"const": True},
                 }
             },
+        }
+    if name in ("feature.list", "feature.inspect"):
+        schema["then"]["properties"] = {
+            "observation": {
+                "required": ["after"],
+                "properties": {"unchanged": {"const": True}},
+            }
         }
     if name in ("feature.extrude", "feature.cut-extrude"):
         schema["then"]["properties"] = {
@@ -1929,8 +1996,70 @@ def _validate_linear_set(result):
         )
 
 
+def _validate_feature_state(name: str, result: Dict[str, Any]) -> None:
+    if result["ok"] is not True:
+        # Native failed reads publish state/error evidence only, not a usable
+        # partial feature list or definition.
+        if any(field in result for field in ("features", "feature", "definition")):
+            raise OperationResultInvalid(f"{name}: failed observation published handles")
+        return
+    observation = result["observation"]
+    before, after = observation["before"], observation["after"]
+    document = result["document"]
+    if (
+        before != after
+        or not before["configuration"].strip()
+        or document["type"] != 1
+        or document["modified"] != after["modified"]
+        or document["update_stamp"] != after["update_stamp"]
+    ):
+        raise OperationResultInvalid(f"{name}: inconsistent native observation state")
+    features = result["features"] if name == "feature.list" else [result["feature"]]
+    for feature in features:
+        is_cut = feature["native_type"] == "Cut"
+        if (
+            feature["kind"] != ("cut-extrude" if is_cut else "boss-extrude")
+            or feature["type"] not in ("ICE", feature["native_type"])
+            or not feature["name"].strip()
+            or (
+                name == "feature.inspect"
+                and (("feature_scope" in result["definition"]) != is_cut)
+            )
+        ):
+            raise OperationResultInvalid(f"{name}: inconsistent native feature semantics")
+    if name == "feature.list":
+        if result["count"] != len(features):
+            raise OperationResultInvalid(f"{name}: feature count differs from observations")
+        ids = [feature["feature_id"] for feature in features if "feature_id" in feature]
+        if len(ids) != len(set(ids)):
+            raise OperationResultInvalid(f"{name}: duplicate feature handles")
+
+
+@lru_cache(maxsize=2)
+def _feature_observation_validator(name: str):
+    from jsonschema import Draft202012Validator
+
+    schema = operation_result_schema(name)
+    descriptor = (
+        schema["properties"]["features"]["items"]
+        if name == "feature.list"
+        else schema["properties"]["feature"]
+    )
+    descriptor["required"].remove("feature_id")
+    del descriptor["properties"]["feature_id"]
+    return Draft202012Validator(schema)
+
+
+def validate_feature_observation(name: str, result: Dict[str, Any]) -> None:
+    """Validate complete native reads before exposing or registering wire handles."""
+    _validate_result(name, result, _feature_observation_validator(name))
+    _validate_feature_state(name, result)
+
+
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name in ("feature.list", "feature.inspect"):
+        _validate_feature_state(name, result)
     if name == "dimension.discover-diameter":
         _validate_dimension_discovery_state(result)
     if name == "sketch.dimension-rectangle":

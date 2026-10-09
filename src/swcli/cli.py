@@ -374,11 +374,23 @@ def build_parser() -> argparse.ArgumentParser:
     dimension_set_parser.add_argument("--json", action="store_true", dest="as_json")
 
     feature_parser = subcommands.add_parser(
-        "feature", help="create explicit part features"
+        "feature", help="create and observe explicit part features"
     )
     feature_commands = feature_parser.add_subparsers(
         dest="feature_command", required=True
     )
+    feature_list_parser = feature_commands.add_parser(
+        "list", help="discover solid boss/cut extrusions without changing the model"
+    )
+    feature_list_parser.add_argument("--max-features", type=int, default=1000)
+    add_document_selector(feature_list_parser)
+    feature_list_parser.add_argument("--json", action="store_true", dest="as_json")
+    feature_inspect_parser = feature_commands.add_parser(
+        "inspect", help="read an exact extrusion definition without selection access"
+    )
+    feature_inspect_parser.add_argument("feature_id")
+    add_document_selector(feature_inspect_parser)
+    feature_inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     extrude_parser = feature_commands.add_parser(
         "extrude", help="extrude a registered 2D sketch"
     )
@@ -869,6 +881,19 @@ def _typed_operation(
         return (
             "sketch.inspect",
             {"sketch_id": args.sketch_id, "max_segments": args.max_segments},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            None,
+        )
+    if args.command == "feature" and args.feature_command in ("list", "inspect"):
+        return (
+            f"feature.{args.feature_command}",
+            (
+                {"max_features": args.max_features}
+                if args.feature_command == "list"
+                else {"feature_id": args.feature_id}
+            ),
             args.as_json,
             args.document_id,
             args.expected_update_stamp,
