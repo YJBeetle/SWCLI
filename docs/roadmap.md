@@ -72,7 +72,10 @@ Next:
    The read-only shared gate passed hosted Windows visible/hidden modes; Wine
    delivery, later creation-handle candidates and guarded depth writes remain pending.
    Preliminary nonmutating depth guards have portable/native Windows proof;
-   they do not yet expose a setter or promise complete edit eligibility.
+   exact simple-profile ownership and final single-solid classification now
+   have separate proof as well. Selected contour/direction/body references and
+   selection-access stamp/restoration semantics still need verification.
+   These guards do not yet expose a setter or promise complete edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.

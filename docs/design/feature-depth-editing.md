@@ -16,6 +16,13 @@ configuration and equation/design-table state, then requires stable repeated
 definitions/controls and native snapshots. It is not a public command, a
 complete eligibility promise or permission to call a native setter.
 
+A further internal guard verifies one exact absorbed circle/axis-aligned
+rectangle profile, its live parents and stable coordinate transform, and a
+single final non-sheet-metal solid (including hidden bodies and refusing extra
+surfaces). It passed portable and native Windows background checks without
+selection access. Final body count/profile area still do not identify selected
+contours, direction references or rollback-state feature-body scope.
+
 ## First slice
 
 Observe and edit exact solid blind bosses/cuts in part documents. Begin with
@@ -81,8 +88,18 @@ The first internal guard conservatively refuses **any** part containing equation
 or a design table, rather than guessing which named dimension owns depth. It
 also refuses multiple configurations until current-only modification scope has
 separate native proof. These are deliberate unsupported-scope outcomes, not
-claims that all parameters are externally controlled. Profile/body ownership,
+claims that all parameters are externally controlled. Feature-selection scope,
 modification/restoration and independent post-change geometry remain pending.
+
+Exact simple-profile ownership and final-body classification now have a
+nonmutating internal guard. Do not mistake these for complete feature-selection
+scope. A native SW2025 probe returned `-1` for body-scope/direction counts without
+selection access. Body-scope count became readable after access, but direction
+remained `-1` in that binding; absent output is not verified absence of a
+reference. Entering/releasing selection access also advanced update stamp
+**146 → 148**, even though `modified` stayed false. This owned lifecycle cannot
+be smuggled into the public read-only path or described as an unchanged-stamp
+no-op. Its remaining binding/restoration boundaries need separate proof.
 
 The explicit write path may require native selection access, which rolls the
 model back. Own and verify that lifecycle, modify the exact definition, then

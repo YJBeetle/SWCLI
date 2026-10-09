@@ -173,3 +173,48 @@ SHA256: `f0f0874dc5694d109a20eb3142c49cef676d4f1791bf0c16bb1aa57d328a203d`.
 This probe is not a shipped adapter, typed protocol call, public editing
 capability, no-op/failure/restoration test or Windows/Wine CI gate. Production
 setter implementation and those contracts/evidence remain pending.
+
+## Exact simple-profile and final-body guard
+
+Internal guard `ee0d01645eb92430d32c18f09aa527d5b8ad70aa` verifies the live,
+exact absorbed profile's parent/owner identities, a closed circle or connected
+axis-aligned rectangle, stable geometry/coordinate transform and exactly one
+final solid (no extra hidden/surface bodies or sheet metal). It retains the
+preliminary control/definition guards and repeats observations before returning
+a definition. This remains internal, with no public setter or selection access.
+
+**933 portable tests** passed, eight Windows-only tests skipped. Thirteen new
+cases cover profile identity, missing/duplicate/foreign/multiple parents,
+malformed/nonclosed geometry, body/flag scope, changed controls/geometry and
+failure without a usable definition. Negative geometry/sheet-metal cases are
+portable proof, not real protected-model mutation tests.
+
+On SW2025 `33.5.0`/shared PID **1096**, both background boss/cut guards passed
+on a new disposable copy. The rectangle was **100×50 mm**, area **5000 mm²**;
+the circle radius was **3 mm**, area **28.274333882308156 mm²**. Native profile
+IDs **73/82** were exactly absorbed by their target features. Configuration,
+stamp **146**, modified flag **false**, foreground and test-file SHA256 stayed
+unchanged. Original documents/PID were preserved, no cleanup errors occurred.
+
+Raw local evidence is in `C:\Workspace\SWCLI-tests\a7-depth-scope-oYkrDx\` and
+`/private/tmp/swcli-a7-depth-scope.oYkrDx/`:
+
+| Generated evidence | SHA256 |
+| --- | --- |
+| `depth-profile-guard.json` | `bd386fae21edfbbb249d97fc07bcf6ff4cfaccdf9e1e7e81a4f4f99935d1a535` |
+| `without-access.json` | `1c37b8987a5c73f41a1e32ea228b5c8216ea5e91fe643aff24038235d5706fb9` |
+| `depth-scope.json` | `6b5fa2d911b653aebdbf9fafd02d2c65020e84b7493286b489678710a1e0d90d` |
+
+The latter two are separate scope-binding experiments, not passing setter
+evidence. Without `AccessSelections`, native scope-body count and direction
+count returned **-1**; these are not verified zero/empty selections. With
+selection access on the test boss, scope-body count became **0**, but direction
+still returned **-1** in the tested binding. Releasing access left `modified`
+false but advanced stamp **146 → 148**: the experiment's unchanged-state
+assertion correctly failed, and that first failure is retained. The test copy
+was closed unsaved; original documents/PID and on-disk SHA256 were preserved.
+No depth modification, retry of a failed CAD mutation or relaxed shared-gate
+assertion was involved.
+
+These findings do not establish feature-selection scope, complete restoration,
+an arbitrary expected-volume formula, hosted/Wine proof or a public depth setter.
