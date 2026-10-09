@@ -65,9 +65,13 @@ Do not infer dimensions from names or claim arbitrary dimension support.
    `sketch.fix-center` CLI/protocol contract now preserves native evidence and
    enforces the existing document/lease/stamp/foreground guards. The shared
    driving gate now covers three-plane fixes/no-ops, origin refusal and native
-   reopen with expired-handle rejection. Installed public verification remains
-   pending; public linear contracts and saved linear
-   discovery are still separate unfinished steps. None is an a5 wheel feature.
+   reopen with expired-handle rejection. Installed public center-fix verification
+   now passes fresh hosted Windows and MacSW software-renderer visible/hidden
+   gates, with independent terminal-artifact review; exact versions and proof
+   boundaries are recorded in the
+   [rectangle verification record](verification/rectangle-dimensions-2026-10-08.md).
+   Public linear contracts and saved linear discovery remain separate unfinished
+   steps. These development results are not an a6 release or an a5 wheel feature.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

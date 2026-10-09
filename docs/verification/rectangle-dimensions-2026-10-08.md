@@ -534,5 +534,25 @@ fixed relations. Installed samples remain read-only. Each mode produced nine
 native parts, four STEP files and two 800x600 color BMPs; the copied origin
 fixture is input, not a generated output. Export/render records succeeded,
 STEP signatures and BMP dimensions/color content were checked. These are
-hosted Windows results; the separately pinned MacSW software-renderer run
-`37894268328` remains pending until its own complete runtime evidence passes.
+hosted Windows results, distinct from the macOS evidence below.
+
+[MacSW CI 37894268328](https://github.com/YJBeetle/MacSW/actions/runs/37894268328)
+also passed in full at MacSW `4e9e002` with the exact same SWCLI `a857b75`
+source pin. Its fresh installation and hosted Apple Software Renderer completed
+both visible (SW PID 504) and hidden (SW PID 464) sequences: each mode has 85
+modeling and 361 driving events, an unchanged host across both gates and empty
+cleanup arrays. Downloaded terminal artifacts were independently reviewed;
+all 22 runtime commands exited zero and the runtime record is complete.
+
+Three-plane center fixes, repeated no-op calls and native save/reopen preserve
+the exact point/diagonal identities and geometry. The genuinely origin-bound
+fixture still returns `UnsupportedCenterConstraint`, with stamp 142 unchanged,
+no active edit and its prior foreground document restored. All eight native
+bitmap cases pass with Apple Software Renderer, expected pixel counts and zero
+GL errors; arm64 and Rosetta x86_64 CGL software contexts also pass.
+
+This closes the installed public center-fix matrix for the tested candidate,
+not the unfinished public linear-dimension/discovery contracts or an a6
+release. A completed sequence does not establish the root cause or universal
+absence of historical Wine stalls/close exceptions. The later MacSW cache
+changes are a separate run and are not covered by this evidence.
