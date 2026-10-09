@@ -31,6 +31,13 @@ read-only state preservation, native downstream volumes and expired IDs.
 Installed public execution proof and saved-model discovery remain separate pending steps;
 do not infer that these development contracts are already in a published wheel.
 
+The internal saved-rectangle discovery adapter now requires one distinct native
+horizontal/vertical pair, exact owning-profile identity, independent rectangle
+geometry and complete unchanged readbacks for both axes. It observes external
+controls without removing them. A partial/ambiguous/changing read publishes no
+handles; an empty display chain remains unavailable evidence. Portable adapter
+tests are not native save/reopen or public protocol proof.
+
 The strict read-only rectangle observation primitive is implemented and has
 portable topology/metadata/ordering tests. Shared native length metadata now
 accepts an explicit internal diameter/width/height role; it does not infer that
