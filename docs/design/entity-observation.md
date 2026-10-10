@@ -10,6 +10,10 @@ The next internal complete single-solid observer has 12 portable cases and two
 native Windows reads proving face/body membership, count, duplicate identity and
 unchanged state. Its provisional 64-face cap bounds pairwise comparisons; public
 handles, fuller geometry, scalable enumeration and Wine gates remain pending.
+An internal per-document registry now allocates short `e-` IDs, reuses only
+exact native identities and permanently retires IDs after an observed scope
+change; its 14 portable cases pass. Its lifecycle wiring to DocumentRegistry,
+public request/result schemas and cross-host gates are not implemented yet.
 No public entity operation is advertised. The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
