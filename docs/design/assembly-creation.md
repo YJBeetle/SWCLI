@@ -43,9 +43,13 @@ sw-cli document save-as 'C:\Workspace\box-assembly.SLDASM' `
 临时激活目标装配体后执行一次插入，随后恢复前台文档，不改变 session current。
 
 输入须是存在且非空的 `.SLDPRT`，并已经加载到当前 SOLIDWORKS 进程中。
-源零件不能有未保存修改。未加载时返回 `ComponentNotLoaded`，调用者应先
+源零件不能有未保存修改。GetSaveFlag 必须返回真实布尔值，未知或不可读状态返回
+`ComponentStateUnavailable`，不会当作 clean。未加载时返回 `ComponentNotLoaded`，调用者应先
 `document open`；适配器不会隐式打开、保存、关闭、切换配置或重建源零件。
-目标必须为可写 ASM，且不处于组件就地编辑状态。
+目标必须为可写且非 view-only 的 ASM，且不处于组件就地编辑状态。
+读取真实 `IModelDoc2.IsOpenedReadOnly()` 与 `IsOpenedViewOnly()` 布尔值；
+任一 getter 不可用、抛出异常或返回未知类型，均以 `DocumentStateUnavailable`
+拒绝，不默认视为可写。只读与只查看分别为 `DocumentReadOnly` / `DocumentViewOnly`。
 
 配置非空时先确认源配置存在，再传给 AddComponent5；不存在返回
 `ConfigurationNotFound`。空配置使用原生的“最后保存配置”选项，响应记录实际
@@ -56,7 +60,8 @@ sw-cli document save-as 'C:\Workspace\box-assembly.SLDASM' `
 
 成功响应包含 `inserted: true`、`component`（`name` / `path` / `configuration`）、
 `component_count_before` / `component_count_after`、`placement` 和目标 `document`。
-计数必须恰好增加一，返回的原生组件必须出现在顶层组件列表中，路径及显式配置
+原生顶层组件数组不可读时返回 `AssemblyObservationUnavailable`，不把未知值当作
+空装配体。计数必须恰好增加一，返回的原生组件必须出现在顶层组件列表中，路径及显式配置
 必须匹配。这里的组件名是原生描述信息，不是可用于后续操作的稳定 component ID。
 
 返回空对象为 `ComponentInsertionFailed`；插入后核验不一致为
@@ -73,4 +78,5 @@ operation 的请求、结果 schema 和能力发现由公共 operation catalog �
 - [模板偏好枚举及 NewDocument 示例](https://help.solidworks.com/2016/english/api/sldworksapi/Get_Locations_and_Names_of_Document_Templates_Example_VB.htm)
 - [AddComponent5 前先打开零件、再激活装配体的官方示例](https://help.solidworks.com/2023/English/api/sldworksapi/Add_Component_and_Mate_Example_VB.htm)
 - [当前保存配置选项](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swAddComponentConfigOptions_e.html)
+- [IsOpenedReadOnly](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~IsOpenedReadOnly.html) / [IsOpenedViewOnly](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~IsOpenedViewOnly.html)
 - [AddComponent 系列的近似中心坐标边界](https://help.solidworks.com/2026/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IAssemblyDoc~AddComponent4.html)

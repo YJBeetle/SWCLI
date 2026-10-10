@@ -75,8 +75,22 @@ def add_part_component_windows(
             return fail("ComponentFileUnavailable", "component must be an existing nonempty saved PRT")
         if int(_com_value(document, "GetType")) != 2:
             return fail("UnsupportedDocumentType", "component insertion requires an assembly document")
-        if int(_com_value(document, "GetReadOnlyState")) != 0:
+        try:
+            read_only = _com_value(document, "IsOpenedReadOnly")
+            view_only = _com_value(document, "IsOpenedViewOnly")
+        except Exception as exc:
+            result["error"] = {
+                "type": "DocumentStateUnavailable",
+                "message": "cannot observe assembly read-only/view-only state",
+                "cause": _error(exc),
+            }
+            return result
+        if not isinstance(read_only, bool) or not isinstance(view_only, bool):
+            return fail("DocumentStateUnavailable", "assembly read-only/view-only flags must be native booleans")
+        if read_only:
             return fail("DocumentReadOnly", "cannot insert into a read-only assembly")
+        if view_only:
+            return fail("DocumentViewOnly", "cannot insert into a view-only assembly")
         if _com_value(document, "GetEditTargetComponent") is not None:
             return fail("ComponentEditInProgress", "finish in-context component editing before insertion")
         source = app.GetOpenDocumentByName(str(source_path))
@@ -86,11 +100,28 @@ def add_part_component_windows(
             return fail("UnsupportedComponentType", "loaded component must be a part document")
         if Path(str(_com_value(source, "GetPathName"))).resolve() != source_path:
             return fail("ComponentPathMismatch", "the loaded component does not match the requested saved path")
-        if bool(_com_value(source, "GetSaveFlag")):
+        try:
+            source_modified = _com_value(source, "GetSaveFlag")
+        except Exception as exc:
+            result["error"] = {
+                "type": "ComponentStateUnavailable",
+                "message": "cannot observe component modified state",
+                "cause": _error(exc),
+            }
+            return result
+        if not isinstance(source_modified, bool):
+            return fail("ComponentStateUnavailable", "component modified flag must be a native boolean")
+        if source_modified:
             return fail("ComponentModified", "save the component's unsaved modifications before insertion")
         if configuration and source.GetConfigurationByName(configuration) is None:
             return fail("ConfigurationNotFound", "the requested component configuration does not exist")
-        before = tuple(document.GetComponents(True) or ())
+        before = native_call(
+            "component-preflight", "AssemblyDoc.GetComponents",
+            lambda: document.GetComponents(True),
+        )
+        if before is not None and not isinstance(before, (tuple, list)):
+            return fail("AssemblyObservationUnavailable", "native component list is unreadable")
+        before = tuple(before or ())
         component = native_call(
             "component-insert", "AssemblyDoc.AddComponent5",
             lambda: document.AddComponent5(
@@ -108,7 +139,13 @@ def add_part_component_windows(
             "path": str(_com_value(component, "GetPathName")),
             "configuration": str(_com_value(component, "ReferencedConfiguration")),
         }
-        after = tuple(document.GetComponents(True) or ())
+        after = native_call(
+            "component-verify", "AssemblyDoc.GetComponents",
+            lambda: document.GetComponents(True),
+        )
+        if after is not None and not isinstance(after, (tuple, list)):
+            return fail("AssemblyObservationUnavailable", "inserted component list is unreadable")
+        after = tuple(after or ())
         result["component_count_before"] = len(before)
         result["component_count_after"] = len(after)
         result["placement"] = {

@@ -15,13 +15,21 @@ from swcli.result_schemas import validate_operation_result
 
 
 def document(path="", kind=2):
-    result = mock.Mock()
+    # Real ModelDoc2/AssemblyDoc surface, not a dynamic mock that can fabricate
+    # GetReadOnlyState or another nonexistent native API.
+    result = mock.Mock(spec_set=[
+        "_oleobj_", "GetTitle", "GetPathName", "GetType", "GetSaveFlag", "GetUpdateStamp",
+        "IsOpenedReadOnly", "IsOpenedViewOnly", "GetEditTargetComponent",
+        "GetComponents", "AddComponent5", "GetConfigurationByName",
+        "ShowConfiguration2", "Save3", "SaveAs3",
+    ])
     result.GetTitle = lambda: Path(path).name or "Assembly1"
     result.GetPathName = lambda: path
     result.GetType = lambda: kind
     result.GetSaveFlag = lambda: False
     result.GetUpdateStamp = lambda: 3
-    result.GetReadOnlyState = lambda: 0
+    result.IsOpenedReadOnly = lambda: False
+    result.IsOpenedViewOnly = lambda: False
     result.GetEditTargetComponent = lambda: None
     return result
 
@@ -137,7 +145,8 @@ class ComponentInsertionTests(unittest.TestCase):
     def test_preconditions_reject_before_native_insertion(self):
         cases = (
             (self.target, "GetType", lambda: 1, "UnsupportedDocumentType"),
-            (self.target, "GetReadOnlyState", lambda: 1, "DocumentReadOnly"),
+            (self.target, "IsOpenedReadOnly", lambda: True, "DocumentReadOnly"),
+            (self.target, "IsOpenedViewOnly", lambda: True, "DocumentViewOnly"),
             (self.target, "GetEditTargetComponent", lambda: object(), "ComponentEditInProgress"),
             (self.source, "GetType", lambda: 2, "UnsupportedComponentType"),
             (self.source, "GetSaveFlag", lambda: True, "ComponentModified"),
@@ -158,6 +167,36 @@ class ComponentInsertionTests(unittest.TestCase):
         self.assertEqual(self.insert(configuration="absent")["error"]["type"], "ConfigurationNotFound")
         self.target.AddComponent5.assert_not_called()
 
+    def test_missing_unreadable_or_nonboolean_native_mode_is_fail_closed(self):
+        self.assertFalse(hasattr(self.target, "GetReadOnlyState"))
+        for member in ("IsOpenedReadOnly", "IsOpenedViewOnly"):
+            for value in (None, 0, 1, -1, "false", mock.Mock()):
+                with self.subTest(member=member, value=value), mock.patch.object(
+                    self.target, member, lambda: value
+                ):
+                    result = self.insert()
+                    self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                    self.target.AddComponent5.assert_not_called()
+                    validate_operation_result("assembly.add-component", result)
+            native_getter = getattr(self.target, member)
+            delattr(self.target, member)
+            try:
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                self.assertEqual(result["error"]["cause"]["type"], "AttributeError")
+                self.target.AddComponent5.assert_not_called()
+            finally:
+                setattr(self.target, member, native_getter)
+            for exc in (AttributeError("native getter missing"), RuntimeError("COM getter failed")):
+                with self.subTest(member=member, exception=exc), mock.patch.object(
+                    self.target, member, mock.Mock(spec=lambda: None, side_effect=exc)
+                ):
+                    result = self.insert()
+                    self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                    self.assertEqual(result["error"]["cause"]["type"], type(exc).__name__)
+                    self.target.AddComponent5.assert_not_called()
+                    validate_operation_result("assembly.add-component", result)
+
     def test_invalid_file_and_nonfinite_position(self):
         for value in (float("inf"), float("nan")):
             self.assertEqual(self.insert(x_mm=value)["error"]["type"], "InvalidArgument")
@@ -166,6 +205,33 @@ class ComponentInsertionTests(unittest.TestCase):
         self.path.touch()
         self.assertEqual(self.insert()["error"]["type"], "ComponentFileUnavailable")
         self.target.AddComponent5.assert_not_called()
+
+    def test_unreadable_source_modified_state_does_not_insert(self):
+        for value in (None, 0, 1, "false", mock.Mock()):
+            with self.subTest(value=value), mock.patch.object(self.source, "GetSaveFlag", lambda: value):
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "ComponentStateUnavailable")
+                self.target.AddComponent5.assert_not_called()
+                validate_operation_result("assembly.add-component", result)
+        with mock.patch.object(self.source, "GetSaveFlag", mock.Mock(spec=lambda: None, side_effect=AttributeError("missing"))):
+            result = self.insert()
+            self.assertEqual(result["error"]["type"], "ComponentStateUnavailable")
+            self.assertEqual(result["error"]["cause"]["type"], "AttributeError")
+            self.target.AddComponent5.assert_not_called()
+
+    def test_native_component_array_unknown_type_is_not_an_empty_assembly(self):
+        for value in (0, "", "components", mock.Mock()):
+            with self.subTest(value=value):
+                self.target.GetComponents.side_effect = [value]
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "AssemblyObservationUnavailable")
+                self.target.AddComponent5.assert_not_called()
+        self.target.GetComponents.side_effect = [(), "unreadable"]
+        result = self.insert()
+        self.assertTrue(result["inserted"])
+        self.assertEqual(result["error"]["type"], "AssemblyObservationUnavailable")
+        self.target.AddComponent5.assert_called_once()
+        validate_operation_result("assembly.add-component", result)
 
     def test_null_insertion_and_native_exception_are_not_retried(self):
         self.target.AddComponent5.return_value = None
