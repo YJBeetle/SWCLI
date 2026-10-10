@@ -11,7 +11,8 @@ handles have independent native Windows CLI/TCP/COM proof. The internal guarded
 writer now has native Windows boss/cut and equal-depth proof. Public
 `feature.set-depth` also has public source CLI/TCP/lease/CAS and native
 save/reopen proof. Installed-wheel hosted Windows visible/hidden gates now pass
-at `57f221a`; complete Wine delivery and formal release gates remain in progress.
+at `57f221a`. Independent source-overlay Linux/Wine modeling/driving gates also
+pass; complete formal Wine delivery and release gates remain in progress.
 See the [depth runtime record](../verification/a7-depth-runtime-2026-10-10.md).
 No shipped a7 setter proof is claimed.
 

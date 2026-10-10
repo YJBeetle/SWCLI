@@ -74,7 +74,7 @@ Next:
    Windows proof; public `feature.set-depth` wiring is implemented and its
    source CLI/TCP/lease/CAS and native save/reopen proof has passed; installed
    installed hosted Windows visible/hidden runtime gates have passed at
-   `57f221a`. Independent Wine gates are being completed; the first run exposed
+   `57f221a`. Independent source-overlay Wine gates now pass; the first run exposed
    a cross-call floating-point equality issue in the gate, not a native write
    failure. See the [runtime record](verification/a7-depth-runtime-2026-10-10.md).
    Preliminary nonmutating depth guards have portable/native Windows proof;
@@ -87,7 +87,9 @@ Next:
    independent expected-volume checks and no source saves. Typed no-op/failure
    contracts are implemented and public save/reopen passed. A real public
    read-only refusal also preserved state before access/staging. Shared
-   formal-version runtime and complete Wine delivery proof remain. These guards
+   formal-version runtime and complete Wine delivery proof remain. The source-
+   overlay Wine host completed modeling and driving on the same hidden instance.
+   These guards
    do not promise arbitrary edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with

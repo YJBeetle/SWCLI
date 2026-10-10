@@ -32,7 +32,7 @@ The original rejected-cut continuation, installed sample exports, dimensions,
 render and lifecycle gates also passed. These fixtures do not establish support
 for arbitrary feature profiles, references, configurations or protected controls.
 
-Artifact: `swcli-windows-hosted-38034020992-1`.
+Artifact: `swcli-windows-hosted-38034020992-1` (ID `11664560316`).
 
 | Terminal record | SHA-256 |
 | --- | --- |
@@ -81,7 +81,42 @@ restoration assertions. Portable cases allow one-ULP roundoff but reject
 `1e-4` metric changes, changed body counts, invalid values and mutation flags.
 The full suite passed **1011 tests**, with eight Windows-only skips on macOS.
 
-A new complete gate on fresh models uses that corrected script with the same
-native runtime/host, not a retry of the previous CAD operations. Its outcome is
-still pending; no complete Wine gate, promoted image or formal a7 host proof is
-claimed here yet. macOS/Wine proof remains independent and pending.
+A new complete gate on fresh models used that corrected script with the same
+native runtime/host, not a retry of the previous CAD operations. It **passed**:
+146 modeling and 598 driving events, both terminal records `completed`, success
+and no cleanup errors, with hidden PID **596** unchanged throughout. The depth
+case includes all four writes/no-ops, analytical volume checks, native
+save/close/read-only reopen, fresh depth discovery and pre-access read-only
+refusal. The subsequent front/top/right diameter and rectangle gates passed on
+that same instance, without an intervening restart.
+
+No installed sample arguments were supplied in this local run, so it does not
+claim the six official exports or their image-promotion gate. Production native
+runtime came from `57f221a`; only the external gate script came from `9795d1a`.
+This old-base/source-overlay proof is not the formal a7 DockerSW delivery test.
+macOS/Wine proof remains independent and pending.
+
+| Successful local Wine record/script | SHA-256 |
+| --- | --- |
+| `modeling-numeric/modeling.json` | `b5695d45bcdc412a1c1ff9b5156c0f9de87b8bec70aaaf66895979d992f15a5c` |
+| `driving-numeric/driving-dimensions.json` | `fb347d001bd6e9ba07d8730ddfa18f9cd3a7ec08b3884417e432cd823a0df19c` |
+| corrected `verify-modeling-numeric.py` | `69919c6f50d6ad109f4ca1c9a4c6c9806268f502e638aa083f377550cb11327d` |
+
+Complete local copy: `/private/tmp/swcli-a7-depth-edit.BiQz5q/wine-evidence`.
+
+## Formal-version gates pending
+
+Runtime candidate **`d5ab77c1d83ea9bcf81e71eabfd98abb4ec1da69`** reports `0.1.0a7`.
+Local full tests passed **1011 tests**, with eight Windows-only skips; wheel/sdist
+builds, `twine check`, source-payload allowlist and isolated installed CLI/schema/
+skill checks passed. Local candidate wheel SHA-256:
+`4dbf09bc61a829a6ef52090347bcf258f026ba45472db1abe7ac0f38059e3e43`.
+This is not a published asset or new native run of that local wheel.
+
+[SWCLI 38036335919](https://github.com/YJBeetle/SWCLI/actions/runs/38036335919)
+is verifying installed hosted Windows visible/hidden modes at that exact candidate.
+DockerSW **`d1f1f9dae9bc4ae502f4bdd63d7acc277e23510f`** pins it and is running
+[CI 38036433572](https://github.com/YJBeetle/DockerSW/actions/runs/38036433572).
+Only modeling's phase budget increases to 30 minutes; six exports and driving
+stay at 10 minutes. Neither candidate pin nor registry build proves that the
+complete delivery gate or promotion passed. Formal results remain pending.
