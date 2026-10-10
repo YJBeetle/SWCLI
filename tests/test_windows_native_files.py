@@ -70,13 +70,13 @@ class NativeSaveTests(unittest.TestCase):
         self.assertEqual(self.output.read_bytes(), b"precious native source")
         self.assertEqual(self.document.saved_calls, [])
 
-    def test_bad_extension_missing_parent_drawing_and_existing_edit_do_not_save(self):
+    def test_bad_extension_missing_parent_type_and_existing_edit_do_not_save(self):
         self.output = self.output.with_suffix(".STEP")
         self.assertEqual(self.save()["error"]["type"], "InvalidArgument")
         self.output = self.output.parent / "missing" / "part.SLDPRT"
         self.assertEqual(self.save()["error"]["type"], "ParentDirectoryNotFound")
         self.output = self.output.parent.parent / "part.SLDPRT"
-        self.document.kind = 3
+        self.document.kind = 4
         self.assertEqual(self.save()["error"]["type"], "UnsupportedDocumentType")
         self.document.kind = 1
         existing = object()
@@ -100,13 +100,42 @@ class NativeSaveTests(unittest.TestCase):
             validate_operation_result("document.save-as", invalid)
 
     def test_mismatched_native_extensions_do_not_save(self):
-        for kind, suffix in ((1, ".SLDASM"), (2, ".SLDPRT")):
+        for kind, suffix in ((1, ".SLDASM"), (2, ".SLDPRT"), (3, ".SLDASM"),
+                             (1, ".SLDDRW"), (2, ".SLDDRW")):
             with self.subTest(kind=kind):
                 self.document.kind = kind
                 self.output = self.output.with_suffix(suffix)
                 self.assertEqual(self.save()["error"]["type"], "InvalidArgument")
                 self.assertFalse(self.output.exists())
         self.assertEqual(self.document.saved_calls, [])
+
+    def test_drawing_save_as_checks_native_state_size_and_result_type(self):
+        self.document.kind = 3
+        self.output = self.output.with_suffix(".SLDDRW")
+        result = self.save()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["document"]["type"], 3)
+        self.assertEqual(result["artifact"]["format"], "SLDDRW")
+        self.assertEqual(result["artifact"]["size_bytes"], 1032)
+        self.assertFalse(result["document"]["modified"])
+        validate_operation_result("document.save-as", result)
+        invalid = copy.deepcopy(result)
+        invalid["artifact"]["format"] = "SLDASM"
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("document.save-as", invalid)
+
+    def test_drawing_truncation_and_native_failure_remove_only_new_output(self):
+        self.document.kind = 3
+        self.output = self.output.with_suffix(".SLDDRW")
+        for size, code, expected in ((0, 0, "NativeSaveVerificationFailed"),
+                                     (511, 0, "NativeSaveVerificationFailed"),
+                                     (1024, 1, "SaveFailed")):
+            with self.subTest(size=size, code=code):
+                self.document.content, self.document.save_error = bytes(size), code
+                result = self.save()
+                self.assertEqual(result["error"]["type"], expected)
+                self.assertFalse(self.output.exists())
+                validate_operation_result("document.save-as", result)
 
     def test_empty_or_truncated_assembly_is_rejected_and_removed(self):
         self.document.kind = 2

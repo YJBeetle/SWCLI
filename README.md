@@ -469,11 +469,12 @@ supported, and these numeric kernel properties are not a proof of design intent.
 Since `v0.1.0a4`, `document save-as new-part.SLDPRT` names the
 selected part and saves it to a **new target only**. Existing targets (including
 its current filename) are rejected; use `document save` for an in-place save.
-The current source additionally accepts `new-assembly.SLDASM` for assemblies;
+The current source additionally accepts `new-assembly.SLDASM` for assemblies
+and `new-drawing.SLDDRW` for drawings;
 the output extension must match the document type. This is an increment after
-the published a8 package. Drawing save-as and copy-without-renaming are not
-implemented. Assembly save-as does not copy or request saving referenced
-components: their original files must remain available (this is not Pack and Go). The
+the published a8 package. Copy-without-renaming is not implemented. Assembly
+and drawing save-as do not copy or request saving referenced models:
+their original files must remain available (this is not Pack and Go). The
 same document ID, session current, lease and live sketch handles survive the
 name change. The response checks native save status, adopted path, clean state
 and minimum file size, not a proprietary file-format signature or complete

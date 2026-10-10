@@ -11,7 +11,7 @@ from .windows_documents import _bitmask_names, _SAVE_ERRORS
 
 
 def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
-    """Rename a part/assembly to a new native file; do not copy/save references."""
+    """Rename a native document to a new file; do not copy/save references."""
 
     path = Path(output).expanduser().resolve()
     result: Dict[str, Any] = {
@@ -22,12 +22,12 @@ def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
     reserved = False
     verified_file = False
     try:
-        kinds = {".sldprt": 1, ".sldasm": 2}
+        kinds = {".sldprt": 1, ".sldasm": 2, ".slddrw": 3}
         suffix = path.suffix.casefold()
         if suffix not in kinds:
             result["error"] = {
                 "type": "InvalidArgument",
-                "message": "native save-as requires a .SLDPRT or .SLDASM output",
+                "message": "native save-as requires a .SLDPRT, .SLDASM or .SLDDRW output",
             }
             return result
         if not path.parent.is_dir():
@@ -47,7 +47,7 @@ def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
         if before["type"] not in kinds.values():
             result["error"] = {
                 "type": "UnsupportedDocumentType",
-                "message": "native save-as supports part and assembly documents only",
+                "message": "native save-as supports part, assembly and drawing documents only",
             }
             return result
         if before["type"] != kinds[suffix]:
