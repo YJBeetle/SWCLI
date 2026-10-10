@@ -1,5 +1,7 @@
 """Scope changes retire handles; same-looking faces are never rebound."""
 
+import io
+import json
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -12,6 +14,7 @@ from swcli.daemon.entities import (
 )
 from swcli.hosts.windows_entity_observation import FaceBinding
 from swcli.daemon.documents import DocumentRegistry
+from swcli.hosts.native_trace import trace_native_request
 
 
 class EntityRegistryTests(unittest.TestCase):
@@ -53,6 +56,43 @@ class EntityRegistryTests(unittest.TestCase):
             self.faces, configuration="default", update_stamp=12
         )
         self.assertTrue(set(tokens).isdisjoint(other_tokens))
+
+    def test_registry_identity_calls_have_paired_private_trace_boundaries(self):
+        stream = io.StringIO()
+        with (
+            mock.patch.dict("os.environ", {"SWCLI_TRACE_NATIVE_CALLS": "1"}),
+            mock.patch("swcli.hosts.native_trace.sys.stderr", stream),
+            trace_native_request("req-test", "entity.list"),
+        ):
+            tokens = self.register()
+        calls = [json.loads(line) for line in stream.getvalue().splitlines()]
+        identity = [event for event in calls if event["stage"] == "entity-registry"]
+        self.assertTrue(identity)
+        self.assertEqual(
+            [event["phase"] for event in identity],
+            [phase for _ in range(len(identity) // 2) for phase in ("begin", "end")],
+        )
+        self.assertTrue(all(event["call"] == "ISldWorks.IsSame" for event in identity))
+        self.assertTrue(all(token not in stream.getvalue() for token in tokens))
+        self.assertNotIn("reference", stream.getvalue())
+
+    def test_registry_trace_preserves_first_native_exception_without_payload(self):
+        stream = io.StringIO()
+        failure = RuntimeError("private identity error")
+        self.app.IsSame.side_effect = failure
+        with (
+            mock.patch.dict("os.environ", {"SWCLI_TRACE_NATIVE_CALLS": "1"}),
+            mock.patch("swcli.hosts.native_trace.sys.stderr", stream),
+        ):
+            with self.assertRaises(RuntimeError) as caught:
+                with trace_native_request("req-test", "entity.list"):
+                    self.register()
+        self.assertIs(caught.exception, failure)
+        events = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(events[-2]["phase"], "error")
+        self.assertEqual(events[-2]["stage"], "entity-registry")
+        self.assertNotIn("private identity error", stream.getvalue())
+        self.assertEqual(self.issued, set())
 
     def test_failed_lookup_before_first_discovery_does_not_claim_an_empty_complete_set(
         self,

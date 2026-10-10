@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ..hosts.windows_entity_observation import FaceBinding, MAX_FACES
 from ..hosts.windows_entity_references import MAX_REFERENCE_BYTES
+from ..hosts.native_trace import native_call
 
 _ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
 
@@ -73,7 +74,11 @@ class EntityRegistry:
         self._scope = scope
 
     def _same(self, first: Any, second: Any) -> bool:
-        status = self.app.IsSame(first, second)
+        status = native_call(
+            "entity-registry",
+            "ISldWorks.IsSame",
+            lambda: self.app.IsSame(first, second),
+        )
         if (
             isinstance(status, bool)
             or not isinstance(status, int)
