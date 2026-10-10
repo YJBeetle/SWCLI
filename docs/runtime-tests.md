@@ -14,7 +14,7 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   case rejects a nonintersecting cut, checks no cleanup warnings, closed sketch
   edit state and unchanged solid geometry, closes the native document, then
   creates a new background circle **without restarting the host**.
-  Its a7 development `feature-depth` case independently creates a single-solid
+  Its a7 `feature-depth` case independently creates a single-solid
   rectangle boss/circle cut, verifies lease/CAS and cross-document refusals,
   edits boss/cut depths with analytical volume checks, checks equal-depth
   calls skip setters/commits/rebuilds while retaining complete selection
