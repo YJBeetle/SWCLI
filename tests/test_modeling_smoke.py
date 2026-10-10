@@ -126,6 +126,7 @@ class FakeCLI:
                     "lease": None,
                 }
             document["id"] = document_id
+            document["read_only"] = args.read_only if subcommand == "open" else False
             self.documents[document_id] = document
             self.active = self.current[session] = document_id
             return {
@@ -292,14 +293,112 @@ class FakeCLI:
             if self.rejected and self.defect == "lost-foreground":
                 result["document"]["active"] = True
             return result
+        if action == "feature" and subcommand == "set-depth":
+            selected = next(
+                (
+                    key[1]
+                    for key, value in self.feature_ids.items()
+                    if key[0] == document_id and value == args.feature_id
+                ),
+                None,
+            )
+            if selected is None:
+                return self.failure("FeatureNotFound")
+            lifecycle = (
+                "staging_attempted",
+                "configuration_scope_applied",
+                "commit_attempted",
+                "committed",
+            )
+            access = (
+                "attempted",
+                "acquired",
+                "release_attempted",
+                "released",
+                "state_restored",
+            )
+            if document["read_only"]:
+                result = self.failure(
+                    "DocumentNotWritable",
+                    mutation={key: False for key in lifecycle},
+                    selection_checks={
+                        "preflight": {
+                            "selection_access": {key: False for key in access}
+                        }
+                    },
+                )
+                if self.defect == "depth-readonly-mutated":
+                    result["mutation"]["staging_attempted"] = True
+                return result
+            profile = document["profiles"][selected]
+            changed = not math.isclose(
+                profile["depth"], args.depth_mm, rel_tol=0, abs_tol=1e-6
+            )
+            if changed:
+                area = (
+                    math.pi * profile["radius"] ** 2
+                    if profile["radius"]
+                    else profile["width"] * profile["height"]
+                )
+                document["volume"] += (
+                    area
+                    * (args.depth_mm - profile["depth"])
+                    * (-1 if profile["cut"] else 1)
+                )
+                document["stamp"] += 7
+                document["modified"] = True
+            profile["depth"] = args.depth_mm
+            document["stamp"] += 2
+            metrics = {
+                "solid_body_count": document["count"],
+                "volume_mm3": document["volume"],
+                "surface_area_mm2": document["area"],
+                "centroid_mm": {"x": 10, "y": 20, "z": 10},
+            }
+            result = {
+                "ok": True,
+                "document": self.descriptor(document, session),
+                "feature_id": args.feature_id,
+                "depth_changed": changed,
+                "mutation": {key: changed for key in lifecycle},
+                "definition_after": {"depth_mm": args.depth_mm},
+                "measurement_after": metrics,
+                "verification": {"passed": True},
+                "selection_checks": {
+                    phase: {
+                        "ok": True,
+                        "selection_access": {key: True for key in access},
+                    }
+                    for phase in (
+                        ("preflight", "postflight") if changed else ("preflight",)
+                    )
+                },
+            }
+            if changed:
+                result["rebuilt"] = True
+            if self.defect == "depth-volume":
+                result["measurement_after"]["volume_mm3"] += 1
+            if self.defect == "depth-unreleased":
+                result["selection_checks"]["preflight"]["selection_access"][
+                    "released"
+                ] = False
+            if self.defect == "depth-equal-mutated" and not changed:
+                result["mutation"]["staging_attempted"] = True
+            if self.defect == "depth-foreground":
+                result["document"]["active"] = True
+            return result
         if action == "feature" and subcommand in ("list", "inspect"):
             state = {
-                "configuration": "Default", "update_stamp": document["stamp"],
-                "modified": document["modified"], "editing": False,
+                "configuration": "Default",
+                "update_stamp": document["stamp"],
+                "modified": document["modified"],
+                "editing": False,
                 "foreground_present": self.active is not None,
             }
             observed = {
-                "before": state, "after": copy.deepcopy(state), "unchanged": True,
+                "before": state,
+                "after": copy.deepcopy(state),
+                "unchanged": True,
             }
             features = []
             for profile_id, profile in document["profiles"].items():
@@ -309,38 +408,55 @@ class FakeCLI:
                 if key not in self.feature_ids:
                     self.serial += 1
                     self.feature_ids[key] = f"f-{self.serial:06x}"
-                features.append({
-                    "feature_id": self.feature_ids[key], "name": profile_id,
-                    "type": "Cut" if profile["cut"] else "Extrusion",
-                    "native_type": "Cut" if profile["cut"] else "Extrusion",
-                    "kind": "cut-extrude" if profile["cut"] else "boss-extrude",
-                })
+                features.append(
+                    {
+                        "feature_id": self.feature_ids[key],
+                        "name": profile_id,
+                        "type": "Cut" if profile["cut"] else "Extrusion",
+                        "native_type": "Cut" if profile["cut"] else "Extrusion",
+                        "kind": "cut-extrude" if profile["cut"] else "boss-extrude",
+                    }
+                )
             if subcommand == "list":
                 if len(features) > args.max_features:
                     return self.failure("FeatureListLimitExceeded")
                 return {
-                    "ok": True, "document": descriptor,
-                    "scope": "part-extrusions", "count": len(features),
-                    "features": features, "observation": observed,
+                    "ok": True,
+                    "document": descriptor,
+                    "scope": "part-extrusions",
+                    "count": len(features),
+                    "features": features,
+                    "observation": observed,
                 }
-            selected = next((f for f in features if f["feature_id"] == args.feature_id), None)
+            selected = next(
+                (f for f in features if f["feature_id"] == args.feature_id), None
+            )
             if selected is None:
                 return self.failure("FeatureNotFound")
             profile = document["profiles"][selected["name"]]
             definition = {
-                "depth_mm": profile["depth"], "end_condition": 0,
-                "reverse_direction": profile["reverse"], "both_directions": False,
-                "thin": False, "from_type": 0,
-                "forward_draft": False, "reverse_draft": False,
+                "depth_mm": profile["depth"],
+                "end_condition": 0,
+                "reverse_direction": profile["reverse"],
+                "both_directions": False,
+                "thin": False,
+                "from_type": 0,
+                "forward_draft": False,
+                "reverse_draft": False,
                 "feature_scope" if profile["cut"] else "merge": True,
             }
             if self.defect == "feature-read-depth":
                 definition["depth_mm"] += 1
+            if self.defect == "depth-reopen" and document["path"].endswith("edited-depth.SLDPRT"):
+                definition["depth_mm"] += 1
             if self.defect == "feature-read-state":
                 observed["after"]["modified"] = not observed["before"]["modified"]
             return {
-                "ok": True, "document": descriptor, "feature": selected,
-                "definition": definition, "observation": observed,
+                "ok": True,
+                "document": descriptor,
+                "feature": selected,
+                "definition": definition,
+                "observation": observed,
             }
         if action == "feature":
             profile = document["profiles"][args.sketch_id]
@@ -355,7 +471,11 @@ class FakeCLI:
                     result["error"]["type"] = "HostDisconnected"
                 return result
             profile["absorbed"] = True
-            profile.update(depth=args.depth_mm, reverse=args.reverse, cut=subcommand == "cut-extrude")
+            profile.update(
+                depth=args.depth_mm,
+                reverse=args.reverse,
+                cut=subcommand == "cut-extrude",
+            )
             document["stamp"] += 1
             document["modified"] = True
             removed = math.pi * profile["radius"] ** 2 * args.depth_mm
@@ -371,7 +491,9 @@ class FakeCLI:
                 )
                 document["area"] += 16000
             self.serial += 1
-            feature_id = self.feature_ids[(document_id, args.sketch_id)] = f"f-{self.serial:06x}"
+            feature_id = self.feature_ids[(document_id, args.sketch_id)] = (
+                f"f-{self.serial:06x}"
+            )
             return {
                 "ok": True,
                 "document": self.descriptor(document, session),
@@ -423,7 +545,9 @@ class ModelingSmokeTests(unittest.TestCase):
             else []
         )
         with (
-            mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run) as command,
+            mock.patch.object(
+                gate.subprocess, "run", side_effect=self.fake.run
+            ) as command,
             mock.patch("sys.stdout", new=io.StringIO()),
         ):
             gate.main(arguments)
@@ -439,14 +563,26 @@ class ModelingSmokeTests(unittest.TestCase):
         record = self.record()
         self.assertEqual(record["request_timeout_seconds"], 120)
         self.assertEqual(record["cli_process_timeout_seconds"], 135)
-        self.assertTrue(all(call.kwargs["timeout"] == 135 for call in commands.call_args_list))
-        self.assertTrue(all(call.request_timeout == 120 for call in self.fake.calls))
+        self.assertEqual(record["depth_request_timeout_seconds"], 600)
+        for process, event, call in zip(
+            commands.call_args_list, record["events"], self.fake.calls
+        ):
+            depth_write = (
+                call.command == "feature"
+                and call.feature_command == "set-depth"
+                and event["returncode"] == 0
+            )
+            seconds = 600 if depth_write else 120
+            self.assertEqual(process.kwargs["timeout"], seconds + 15)
+            self.assertEqual(call.request_timeout, seconds)
+            self.assertEqual(event["request_timeout_seconds"], seconds)
         self.assertTrue(record["success"])
         self.assertEqual(
             record["cases"],
             [
                 "native-model",
                 "reverse-cut",
+                "feature-depth",
                 "sample-exports",
                 "rejected-cut-then-sketch",
             ],
@@ -487,14 +623,18 @@ class ModelingSmokeTests(unittest.TestCase):
         )
 
     def test_custom_request_timeout_reaches_all_cli_calls_and_evidence(self):
-        self.arguments.extend(["--request-timeout", "300"])
+        self.arguments.extend(
+            ["--request-timeout", "300", "--depth-request-timeout", "300"]
+        )
         commands = self.run_gate(samples=True)
         record = self.record()
         self.assertTrue(record["success"])
         self.assertEqual(record["request_timeout_seconds"], 300)
         self.assertEqual(record["cli_process_timeout_seconds"], 315)
         self.assertTrue(commands.call_args_list)
-        self.assertTrue(all(call.kwargs["timeout"] == 315 for call in commands.call_args_list))
+        self.assertTrue(
+            all(call.kwargs["timeout"] == 315 for call in commands.call_args_list)
+        )
         self.assertTrue(all(call.request_timeout == 300 for call in self.fake.calls))
 
     def test_invalid_request_timeout_refused_before_work(self):
@@ -508,25 +648,49 @@ class ModelingSmokeTests(unittest.TestCase):
                 gate.main(self.arguments + [f"--request-timeout={value}"])
             self.assertEqual(error.exception.code, 2)
             command.assert_not_called()
+
+    def test_invalid_depth_timeout_refused_before_work(self):
+        for value in ("0", "-1", "nan", "inf", "3600.1", "invalid"):
+            with (
+                self.subTest(value=value),
+                mock.patch.object(gate.subprocess, "run") as command,
+                mock.patch("sys.stderr", new=io.StringIO()),
+            ):
+                with self.assertRaises(SystemExit):
+                    gate.main([*self.arguments, "--depth-request-timeout", value])
+                command.assert_not_called()
             self.assertFalse(self.directory.exists())
 
     def test_request_timeout_preserves_fractional_and_maximum_values(self):
         for value in (0.25, 300.25, 300.1239, 3599.9999, 3600):
             smoke = gate.ModelingSmoke(
-                directory=self.directory, host_directory=r"C:\proof", endpoint="local",
+                directory=self.directory,
+                host_directory=r"C:\proof",
+                endpoint="local",
                 request_timeout_seconds=value,
             )
-            with mock.patch.object(gate.subprocess, "run", return_value=(
-                subprocess.CompletedProcess([], 0, b'{"ok":true}', b'')
-            )) as command, mock.patch.object(smoke, "checkpoint"):
+            with (
+                mock.patch.object(
+                    gate.subprocess,
+                    "run",
+                    return_value=(
+                        subprocess.CompletedProcess([], 0, b'{"ok":true}', b"")
+                    ),
+                ) as command,
+                mock.patch.object(smoke, "checkpoint"),
+            ):
                 smoke.command("document", "list")
             arguments = command.call_args.args[0]
-            self.assertEqual(float(arguments[arguments.index("--request-timeout") + 1]), value)
+            self.assertEqual(
+                float(arguments[arguments.index("--request-timeout") + 1]), value
+            )
             self.assertEqual(command.call_args.kwargs["timeout"], value + 15)
             self.assertEqual(smoke.record["request_timeout_seconds"], value)
         with self.assertRaises(gate.argparse.ArgumentTypeError):
             gate.ModelingSmoke(
-                directory=self.directory, host_directory=r"C:\proof", endpoint="local",
+                directory=self.directory,
+                host_directory=r"C:\proof",
+                endpoint="local",
                 request_timeout_seconds=True,
             )
 
@@ -545,6 +709,12 @@ class ModelingSmokeTests(unittest.TestCase):
             "null-stamp",
             "overwrite-existing",
             "close-no-op",
+            "depth-volume",
+            "depth-unreleased",
+            "depth-equal-mutated",
+            "depth-foreground",
+            "depth-reopen",
+            "depth-readonly-mutated",
         ):
             with (
                 self.subTest(defect=defect),

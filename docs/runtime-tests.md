@@ -14,6 +14,13 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   case rejects a nonintersecting cut, checks no cleanup warnings, closed sketch
   edit state and unchanged solid geometry, closes the native document, then
   creates a new background circle **without restarting the host**.
+  Its a7 development `feature-depth` case independently creates a single-solid
+  rectangle boss/circle cut, verifies lease/CAS and cross-document refusals,
+  edits boss/cut depths with analytical volume checks, checks equal-depth
+  calls skip setters/commits/rebuilds while retaining complete selection
+  restoration, saves/reopens native depths with fresh handles, and requires
+  a read-only reopened part to reject depth edits before selection access.
+  These are required gate assertions, not proof that every host has passed.
 - `scripts/ci/verify-driving-dimensions.py`: three-plane driving diameter
   creation, inspect/edit, guards, native save/reopen and discovery of fresh
   sketch/dimension handles; explicit center fixing and saved fix readback;
@@ -90,6 +97,15 @@ gets an additional 15 seconds to return its result. Existing shorter CLI health
 probe limits remain unchanged. This does not extend the host wrapper's overall
 phase deadline, lease TTL or introduce retries.
 
+The modeling gate also accepts `--depth-request-timeout` (default **600**,
+same finite-positive/3600-second bounds) for guarded depth writes and equal-depth
+checks. Complete profile/scope/state verification is more expensive than an
+export; an instrumented Windows ARM64 native write took 134 seconds. Other
+operations still use `--request-timeout` (default 120). Each modeling event
+records the actual request budget; the CLI process gets 15 extra seconds.
+Host projects must budget the overall modeling phase for these additional
+operations, independently of the six export artifacts' short deadline.
+
 Pass the successful local `modeling.json` to the driving script using
 `--after-modeling`. It rejects failed/interrupted records, missing native cut
 continuation proof and any host PID change between the two gates **before**
@@ -114,6 +130,9 @@ so an externally killed script leaves an honest `running` record. Existing
 records and native artifacts are not overwritten on repeated runs.
 Both records include `request_timeout_seconds` (configured per-request budget)
 and `cli_process_timeout_seconds` (that budget plus the 15-second process margin).
+The modeling record additionally includes `depth_request_timeout_seconds` and
+each event's actual `request_timeout_seconds`; a longer depth budget must not be
+mistaken for a global extension or a retry policy.
 
 Portable fake-CLI tests validate the test control flow, exact CLI syntax,
 failure reporting and evidence. Only successful execution on actual Windows,

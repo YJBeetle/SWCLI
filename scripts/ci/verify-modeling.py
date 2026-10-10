@@ -23,11 +23,11 @@ import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT
 
-
 # Bound read-only observation groups independently of request/phase deadlines.
 # The daemon lease default stays unchanged; holder writes still renew.
 LEASE_TTL_SECONDS = 600
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 120
+DEFAULT_DEPTH_REQUEST_TIMEOUT_SECONDS = 600
 MAX_REQUEST_TIMEOUT_SECONDS = 3600
 CLI_TIMEOUT_GRACE_SECONDS = 15
 
@@ -80,14 +80,23 @@ def request_timeout(value):
 
 class ModelingSmoke:
     def __init__(
-        self, *, directory, host_directory, endpoint, cli=None,
+        self,
+        *,
+        directory,
+        host_directory,
+        endpoint,
+        cli=None,
         request_timeout_seconds=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        depth_request_timeout_seconds=DEFAULT_DEPTH_REQUEST_TIMEOUT_SECONDS,
     ):
         self.directory = directory
         self.host_directory = host_directory
         self.endpoint = endpoint
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
         self.request_timeout_seconds = request_timeout(request_timeout_seconds)
+        self.depth_request_timeout_seconds = request_timeout(
+            depth_request_timeout_seconds
+        )
         self.session = "modeling-smoke-" + uuid.uuid4().hex[:12]
         self.owned = {}
         self.leases = {}
@@ -101,6 +110,7 @@ class ModelingSmoke:
             "session_id": self.session,
             "endpoint": endpoint,
             "request_timeout_seconds": self.request_timeout_seconds,
+            "depth_request_timeout_seconds": self.depth_request_timeout_seconds,
             "cli_process_timeout_seconds": (
                 self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS
             ),
@@ -148,9 +158,20 @@ class ModelingSmoke:
                 scratch.unlink()
 
     def command(
-        self, *arguments, document=None, session=None, lease=None, expected_error=None
+        self,
+        *arguments,
+        document=None,
+        session=None,
+        lease=None,
+        expected_error=None,
+        timeout_seconds=None,
     ):
         session = session or self.session
+        seconds = (
+            self.request_timeout_seconds
+            if timeout_seconds is None
+            else request_timeout(timeout_seconds)
+        )
         command = [
             *self.cli,
             "--endpoint",
@@ -158,7 +179,7 @@ class ModelingSmoke:
             "--session",
             session,
             "--request-timeout",
-            str(self.request_timeout_seconds),
+            str(seconds),
             *map(str, arguments),
         ]
         if document is not None:
@@ -166,7 +187,11 @@ class ModelingSmoke:
         if lease is not None:
             command.extend(["--lease", lease])
         command.append("--json")
-        event = {"command": command, "state": "running"}
+        event = {
+            "command": command,
+            "state": "running",
+            "request_timeout_seconds": seconds,
+        }
         self.record["events"].append(event)
         stage = ".".join(map(str, arguments[:2]))
         print(f"Modeling gate: {stage}", flush=True)
@@ -176,7 +201,7 @@ class ModelingSmoke:
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=self.request_timeout_seconds + CLI_TIMEOUT_GRACE_SECONDS,
+                timeout=seconds + CLI_TIMEOUT_GRACE_SECONDS,
                 env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             )
             event.update(
@@ -256,12 +281,13 @@ class ModelingSmoke:
             )
         return lease
 
-    def write(self, *arguments, document, expected_error=None):
+    def write(self, *arguments, document, expected_error=None, timeout_seconds=None):
         return self.command(
             *arguments,
             document=document,
             lease=self.renew(document),
             expected_error=expected_error,
+            timeout_seconds=timeout_seconds,
         )
 
     def create(self):
@@ -434,8 +460,11 @@ class ModelingSmoke:
         for feature in features:
             self.renew(document)
             inspected = self.command(
-                "feature", "inspect", feature["feature_id"],
-                "--if-update-stamp", listed["document"]["update_stamp"],
+                "feature",
+                "inspect",
+                feature["feature_id"],
+                "--if-update-stamp",
+                listed["document"]["update_stamp"],
                 document=document,
                 session=observer,
             )
@@ -606,7 +635,10 @@ class ModelingSmoke:
                     "live discovery did not reuse the exact created feature handles",
                 )
                 limited = self.command(
-                    "feature", "list", "--max-features", 1,
+                    "feature",
+                    "list",
+                    "--max-features",
+                    1,
                     document=a,
                     session=self.session + "-observer",
                     expected_error="FeatureListLimitExceeded",
@@ -702,7 +734,10 @@ class ModelingSmoke:
             "native close/reopen reused retired feature handles",
         )
         self.command(
-            "feature", "inspect", feature_ids[0], document=reopened,
+            "feature",
+            "inspect",
+            feature_ids[0],
+            document=reopened,
             expected_error="FeatureNotFound",
         )
         diagnosis = self.command("document", "diagnose", document=reopened)
@@ -717,6 +752,178 @@ class ModelingSmoke:
             current["document_id"] == b and current["current"] is True,
             "independent reopen session changed the original session current",
         )
+        self.close(b)
+
+    def feature_depth(self):
+        # A separate exact single-solid fixture: the main modeling case includes
+        # deliberate multiple bodies and is not eligible for this narrow writer.
+        a, b = self.create(), self.create()
+        lease = self.command(
+            "document",
+            "lease",
+            "acquire",
+            "--ttl-seconds",
+            LEASE_TTL_SECONDS,
+            document=a,
+        )["lease"]["lease_id"]
+        rectangle = self.rectangle(a, width=100, height=50, x=10, y=20)
+        boss = self.feature(a, rectangle["sketch"]["sketch_id"], depth=20)
+        circle = self.circle(a, radius=3, x=10, y=20)
+        cut = self.feature(a, circle["sketch"]["sketch_id"], cut=True, depth=5)
+        boss_id, cut_id = boss["feature"]["feature_id"], cut["feature"]["feature_id"]
+        before = self.command("document", "inspect", document=a)["document"]
+        self.command(
+            "feature",
+            "set-depth",
+            boss_id,
+            "--depth-mm",
+            25,
+            document=a,
+            session=self.session + "-contender",
+            expected_error="DocumentLeaseConflict",
+        )
+        self.write(
+            "feature",
+            "set-depth",
+            boss_id,
+            "--depth-mm",
+            25,
+            "--if-update-stamp",
+            before["update_stamp"] + 1,
+            document=a,
+            expected_error="DocumentUpdateConflict",
+        )
+        after = self.command("document", "inspect", document=a)["document"]
+        require(before == after, "refused depth writes changed document state")
+        for feature_id, target, expected_volume in (
+            (boss_id, 25, 125000 - math.pi * 9 * 5),
+            (cut_id, 8, 125000 - math.pi * 9 * 8),
+        ):
+            stamp = self.command("document", "inspect", document=a)["document"][
+                "update_stamp"
+            ]
+            changed = self.write(
+                "feature",
+                "set-depth",
+                feature_id,
+                "--depth-mm",
+                target,
+                "--if-update-stamp",
+                stamp,
+                document=a,
+                timeout_seconds=self.depth_request_timeout_seconds,
+            )
+            self.background(changed, a)
+            require(
+                changed["feature_id"] == feature_id
+                and changed["depth_changed"] is True
+                and all(changed["mutation"].values())
+                and changed["rebuilt"] is True,
+                "depth write lost target or verified mutation lifecycle",
+            )
+            near(
+                changed["definition_after"]["depth_mm"],
+                target,
+                "depth readback mismatch",
+            )
+            self.measure(a, volume=expected_volume)
+            near(
+                changed["measurement_after"]["volume_mm3"],
+                expected_volume,
+                "depth write changed the wrong material",
+                abs(expected_volume) * 1e-9 + 0.00001,
+            )
+            equal = self.write(
+                "feature",
+                "set-depth",
+                feature_id,
+                "--depth-mm",
+                target,
+                "--if-update-stamp",
+                changed["document"]["update_stamp"],
+                document=a,
+                timeout_seconds=self.depth_request_timeout_seconds,
+            )
+            self.background(equal, a)
+            require(
+                equal["depth_changed"] is False
+                and not any(equal["mutation"].values())
+                and "rebuilt" not in equal
+                and equal["measurement_after"] == changed["measurement_after"],
+                "equal depth performed modification/rebuild or changed geometry",
+            )
+            for response in (changed, equal):
+                require(
+                    not response.get("warnings")
+                    and response["verification"]["passed"] is True,
+                    "depth operation left warnings or incomplete verification",
+                )
+                for check in response["selection_checks"].values():
+                    require(
+                        check["ok"] is True and all(check["selection_access"].values()),
+                        "selection access was not released/restored",
+                    )
+        self.command(
+            "feature",
+            "set-depth",
+            boss_id,
+            "--depth-mm",
+            25,
+            document=b,
+            expected_error="FeatureNotFound",
+        )
+        native = str(PureWindowsPath(self.host_directory) / "edited-depth.SLDPRT")
+        saved = self.write("document", "save-as", native, document=a)
+        self.background(saved, a)
+        require(
+            saved["document"]["modified"] is False
+            and saved["file_verification"]["minimum_size_valid"] is True,
+            "edited native part did not save cleanly",
+        )
+        self.command("document", "lease", "release", lease)
+        self.close(a)
+        reopened = self.command("document", "open", native, "--read-only")["document"][
+            "document_id"
+        ]
+        features = self.command("feature", "list", document=reopened)["features"]
+        require(
+            len(features) == 2
+            and {f["kind"] for f in features} == {"boss-extrude", "cut-extrude"}
+            and not {boss_id, cut_id} & {f["feature_id"] for f in features},
+            "native reopen lost features or reused expired handles",
+        )
+        for feature in features:
+            observed = self.command(
+                "feature", "inspect", feature["feature_id"], document=reopened
+            )
+            near(
+                observed["definition"]["depth_mm"],
+                25 if feature["kind"] == "boss-extrude" else 8,
+                "saved native depth did not persist",
+            )
+        state = self.command("document", "inspect", document=reopened)["document"]
+        refused = self.command(
+            "feature",
+            "set-depth",
+            features[0]["feature_id"],
+            "--depth-mm",
+            26,
+            document=reopened,
+            expected_error="DocumentNotWritable",
+        )
+        require(
+            not any(refused["mutation"].values())
+            and not any(
+                refused["selection_checks"]["preflight"]["selection_access"].values()
+            ),
+            "read-only refusal attempted mutation or selection access",
+        )
+        require(
+            self.command("document", "inspect", document=reopened)["document"] == state,
+            "read-only refusal changed the reopened document",
+        )
+        self.measure(reopened, volume=125000 - math.pi * 9 * 8)
+        self.close(reopened)
         self.close(b)
 
     def reverse_cut(self):
@@ -875,7 +1082,11 @@ class ModelingSmoke:
             "capabilities"
         )  # The client validates the real capabilities Schema.
         self.require_empty()
-        cases = [("native-model", self.native_model), ("reverse-cut", self.reverse_cut)]
+        cases = [
+            ("native-model", self.native_model),
+            ("reverse-cut", self.reverse_cut),
+            ("feature-depth", self.feature_depth),
+        ]
         if sample_part:
             cases.append(
                 (
@@ -918,12 +1129,19 @@ def main(argv=None):
     parser.add_argument("--host-output-dir", type=host_directory)
     parser.add_argument("--cli-command", type=executable)
     parser.add_argument(
-        "--request-timeout", type=request_timeout,
+        "--request-timeout",
+        type=request_timeout,
         default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
         help="per-request timeout in seconds (0 < seconds <= 3600; default: 120); CLI process gets 15 extra seconds",
     )
     parser.add_argument(
         "--endpoint", default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
+    )
+    parser.add_argument(
+        "--depth-request-timeout",
+        type=request_timeout,
+        default=DEFAULT_DEPTH_REQUEST_TIMEOUT_SECONDS,
+        help="guarded depth-write/equal-depth request budget in seconds (default: 600)",
     )
     parser.add_argument("--sample-part", type=host_directory)
     parser.add_argument("--sample-assembly", type=host_directory)
@@ -940,6 +1158,7 @@ def main(argv=None):
         endpoint=arguments.endpoint,
         cli=[arguments.cli_command] if arguments.cli_command else None,
         request_timeout_seconds=arguments.request_timeout,
+        depth_request_timeout_seconds=arguments.depth_request_timeout,
     )
     # Never overwrite prior evidence, even before the first host operation.
     with smoke.record_path.open("x", encoding="utf-8") as stream:

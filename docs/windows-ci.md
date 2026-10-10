@@ -50,6 +50,10 @@ See [shared runtime tests](runtime-tests.md) for the portable entry points,
 host/local path namespaces and evidence. These common assertions are no longer
 duplicated in the Windows PowerShell host wrapper; equation setup, desktop
 diagnostics and owned/attached host lifecycle checks remain Windows-specific.
+The a7 development shared gate also requires guarded boss/cut depth edits,
+equal-depth lifecycle checks, independent volume and native save/reopen proof,
+and read-only refusal before selection access. Its depth requests have a
+separate 600-second budget; the remaining request budgets are unchanged.
 
 The hosted installation is performed once. Its smoke wrapper runs first in the
 default visible test mode, then again with `-Hidden` and a separate `hidden/`
