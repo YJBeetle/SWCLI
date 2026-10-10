@@ -135,17 +135,35 @@ class FakeCLI:
                     "lease": None,
                 }
             document["id"] = document_id
-            document.setdefault("type", 2 if subcommand == "open" and args.path.lower().endswith(".sldasm") else 1)
+            document.setdefault("type", {".sldasm": 2, ".slddrw": 3}.get(
+                gate.PureWindowsPath(args.path).suffix.lower(), 1)
+                if subcommand == "open" else 1)
             if self.defect == "assembly-reopen-failed" and subcommand == "open" and args.path.endswith("assembly.SLDASM"):
                 return self.failure("OpenFailed")
             document["read_only"] = args.read_only if subcommand == "open" else False
+            if document["type"] == 3 and args.path.endswith("drawing.SLDDRW") and args.read_only:
+                if self.defect == "drawing-reopen-failed":
+                    return self.failure("OpenFailed")
+                if self.defect == "drawing-reopen-changed-file":
+                    (self.directory / "drawing.SLDDRW").write_bytes(b"changed" * 100)
+                if self.defect == "drawing-reused-id":
+                    document_id = document["id"] = "d-000002"
+                if self.defect == "drawing-readonly-missing":
+                    document["read_only"] = False
             self.documents[document_id] = document
             self.active = self.current[session] = document_id
             return {
                 "ok": True,
                 "created": True,
                 "read_only": document["read_only"],
-                "api_errors": 0,
+                "api_errors": (1 if self.defect == "drawing-open-error"
+                               and document["type"] == 3 else 0),
+                "api_warnings": (4 if self.defect == "drawing-reference-warning"
+                                 and document["type"] == 3 else
+                                 2 if self.defect == "drawing-writable-warning"
+                                 and document["type"] == 3 and not args.read_only else
+                                 2 if self.defect == "drawing-readonly-warning"
+                                 and document["type"] == 3 and args.read_only else 0),
                 "document": self.descriptor(document, session),
             }
         if action == "document" and subcommand == "list":
@@ -210,6 +228,16 @@ class FakeCLI:
                 })
                 if self.defect == "assembly-structure-changed" and document["path"].endswith("assembly.SLDASM"):
                     structure["features"]["items"][0]["name"] = "LostComponent"
+            if document.get("type") == 3:
+                structure["features"] = {"count": 1, "truncated": False,
+                                         "items": [{"name": "Sheet1", "type": "DrawingSheet"}]}
+                if document["read_only"] and document["path"].endswith("drawing.SLDDRW"):
+                    if self.defect == "drawing-structure-changed":
+                        structure["features"]["items"][0]["name"] = "LostSheet"
+                    if self.defect == "drawing-structure-truncated":
+                        structure["features"]["truncated"] = True
+                    if self.defect == "drawing-structure-empty":
+                        structure["features"].update(count=0, items=[])
             return {
                 "ok": True,
                 "document": descriptor,
@@ -219,6 +247,13 @@ class FakeCLI:
             target = self.directory / gate.PureWindowsPath(document["path"]).name
             if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
+            if document.get("type") == 3:
+                if self.defect == "drawing-save-failed":
+                    return self.failure("SaveFailed")
+                if self.defect == "drawing-save-truncated":
+                    target.write_bytes(b"truncated")
+                if self.defect == "drawing-source-changed":
+                    self.drawing_source.write_bytes(b"changed" * 100)
             return {"ok": True, "api_saved": True, "save_errors": 0,
                     "document_after": self.descriptor(document, session)}
         if action == "document" and subcommand == "diagnose":
@@ -800,7 +835,7 @@ class ModelingSmokeTests(unittest.TestCase):
             "C:\\evidence with spaces",
         ]
 
-    def run_gate(self, *, samples=False):
+    def run_gate(self, *, samples=False, drawing=False):
         arguments = self.arguments + (
             [
                 "--sample-part",
@@ -811,6 +846,11 @@ class ModelingSmokeTests(unittest.TestCase):
             if samples
             else []
         )
+        if drawing:
+            source = Path(self.temporary.name) / "installed source.SLDDRW"
+            source.write_bytes(b"drawing" * 100)
+            arguments += ["--sample-drawing", "C:\\samples\\installed source.SLDDRW",
+                          "--sample-drawing-local", str(source)]
         with (
             mock.patch.object(
                 gate.subprocess, "run", side_effect=self.fake.run
@@ -824,6 +864,90 @@ class ModelingSmokeTests(unittest.TestCase):
         return json.loads(
             (self.directory / "modeling.json").read_text(encoding="utf-8")
         )
+
+    def drawing_gate(self, defect=None):
+        self.directory.mkdir(parents=True, exist_ok=True)
+        source = Path(self.temporary.name) / "installed source.SLDDRW"
+        source.write_bytes(b"drawing" * 100)
+        self.fake = FakeCLI(self.directory)
+        self.fake.defect = defect
+        self.fake.drawing_source = source
+        smoke = gate.ModelingSmoke(directory=self.directory,
+                                   host_directory="C:\\evidence with spaces",
+                                   endpoint="127.0.0.1:18495")
+        smoke.record_path.write_text(json.dumps(smoke.record), encoding="utf-8")
+        with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run), \
+                mock.patch("sys.stdout", new=io.StringIO()):
+            try:
+                smoke.drawing_save_reopen("C:\\samples\\installed source.SLDDRW", source)
+            finally:
+                smoke.cleanup()
+        return smoke, source
+
+    def test_drawing_save_size_reopen_and_source_immutability(self):
+        smoke, source = self.drawing_gate("drawing-readonly-warning")
+        proof = smoke.record["drawing_save_reopen"]
+        self.assertEqual(proof["source_sha256_before"], proof["source_sha256_after"])
+        self.assertEqual(source.read_bytes(), b"drawing" * 100)
+        self.assertEqual(proof["size_bytes"], 700)
+        self.assertTrue(proof["structure_unchanged"])
+        self.assertTrue(proof["fresh_document_id"])
+        self.assertEqual(proof["observation_scope"], "top-level-feature-tree")
+        self.assertEqual([item["api_warnings"] for item in proof["opens"]], [2, 0, 2])
+        self.assertEqual(smoke.record["native_in_place_saves"],
+                         [{"format": "SLDDRW", "size_bytes": 700}])
+        self.assertEqual(self.fake.documents, {})
+        saves = [call for call in self.fake.calls
+                 if call.command == "document" and call.document_command == "save"]
+        self.assertEqual(len(saves), 1)
+        self.assertFalse(any(call.command == "document" and call.document_command == "save-as"
+                             for call in self.fake.calls))
+
+    def test_drawing_gate_rejects_save_reopen_structure_and_reference_defects(self):
+        for defect, message in (
+            ("drawing-save-failed", "SaveFailed"),
+            ("drawing-save-truncated", "drawing in-place save produced an empty or truncated"),
+            ("drawing-reopen-failed", "OpenFailed"),
+            ("drawing-structure-changed", "changed the feature tree"),
+            ("drawing-structure-truncated", "empty or truncated"),
+            ("drawing-structure-empty", "empty or truncated"),
+            ("drawing-reference-warning", "unexpected warnings: 4"),
+            ("drawing-writable-warning", "unexpected warnings: 2"),
+            ("drawing-open-error", "required type/read-only state"),
+            ("drawing-readonly-missing", "required type/read-only state"),
+            ("drawing-reused-id", "reused an expired document ID"),
+            ("drawing-reopen-changed-file", "reopen changed the saved artifact"),
+            ("drawing-source-changed", "changed the installed source"),
+        ):
+            with self.subTest(defect=defect):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.drawing_gate(defect)
+                self.assertEqual(self.fake.documents, {})
+                (self.directory / "drawing.SLDDRW").unlink(missing_ok=True)
+
+    def test_drawing_gate_does_not_overwrite_existing_evidence(self):
+        self.directory.mkdir(parents=True)
+        artifact = self.directory / "drawing.SLDDRW"
+        artifact.write_bytes(b"existing proof")
+        with self.assertRaises(FileExistsError):
+            self.drawing_gate()
+        self.assertEqual(artifact.read_bytes(), b"existing proof")
+
+    def test_drawing_sample_requires_both_path_namespaces(self):
+        for options in (["--sample-drawing", "C:\\samples\\Source.SLDDRW"],
+                        ["--sample-drawing-local", "/samples/Source.SLDDRW"]):
+            with self.subTest(options=options), mock.patch("sys.stderr", new=io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    gate.main(self.arguments + options)
+                self.assertEqual(error.exception.code, 2)
+
+    def test_shared_gate_runs_optional_drawing_case_and_keeps_one_host(self):
+        self.run_gate(drawing=True)
+        proof = self.record()
+        self.assertTrue(proof["success"])
+        self.assertIn("drawing-save-reopen", proof["cases"])
+        self.assertEqual(proof["host"]["process_id"], proof["host_after"]["process_id"])
+        self.assertEqual(proof["cleanup_errors"], [])
 
     def test_assembly_save_and_read_only_reopen_have_size_and_structure_evidence(self):
         self.run_gate(samples=True)

@@ -1400,7 +1400,9 @@ class ModelingSmoke:
         self.checkpoint("assembly-save-reopen.verified")
 
     def verify_in_place_save(self, document, native_file):
-        kind = "assembly" if native_file.suffix.upper() == ".SLDASM" else "part"
+        kind = {".SLDASM": "assembly", ".SLDDRW": "drawing", ".SLDPRT": "part"}[
+            native_file.suffix.upper()
+        ]
         saved = self.write("document", "save", document=document)
         require(saved["api_saved"] is True and saved["save_errors"] == 0
                 and saved["document_after"]["modified"] is False,
@@ -1411,6 +1413,79 @@ class ModelingSmoke:
             "format": native_file.suffix[1:].upper(),
             "size_bytes": native_file.stat().st_size,
         })
+
+    def drawing_save_reopen(self, drawing, local_drawing):
+        # Only Save3 a new byte-for-byte copy. The installed source is opened
+        # read-only for the baseline; this is not a drawing SaveAs or Pack and Go.
+        source = Path(local_drawing)
+        require(source.is_file() and source.suffix.lower() == ".slddrw",
+                "drawing source must be a readable local SLDDRW file")
+        source_bytes = source.read_bytes()
+        require(len(source_bytes) >= 512, "drawing source is empty or truncated")
+        source_digest = hashlib.sha256(source_bytes).hexdigest()
+        native_file = self.directory / "drawing.SLDDRW"
+        target = str(PureWindowsPath(self.host_directory) / native_file.name)
+        proof = {
+            "source": drawing,
+            "source_sha256_before": source_digest,
+            "observation_scope": "top-level-feature-tree",
+            "opens": [],
+        }
+        self.record["drawing_save_reopen"] = proof
+
+        def open_checked(path, *, read_only):
+            result = self.command("document", "open", path,
+                                  *(("--read-only",) if read_only else ()))
+            proof["opens"].append({
+                "path": path, "read_only": result["read_only"],
+                "api_errors": result["api_errors"],
+                "api_warnings": result["api_warnings"],
+            })
+            require(result["document"]["type"] == 3
+                    and result["read_only"] is read_only
+                    and result["api_errors"] == 0,
+                    "drawing did not open with the required type/read-only state")
+            # swFileLoadWarning_ReadOnly = 2 is expected only for explicit
+            # read-only opens. All other warnings (including lost references)
+            # fail the gate rather than silently weakening the reopen proof.
+            require(result["api_warnings"] in ((0, 2) if read_only else (0,)),
+                    f"drawing open has unexpected warnings: {result['api_warnings']}")
+            return result["document"]["document_id"]
+
+        def signature(document):
+            structure = self.command("document", "inspect", "--detail", "structure",
+                                     document=document)["structure"]
+            features = structure["features"]
+            require(features["count"] > 0 and not features["truncated"],
+                    "drawing feature tree is empty or truncated")
+            return [(item["name"], item["type"]) for item in features["items"]]
+
+        try:
+            original = open_checked(drawing, read_only=True)
+            expected = signature(original)
+            self.close(original)
+            with native_file.open("xb") as stream:
+                stream.write(source_bytes)
+            document = open_checked(target, read_only=False)
+            require(signature(document) == expected,
+                    "drawing copy changed the source feature tree")
+            self.verify_in_place_save(document, native_file)
+            proof["size_bytes"] = native_file.stat().st_size
+            digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
+            self.close(document)
+            reopened = open_checked(target, read_only=True)
+            require(reopened != document, "drawing reopen reused an expired document ID")
+            require(signature(reopened) == expected,
+                    "drawing save/reopen changed the feature tree")
+            self.close(reopened)
+            require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
+                    "read-only drawing reopen changed the saved artifact")
+            proof.update(sha256=digest, structure_unchanged=True, fresh_document_id=True)
+        finally:
+            proof["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
+            require(proof["source_sha256_after"] == source_digest,
+                    "drawing gate changed the installed source")
+        self.checkpoint("drawing-save-reopen.verified")
 
     def verify_step(self, name):
         path = self.directory / name
@@ -1482,7 +1557,8 @@ class ModelingSmoke:
         )
         return status
 
-    def run(self, *, sample_part=None, sample_assembly=None):
+    def run(self, *, sample_part=None, sample_assembly=None,
+            sample_drawing=None, sample_drawing_local=None):
         self.record["host"] = self.health()["host"]
         self.command(
             "capabilities"
@@ -1500,6 +1576,9 @@ class ModelingSmoke:
                     lambda: self.sample_exports(sample_part, sample_assembly),
                 )
             )
+        if sample_drawing:
+            cases.append(("drawing-save-reopen", lambda: self.drawing_save_reopen(
+                sample_drawing, sample_drawing_local)))
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
         for name, function in cases:
             self.checkpoint(name + ".starting")
@@ -1551,9 +1630,15 @@ def main(argv=None):
     )
     parser.add_argument("--sample-part", type=host_directory)
     parser.add_argument("--sample-assembly", type=host_directory)
+    parser.add_argument("--sample-drawing", type=host_directory,
+                        help="installed drawing source in the daemon's Windows namespace")
+    parser.add_argument("--sample-drawing-local", type=Path,
+                        help="same installed drawing source in the client's filesystem namespace")
     arguments = parser.parse_args(argv)
     if bool(arguments.sample_part) != bool(arguments.sample_assembly):
         parser.error("sample-part and sample-assembly must be supplied together")
+    if bool(arguments.sample_drawing) != bool(arguments.sample_drawing_local):
+        parser.error("sample-drawing and sample-drawing-local must be supplied together")
     directory = arguments.output_dir.expanduser().resolve()
     host = arguments.host_output_dir or str(directory)
     host_directory(host)  # POSIX clients must explicitly supply the host namespace.
@@ -1573,7 +1658,9 @@ def main(argv=None):
     error = None
     try:
         smoke.run(
-            sample_part=arguments.sample_part, sample_assembly=arguments.sample_assembly
+            sample_part=arguments.sample_part, sample_assembly=arguments.sample_assembly,
+            sample_drawing=arguments.sample_drawing,
+            sample_drawing_local=arguments.sample_drawing_local,
         )
     except Exception as exc:
         error = exc
