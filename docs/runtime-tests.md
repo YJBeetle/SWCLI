@@ -161,6 +161,9 @@ parts and do not depend on installed sample locations or localized names.
 
 ### Toolbox policy and paths
 
+See the [first Windows/Linux runtime receipt](verification/toolbox-2026-10-10.md)
+for exact tested script versions and the still-separate hosted proof boundary.
+
 Windows resolves the actual `Toolbox Data Location` from the current-user then
 machine registry; Wine hosts supply `--wine-prefix` and the script resolves that
 same setting through the prefix's real drive mappings. No year, drive letter,
