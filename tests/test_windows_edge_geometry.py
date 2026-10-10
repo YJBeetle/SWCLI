@@ -153,7 +153,11 @@ class EdgeGeometryTests(unittest.TestCase):
 
     def test_trace_has_paired_method_boundaries_without_native_values(self):
         stream = io.StringIO()
-        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), contextlib.redirect_stderr(stream):
+        # Telemetry may legitimately contain the same digits as an edge value.
+        # Keep that collision deterministic and check the structured payload.
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), contextlib.redirect_stderr(stream), mock.patch(
+            "swcli.hosts.native_trace.time.monotonic", return_value=0.045
+        ):
             with trace_native_request("edge-read", "internal.edge-read"):
                 self.read()
         records = [json.loads(line) for line in stream.getvalue().splitlines()]
@@ -162,7 +166,17 @@ class EdgeGeometryTests(unittest.TestCase):
         begins = {r["sequence"]: r["call"] for r in records if r["phase"] == "begin"}
         ends = {r["sequence"]: r["call"] for r in records if r["phase"] == "end"}
         self.assertEqual(begins, ends)
-        self.assertNotIn("0.045", stream.getvalue())
+        fields = {"event", "request_id", "operation", "worker_pid", "sequence",
+                  "stage", "call", "phase", "monotonic_seconds"}
+        for record in records:
+            self.assertEqual(fields | ({"duration_ms"} if record["phase"] == "end" else set()), set(record))
+            self.assertEqual("swcli.native-call", record["event"])
+            self.assertEqual("edge-read", record["request_id"])
+            self.assertEqual("internal.edge-read", record["operation"])
+            self.assertEqual(0.045, record["monotonic_seconds"])
+        metadata = [{key: value for key, value in record.items()
+                     if key not in {"monotonic_seconds", "duration_ms"}} for record in records]
+        self.assertNotIn("0.045", json.dumps(metadata))
 
     def test_native_exception_is_preserved_not_downgraded_to_unsupported(self):
         def fail():
