@@ -354,7 +354,9 @@ def _worker_main(
                     )
                     break
                 if request["operation"] == "__daemon.shutdown__":
-                    if _com_value(app, "ActiveDoc") is not None:
+                    # Only an owned host will exit with the worker. Shared
+                    # user documents must neither block detaching nor be closed.
+                    if owned_by_daemon and _com_value(app, "ActiveDoc") is not None:
                         response_queue.put(
                             _error_response(
                                 request_id,

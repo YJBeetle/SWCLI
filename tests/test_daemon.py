@@ -1466,6 +1466,62 @@ class DaemonProtocolTests(unittest.TestCase):
 
         self.assertEqual(server._com_hresult(error), 0x80010001)
 
+    def test_worker_shutdown_detaches_shared_host_but_protects_owned_documents(self):
+        for owned in (False, True):
+            for active in (None, object()):
+                with self.subTest(owned=owned, active=active is not None):
+                    pythoncom, com_client = mock.Mock(), mock.Mock()
+                    responses, lifecycle = mock.Mock(), mock.Mock()
+                    exit_app = mock.Mock()
+                    app = SimpleNamespace(
+                        RevisionNumber="33.5.0",
+                        GetProcessID=lambda: 1234,
+                        ActiveDoc=active,
+                        ExitApp=lambda: exit_app(),
+                        CloseDoc=mock.Mock(),
+                    )
+                    request = {
+                        "request_id": "req-stop",
+                        "operation": "__daemon.shutdown__",
+                        "parameters": {},
+                    }
+                    with (
+                        mock.patch.dict("sys.modules", {
+                            "pythoncom": pythoncom,
+                            "win32com": mock.Mock(client=com_client),
+                            "win32com.client": com_client,
+                        }),
+                        mock.patch.object(
+                            server, "acquire_resident_app", return_value=(app, owned)
+                        ),
+                        mock.patch.object(server, "wait_windows_host_ready", return_value=0),
+                        mock.patch.object(server, "DocumentRegistry"),
+                        mock.patch.object(server, "_describe_app", return_value={}),
+                        mock.patch.object(
+                            server, "_wait_for_worker_request", side_effect=[request, None]
+                        ) as wait,
+                        mock.patch.object(server, "_com_value", wraps=server._com_value) as value,
+                        mock.patch.object(server, "execute_operation") as execute,
+                    ):
+                        server._worker_main(
+                            mock.Mock(), responses, lifecycle, True, 120, not owned
+                        )
+                    response = responses.put.call_args.args[0]
+                    refused = owned and active is not None
+                    self.assertEqual(response["success"], not refused)
+                    if refused:
+                        self.assertEqual(response["error"]["code"], "ActiveDocument")
+                    self.assertEqual(wait.call_count, 2 if refused else 1)
+                    self.assertEqual(exit_app.call_count, int(owned and active is None))
+                    app.CloseDoc.assert_not_called()
+                    execute.assert_not_called()
+                    if not owned:
+                        self.assertFalse(any(
+                            call.args[1] in ("ActiveDoc", "ExitApp")
+                            for call in value.call_args_list
+                        ))
+                    pythoncom.CoUninitialize.assert_called_once()
+
     def test_worker_correlates_native_trace_only_with_dispatched_business_request(self):
         pythoncom, com_client = mock.Mock(), mock.Mock()
         responses, lifecycle = mock.Mock(), mock.Mock()
