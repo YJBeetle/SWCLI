@@ -245,7 +245,9 @@ sw-cli daemon start --attach-existing
 
 An explicitly attached instance preserves its visibility and is reported as
 `owned_by_daemon: false` and `shared_interactive: true`. Daemon shutdown and
-timeout recovery never close or force-terminate it. Because its state is unknown
+timeout recovery never close or force-terminate it. In a8 development,
+`daemon stop` can detach while its user documents remain open; an owned host
+still refuses shutdown until its documents are closed. Because its state is unknown
 after a timed-out COM call, swclid rejects further typed operations with
 `SharedHostRecoveryRequired` until the user inspects SOLIDWORKS and restarts the
 daemon. Typed commands never start or attach to a host implicitly.

@@ -256,3 +256,37 @@ Two portable review reproductions were fixed in separate commits:
 The earlier full-suite/package receipt remains evidence for its named runtime,
 not for these later fixes. Current installed-host verification must name the
 new runtime commit explicitly.
+
+## First installed Windows CLI/HTTP probe and cleanup finding
+
+A fixed `fa935ab` wheel (`5a2c00eaa31895976430b31f4b4fee2877adf95e9b1302c890dec57cb961fd39`)
+was installed into an isolated Windows venv. Fifty runtime files matched it
+byte-for-byte. The first probe's own 1-second connect-based idle-port precheck
+timed out **before daemon/COM startup**; no business operation ran. Its JSON
+`7645cc98ddbf9d2beda3bd2adb5c952e7f04e7c59f9278f69c848062ad61bf6e`
+is retained at `/private/tmp/swcli-a8-installed-native.KHgz1I`.
+
+An independent probe used bind to verify port availability. Twenty actual
+CLI → HTTP → daemon commands passed entity repeat/inspect, leased background
+reads, CAS/unknown/cross-document refusals, rebuild 146 → 163 retirement and
+close/reopen. It used shared SW PID 1096 and disposable copies only. Normal
+cleanup then found a real separate issue: `daemon stop` returned `ActiveDocument`
+because the user's original document remained open. **Business checks passed;
+normal cleanup did not**, so the overall run is not recorded as all green.
+
+After exact listener/command-line/parent identity checks, independent fallback
+cleanup ended only its own Python supervisor 1320 and worker 5884. SW PID 1096,
+the original native document identity, foreground, modified flag and stamp 102
+remained unchanged; the endpoint was released. Original failure evidence was
+not overwritten. Local evidence: `/private/tmp/swcli-a8-installed-bind-native.X99L3x`.
+
+| Installed probe evidence | SHA-256 |
+| --- | --- |
+| `installed-native.json` | `3b64fdb3f037e084681888c504134d9b7fef5c819eb3a88ab95302b716772b74` |
+| `daemon.log` | `73e1386fbb27520b1bc681b40c3fe6ca1fe4ac7ba541b7560506f50b13ebb6b7` |
+| `fallback-cleanup.json` | `ac650241b7b3975775fd3ce13aad9943e7de9f1f2d9086a018e2f58b4f9430e4` |
+
+`0d02694` fixes shared shutdown to detach without checking or closing user
+documents; owned shutdown still refuses open documents and exits only an empty
+owned host. Seventy-nine daemon tests pass, including four ownership/document
+combinations. Installed native regression for that fix remains pending.

@@ -176,7 +176,7 @@ daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw
 sw-cli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。a8 开发版本允许 `daemon stop` 在用户文档仍打开时正常脱离；独占宿主仍须先关闭文档才能停止。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
 
 TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报错，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 

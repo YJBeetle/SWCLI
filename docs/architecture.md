@@ -68,7 +68,9 @@ The resident instance uses SOLIDWORKS' matching lifetime control for its mode:
 the explicit owner and shuts the instance down through `ExitApp`.
 `--attach-existing` is the explicit interactive exception: the worker shares
 the existing COM host, preserves its visibility, reports it as not owned by the
-daemon, and never closes or force-terminates it. Typed commands never start a
+daemon, and never closes or force-terminates it. Daemon shutdown in this shared
+mode only detaches, even with user documents
+open; owned hosts retain the open-document refusal. Typed commands never start a
 daemon or attach to a host implicitly. Attach mode requires an active COM host
 and never falls back to `DispatchEx`; absence is reported as
 `ExistingHostNotFound`.
