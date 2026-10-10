@@ -138,11 +138,18 @@ class FakeCLI:
             document["id"] = document_id
             document.setdefault("type", {".sldasm": 2, ".slddrw": 3}.get(
                 gate.PureWindowsPath(args.path).suffix.lower(), 1)
-                if subcommand == "open" else 1)
+                if subcommand == "open" else 2 if args.type == "assembly" else 1)
+            if subcommand == "create" and args.type == "assembly":
+                document["components"] = []
             if self.defect == "assembly-reopen-failed" and subcommand == "open" and args.path.endswith("assembly.SLDASM"):
                 return self.failure("OpenFailed")
             document["read_only"] = args.read_only if subcommand == "open" else False
-            if document["type"] == 2 and args.path.endswith("assembly.SLDASM"):
+            if subcommand == "open" and args.path.endswith("generated.SLDASM"):
+                if self.defect == "generated-reopen-failed":
+                    return self.failure("OpenFailed")
+                if self.defect == "generated-reopen-modified":
+                    document["modified"] = True
+            if subcommand == "open" and document["type"] == 2 and args.path.endswith("assembly.SLDASM"):
                 if not args.read_only and self.defect == "assembly-prepared-modified":
                     document["modified"] = True
                 if args.read_only and self.defect == "assembly-reopen-modified":
@@ -163,7 +170,8 @@ class FakeCLI:
                 "created": True,
                 "read_only": document["read_only"],
                 "api_errors": (1 if (self.defect == "drawing-open-error" and document["type"] == 3)
-                               or (self.defect == "assembly-open-error" and document["type"] == 2)
+                               or (self.defect == "assembly-open-error" and document["type"] == 2
+                                   and not document["path"].endswith("generated.SLDASM"))
                                else 0),
                 "api_warnings": (4 if self.defect == "drawing-reference-warning"
                                  and document["type"] == 3 else
@@ -171,7 +179,10 @@ class FakeCLI:
                                  and document["type"] == 3 and not args.read_only else
                                  2 if self.defect == "drawing-readonly-warning"
                                  and document["type"] == 3 and args.read_only else
-                                 4 if self.defect == "assembly-open-warning" and document["type"] == 2 else 0),
+                                 4 if self.defect == "assembly-open-warning" and document["type"] == 2
+                                 and not document["path"].endswith("generated.SLDASM") else
+                                 4 if self.defect == "generated-open-warning" and subcommand == "open"
+                                 and args.path.endswith("generated.SLDASM") else 0),
                 "document": self.descriptor(document, session),
             }
         if action == "document" and subcommand == "list":
@@ -228,7 +239,8 @@ class FakeCLI:
         if action == "document" and subcommand == "inspect":
             if self.defect == "null-stamp":
                 descriptor["update_stamp"] = None
-            structure = {"bodies": {"count": document["count"]}}
+            structure = {"bodies": {"count": document["count"]},
+                         "configurations": {"names": ["Default"], "active": "Default"}}
             if document.get("type") == 2:
                 structure.update({
                     "configurations": {"names": ["Default"], "active": "Default"},
@@ -236,6 +248,11 @@ class FakeCLI:
                 })
                 if self.defect == "assembly-structure-changed" and document["path"].endswith("assembly.SLDASM"):
                     structure["features"]["items"][0]["name"] = "LostComponent"
+                if (self.defect == "generated-structure-changed"
+                        and document["path"].endswith("generated.SLDASM")):
+                    structure["features"]["items"][0]["name"] = "LostComponent"
+                if self.defect == "generated-no-reference" and "components" in document:
+                    structure["features"]["items"][0]["type"] = "RefPlane"
             if document.get("type") == 3:
                 structure["features"] = {"count": 1, "truncated": False,
                                          "items": [{"name": "Sheet1", "type": "DrawingSheet"}]}
@@ -256,7 +273,14 @@ class FakeCLI:
             target = directory / gate.PureWindowsPath(document["path"]).name
             if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
-            if document.get("type") == 2:
+            if target.name == "generated.SLDASM":
+                if self.defect == "generated-save-truncated":
+                    target.write_bytes(b"truncated")
+                if self.defect == "generated-source-changed":
+                    (self.directory / "component.SLDPRT").write_bytes(b"changed" * 100)
+                if self.defect == "generated-save-failed":
+                    return self.failure("SaveFailed")
+            if target.name == "assembly.SLDASM":
                 if self.defect == "assembly-save-still-modified":
                     document["modified"] = True
                     return self.failure("DocumentStillModified", api_saved=True, save_errors=0,
@@ -301,6 +325,21 @@ class FakeCLI:
             and not (action == "entity" and subcommand in ("list", "inspect"))
         ):
             return self.failure("DocumentLeaseConflict")
+        if action == "assembly" and subcommand == "add-component":
+            if self.defect == "generated-insert-failed":
+                return self.failure("ComponentInsertionFailed")
+            count = len(document["components"])
+            component = {"name": "component-1", "path": args.path,
+                         "configuration": args.configuration or "Default"}
+            document["components"].append(component)
+            document["modified"] = True
+            document["stamp"] += 1
+            return {"ok": True, "document": self.descriptor(document, session),
+                    "inserted": True, "component": component,
+                    "component_count_before": count,
+                    "component_count_after": count + (2 if self.defect == "generated-extra-component" else 1),
+                    "placement": {"unit": "millimeter", "method": "native-approximate-component-center",
+                                  "requested_center": {"x": args.x_mm, "y": args.y_mm, "z": args.z_mm}}}
         if action == "entity":
             key = (document_id, document["stamp"], args.kind)
             if subcommand == "inspect":
@@ -445,7 +484,7 @@ class FakeCLI:
             target.write_bytes(
                 b"ISO-10303-21;" if subcommand == "export" else bytes(1024)
             )
-            if self.defect == "assembly-save-as-truncated" and args.output.endswith(".SLDASM"):
+            if self.defect == "assembly-save-as-truncated" and args.output.endswith("assembly.SLDASM"):
                 target.write_bytes(b"truncated")
             if subcommand == "save-as":
                 document["path"], document["modified"] = args.output, False
@@ -458,7 +497,11 @@ class FakeCLI:
                 "file_verification": {"minimum_size_valid": True},
                 "artifact": {"path": args.output, "format": gate.PureWindowsPath(args.output).suffix[1:].upper(), "size_bytes": target.stat().st_size},
             }
-            if subcommand == "save-as" and document.get("type") == 2:
+            if subcommand == "save-as" and args.output.endswith("generated.SLDASM"):
+                if self.defect == "generated-save-as-modified":
+                    result["document"]["modified"] = True
+                    result.update(ok=False, error={"type": "DocumentStillModified", "message": "generated must be strict"})
+            if subcommand == "save-as" and args.output.endswith("assembly.SLDASM"):
                 if self.defect in ("assembly-initial-modified", "assembly-initial-modified-bad-save",
                                    "assembly-initial-modified-bad-path", "assembly-initial-modified-bad-size"):
                     document["modified"] = True
@@ -875,6 +918,7 @@ class ModelingSmokeTests(unittest.TestCase):
                 "C:\\samples\\Paper.SLDPRT",
                 "--sample-assembly",
                 "C:\\samples\\Mold.SLDASM",
+                "--verify-sample-assembly-save",
             ]
             if samples
             else []
@@ -1100,13 +1144,13 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(proof["fresh_document_id"])
         save_calls = [call for call in self.fake.calls
                       if call.command == "document" and call.document_command == "save"]
-        self.assertEqual(len(save_calls), 2)
+        self.assertEqual(len(save_calls), 3)
         saves = self.record()["native_in_place_saves"]
-        self.assertEqual([saved["format"] for saved in saves], ["SLDPRT", "SLDASM"])
+        self.assertEqual([saved["format"] for saved in saves], ["SLDPRT", "SLDASM", "SLDASM"])
         self.assertTrue(all(saved["size_bytes"] >= 512 for saved in saves))
         saved_assemblies = [document for path, document in self.fake.saved.items()
                             if path.endswith(".SLDASM")]
-        self.assertEqual(len(saved_assemblies), 1)
+        self.assertEqual(len(saved_assemblies), 2)
 
     def test_official_assembly_initial_modified_is_only_a_preparation_exception(self):
         self.fake.defect = "assembly-initial-modified"
@@ -1119,7 +1163,7 @@ class ModelingSmokeTests(unittest.TestCase):
         operations = [call for call in self.fake.calls if call.command == "document"
                       and call.document_command in ("save-as", "save", "open", "close")]
         save_index = next(i for i, call in enumerate(operations)
-                          if call.document_command == "save-as" and call.output.endswith(".SLDASM"))
+                          if call.document_command == "save-as" and call.output.endswith("assembly.SLDASM"))
         after = operations[save_index + 1:save_index + 5]
         self.assertEqual([call.document_command for call in after], ["close", "open", "save", "close"])
         self.assertFalse(after[1].read_only)
@@ -1127,6 +1171,78 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertEqual(after[2].document_id, after[3].document_id)
         # No Save3 ever targets the installed official source.
         self.assertEqual(self.fake.saved[after[1].path]["path"], after[1].path)
+
+    def generated_gate(self, defect=None):
+        self.directory.mkdir(parents=True, exist_ok=True)
+        self.fake.defect = defect
+        smoke = gate.ModelingSmoke(directory=self.directory,
+                                   host_directory="C:\\evidence with spaces",
+                                   endpoint="127.0.0.1:18495")
+        smoke.record_path.write_text(json.dumps(smoke.record), encoding="utf-8")
+        with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run), \
+                mock.patch("sys.stdout", new=io.StringIO()):
+            try:
+                smoke.generated_assembly()
+            finally:
+                smoke.cleanup()
+        return smoke
+
+    def test_generated_assembly_uses_own_solid_and_strict_native_roundtrip(self):
+        smoke = self.generated_gate()
+        proof = smoke.record["generated_assembly"]
+        self.assertEqual(proof["scope"], "one-component-native-save-reopen")
+        self.assertGreaterEqual(proof["save_as_bytes"], 512)
+        self.assertGreaterEqual(proof["size_bytes"], 512)
+        self.assertEqual(proof["component_metrics"]["solid_body_count"], 1)
+        self.assertEqual(proof["component_metrics"]["volume_mm3"], 12000)
+        self.assertEqual([opened["read_only"] for opened in proof["opens"]], [False, True])
+        self.assertTrue(all(opened["modified"] is False for opened in proof["opens"]))
+        self.assertEqual(smoke.record["cleanup_errors"], [])
+        self.assertFalse(self.fake.documents)
+        self.assertFalse(any(call.command == "document" and call.document_command == "open"
+                             and "samples" in call.path for call in self.fake.calls))
+        self.assertTrue((self.directory / "component.SLDPRT").is_file())
+        self.assertTrue((self.directory / "generated.SLDASM").is_file())
+        events = smoke.record["events"]
+        source_id = next(event["result"]["document"]["document_id"] for event in events
+                         if "open" in event["command"] and "--read-only" in event["command"]
+                         and any(arg.endswith("component.SLDPRT") for arg in event["command"]))
+        closed_source = next(index for index, event in enumerate(events)
+                             if "close" in event["command"] and source_id in event["command"])
+        first_assembly_reopen = next(index for index, event in enumerate(events)
+                                     if "open" in event["command"]
+                                     and any(arg.endswith("generated.SLDASM") for arg in event["command"]))
+        self.assertLess(closed_source, first_assembly_reopen)
+
+    def test_generated_assembly_has_no_official_sample_error_exception(self):
+        for defect, message in (
+            ("generated-save-as-modified", "DocumentStillModified"),
+            ("generated-insert-failed", "ComponentInsertionFailed"),
+            ("generated-extra-component", "exactly the requested component"),
+            ("generated-no-reference", "exactly one component reference"),
+            ("generated-save-failed", "SaveFailed"),
+            ("generated-save-truncated", "empty or truncated"),
+            ("generated-reopen-failed", "OpenFailed"),
+            ("generated-reopen-modified", "reopen clean"),
+            ("generated-open-warning", "reopen clean"),
+            ("generated-structure-changed", "changed configurations or feature tree"),
+            ("generated-source-changed", "changed the source part"),
+        ):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                self.directory = Path(directory)
+                self.fake = FakeCLI(self.directory)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.generated_gate(defect)
+                self.assertFalse(self.fake.documents)
+
+    def test_official_save_case_requires_explicit_option_and_samples(self):
+        self.run_gate()
+        self.assertIn("generated-assembly", self.record()["cases"])
+        self.assertNotIn("assembly_save_reopen", self.record())
+        with mock.patch("sys.stderr", new=io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                gate.main(self.arguments + ["--verify-sample-assembly-save"])
+        self.assertEqual(error.exception.code, 2)
 
     def test_assembly_gate_rejects_bad_save_reopen_and_changed_structure(self):
         for defect, message in (
@@ -1153,7 +1269,8 @@ class ModelingSmokeTests(unittest.TestCase):
                     fake.defect = defect
                     arguments = ["--output-dir", str(path), "--host-output-dir", "C:\\proof",
                                  "--sample-part", "C:\\samples\\Paper.SLDPRT",
-                                 "--sample-assembly", "C:\\samples\\Mold.SLDASM"]
+                                 "--sample-assembly", "C:\\samples\\Mold.SLDASM",
+                                 "--verify-sample-assembly-save"]
                     with mock.patch.object(gate.subprocess, "run", side_effect=fake.run), \
                             mock.patch("sys.stdout", new=io.StringIO()):
                         with self.assertRaisesRegex(RuntimeError, message):
@@ -1182,9 +1299,11 @@ class ModelingSmokeTests(unittest.TestCase):
             record["cases"],
             [
                 "native-model",
+                "generated-assembly",
                 "reverse-cut",
                 "feature-depth",
                 "sample-exports",
+                "official-assembly-save-reopen",
                 "rejected-cut-then-sketch",
             ],
         )

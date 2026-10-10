@@ -164,6 +164,13 @@ creating a driving fixture. The driving gate also verifies the host PID at its
 end. Both CI wrappers use this linkage; standalone dimension investigations
 may omit the flag but are not evidence of the full consecutive sequence.
 
+The default gate also generates a 40 × 30 × 10 mm solid PRT and a new one-part
+ASM using public `document create --type assembly` and `assembly add-component`.
+It checks strict native SaveAs/Save3, actual sizes, clean writable/read-only
+reopens, fresh IDs and unchanged configuration/feature signatures and hashes.
+No official-sample modified-state exception applies to this generated model.
+See [native assembly save boundaries](design/assembly-native-save.md).
+
 Supply `--sample-part` and `--sample-assembly` together, both as absolute
 daemon-visible Windows/UNC paths, to add installed-sample update-stamp, lease
 export and multi-document foreground-restoration checks. They are opened

@@ -213,7 +213,7 @@ sw-cli capabilities --json
 
 ## 文档操作
 
-`v0.1.0a4` 新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。目前仅支持 `--type part`（默认值）。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
+`v0.1.0a4` 新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。a8 发行版支持 `--type part`（默认值）；当前源码还支持通过真实 `.ASMDOT` 模板执行 `--type assembly`。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
 
 ```powershell
 sw-cli document create --type part --json

@@ -14,8 +14,32 @@ self-contained delivery. References must remain accessible for reopening.
 It retains the existing silent `ModelDoc2.SaveAs3(path, 0, 1)` contract;
 warnings are unavailable from this scalar API and remain `null`.
 
-The shared `scripts/ci/verify-modeling.py` gate, when sample arguments are
-provided by the host, now exercises:
+## Generated assembly: the default save gate
+
+The shared `scripts/ci/verify-modeling.py` always creates its own 40 × 30 × 10 mm
+solid part, saves `component.SLDPRT`, and reopens it read-only with its measured
+volume (12,000 mm³) and surface area preserved. It creates a new assembly and
+inserts exactly this loaded part using an explicit configuration. The generated
+`generated.SLDASM` must pass strict SaveAs and Save3, actual size checks, then
+separate writable and read-only reopens with clean modified flags, fresh document
+IDs, identical configurations/top-level feature trees and unchanged saved hashes.
+Both the original assembly and explicitly opened PRT are closed before reopening
+the ASM, so the test does not deliberately keep a source COM handle alive to
+satisfy references. Its tree must include one native component `Reference`.
+The component's bytes must remain unchanged by insertion and assembly saving.
+
+No `DocumentStillModified` exception applies to generated documents, including
+their first SaveAs. This is a one-component save/reopen test, not a test of mate
+solving, accurate assembly placement, nested assemblies or portable references.
+The native PRT and ASM remain together in the evidence directory; reference
+loading still depends on their daemon-visible paths. Full image/Windows CI and
+independent runtime receipts must be distinguished from portable harness tests.
+
+## Optional official-sample preparation
+
+Installed samples remain read-only inputs to the optional sample export checks.
+To additionally exercise their native save/reopen case, supply
+`--verify-sample-assembly-save` along with both sample arguments. This runs:
 
 1. Open the installed assembly and observe its configurations and complete,
    non-empty top-level feature tree.

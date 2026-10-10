@@ -1347,7 +1347,111 @@ class ModelingSmoke:
         )
         self.close(foreground)
         self.close(document)
-        self.assembly_save_reopen(assembly)
+
+    def generated_assembly(self):
+        """Save our own solid part and one-component ASM, with no sample exception."""
+        part = self.create()
+        profile = self.rectangle(part)
+        self.feature(part, profile["sketch"]["sketch_id"], depth=10)
+        metrics = self.measure(part, volume=12000)["metrics"]
+        require(metrics["solid_body_count"] == 1, "generated component is not one solid")
+        source_path = str(PureWindowsPath(self.host_directory) / "component.SLDPRT")
+        source_file = self.directory / "component.SLDPRT"
+        saved_part = self.write("document", "save-as", source_path, document=part)
+        require(saved_part["document"]["modified"] is False
+                and source_file.is_file() and source_file.stat().st_size >= 512
+                and saved_part["artifact"]["size_bytes"] == source_file.stat().st_size,
+                "generated component save-as failed size/modified verification")
+        source_digest = hashlib.sha256(source_file.read_bytes()).hexdigest()
+        self.close(part)
+        loaded = self.command("document", "open", source_path, "--read-only")
+        source = loaded["document"]["document_id"]
+        require(source != part and loaded["document"]["type"] == 1
+                and loaded["read_only"] is True and loaded["api_errors"] == 0
+                and loaded["api_warnings"] in (0, 2)
+                and loaded["document"]["modified"] is False,
+                "generated component did not reopen clean and read-only")
+        self.measure(source, volume=12000, area=metrics["surface_area_mm2"])
+        source_structure = self.command("document", "inspect", "--detail", "structure",
+                                        document=source)["structure"]
+        configuration = source_structure["configurations"]["active"]
+        require(bool(configuration), "generated component has no active configuration")
+        created = self.command("document", "create", "--type", "assembly")
+        assembly = created["document"]["document_id"]
+        require(created["created"] is True and created["document"]["type"] == 2
+                and created["document"]["path"] == "" and assembly != source,
+                "assembly creation did not return a new unsaved assembly")
+        inserted = self.write("assembly", "add-component", source_path,
+                              "--configuration", configuration, document=assembly)
+        require(inserted["inserted"] is True and inserted["document"]["document_id"] == assembly
+                and inserted["component_count_before"] == 0
+                and inserted["component_count_after"] == 1
+                and PureWindowsPath(inserted["component"]["path"]) == PureWindowsPath(source_path)
+                and inserted["component"]["configuration"] == configuration,
+                "generated assembly did not insert exactly the requested component")
+
+        def signature(document):
+            observed = self.command("document", "inspect", "--detail", "structure",
+                                    document=document)
+            structure = observed["structure"]
+            features = structure["features"]
+            require(features["count"] > 0 and not features["truncated"],
+                    "generated assembly feature tree is empty or truncated")
+            return {"configurations": structure["configurations"],
+                    "features": [(item["name"], item["type"]) for item in features["items"]]}
+
+        expected = signature(assembly)
+        require(sum(kind == "Reference" for _, kind in expected["features"]) == 1,
+                "generated assembly tree does not contain exactly one component reference")
+        target = str(PureWindowsPath(self.host_directory) / "generated.SLDASM")
+        native_file = self.directory / "generated.SLDASM"
+        saved = self.write("document", "save-as", target, document=assembly)
+        # Unlike the official fixture preparation, ALL errors are rejected here.
+        require(saved["api_saved"] is True and saved["save_errors"] == 0
+                and saved["document"]["document_id"] == assembly
+                and saved["document"]["modified"] is False
+                and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(target)
+                and saved["artifact"]["format"] == "SLDASM"
+                and native_file.is_file() and native_file.stat().st_size >= 512
+                and saved["artifact"]["size_bytes"] == native_file.stat().st_size,
+                "generated assembly save-as failed native/file verification")
+        save_as_bytes = native_file.stat().st_size
+        self.verify_in_place_save(assembly, native_file)
+        digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
+        self.close(assembly)
+        # Unload the explicitly opened part too: assembly reopens must not be
+        # satisfied solely by this fixture's still-live source COM object.
+        self.close(source)
+        ids = {assembly}
+        opens = []
+        for read_only in (False, True):
+            opened = self.command("document", "open", target,
+                                  *(("--read-only",) if read_only else ()))
+            reopened = opened["document"]["document_id"]
+            opens.append({"read_only": opened["read_only"], "api_errors": opened["api_errors"],
+                          "api_warnings": opened["api_warnings"],
+                          "modified": opened["document"]["modified"]})
+            require(reopened not in ids and opened["document"]["type"] == 2
+                    and opened["read_only"] is read_only and opened["api_errors"] == 0
+                    and opened["api_warnings"] in ((0, 2) if read_only else (0,))
+                    and opened["document"]["modified"] is False,
+                    "generated assembly did not reopen clean with a fresh document ID")
+            ids.add(reopened)
+            require(signature(reopened) == expected,
+                    "generated assembly save/reopen changed configurations or feature tree")
+            self.close(reopened)
+            require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
+                    "generated assembly reopen changed its saved bytes")
+        require(hashlib.sha256(source_file.read_bytes()).hexdigest() == source_digest,
+                "generated assembly insertion/save changed the source part")
+        self.record["generated_assembly"] = {
+            "component": inserted["component"], "component_sha256": source_digest,
+            "component_metrics": metrics, "save_as_bytes": save_as_bytes,
+            "size_bytes": native_file.stat().st_size, "sha256": digest,
+            "opens": opens, "structure_unchanged": True, "fresh_document_id": True,
+            "scope": "one-component-native-save-reopen",
+        }
+        self.checkpoint("generated-assembly.verified")
 
     def assembly_save_reopen(self, assembly):
         # Rename only the assembly into the evidence directory. Referenced
@@ -1631,6 +1735,7 @@ class ModelingSmoke:
         return status
 
     def run(self, *, sample_part=None, sample_assembly=None,
+            verify_sample_assembly_save=False,
             sample_drawing=None, sample_drawing_local=None,
             drawing_work_dir=None, host_drawing_work_dir=None):
         self.record["host"] = self.health()["host"]
@@ -1640,6 +1745,7 @@ class ModelingSmoke:
         self.require_empty()
         cases = [
             ("native-model", self.native_model),
+            ("generated-assembly", self.generated_assembly),
             ("reverse-cut", self.reverse_cut),
             ("feature-depth", self.feature_depth),
         ]
@@ -1654,6 +1760,9 @@ class ModelingSmoke:
             cases.append(("drawing-save-reopen", lambda: self.drawing_save_reopen(
                 sample_drawing, sample_drawing_local, work_directory=drawing_work_dir,
                 host_work_directory=host_drawing_work_dir)))
+        if verify_sample_assembly_save:
+            cases.append(("official-assembly-save-reopen",
+                          lambda: self.assembly_save_reopen(sample_assembly)))
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
         for name, function in cases:
             self.checkpoint(name + ".starting")
@@ -1705,6 +1814,8 @@ def main(argv=None):
     )
     parser.add_argument("--sample-part", type=host_directory)
     parser.add_argument("--sample-assembly", type=host_directory)
+    parser.add_argument("--verify-sample-assembly-save", action="store_true",
+                        help="also prepare and strictly save/reopen the official ASM fixture; generated ASM is always tested")
     parser.add_argument("--sample-drawing", type=host_directory,
                         help="installed drawing source in the daemon's Windows namespace")
     parser.add_argument("--sample-drawing-local", type=Path,
@@ -1716,6 +1827,8 @@ def main(argv=None):
     arguments = parser.parse_args(argv)
     if bool(arguments.sample_part) != bool(arguments.sample_assembly):
         parser.error("sample-part and sample-assembly must be supplied together")
+    if arguments.verify_sample_assembly_save and not arguments.sample_assembly:
+        parser.error("verify-sample-assembly-save requires sample-assembly")
     if bool(arguments.sample_drawing) != bool(arguments.sample_drawing_local):
         parser.error("sample-drawing and sample-drawing-local must be supplied together")
     if bool(arguments.drawing_work_dir) != bool(arguments.host_drawing_work_dir):
@@ -1742,6 +1855,7 @@ def main(argv=None):
     try:
         smoke.run(
             sample_part=arguments.sample_part, sample_assembly=arguments.sample_assembly,
+            verify_sample_assembly_save=arguments.verify_sample_assembly_save,
             sample_drawing=arguments.sample_drawing,
             sample_drawing_local=arguments.sample_drawing_local,
             drawing_work_dir=arguments.drawing_work_dir,

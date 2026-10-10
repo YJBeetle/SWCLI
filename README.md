@@ -351,7 +351,8 @@ Since `v0.1.0a4`, `document create` creates an **unsaved
 part** using a real `.PRTDOT` template. It does not build geometry, rebuild,
 or save a file. The exact `NewDocument` handle becomes this session's current
 document and receives a short-lived ID, including when it has no file path.
-Only `--type part` (the default) is supported so far. Template resolution is
+The a8 release supports `--type part` (the default); current source also supports
+`--type assembly` with a real `.ASMDOT` template. Template resolution is
 the same as `part create-box`: explicit path, configured default, then installed
 template discovery; a missing template fails without opening a selection dialog.
 
