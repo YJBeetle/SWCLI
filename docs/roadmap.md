@@ -69,8 +69,8 @@ Next:
    feature handles and read-only `feature.list/inspect` are implemented and
    locally proved through Windows CLI/TCP/COM. Creation returns exact feature
    handles and live discovery reuses them, with independent Windows proof.
-   The read-only shared gate passed hosted Windows visible/hidden modes; Wine
-   delivery, later creation-handle candidates and guarded depth writes remain pending.
+   The read/creation shared gate passed hosted Windows visible/hidden modes;
+   Wine delivery and guarded depth writes remain pending.
    Preliminary nonmutating depth guards have portable/native Windows proof;
    exact simple-profile ownership and final single-solid classification now
    have separate proof as well. Selected contour/direction/body references and

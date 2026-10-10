@@ -50,8 +50,9 @@ non-holder session path is covered by portable contracts and the new shared gate
 
 ## Still pending
 
-- Hosted Windows verification of the later creation-handle and depth-guard
-  candidates; the read-only candidate below passed independently.
+- Hosted Windows execution of a future public depth setter; current public
+  read/creation candidates passed independently as recorded below. Internal
+  guards are not exercised merely by installing them in that candidate.
 - Linux/Wine and macOS/Wine runtime proof for these new operations; older a6
   host passes do not establish a7 feature support.
 - Guarded blind depth edits,
@@ -218,3 +219,31 @@ assertion was involved.
 
 These findings do not establish feature-selection scope, complete restoration,
 an arbitrary expected-volume formula, hosted/Wine proof or a public depth setter.
+
+## Hosted Windows read/creation candidate
+
+[Run 37998293756](https://github.com/YJBeetle/SWCLI/actions/runs/37998293756)
+passed for source `ea9b3b077da5ff2139f1b6ccbd0384ae6815d178`: Python 3.9/3.14,
+wheel and actual SOLIDWORKS installation/runtime jobs all succeeded. The
+installed-wheel shared gate passed visible (SW PID **3832**) and hidden
+(PID **8516**) modeling, driving-dimension and export paths on revision `33.5.0`.
+Modeling retained each mode's own process, completed normally and reported no
+cleanup errors.
+
+The gate required exact creation handles, checked that the first boss/cut IDs
+were reused by list/inspect (`f-3t6a2b`/`f-v13r6x` visible,
+`f-fwf035`/`f-s7ffd3` hidden), preserved background read state, and verified
+bounded-list and retired-handle refusals. It did not call the unexposed depth
+guards or any public depth setter. The earlier creation-handle candidate
+`109f61fbc9e85cfe83c7732786c198d2a275bd2e` also passed run `37995263468`;
+this latest source/artifact is the checked evidence used here.
+
+Artifact: `swcli-windows-hosted-37998293756-1` (ID `11649001477`).
+
+| Generated evidence | SHA256 |
+| --- | --- |
+| `swcli-native-smoke/modeling/modeling.json` | `8639a26e04454efe374ea8d3e34fc6995aba07b4199b4dde0e98a49c78e429f1` |
+| `swcli-native-smoke/hidden/modeling/modeling.json` | `5427fb0181a244c59e95ed5b7c6937464f07265a5740efe2050cb5eb78f79fa4` |
+
+This is hosted Windows development proof, not Wine delivery, a7 publication or
+depth-edit support. DockerSW remains on its independently verified a6 pin.
