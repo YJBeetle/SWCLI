@@ -307,3 +307,51 @@ This proves only the internal observer's Windows access/release lifecycle on
 these fixtures. No depth write, source save, setter retry, automatic rollback,
 public no-op contract, installed-wheel runtime gate, Wine support or a7 release
 is established by it.
+
+## Actual internal guarded depth writer
+
+Implementation `f431a77` follows the released selection-scope observer with
+fresh feature-data staging, explicit current-configuration scope and an exact
+`ModifyDefinition` call. Its 30 portable tests cover equal-depth requests,
+staging/readback failures, precommit model/foreground/stamp drift, partial
+commit failures, strict native boolean outputs, rebuild failures and independent
+postflight/final-state checks. Together with the additional selection drift
+tests in `4df42df`, the internal candidate ran **997 tests: 989 passed, eight
+Windows-only tests skipped**. It does not save, retry or undo a failed mutation.
+
+The actual writer (not just a test-only setter sequence) passed in one shared
+Windows/SW2025 `33.5.0` process, PID **1096**. A disposable saved fixture had a
+100 × 50 × 20 mm boss and a radius-3, depth-5 mm cut. Boss depth **20 → 25 mm**
+produced **124858.62833058843 mm³**; cut depth **5 → 8 mm** produced
+**124773.80532894151 mm³**, matching independent analytical volume assertions.
+Both complete scope lifecycles released access and verified the exact profile,
+non-depth definition/controls/body scope, healthy diagnostics and state.
+
+Each following equal-depth call passed with all four mutation flags false:
+no setter, current-configuration setter, commit or rebuild. Independent geometry
+was unchanged, but access/release advanced stamps **155 → 157** and **165 → 167**.
+This is a verified unchanged-depth result, not an unchanged-stamp pure read.
+The modified test copy was closed without saving. Its disk hash, original
+documents, foreground and original SW PID were preserved; cleanup errors were
+empty.
+
+Raw local evidence under `/private/tmp/swcli-a7-depth-edit.BiQz5q/`:
+
+| Generated evidence | SHA256 |
+| --- | --- |
+| `depth-edit.json` | `02a8578671eea49d195c6122d588756c043f893e819d0aac452decb843e7451b` |
+| `native-trace.log` | `3c05cf2e290e1b2a7cae141743d741829ef23955ad693ba066ca25d03a8ddb95` |
+
+Windows mirror: `C:\Workspace\SWCLI-tests\a7-depth-edit-BiQz5q`. This probe
+actually entered `trace_native_request`; merely setting the toggle outside a
+request context cannot generate native call boundaries. The earlier empty
+trace therefore does not establish a stalled COM call. Flushed trace records
+now cover each guarded write/equal-depth operation. Observed durations were
+**134.35 / 112.50 / 117.39 / 42.46 seconds**, respectively, on this ARM64 Windows
+VM with x64 SW/Python. These are one-run instrumented timings, not a benchmark
+or a promise about uninstrumented/hosted/Wine speed; the first write exceeds
+the old 120-second modeling-gate budget.
+
+This establishes internal Windows adapter proof only. Public CLI/TCP/lease/CAS,
+native save/reopen, installed-wheel runtime, protected-model real refusals,
+Wine delivery and a7 publication still require separate evidence.
