@@ -9,8 +9,9 @@ The later read/creation candidate also passed hosted Windows visible/hidden
 modes in run `37998293756`; Wine results remain pending. Public creation-result
 handles have independent native Windows CLI/TCP/COM proof. The internal guarded
 writer now has native Windows boss/cut and equal-depth proof. Public
-`feature.set-depth` wiring is implemented; public runtime and Wine release
-gates remain in progress. No shipped a7 setter proof is claimed.
+`feature.set-depth` also has public source CLI/TCP/lease/CAS and native
+save/reopen proof. Installed-wheel runtime and Wine release gates remain in
+progress. No shipped a7 setter proof is claimed.
 
 An internal, nonmutating preliminary depth guard is also implemented. It reads
 strict writable/view-only, suppression/freeze/rollback, native command,

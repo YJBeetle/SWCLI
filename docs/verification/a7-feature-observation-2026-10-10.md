@@ -355,3 +355,50 @@ the old 120-second modeling-gate budget.
 This establishes internal Windows adapter proof only. Public CLI/TCP/lease/CAS,
 native save/reopen, installed-wheel runtime, protected-model real refusals,
 Wine delivery and a7 publication still require separate evidence.
+
+## Public CLI/TCP depth writes and protected read-only refusal
+
+The public wiring in `d4dbe27` passed an independent source-checkout Windows
+CLI → TCP → resident STA worker trial on SW2025 `33.5.0`, retaining shared
+interactive PID **1096**. It used freshly created disposable A/B parts, not
+native feature edits in a test setup. The exact created boss/cut handles
+**`f-p6z9qh` / `f-5ddtrs`** were reused through background writes and repeated
+live discovery. Missing lease, stale stamp and cross-document depth targets
+failed with `DocumentLeaseConflict`, `DocumentUpdateConflict` and
+`FeatureNotFound`, respectively.
+
+Boss **20 → 25 mm** and cut **5 → 8 mm** passed the public result Schema and
+semantic checks, native postflight and the analytical volume assertions above.
+Both equal-depth calls had `depth_changed: false`, no mutation flags and no
+rebuild. Every successful background result preserved foreground and session
+current. Native save-as to a new test filename, close/reopen, fresh feature
+handles, typed depth inspection and independent measured volume all passed.
+The worker/server were stopped without stopping the attached SW process;
+original documents/PID were preserved and initial foreground restoration
+succeeded. Cleanup errors were empty.
+
+A separate public trial reopened that saved test part read-only. A depth write
+returned `DocumentNotWritable` with all mutation and selection-access flags
+false. Public before/after document observations were identical. No selection
+rollback, setter or commit was attempted. Cleanup again preserved the original
+SW PID/documents. This is real proof for read-only refusal, not for every
+protected/suppressed/equation/reference model variant.
+
+Raw source-checkout evidence in `/private/tmp/swcli-a7-depth-edit.BiQz5q/`:
+
+| Generated evidence | SHA256 |
+| --- | --- |
+| `depth-public.json` | `8cb2fad413fa6b52722303f4e3d81cafbe43c330499b8545609c28edbc463af5` |
+| `depth-readonly.json` | `1e9db1670b0326d6681bd10d7a269b67a364868847a31d24978303d9644d0465` |
+
+Windows mirrors are `C:\Workspace\SWCLI-tests\a7-depth-public-BiQz5q` and
+`C:\Workspace\SWCLI-tests\a7-depth-readonly-BiQz5q`. This is public source
+CLI/transport/native proof, not installed-wheel or Wine evidence. The shared
+gate now requires a corresponding depth case, including read-only refusal and
+an independent 600-second depth request budget. Hosted Windows dual-mode and
+Wine runs still have to pass that exact candidate before a7 publication.
+
+Earlier source `026c746ff82632d825411e131d9d0534d178c9b4` completed hosted
+[Windows CI 38031331403](https://github.com/YJBeetle/SWCLI/actions/runs/38031331403)
+successfully. That workflow did not contain the new depth gate and must not be
+used as evidence that the new public writer passed hosted runtime tests.

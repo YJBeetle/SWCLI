@@ -72,6 +72,7 @@ Next:
    The read/creation shared gate passed hosted Windows visible/hidden modes;
    Wine delivery remains pending. Guarded internal depth writes now have native
    Windows proof; public `feature.set-depth` wiring is implemented and its
+   source CLI/TCP/lease/CAS and native save/reopen proof has passed; installed
    runtime gates are being completed.
    Preliminary nonmutating depth guards have portable/native Windows proof;
    exact simple-profile ownership and final single-solid classification now
@@ -81,8 +82,9 @@ Next:
    unsupported. Its stamp changes are reported, not called a pure read.
    Boss/cut writes and equal-depth behavior have internal native proof, with
    independent expected-volume checks and no source saves. Typed no-op/failure
-   contracts are implemented; public save/reopen, shared installed runtime and
-   Wine proof remain. These guards do not promise arbitrary edit eligibility.
+   contracts are implemented and public save/reopen passed. A real public
+   read-only refusal also preserved state before access/staging. Shared
+   installed runtime and Wine proof remain. These guards do not promise arbitrary edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
