@@ -159,6 +159,67 @@ class EntityOperationTests(unittest.TestCase):
         self.assertEqual(result["error"]["message"], "first error")
         self.assertEqual(self.registry._issued_entity_ids, set())
 
+    def test_failed_list_retires_observed_scope_without_revival_or_new_handles(self):
+        token = self.call()["entities"][0]["entity_id"]
+        issued = self.registry._issued_entity_ids.copy()
+        original = deepcopy(self.native)
+        observation = deepcopy(self.native["observation"])
+        for state in ("before", "after"):
+            observation[state]["configuration"] = "Other"
+        self.native = {
+            "ok": False,
+            "action": "entity.observe-faces",
+            "error": {"type": "EntityObservationUnavailable", "message": "first error"},
+            "observation": observation,
+        }
+        self.bindings = []
+        self.doc.ConfigurationManager.ActiveConfiguration.Name = "Other"
+        result = self.call()
+        validate_operation_result("entity.list", result)
+        self.assertEqual(result["error"]["message"], "first error")
+        self.assertNotIn("entities", result)
+        self.assertEqual(self.registry._issued_entity_ids, issued)
+        self.doc.ConfigurationManager.ActiveConfiguration.Name = "Default"
+        self.native = original
+        self.observer.reset_mock()
+        with self.assertRaises(EntityReferenceStale):
+            self.call("entity.inspect", {"entity_id": token})
+        self.observer.assert_not_called()
+
+    def test_failed_list_retires_after_scope_even_when_before_matches_old_scope(self):
+        token = self.call()["entities"][0]["entity_id"]
+        observation = deepcopy(self.native["observation"])
+        observation["after"]["update_stamp"] = 13
+        observation["unchanged"] = False
+        self.native = {
+            "ok": False,
+            "action": "entity.observe-faces",
+            "error": {"type": "EntityObservationUnavailable", "message": "state changed"},
+            "observation": observation,
+        }
+        self.bindings = []
+        result = self.call()
+        validate_operation_result("entity.list", result)
+        self.assertEqual(result["error"]["message"], "state changed")
+        with self.assertRaises(EntityReferenceStale):
+            self.call("entity.inspect", {"entity_id": token})
+
+    def test_failed_geometry_in_unchanged_scope_preserves_existing_exact_handles(self):
+        token = self.call()["entities"][0]["entity_id"]
+        original = deepcopy(self.native)
+        bindings = self.bindings.copy()
+        self.native = {
+            "ok": False,
+            "action": "entity.observe-faces",
+            "error": {"type": "EntityObservationUnavailable", "message": "first error"},
+            "observation": deepcopy(original["observation"]),
+        }
+        self.bindings = []
+        self.assertFalse(self.call()["ok"])
+        self.native, self.bindings = original, bindings
+        result = self.call("entity.inspect", {"entity_id": token})
+        self.assertEqual(result["entity"]["entity_id"], token)
+
     def test_bad_native_shape_state_and_binding_counts_never_issue_tokens(self):
         original = deepcopy(self.native)
         for mutate in (

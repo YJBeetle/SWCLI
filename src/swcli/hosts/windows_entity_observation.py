@@ -126,7 +126,7 @@ def observe_part_faces_with_handles(
     """Return private bindings only after the entire read and state check pass.
 
     The 64-face limit bounds exact pairwise duplicate verification in this first
-    internal slice. It is not a public catalog limit or a scalable topology API.
+    slice and its public catalog. This is not a scalable topology API.
     """
     result: Dict[str, Any] = {"ok": False, "action": "entity.observe-faces"}
     before = None

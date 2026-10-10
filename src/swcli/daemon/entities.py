@@ -1,4 +1,4 @@
-"""Internal short-lived face handles; not yet wired into public operations.
+"""Internal short-lived face handles backing typed read-only entity operations.
 
 The owning document must supply complete, state-verified FaceBindings. This
 registry does not infer ownership from names/geometry or accept serialized COM
@@ -72,6 +72,15 @@ class EntityRegistry:
             self._stale_ids.update(self._entries)
             self._entries.clear()
         self._scope = scope
+
+    def observe_scope(self, *, configuration: str, update_stamp: int) -> None:
+        """Retire old IDs after a verified scope read, without issuing new ones.
+
+        Geometry may fail after the scope was read. Such a failure must not let
+        the caller revive old handles by returning to a previous configuration.
+        """
+        self._live()
+        self._refresh(_scope(configuration, update_stamp))
 
     def _same(self, first: Any, second: Any) -> bool:
         status = native_call(

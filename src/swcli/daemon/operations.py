@@ -561,6 +561,17 @@ def _observe_faces(context: OperationContext, max_faces: int = 64):
         result, context.documents, context.entry, session_id=context.session_id
     )
     validate_entity_observation("entity.list", result)
+    # Both native state reads can be valid even when geometry or the unchanged
+    # check failed. Retire observed scopes in order, but never register partial
+    # bindings or replace the first native failure with a successful result.
+    observation = result.get("observation", {})
+    for boundary in ("before", "after"):
+        if boundary in observation:
+            state = observation[boundary]
+            context.entry.entities.observe_scope(
+                configuration=state["configuration"],
+                update_stamp=state["update_stamp"],
+            )
     if result["ok"] and len(bindings) != result["face_count"]:
         raise OperationResultInvalid("entity.list: inconsistent exact native bindings")
     return result, bindings

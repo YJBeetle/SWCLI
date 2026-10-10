@@ -155,6 +155,29 @@ class EntityRegistryTests(unittest.TestCase):
         with self.assertRaises(EntityReferenceStale):
             self.resolve(old[0], update_stamp=13)
 
+    def test_scope_observation_retires_without_native_calls_or_new_tokens(self):
+        old = self.register()
+        issued = self.issued.copy()
+        self.app.IsSame.reset_mock()
+        self.registry.observe_scope(configuration="other", update_stamp=12)
+        self.registry.observe_scope(configuration="default", update_stamp=12)
+        for token in old:
+            with self.assertRaises(EntityReferenceStale):
+                self.resolve(token)
+        self.app.IsSame.assert_not_called()
+        self.assertEqual(self.issued, issued)
+
+    def test_invalid_or_closed_scope_observation_never_changes_live_entries(self):
+        old = self.register()
+        entries = self.registry._entries.copy()
+        with self.assertRaises(EntityBindingConflict):
+            self.registry.observe_scope(configuration="", update_stamp=12)
+        self.assertEqual(self.registry._entries, entries)
+        self.assertIs(self.resolve(old[0]).binding, self.faces[0])
+        self.registry.close()
+        with self.assertRaises(EntityNotFound):
+            self.registry.observe_scope(configuration="default", update_stamp=12)
+
     def test_malformed_scope_or_binding_does_not_modify_registration(self):
         self.register()
         before = (self.registry._entries.copy(), self.issued.copy())
