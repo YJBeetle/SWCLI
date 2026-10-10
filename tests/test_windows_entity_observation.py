@@ -18,7 +18,13 @@ class EntityObservationTests(unittest.TestCase):
         self.faces = [
             SimpleNamespace(
                 GetBody=lambda: self.body,
-                GetSurface=lambda: SimpleNamespace(IsPlane=True, IsCylinder=False),
+                GetSurface=lambda: SimpleNamespace(
+                    IsPlane=True,
+                    IsCylinder=False,
+                    PlaneParams=(1, 0, 0, 0, 0, 0),
+                ),
+                FaceInSurfaceSense=False,
+                Normal=(1, 0, 0),
                 GetArea=lambda: 0.001,
                 reference=bytes((index + 1,)),
             )
@@ -82,6 +88,17 @@ class EntityObservationTests(unittest.TestCase):
                 "surface_kind": "plane",
                 "area_mm2": 1000.0,
                 "area_accuracy": "approximate",
+                "surface_geometry": {
+                    "available": True,
+                    "coordinate_system": "part-model",
+                    "boundary": "untrimmed-surface",
+                    "face_normal_opposes_surface": False,
+                    "plane": {
+                        "point_mm": [0.0, 0.0, 0.0],
+                        "surface_normal": [1.0, 0.0, 0.0],
+                        "outward_normal": [1.0, 0.0, 0.0],
+                    },
+                },
             },
         )
         self.assertIs(handles[0].face, self.faces[0])
@@ -97,7 +114,9 @@ class EntityObservationTests(unittest.TestCase):
 
     def test_cylinder_and_unclassified_surfaces_are_not_invented_planes(self):
         self.faces[1].GetSurface = lambda: SimpleNamespace(
-            IsPlane=False, IsCylinder=True
+            IsPlane=False,
+            IsCylinder=True,
+            CylinderParams=(0, 0, 0, 0, 0, 1, 0.003),
         )
         self.faces[2].GetSurface = lambda: SimpleNamespace(
             IsPlane=False, IsCylinder=False
@@ -107,6 +126,13 @@ class EntityObservationTests(unittest.TestCase):
             [face["surface_kind"] for face in result["faces"]],
             ["plane", "cylinder", "unclassified"],
         )
+        self.assertFalse(result["faces"][2]["surface_geometry"]["available"])
+
+    def test_bad_analytic_geometry_discards_every_face_and_binding(self):
+        self.faces[-1].Normal = (-1, 0, 0)
+        result = self.refused()
+        self.assertEqual(result["error"]["type"], "EntityGeometryUnavailable")
+        self.assertTrue(result["observation"]["unchanged"])
 
     def test_invalid_limits_and_document_type_do_not_read_entities(self):
         for limit in (None, True, 0, 65, 1.0, "1"):

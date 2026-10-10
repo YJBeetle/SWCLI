@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Tuple
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_entity_references import capture_verified_reference
+from .windows_entity_geometry import observe_surface_geometry
 from .windows_feature_inspection import _state, _same
 
 MAX_FACES = 64
@@ -109,13 +110,13 @@ def _geometry(face: Any) -> Dict[str, Any]:
     area_mm2 = area * 1e6
     if not math.isfinite(area_mm2):
         raise EntityObservationUnavailable("native face area conversion overflowed")
+    kind = "plane" if plane else "cylinder" if cylinder else "unclassified"
     return {
         "kind": "face",
-        "surface_kind": (
-            "plane" if plane else "cylinder" if cylinder else "unclassified"
-        ),
+        "surface_kind": kind,
         "area_mm2": area_mm2,
         "area_accuracy": "approximate",
+        "surface_geometry": observe_surface_geometry(face, surface, kind),
     }
 
 
