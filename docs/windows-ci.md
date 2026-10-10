@@ -46,6 +46,11 @@ second, without restarting the daemon/SOLIDWORKS. The shared modeling gate
 requires a successful fresh background sketch after a native nonintersecting
 cut rejection, no cleanup warnings, a closed edit and unchanged solid volume.
 The driving gate refuses a replaced host or failed/incomplete predecessor.
+The same visible/hidden host also runs `scripts/ci/verify-toolbox.py
+--require-toolbox`: actual configured library inventory plus public read-only
+standard-part open/diagnose/measure/close. It does not load the Toolbox add-ins
+or replace the installer's responsibility to check actual deployment exit codes.
+
 See [shared runtime tests](runtime-tests.md) for the portable entry points,
 host/local path namespaces and evidence. These common assertions are no longer
 duplicated in the Windows PowerShell host wrapper; equation setup, desktop

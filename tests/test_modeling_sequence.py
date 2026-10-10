@@ -21,9 +21,14 @@ class ModelingSequenceTests(unittest.TestCase):
         )
         modeling = script.index('"../verify-modeling.py"')
         driving = script.index('"../verify-driving-dimensions.py"')
+        toolbox = script.index('"../verify-toolbox.py"')
         equation = script.index('"verify-equation-dimension.py"')
         self.assertLess(modeling, driving)
-        self.assertLess(driving, equation)
+        self.assertLess(driving, toolbox)
+        self.assertLess(toolbox, equation)
+        self.assertIn('--output-dir (Join-Path $Workspace "toolbox") --require-toolbox', script)
+        self.assertIn('throw "Toolbox deployment/read-only CLI gate failed"', script)
+        self.assertNotIn("--inventory-only", script[toolbox:equation])
         self.assertIn(
             '--after-modeling (Join-Path $modelingFolder "modeling.json")', script
         )

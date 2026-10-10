@@ -839,7 +839,7 @@ verified in visible and hidden host modes on a disposable GitHub-hosted Windows
 runner using one fresh official installation; patched Wine integration remains the responsibility of DockerSW
 and MacSW. This does not claim Windows Server is an officially supported
 SOLIDWORKS workstation. See [Windows CI](docs/windows-ci.md) and
-[shared runtime tests](docs/runtime-tests.md) for the common modeling/driving
+[shared runtime tests](docs/runtime-tests.md) for the common modeling/driving/Toolbox
 scripts and the distinction between portable checks and real host evidence.
 
 ## License

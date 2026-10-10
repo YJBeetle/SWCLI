@@ -257,6 +257,9 @@ try {
         --output-dir (Join-Path $Workspace "driving-dimensions") `
         --after-modeling (Join-Path $modelingFolder "modeling.json")
     if ($LASTEXITCODE -ne 0) { throw "driving-dimension CLI/protocol gate failed" }
+    & python -I (Join-Path $PSScriptRoot "../verify-toolbox.py") `
+        --output-dir (Join-Path $Workspace "toolbox") --require-toolbox
+    if ($LASTEXITCODE -ne 0) { throw "Toolbox deployment/read-only CLI gate failed" }
     # This Windows-only fixture bootstraps an equation via the existing ROT
     # host. Hidden background hosts need not register there; do not Dispatch
     # another instance or make them visible to prepare the fixture.
