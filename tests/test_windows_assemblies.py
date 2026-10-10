@@ -19,7 +19,7 @@ def document(path="", kind=2):
     # GetReadOnlyState or another nonexistent native API.
     result = mock.Mock(spec_set=[
         "_oleobj_", "GetTitle", "GetPathName", "GetType", "GetSaveFlag", "GetUpdateStamp",
-        "IsOpenedReadOnly", "IsOpenedViewOnly", "GetEditTargetComponent",
+        "IsOpenedReadOnly", "IsOpenedViewOnly", "GetEditTarget", "GetEditTargetComponent",
         "GetComponents", "AddComponent5", "GetConfigurationByName",
         "ShowConfiguration2", "Save3", "SaveAs3",
     ])
@@ -30,7 +30,10 @@ def document(path="", kind=2):
     result.GetUpdateStamp = lambda: 3
     result.IsOpenedReadOnly = lambda: False
     result.IsOpenedViewOnly = lambda: False
-    result.GetEditTargetComponent = lambda: None
+    result.GetEditTarget = lambda: result
+    root = mock.Mock(spec_set=["_oleobj_", "IsRoot"])
+    root.IsRoot = lambda: True
+    result.GetEditTargetComponent = lambda: root
     return result
 
 
@@ -147,7 +150,6 @@ class ComponentInsertionTests(unittest.TestCase):
             (self.target, "GetType", lambda: 1, "UnsupportedDocumentType"),
             (self.target, "IsOpenedReadOnly", lambda: True, "DocumentReadOnly"),
             (self.target, "IsOpenedViewOnly", lambda: True, "DocumentViewOnly"),
-            (self.target, "GetEditTargetComponent", lambda: object(), "ComponentEditInProgress"),
             (self.source, "GetType", lambda: 2, "UnsupportedComponentType"),
             (self.source, "GetSaveFlag", lambda: True, "ComponentModified"),
             (self.source, "GetPathName", lambda: "other.SLDPRT", "ComponentPathMismatch"),
@@ -158,6 +160,86 @@ class ComponentInsertionTests(unittest.TestCase):
                 self.assertEqual(result["error"]["type"], code)
                 self.target.AddComponent5.assert_not_called()
                 validate_operation_result("assembly.add-component", result)
+
+    def test_root_component_is_not_in_context_component_editing(self):
+        root = self.target.GetEditTargetComponent()
+        self.assertIsNotNone(root)
+        self.assertTrue(root.IsRoot())
+        result = self.insert()
+        self.assertTrue(result["ok"], result)
+        self.target.AddComponent5.assert_called_once()
+
+    def test_null_component_requires_proven_self_edit_target(self):
+        self.target.GetEditTargetComponent = lambda: None
+        result = self.insert()
+        self.assertTrue(result["ok"], result)
+        self.target.AddComponent5.assert_called_once()
+
+    def test_part_or_subassembly_edit_target_blocks_insertion(self):
+        for kind in (1, 2):
+            with self.subTest(kind=kind), mock.patch.object(
+                self.target, "GetEditTarget", lambda: document(kind=kind)
+            ):
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "ComponentEditInProgress")
+                self.target.AddComponent5.assert_not_called()
+                validate_operation_result("assembly.add-component", result)
+        component = mock.Mock(spec_set=["_oleobj_", "IsRoot"])
+        component.IsRoot = lambda: False
+        self.target.GetEditTargetComponent = lambda: component
+        result = self.insert()
+        self.assertEqual(result["error"]["type"], "ComponentEditInProgress")
+        self.target.AddComponent5.assert_not_called()
+
+    def test_unknown_edit_target_identity_never_means_self_editing(self):
+        for value in (None, 2, -1, True, "1", mock.Mock()):
+            with self.subTest(value=value), mock.patch.object(self.app, "IsSame", lambda a, b: value):
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                self.target.AddComponent5.assert_not_called()
+                validate_operation_result("assembly.add-component", result)
+        with mock.patch.object(self.app, "IsSame", mock.Mock(spec=lambda a, b: None, side_effect=RuntimeError("identity failed"))):
+            result = self.insert()
+            self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+            self.assertEqual(result["error"]["cause"]["type"], "RuntimeError")
+            self.target.AddComponent5.assert_not_called()
+        self.target.GetEditTarget = lambda: None
+        result = self.insert()
+        self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+        self.target.AddComponent5.assert_not_called()
+
+    def test_missing_failed_or_unknown_editing_native_getter_is_fail_closed(self):
+        for member in ("GetEditTarget", "GetEditTargetComponent"):
+            native_getter = getattr(self.target, member)
+            delattr(self.target, member)
+            try:
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                self.assertEqual(result["error"]["cause"]["type"], "AttributeError")
+                self.target.AddComponent5.assert_not_called()
+            finally:
+                setattr(self.target, member, native_getter)
+            with mock.patch.object(self.target, member, mock.Mock(spec=lambda: None, side_effect=RuntimeError("COM failed"))):
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                self.target.AddComponent5.assert_not_called()
+        component = mock.Mock(spec_set=["_oleobj_", "IsRoot"])
+        self.target.GetEditTargetComponent = lambda: component
+        for value in (None, 0, 1, "true", mock.Mock()):
+            with self.subTest(value=value):
+                component.IsRoot = lambda: value
+                result = self.insert()
+                self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+                self.target.AddComponent5.assert_not_called()
+        del component.IsRoot
+        result = self.insert()
+        self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+        self.assertEqual(result["error"]["cause"]["type"], "AttributeError")
+        self.target.AddComponent5.assert_not_called()
+        component.IsRoot = mock.Mock(spec=lambda: None, side_effect=RuntimeError("root getter failed"))
+        result = self.insert()
+        self.assertEqual(result["error"]["type"], "DocumentStateUnavailable")
+        self.target.AddComponent5.assert_not_called()
 
     def test_unloaded_and_unknown_configuration_do_not_mutate_source(self):
         self.app.GetOpenDocumentByName.return_value = None
@@ -248,7 +330,7 @@ class ComponentInsertionTests(unittest.TestCase):
         for case in ("count", "identity", "configuration", "path", "name"):
             with self.subTest(case=case):
                 self.target.GetComponents.side_effect = [(), () if case == "count" else (self.component,)]
-                self.app.IsSame.side_effect = lambda a, b: 0 if case == "identity" else int(a is b)
+                self.app.IsSame.side_effect = lambda a, b: 0 if case == "identity" and b is self.component else int(a is b)
                 self.component.Name2 = "" if case == "name" else "saved part-1"
                 self.component.ReferencedConfiguration = "other" if case == "configuration" else "Default"
                 self.component.GetPathName = lambda: "other.SLDPRT" if case == "path" else str(self.path)

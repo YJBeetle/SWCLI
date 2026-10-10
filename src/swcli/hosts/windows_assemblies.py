@@ -91,7 +91,41 @@ def add_part_component_windows(
             return fail("DocumentReadOnly", "cannot insert into a read-only assembly")
         if view_only:
             return fail("DocumentViewOnly", "cannot insert into a view-only assembly")
-        if _com_value(document, "GetEditTargetComponent") is not None:
+        # An assembly editing itself can return its root IComponent2. Neither
+        # a non-null component nor a null one proves in-context editing state.
+        try:
+            edit_target = native_call(
+                "component-preflight", "AssemblyDoc.GetEditTarget",
+                lambda: _com_value(document, "GetEditTarget"),
+            )
+            if edit_target is None:
+                return fail("DocumentStateUnavailable", "native assembly edit target is unavailable")
+            edit_target_equality = native_call(
+                "component-preflight", "SldWorks.IsSame(edit-target)",
+                lambda: app.IsSame(edit_target, document),
+            )
+            if type(edit_target_equality) is not int or edit_target_equality not in (0, 1):
+                return fail("DocumentStateUnavailable", "cannot determine native assembly edit target identity")
+            if edit_target_equality == 0:
+                return fail("ComponentEditInProgress", "finish in-context component editing before insertion")
+            edit_component = native_call(
+                "component-preflight", "AssemblyDoc.GetEditTargetComponent",
+                lambda: _com_value(document, "GetEditTargetComponent"),
+            )
+            is_root = None if edit_component is None else native_call(
+                "component-preflight", "Component2.IsRoot",
+                lambda: _com_value(edit_component, "IsRoot"),
+            )
+        except Exception as exc:
+            result["error"] = {
+                "type": "DocumentStateUnavailable",
+                "message": "cannot observe native assembly editing state",
+                "cause": _error(exc),
+            }
+            return result
+        if edit_component is not None and not isinstance(is_root, bool):
+            return fail("DocumentStateUnavailable", "native component root flag must be a boolean")
+        if edit_component is not None and not is_root:
             return fail("ComponentEditInProgress", "finish in-context component editing before insertion")
         source = app.GetOpenDocumentByName(str(source_path))
         if source is None:

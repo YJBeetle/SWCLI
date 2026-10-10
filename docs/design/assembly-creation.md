@@ -51,6 +51,15 @@ sw-cli document save-as 'C:\Workspace\box-assembly.SLDASM' `
 任一 getter 不可用、抛出异常或返回未知类型，均以 `DocumentStateUnavailable`
 拒绝，不默认视为可写。只读与只查看分别为 `DocumentReadOnly` / `DocumentViewOnly`。
 
+`GetEditTargetComponent()` 非空并不意味着正在编辑零件：装配体编辑自身时可返回
+根组件。先用 `GetEditTarget()` 与 `ISldWorks.IsSame()` 确认编辑目标为当前选中的
+ASM 本身（原生枚举 `swObjectSame = 1`），再对非空编辑组件读取真实布尔
+`IComponent2.IsRoot()`。目标为其他文档或组件不是 root 时，以
+`ComponentEditInProgress` 拒绝；目标为空、身份不可判断（包括 `swObjectUnsupported = 2`）、
+getter 缺失/异常或 root 状态未知则以 `DocumentStateUnavailable` 拒绝。
+组件为空只有在编辑目标已确认是 ASM 本身时才允许，不依据名称、路径或 Python wrapper
+身份猜测编辑状态；不自动结束用户的组件编辑。
+
 配置非空时先确认源配置存在，再传给 AddComponent5；不存在返回
 `ConfigurationNotFound`。空配置使用原生的“最后保存配置”选项，响应记录实际
 `ReferencedConfiguration`，不猜测或强制切换源文档的活动配置。
@@ -79,4 +88,6 @@ operation 的请求、结果 schema 和能力发现由公共 operation catalog �
 - [AddComponent5 前先打开零件、再激活装配体的官方示例](https://help.solidworks.com/2023/English/api/sldworksapi/Add_Component_and_Mate_Example_VB.htm)
 - [当前保存配置选项](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swAddComponentConfigOptions_e.html)
 - [IsOpenedReadOnly](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~IsOpenedReadOnly.html) / [IsOpenedViewOnly](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~IsOpenedViewOnly.html)
+- [GetEditTarget 自身编辑与就地编辑语义](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IAssemblyDoc~GetEditTarget.html) / [GetEditTargetComponent](https://help.solidworks.com/2017/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IAssemblyDoc~GetEditTargetComponent.html)
+- [IsRoot](https://help.solidworks.com/2017/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IComponent2~IsRoot.html) / [swObjectEquality 原生枚举](https://help.solidworks.com/2026/english/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swObjectEquality.html)
 - [AddComponent 系列的近似中心坐标边界](https://help.solidworks.com/2026/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IAssemblyDoc~AddComponent4.html)
