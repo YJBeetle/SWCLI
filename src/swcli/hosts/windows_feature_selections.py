@@ -304,6 +304,8 @@ def observe_extrusion_selection_scope_windows_with_definition(
             feature=before["feature"],
             definition=before["definition"],
             profile=before["profile"],
+            controls=before["controls"],
+            body=before["body"],
             measurement_before=measured,
         )
         result["observation"] = {"before": snapshot}
