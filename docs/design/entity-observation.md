@@ -19,8 +19,9 @@ refusal, real depth-write retirement and native close/reopen. The complete
 modeling/depth-edit, driving and Toolbox sequence passed independent Linux/Wine
 with an exact wheel payload and one unchanged host; see the
 [Wine receipt](../verification/a8-entity-wine-2026-10-10.md). This is not a new
-DockerSW image build/promotion. The [release draft](../releases/v0.1.0a8.md)
-tracks the full hosted Windows and formal-delivery gates still needed.
+DockerSW image build/promotion. Full hosted Windows visible/hidden development
+gates also passed; see the [Windows receipt](../verification/a8-entity-windows-2026-10-10.md).
+The [release draft](../releases/v0.1.0a8.md) tracks formal-delivery gates still needed.
 
 The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or

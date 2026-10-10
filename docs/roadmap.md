@@ -82,7 +82,9 @@ Next:
    now combines complete bounded face observations, short IDs, analytic geometry
    and conservative stamp/configuration retirement. Actual Windows typed-handler
    checks pass, including real rebuild/close/reopen. The shared installed-client
-   gate is implemented; full hosted Windows proof and publication remain pending.
+   gate is implemented; full hosted Windows development proof has passed in the
+   [Windows receipt](verification/a8-entity-windows-2026-10-10.md), while formal
+   delivery and publication remain pending.
    Independent wheel-payload Wine proof is recorded below, separately from
    DockerSW image delivery.
    Internal edge parameter/analytic-curve and complete bounded ownership readers
@@ -102,7 +104,7 @@ Next:
    The complete independent Linux/Wine modeling/driving/Toolbox sequence now
    passes with an exact wheel payload on an existing formal host image; see the
    [Wine receipt](verification/a8-entity-wine-2026-10-10.md). This is not a new
-   DockerSW image delivery. Full hosted Windows proof remains next;
+   DockerSW image delivery. Formal-version host delivery remains next;
    trimmed boundaries and topology-edit survival are
    not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
