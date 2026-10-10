@@ -66,8 +66,9 @@ approximate`, following the documented
 [IFace2.GetArea accuracy](https://help.solidworks.com/2018/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IFace2~GetArea.html).
 
 Its initial **64-face internal cap** bounds pairwise identity checks, not a
-promise of scalable enumeration or a public limit. Normal/radius/trimmed-boundary
-geometry and short-handle lifetime are not yet implemented.
+promise of scalable enumeration or a public limit. At this observer revision,
+normal/radius geometry and short-handle lifetime were not yet implemented; the
+following increments record those separately. Trimmed boundaries remain pending.
 
 On another fresh read-only native fixture copy, the actual observer completed
 **two consecutive reads** on SW PID **1096**, reporting one solid, 8 faces
@@ -88,3 +89,101 @@ keep the current bounded probe separate from future enumeration scalability.
 Local evidence: `/private/tmp/swcli-a8-observer-native.DvsH0i`. References source
 is the same hash listed above. These are internal Windows results, not public
 CLI, Wine or topology-edit survival proof.
+
+## Short handles and owning-document lifetime
+
+The internal EntityRegistry has 14 portable cases covering exact-identity reuse,
+document-local ownership, complete-set validation, permanent scope retirement
+and collision exclusion. A native component-only probe read 8 faces twice with
+fresh COM wrappers, reused the same short IDs and verified all 8 IDs against their
+exact native faces. After closing that registry, another fresh read-only copy's
+registry issued 8 disjoint IDs from the shared issued set. The first set remained
+unusable. This did not itself test DocumentRegistry wiring.
+
+| Component evidence | SHA-256 |
+| --- | --- |
+| `registry-native.json` | `4f7e7f81aa3a99f0329ec897de7bf57509b8e54223eae243b0f5f7db475f22b8` |
+| `native-call-trace.log` | `2ab3f112886580cb7c5d48656d689264127b89a8649f57ff17fcf13adaf3bc0e` |
+| registry source | `7eea5e13e93e6a15684fe3f9194f96b699c6d4bab2426aac1f12ba6c6fca010f` |
+
+Local component evidence: `/private/tmp/swcli-a8-registry-native.SD4a4a`.
+DocumentRegistry subsequently acquired a per-entry EntityRegistry and closes it
+on forget/external-close synchronization. Five additional portable lifecycle
+cases pass (**19** registry cases total).
+
+The first integrated native probe preserved its first failure: the extra
+assertion that closing background A must keep B foreground failed. Reads, ID
+reuse and fresh-wrapper entry reuse had passed, but old-ID rejection/reopen
+assertions had not yet run. That result was not claimed as a passing lifecycle
+probe, changed, or retried.
+
+An independent causal sampling probe recorded the foreground before CloseDoc,
+after CloseDoc but before sync, and after sync. **CloseDoc itself** moved the
+foreground from B to an original user document; sync did not cause the switch.
+Separate lifecycle assertions then passed: sync rejected all 8 old entity IDs;
+reopening the same path created a fresh document entry/registry and 8 disjoint
+IDs. B's configuration/stamp/modified state was unchanged. Closing a background
+document must not be presumed to preserve foreground in future public lifecycle
+contracts. No foreground-restoration behavior was added in this slice.
+
+| Integrated lifecycle evidence | SHA-256 |
+| --- | --- |
+| first failed `document-entities-native.json` | `450d512e91fe7177621c072aaed3f47d95a428bda56d45e7ef8df24252b06432` |
+| first failed native trace | `ca580db434eed20e08c3c0e3433f5b8a1d7540e97efa2a0a0ed199e8a499b6dd` |
+| independent `close-causal-native.json` | `120b5dc37b3d0981ca6f75687f3eb731905c5dbfc1376834d50b4e9030b419f0` |
+| independent causal trace | `30c15bc2ee971d8a257aa3b4f826e01ed3e9d53f2980af54caecd5f1a300cfc6` |
+| DocumentRegistry source | `16b52bae229986a15a6f9e8581987f6eaea3c277d5ae40500447d2904ef207a4` |
+
+Local integrated evidence: `/private/tmp/swcli-a8-doc-entities-native.xL1wVo` and
+`/private/tmp/swcli-a8-close-causal-native.HGI7Yo`. All probes restored the user's
+original document set, states and foreground on SW PID 1096, with empty cleanup
+errors. No user model was saved or host process replaced. Actual native scope
+changes/topology edits, public entity commands and Wine gates remain unproved.
+
+## Analytic geometry container sampling
+
+On an independent fresh read-only fixture, the 7 planes returned tuple
+PlaneParams (6 values) and Normal (3 values), and the cylinder returned tuple
+CylinderParams (7 values). FaceInSurfaceSense returned bool: true planes had
+opposite surface/face normals, the one false plane had matching normals.
+The cylinder's native array was `[0.01, 0.02, 0.005, 0, 0, -1,
+0.003000000000000001]` (lengths in meters). Configuration, stamp 146, modified
+false, edit and foreground identities remained unchanged; original user state
+was restored on PID 1096 and cleanup was empty.
+
+| Sampling evidence | SHA-256 |
+| --- | --- |
+| `face-geometry-native.json` | `d022d851ad7b9f602fbb6517085832edc723b0319603ef77db6c1ec0ddc24e23` |
+| native trace | `1cf14b211ee5ba70566a192a27237b65f30eebaa3eb01d3c63ec930f27c91806` |
+
+Local sampling evidence: `/private/tmp/swcli-a8-face-geometry-native.wC9ezT`.
+The production parser added after sampling has 10 targeted portable cases, and
+the observer has 13 (including complete refusal after malformed geometry), plus
+13 reference cases: **36 related cases pass**. A read-only background portable
+check additionally exercised 128 malformed-array slot assertions and 3 native
+failure assertions; no partial faces or bindings escaped. These ad hoc assertions
+are separate from the committed unittest case count.
+
+The fixed production path at `a72bc56` then completed two full background A
+reads and registry registrations with B foreground. The 8 IDs and finite JSON
+geometry were identical across reads. Each plane's converted point, surface
+normal and independent face outward normal matched direct native readback and
+sense. The cylinder reported axis point `[10,20,5]` mm, direction `[0,0,-1]` and
+radius `3.000000000000001` mm. No private references/native COM objects appeared
+in the payload. Configuration, stamp 146, modified false, edit and B foreground
+identity/state stayed unchanged; the original user document set/state/foreground
+was restored on the same PID 1096 with empty cleanup errors. Source hashes were
+unchanged before/after. Two observer+registration trace measurements were about
+2.03/3.76 seconds; these are host measurements, not an API latency promise.
+
+| Production geometry evidence | SHA-256 |
+| --- | --- |
+| `geometry-observer-native.json` | `06d97bcb2e89b43a62b3d4fdda04cd714db7bc3599a370d1d8772f4c9ceb4eee` |
+| native trace | `a3f488ae083f6980438735a279f5bada47138ad64aaa82a8671d4cc4a6b6d1d6` |
+| probe source | `dc10ce3410bfea980596876c03fbb92b908d9ba163d1eaa21d1bd1b1e0bc5dc0` |
+| geometry source | `c94e5812e8679684ca8f747270c804f3ca02d38ef9163591e27832aa4134ad0d` |
+| observer source | `79f8e130f9de92c69a20fdd3a208b6822c6ce4ed03eabd693c2001610f114498` |
+
+Local production evidence: `/private/tmp/swcli-a8-geometry-observer-native.G7NhHM`.
+These prove the **internal** Windows observer/registry, not public CLI, Wine,
+arbitrary analytic surfaces, trimmed boundaries or actual topology-edit survival.

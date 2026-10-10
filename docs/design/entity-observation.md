@@ -9,11 +9,16 @@ round trip pass, including strict pywin32 memoryview support. See the
 The next internal complete single-solid observer has 12 portable cases and two
 native Windows reads proving face/body membership, count, duplicate identity and
 unchanged state. Its provisional 64-face cap bounds pairwise comparisons; public
-handles, fuller geometry, scalable enumeration and Wine gates remain pending.
+handles, scalable enumeration and Wine gates remain pending.
 An internal per-document registry now allocates short `e-` IDs, reuses only
 exact native identities and permanently retires IDs after an observed scope
-change; its 14 portable cases pass. Its lifecycle wiring to DocumentRegistry,
-public request/result schemas and cross-host gates are not implemented yet.
+change. Its lifecycle wiring to DocumentRegistry is implemented, with **19**
+portable registry/lifecycle cases and independent native close/reopen checks.
+The geometry adapter now validates plane points and outward normals against
+native surface sense, and cylinder axes/radii, with **36** related portable
+binding/geometry/observer cases and two unchanged native background reads with
+matching geometric readback and short IDs. These remain internal Windows proofs.
+Public request/result schemas and cross-host gates are not implemented yet.
 No public entity operation is advertised. The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
@@ -90,6 +95,16 @@ Surface-normal versus face-normal orientation also matters:
 [FaceInSurfaceSense](https://help.solidworks.com/2025/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IFace2~FaceInSurfaceSense.html)
 reports true when they point in opposite directions. Native probes must establish
 which normal each public field actually represents.
+
+The internal parser labels analytic geometry as `part-model` coordinates and
+`untrimmed-surface`, converts native locations/radius from meters to mm and
+requires finite numeric arrays of exactly 6 (plane), 3 (face normal) or 7
+(cylinder) elements. Unit directions and plane face/surface sense must agree;
+invalid directions are not silently normalized. An unclassified surface is
+explicitly unavailable; malformed supported geometry fails the complete read.
+Cylinder axes do not imply a constant outward normal or material-side label.
+See [PlaneParams](https://help.solidworks.com/2026/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISurface~PlaneParams.html?format=P&value=)
+and [CylinderParams](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISurface~CylinderParams.html).
 
 Edge work follows face identity proof: an edge's underlying curve is not its
 trimmed interval, closed seam or unique endpoint pair. Boundaries/units and
