@@ -803,31 +803,44 @@ class ModelingSmoke:
             len(planes) == 7 and len(cylinders) == 1,
             "depth fixture analytic face classification changed",
         )
+        remaining_planes = [
+            (0, 1, 60),
+            (0, -1, -40),
+            (1, 1, 45),
+            (1, -1, -5),
+            (2, 1, depth),
+            (2, -1, 0),
+            (2, -1, hole_depth),
+        ]
         for face in planes:
             plane = face["surface_geometry"]["plane"]
             normal = plane["outward_normal"]
             axis = max(range(3), key=lambda index: abs(normal[index]))
             require(
-                abs(abs(normal[axis]) - 1) < 1e-9,
+                abs(abs(normal[axis]) - 1) < 1e-9
+                and all(
+                    abs(value) <= 1e-9
+                    for index, value in enumerate(normal)
+                    if index != axis
+                ),
                 "fixture plane has a non-axis outward normal",
             )
-            expected = (
-                (60 if normal[0] > 0 else -40)
-                if axis == 0
-                else (
-                    (45 if normal[1] > 0 else -5)
-                    if axis == 1
-                    else depth if normal[2] > 0 else None
-                )
-            )
             position = plane["point_mm"][axis]
-            if expected is None:
-                require(
-                    any(abs(position - value) <= 1e-5 for value in (0, hole_depth)),
-                    "negative-Z face does not match base or cut floor",
+            matches = [
+                index
+                for index, (expected_axis, sign, location) in enumerate(
+                    remaining_planes
                 )
-            else:
-                near(position, expected, "fixture native plane location changed")
+                if axis == expected_axis
+                and (1 if normal[axis] > 0 else -1) == sign
+                and abs(position - location) <= 1e-5
+            ]
+            require(
+                len(matches) == 1,
+                "fixture plane set has a missing, repeated or misplaced face",
+            )
+            remaining_planes.pop(matches[0])
+        require(not remaining_planes, "fixture plane set is incomplete")
         cylinder = cylinders[0]["surface_geometry"]["cylinder"]
         near(cylinder["radius_mm"], 3, "native cylinder radius changed")
         for value, expected in zip(cylinder["axis_point_mm"][:2], (10, 20)):

@@ -310,6 +310,22 @@ class FakeCLI:
                 faces[0]["surface_geometry"]["plane"]["point_mm"][0] = 61
             if self.defect == "entity-wrong-outward":
                 faces[0]["surface_geometry"]["plane"]["outward_normal"] = [-1, 0, 0]
+            if self.defect == "entity-duplicate-plane-geometry":
+                for face in faces[:-1]:
+                    face["surface_geometry"] = copy.deepcopy(
+                        faces[1]["surface_geometry"]
+                    )
+            if self.defect == "entity-duplicate-cut-floor":
+                faces[5]["surface_geometry"] = copy.deepcopy(
+                    faces[6]["surface_geometry"]
+                )
+            if self.defect == "entity-tilted-plane":
+                plane = faces[0]["surface_geometry"]["plane"]
+                normal = [math.sqrt(1 - 1e-10), 1e-5, 0]
+                plane["surface_normal"] = normal
+                plane["outward_normal"] = normal
+            if self.defect == "entity-reordered-faces":
+                faces.reverse()
             result = {
                 "ok": True,
                 "action": f"entity.{subcommand}",
@@ -756,6 +772,9 @@ class ModelingSmokeTests(unittest.TestCase):
             "entity-wrong-radius",
             "entity-wrong-plane",
             "entity-wrong-outward",
+            "entity-duplicate-plane-geometry",
+            "entity-duplicate-cut-floor",
+            "entity-tilted-plane",
         ):
             with (
                 self.subTest(defect=defect),
@@ -769,6 +788,12 @@ class ModelingSmokeTests(unittest.TestCase):
                     self.run_gate()
                 self.assertFalse(self.record()["success"])
                 self.assertEqual(self.fake.documents, {})
+
+    def test_entity_geometry_gate_accepts_complete_reordered_face_set(self):
+        self.fake.defect = "entity-reordered-faces"
+        self.run_gate()
+        self.assertTrue(self.record()["entity_observation"]["verified"])
+        self.assertEqual(self.fake.documents, {})
 
     def test_custom_request_timeout_reaches_all_cli_calls_and_evidence(self):
         self.arguments.extend(
