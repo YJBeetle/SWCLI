@@ -20,6 +20,7 @@ REQUIRED = {
     "scripts/ci/verify-invalid-requests.py",
     "scripts/ci/verify-modeling.py",
     "scripts/ci/verify-driving-dimensions.py",
+    "scripts/ci/verify-toolbox.py",
     "scripts/ci/fixtures/rectangle-origin-bound.SLDPRT",
     "scripts/ci/fixtures/generate-origin-fixture.py",
     "scripts/ci/fixtures/README.md",

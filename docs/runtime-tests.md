@@ -40,11 +40,21 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   Run it after modeling on the same ready daemon.
 - `scripts/ci/verify-invalid-requests.py`: invalid wire requests must leave
   the host and documents unchanged.
+- `scripts/ci/verify-toolbox.py`: verify the configured Toolbox database,
+  nonempty official index and nonempty native parts for every enabled standard.
+  Then open one deterministic representative part read-only through the public
+  CLI, diagnose without rebuilding, measure solid geometry and close only that
+  owned document. It checks unchanged source bytes, document state, pre-existing
+  documents and the original host. No COM escape hatch or updater invocation.
 
 Windows-only startup/attach/disconnect behavior remains in
 `scripts/ci/windows/smoke-solidworks.ps1`; its equation fixture deliberately
 uses native setup and is not presented as a cross-platform public CLI test.
 Installer and Wine lifecycle checks belong to their respective host projects.
+Toolbox installation/repair remains host-owned; the shared gate only verifies
+the deployed result and public document operations. Each wrapper requires it
+after modeling/driving on the same host. A failure blocks delivery, never triggers
+a repair, restart or retry of the operation.
 The six DockerSW published export artifacts remain a separate delivery gate.
 Windows hosted CI runs that same wrapper in visible and `-Hidden` modes using
 one installation and independent evidence directories. Modeling and driving
@@ -148,6 +158,39 @@ record rather than claimed as verified. All core modeling cases use generated
 parts and do not depend on installed sample locations or localized names.
 
 ## Evidence and proof boundaries
+
+### Toolbox policy and paths
+
+Windows resolves the actual `Toolbox Data Location` from the current-user then
+machine registry; Wine hosts supply `--wine-prefix` and the script resolves that
+same setting through the prefix's real drive mappings. No year, drive letter,
+installation location, standard count or part count is hardcoded. Ambiguous
+locations fail instead of choosing a version arbitrarily. UNC/external setups
+may supply a paired `--data-dir LOCAL --host-data-dir WINDOWS_OR_UNC` explicitly.
+
+```sh
+python scripts/ci/verify-toolbox.py --output-dir /ci-smoke/toolbox \
+  --wine-prefix /root/.wine --require-toolbox \
+  --cli-command /usr/local/bin/sw-cli --request-timeout 120
+```
+
+`--require-toolbox` makes an unconfigured library a failure. Without it, only an
+unconfigured library is a named `skipped` result (`completed: false`); a configured
+but incomplete library still fails. `--inventory-only` performs no CLI/COM calls:
+it may pass file checks while reporting `native_test: not-run`. It is diagnostic
+evidence, not the full runtime delivery gate. The default CLI uses the caller's
+installed Python; a Wine wrapper must pass its native client executable.
+
+`toolbox.json` exclusively reserves evidence before actions, atomically
+checkpoints raw CLI results including request metadata, retains the first error
+and separate cleanup errors, and reports the selected standard's model counts
+and source checksums. It does not parse/deserialize the proprietary binary index,
+load SwToolbox/SwBrowser, select specifications, generate configurations or insert
+components into assemblies. Those require future explicit product operations.
+The original updater exit code is recorded as unavailable (`null`): do not infer
+it from MSI success or file presence. Hosts must independently check/log any
+updater they actually invoke. Installer logs may contain private inputs and must
+not be copied wholesale into public gate evidence.
 
 `modeling.json` records stage, command, exit status, stdout/stderr, actual host
 PID, successful cases and cleanup errors. `driving-dimensions.json` retains the
