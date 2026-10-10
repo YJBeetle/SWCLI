@@ -163,6 +163,13 @@ class FakeCLI:
                     document_id = document["id"] = "d-000002"
                 if self.defect == "drawing-readonly-missing":
                     document["read_only"] = False
+            if subcommand == "open" and args.path.endswith("drawing-save-as.SLDDRW"):
+                if self.defect == "drawing-save-as-reopen-failed":
+                    return self.failure("OpenFailed")
+                if self.defect == "drawing-save-as-reopen-modified":
+                    document["modified"] = True
+                if self.defect == "drawing-save-as-reopen-file-changed":
+                    (self.drawing_directory / "drawing-save-as.SLDDRW").write_bytes(b"changed" * 100)
             self.documents[document_id] = document
             self.active = self.current[session] = document_id
             return {
@@ -173,7 +180,9 @@ class FakeCLI:
                                or (self.defect == "assembly-open-error" and document["type"] == 2
                                    and not document["path"].endswith("generated.SLDASM"))
                                else 0),
-                "api_warnings": (4 if self.defect == "drawing-reference-warning"
+                "api_warnings": (4 if self.defect == "drawing-save-as-reference-warning"
+                                 and subcommand == "open" and args.path.endswith("drawing-save-as.SLDDRW") else
+                                 4 if self.defect == "drawing-reference-warning"
                                  and document["type"] == 3 else
                                  2 if self.defect == "drawing-writable-warning"
                                  and document["type"] == 3 and not args.read_only else
@@ -268,6 +277,9 @@ class FakeCLI:
                         structure["features"]["truncated"] = True
                     if self.defect == "drawing-structure-empty":
                         structure["features"].update(count=0, items=[])
+                if (document["path"].endswith("drawing-save-as.SLDDRW")
+                        and self.defect == "drawing-save-as-structure-changed"):
+                    structure["features"]["items"][0]["name"] = "LostSheet"
             return {
                 "ok": True,
                 "document": descriptor,
@@ -481,7 +493,8 @@ class FakeCLI:
                 result["unexpected_geometry"] = []
             return result
         if action == "document" and subcommand in ("save-as", "export"):
-            target = self.directory / gate.PureWindowsPath(args.output).name
+            directory = self.drawing_directory if document.get("type") == 3 else self.directory
+            target = directory / gate.PureWindowsPath(args.output).name
             if target.exists():
                 if self.defect == "overwrite-existing":
                     target.write_bytes(b"damaged")
@@ -502,6 +515,21 @@ class FakeCLI:
                 "file_verification": {"minimum_size_valid": True},
                 "artifact": {"path": args.output, "format": gate.PureWindowsPath(args.output).suffix[1:].upper(), "size_bytes": target.stat().st_size},
             }
+            if subcommand == "save-as" and args.output.endswith("drawing-save-as.SLDDRW"):
+                if self.defect == "drawing-save-as-failed":
+                    return self.failure("SaveFailed")
+                if self.defect == "drawing-save-as-modified":
+                    result.update(ok=False, error={"type": "DocumentStillModified"})
+                if self.defect == "drawing-save-as-truncated":
+                    target.write_bytes(b"truncated")
+                if self.defect == "drawing-save-as-path-mismatch":
+                    result["document"]["path"] = "C:\\wrong.SLDDRW"
+                if self.defect == "drawing-save-as-size-mismatch":
+                    result["artifact"]["size_bytes"] += 1
+                if self.defect == "drawing-save-as-source-changed":
+                    self.drawing_source.write_bytes(b"changed" * 100)
+                if self.defect == "drawing-save-as-input-changed":
+                    (self.drawing_directory / "drawing-save-as-source.SLDDRW").write_bytes(b"changed" * 100)
             if subcommand == "save-as" and args.output.endswith("generated.SLDASM"):
                 if self.defect == "generated-save-as-modified":
                     result["document"]["modified"] = True
@@ -951,7 +979,8 @@ class ModelingSmokeTests(unittest.TestCase):
             (self.directory / "modeling.json").read_text(encoding="utf-8")
         )
 
-    def drawing_gate(self, defect=None, *, work_directory=None, host_work_directory=None):
+    def drawing_gate(self, defect=None, *, work_directory=None, host_work_directory=None,
+                     save_as=False):
         self.directory.mkdir(parents=True, exist_ok=True)
         source = Path(self.temporary.name) / "installed source.SLDDRW"
         source.write_bytes(b"drawing" * 100)
@@ -968,7 +997,8 @@ class ModelingSmokeTests(unittest.TestCase):
             try:
                 smoke.drawing_save_reopen("C:\\samples\\installed source.SLDDRW", source,
                                          work_directory=work_directory,
-                                         host_work_directory=host_work_directory)
+                                         host_work_directory=host_work_directory,
+                                         save_as=save_as)
             finally:
                 smoke.cleanup()
         return smoke, source
@@ -1014,6 +1044,67 @@ class ModelingSmokeTests(unittest.TestCase):
                 self.assertEqual(self.fake.documents, {})
                 (self.directory / "drawing.SLDDRW").unlink(missing_ok=True)
 
+    def test_drawing_save_as_has_strict_sizes_two_reopens_and_unchanged_inputs(self):
+        fixture = Path(self.temporary.name) / "save-as references"
+        fixture.mkdir()
+        smoke, source = self.drawing_gate("drawing-readonly-warning", work_directory=fixture,
+                                         host_work_directory="C:\\save-as references", save_as=True)
+        proof = smoke.record["drawing_save_as_reopen"]
+        self.assertEqual(proof["size_bytes"], 1024)
+        self.assertEqual(proof["save_as_bytes"], 1024)
+        self.assertTrue(proof["input_sha256_unchanged"])
+        self.assertEqual(proof["source_sha256_before"], proof["source_sha256_after"])
+        self.assertEqual(source.read_bytes(), b"drawing" * 100)
+        self.assertEqual((fixture / "drawing-save-as-source.SLDDRW").read_bytes(), source.read_bytes())
+        self.assertEqual([item["read_only"] for item in proof["opens"]], [True, False, False, True])
+        self.assertEqual(len({item["document_id"] for item in proof["opens"]}), 4)
+        self.assertTrue(all(not item["modified"] for item in proof["opens"][2:]))
+        self.assertEqual((self.directory / "drawing-save-as.SLDDRW").read_bytes(),
+                         (fixture / "drawing-save-as.SLDDRW").read_bytes())
+        self.assertFalse((self.directory / "drawing-save-as-source.SLDDRW").exists())
+        self.assertEqual(smoke.record["cleanup_errors"], [])
+        self.assertFalse(self.fake.documents)
+        saves = [call for call in self.fake.calls if call.command == "document"
+                 and call.document_command in ("save-as", "save")]
+        self.assertEqual([call.document_command for call in saves], ["save-as"])
+
+    def test_drawing_save_as_rejects_invalid_saves_reopens_and_mutated_inputs(self):
+        for defect, message in (
+            ("drawing-save-as-failed", "SaveFailed"),
+            ("drawing-save-as-modified", "DocumentStillModified"),
+            ("drawing-save-as-truncated", "native/file verification"),
+            ("drawing-save-as-path-mismatch", "native/file verification"),
+            ("drawing-save-as-size-mismatch", "native/file verification"),
+            ("drawing-save-as-reopen-failed", "OpenFailed"),
+            ("drawing-save-as-reopen-modified", "fresh and clean"),
+            ("drawing-save-as-structure-changed", "changed the feature tree"),
+            ("drawing-save-as-reference-warning", "unexpected warnings: 4"),
+            ("drawing-save-as-reopen-file-changed", "changed the saved artifact"),
+            ("drawing-save-as-source-changed", "changed the installed source"),
+            ("drawing-save-as-input-changed", "changed the private input file"),
+        ):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                fixture = Path(directory)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.drawing_gate(defect, work_directory=fixture,
+                                      host_work_directory="C:\\private refs", save_as=True)
+                self.assertFalse((self.directory / "drawing-save-as.SLDDRW").exists())
+                self.assertFalse(self.fake.documents)
+
+    def test_drawing_save_as_preserves_existing_target_and_evidence(self):
+        for name in ("native", "evidence"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                fixture = Path(directory)
+                self.directory.mkdir(parents=True, exist_ok=True)
+                target = (fixture if name == "native" else self.directory) / "drawing-save-as.SLDDRW"
+                target.write_bytes(b"existing drawing")
+                with self.assertRaises((RuntimeError, FileExistsError)):
+                    self.drawing_gate(work_directory=fixture,
+                                      host_work_directory="C:\\private refs", save_as=True)
+                self.assertEqual(target.read_bytes(), b"existing drawing")
+                self.assertFalse(self.fake.documents)
+                target.unlink()
+
     def test_drawing_gate_does_not_overwrite_existing_evidence(self):
         self.directory.mkdir(parents=True)
         artifact = self.directory / "drawing.SLDDRW"
@@ -1035,6 +1126,7 @@ class ModelingSmokeTests(unittest.TestCase):
         proof = self.record()
         self.assertTrue(proof["success"])
         self.assertIn("drawing-save-reopen", proof["cases"])
+        self.assertIn("drawing-save-as-reopen", proof["cases"])
         self.assertEqual(proof["host"]["process_id"], proof["host_after"]["process_id"])
         self.assertEqual(proof["cleanup_errors"], [])
 

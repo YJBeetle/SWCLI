@@ -76,8 +76,8 @@ reference portability, or assembly insertion validation.
 
 ## Drawing in-place save and reopen
 
-The optional drawing case uses existing public `document save` (`Save3`), not
-drawing `save-as`. Supply both `--sample-drawing` (the installed source's absolute
+The optional drawing cases use public `document save` (`Save3`) and native
+`document save-as`. Supply both `--sample-drawing` (the installed source's absolute
 Windows/UNC path visible to the daemon) and `--sample-drawing-local` (the same
 file's client-visible filesystem path). For example, for a host whose selected
 official fixture is staged at `C:\samples\ReferenceDrawing.SLDDRW`:
@@ -129,6 +129,24 @@ except the known read-only warning `2` on explicitly read-only opens; a missing
 reference warning is not silently accepted. Sizes appear in
 `native_in_place_saves`; drawing-specific hashes, open statuses and checks appear
 in `drawing_save_reopen`.
+
+The same sample arguments also run `drawing-save-as-reopen`, independently of
+the in-place case. It creates a new private `drawing-save-as-source.SLDDRW`
+input beside the reference tree and calls strict `document save-as` to a new
+`drawing-save-as.SLDDRW`. The response must adopt the requested path while
+retaining its document ID, report native success/error 0, a clean modified
+flag, the SLDDRW format and the actual size (at least 512 bytes). No preparation
+error exception is allowed. Existing targets are never overwritten.
+
+After closing, the native document list must be empty before both a writable
+and a read-only reopen. Both must have fresh IDs, clean modified flags, matching
+non-empty top-level feature trees and no unexpected load errors/warnings.
+Reopening must not change the saved hash or private input bytes; installed
+source hashes remain protected even on failure. Only the validated renamed
+drawing is published, not its input or reference models. Evidence is recorded
+in `drawing_save_as_reopen`; the same sheet/view/reference-geometry limitations
+as the in-place case apply. This is a renamed live document, not SaveAsCopy,
+detached drawing conversion or Pack and Go.
 
 Portable cases exercise save/reopen failures, truncation, changed/truncated
 feature trees, unexpected warnings, artifact/source mutation, and protection of

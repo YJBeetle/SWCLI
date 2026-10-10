@@ -1575,9 +1575,11 @@ class ModelingSmoke:
         })
 
     def drawing_save_reopen(self, drawing, local_drawing, *,
-                            work_directory=None, host_work_directory=None):
-        # Only Save3 a new byte-for-byte copy. The installed source is opened
-        # read-only for the baseline; this is not a drawing SaveAs or Pack and Go.
+                            work_directory=None, host_work_directory=None,
+                            save_as=False):
+        # Only save a private copy. The installed source is opened read-only
+        # for the baseline. Neither mode copies or requests saving references.
+        case = "drawing-save-as-reopen" if save_as else "drawing-save-reopen"
         source = Path(local_drawing)
         require(source.is_file() and source.suffix.lower() == ".slddrw",
                 "drawing source must be a readable local SLDDRW file")
@@ -1592,7 +1594,9 @@ class ModelingSmoke:
         host_work_directory = (self.host_directory if host_work_directory is None
                                else host_work_directory)
         host_directory(host_work_directory)
-        native_file = work_directory / "drawing.SLDDRW"
+        native_file = work_directory / ("drawing-save-as.SLDDRW" if save_as else "drawing.SLDDRW")
+        input_file = work_directory / "drawing-save-as-source.SLDDRW" if save_as else native_file
+        input_path = str(PureWindowsPath(host_work_directory) / input_file.name)
         target = str(PureWindowsPath(host_work_directory) / native_file.name)
         evidence_file = self.directory / native_file.name
         proof = {
@@ -1602,7 +1606,7 @@ class ModelingSmoke:
             "work_path": target,
             "opens": [],
         }
-        self.record["drawing_save_reopen"] = proof
+        self.record[case.replace("-", "_")] = proof
 
         def open_checked(path, *, read_only):
             result = self.command("document", "open", path,
@@ -1611,6 +1615,8 @@ class ModelingSmoke:
                 "path": path, "read_only": result["read_only"],
                 "api_errors": result["api_errors"],
                 "api_warnings": result["api_warnings"],
+                "document_id": result["document"]["document_id"],
+                "modified": result["document"]["modified"],
             })
             require(result["document"]["type"] == 3
                     and result["read_only"] is read_only
@@ -1635,20 +1641,58 @@ class ModelingSmoke:
             original = open_checked(drawing, read_only=True)
             expected = signature(original)
             self.close(original)
-            with native_file.open("xb") as stream:
+            with input_file.open("xb") as stream:
                 stream.write(source_bytes)
-            document = open_checked(target, read_only=False)
+            document = open_checked(input_path, read_only=False)
             require(signature(document) == expected,
                     "drawing copy changed the source feature tree")
-            self.verify_in_place_save(document, native_file)
+            if save_as:
+                saved = self.write("document", "save-as", target, document=document)
+                require(saved["api_saved"] is True and saved["save_errors"] == 0
+                        and saved["document"]["document_id"] == document
+                        and saved["document"]["type"] == 3
+                        and saved["document"]["modified"] is False
+                        and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(target)
+                        and saved["artifact"]["format"] == "SLDDRW"
+                        and PureWindowsPath(saved["artifact"]["path"]) == PureWindowsPath(target)
+                        and saved["file_verification"]["minimum_size_valid"] is True
+                        and native_file.is_file() and native_file.stat().st_size >= 512
+                        and saved["artifact"]["size_bytes"] == native_file.stat().st_size,
+                        "drawing save-as failed native/file verification")
+                require(hashlib.sha256(input_file.read_bytes()).hexdigest() == source_digest,
+                        "drawing save-as changed the private input file")
+                proof["save_as_bytes"] = native_file.stat().st_size
+            else:
+                self.verify_in_place_save(document, native_file)
             proof["size_bytes"] = native_file.stat().st_size
             digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
             self.close(document)
+            if save_as:
+                self.require_empty()
+                writable = open_checked(target, read_only=False)
+                require(writable not in (original, document)
+                        and proof["opens"][-1]["modified"] is False,
+                        "drawing save-as writable reopen is not fresh and clean")
+                require(signature(writable) == expected,
+                        "drawing save-as writable reopen changed the feature tree")
+                self.close(writable)
+                self.require_empty()
+                require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
+                        "writable drawing reopen changed the saved artifact")
             reopened = open_checked(target, read_only=True)
-            require(reopened != document, "drawing reopen reused an expired document ID")
+            require(reopened != document and (not save_as or reopened not in (original, writable)),
+                    "drawing reopen reused an expired document ID")
+            if save_as:
+                require(proof["opens"][-1]["modified"] is False,
+                        "drawing save-as read-only reopen is not clean")
             require(signature(reopened) == expected,
                     "drawing save/reopen changed the feature tree")
             self.close(reopened)
+            if save_as:
+                self.require_empty()
+                require(hashlib.sha256(input_file.read_bytes()).hexdigest() == source_digest,
+                        "drawing save-as reopen changed the private input file")
+                proof["input_sha256_unchanged"] = True
             require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
                     "read-only drawing reopen changed the saved artifact")
             proof.update(sha256=digest, structure_unchanged=True, fresh_document_id=True)
@@ -1671,7 +1715,7 @@ class ModelingSmoke:
                 evidence_file.unlink()  # Remove only this call's incomplete copy.
                 raise
         proof["evidence_path"] = str(evidence_file)
-        self.checkpoint("drawing-save-reopen.verified")
+        self.checkpoint(case + ".verified")
 
     def verify_step(self, name):
         path = self.directory / name
@@ -1769,6 +1813,9 @@ class ModelingSmoke:
             cases.append(("drawing-save-reopen", lambda: self.drawing_save_reopen(
                 sample_drawing, sample_drawing_local, work_directory=drawing_work_dir,
                 host_work_directory=host_drawing_work_dir)))
+            cases.append(("drawing-save-as-reopen", lambda: self.drawing_save_reopen(
+                sample_drawing, sample_drawing_local, work_directory=drawing_work_dir,
+                host_work_directory=host_drawing_work_dir, save_as=True)))
         if verify_sample_assembly_save:
             cases.append(("official-assembly-save-reopen",
                           lambda: self.assembly_save_reopen(sample_assembly)))
