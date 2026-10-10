@@ -90,7 +90,10 @@ Next:
    face/edge handles also pass exact reuse and real Windows close/reopen in the
    [registry receipt](verification/a8-edge-registry-2026-10-10.md). Development
    edge contracts and CLI now use explicit `--kind edge`, preserving default
-   faces and a shared conservative scope. Installed Windows and independent
+   faces and a shared conservative scope. Current-source Windows typed-handler
+   checks pass, with the first failure and corrected result recorded in the
+   [operations receipt](verification/a8-edge-operations-2026-10-10.md).
+   Shared installed-gate extension, installed Windows and independent
    Wine proof remain next; trimmed boundaries and topology-edit survival are
    not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
