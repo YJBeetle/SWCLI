@@ -49,6 +49,28 @@ The Windows-only equation setup attaches through ROT and is required in the
 visible run only. Its hidden-host ROT limitation does not make the public
 modeling/driving gates optional and is not resolved by starting another host.
 
+## Development validation
+
+During implementation, run the directly affected tests and the relevant shared
+dependency/contract tests first. Do not repeat the entire suite or reinstall
+SOLIDWORKS for every small edit. For example, the internal entity increment uses
+the entity/reference/registry cases, native trace tests and the shared feature
+snapshot tests. Keep tests sensitive to the original failure; faster execution
+must not mean weaker geometry/state assertions or retrying a native failure.
+
+Slow native or packaging checks may run in a background agent while development
+continues elsewhere. Give each check an exact commit/source hash, an independent
+environment/evidence directory and exclusive ownership of its test host. Do
+not let two agents manipulate the same SW/daemon or install into one shared
+Python environment concurrently. Preserve user-owned processes/documents and
+the first failure record.
+
+Full suite, isolated distribution checks and installed cross-host native gates
+remain integration/release requirements. Batch related validated commits before
+pushing an integration checkpoint; do not manually rerun the full gate for each
+commit. A green targeted test or local COM probe is not a replacement for a
+formal Windows/Wine delivery pass or publication receipt.
+
 ## Calling the gates
 
 Prepare a disposable, connected daemon with no native documents open. Use a
