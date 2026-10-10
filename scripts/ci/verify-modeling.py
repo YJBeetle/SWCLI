@@ -75,6 +75,68 @@ def unchanged_depth_metrics(before, after):
         )
 
 
+def verify_fixture_edges(edges, *, depth, hole_depth):
+    """Check geometry, not identity, of the existing box/blind-hole fixture.
+
+    Native raw endpoints are checked without deriving public length, normalized
+    trim or closure semantics. Opposite curve sense and traversal order are valid.
+    """
+    lines = [edge for edge in edges if edge["curve_kind"] == "line"]
+    circles = [edge for edge in edges if edge["curve_kind"] == "circle"]
+    require(len(edges) == 14 and len(lines) == 12 and len(circles) == 2,
+            "depth fixture edge enumeration/classification is incomplete")
+    bounds = ((-40, 60), (-5, 45), (0, depth))
+    expected_pairs = []
+    for axis in range(3):
+        other_axes = [index for index in range(3) if index != axis]
+        for first in bounds[other_axes[0]]:
+            for second in bounds[other_axes[1]]:
+                start, end = [0, 0, 0], [0, 0, 0]
+                for point in (start, end):
+                    point[other_axes[0]], point[other_axes[1]] = first, second
+                start[axis], end[axis] = bounds[axis]
+                expected_pairs.append((start, end, axis))
+
+    def same_point(first, second):
+        return all(abs(a - b) <= 1e-5 for a, b in zip(first, second))
+
+    for edge in lines:
+        parameters = edge["parameter_data"]
+        start, end = parameters["start_point_mm"], parameters["end_point_mm"]
+        matches = [index for index, (a, b, _) in enumerate(expected_pairs)
+                   if (same_point(start, a) and same_point(end, b))
+                   or (same_point(start, b) and same_point(end, a))]
+        require(len(matches) == 1, "fixture edge endpoints are missing, duplicated or misplaced")
+        _, _, axis = expected_pairs.pop(matches[0])
+        line = edge["curve_geometry"]["line"]
+        direction, root = line["direction"], line["root_point_mm"]
+        near(abs(direction[axis]), 1, "fixture line direction tilted", 1e-9)
+        for index in range(3):
+            if index != axis:
+                near(direction[index], 0, "fixture line direction tilted", 1e-9)
+                near(root[index], start[index], "untrimmed line does not contain native endpoints")
+    require(not expected_pairs, "fixture line set is incomplete")
+    levels = [0, hole_depth]
+    for edge in circles:
+        circle = edge["curve_geometry"]["circle"]
+        center, axis = circle["center_mm"], circle["axis_direction"]
+        near(circle["radius_mm"], 3, "fixture circle radius changed")
+        near(center[0], 10, "fixture circle center moved")
+        near(center[1], 20, "fixture circle center moved")
+        near(axis[0], 0, "fixture circle axis tilted", 1e-9)
+        near(axis[1], 0, "fixture circle axis tilted", 1e-9)
+        near(abs(axis[2]), 1, "fixture circle axis tilted", 1e-9)
+        matches = [index for index, z in enumerate(levels) if abs(center[2] - z) <= 1e-5]
+        require(len(matches) == 1, "fixture circle levels are missing, duplicated or misplaced")
+        levels.pop(matches[0])
+        for key in ("start_point_mm", "end_point_mm"):
+            point = edge["parameter_data"][key]
+            near(point[2], center[2], "native circle endpoint left its plane")
+            near(math.hypot(point[0] - center[0], point[1] - center[1]), 3,
+                 "native circle endpoint left its untrimmed curve")
+    require(not levels, "fixture circle set is incomplete")
+
+
 def executable(value):
     path = Path(value).expanduser()
     if not path.is_absolute() or not path.is_file() or not os.access(path, os.X_OK):
@@ -888,6 +950,53 @@ class ModelingSmoke:
         )
         return [face["entity_id"] for face in faces]
 
+    def observe_edges(self, document, *, depth, hole_depth, background, face_id, repeat=False):
+        """Observe the same fixture through the installed CLI, without a lease."""
+        observer = self.session + "-entity-reader"
+        self.renew(document)
+        before = self.command("document", "inspect", document=document, session=observer)["document"]
+        listed = self.command("entity", "list", "--kind", "edge", document=document, session=observer)
+        validate_operation_result("entity.list", listed)
+        require(listed["edge_count"] == 14, "fixture edge count changed")
+        edges = listed["entities"]
+        verify_fixture_edges(edges, depth=depth, hole_depth=hole_depth)
+        if repeat:
+            self.renew(document)
+            repeated = self.command("entity", "list", "--kind", "edge", document=document, session=observer)
+            validate_operation_result("entity.list", repeated)
+            require(
+                {key: value for key, value in repeated.items() if key != "entities"}
+                == {key: value for key, value in listed.items() if key != "entities"}
+                and {e["entity_id"]: e for e in repeated["entities"]}
+                == {e["entity_id"]: e for e in edges},
+                "edge repeat changed IDs, geometry or state",
+            )
+        for kind in ("line", "circle"):
+            edge = next(e for e in edges if e["curve_kind"] == kind)
+            self.renew(document)
+            inspected = self.command("entity", "inspect", edge["entity_id"], "--kind", "edge",
+                                     document=document, session=observer)
+            validate_operation_result("entity.inspect", inspected)
+            require(inspected["entity"] == edge, "exact edge inspection changed its binding")
+            if background:
+                self.background(inspected, document)
+        # Discovering edges must not evict the same-scope face registry.
+        self.renew(document)
+        face = self.command("entity", "inspect", face_id, document=document, session=observer)
+        validate_operation_result("entity.inspect", face)
+        require(face["entity"]["entity_id"] == face_id, "edge discovery evicted a live face ID")
+        self.command("entity", "inspect", edges[0]["entity_id"], document=document,
+                     session=observer, expected_error="EntityNotFound")
+        self.command("entity", "inspect", face_id, "--kind", "edge", document=document,
+                     session=observer, expected_error="EntityNotFound")
+        if background:
+            self.background(listed, document)
+            self.background(face, document)
+        self.renew(document)
+        require(self.command("document", "inspect", document=document, session=observer)["document"] == before,
+                "edge reads changed native document or foreground/current state")
+        return [e["entity_id"] for e in edges]
+
     def feature_depth(self):
         # A separate exact single-solid fixture: the main modeling case includes
         # deliberate multiple bodies and is not eligible for this narrow writer.
@@ -908,6 +1017,12 @@ class ModelingSmoke:
         initial_faces = self.observe_faces(
             a, depth=20, hole_depth=5, background=True, repeat=True
         )
+        initial_edges = self.observe_edges(
+            a, depth=20, hole_depth=5, background=True, face_id=initial_faces[0], repeat=True
+        )
+        require(set(initial_faces).isdisjoint(initial_edges), "face and edge IDs overlap")
+        self.command("entity", "inspect", initial_edges[0], "--kind", "edge",
+                     document=b, expected_error="EntityNotFound")
         self.command(
             "entity",
             "inspect",
@@ -915,6 +1030,9 @@ class ModelingSmoke:
             document=b,
             expected_error="EntityNotFound",
         )
+        # More read-only refusal checks must not let the writer lease lapse on
+        # a slow host before its next explicit renewal/write.
+        self.renew(a)
         before = self.command("document", "inspect", document=a)["document"]
         self.command(
             "entity",
@@ -934,6 +1052,8 @@ class ModelingSmoke:
             session=self.session + "-contender",
             expected_error="DocumentLeaseConflict",
         )
+        self.command("entity", "list", "--kind", "edge", "--if-update-stamp",
+                     before["update_stamp"] + 1, document=a, expected_error="DocumentUpdateConflict")
         self.write(
             "feature",
             "set-depth",
@@ -973,6 +1093,8 @@ class ModelingSmoke:
                 document=a,
                 expected_error="EntityReferenceStale",
             )
+            self.command("entity", "inspect", initial_edges[0], "--kind", "edge",
+                         document=a, expected_error="EntityReferenceStale")
             require(
                 changed["feature_id"] == feature_id
                 and changed["depth_changed"] is True
@@ -1036,10 +1158,15 @@ class ModelingSmoke:
         before_close_faces = self.observe_faces(
             a, depth=25, hole_depth=8, background=True
         )
+        before_close_edges = self.observe_edges(
+            a, depth=25, hole_depth=8, background=True, face_id=before_close_faces[0]
+        )
         require(
             not set(initial_faces) & set(before_close_faces),
             "depth edits silently rebound old entity IDs",
         )
+        require(set(initial_faces + initial_edges).isdisjoint(before_close_faces + before_close_edges),
+                "depth edits silently rebound face or edge IDs")
         native = str(PureWindowsPath(self.host_directory) / "edited-depth.SLDPRT")
         saved = self.write("document", "save-as", native, document=a)
         self.background(saved, a)
@@ -1063,15 +1190,28 @@ class ModelingSmoke:
         reopened_faces = self.observe_faces(
             reopened, depth=25, hole_depth=8, background=False
         )
+        self.command("entity", "inspect", before_close_edges[0], "--kind", "edge",
+                     document=reopened, expected_error="EntityNotFound")
+        reopened_edges = self.observe_edges(
+            reopened, depth=25, hole_depth=8, background=False, face_id=reopened_faces[0]
+        )
         require(
             not set(before_close_faces) & set(reopened_faces),
             "native reopen reused expired entity IDs",
         )
+        require(set(initial_faces + initial_edges + before_close_faces + before_close_edges)
+                .isdisjoint(reopened_faces + reopened_edges), "native reopen reused expired face or edge IDs")
         self.record["entity_observation"] = {
             "verified": True,
             "face_count": 8,
             "planes": 7,
             "cylinders": 1,
+            "edge_count": 14,
+            "lines": 12,
+            "circles": 2,
+            "mixed_kind_ids_preserved": True,
+            "wrong_kind_rejected": True,
+            "edge_cas_rejected": True,
             "repeat_ids_preserved": True,
             "changed_scope_rejected": True,
             "reopen_ids_fresh": True,

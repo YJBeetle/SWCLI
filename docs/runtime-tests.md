@@ -20,11 +20,16 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   calls skip setters/commits/rebuilds while retaining complete selection
   restoration, saves/reopens native depths with fresh handles, and requires
   a read-only reopened part to reject depth edits before selection access.
-  The a8 development gate reuses that same fixture for complete face discovery,
-  plane points/outward normals and cylinder axis/radius, repeated exact IDs,
-  leased background reads, CAS/cross-document refusal, scope-change retirement
-  and read-only close/reopen with fresh IDs. It uses the installed CLI, not COM
-  setup or a new host; the six export artifacts are unchanged.
+  The a8 development gate reuses that same fixture for complete discovery of
+  8 faces and 14 edges (12 box lines and 2 blind-hole circles), analytical face
+  geometry, raw edge endpoints and line/circle geometry. Repeated reads must
+  preserve IDs across mixed face/edge groups; wrong-kind, CAS and cross-document
+  lookups must fail. Real depth writes retire both kinds, and read-only native
+  close/reopen must issue fresh IDs. Reordered traversal and opposite native
+  curve/edge sense are accepted; no edge length, closure or normalized trim is
+  inferred. It uses the installed CLI, not COM setup or a new host; the six
+  export artifacts are unchanged. Lease renewals surround additional read and
+  refusal groups on slow hosts, without increasing TTL or retrying failures.
   These are required gate assertions, not proof that every host has passed.
 - `scripts/ci/verify-driving-dimensions.py`: three-plane driving diameter
   creation, inspect/edit, guards, native save/reopen and discovery of fresh

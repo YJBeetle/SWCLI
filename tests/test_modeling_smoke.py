@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import math
+from itertools import combinations, product
 from pathlib import Path, PurePosixPath
 import subprocess
 import tempfile
@@ -34,6 +35,7 @@ class FakeCLI:
         self.health_calls = 0
         self.feature_ids = {}
         self.entity_ids = {}
+        self.edge_reads = 0
         self.now = 0
         self.operation_seconds = 0
 
@@ -230,28 +232,39 @@ class FakeCLI:
         ):
             return self.failure("DocumentLeaseConflict")
         if action == "entity":
-            key = (document_id, document["stamp"])
+            key = (document_id, document["stamp"], args.kind)
             if subcommand == "inspect":
                 tokens = self.entity_ids.get(key, [])
                 if args.entity_id not in tokens:
                     old = any(
                         args.entity_id in ids
-                        for (owner, stamp), ids in self.entity_ids.items()
-                        if owner == document_id
+                        for (owner, stamp, _), ids in self.entity_ids.items()
+                        if owner == document_id and stamp != document["stamp"]
                     )
+                    if old and args.kind == "edge" and self.defect == "edge-accepts-stale":
+                        return {"ok": True}
                     return self.failure(
                         "EntityReferenceStale" if old else "EntityNotFound"
                     )
             elif key not in self.entity_ids:
                 self.entity_ids[key] = []
-                for _ in range(8):
+                for _ in range(14 if args.kind == "edge" else 8):
                     self.serial += 1
                     self.entity_ids[key].append(f"e-{self.serial:06x}")
+                if args.kind == "edge" and document["path"] and self.defect == "edge-reuses-reopened-ids":
+                    previous = next((
+                        ids for (owner, _, kind), ids in self.entity_ids.items()
+                        if owner != document_id and kind == "edge"
+                    ), None)
+                    if previous:
+                        self.entity_ids[key] = list(previous)
             profiles = list(document["profiles"].values())
             depth = next(
                 profile["depth"] for profile in profiles if not profile["radius"]
             )
             hole = next(profile["depth"] for profile in profiles if profile["radius"])
+            if args.kind == "edge":
+                return self.edge_result(args, document, descriptor, key, depth, hole)
             planes = [
                 ([1, 0, 0], [60, 0, 0]),
                 ([-1, 0, 0], [-40, 0, 0]),
@@ -670,6 +683,87 @@ class FakeCLI:
             }
         raise AssertionError(f"unhandled generated CLI call: {args}")
 
+    def edge_result(self, args, document, descriptor, key, depth, hole):
+        # Independent analytical fixture, not the production assertion helper.
+        corners = list(product((-40, 60), (-5, 45), (0, depth)))
+        pairs = [(a, b) for a, b in combinations(corners, 2)
+                 if sum(x != y for x, y in zip(a, b)) == 1]
+        edges = []
+        for start, end in pairs:
+            delta = [b - a for a, b in zip(start, end)]
+            magnitude = math.hypot(*delta)
+            edges.append({
+                "kind": "edge", "curve_kind": "line",
+                "parameter_data": {
+                    "coordinate_system": "part-model", "interpretation": "native-edge-parameter-data",
+                    "start_point_mm": list(start), "end_point_mm": list(end),
+                    "u_min_native": 0., "u_max_native": magnitude / 1000,
+                    "curve_and_edge_same_direction": True, "curve_type": 3001,
+                },
+                "curve_geometry": {
+                    "available": True, "coordinate_system": "part-model", "boundary": "untrimmed-curve",
+                    "line": {"root_point_mm": list(start), "direction": [v / magnitude for v in delta]},
+                },
+            })
+        for z in (0, hole):
+            edges.append({
+                "kind": "edge", "curve_kind": "circle",
+                "parameter_data": {
+                    "coordinate_system": "part-model", "interpretation": "native-edge-parameter-data",
+                    "start_point_mm": [13., 20., z], "end_point_mm": [13., 20., z],
+                    "u_min_native": 0., "u_max_native": math.tau,
+                    "curve_and_edge_same_direction": True, "curve_type": 3002,
+                },
+                "curve_geometry": {
+                    "available": True, "coordinate_system": "part-model", "boundary": "untrimmed-curve",
+                    "circle": {"center_mm": [10., 20., z], "axis_direction": [0., 0., 1.], "radius_mm": 3.},
+                },
+            })
+        for token, edge in zip(self.entity_ids[key], edges):
+            edge["entity_id"] = token
+        if self.defect == "edge-wrong-radius":
+            edges[-1]["curve_geometry"]["circle"]["radius_mm"] = 4.
+        if self.defect == "edge-wrong-center":
+            edges[-1]["curve_geometry"]["circle"]["center_mm"][0] = 11.
+        if self.defect == "edge-duplicate-circle":
+            other = copy.deepcopy(edges[-2])
+            other["entity_id"] = edges[-1]["entity_id"]
+            edges[-1] = other
+        if self.defect == "edge-wrong-endpoint":
+            edges[0]["parameter_data"]["end_point_mm"][0] += 1.
+        if self.defect == "edge-circle-endpoint":
+            edges[-1]["parameter_data"]["end_point_mm"][0] += 1.
+        if self.defect == "edge-duplicate-line":
+            other = copy.deepcopy(edges[0])
+            other["entity_id"] = edges[1]["entity_id"]
+            edges[1] = other
+        if self.defect == "edge-root-off-line":
+            # First pair is parallel to z; shift only the untrimmed root's x.
+            edges[0]["curve_geometry"]["line"]["root_point_mm"][0] += 1.
+        if self.defect == "edge-tilted-line":
+            edges[0]["curve_geometry"]["line"]["direction"] = [1e-5, 0., math.sqrt(1 - 1e-10)]
+        if self.defect == "edge-tilted-circle":
+            edges[-1]["curve_geometry"]["circle"]["axis_direction"] = [1e-5, 0., math.sqrt(1 - 1e-10)]
+        if self.defect == "edge-extra-length":
+            edges[0]["length_mm"] = 20.
+        if self.defect == "edge-opposite-sense":
+            for edge in edges:
+                edge["parameter_data"]["curve_and_edge_same_direction"] = False
+        self.edge_reads += 1
+        if self.defect == "edge-reordered" and self.edge_reads % 2 == 0:
+            edges.reverse()
+        if self.defect == "edge-evicts-faces" and args.entity_command == "list":
+            self.entity_ids.pop((key[0], key[1], "face"), None)
+        state = {"configuration": "Default", "update_stamp": document["stamp"],
+                 "modified": document["modified"], "editing": False, "foreground_present": self.active is not None}
+        return {
+            "ok": True, "action": f"entity.{args.entity_command}", "document": descriptor,
+            "scope": "single-solid-part-edges", "body_count": 1, "edge_count": 14,
+            "observation": {"before": state, "after": state.copy(), "unchanged": True},
+            **({"entities": edges} if args.entity_command == "list" else
+               {"entity": next(e for e in edges if e["entity_id"] == args.entity_id)}),
+        }
+
 
 class ModelingSmokeTests(unittest.TestCase):
     def setUp(self):
@@ -743,6 +837,8 @@ class ModelingSmokeTests(unittest.TestCase):
         )
         self.assertEqual(record["cleanup_errors"], [])
         self.assertTrue(record["entity_observation"]["verified"])
+        self.assertEqual(record["entity_observation"]["edge_count"], 14)
+        self.assertTrue(record["entity_observation"]["mixed_kind_ids_preserved"])
         self.assertTrue(all(
             event["result"].get("request_id")
             for event in record["events"]
@@ -807,6 +903,46 @@ class ModelingSmokeTests(unittest.TestCase):
         self.run_gate()
         self.assertTrue(self.record()["entity_observation"]["verified"])
         self.assertEqual(self.fake.documents, {})
+
+    def test_edge_geometry_and_mixed_kind_gate_refuse_wrong_native_evidence(self):
+        for defect in (
+            "edge-wrong-radius", "edge-wrong-center", "edge-duplicate-circle",
+            "edge-wrong-endpoint", "edge-circle-endpoint", "edge-duplicate-line",
+            "edge-root-off-line", "edge-tilted-line", "edge-tilted-circle",
+            "edge-extra-length", "edge-evicts-faces",
+        ):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                self.directory = Path(temporary) / "proof"
+                self.fake = FakeCLI(self.directory)
+                self.fake.defect = defect
+                self.arguments[1] = str(self.directory)
+                with self.assertRaises(RuntimeError):
+                    self.run_gate()
+                self.assertFalse(self.record()["success"])
+                self.assertEqual(self.fake.documents, {})
+
+    def test_edge_gate_refuses_stale_acceptance_and_reopened_id_reuse(self):
+        for defect in ("edge-accepts-stale", "edge-reuses-reopened-ids"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                self.directory = Path(temporary) / "proof"
+                self.fake = FakeCLI(self.directory)
+                self.fake.defect = defect
+                self.arguments[1] = str(self.directory)
+                with self.assertRaises(RuntimeError):
+                    self.run_gate()
+                self.assertFalse(self.record()["success"])
+                self.assertEqual(self.fake.documents, {})
+
+    def test_edge_gate_accepts_opposite_sense_and_reordered_complete_reads(self):
+        for defect in ("edge-opposite-sense", "edge-reordered"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                self.directory = Path(temporary) / "proof"
+                self.fake = FakeCLI(self.directory)
+                self.fake.defect = defect
+                self.arguments[1] = str(self.directory)
+                self.run_gate()
+                self.assertTrue(self.record()["entity_observation"]["verified"])
+                self.assertEqual(self.fake.documents, {})
 
     def test_cli_metadata_is_retained_in_evidence_not_business_assertion_view(self):
         self.directory.mkdir()

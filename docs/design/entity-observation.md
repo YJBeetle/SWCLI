@@ -32,8 +32,12 @@ mapping, background/mixed-kind reads, CAS/wrong-kind/cross-document refusal and
 native close/reopen; a multi-face semantic regression discovered during this
 run was fixed rather than bypassed. See the
 [edge operations receipt](../verification/a8-edge-operations-2026-10-10.md).
-This is not installed-client/TCP or Wine proof. The shared modeling gate reuses
-its existing depth fixture for entity checks; installed cross-host gates remain
+This is not installed-client/TCP or Wine proof. The shared modeling gate now
+reuses its existing depth fixture for both face and explicit edge checks:
+8 faces, 12 box lines, 2 blind-hole circles, mixed exact-ID preservation,
+wrong-kind/CAS/cross-document refusal, real depth-write retirement and native
+close/reopen with fresh IDs. Analytical fixture checks do not infer public
+edge length, closure or normalized trim. Installed cross-host gates remain
 pending. The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise

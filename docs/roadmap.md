@@ -93,8 +93,10 @@ Next:
    faces and a shared conservative scope. Current-source Windows typed-handler
    checks pass, with the first failure and corrected result recorded in the
    [operations receipt](verification/a8-edge-operations-2026-10-10.md).
-   Shared installed-gate extension, installed Windows and independent
-   Wine proof remain next; trimmed boundaries and topology-edit survival are
+   The shared installed-client gate now covers edges on its existing depth
+   fixture, including analytic geometry, mixed IDs and real-edit retirement.
+   Installed Windows and independent Wine proof remain next;
+   trimmed boundaries and topology-edit survival are
    not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
