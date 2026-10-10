@@ -144,6 +144,31 @@ trimmed interval, closed seam or unique endpoint pair. Boundaries/units and
 length accuracy need their own contract. Adjacency and owner feature evidence
 must be verified rather than inferred from traversal order.
 
+### Internal edge parameter increment
+
+`windows_edge_geometry.observe_edge_geometry` is an internal reader, not a
+new public capability or a complete edge observation. It obtains the curve
+before `GetCurveParams3`, strictly checks classification/type agreement, native
+booleans, finite ordered U parameters and coordinate arrays. Line root points,
+circle centers and radii are converted to mm; directions must already be unit
+vectors. Other curves remain explicitly unavailable rather than guessed.
+
+`parameter_data` retains raw U values, native start/end coordinates and Sense;
+`curve_geometry` describes only the **untrimmed** curve. Opposite sense is not
+normalized into a validated length interval. Equal endpoint coordinates, a
+full-period-looking interval or absent vertices do not grant closed-edge, seam,
+arc-length, adjacency or feature-owner claims. The owning observer must still
+prove complete membership, persistent-reference identity and unchanged state.
+This slice has 11 portable cases; these are not new native/Wine runtime proof.
+
+Official semantics:
+[GetCurveParams3 ordering](https://help.solidworks.com/2012/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.iedge~getcurveparams3.html),
+[Sense](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icurveparamdata~sense.html),
+[UMaxValue](https://help.solidworks.com/2021/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icurveparamdata~umaxvalue.html),
+[line arrays](https://help.solidworks.com/2017/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ICurve~ILineParams.html),
+[circle arrays](https://help.solidworks.com/2021/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ICurve~CircleParams.html),
+[curve types](https://help.solidworks.com/2022/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swCurveTypes_e.html).
+
 ## Proof sequence
 
 1. Native Windows read-only face traversal/reference round-trip and unchanged
