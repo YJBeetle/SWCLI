@@ -142,6 +142,11 @@ class FakeCLI:
             if self.defect == "assembly-reopen-failed" and subcommand == "open" and args.path.endswith("assembly.SLDASM"):
                 return self.failure("OpenFailed")
             document["read_only"] = args.read_only if subcommand == "open" else False
+            if document["type"] == 2 and args.path.endswith("assembly.SLDASM"):
+                if not args.read_only and self.defect == "assembly-prepared-modified":
+                    document["modified"] = True
+                if args.read_only and self.defect == "assembly-reopen-modified":
+                    document["modified"] = True
             if document["type"] == 3 and args.path.endswith("drawing.SLDDRW") and args.read_only:
                 if self.defect == "drawing-reopen-failed":
                     return self.failure("OpenFailed")
@@ -157,14 +162,16 @@ class FakeCLI:
                 "ok": True,
                 "created": True,
                 "read_only": document["read_only"],
-                "api_errors": (1 if self.defect == "drawing-open-error"
-                               and document["type"] == 3 else 0),
+                "api_errors": (1 if (self.defect == "drawing-open-error" and document["type"] == 3)
+                               or (self.defect == "assembly-open-error" and document["type"] == 2)
+                               else 0),
                 "api_warnings": (4 if self.defect == "drawing-reference-warning"
                                  and document["type"] == 3 else
                                  2 if self.defect == "drawing-writable-warning"
                                  and document["type"] == 3 and not args.read_only else
                                  2 if self.defect == "drawing-readonly-warning"
-                                 and document["type"] == 3 and args.read_only else 0),
+                                 and document["type"] == 3 and args.read_only else
+                                 4 if self.defect == "assembly-open-warning" and document["type"] == 2 else 0),
                 "document": self.descriptor(document, session),
             }
         if action == "document" and subcommand == "list":
@@ -249,6 +256,13 @@ class FakeCLI:
             target = directory / gate.PureWindowsPath(document["path"]).name
             if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
+            if document.get("type") == 2:
+                if self.defect == "assembly-save-still-modified":
+                    document["modified"] = True
+                    return self.failure("DocumentStillModified", api_saved=True, save_errors=0,
+                                        document_after=self.descriptor(document, session))
+                if self.defect == "assembly-save-failed":
+                    return self.failure("SaveFailed")
             if document.get("type") == 3:
                 if self.defect == "drawing-save-failed":
                     return self.failure("SaveFailed")
@@ -436,12 +450,29 @@ class FakeCLI:
             if subcommand == "save-as":
                 document["path"], document["modified"] = args.output, False
                 self.saved[args.output] = copy.deepcopy(document)
-            return {
+            result = {
                 "ok": True,
+                "api_saved": True,
+                "save_errors": 0,
                 "document": self.descriptor(document, session),
                 "file_verification": {"minimum_size_valid": True},
-                "artifact": {"format": gate.PureWindowsPath(args.output).suffix[1:].upper(), "size_bytes": target.stat().st_size},
+                "artifact": {"path": args.output, "format": gate.PureWindowsPath(args.output).suffix[1:].upper(), "size_bytes": target.stat().st_size},
             }
+            if subcommand == "save-as" and document.get("type") == 2:
+                if self.defect in ("assembly-initial-modified", "assembly-initial-modified-bad-save",
+                                   "assembly-initial-modified-bad-path", "assembly-initial-modified-bad-size"):
+                    document["modified"] = True
+                    result["document"] = self.descriptor(document, session)
+                    result.update(ok=False, error={"type": "DocumentStillModified", "message": "initial sample state"})
+                    if self.defect == "assembly-initial-modified-bad-save":
+                        result["save_errors"] = 1
+                    if self.defect == "assembly-initial-modified-bad-path":
+                        result["document"]["path"] = "C:\\wrong.SLDASM"
+                    if self.defect == "assembly-initial-modified-bad-size":
+                        result["artifact"]["size_bytes"] += 1
+                if self.defect == "assembly-initial-save-failed":
+                    result.update(ok=False, error={"type": "SaveFailed", "message": "native failure"})
+            return result
         if action == "sketch" and subcommand == "inspect":
             profile = document["profiles"][args.sketch_id]
             editing = self.defect == "editing" and self.rejected
@@ -1063,6 +1094,7 @@ class ModelingSmokeTests(unittest.TestCase):
         self.run_gate(samples=True)
         proof = self.record()["assembly_save_reopen"]
         self.assertGreaterEqual(proof["save_as_bytes"], 512)
+        self.assertTrue(proof["writable_reopen_clean"])
         self.assertGreaterEqual(proof["size_bytes"], 512)
         self.assertTrue(proof["structure_unchanged"])
         self.assertTrue(proof["fresh_document_id"])
@@ -1076,6 +1108,26 @@ class ModelingSmokeTests(unittest.TestCase):
                             if path.endswith(".SLDASM")]
         self.assertEqual(len(saved_assemblies), 1)
 
+    def test_official_assembly_initial_modified_is_only_a_preparation_exception(self):
+        self.fake.defect = "assembly-initial-modified"
+        self.run_gate(samples=True)
+        proof = self.record()["assembly_save_reopen"]
+        self.assertTrue(proof["preparation"]["modified_after_save_as"])
+        self.assertEqual(proof["preparation"]["error"]["type"], "DocumentStillModified")
+        self.assertTrue(proof["writable_reopen_clean"])
+        self.assertTrue(self.record()["success"])
+        operations = [call for call in self.fake.calls if call.command == "document"
+                      and call.document_command in ("save-as", "save", "open", "close")]
+        save_index = next(i for i, call in enumerate(operations)
+                          if call.document_command == "save-as" and call.output.endswith(".SLDASM"))
+        after = operations[save_index + 1:save_index + 5]
+        self.assertEqual([call.document_command for call in after], ["close", "open", "save", "close"])
+        self.assertFalse(after[1].read_only)
+        self.assertNotEqual(operations[save_index].document_id, after[2].document_id)
+        self.assertEqual(after[2].document_id, after[3].document_id)
+        # No Save3 ever targets the installed official source.
+        self.assertEqual(self.fake.saved[after[1].path]["path"], after[1].path)
+
     def test_assembly_gate_rejects_bad_save_reopen_and_changed_structure(self):
         for defect, message in (
             ("part-save-truncated", "part in-place save produced an empty or truncated"),
@@ -1083,6 +1135,16 @@ class ModelingSmokeTests(unittest.TestCase):
             ("assembly-save-truncated", "empty or truncated"),
             ("assembly-reopen-failed", "OpenFailed"),
             ("assembly-structure-changed", "changed configurations or feature tree"),
+            ("assembly-initial-save-failed", "SaveFailed"),
+            ("assembly-initial-modified-bad-save", "invalid document/file state"),
+            ("assembly-initial-modified-bad-path", "invalid document/file state"),
+            ("assembly-initial-modified-bad-size", "size evidence disagrees"),
+            ("assembly-open-error", "without errors/warnings"),
+            ("assembly-open-warning", "without errors/warnings"),
+            ("assembly-prepared-modified", "still needs saving on writable reopen"),
+            ("assembly-save-still-modified", "DocumentStillModified"),
+            ("assembly-save-failed", "SaveFailed"),
+            ("assembly-reopen-modified", "fresh read-only assembly"),
         ):
             with self.subTest(defect=defect):
                 with tempfile.TemporaryDirectory() as directory:

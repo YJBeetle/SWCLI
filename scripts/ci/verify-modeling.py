@@ -255,6 +255,7 @@ class ModelingSmoke:
         session=None,
         lease=None,
         expected_error=None,
+        allowed_error=None,
         timeout_seconds=None,
     ):
         session = session or self.session
@@ -309,6 +310,12 @@ class ModelingSmoke:
                     and result.get("error", {}).get("type") == expected_error,
                     f"{stage} did not reject with {expected_error}: {event}",
                 )
+            elif (allowed_error is not None and completed.returncode != 0
+                  and isinstance(result, dict) and result.get("ok") is False
+                  and result.get("error", {}).get("type") == allowed_error):
+                # A fixture preparation exception, not a successful operation.
+                # The caller must validate its native save and artifact evidence.
+                pass
             else:
                 require(
                     completed.returncode == 0
@@ -378,12 +385,14 @@ class ModelingSmoke:
             )
         return lease
 
-    def write(self, *arguments, document, expected_error=None, timeout_seconds=None):
+    def write(self, *arguments, document, expected_error=None, allowed_error=None,
+              timeout_seconds=None):
         return self.command(
             *arguments,
             document=document,
             lease=self.renew(document),
             expected_error=expected_error,
+            allowed_error=allowed_error,
             timeout_seconds=timeout_seconds,
         )
 
@@ -1345,7 +1354,9 @@ class ModelingSmoke:
         # parts remain at their original paths: this is not Pack and Go.
         opened = self.command("document", "open", assembly)
         document = opened["document"]["document_id"]
-        require(opened["document"]["type"] == 2, "sample is not an assembly")
+        require(opened["document"]["type"] == 2 and opened["api_errors"] == 0
+                and opened["api_warnings"] == 0 and opened["read_only"] is False,
+                "sample did not open as a writable assembly without errors/warnings")
         before = self.command(
             "document", "inspect", "--detail", "structure", document=document
         )["structure"]
@@ -1361,26 +1372,61 @@ class ModelingSmoke:
 
         expected = signature(before)
         target = str(PureWindowsPath(self.host_directory) / "assembly.SLDASM")
-        saved = self.write("document", "save-as", target, document=document)
+        # Installed samples can retain a modified flag after their first SaveAs
+        # (also observed on native Windows). Prepare a NEW file, never Save3 the
+        # installed source. Only this precise post-save error is permitted here;
+        # production save-as and every subsequent save remain strict.
+        saved = self.write("document", "save-as", target, document=document,
+                           allowed_error="DocumentStillModified")
         require(saved["document"]["document_id"] == document
-                and saved["document"]["modified"] is False
+                and saved["api_saved"] is True and saved["save_errors"] == 0
+                and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(target)
                 and saved["artifact"]["format"] == "SLDASM"
+                and PureWindowsPath(saved["artifact"]["path"]) == PureWindowsPath(target)
                 and saved["file_verification"]["minimum_size_valid"] is True,
-                "assembly save-as left an invalid document/file state")
+                "assembly preparation save-as left an invalid document/file state")
+        initial_modified = saved["document"]["modified"]
+        require((saved["ok"] is True and initial_modified is False)
+                or (saved["ok"] is False and initial_modified is True
+                    and saved["error"]["type"] == "DocumentStillModified"),
+                "assembly preparation has inconsistent modified/error evidence")
         native_file = self.directory / "assembly.SLDASM"
         require(native_file.is_file() and native_file.stat().st_size >= 512,
                 "assembly save-as produced an empty or truncated file")
         save_as_bytes = native_file.stat().st_size
         require(saved["artifact"]["size_bytes"] == save_as_bytes,
                 "assembly save-as size evidence disagrees with the artifact")
-        # Also exercise Save3 on the new file, never on the installed sample.
+        proof = self.record["assembly_save_reopen"] = {
+            "source": assembly,
+            "preparation": {"path": target, "size_bytes": save_as_bytes,
+                            "modified_after_save_as": initial_modified,
+                            "error": saved.get("error")},
+        }
+        self.checkpoint("assembly-preparation.saved")
+        self.close(document)
+        prepared = self.command("document", "open", target)
+        prepared_id = prepared["document"]["document_id"]
+        require(prepared_id != document and prepared["document"]["type"] == 2
+                and prepared["read_only"] is False and prepared["api_errors"] == 0
+                and prepared["api_warnings"] == 0,
+                "prepared assembly did not reopen as a fresh writable assembly")
+        require(prepared["document"]["modified"] is False,
+                "prepared assembly still needs saving on writable reopen")
+        structure = self.command("document", "inspect", "--detail", "structure",
+                                 document=prepared_id)["structure"]
+        require(signature(structure) == expected,
+                "assembly preparation changed configurations or feature tree")
+        document = prepared_id
+        # Save3 on the prepared file is strictly checked, including modified.
         self.verify_in_place_save(document, native_file)
         digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
         self.close(document)
         reopened = self.command("document", "open", target, "--read-only")
         reopened_id = reopened["document"]["document_id"]
         require(reopened_id != document and reopened["document"]["type"] == 2
-                and reopened["read_only"] is True and reopened["api_errors"] == 0,
+                and reopened["read_only"] is True and reopened["api_errors"] == 0
+                and reopened["api_warnings"] in (0, 2)
+                and reopened["document"]["modified"] is False,
                 "saved assembly did not reopen as a fresh read-only assembly")
         after = self.command(
             "document", "inspect", "--detail", "structure", document=reopened_id
@@ -1390,13 +1436,14 @@ class ModelingSmoke:
         self.close(reopened_id)
         require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
                 "read-only assembly reopen changed the saved artifact")
-        self.record["assembly_save_reopen"] = {
+        proof.update({
             "save_as_bytes": save_as_bytes,
             "size_bytes": native_file.stat().st_size,
             "sha256": digest,
             "structure_unchanged": True,
             "fresh_document_id": True,
-        }
+            "writable_reopen_clean": True,
+        })
         self.checkpoint("assembly-save-reopen.verified")
 
     def verify_in_place_save(self, document, native_file):

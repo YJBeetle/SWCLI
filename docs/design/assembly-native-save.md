@@ -19,12 +19,19 @@ provided by the host, now exercises:
 
 1. Open the installed assembly and observe its configurations and complete,
    non-empty top-level feature tree.
-2. Save to a new `assembly.SLDASM` in the evidence directory, check the actual
-   file size against the reported size, then exercise `document save` only on
-   this new file (never the installed source).
-3. Close, reopen read-only with a fresh document ID, require zero open errors,
+2. Prepare a new `assembly.SLDASM` in the evidence directory with SaveAs and
+   check the actual file size against the reported size. Only for this first
+   official-sample preparation, accept `DocumentStillModified` if native saving
+   succeeded with zero errors, the target path was adopted and the artifact is
+   verified. Record the original error and modified flag; do not turn it into a
+   successful CLI response or ignore other save failures.
+3. Close and reopen the new file writable with a fresh document ID. Require
+   zero open errors/warnings, `modified=false`, and unchanged configurations and
+   feature tree. Then exercise strict `document save` only on this prepared file
+   (never the installed source), including its post-save modified flag and size.
+4. Close, reopen read-only with a fresh document ID, require zero open errors,
    and compare configurations and feature names/types with the original.
-4. Close again and verify that the saved file's SHA-256 is unchanged by the
+5. Close again and verify that the saved file's SHA-256 is unchanged by the
    read-only reopen. Record sizes and hash in `assembly_save_reopen` evidence.
 
 Portable regression cases cover empty/truncated assembly output, mismatched
@@ -32,8 +39,12 @@ extensions, failed reopen, and changed structure. These are harness contracts,
 not native CAD proof. The existing generated-part save/reopen sequence also
 executes an in-place save and checks its resulting size before close/reopen.
 Both PRT and ASM sizes appear in `native_in_place_saves` evidence.
-This increment has not yet been validated on a real host;
-it must not be included in the existing a8 runtime receipts as though it passed.
+Native Windows and Wine both retained `modified=true` immediately after the
+official bezel assembly's SaveAs, despite zero native save errors and readable
+output. A separate workspaceroot experiment passed writable open, strict Save3,
+size (1,123,238 bytes), and read-only reopen with three configurations and 25
+top-level features unchanged. This is not proof of the updated full gate or a8
+runtime acceptance; the new preparation sequence still needs formal CI evidence.
 The gate does not claim component-level geometry, mate behavior, external
 reference portability, or assembly insertion validation.
 
