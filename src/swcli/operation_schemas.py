@@ -105,7 +105,16 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.shutdown": _operation("daemon.shutdown"),
     "document.create": _operation(
         "document.create",
-        {"type": _string(enum=["part"]), "template": _string(minLength=1)},
+        {"type": _string(enum=["part", "assembly"]), "template": _string(minLength=1)},
+    ),
+    "assembly.add-component": _operation(
+        "assembly.add-component",
+        {
+            "path": _string(minLength=1), "configuration": _string(),
+            "x_mm": _number(), "y_mm": _number(), "z_mm": _number(),
+        },
+        required=("path",), temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.open": _operation(
         "document.open",

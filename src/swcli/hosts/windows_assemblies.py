@@ -1,0 +1,130 @@
+"""Minimal native assembly creation and saved-part insertion, not mate solving."""
+
+from __future__ import annotations
+
+import math
+import sys
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
+from .native_trace import native_call
+from .windows import _com_value, _describe_document, _error
+from .windows_parts import _resolve_document_template
+
+
+def create_assembly_windows_with_handle(
+    *, app: Any, template: Optional[str] = None
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    result: Dict[str, Any] = {"ok": False, "action": "document.create"}
+    document = None
+    if sys.platform != "win32":
+        result["error"] = {
+            "type": "UnsupportedPlatform",
+            "message": "native Windows document creation requires Windows",
+        }
+        return result, None
+    try:
+        resolved = _resolve_document_template(app, template, kind="assembly")
+        result["template"] = {k: v for k, v in resolved.items() if k != "error"}
+        if not resolved["ok"]:
+            result["error"] = resolved["error"]
+            return result, None
+        document = native_call(
+            "assembly-create", "SldWorks.NewDocument",
+            lambda: app.NewDocument(resolved["path"], 0, 0.0, 0.0),
+        )
+        if document is None:
+            result["error"] = {
+                "type": "NewDocumentFailed",
+                "message": "SOLIDWORKS could not create an assembly from the resolved template",
+            }
+            return result, None
+        result["created"] = True
+        result["document"] = _describe_document(document)
+        if result["document"]["type"] != 2:
+            result["error"] = {
+                "type": "UnexpectedDocumentType",
+                "message": "the resolved assembly template did not produce an assembly document",
+            }
+            return result, document
+        result["ok"] = True
+    except Exception as exc:
+        result["error"] = _error(exc)
+    # A handle acquired before failure still belongs in the daemon registry.
+    return result, document
+
+
+def add_part_component_windows(
+    *, app: Any, document: Any, path: str, configuration: str = "",
+    x_mm: float = 0.0, y_mm: float = 0.0, z_mm: float = 0.0,
+) -> Dict[str, Any]:
+    """Add a previously opened, saved PRT; never save or modify its source."""
+    result: Dict[str, Any] = {"ok": False, "action": "assembly.add-component"}
+
+    def fail(code: str, message: str) -> Dict[str, Any]:
+        result["error"] = {"type": code, "message": message}
+        return result
+
+    try:
+        if not all(math.isfinite(v) for v in (x_mm, y_mm, z_mm)):
+            return fail("InvalidArgument", "component coordinates must be finite millimeters")
+        source_path = Path(path).expanduser().resolve()
+        if source_path.suffix.casefold() != ".sldprt":
+            return fail("UnsupportedComponentType", "component path must use the .SLDPRT extension")
+        if not source_path.is_file() or source_path.stat().st_size == 0:
+            return fail("ComponentFileUnavailable", "component must be an existing nonempty saved PRT")
+        if int(_com_value(document, "GetType")) != 2:
+            return fail("UnsupportedDocumentType", "component insertion requires an assembly document")
+        if int(_com_value(document, "GetReadOnlyState")) != 0:
+            return fail("DocumentReadOnly", "cannot insert into a read-only assembly")
+        if _com_value(document, "GetEditTargetComponent") is not None:
+            return fail("ComponentEditInProgress", "finish in-context component editing before insertion")
+        source = app.GetOpenDocumentByName(str(source_path))
+        if source is None:
+            return fail("ComponentNotLoaded", "open the saved PRT with document open before inserting it")
+        if int(_com_value(source, "GetType")) != 1:
+            return fail("UnsupportedComponentType", "loaded component must be a part document")
+        if Path(str(_com_value(source, "GetPathName"))).resolve() != source_path:
+            return fail("ComponentPathMismatch", "the loaded component does not match the requested saved path")
+        if bool(_com_value(source, "GetSaveFlag")):
+            return fail("ComponentModified", "save the component's unsaved modifications before insertion")
+        if configuration and source.GetConfigurationByName(configuration) is None:
+            return fail("ConfigurationNotFound", "the requested component configuration does not exist")
+        before = tuple(document.GetComponents(True) or ())
+        component = native_call(
+            "component-insert", "AssemblyDoc.AddComponent5",
+            lambda: document.AddComponent5(
+                str(source_path), 0, "", bool(configuration), configuration,
+                x_mm / 1000.0, y_mm / 1000.0, z_mm / 1000.0,
+            ),
+        )
+        if component is None:
+            return fail("ComponentInsertionFailed", "SOLIDWORKS did not return an inserted component")
+        # Insertion is not transactional. Preserve observations even when native
+        # verification fails; do not hide failure with a second insertion.
+        result["inserted"] = True
+        result["component"] = {
+            "name": str(_com_value(component, "Name2")),
+            "path": str(_com_value(component, "GetPathName")),
+            "configuration": str(_com_value(component, "ReferencedConfiguration")),
+        }
+        after = tuple(document.GetComponents(True) or ())
+        result["component_count_before"] = len(before)
+        result["component_count_after"] = len(after)
+        result["placement"] = {
+            "unit": "millimeter", "method": "native-approximate-component-center",
+            "requested_center": {"x": x_mm, "y": y_mm, "z": z_mm},
+        }
+        result["document"] = _describe_document(document)
+        if (
+            len(after) != len(before) + 1
+            or not any(int(app.IsSame(item, component)) == 1 for item in after)
+            or not result["component"]["name"]
+            or Path(result["component"]["path"]).resolve() != source_path
+            or (configuration and result["component"]["configuration"] != configuration)
+        ):
+            return fail("ComponentVerificationFailed", "inserted component identity, path, configuration or count did not match")
+        result["ok"] = True
+    except Exception as exc:
+        result["error"] = _error(exc)
+    return result

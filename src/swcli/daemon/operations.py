@@ -27,6 +27,10 @@ from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
 )
+from ..hosts.windows_assemblies import (
+    create_assembly_windows_with_handle,
+    add_part_component_windows,
+)
 from ..hosts.windows_sketches import (
     create_rectangle_sketch_windows_with_handle,
     create_circle_sketch_windows_with_handle,
@@ -158,7 +162,12 @@ def _register_handler(handler):
 def document_create(
     context: OperationContext, values: Dict[str, Any]
 ) -> Dict[str, Any]:
-    result, created_document = create_part_windows_with_handle(
+    create = (
+        create_assembly_windows_with_handle
+        if values.get("type", "part") == "assembly"
+        else create_part_windows_with_handle
+    )
+    result, created_document = create(
         app=context.app, template=values.get("template")
     )
     if context.documents is not None and created_document is not None:
@@ -168,6 +177,15 @@ def document_create(
             result, context.documents, context.entry, session_id=context.session_id
         )
     return result
+
+
+@_register_handler
+def assembly_add_component(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    return add_part_component_windows(
+        app=context.app, document=context.entry.document, **values
+    )
 
 
 @_register_handler

@@ -80,6 +80,16 @@ def _verify_box_geometry(
 def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
     """Resolve a real part template without opening SOLIDWORKS template UI."""
 
+    return _resolve_document_template(app, template, kind="part")
+
+
+def _resolve_document_template(
+    app: Any, template: Optional[str], *, kind: str
+) -> Dict[str, Any]:
+    extension = ".prtdot" if kind == "part" else ".asmdot"
+    preference = _SW_DEFAULT_TEMPLATE_PART if kind == "part" else 9
+    label = "Part" if kind == "part" else "Assembly"
+
     configured = ""
     if template is not None:
         candidate = Path(template).expanduser().resolve()
@@ -87,19 +97,19 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
     else:
         try:
             configured = str(
-                app.GetUserPreferenceStringValue(_SW_DEFAULT_TEMPLATE_PART) or ""
+                app.GetUserPreferenceStringValue(preference) or ""
             ).strip()
         except Exception:
             configured = ""
         candidate = Path(configured).expanduser().resolve() if configured else None
         source = "solidworks-default"
 
-    if candidate is not None and candidate.suffix.casefold() != ".prtdot":
+    if candidate is not None and candidate.suffix.casefold() != extension:
         return {
             "ok": False,
             "error": {
-                "type": "InvalidPartTemplate",
-                "message": "part template path must use the .PRTDOT extension",
+                "type": f"Invalid{label}Template",
+                "message": f"{kind} template path must use the {extension.upper()} extension",
             },
             "path": str(candidate),
             "source": source,
@@ -122,7 +132,7 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
                 continue
             try:
                 discovered = sorted(
-                    path.resolve() for path in root.rglob("*.prtdot") if path.is_file()
+                    path.resolve() for path in root.rglob(f"*{extension}") if path.is_file()
                 )
             except OSError:
                 continue
@@ -137,10 +147,10 @@ def _resolve_part_template(app: Any, template: Optional[str]) -> Dict[str, Any]:
     return {
         "ok": False,
         "error": {
-            "type": "PartTemplateUnavailable",
+            "type": f"{label}TemplateUnavailable",
             "message": (
-                "no usable SOLIDWORKS part template was found; pass --template "
-                "with an existing .PRTDOT file"
+                f"no usable SOLIDWORKS {kind} template was found; pass --template "
+                f"with an existing {extension.upper()} file"
             ),
         },
         "path": str(candidate) if candidate is not None else None,

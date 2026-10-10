@@ -95,10 +95,10 @@ def build_parser() -> argparse.ArgumentParser:
         dest="document_command", required=True
     )
     create_parser = document_commands.add_parser(
-        "create", help="create an unsaved part from a real SOLIDWORKS template"
+        "create", help="create an unsaved part or assembly from a real SOLIDWORKS template"
     )
-    create_parser.add_argument("--type", choices=("part",), default="part")
-    create_parser.add_argument("--template", help="explicit .PRTDOT template path")
+    create_parser.add_argument("--type", choices=("part", "assembly"), default="part")
+    create_parser.add_argument("--template", help="explicit .PRTDOT or .ASMDOT template path")
     create_parser.add_argument("--json", action="store_true", dest="as_json")
     open_parser = document_commands.add_parser(
         "open", help="open a SOLIDWORKS document silently"
@@ -439,6 +439,22 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(cut_parser)
     add_lease_token(cut_parser)
     cut_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    assembly_parser = subcommands.add_parser("assembly", help="insert saved parts into assemblies")
+    assembly_commands = assembly_parser.add_subparsers(dest="assembly_command", required=True)
+    component_parser = assembly_commands.add_parser(
+        "add-component", help="insert an already-open saved PRT; does not save or mate it"
+    )
+    component_parser.add_argument("path")
+    component_parser.add_argument("--configuration", default="")
+    for axis in ("x", "y", "z"):
+        component_parser.add_argument(
+            f"--{axis}-mm", type=float, default=0.0,
+            help="approximate native component-center coordinate in millimeters, not origin transform",
+        )
+    add_document_selector(component_parser)
+    add_lease_token(component_parser)
+    component_parser.add_argument("--json", action="store_true", dest="as_json")
 
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
@@ -1019,6 +1035,15 @@ def _typed_operation(
             args.document_id,
             args.expected_update_stamp,
             args.lease_id,
+        )
+    if args.command == "assembly":
+        return (
+            "assembly.add-component",
+            {
+                "path": args.path, "configuration": args.configuration,
+                "x_mm": args.x_mm, "y_mm": args.y_mm, "z_mm": args.z_mm,
+            },
+            args.as_json, args.document_id, args.expected_update_stamp, args.lease_id,
         )
     if args.command == "document":
         command = args.document_command

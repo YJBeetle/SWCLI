@@ -119,8 +119,9 @@ class ProtocolSchemaTests(unittest.TestCase):
     def test_document_create_rejects_unsupported_types_and_target_context(self):
         validate_operation_request("document.create", {})
         validate_operation_request("document.create", {"type": "part", "template": "Part.prtdot"})
+        validate_operation_request("document.create", {"type": "assembly", "template": "Assembly.asmdot"})
         with self.assertRaises(ValueError):
-            validate_operation_request("document.create", {"type": "assembly"})
+            validate_operation_request("document.create", {"type": "drawing"})
         with self.assertRaises(ValueError):
             validate_operation_request("document.create", {}, document_id="d-ab12cd")
 

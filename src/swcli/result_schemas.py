@@ -209,6 +209,26 @@ PART_TEMPLATE = _object(
 
 
 _RESULT_FIELDS = {
+    "assembly.add-component": (
+        {
+            "inserted": {"const": True},
+            "component": _object(
+                {"name": STRING, "path": STRING, "configuration": STRING},
+                ("name", "path", "configuration"),
+            ),
+            "component_count_before": INTEGER,
+            "component_count_after": INTEGER,
+            "placement": _object(
+                {
+                    "unit": {"const": "millimeter"},
+                    "method": {"const": "native-approximate-component-center"},
+                    "requested_center": VECTOR,
+                },
+                ("unit", "method", "requested_center"),
+            ),
+        },
+        ("document", "inserted", "component", "component_count_before", "component_count_after", "placement"),
+    ),
     "feature.extrude": (
         {
             "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
