@@ -42,7 +42,7 @@ from ..hosts.windows_linear_dimensions import (
     set_rectangle_dimension_windows,
 )
 from ..hosts.windows_features import extrude_sketch_windows_with_handle
-from ..hosts.windows_native_files import save_as_part_windows
+from ..hosts.windows_native_files import save_as_native_windows
 from ..hosts.windows_measurements import measure_part_windows
 from ..hosts.windows_cuts import cut_extrude_sketch_windows_with_handle
 from ..hosts.windows_sketch_inspection import inspect_sketch_windows
@@ -442,7 +442,7 @@ def document_save_as(
     output = str(Path(values["output"]).expanduser().resolve())
     context.documents.require_new_path(context.entry, output)
     try:
-        return save_as_part_windows(output, document=context.entry.document)
+        return save_as_native_windows(output, document=context.entry.document)
     finally:
         # COM may have adopted the filename even when a later check failed.
         # Refresh before the next sync so references and leases are not lost.

@@ -48,7 +48,7 @@ class NativeSaveTests(unittest.TestCase):
             return self.save_error
 
     def save(self):
-        return native.save_as_part_windows(str(self.output), document=self.document)
+        return native.save_as_native_windows(str(self.output), document=self.document)
 
     def test_unsaved_part_adopts_new_filename_and_reports_native_file_evidence(self):
         result = self.save()
@@ -70,13 +70,13 @@ class NativeSaveTests(unittest.TestCase):
         self.assertEqual(self.output.read_bytes(), b"precious native source")
         self.assertEqual(self.document.saved_calls, [])
 
-    def test_bad_extension_missing_parent_non_part_and_existing_edit_do_not_save(self):
+    def test_bad_extension_missing_parent_drawing_and_existing_edit_do_not_save(self):
         self.output = self.output.with_suffix(".STEP")
         self.assertEqual(self.save()["error"]["type"], "InvalidArgument")
         self.output = self.output.parent / "missing" / "part.SLDPRT"
         self.assertEqual(self.save()["error"]["type"], "ParentDirectoryNotFound")
         self.output = self.output.parent.parent / "part.SLDPRT"
-        self.document.kind = 2
+        self.document.kind = 3
         self.assertEqual(self.save()["error"]["type"], "UnsupportedDocumentType")
         self.document.kind = 1
         existing = object()
@@ -85,6 +85,37 @@ class NativeSaveTests(unittest.TestCase):
         self.assertIs(self.document.SketchManager.ActiveSketch, existing)
         self.assertEqual(self.document.saved_calls, [])
         self.assertFalse(self.output.exists())
+
+    def test_assembly_save_checks_size_and_native_type(self):
+        self.document.kind = 2
+        self.output = self.output.with_suffix(".SLDASM")
+        result = self.save()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["artifact"]["format"], "SLDASM")
+        self.assertEqual(result["artifact"]["size_bytes"], 1032)
+        validate_operation_result("document.save-as", result)
+        invalid = copy.deepcopy(result)
+        invalid["artifact"]["format"] = "SLDPRT"
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("document.save-as", invalid)
+
+    def test_mismatched_native_extensions_do_not_save(self):
+        for kind, suffix in ((1, ".SLDASM"), (2, ".SLDPRT")):
+            with self.subTest(kind=kind):
+                self.document.kind = kind
+                self.output = self.output.with_suffix(suffix)
+                self.assertEqual(self.save()["error"]["type"], "InvalidArgument")
+                self.assertFalse(self.output.exists())
+        self.assertEqual(self.document.saved_calls, [])
+
+    def test_empty_or_truncated_assembly_is_rejected_and_removed(self):
+        self.document.kind = 2
+        self.output = self.output.with_suffix(".SLDASM")
+        for size in (0, 8, 511):
+            with self.subTest(size=size):
+                self.document.content = bytes(size)
+                self.assertEqual(self.save()["error"]["type"], "NativeSaveVerificationFailed")
+                self.assertFalse(self.output.exists())
 
     def test_exclusive_reservation_preserves_a_competing_new_target(self):
         original_open = Path.open

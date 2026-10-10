@@ -636,7 +636,7 @@ class DaemonProtocolTests(unittest.TestCase):
         self.assertIs(registry.resolve(None, session_id="modeler"), other)
         self.assertIs(app.ActiveDoc, foreground)
 
-    @mock.patch("swcli.daemon.operations.save_as_part_windows")
+    @mock.patch("swcli.daemon.operations.save_as_native_windows")
     def test_save_as_keeps_id_current_lease_and_sketches_even_after_post_save_failure(
         self, save
     ):
@@ -709,7 +709,7 @@ class DaemonProtocolTests(unittest.TestCase):
         registry = DocumentRegistry(app)
         entry = registry.register(target)
         registry.register(other)
-        with mock.patch("swcli.daemon.operations.save_as_part_windows") as save:
+        with mock.patch("swcli.daemon.operations.save_as_native_windows") as save:
             with self.assertRaises(DocumentPathConflict):
                 operations.execute_operation(
                     app,

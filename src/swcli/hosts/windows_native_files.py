@@ -10,8 +10,8 @@ from .windows import _com_value, _describe_document, _error
 from .windows_documents import _bitmask_names, _SAVE_ERRORS
 
 
-def save_as_part_windows(output: str, *, document: Any) -> Dict[str, Any]:
-    """Save a part to a new native filename; never overwrite an existing target."""
+def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
+    """Rename a part/assembly to a new native file; do not copy/save references."""
 
     path = Path(output).expanduser().resolve()
     result: Dict[str, Any] = {
@@ -22,10 +22,12 @@ def save_as_part_windows(output: str, *, document: Any) -> Dict[str, Any]:
     reserved = False
     verified_file = False
     try:
-        if path.suffix.casefold() != ".sldprt":
+        kinds = {".sldprt": 1, ".sldasm": 2}
+        suffix = path.suffix.casefold()
+        if suffix not in kinds:
             result["error"] = {
                 "type": "InvalidArgument",
-                "message": "native part save-as requires a .SLDPRT output",
+                "message": "native save-as requires a .SLDPRT or .SLDASM output",
             }
             return result
         if not path.parent.is_dir():
@@ -42,10 +44,16 @@ def save_as_part_windows(output: str, *, document: Any) -> Dict[str, Any]:
             return result
         before = _describe_document(document)
         result["document_before"] = before
-        if before["type"] != 1:
+        if before["type"] not in kinds.values():
             result["error"] = {
                 "type": "UnsupportedDocumentType",
-                "message": "native save-as currently supports part documents only",
+                "message": "native save-as supports part and assembly documents only",
+            }
+            return result
+        if before["type"] != kinds[suffix]:
+            result["error"] = {
+                "type": "InvalidArgument",
+                "message": "native output extension must match the selected document type",
             }
             return result
         if (
@@ -75,7 +83,7 @@ def save_as_part_windows(output: str, *, document: Any) -> Dict[str, Any]:
         if error_code != 0:
             result["error"] = {
                 "type": "SaveFailed",
-                "message": "SOLIDWORKS failed to save the selected native part",
+                "message": "SOLIDWORKS failed to save the selected native document",
             }
             return result
         size = path.stat().st_size
@@ -89,13 +97,13 @@ def save_as_part_windows(output: str, *, document: Any) -> Dict[str, Any]:
         if size < 512:
             result["error"] = {
                 "type": "NativeSaveVerificationFailed",
-                "message": "saved part is empty or smaller than the minimum native file size",
+                "message": "saved document is empty or smaller than the minimum native file size",
             }
             return result
         verified_file = True
         result["artifact"] = {
             "kind": "native-document",
-            "format": "SLDPRT",
+            "format": suffix[1:].upper(),
             "path": str(path),
             "size_bytes": size,
         }

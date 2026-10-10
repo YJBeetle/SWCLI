@@ -452,7 +452,7 @@ _RESULT_FIELDS = {
             "artifact": _object(
                 {
                     "kind": {"const": "native-document"},
-                    "format": {"const": "SLDPRT"},
+                    "format": {"enum": ["SLDPRT", "SLDASM"]},
                     "path": STRING,
                     "size_bytes": {"type": "integer", "minimum": 512},
                 },
@@ -1332,7 +1332,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         schema["then"]["properties"] = {
             "api_saved": {"const": True},
             "save_errors": {"const": 0},
-            "document": {"properties": {"modified": {"const": False}}},
+            "document": {"properties": {"modified": {"const": False}, "type": {"enum": [1, 2]}}},
             "file_verification": {
                 "properties": {
                     "non_empty": {"const": True},
@@ -1340,6 +1340,13 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 }
             },
         }
+        schema["then"]["allOf"] = [
+            {
+                "if": {"properties": {"document": {"properties": {"type": {"const": kind}}}}},
+                "then": {"properties": {"artifact": {"properties": {"format": {"const": file_format}}}}},
+            }
+            for kind, file_format in ((1, "SLDPRT"), (2, "SLDASM"))
+        ]
     if name in ("feature.list", "feature.inspect", "entity.list", "entity.inspect"):
         schema["then"]["properties"] = {
             "observation": {

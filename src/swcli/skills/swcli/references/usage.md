@@ -107,8 +107,11 @@ sw-cli --session bracket document inspect --detail structure --json
 sw-cli --session bracket document diagnose --json
 ```
 
-Save-as currently supports parts and rejects existing targets; there is no
-overwrite or copy mode. Renaming preserves the live document/lease/sketch IDs,
+Save-as supports parts (`.SLDPRT`) and assemblies (`.SLDASM`) in the current
+source and rejects existing targets; use the host's advertised schemas, not an
+older package's assumed support. There is no overwrite or copy mode. Assembly
+references are not copied or requested to be saved; this is not Pack and Go.
+Renaming preserves the live document/lease/sketch IDs,
 but close/reopen creates a new document handle and drops the old handles. Its
 file-size/native-state checks are not a full integrity proof; reopen and verify
 the geometry. Saving is allowed only when the task authorizes source changes.

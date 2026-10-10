@@ -202,7 +202,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(save_parser)
     save_parser.add_argument("--json", action="store_true", dest="as_json")
     save_as_parser = document_commands.add_parser(
-        "save-as", help="save the selected part to a new native filename"
+        "save-as", help="save the selected part or assembly to a new native filename"
     )
     save_as_parser.add_argument("output")
     add_document_selector(save_as_parser)
