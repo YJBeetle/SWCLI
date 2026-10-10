@@ -2291,6 +2291,13 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
     )
     definition = result["definition_after"]
     kind = result["feature"]["kind"]
+    feature = result["feature"]
+    require(
+        kind == ("cut-extrude" if feature["native_type"] == "Cut" else "boss-extrude")
+        and feature["type"] in ("ICE", feature["native_type"])
+        and bool(feature["name"].strip()),
+        "inconsistent native feature semantics",
+    )
     require(
         (kind == "boss-extrude") == ("merge" in definition),
         "feature/definition kind mismatch",

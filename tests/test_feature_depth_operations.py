@@ -218,6 +218,9 @@ class FeatureDepthContractTests(unittest.TestCase):
     def test_success_semantics_refuse_mutation_scope_target_or_state_drift(self):
         for path, value in (
             (("feature", "feature_id"), "f-zzzzzz"),
+            (("feature", "native_type"), "Cut"),
+            (("feature", "type"), "Cut"),
+            (("feature", "name"), " "),
             (("mutation", "commit_attempted"), False),
             (("mutation", "committed"), False),
             (("rebuilt",), False),
