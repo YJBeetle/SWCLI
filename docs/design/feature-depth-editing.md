@@ -10,8 +10,10 @@ modes in run `37998293756`; Wine results remain pending. Public creation-result
 handles have independent native Windows CLI/TCP/COM proof. The internal guarded
 writer now has native Windows boss/cut and equal-depth proof. Public
 `feature.set-depth` also has public source CLI/TCP/lease/CAS and native
-save/reopen proof. Installed-wheel runtime and Wine release gates remain in
-progress. No shipped a7 setter proof is claimed.
+save/reopen proof. Installed-wheel hosted Windows visible/hidden gates now pass
+at `57f221a`; complete Wine delivery and formal release gates remain in progress.
+See the [depth runtime record](../verification/a7-depth-runtime-2026-10-10.md).
+No shipped a7 setter proof is claimed.
 
 An internal, nonmutating preliminary depth guard is also implemented. It reads
 strict writable/view-only, suppression/freeze/rollback, native command,
@@ -103,7 +105,8 @@ claims that all parameters are externally controlled. Selection-scope and
 access/release restoration now have separate internal proof. The internal writer
 also has actual depth/post-write verification proof. Public contracts retain
 mutation flags, bounded selection-check lifecycle evidence and independent
-metrics; installed-wheel/Wine delivery remains to be verified.
+metrics; installed development-wheel Windows proof has passed, while formal
+distribution and complete Wine delivery remain to be verified.
 
 Exact simple-profile ownership and final-body classification now have a
 nonmutating internal guard. Do not mistake these for complete feature-selection

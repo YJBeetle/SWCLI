@@ -1,7 +1,9 @@
 # a7 feature observation: development verification
 
-This records read-only development proof, **not an a7 release** or feature-edit
-support. The public implementation is `cc1ba7e5295b92e50d5f57da8e443b9d91298975`,
+This is a chronological development record, **not an a7 release**. Later sections
+add guarded editing proof; pending statements in earlier sections describe their
+own candidates, not the latest implementation. The initial public read implementation is
+`cc1ba7e5295b92e50d5f57da8e443b9d91298975`,
 following registry `a13c470` and native observer `259cf34`. Package version is
 `0.1.0a7.dev0`; the public a6 assets remain unchanged.
 
