@@ -86,8 +86,10 @@ Next:
    Internal edge parameter/analytic-curve and complete bounded ownership readers
    are implemented with portable failure tests and two unchanged current-source
    Windows background reads recorded in the
-   [edge receipt](verification/a8-edge-observer-2026-10-10.md). Public edge
-   handles/contracts and independent Wine proof remain next; trimmed boundaries
+   [edge receipt](verification/a8-edge-observer-2026-10-10.md). Internal mixed
+   face/edge handles also pass exact reuse and real Windows close/reopen in the
+   [registry receipt](verification/a8-edge-registry-2026-10-10.md). Public edge
+   contracts and independent Wine proof remain next; trimmed boundaries
    and topology-edit survival are not implemented. Public entity commands still
    observe faces only.
 2. Extend profiles/end conditions and selected-body/face support only with

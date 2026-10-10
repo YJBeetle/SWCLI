@@ -169,8 +169,8 @@ array reordering is accepted, but same-count replacements and duplicates fail.
 Configuration, stamp, modified flag, edit identity and foreground must remain
 unchanged. Any native, geometry, membership or state failure discards all edge
 records and bindings while retaining the first error. Thirteen portable cases
-cover this owning observer; it has not yet been exposed to the public registry,
-catalog, schema or CLI. Public `entity.list/inspect` still observes faces only.
+cover this owning observer; it has not yet been exposed to the public catalog,
+schema or CLI. Public `entity.list/inspect` still observes faces only.
 Two actual current-source Windows background observations now pass on the same
 host, with all 14 exact bindings and analytic arrays matching native readback.
 See the [edge receipt](../verification/a8-edge-observer-2026-10-10.md) for source
@@ -197,6 +197,11 @@ DocumentRegistry's existing close/external-close/reopen ownership expires both
 kinds together; no second per-document lifetime or independent scope was added.
 Public operation/result schemas and CLI still advertise faces only. Portable
 mixed-kind tests are not proof of installed edge commands or topology survival.
+Actual current-source Windows mixed-kind registration now passes: two reads per
+opening preserve 8 face/14 edge IDs, external close expires both and reopening
+issues fresh disjoint IDs. The user's original documents/foreground/SW host and
+the copied file remain unchanged. See the
+[mixed registry receipt](../verification/a8-edge-registry-2026-10-10.md).
 
 Official semantics:
 [GetCurveParams3 ordering](https://help.solidworks.com/2012/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.iedge~getcurveparams3.html),
