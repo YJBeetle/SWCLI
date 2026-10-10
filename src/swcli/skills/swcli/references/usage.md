@@ -317,7 +317,10 @@ a guessed plane/cylinder.
 The short `e-xxxxxx` handles are local to the worker and document. Close/reopen
 requires fresh discovery. An observed configuration/stamp change permanently
 retires old IDs even when geometry may be unchanged; rebuild or equal-depth
-selection access can advance that stamp. `EntityReferenceStale` means explicitly
+selection access can advance that stamp. A verified scope change also retires
+IDs when geometry observation fails; that failure never publishes partial IDs.
+An unchanged-scope geometry failure alone does not retire them.
+`EntityReferenceStale` means explicitly
 rediscover and re-evaluate the intended target. `EntityNotFound` means unknown,
 cross-document or closed handle. Never revive an old token or automatically
 select the nearest geometric match. Edges and face-targeted mutations are not

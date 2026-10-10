@@ -234,3 +234,25 @@ the copied source byte-for-byte. This proves packaging and portable wiring, not
 actual COM execution through the installed CLI. The concurrently updated guides
 were not part of that package snapshot, so a release package must be rebuilt.
 Local receipt: `/private/tmp/swcli-a8-integration-package.72outI/verification-receipt.md`.
+
+## Independent integration review
+
+Two portable review reproductions were fixed in separate commits:
+
+- `905e6e6`: the fixture gate previously checked each plane individually, so
+  seven distinct IDs could all carry the same otherwise valid `-X` geometry.
+  It now consumes the complete seven-plane direction/location set exactly once,
+  rejects duplicate cut floors and small tilts, and accepts valid reordered
+  faces. Sixteen modeling-gate tests pass. These are fixture assertions, not a
+  new restriction on legitimate coplanar faces in general CAD models.
+- `3575fca`: a failed list could observe a new configuration/stamp without
+  retiring prior handles, allowing a subsequent return to the original scope
+  to revive them. Verified before/after scope reads now retire IDs separately
+  from complete geometry registration. No partial handles are issued; the
+  first native error is retained. Same-scope failure keeps live exact handles.
+  Forty-four entity operation/registry/result tests pass, including five new
+  failure-boundary cases.
+
+The earlier full-suite/package receipt remains evidence for its named runtime,
+not for these later fixes. Current installed-host verification must name the
+new runtime commit explicitly.

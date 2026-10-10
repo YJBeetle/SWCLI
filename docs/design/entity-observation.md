@@ -67,7 +67,10 @@ instead of returning a supposedly complete subset. Other surfaces are explicitly
 unclassified with unavailable analytic geometry.
 
 IDs expire on close/worker replacement and are permanently stale after an
-observed configuration/stamp change. `EntityReferenceStale` requires explicit
+observed configuration/stamp change, including a verified scope read in an
+otherwise failed geometry observation. A failed read does not issue new IDs;
+a failure in the same scope does not by itself retire exact live handles.
+`EntityReferenceStale` requires explicit
 rediscovery and reconsideration of the target, never automatic nearest-face
 matching. `EntityNotFound` covers unknown/cross-document/closed IDs. A stamp
 change may be caused by selection access or rebuild, not a topology change;
