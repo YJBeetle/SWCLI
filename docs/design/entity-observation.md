@@ -176,6 +176,28 @@ host, with all 14 exact bindings and analytic arrays matching native readback.
 See the [edge receipt](../verification/a8-edge-observer-2026-10-10.md) for source
 hashes, unchanged state, traces and the unproved false-sense/Wine boundaries.
 
+### Internal face/edge registry increment
+
+The document's EntityRegistry now accepts separate complete FaceBinding and
+EdgeBinding batches, issues disjoint short `e-` IDs from the same worker-wide
+issued set, and verifies native identity only within the selected kind. Native
+body ownership is shared, and ambiguous reference bytes across kinds are
+rejected. Geometry or reference-byte equality alone never rebinds an ID.
+
+Both kinds share one observed configuration/stamp scope. A change observed
+through either group or `observe_scope` permanently retires **both** groups,
+even if a later read returns to the previous scope. Same-scope registration
+atomically replaces only that kind's verified complete set and preserves the
+other group. Failed registration publishes no partial batch or issued tokens;
+a verified new scope remains retired even when registration fails.
+
+Internal resolution explicitly requests an entity kind; its unchanged default
+is `face`. An edge ID cannot be used as a face ID or in another document.
+DocumentRegistry's existing close/external-close/reopen ownership expires both
+kinds together; no second per-document lifetime or independent scope was added.
+Public operation/result schemas and CLI still advertise faces only. Portable
+mixed-kind tests are not proof of installed edge commands or topology survival.
+
 Official semantics:
 [GetCurveParams3 ordering](https://help.solidworks.com/2012/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.iedge~getcurveparams3.html),
 [Sense](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icurveparamdata~sense.html),
