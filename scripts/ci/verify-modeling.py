@@ -22,6 +22,7 @@ import tempfile
 import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT
+from swcli.result_schemas import validate_operation_result
 
 # Bound read-only observation groups independently of request/phase deadlines.
 # The daemon lease default stays unchanged; holder writes still renew.
@@ -782,6 +783,92 @@ class ModelingSmoke:
         )
         self.close(b)
 
+    def observe_faces(self, document, *, depth, hole_depth, background, repeat=False):
+        """Reuse the depth fixture; reads have no write token or activation."""
+        observer = self.session + "-entity-reader"
+        self.renew(document)
+        before = self.command(
+            "document", "inspect", document=document, session=observer
+        )["document"]
+        listed = self.command("entity", "list", document=document, session=observer)
+        validate_operation_result("entity.list", listed)
+        faces = listed["entities"]
+        require(
+            listed["face_count"] == 8 and len(faces) == 8,
+            "depth fixture face enumeration is incomplete",
+        )
+        planes = [face for face in faces if face["surface_kind"] == "plane"]
+        cylinders = [face for face in faces if face["surface_kind"] == "cylinder"]
+        require(
+            len(planes) == 7 and len(cylinders) == 1,
+            "depth fixture analytic face classification changed",
+        )
+        for face in planes:
+            plane = face["surface_geometry"]["plane"]
+            normal = plane["outward_normal"]
+            axis = max(range(3), key=lambda index: abs(normal[index]))
+            require(
+                abs(abs(normal[axis]) - 1) < 1e-9,
+                "fixture plane has a non-axis outward normal",
+            )
+            expected = (
+                (60 if normal[0] > 0 else -40)
+                if axis == 0
+                else (
+                    (45 if normal[1] > 0 else -5)
+                    if axis == 1
+                    else depth if normal[2] > 0 else None
+                )
+            )
+            position = plane["point_mm"][axis]
+            if expected is None:
+                require(
+                    any(abs(position - value) <= 1e-5 for value in (0, hole_depth)),
+                    "negative-Z face does not match base or cut floor",
+                )
+            else:
+                near(position, expected, "fixture native plane location changed")
+        cylinder = cylinders[0]["surface_geometry"]["cylinder"]
+        near(cylinder["radius_mm"], 3, "native cylinder radius changed")
+        for value, expected in zip(cylinder["axis_point_mm"][:2], (10, 20)):
+            near(value, expected, "native cylinder axis moved")
+        near(abs(cylinder["axis_direction"][2]), 1, "native cylinder axis tilted")
+        if repeat:
+            repeated = self.command(
+                "entity", "list", document=document, session=observer
+            )
+            validate_operation_result("entity.list", repeated)
+            require(
+                repeated == listed, "read-only repeat changed IDs, geometry or state"
+            )
+        for face in (planes[0], cylinders[0]):
+            self.renew(document)
+            inspected = self.command(
+                "entity",
+                "inspect",
+                face["entity_id"],
+                document=document,
+                session=observer,
+            )
+            validate_operation_result("entity.inspect", inspected)
+            require(
+                inspected["entity"] == face,
+                "exact entity inspection changed its binding",
+            )
+            if background:
+                self.background(inspected, document)
+        if background:
+            self.background(listed, document)
+        self.renew(document)
+        require(
+            self.command("document", "inspect", document=document, session=observer)[
+                "document"
+            ]
+            == before,
+            "entity reads changed native document or foreground/current state",
+        )
+        return [face["entity_id"] for face in faces]
+
     def feature_depth(self):
         # A separate exact single-solid fixture: the main modeling case includes
         # deliberate multiple bodies and is not eligible for this narrow writer.
@@ -799,7 +886,25 @@ class ModelingSmoke:
         circle = self.circle(a, radius=3, x=10, y=20)
         cut = self.feature(a, circle["sketch"]["sketch_id"], cut=True, depth=5)
         boss_id, cut_id = boss["feature"]["feature_id"], cut["feature"]["feature_id"]
+        initial_faces = self.observe_faces(
+            a, depth=20, hole_depth=5, background=True, repeat=True
+        )
+        self.command(
+            "entity",
+            "inspect",
+            initial_faces[0],
+            document=b,
+            expected_error="EntityNotFound",
+        )
         before = self.command("document", "inspect", document=a)["document"]
+        self.command(
+            "entity",
+            "list",
+            "--if-update-stamp",
+            before["update_stamp"] + 1,
+            document=a,
+            expected_error="DocumentUpdateConflict",
+        )
         self.command(
             "feature",
             "set-depth",
@@ -842,6 +947,13 @@ class ModelingSmoke:
                 timeout_seconds=self.depth_request_timeout_seconds,
             )
             self.background(changed, a)
+            self.command(
+                "entity",
+                "inspect",
+                initial_faces[0],
+                document=a,
+                expected_error="EntityReferenceStale",
+            )
             require(
                 changed["feature_id"] == feature_id
                 and changed["depth_changed"] is True
@@ -902,6 +1014,13 @@ class ModelingSmoke:
             document=b,
             expected_error="FeatureNotFound",
         )
+        before_close_faces = self.observe_faces(
+            a, depth=25, hole_depth=8, background=True
+        )
+        require(
+            not set(initial_faces) & set(before_close_faces),
+            "depth edits silently rebound old entity IDs",
+        )
         native = str(PureWindowsPath(self.host_directory) / "edited-depth.SLDPRT")
         saved = self.write("document", "save-as", native, document=a)
         self.background(saved, a)
@@ -915,6 +1034,30 @@ class ModelingSmoke:
         reopened = self.command("document", "open", native, "--read-only")["document"][
             "document_id"
         ]
+        self.command(
+            "entity",
+            "inspect",
+            before_close_faces[0],
+            document=reopened,
+            expected_error="EntityNotFound",
+        )
+        reopened_faces = self.observe_faces(
+            reopened, depth=25, hole_depth=8, background=False
+        )
+        require(
+            not set(before_close_faces) & set(reopened_faces),
+            "native reopen reused expired entity IDs",
+        )
+        self.record["entity_observation"] = {
+            "verified": True,
+            "face_count": 8,
+            "planes": 7,
+            "cylinders": 1,
+            "repeat_ids_preserved": True,
+            "changed_scope_rejected": True,
+            "reopen_ids_fresh": True,
+            "leased_background_read_unchanged": True,
+        }
         features = self.command("feature", "list", document=reopened)["features"]
         require(
             len(features) == 2

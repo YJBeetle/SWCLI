@@ -33,11 +33,13 @@ class FakeCLI:
         self.defect = None
         self.health_calls = 0
         self.feature_ids = {}
+        self.entity_ids = {}
         self.now = 0
         self.operation_seconds = 0
 
     def descriptor(self, document, session):
         return {
+            "title": document["id"],
             "document_id": document["id"],
             "path": document["path"],
             "type": 1,
@@ -219,8 +221,115 @@ class FakeCLI:
             and document["lease"]["session"] != session
             and not (action == "sketch" and subcommand == "inspect")
             and not (action == "feature" and subcommand in ("list", "inspect"))
+            and not (action == "entity" and subcommand in ("list", "inspect"))
         ):
             return self.failure("DocumentLeaseConflict")
+        if action == "entity":
+            key = (document_id, document["stamp"])
+            if subcommand == "inspect":
+                tokens = self.entity_ids.get(key, [])
+                if args.entity_id not in tokens:
+                    old = any(
+                        args.entity_id in ids
+                        for (owner, stamp), ids in self.entity_ids.items()
+                        if owner == document_id
+                    )
+                    return self.failure(
+                        "EntityReferenceStale" if old else "EntityNotFound"
+                    )
+            elif key not in self.entity_ids:
+                self.entity_ids[key] = []
+                for _ in range(8):
+                    self.serial += 1
+                    self.entity_ids[key].append(f"e-{self.serial:06x}")
+            profiles = list(document["profiles"].values())
+            depth = next(
+                profile["depth"] for profile in profiles if not profile["radius"]
+            )
+            hole = next(profile["depth"] for profile in profiles if profile["radius"])
+            planes = [
+                ([1, 0, 0], [60, 0, 0]),
+                ([-1, 0, 0], [-40, 0, 0]),
+                ([0, 1, 0], [0, 45, 0]),
+                ([0, -1, 0], [0, -5, 0]),
+                ([0, 0, 1], [0, 0, depth]),
+                ([0, 0, -1], [0, 0, 0]),
+                ([0, 0, -1], [0, 0, hole]),
+            ]
+            faces = [
+                {
+                    "entity_id": token,
+                    "kind": "face",
+                    "surface_kind": "plane",
+                    "area_mm2": 1000.0,
+                    "area_accuracy": "approximate",
+                    "surface_geometry": {
+                        "available": True,
+                        "coordinate_system": "part-model",
+                        "boundary": "untrimmed-surface",
+                        "face_normal_opposes_surface": False,
+                        "plane": {
+                            "point_mm": point,
+                            "surface_normal": normal,
+                            "outward_normal": normal,
+                        },
+                    },
+                }
+                for token, (normal, point) in zip(self.entity_ids[key], planes)
+            ]
+            faces.append(
+                {
+                    "entity_id": self.entity_ids[key][-1],
+                    "kind": "face",
+                    "surface_kind": "cylinder",
+                    "area_mm2": 100.0,
+                    "area_accuracy": "approximate",
+                    "surface_geometry": {
+                        "available": True,
+                        "coordinate_system": "part-model",
+                        "boundary": "untrimmed-surface",
+                        "face_normal_opposes_surface": True,
+                        "cylinder": {
+                            "axis_point_mm": [10.0, 20.0, hole],
+                            "axis_direction": [0.0, 0.0, -1.0],
+                            "radius_mm": 3.0,
+                        },
+                    },
+                }
+            )
+            state = {
+                "configuration": "Default",
+                "update_stamp": document["stamp"],
+                "modified": document["modified"],
+                "editing": False,
+                "foreground_present": self.active is not None,
+            }
+            if self.defect == "entity-wrong-radius":
+                faces[-1]["surface_geometry"]["cylinder"]["radius_mm"] = 4
+            if self.defect == "entity-wrong-plane":
+                faces[0]["surface_geometry"]["plane"]["point_mm"][0] = 61
+            if self.defect == "entity-wrong-outward":
+                faces[0]["surface_geometry"]["plane"]["outward_normal"] = [-1, 0, 0]
+            result = {
+                "ok": True,
+                "action": f"entity.{subcommand}",
+                "document": descriptor,
+                "scope": "single-solid-part-faces",
+                "body_count": 1,
+                "face_count": 8,
+                "observation": {
+                    "before": state,
+                    "after": state.copy(),
+                    "unchanged": True,
+                },
+            }
+            if subcommand == "list":
+                result["entities"] = faces
+            else:
+                result["entity"] = next(
+                    face for face in faces if face["entity_id"] == args.entity_id
+                )
+            return result
         if action == "document" and subcommand in ("save-as", "export"):
             target = self.directory / gate.PureWindowsPath(args.output).name
             if target.exists():
@@ -610,6 +719,7 @@ class ModelingSmokeTests(unittest.TestCase):
             record["host"]["process_id"], record["host_after"]["process_id"]
         )
         self.assertEqual(record["cleanup_errors"], [])
+        self.assertTrue(record["entity_observation"]["verified"])
         self.assertEqual(self.fake.documents, {})
         calls = self.fake.calls
         failed = next(
@@ -640,6 +750,25 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(
             all(event["stderr"] == "native stderr\n" for event in record["events"])
         )
+
+    def test_entity_geometry_gate_refuses_plausible_but_wrong_native_values(self):
+        for defect in (
+            "entity-wrong-radius",
+            "entity-wrong-plane",
+            "entity-wrong-outward",
+        ):
+            with (
+                self.subTest(defect=defect),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                self.directory = Path(temporary) / "proof"
+                self.fake = FakeCLI(self.directory)
+                self.fake.defect = defect
+                self.arguments[1] = str(self.directory)
+                with self.assertRaises(RuntimeError):
+                    self.run_gate()
+                self.assertFalse(self.record()["success"])
+                self.assertEqual(self.fake.documents, {})
 
     def test_custom_request_timeout_reaches_all_cli_calls_and_evidence(self):
         self.arguments.extend(
