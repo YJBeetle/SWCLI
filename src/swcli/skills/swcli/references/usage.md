@@ -57,9 +57,10 @@ session's current document. `document use ID` changes that current handle.
 changing current. Temporary foreground activation restores the previous tab.
 Different session names isolate current-document state, not SOLIDWORKS itself.
 
-Document IDs are worker-local and expire on close or worker replacement. Sketch
-and dimension IDs are additionally scoped to their document; they are not persistent native
-references or names. Reopening a file does not promise the same IDs.
+Document IDs are worker-local and expire on close or worker replacement. Sketch,
+feature and dimension IDs are additionally scoped to their document; they are
+not persistent native references or names. Reopening a file does not promise
+the same IDs.
 
 ```bash
 sw-cli --session bracket document lease acquire --document d-ab12cd --ttl-seconds 60 --json
@@ -235,6 +236,55 @@ plus measured volume reduction; this is blind depth, not through-all. It does
 not choose a body from GUI selection or roll back a failed partial feature.
 Create a profile that intersects existing solid material and verify the actual
 removed volume/shape against the task, not merely `ok: true`.
+
+### Observe features and edit depth
+
+Use this only when the running daemon advertises `feature.list`,
+`feature.inspect` and, for editing, `feature.set-depth`. These are a7 development
+operations, not capabilities of the published a6 wheel.
+
+```bash
+sw-cli feature list --document DOCUMENT_ID --json
+sw-cli feature inspect FEATURE_ID --document DOCUMENT_ID --json
+sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 \
+  --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp STAMP --json
+sw-cli document measure --document DOCUMENT_ID --json
+```
+
+Replace placeholders with returned IDs/token and a freshly observed stamp.
+Creation returns `.feature.feature_id` for a supported boss/cut; listing recovers
+fresh exact live handles after reopen. The list covers part extrusions, not the
+whole feature tree. Read-only inspection does not activate, enter selection
+access or rebuild, and does not promise that the feature is editable. Native
+`depth_mm` is the forward parameter, not actual material thickness or through-all
+travel. A cut's native direction flag is not the creation CLI's normalized flag.
+
+The first setter supports only writable, single-configuration parts with one
+solid, an exact absorbed full-circle/axis-aligned rectangle profile and a simple
+one-direction solid blind boss/cut. Equations/design tables, ongoing edits,
+suppression/freeze/rollback, thin/draft/nonblind/reference-start features,
+explicit direction/contour references and unsupported body scopes are refused,
+not removed or silently normalized. A supported depth read is not permission
+to override these controls. Do not change the model merely to evade a refusal.
+
+Editing preserves non-depth parameters, verifies current-configuration scope,
+native depth, complete rebuild health and independent body metrics. Temporary
+activation restores the previous foreground and does not change session current.
+The request budget is explicit; a larger budget does not authorize retries or
+host restarts. Compare geometry with the task's expected result: depth alone
+does not predict arbitrary downstream topology or removed material.
+
+Equal depth is a verified mutation no-op, not a pure read: preflight native
+selection access/release may advance the update stamp even when depth/geometry
+and the modified flag stay unchanged. Refresh the stamp after the call; never
+reuse the preflight stamp for a subsequent write.
+
+Failures retain `mutation` and `selection_checks` evidence, including possible
+staging/commit and access/release failures. `depth_changed: null` means the final
+outcome is not verified. Inspect native state before another mutation; no
+automatic rollback, setter retry, source save or host restart is provided.
+Successful in-memory editing does not save the native part. Save only with task
+authority, then close/reopen and use fresh handles to verify persistence.
 
 ## Export and recover
 

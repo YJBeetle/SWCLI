@@ -42,6 +42,11 @@ skill; it does not depend on the developer's machine or repository checkout.
   is explicit; `sketch.dimension-rectangle` does not anchor the center implicitly.
   Inspect/edit the returned width/height roles, not guessed native dimensions.
   See the usage guide's parameterized-rectangle workflow and discovery limits.
+- If feature observation/depth editing is advertised, use returned exact feature
+  handles, not tree names. Inspection is read-only, not edit eligibility.
+  `feature.set-depth` has narrow profile/scope/control guards; equal depth still
+  performs native selection access and can advance the update stamp. Read the
+  usage guide's depth-editing boundary before editing or handling a failure.
 - Verify native state and geometry after a change. A failed operation can leave
   partial geometry; inspect before retrying. Do not claim automatic rollback,
   full constraint solving, or exact measurements from approximate body boxes.
