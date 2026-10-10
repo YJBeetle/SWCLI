@@ -74,45 +74,25 @@ history, exact runtime provenance and independent MacSW limitations. Equal-depth
 selection access may advance the stamp; partial failures retain evidence, not
 an automatic rollback. Readable definitions do not imply arbitrary edit authority.
 
+The [a8 exact face/edge slice](design/entity-observation.md) provides complete
+bounded read-only `entity.list/inspect`, short mixed-kind IDs, native ownership/
+identity and analytic geometry with conservative scope retirement. Formal
+installed Windows visible/hidden and DockerSW hidden Wine delivery gates pass,
+including native save/reopen, six exports, dimensions, required Toolbox,
+evidence uploads and image promotion. The
+[formal receipt](verification/a8-formal-runtime-2026-10-11.md) separates exact
+runtime candidates, first failures/fixes and distribution proof; the linked
+design retains incremental native/development receipts. Trimmed boundaries,
+topology-edit survival and general entity-targeted writes are not implemented.
+
 Next:
 
-1. Build the narrow
-   [exact face/edge observation slice](design/entity-observation.md) as the
-   foundation for explicit target-based modeling. Development `entity.list/inspect`
-   now combines complete bounded face observations, short IDs, analytic geometry
-   and conservative stamp/configuration retirement. Actual Windows typed-handler
-   checks pass, including real rebuild/close/reopen. The shared installed-client
-   gate is implemented; full hosted Windows development proof has passed in the
-   [Windows receipt](verification/a8-entity-windows-2026-10-10.md), while formal
-   delivery and publication remain pending.
-   Independent wheel-payload Wine proof is recorded below, separately from
-   DockerSW image delivery.
-   Internal edge parameter/analytic-curve and complete bounded ownership readers
-   are implemented with portable failure tests and two unchanged current-source
-   Windows background reads recorded in the
-   [edge receipt](verification/a8-edge-observer-2026-10-10.md). Internal mixed
-   face/edge handles also pass exact reuse and real Windows close/reopen in the
-   [registry receipt](verification/a8-edge-registry-2026-10-10.md). Development
-   edge contracts and CLI now use explicit `--kind edge`, preserving default
-   faces and a shared conservative scope. Current-source Windows typed-handler
-   checks pass, with the first failure and corrected result recorded in the
-   [operations receipt](verification/a8-edge-operations-2026-10-10.md).
-   The shared installed-client gate now covers edges on its existing depth
-   fixture, including analytic geometry, mixed IDs and real-edit retirement.
-   A narrow installed Windows wheel/CLI/TCP copy check also passes; see the
-   [installed receipt](verification/a8-edge-installed-windows-2026-10-10.md).
-   The complete independent Linux/Wine modeling/driving/Toolbox sequence now
-   passes with an exact wheel payload on an existing formal host image; see the
-   [Wine receipt](verification/a8-entity-wine-2026-10-10.md). This is not a new
-   DockerSW image delivery. Formal-version host delivery remains next;
-   trimmed boundaries and topology-edit survival are
-   not implemented.
-2. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
+1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
    on a generated part before exposing a new operation. Start with one explicit
    edge and a constant radius, exact native target readback, independent geometry
    checks and existing lease/stamp/restoration guards. This is planned, not an a8
    capability.
-3. Extend profiles/end conditions and selected-body/face support only with
+2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
@@ -139,10 +119,10 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a7 release notes](releases/v0.1.0a7.md). A pre-release does not imply a
+[v0.1.0a8 release notes](releases/v0.1.0a8.md). A pre-release does not imply a
 stable compatibility commitment.
-The unpublished [a8 release draft](releases/v0.1.0a8.md) tracks the next changes
-and open runtime/distribution gates without advancing the published version.
+Runtime and distribution receipts remain distinct; the
+[a8 formal record](verification/a8-formal-runtime-2026-10-11.md) tracks both.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,

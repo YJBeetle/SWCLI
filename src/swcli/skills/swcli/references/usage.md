@@ -287,10 +287,10 @@ automatic rollback, setter retry, source save or host restart is provided.
 Successful in-memory editing does not save the native part. Save only with task
 authority, then close/reopen and use fresh handles to verify persistence.
 
-### Observe exact faces and edges (a8 development)
+### Observe exact faces and edges (since a8)
 
 Only use this when both `entity.list` and `entity.inspect` are advertised. They
-are in the a8 development checkout, **not** the published a7 wheel. Check the
+are available since a8, **not** in the older a7 wheel. Check the
 running parameter/result schemas for explicit edge support as well.
 
 ```bash

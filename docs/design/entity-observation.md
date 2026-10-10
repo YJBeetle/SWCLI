@@ -1,6 +1,6 @@
 # Exact face/edge observation
 
-Status: **a8 development**, not an a7 capability or a published a8 release.
+Status: **available since a8**, not an a7 capability.
 The CLI/catalog/schema implement read-only `entity.list/inspect` for default
 faces and explicit edges, complete bounded ownership/identity reads, analytic
 geometry, mixed short IDs and shared conservative scope retirement.
@@ -21,7 +21,9 @@ with an exact wheel payload and one unchanged host; see the
 [Wine receipt](../verification/a8-entity-wine-2026-10-10.md). This is not a new
 DockerSW image build/promotion. Full hosted Windows visible/hidden development
 gates also passed; see the [Windows receipt](../verification/a8-entity-windows-2026-10-10.md).
-The [release draft](../releases/v0.1.0a8.md) tracks formal-delivery gates still needed.
+Formal installed Windows visible/hidden and DockerSW hidden delivery also pass;
+see the [formal receipt](../verification/a8-formal-runtime-2026-10-11.md) and
+[release notes](../releases/v0.1.0a8.md) for exact runtime/distribution boundaries.
 
 The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
@@ -36,7 +38,7 @@ the selected document/body. Do not derive identity from display names, a tree
 position, array order, a rounded geometric signature or GUI selection.
 
 The initial vocabulary is `entity.list` and `entity.inspect`, available only in
-the matching a8 development daemon/client, not the published a7 wheel. Keep the
+the matching a8 daemon/client, not the older a7 wheel. Keep the
 initial scope explicit instead of quietly dropping
 unsupported bodies or surface geometry from a supposedly complete list.
 Malformed/incomplete/cyclic/over-limit traversal fails without publishing a
@@ -48,7 +50,7 @@ solver/display changes or source saves. Verify configuration, edit identity,
 modified flag, update stamp and foreground before/after. A lease does not prevent
 another session from reading; unchanged state still has to be proved.
 
-## Development commands
+## Commands
 
 ```sh
 sw-cli entity list --document DOCUMENT_ID --max-faces 64 --json

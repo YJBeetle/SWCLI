@@ -78,11 +78,11 @@ The a7 shared gate also requires guarded boss/cut depth edits,
 equal-depth lifecycle checks, independent volume and native save/reopen proof,
 and read-only refusal before selection access. Its depth requests have a
 separate 600-second budget; the remaining request budgets are unchanged.
-The a8 development gate additionally observes bounded complete face/edge sets
+The a8 gate additionally observes bounded complete face/edge sets
 on the same boss/cut fixture via explicit `--kind edge`, verifies independent
 analytic geometry, mixed-ID reuse and conservative retirement after real edits,
 and requires fresh references after native save/read-only reopen. These added
-checks do not imply topology-edit survival or a published a8 release.
+checks do not imply topology-edit survival or replace distribution publication proof.
 
 The hosted installation is performed once. Its smoke wrapper runs first in the
 default visible test mode, then again with `-Hidden` and a separate `hidden/`

@@ -72,16 +72,57 @@ not the native logging or CAD code, and retains the no-argument/result guarantee
 DockerSW candidate **`d924d9bfeafd966611e1868754a5c29bdbd8a68d`** pins
 **`244e9e51ac7d3f3da8cacdbba419440dd0e6b22f`** and includes both fixes.
 [CI 38065149214](https://github.com/YJBeetle/DockerSW/actions/runs/38065149214)
-is the formal delivery gate; its terminal runtime/artifact/promotion receipt is
-still pending. The candidate's Python, Schema and packaged skill files match
+**passed**, including all runtime gates, localized smoke, evidence permissions,
+artifact uploads and image promotion. The candidate's Python, Schema and packaged skill files match
 the successful formal Windows wheel byte for byte; source tests/docs and
 archive hashes differ. That comparison does not replace a Wine host gate.
+
+The test-only commit's [SWCLI 38064920085](https://github.com/YJBeetle/SWCLI/actions/runs/38064920085)
+passed both unit jobs and packaging. Its redundant native job was deliberately
+cancelled; the final record shows installation cancelled and business smoke
+skipped. It is **not** a second native pass. Formal Windows proof is the fully
+completed `38063625340` run above, with exact runtime-resource equality checked
+against the newer package.
+
+The new delivery image's hidden daemon-owned SW2025 `33.5.0`, PID **608**, stayed
+connected throughout six exports, **229 modeling events**, **598 driving events**
+and **8 Toolbox calls**. Downloaded terminal records independently confirm
+completion/success, empty cleanup/evidence errors and unchanged first/final
+PIDs across modeling, driving and Toolbox. The full face/edge assertions listed
+above pass. Toolbox has 19 standards, 1844 models and a 652345-byte index; the
+same representative source hash is unchanged, with updater exit still unknown.
+
+The six downloaded outputs are Paper Airplane STEP, bezel moldbase STEP/PDF/DWG
+and cabinet_bath PDF/DWG. Both STEP delimiters, both AutoCAD 2000 DWG signatures
+and readable PDFs (respectively **1 and 3 pages**) were independently checked.
+The localized `zh-cn` Paper Airplane STEP also has complete delimiters. This is
+the newly built CLI delivery, not the earlier wheel-on-existing-host proof;
+the installation base may be reused and does not imply a new Linux cold install.
+
+| Formal Wine terminal record | SHA-256 |
+| --- | --- |
+| Modeling | `d51da82b4bf6ae0c31250a1aefb551397f5c19b4ed615321f636c2c9beb6f541` |
+| Driving dimensions | `063495c9c026b5bdb39a20883b9bc95b156412e82af3a046434011d717134be3` |
+| Toolbox | `4da7275b75cfaae565e093d30e3b72c8470c8b8248f045352c7477a3047f0468` |
+
+Export artifact `sw-cli-export-smoke-38065149214`, ID `11674944896`, digest
+`sha256:2830351ddf11de9ef87dd713486c13438e84bf30381bff17d0d115470cb8c93b`.
+Localized artifact ID `11675254337`, digest
+`sha256:e8fdc96a556449fe8b06c55742a42eb09b82c040676406d9789feb3761ab8b40`.
+Both are downloaded under the local directory above. Uploading root-created
+atomic JSON now passes without widening access to private installation inputs.
+
+A read-only registry query through trusted `workspaceroot` confirms
+`sw-executable:sha-d924d9b-cli` and `sw-executable:2025-cli` have the same Linux
+amd64 manifest:
+`sha256:16ab51eb86530d207d4d71b8ae531b1002530674100e4065faeefe4acb465b34`.
+No container was started or modified for that query.
 
 ## Distribution boundary
 
 Local normal wheel installation, isolated CLI/Schema/skill verification,
 `twine check`, source-payload checks and 69 affected portable tests passed.
-These are not published assets. The latest public release remains a7 until
-formal delivery and publication receipts are completed. Exact face/edge IDs
+These are not published assets. Formal host gates are complete; distribution
+publication still needs its separate receipt. Exact face/edge IDs
 remain conservative worker/document-local references, not trimmed topology or
 arbitrary edit-survival guarantees.

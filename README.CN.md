@@ -49,19 +49,19 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a7` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a8` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a7/swcli-0.1.0a7-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a8/swcli-0.1.0a8-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a7` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a8` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸、特征句柄和 lease
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
-[a7 发行说明](docs/releases/v0.1.0a7.md)。
+[a8 发行说明](docs/releases/v0.1.0a8.md)。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -100,14 +100,15 @@ sw-cli doctor --json
 
 在 DockerSW 中，`sw-cli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
 
-### 开发工作区
+### 精确面/边观测
 
-a8 开发工作区新增只读 `entity list/inspect`，观测准确的面（默认）或边（`--kind edge`），提供随文档状态失效的短句柄。
+自 a8 起，只读 `entity list/inspect` 可观测准确的面（默认）或边（`--kind edge`），提供随文档状态失效的短句柄。
 边结果区分原始参数与未裁剪的直线/圆几何，不宣称边长、闭合性或编辑权限。
-**已发布的 a7 wheel 不包含此能力**；Windows 安装包经 CLI/TCP 的副本只读验证和完整 hosted 可见/隐藏开发门禁已通过，见 [Windows 记录](docs/verification/a8-entity-windows-2026-10-10.md)。
-独立 Linux/Wine 的完整共享序列已在既有正式宿主镜像加 wheel 载荷下通过，但不代表新 DockerSW 镜像交付；见 [Wine 记录](docs/verification/a8-entity-wine-2026-10-10.md)。
+旧 a7 wheel 不包含此能力。正式 Windows 安装包的可见/隐藏双模式和 DockerSW 隐藏 Wine 交付门禁均已通过，覆盖六个导出、建模、尺寸、Toolbox 和镜像晋升，见[正式验证记录](docs/verification/a8-formal-runtime-2026-10-11.md)。
 具体限制见[实体观测设计](docs/design/entity-observation.md)。
-[a8 发行说明草案](docs/releases/v0.1.0a8.md) 汇总改动及尚未完成的发行门禁，不表示已经发布。
+[a8 发行说明](docs/releases/v0.1.0a8.md) 提供安装命令和验证边界。
+
+### 开发工作区
 
 希望源码修改立即生效的贡献者可以使用 editable 安装：
 
@@ -179,7 +180,7 @@ daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw
 sw-cli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。a8 开发版本允许 `daemon stop` 在用户文档仍打开时正常脱离；独占宿主仍须先关闭文档才能停止。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。自 a8 起，`daemon stop` 可在用户文档仍打开时正常脱离；独占宿主仍须先关闭文档才能停止。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
 
 TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报错，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 

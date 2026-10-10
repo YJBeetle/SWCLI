@@ -20,7 +20,7 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
   calls skip setters/commits/rebuilds while retaining complete selection
   restoration, saves/reopens native depths with fresh handles, and requires
   a read-only reopened part to reject depth edits before selection access.
-  The a8 development gate reuses that same fixture for complete discovery of
+  The a8 gate reuses that same fixture for complete discovery of
   8 faces and 14 edges (12 box lines and 2 blind-hole circles), analytical face
   geometry, raw edge endpoints and line/circle geometry. Repeated reads must
   preserve IDs across mixed face/edge groups; wrong-kind, CAS and cross-document

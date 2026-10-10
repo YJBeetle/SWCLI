@@ -71,23 +71,23 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a7` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a8` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a7/swcli-0.1.0a7-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a8/swcli-0.1.0a8-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a7` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a8` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 Stop the old daemon before upgrading, then explicitly start the matching version.
 Temporary document/sketch/dimension/feature handles and leases expire on restart.
-See the [a7 release notes](docs/releases/v0.1.0a7.md) for portable-client
+See the [a8 release notes](docs/releases/v0.1.0a8.md) for portable-client
 installation, exact verification evidence and known limits.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
@@ -138,21 +138,19 @@ DockerSW runs the `sw-cli` client with Linux Python and the daemon/COM worker
 with Windows Python under Wine. DockerSW owns that split runtime, Wine setup,
 SOLIDWORKS registration, and process lifecycle.
 
-### Development checkout
+### Exact face/edge observation
 
-The a8 checkout adds read-only `entity list/inspect` for exact faces (default)
+Since a8, read-only `entity list/inspect` observes exact faces (default)
 or edges (`--kind edge`) and short scope-sensitive IDs. Edge output separates
 raw native parameters from untrimmed line/circle geometry; it does not claim
-length, closure or edit authority. This is **not in the published a7 wheel**; installed
-Windows copy-based CLI/TCP observation checks and full hosted visible/hidden
-development gates passed; see the [Windows receipt](docs/verification/a8-entity-windows-2026-10-10.md).
-The independent complete Linux/Wine shared
-sequence passed with a wheel payload on an existing formal host image, not a
-new DockerSW image delivery; see the [Wine receipt](docs/verification/a8-entity-wine-2026-10-10.md).
-See the
-[entity slice](docs/design/entity-observation.md) for the explicit limits.
-The [a8 release draft](docs/releases/v0.1.0a8.md) tracks changes and remaining
-release gates; it is not a publication notice.
+length, closure or edit authority. The older a7 wheel does not include it.
+Formal installed Windows visible/hidden and DockerSW hidden Wine delivery gates
+passed, including the six exports, modeling, dimensions, Toolbox and image
+promotion; see the [formal receipt](docs/verification/a8-formal-runtime-2026-10-11.md).
+See the [entity slice](docs/design/entity-observation.md) for explicit limits and
+the [a8 release notes](docs/releases/v0.1.0a8.md) for installation and proof boundaries.
+
+### Development checkout
 
 Contributors who intentionally want source edits to take effect immediately can
 use an editable install:
@@ -254,7 +252,7 @@ sw-cli daemon start --attach-existing
 
 An explicitly attached instance preserves its visibility and is reported as
 `owned_by_daemon: false` and `shared_interactive: true`. Daemon shutdown and
-timeout recovery never close or force-terminate it. In a8 development,
+timeout recovery never close or force-terminate it. Since a8,
 `daemon stop` can detach while its user documents remain open; an owned host
 still refuses shutdown until its documents are closed. Because its state is unknown
 after a timed-out COM call, swclid rejects further typed operations with
