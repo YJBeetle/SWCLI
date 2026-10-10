@@ -97,7 +97,10 @@ Next:
    fixture, including analytic geometry, mixed IDs and real-edit retirement.
    A narrow installed Windows wheel/CLI/TCP copy check also passes; see the
    [installed receipt](verification/a8-edge-installed-windows-2026-10-10.md).
-   Full hosted Windows and independent Wine proof remain next;
+   The complete independent Linux/Wine modeling/driving/Toolbox sequence now
+   passes with an exact wheel payload on an existing formal host image; see the
+   [Wine receipt](verification/a8-entity-wine-2026-10-10.md). This is not a new
+   DockerSW image delivery. Full hosted Windows proof remains next;
    trimmed boundaries and topology-edit survival are
    not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with

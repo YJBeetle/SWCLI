@@ -42,6 +42,10 @@ pending. A narrow installed Windows wheel/CLI/TCP run now passes those read-only
 face/edge observation methods on an own copy, including close/reopen and preserved
 user state; see the [installed receipt](../verification/a8-edge-installed-windows-2026-10-10.md).
 It does not establish the complete generated-modeling/depth-write gate.
+The complete shared modeling/depth-edit, driving and Toolbox sequence now passes
+on independent Linux/Wine using an exact wheel payload and one unchanged host;
+see the [Wine receipt](../verification/a8-entity-wine-2026-10-10.md). This is not
+a newly built DockerSW image, full hosted Windows proof or a published a8 release.
 The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise

@@ -104,7 +104,8 @@ sw-cli doctor --json
 
 a8 开发工作区新增只读 `entity list/inspect`，观测准确的面（默认）或边（`--kind edge`），提供随文档状态失效的短句柄。
 边结果区分原始参数与未裁剪的直线/圆几何，不宣称边长、闭合性或编辑权限。
-**已发布的 a7 wheel 不包含此能力**；Windows 安装包经 CLI/TCP 的副本只读验证已通过，完整 hosted Windows/Wine 集成门禁仍待执行。
+**已发布的 a7 wheel 不包含此能力**；Windows 安装包经 CLI/TCP 的副本只读验证已通过，完整 hosted Windows 验证仍待执行。
+独立 Linux/Wine 的完整共享序列已在既有正式宿主镜像加 wheel 载荷下通过，但不代表新 DockerSW 镜像交付；见 [Wine 记录](docs/verification/a8-entity-wine-2026-10-10.md)。
 具体限制见[实体观测设计](docs/design/entity-observation.md)。
 
 希望源码修改立即生效的贡献者可以使用 editable 安装：
