@@ -11,7 +11,7 @@ PowerShell script, verifies the installed CLI and protocol schemas, and builds
 and checks both distributions on Linux. The Linux package job installs the
 actual wheel and verifies the isolated CLI, all request/result Schemas and
 packaged product skill/guide; Windows checks the same resources in the installed
-checkout. These jobs do not activate COM, run Wine or require
+checkout during the unit stage. These jobs do not activate COM, run Wine or require
 SOLIDWORKS and are safe for pull requests.
 
 The second stage depends on both unit tests and package validation. It runs the
@@ -50,6 +50,11 @@ The same visible/hidden host also runs `scripts/ci/verify-toolbox.py
 --require-toolbox`: actual configured library inventory plus public read-only
 standard-part open/diagnose/measure/close. It does not load the Toolbox add-ins
 or replace the installer's responsibility to check actual deployment exit codes.
+The host installer explicitly selects the official Toolbox program/data/English
+feature chains and requires `Toolbox/ToolboxUpdates.zip` from the full medium.
+It keeps the narrow core selection and `INSTALLLEVEL=100`; it does not install
+every add-in. The inventory/native gate still has to pass independently of MSI
+success. See the [Toolbox finding](verification/toolbox-2026-10-10.md).
 
 See [shared runtime tests](runtime-tests.md) for the portable entry points,
 host/local path namespaces and evidence. These common assertions are no longer
@@ -59,6 +64,11 @@ The a7 shared gate also requires guarded boss/cut depth edits,
 equal-depth lifecycle checks, independent volume and native save/reopen proof,
 and read-only refusal before selection access. Its depth requests have a
 separate 600-second budget; the remaining request budgets are unchanged.
+The a8 development gate additionally observes bounded complete face/edge sets
+on the same boss/cut fixture via explicit `--kind edge`, verifies independent
+analytic geometry, mixed-ID reuse and conservative retirement after real edits,
+and requires fresh references after native save/read-only reopen. These added
+checks do not imply topology-edit survival or a published a8 release.
 
 The hosted installation is performed once. Its smoke wrapper runs first in the
 default visible test mode, then again with `-Hidden` and a separate `hidden/`
@@ -91,8 +101,11 @@ it also applies to native Windows:
    `Common Files\SOLIDWORKS Shared` layout;
 4. apply the private test-only program overlay;
 5. start the private FlexNet server and wait for `lmutil lmstat` to succeed;
-6. install the current checkout; its platform marker installs pywin32 on
-   Windows automatically;
+6. download the same run's `swcli-dist` package artifact, require exactly one
+   wheel, install that wheel normally and verify its isolated installed commands,
+   Schemas and product skill; its platform marker installs pywin32 on Windows
+   automatically. The checkout supplies scripts/fixtures, not an editable native
+   runtime;
 7. start the resident daemon with `sw-cli daemon serve`, capture desktop/window
    diagnostics around first startup, then use typed CLI requests against its
    single COM worker for a real model, structural inspection, diagnosis,
