@@ -211,15 +211,15 @@ def validate_entity_semantics(name, result):
         and document["update_stamp"] == after["update_stamp"],
         "inconsistent read-only observation state",
     )
-    kind = "edge" if result["scope"] == "single-solid-part-edges" else "face"
+    entity_kind = "edge" if result["scope"] == "single-solid-part-edges" else "face"
     entities = result["entities"] if name == "entity.list" else [result["entity"]]
     if name == "entity.list":
-        require(result[f"{kind}_count"] == len(entities), f"incomplete {kind} enumeration")
+        require(result[f"{entity_kind}_count"] == len(entities), f"incomplete {entity_kind} enumeration")
         tokens = [entity["entity_id"] for entity in entities if "entity_id" in entity]
         require(len(tokens) == len(set(tokens)), "duplicate entity handles")
     for entity in entities:
-        require(entity["kind"] == kind, "entity kind disagrees with observation scope")
-        if kind == "edge":
+        require(entity["kind"] == entity_kind, "entity kind disagrees with observation scope")
+        if entity_kind == "edge":
             parameters = entity["parameter_data"]
             require(parameters["u_min_native"] < parameters["u_max_native"],
                     "native curve parameter interval is empty or reversed")

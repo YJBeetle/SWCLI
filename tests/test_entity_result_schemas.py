@@ -78,6 +78,22 @@ class EntityResultSchemaTests(unittest.TestCase):
             with self.assertRaises(OperationResultInvalid):
                 validate_entity_observation(name, face_result(name))
 
+    def test_complete_multi_surface_face_set_does_not_change_entity_kind(self):
+        result = face_result()
+        cylinder = deepcopy(result["entities"][0])
+        cylinder.update(entity_id="e-abcdef", surface_kind="cylinder")
+        geometry = cylinder["surface_geometry"]
+        del geometry["plane"]
+        geometry["cylinder"] = {
+            "axis_point_mm": [0, 0, 0], "axis_direction": [0, 0, 1], "radius_mm": 3,
+        }
+        result["entities"].append(cylinder)
+        result["face_count"] = 2
+        validate_entity_result("entity.list", result)
+        for face in result["entities"]:
+            del face["entity_id"]
+        validate_entity_observation("entity.list", result)
+
     def test_cylinder_and_unknown_have_disjoint_geometry_not_plane_guesses(self):
         result = face_result()
         face = result["entities"][0]

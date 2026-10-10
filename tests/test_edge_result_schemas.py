@@ -67,6 +67,17 @@ class EdgeResultSchemaTests(unittest.TestCase):
             with self.assertRaises(OperationResultInvalid):
                 validate_entity_observation(name, edge_result(name))
 
+    def test_complete_mixed_curve_edge_set_keeps_entity_kind(self):
+        result = edge_result()
+        circle = edge_result(curve="circle")["entities"][0]
+        circle["entity_id"] = "e-abcdef"
+        result["entities"].append(circle)
+        result["edge_count"] = 2
+        validate_entity_result("entity.list", result)
+        for edge in result["entities"]:
+            del edge["entity_id"]
+        validate_entity_observation("entity.list", result)
+
     def test_raw_sense_negative_interval_equal_endpoints_do_not_claim_closure(self):
         result = edge_result(curve="circle")
         params = result["entities"][0]["parameter_data"]
