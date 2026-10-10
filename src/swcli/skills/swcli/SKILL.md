@@ -51,10 +51,12 @@ skill; it does not depend on the developer's machine or repository checkout.
   partial geometry; inspect before retrying. Do not claim automatic rollback,
   full constraint solving, or exact measurements from approximate body boxes.
 - If `entity.list/inspect` is advertised, use the returned `e-` handles for exact
-  read-only face evidence. A configuration/stamp change permanently retires them;
-  rediscover and reconsider the target, never choose the nearest-looking face.
-  Analytic surfaces are not trimmed face boundaries or edit authority. See the
-  usage guide for scope/units and unknown/stale handling.
+  read-only faces (default) or edges (explicit `--kind edge` on both commands).
+  Never infer kind from an opaque ID. A configuration/stamp change permanently
+  retires both kinds; rediscover and reconsider the target, never choose the
+  nearest-looking entity. Untrimmed surfaces/curves and raw edge parameters
+  are not trimmed boundaries, length/closure guarantees or edit authority.
+  See the usage guide for scope/units and unknown/stale handling.
 - For CI acceptance use `document export --strict`. Do not suppress source
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does

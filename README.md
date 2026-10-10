@@ -144,6 +144,7 @@ The a8 checkout adds read-only `entity list/inspect` for exact faces (default)
 or edges (`--kind edge`) and short scope-sensitive IDs. Edge output separates
 raw native parameters from untrimmed line/circle geometry; it does not claim
 length, closure or edit authority. This is **not in the published a7 wheel**; installed
+Windows copy-based CLI/TCP observation checks passed, while full hosted
 Windows/Wine integration gates are still pending. See the
 [entity slice](docs/design/entity-observation.md) for the explicit limits.
 
