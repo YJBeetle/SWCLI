@@ -11,6 +11,7 @@ from swcli.daemon.entities import (
     EntityBindingConflict,
 )
 from swcli.hosts.windows_entity_observation import FaceBinding
+from swcli.daemon.documents import DocumentRegistry
 
 
 class EntityRegistryTests(unittest.TestCase):
@@ -239,6 +240,84 @@ class EntityRegistryTests(unittest.TestCase):
             self.resolve(old[0], update_stamp=13)
         self.app.IsSame.side_effect = lambda a, b: int(a is b)
         self.assertTrue(set(old).isdisjoint(self.register(update_stamp=13)))
+
+
+class DocumentEntityLifecycleTests(unittest.TestCase):
+    def setUp(self):
+        self.app = SimpleNamespace(
+            IsSame=lambda a, b: int(
+                getattr(a, "identity", a) is getattr(b, "identity", b)
+            )
+        )
+        self.registry = DocumentRegistry(self.app)
+        self.document = self.document_object()
+        self.entry = self.registry.register(self.document)
+        body = object()
+        self.bindings = [
+            FaceBinding(object(), body, b"one"),
+            FaceBinding(object(), body, b"two"),
+        ]
+
+    @staticmethod
+    def document_object(identity=None):
+        return SimpleNamespace(
+            identity=object() if identity is None else identity,
+            GetTitle=lambda: "part.SLDPRT",
+            GetPathName=lambda: "C:\\part.SLDPRT",
+            GetType=lambda: 1,
+            GetSaveFlag=lambda: False,
+        )
+
+    def register_faces(self, entry):
+        return entry.entities.register_faces(
+            self.bindings, configuration="default", update_stamp=12
+        )
+
+    def test_owner_assigns_document_local_registry_without_native_calls(self):
+        self.assertEqual(self.entry.entities.document_id, self.entry.document_id)
+        self.assertIs(self.entry.entities.app, self.app)
+        self.assertIs(self.entry.entities._issued_ids, self.registry._issued_entity_ids)
+        self.assertEqual(self.entry.entities._entries, {})
+
+    def test_forget_closes_even_an_externally_retained_registry(self):
+        token = self.register_faces(self.entry)[0]
+        retained = self.entry.entities
+        self.registry.forget(self.entry.document_id)
+        with self.assertRaises(EntityNotFound):
+            retained.resolve(token, configuration="default", update_stamp=12)
+        with self.assertRaises(EntityNotFound):
+            self.register_faces(self.entry)
+
+    def test_live_document_wrapper_reuse_keeps_exact_entity_registry(self):
+        tokens = self.register_faces(self.entry)
+        retained = self.entry.entities
+        wrapped = self.document_object(self.document.identity)
+        repeated = self.registry.register(wrapped)
+        self.assertIs(repeated, self.entry)
+        self.assertIs(repeated.entities, retained)
+        self.assertEqual(self.register_faces(repeated), tokens)
+
+    def test_same_path_external_reopen_closes_old_registry_and_never_reuses_tokens(
+        self,
+    ):
+        old = self.register_faces(self.entry)
+        reopened = self.registry.register(self.document_object())
+        self.assertIsNot(reopened.entities, self.entry.entities)
+        with self.assertRaises(EntityNotFound):
+            self.entry.entities.resolve(
+                old[0], configuration="default", update_stamp=12
+            )
+        self.assertTrue(set(old).isdisjoint(self.register_faces(reopened)))
+        self.assertTrue(set(old) <= self.registry._issued_entity_ids)
+
+    def test_synchronizing_external_close_expires_entity_handles(self):
+        old = self.register_faces(self.entry)
+        self.app.GetDocuments = lambda: ()
+        self.registry.sync()
+        with self.assertRaises(EntityNotFound):
+            self.entry.entities.resolve(
+                old[0], configuration="default", update_stamp=12
+            )
 
 
 if __name__ == "__main__":
