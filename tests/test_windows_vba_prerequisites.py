@@ -110,6 +110,32 @@ class WindowsVbaPrerequisiteContractsTests(unittest.TestCase):
         self.assertEqual(source.count('Start-Process -FilePath "msiexec.exe"'), 1)
         self.assertNotIn("solidworks.msi", source.lower())
 
+    def test_cold_install_selects_required_toolbox_features_and_media(self):
+        source = script("install-solidworks.ps1")
+        features_block = source.split("$features = @(", 1)[1].split(
+            ') -join ","', 1
+        )[0]
+        features = re.findall(r'"([A-Za-z0-9_]+)"', features_block)
+        self.assertEqual(len(features), len(set(features)))
+        self.assertEqual(
+            set(features),
+            {
+                "SolidWorks", "ProgramFiles", "i386_ProgramFiles",
+                "i386_ThirdPtyFiles", "i386_DCubeFiles", "i386_SWFiles",
+                "i386_VistaFiles", "AddIns", "SolidWorksToolbox",
+                "TBProgramFiles", "i386_TBProgramFiles", "TBData",
+                "TBSupportedLanguages", "TBEnglish", "i386_TBEnglish",
+            },
+        )
+        self.assertIn('"INSTALLLEVEL=100", "ADDLOCAL=$features"', source)
+        self.assertNotIn('"ADDLOCAL=ALL"', source)
+        self.assertIn('Join-Path $MediaRoot "Toolbox\\ToolboxUpdates.zip"', source)
+        required = source.split("foreach ($requiredFile", 1)[1].split(
+            "function Invoke-Installer", 1
+        )[0]
+        self.assertIn("$toolboxUpdates", required)
+        self.assertIn("Test-Path -LiteralPath $requiredFile -PathType Leaf", required)
+
     def test_hosted_ci_always_uses_full_installation_without_snapshot_replay(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"

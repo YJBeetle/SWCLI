@@ -72,6 +72,11 @@ proof of hidden/background behavior.
 The Windows-only equation setup attaches through ROT and is required in the
 visible run only. Its hidden-host ROT limitation does not make the public
 modeling/driving gates optional and is not resolved by starting another host.
+The Windows CI installer explicitly selects the official Toolbox program,
+data and English-resource feature chains alongside the core features. It requires
+the installation medium's `Toolbox/ToolboxUpdates.zip`, keeps `INSTALLLEVEL=100`
+and does not select all add-ins. MSI success alone still does not prove Toolbox
+deployment: the shared inventory/read-only native gate must pass afterwards.
 
 ## Development validation
 

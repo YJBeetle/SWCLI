@@ -27,7 +27,8 @@ $loginManagerMsi = Join-Path $MediaRoot "swloginmgr\SOLIDWORKS Login Manager.msi
 $vbaSourceDirectory = Join-Path $MediaRoot "prereqs\VBA"
 $vbaMsi = Join-Path $vbaSourceDirectory "vba71.msi"
 $vbaLanguageMsi = Join-Path $vbaSourceDirectory "vba71_1033.msi"
-foreach ($requiredFile in @($coreMsi, $loginManagerMsi, $LicensingRegistryFile, $vbaMsi, $vbaLanguageMsi)) {
+$toolboxUpdates = Join-Path $MediaRoot "Toolbox\ToolboxUpdates.zip"
+foreach ($requiredFile in @($coreMsi, $loginManagerMsi, $LicensingRegistryFile, $vbaMsi, $vbaLanguageMsi, $toolboxUpdates)) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required private installation input is unavailable: $requiredFile"
     }
@@ -74,7 +75,16 @@ if ($registryProcess.ExitCode -ne 0) {
 }
 
 $msiLog = Join-Path $LogDirectory "solidworks-msi.log"
-$features = "SolidWorks,ProgramFiles,i386_ProgramFiles,i386_ThirdPtyFiles,i386_DCubeFiles,i386_SWFiles,i386_VistaFiles"
+# Explicit ADDLOCAL does not select the Toolbox descendants automatically.
+# Its official deployment actions require the TB__SwToolboxDll component.
+# Keep the core selection and add only Toolbox program/data/English resources;
+# do not raise INSTALLLEVEL or select every add-in with ADDLOCAL=ALL.
+$features = @(
+    "SolidWorks", "ProgramFiles", "i386_ProgramFiles", "i386_ThirdPtyFiles",
+    "i386_DCubeFiles", "i386_SWFiles", "i386_VistaFiles",
+    "AddIns", "SolidWorksToolbox", "TBProgramFiles", "i386_TBProgramFiles",
+    "TBData", "TBSupportedLanguages", "TBEnglish", "i386_TBEnglish"
+) -join ","
 Write-Host "[install] Installing the core MSI into $InstallDirectory"
 Invoke-Installer -Name "SOLIDWORKS core MSI" -FilePath "msiexec.exe" -Arguments @(
     "/i", ('"{0}"' -f $coreMsi), "/qb", "/norestart", "DISABLEROLLBACK=1",
