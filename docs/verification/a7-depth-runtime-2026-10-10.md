@@ -158,3 +158,30 @@ runtime commit. All 42 Python files and three packaged Schema files match the
 formal CI wheel byte for byte. The packaged usage guide additionally fixes the
 nonexistent `document status` example to use `document inspect`; this is a
 resource correction, not a new runtime command or a repeat native test.
+
+## Published distribution receipt
+
+[v0.1.0a7](https://github.com/YJBeetle/SWCLI/releases/tag/v0.1.0a7) was published
+at **2026-10-10T08:56:56Z** (16:56:56 Asia/Shanghai), public, non-draft and
+pre-release. The annotated tag resolves to
+**`7a5cb2858e50b0a6ed35217f1fc46a7981cd85aa`**. The release metadata's
+`targetCommitish: main` does not replace this exact tag-resolution proof.
+
+| Public asset | Bytes | SHA-256 |
+| --- | --- | --- |
+| `swcli-0.1.0a7-py3-none-any.whl` | 164760 | `eaf3d2dd5c3b86e0404b7cf3adbca945cf4372f422505ed8dff72752bc08bac0` |
+| `swcli-0.1.0a7.tar.gz` | 561954 | `e8d1be3f1202628405bca1c00cf1d52c80d19af579e082ca8ffd97935267f3ef` |
+| `SHA256SUMS` | 184 | `c6f580bf49a66f760d955b67d22cf74b2a6dfabdcb50b71fd0baf00203b4bb2c` |
+
+Final build, `twine check`, source-payload allowlist and an independent installed
+wheel CLI/Schema/skill check passed. An anonymous `curl` download of all three
+public assets (no token or authentication) matched the final local distribution
+byte for byte; `shasum -c SHA256SUMS`, GitHub asset digests and the public source
+distribution check all passed. Final/local and public-download directories are
+`/private/tmp/swcli-a7-final-package.32pWfP/dist` and
+`/private/tmp/swcli-a7-public-receipt.TvS8A1` respectively.
+
+The post-gate packaging differences are README metadata and the documented
+usage-guide correction, plus wheel RECORD. Runtime Python/Schema payloads are
+unchanged from the formally tested CI wheel; the final packaging check did not
+repeat or broaden the native host gates.
