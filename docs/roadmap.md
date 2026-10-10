@@ -82,7 +82,9 @@ Next:
    now combines complete bounded face observations, short IDs, analytic geometry
    and conservative stamp/configuration retirement. Actual Windows typed-handler
    checks pass, including real rebuild/close/reopen. The shared installed-client
-   gate is implemented; hosted Windows/Wine proof and publication remain pending.
+   gate is implemented; full hosted Windows proof and publication remain pending.
+   Independent wheel-payload Wine proof is recorded below, separately from
+   DockerSW image delivery.
    Internal edge parameter/analytic-curve and complete bounded ownership readers
    are implemented with portable failure tests and two unchanged current-source
    Windows background reads recorded in the
@@ -132,6 +134,8 @@ upper-layer application; this goal does not require designing it now.
 The current pre-release and its verification boundaries are recorded in
 [v0.1.0a7 release notes](releases/v0.1.0a7.md). A pre-release does not imply a
 stable compatibility commitment.
+The unpublished [a8 release draft](releases/v0.1.0a8.md) tracks the next changes
+and open runtime/distribution gates without advancing the published version.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,

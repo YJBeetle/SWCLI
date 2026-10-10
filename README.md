@@ -150,6 +150,8 @@ sequence passed with a wheel payload on an existing formal host image, not a
 new DockerSW image delivery; see the [Wine receipt](docs/verification/a8-entity-wine-2026-10-10.md).
 See the
 [entity slice](docs/design/entity-observation.md) for the explicit limits.
+The [a8 release draft](docs/releases/v0.1.0a8.md) tracks changes and remaining
+release gates; it is not a publication notice.
 
 Contributors who intentionally want source edits to take effect immediately can
 use an editable install:
