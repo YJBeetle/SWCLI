@@ -63,11 +63,13 @@ the six existing exports before image promotion. See the
 
 ## Installation
 
-The current source additionally supports unsaved assembly creation with
+The a9 release candidate additionally supports unsaved assembly creation with
 `document create --type assembly` and insertion of an already-open saved part
 with `assembly add-component PATH --document ID`. This is a minimal native
-assembly surface, not mates or reference packaging; it is not yet part of the
-pinned a8 release below. See the [assembly contract](docs/design/assembly-creation.md).
+assembly surface, not mates or reference packaging, plus native `.SLDASM` and
+`.SLDDRW` save-as. It is not part of the published a8 release below.
+See the [assembly contract](docs/design/assembly-creation.md) and
+[a9 release draft](docs/releases/v0.1.0a9.md); formal release gates are pending.
 
 ### Windows
 

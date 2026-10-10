@@ -107,8 +107,9 @@ sw-cli --session bracket document inspect --detail structure --json
 sw-cli --session bracket document diagnose --json
 ```
 
-Save-as supports parts (`.SLDPRT`), assemblies (`.SLDASM`) and drawings (`.SLDDRW`) in the current
-source and rejects existing targets; use the host's advertised schemas, not an
+Save-as supports parts (`.SLDPRT`), with assemblies (`.SLDASM`) and drawings
+(`.SLDDRW`) added in the a9 candidate, not the published a8 wheel. It rejects
+existing targets; use the host's advertised schemas, not an
 older package's assumed support. There is no overwrite or copy mode. Assembly
 and drawing references are not copied or requested to be saved; this is not Pack and Go.
 Renaming preserves the live document/lease/sketch IDs,
@@ -116,6 +117,16 @@ but close/reopen creates a new document handle and drops the old handles. Its
 file-size/native-state checks are not a full integrity proof; reopen and verify
 the geometry. Saving is allowed only when the task authorizes source changes.
 Use only the save-as/feature operations the host advertises.
+
+The a9 candidate also adds `document create --type assembly` and
+`assembly add-component PATH --document ID`. Open the saved, clean source PRT
+first; insertion never opens or saves it implicitly. Choose an explicit
+configuration when needed. Millimeter insertion coordinates are approximate
+native component-center inputs, not an exact transform or mate guarantee.
+Insertion failure may leave a modified assembly: inspect before retrying.
+Native ASM/DRW saving does not package references; keep them accessible on
+reopen. Check the running daemon's schemas instead of assuming a client version
+also upgrades a managed DockerSW/MacSW host.
 
 If `sketch.inspect` is advertised, use `sw-cli sketch inspect SKETCH_ID --json`
 to re-observe current native geometry, constraint code and absorption/owner

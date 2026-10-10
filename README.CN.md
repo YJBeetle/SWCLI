@@ -41,10 +41,12 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
-当前源码还支持 `document create --type assembly` 新建未保存装配体，以及
+a9 候选版还支持 `document create --type assembly` 新建未保存装配体，以及
 `assembly add-component PATH --document ID` 插入已经打开并保存的零件。
-这是最小原生装配接口，不包括配合或引用文件打包，也尚未包含在下文固定的 a8
-发行版中。详见[装配体契约](docs/design/assembly-creation.md)。
+这是最小原生装配接口，不包括配合或引用文件打包；还支持 `.SLDASM`、`.SLDDRW`
+原生另存为。这些能力尚未包含在下文已发布的 a8 中，a9 正式发布门禁仍待完成。
+详见[装配体契约](docs/design/assembly-creation.md) 和
+[a9 发行草稿](docs/releases/v0.1.0a9.md)。
 
 ### Windows 平台
 

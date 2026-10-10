@@ -85,6 +85,12 @@ runtime candidates, first failures/fixes and distribution proof; the linked
 design retains incremental native/development receipts. Trimmed boundaries,
 topology-edit survival and general entity-targeted writes are not implemented.
 
+The **a9 release candidate** groups minimal assembly creation, already-open
+saved-part insertion and native `.SLDASM`/`.SLDDRW` save-as. The shared gate
+covers generated assemblies and optional drawing save/reopen cases. Formal a9
+host and distribution receipts are still pending; a8 assets are unchanged.
+See the [a9 release draft](releases/v0.1.0a9.md) for precise scope and release gates.
+
 Next:
 
 1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
