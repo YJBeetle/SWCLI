@@ -61,9 +61,11 @@ def face_result(name="entity.list", *, public=True):
 
 
 class EntityResultSchemaTests(unittest.TestCase):
-    def test_result_contracts_are_not_yet_advertised_operations(self):
+    def test_result_contracts_match_advertised_read_only_operations(self):
         for name in ("entity.list", "entity.inspect"):
-            self.assertNotIn(name, OPERATION_CATALOG)
+            self.assertEqual(
+                OPERATION_CATALOG[name].result, operation_result_schema(name)
+            )
             Draft202012Validator.check_schema(operation_result_schema(name))
             validate_entity_result(name, face_result(name))
 

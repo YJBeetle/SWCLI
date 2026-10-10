@@ -373,6 +373,22 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(dimension_set_parser)
     dimension_set_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    entity_parser = subcommands.add_parser(
+        "entity", help="observe exact faces of a bounded single-solid part"
+    )
+    entity_commands = entity_parser.add_subparsers(dest="entity_command", required=True)
+    entity_list_parser = entity_commands.add_parser(
+        "list", help="discover complete faces without activation or model changes"
+    )
+    entity_list_parser.add_argument("--max-faces", type=int, default=64)
+    entity_inspect_parser = entity_commands.add_parser(
+        "inspect", help="read an exact live face; changed scope requires rediscovery"
+    )
+    entity_inspect_parser.add_argument("entity_id")
+    for entity_subparser in (entity_list_parser, entity_inspect_parser):
+        add_document_selector(entity_subparser)
+        entity_subparser.add_argument("--json", action="store_true", dest="as_json")
+
     feature_parser = subcommands.add_parser(
         "feature", help="create and observe explicit part features"
     )
@@ -890,6 +906,19 @@ def _typed_operation(
         return (
             "sketch.inspect",
             {"sketch_id": args.sketch_id, "max_segments": args.max_segments},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            None,
+        )
+    if args.command == "entity":
+        return (
+            f"entity.{args.entity_command}",
+            (
+                {"max_faces": args.max_faces}
+                if args.entity_command == "list"
+                else {"entity_id": args.entity_id}
+            ),
             args.as_json,
             args.document_id,
             args.expected_update_stamp,

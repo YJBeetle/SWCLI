@@ -63,6 +63,7 @@ from ..result_schemas import (
     validate_rectangle_creation_observation,
     validate_rectangle_discovery_observation,
     validate_feature_observation,
+    validate_entity_observation,
 )
 from .documents import (
     DEFAULT_SESSION_ID,
@@ -537,6 +538,82 @@ def feature_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str,
             descriptor["feature_id"] = context.documents.register_feature(
                 context.entry, feature
             )
+    return result
+
+
+def _observe_faces(context: OperationContext, max_faces: int = 64):
+    from ..hosts.windows_entity_observation import observe_part_faces_with_handles
+
+    if (
+        context.documents is None
+        or context.entry is None
+        or context.entry.entities is None
+    ):
+        raise RuntimeError("document entity registry is unavailable")
+    result, bindings = observe_part_faces_with_handles(
+        context.app, context.entry.document, max_faces=max_faces
+    )
+    result["action"] = "entity.list"
+    if result.get("ok"):
+        result["scope"] = "single-solid-part-faces"
+        result["entities"] = result.pop("faces")
+    result = _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
+    )
+    validate_entity_observation("entity.list", result)
+    if result["ok"] and len(bindings) != result["face_count"]:
+        raise OperationResultInvalid("entity.list: inconsistent exact native bindings")
+    return result, bindings
+
+
+def _register_faces(context: OperationContext, result, bindings):
+    state = result["observation"]["after"]
+    return context.entry.entities.register_faces(
+        bindings,
+        configuration=state["configuration"],
+        update_stamp=state["update_stamp"],
+    )
+
+
+@_register_handler
+def entity_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    result, bindings = _observe_faces(context, values.get("max_faces", 64))
+    if result["ok"]:
+        tokens = _register_faces(context, result, bindings)
+        for face, token in zip(result["entities"], tokens):
+            face["entity_id"] = token
+    return result
+
+
+@_register_handler
+def entity_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_feature_inspection import _state
+
+    if (
+        context.documents is None
+        or context.entry is None
+        or context.entry.entities is None
+    ):
+        raise RuntimeError("document entity registry is unavailable")
+    # Unknown/stale targets fail before a full native traversal. Fresh scope is
+    # mandatory; an old handle must never be silently rebound after an edit.
+    state, _, _ = _state(context.app, context.entry.document)
+    token = values["entity_id"]
+    context.entry.entities.resolve(
+        token, configuration=state["configuration"], update_stamp=state["update_stamp"]
+    )
+    result, bindings = _observe_faces(context)
+    result["action"] = "entity.inspect"
+    if result["ok"]:
+        state = result["observation"]["after"]
+        context.entry.entities.resolve(
+            token,
+            configuration=state["configuration"],
+            update_stamp=state["update_stamp"],
+        )
+        tokens = _register_faces(context, result, bindings)
+        result["entity"] = result.pop("entities")[tokens.index(token)]
+        result["entity"]["entity_id"] = token
     return result
 
 

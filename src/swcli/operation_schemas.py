@@ -215,6 +215,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {"max_features": _integer(minimum=1)},
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "entity.list": _operation(
+        "entity.list",
+        {"max_faces": _integer(minimum=1, maximum=64)},
+        **_DOCUMENT_READ_CONTEXT,
+    ),
+    "entity.inspect": _operation(
+        "entity.inspect",
+        {"entity_id": _string(pattern="^e-[a-z0-9]{6}$")},
+        required=("entity_id",),
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "feature.inspect": _operation(
         "feature.inspect",
         {"feature_id": _string(pattern="^f-[a-z0-9]{6}$")},
