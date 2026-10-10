@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from swcli.cli import build_parser
+from swcli.cli import build_parser, _typed_payload
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/ci/verify-modeling.py"
 spec = importlib.util.spec_from_file_location("modeling_smoke", SCRIPT)
@@ -67,6 +67,11 @@ class FakeCLI:
             if document["lease"] and document["lease"]["expires_at"] <= self.now:
                 document["lease"] = None
         result = self.dispatch(args)
+        if args.command not in ("daemon", "capabilities"):
+            result = _typed_payload(
+                f"{args.command}.{getattr(args, args.command + '_command', '')}",
+                {"result": result, "request_id": f"smoke-{len(self.calls)}"},
+            )
         return subprocess.CompletedProcess(
             command,
             1 if result.get("ok") is False else 0,
@@ -345,6 +350,8 @@ class FakeCLI:
                 result["entity"] = next(
                     face for face in faces if face["entity_id"] == args.entity_id
                 )
+            if self.defect == "entity-extra-field":
+                result["unexpected_geometry"] = []
             return result
         if action == "document" and subcommand in ("save-as", "export"):
             target = self.directory / gate.PureWindowsPath(args.output).name
@@ -736,6 +743,11 @@ class ModelingSmokeTests(unittest.TestCase):
         )
         self.assertEqual(record["cleanup_errors"], [])
         self.assertTrue(record["entity_observation"]["verified"])
+        self.assertTrue(all(
+            event["result"].get("request_id")
+            for event in record["events"]
+            if "entity" in event["command"]
+        ))
         self.assertEqual(self.fake.documents, {})
         calls = self.fake.calls
         failed = next(
@@ -775,6 +787,7 @@ class ModelingSmokeTests(unittest.TestCase):
             "entity-duplicate-plane-geometry",
             "entity-duplicate-cut-floor",
             "entity-tilted-plane",
+            "entity-extra-field",
         ):
             with (
                 self.subTest(defect=defect),
@@ -794,6 +807,28 @@ class ModelingSmokeTests(unittest.TestCase):
         self.run_gate()
         self.assertTrue(self.record()["entity_observation"]["verified"])
         self.assertEqual(self.fake.documents, {})
+
+    def test_cli_metadata_is_retained_in_evidence_not_business_assertion_view(self):
+        self.directory.mkdir()
+        smoke = gate.ModelingSmoke(
+            directory=self.directory, host_directory=r"C:\proof", endpoint="local"
+        )
+        smoke.record_path.write_text(json.dumps(smoke.record), encoding="utf-8")
+        payload = {
+            "ok": True, "action": "document.list", "documents": [],
+            "request_id": "req-replay", "replayed": True, "unexpected": "retained",
+        }
+        with mock.patch.object(
+            gate.subprocess, "run",
+            return_value=subprocess.CompletedProcess(
+                [], 0, json.dumps(payload).encode("utf-8"), b""
+            ),
+        ):
+            result = smoke.command("document", "list")
+        self.assertEqual(smoke.record["events"][0]["result"], payload)
+        self.assertNotIn("request_id", result)
+        self.assertNotIn("replayed", result)
+        self.assertEqual(result["unexpected"], "retained")
 
     def test_custom_request_timeout_reaches_all_cli_calls_and_evidence(self):
         self.arguments.extend(

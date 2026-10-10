@@ -294,7 +294,13 @@ class ModelingSmoke:
                     )
         event["state"] = "completed"
         self.checkpoint(stage + ".completed")
-        return result
+        # Keep the full CLI presentation in evidence. Result schemas describe
+        # the daemon business result, not the CLI's two envelope metadata keys.
+        # Do not strip any other property: unknown result fields must still fail.
+        return {
+            key: value for key, value in result.items()
+            if key not in ("request_id", "replayed")
+        }
 
     def renew(self, document):
         lease = self.leases.get(document)
