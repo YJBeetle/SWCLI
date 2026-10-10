@@ -7,6 +7,9 @@ from math import isclose
 from typing import Any, Dict
 
 from .protocol import load_schema
+from .entity_contracts import (
+    entity_result_fields, without_entity_ids, validate_entity_semantics,
+)
 
 
 def _object(properties, required=(), *, extensible=False):
@@ -1281,6 +1284,9 @@ _RESULT_FIELDS["dimension.set"] = (
 )
 
 
+_RESULT_FIELDS.update(entity_result_fields())
+
+
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
@@ -1334,7 +1340,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 }
             },
         }
-    if name in ("feature.list", "feature.inspect"):
+    if name in ("feature.list", "feature.inspect", "entity.list", "entity.inspect"):
         schema["then"]["properties"] = {
             "observation": {
                 "required": ["after"],
@@ -2216,6 +2222,39 @@ def validate_feature_observation(name: str, result: Dict[str, Any]) -> None:
     _validate_feature_state(name, result)
 
 
+def _validate_entity_semantics(name: str, result: Dict[str, Any]) -> None:
+    try:
+        validate_entity_semantics(name, result)
+    except (ValueError, OverflowError) as exc:
+        raise OperationResultInvalid(str(exc)) from exc
+
+
+@lru_cache(maxsize=2)
+def _entity_observation_validator(name: str):
+    from jsonschema import Draft202012Validator
+
+    return Draft202012Validator(without_entity_ids(operation_result_schema(name), name))
+
+
+def validate_entity_observation(name: str, result: Dict[str, Any]) -> None:
+    """Validate complete private observations before registering short face IDs."""
+    _validate_result(name, result, _entity_observation_validator(name))
+    _validate_entity_semantics(name, result)
+
+
+@lru_cache(maxsize=2)
+def _entity_result_validator(name: str):
+    from jsonschema import Draft202012Validator
+
+    return Draft202012Validator(operation_result_schema(name))
+
+
+def validate_entity_result(name: str, result: Dict[str, Any]) -> None:
+    """Check prepared face contracts independently of operation advertisement."""
+    _validate_result(name, result, _entity_result_validator(name))
+    _validate_entity_semantics(name, result)
+
+
 def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
     def require(condition, message):
         if not condition:
@@ -2382,6 +2421,8 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name in ("entity.list", "entity.inspect"):
+        _validate_entity_semantics(name, result)
     if name in ("feature.list", "feature.inspect"):
         _validate_feature_state(name, result)
     if name == "feature.set-depth":
