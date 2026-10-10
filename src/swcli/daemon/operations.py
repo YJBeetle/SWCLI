@@ -541,8 +541,9 @@ def feature_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str,
     return result
 
 
-def _observe_faces(context: OperationContext, max_faces: int = 64):
+def _observe_entities(context: OperationContext, kind: str, limit: int = 64):
     from ..hosts.windows_entity_observation import observe_part_faces_with_handles
+    from ..hosts.windows_edge_observation import observe_part_edges_with_handles
 
     if (
         context.documents is None
@@ -550,13 +551,17 @@ def _observe_faces(context: OperationContext, max_faces: int = 64):
         or context.entry.entities is None
     ):
         raise RuntimeError("document entity registry is unavailable")
-    result, bindings = observe_part_faces_with_handles(
-        context.app, context.entry.document, max_faces=max_faces
+    observe = (
+        observe_part_faces_with_handles if kind == "face"
+        else observe_part_edges_with_handles
+    )
+    result, bindings = observe(
+        context.app, context.entry.document, **{f"max_{kind}s": limit}
     )
     result["action"] = "entity.list"
     if result.get("ok"):
-        result["scope"] = "single-solid-part-faces"
-        result["entities"] = result.pop("faces")
+        result["scope"] = f"single-solid-part-{kind}s"
+        result["entities"] = result.pop(f"{kind}s")
     result = _with_document(
         result, context.documents, context.entry, session_id=context.session_id
     )
@@ -572,14 +577,18 @@ def _observe_faces(context: OperationContext, max_faces: int = 64):
                 configuration=state["configuration"],
                 update_stamp=state["update_stamp"],
             )
-    if result["ok"] and len(bindings) != result["face_count"]:
+    if result["ok"] and len(bindings) != result[f"{kind}_count"]:
         raise OperationResultInvalid("entity.list: inconsistent exact native bindings")
     return result, bindings
 
 
-def _register_faces(context: OperationContext, result, bindings):
+def _register_entities(context: OperationContext, result, bindings, kind):
     state = result["observation"]["after"]
-    return context.entry.entities.register_faces(
+    register = (
+        context.entry.entities.register_faces if kind == "face"
+        else context.entry.entities.register_edges
+    )
+    return register(
         bindings,
         configuration=state["configuration"],
         update_stamp=state["update_stamp"],
@@ -588,11 +597,12 @@ def _register_faces(context: OperationContext, result, bindings):
 
 @_register_handler
 def entity_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
-    result, bindings = _observe_faces(context, values.get("max_faces", 64))
+    kind = values.get("kind", "face")
+    result, bindings = _observe_entities(context, kind, values.get(f"max_{kind}s", 64))
     if result["ok"]:
-        tokens = _register_faces(context, result, bindings)
-        for face, token in zip(result["entities"], tokens):
-            face["entity_id"] = token
+        tokens = _register_entities(context, result, bindings, kind)
+        for entity, token in zip(result["entities"], tokens):
+            entity["entity_id"] = token
     return result
 
 
@@ -610,19 +620,22 @@ def entity_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[st
     # mandatory; an old handle must never be silently rebound after an edit.
     state, _, _ = _state(context.app, context.entry.document)
     token = values["entity_id"]
+    kind = values.get("kind", "face")
     context.entry.entities.resolve(
-        token, configuration=state["configuration"], update_stamp=state["update_stamp"]
+        token, kind=kind, configuration=state["configuration"],
+        update_stamp=state["update_stamp"],
     )
-    result, bindings = _observe_faces(context)
+    result, bindings = _observe_entities(context, kind)
     result["action"] = "entity.inspect"
     if result["ok"]:
         state = result["observation"]["after"]
         context.entry.entities.resolve(
             token,
+            kind=kind,
             configuration=state["configuration"],
             update_stamp=state["update_stamp"],
         )
-        tokens = _register_faces(context, result, bindings)
+        tokens = _register_entities(context, result, bindings, kind)
         result["entity"] = result.pop("entities")[tokens.index(token)]
         result["entity"]["entity_id"] = token
     return result

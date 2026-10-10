@@ -20,7 +20,11 @@ native surface sense, and cylinder axes/radii, with **36** related portable
 binding/geometry/observer cases and two unchanged native background reads with
 matching geometric readback and short IDs. These remain internal Windows proofs.
 The development CLI/catalog now advertises `entity.list` and `entity.inspect`,
-with strict parameters/results, 8 contract cases and 10 typed-operation cases.
+with strict kind-aware parameters/results, default faces and explicit edges.
+Edge contract/operation tests cover complete-kind counts, disjoint curve shapes,
+raw parameters, wrong-kind refusal, mixed handle preservation and failed-read
+scope retirement. The parameter schema uses a conditional kind/limit rule;
+capabilities and its client checker accept and validate that schema too.
 The actual typed handlers passed leased-background reads, CAS/unknown/cross-doc
 refusals, real rebuild stamp invalidation and native close/reopen on Windows.
 This is not installed-client/HTTP or Wine proof. The shared modeling gate reuses
@@ -55,16 +59,27 @@ another session from reading; unchanged state still has to be proved.
 ```sh
 sw-cli entity list --document DOCUMENT_ID --max-faces 64 --json
 sw-cli entity inspect ENTITY_ID --document DOCUMENT_ID --json
+sw-cli entity list --kind edge --document DOCUMENT_ID --max-edges 64 --json
+sw-cli entity inspect EDGE_ID --kind edge --document DOCUMENT_ID --json
 ```
 
-`list` returns `.entities` with short `e-xxxxxx` IDs, `face_count`, `body_count: 1`
-and `scope: single-solid-part-faces`. `inspect` returns `.entity`, but verifies
-the entire bounded face set to avoid assuming an old face remains a valid target.
+`list` returns `.entities` with short `e-xxxxxx` IDs, `body_count: 1` and exactly
+one kind's count/scope: `face_count`/`single-solid-part-faces` by default or
+`edge_count`/`single-solid-part-edges` with `--kind edge`. `inspect` returns
+`.entity`, but verifies the entire bounded set of that kind to avoid assuming an
+old object remains valid. It uses the same explicit kind (default `face`), not a
+guess from the opaque ID. A face ID cannot be inspected as an edge or vice versa.
+`--max-faces` applies only to faces, `--max-edges` only to edges; the wrong limit
+or both together fail rather than being ignored. Limits bound complete reads,
+not pagination or truncation.
 Both accept document/session/CAS context, not a lease token; they do not grant
-write authority or change session current. The initial limit is 1–64 faces,
+write authority or change session current. The initial limit is 1–64 per kind,
 including hidden solids; empty, multibody, surface-body or over-limit parts fail
 instead of returning a supposedly complete subset. Other surfaces are explicitly
-unclassified with unavailable analytic geometry.
+unclassified with unavailable analytic geometry. Edge descriptors carry raw
+`parameter_data` and separate `curve_geometry` for untrimmed lines/circles.
+Other curves are explicitly unavailable. No length, normalized trim, closure,
+seam, adjacency, feature-owner or editing contract is exposed.
 
 IDs expire on close/worker replacement and are permanently stale after an
 observed configuration/stamp change, including a verified scope read in an
@@ -169,8 +184,9 @@ array reordering is accepted, but same-count replacements and duplicates fail.
 Configuration, stamp, modified flag, edit identity and foreground must remain
 unchanged. Any native, geometry, membership or state failure discards all edge
 records and bindings while retaining the first error. Thirteen portable cases
-cover this owning observer; it has not yet been exposed to the public catalog,
-schema or CLI. Public `entity.list/inspect` still observes faces only.
+cover this owning observer. The a8 development catalog, schema and CLI now wire
+this reader through explicit `--kind edge`; installed cross-host gates remain
+pending.
 Two actual current-source Windows background observations now pass on the same
 host, with all 14 exact bindings and analytic arrays matching native readback.
 See the [edge receipt](../verification/a8-edge-observer-2026-10-10.md) for source
@@ -195,8 +211,9 @@ Internal resolution explicitly requests an entity kind; its unchanged default
 is `face`. An edge ID cannot be used as a face ID or in another document.
 DocumentRegistry's existing close/external-close/reopen ownership expires both
 kinds together; no second per-document lifetime or independent scope was added.
-Public operation/result schemas and CLI still advertise faces only. Portable
-mixed-kind tests are not proof of installed edge commands or topology survival.
+Kind-aware development operation/result schemas and CLI now wire both groups;
+portable mixed-kind tests are not proof of installed edge commands or topology
+survival.
 Actual current-source Windows mixed-kind registration now passes: two reads per
 opening preserve 8 face/14 edge IDs, external close expires both and reopening
 issues fresh disjoint IDs. The user's original documents/foreground/SW host and

@@ -88,10 +88,11 @@ Next:
    Windows background reads recorded in the
    [edge receipt](verification/a8-edge-observer-2026-10-10.md). Internal mixed
    face/edge handles also pass exact reuse and real Windows close/reopen in the
-   [registry receipt](verification/a8-edge-registry-2026-10-10.md). Public edge
-   contracts and independent Wine proof remain next; trimmed boundaries
-   and topology-edit survival are not implemented. Public entity commands still
-   observe faces only.
+   [registry receipt](verification/a8-edge-registry-2026-10-10.md). Development
+   edge contracts and CLI now use explicit `--kind edge`, preserving default
+   faces and a shared conservative scope. Installed Windows and independent
+   Wine proof remain next; trimmed boundaries and topology-edit survival are
+   not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

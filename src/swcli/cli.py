@@ -374,18 +374,21 @@ def build_parser() -> argparse.ArgumentParser:
     dimension_set_parser.add_argument("--json", action="store_true", dest="as_json")
 
     entity_parser = subcommands.add_parser(
-        "entity", help="observe exact faces of a bounded single-solid part"
+        "entity", help="observe exact faces or edges of a bounded single-solid part"
     )
     entity_commands = entity_parser.add_subparsers(dest="entity_command", required=True)
     entity_list_parser = entity_commands.add_parser(
-        "list", help="discover complete faces without activation or model changes"
+        "list", help="discover a complete entity kind without activation or model changes"
     )
-    entity_list_parser.add_argument("--max-faces", type=int, default=64)
+    entity_limits = entity_list_parser.add_mutually_exclusive_group()
+    entity_limits.add_argument("--max-faces", type=int)
+    entity_limits.add_argument("--max-edges", type=int)
     entity_inspect_parser = entity_commands.add_parser(
-        "inspect", help="read an exact live face; changed scope requires rediscovery"
+        "inspect", help="read an exact live entity; changed scope requires rediscovery"
     )
     entity_inspect_parser.add_argument("entity_id")
     for entity_subparser in (entity_list_parser, entity_inspect_parser):
+        entity_subparser.add_argument("--kind", choices=("face", "edge"), default="face")
         add_document_selector(entity_subparser)
         entity_subparser.add_argument("--json", action="store_true", dest="as_json")
 
@@ -690,8 +693,10 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
     context_fields = {"document_id", "expected_update_stamp", "lease_id"}
     context_modes = {"forbidden", "optional", "required"}
     for operation, operation_schema in operation_schemas.items():
-        if not isinstance(operation_schema, dict) or set(operation_schema) != (
-            operation_schema_fields
+        if (
+            not isinstance(operation_schema, dict)
+            or not operation_schema_fields.issubset(operation_schema)
+            or set(operation_schema) - operation_schema_fields - {"allOf"}
         ):
             return f"operation schema fields are invalid for {operation}"
         if (
@@ -721,6 +726,11 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
     mismatch = next(Draft202012Validator(schema).iter_errors(payload), None)
     if mismatch is not None:
         return f"capabilities schema mismatch: {mismatch.message}"
+    for operation, parameter_schema in operation_schemas.items():
+        try:
+            Draft202012Validator.check_schema(parameter_schema)
+        except SchemaError:
+            return f"operation parameter schema is invalid for {operation}"
     for operation, result_schema in result_schemas.items():
         if not isinstance(result_schema, dict):
             return f"operation result schema is invalid for {operation}"
@@ -912,13 +922,21 @@ def _typed_operation(
             None,
         )
     if args.command == "entity":
+        parameters = (
+            {key: getattr(args, key) for key in ("max_faces", "max_edges")
+             if getattr(args, key) is not None}
+            if args.entity_command == "list" else {"entity_id": args.entity_id}
+        )
+        if args.kind != "face":
+            parameters["kind"] = args.kind
+        if (
+            args.entity_command == "list"
+            and not any(key.startswith("max_") for key in parameters)
+        ):
+            parameters[f"max_{args.kind}s"] = 64
         return (
             f"entity.{args.entity_command}",
-            (
-                {"max_faces": args.max_faces}
-                if args.entity_command == "list"
-                else {"entity_id": args.entity_id}
-            ),
+            parameters,
             args.as_json,
             args.document_id,
             args.expected_update_stamp,

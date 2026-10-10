@@ -54,6 +54,7 @@ def _operation(
     lease_id: str = "forbidden",
     selected_document: Optional[bool] = None,
     temporary_activation: bool = False,
+    parameter_conditions: Optional[list[Dict[str, Any]]] = None,
 ) -> OperationSpec:
     schema = {
         "$schema": JSON_SCHEMA_DIALECT,
@@ -69,6 +70,8 @@ def _operation(
             "lease_id": lease_id,
         },
     }
+    if parameter_conditions:
+        schema["allOf"] = parameter_conditions
     return OperationSpec(
         parameters=schema,
         handler=(
@@ -217,12 +220,24 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     ),
     "entity.list": _operation(
         "entity.list",
-        {"max_faces": _integer(minimum=1, maximum=64)},
+        {
+            "kind": _string(enum=["face", "edge"]),
+            "max_faces": _integer(minimum=1, maximum=64),
+            "max_edges": _integer(minimum=1, maximum=64),
+        },
+        parameter_conditions=[{
+            "if": {"required": ["kind"], "properties": {"kind": {"const": "edge"}}},
+            "then": {"not": {"required": ["max_faces"]}},
+            "else": {"not": {"required": ["max_edges"]}},
+        }],
         **_DOCUMENT_READ_CONTEXT,
     ),
     "entity.inspect": _operation(
         "entity.inspect",
-        {"entity_id": _string(pattern="^e-[a-z0-9]{6}$")},
+        {
+            "entity_id": _string(pattern="^e-[a-z0-9]{6}$"),
+            "kind": _string(enum=["face", "edge"]),
+        },
         required=("entity_id",),
         **_DOCUMENT_READ_CONTEXT,
     ),
@@ -439,6 +454,11 @@ def validate_operation_request(
         raise ValueError(f"{operation} requires {', '.join(missing)}")
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "entity.list":
+        kind = parameters.get("kind", "face")
+        wrong_limit = "max_faces" if kind == "edge" else "max_edges"
+        if wrong_limit in parameters:
+            raise ValueError(f"{wrong_limit} is not supported for entity kind {kind}")
 
     context_values = {
         "document_id": document_id,

@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from .protocol import load_schema
 from .entity_contracts import (
-    entity_result_fields, without_entity_ids, validate_entity_semantics,
+    entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
 )
 
 
@@ -1347,6 +1347,8 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 "properties": {"unchanged": {"const": True}},
             }
         }
+    if name in ("entity.list", "entity.inspect"):
+        schema["then"]["allOf"] = entity_success_conditions(name)
     if name == "feature.set-depth":
         schema["required"].extend(["feature_id", "mutation"])
         schema["then"]["properties"] = {
@@ -2237,7 +2239,7 @@ def _entity_observation_validator(name: str):
 
 
 def validate_entity_observation(name: str, result: Dict[str, Any]) -> None:
-    """Validate complete private observations before registering short face IDs."""
+    """Validate complete private observations before registering short IDs."""
     _validate_result(name, result, _entity_observation_validator(name))
     _validate_entity_semantics(name, result)
 
@@ -2250,7 +2252,7 @@ def _entity_result_validator(name: str):
 
 
 def validate_entity_result(name: str, result: Dict[str, Any]) -> None:
-    """Check prepared face contracts independently of operation advertisement."""
+    """Check prepared entity contracts independently of operation advertisement."""
     _validate_result(name, result, _entity_result_validator(name))
     _validate_entity_semantics(name, result)
 

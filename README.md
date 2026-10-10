@@ -140,8 +140,10 @@ SOLIDWORKS registration, and process lifecycle.
 
 ### Development checkout
 
-The a8 checkout adds read-only `entity list/inspect` for exact faces and short
-scope-sensitive IDs. This is **not in the published a7 wheel**; installed
+The a8 checkout adds read-only `entity list/inspect` for exact faces (default)
+or edges (`--kind edge`) and short scope-sensitive IDs. Edge output separates
+raw native parameters from untrimmed line/circle geometry; it does not claim
+length, closure or edit authority. This is **not in the published a7 wheel**; installed
 Windows/Wine integration gates are still pending. See the
 [entity slice](docs/design/entity-observation.md) for the explicit limits.
 
