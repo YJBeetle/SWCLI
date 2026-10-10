@@ -247,3 +247,63 @@ Artifact: `swcli-windows-hosted-37998293756-1` (ID `11649001477`).
 
 This is hosted Windows development proof, not Wine delivery, a7 publication or
 depth-edit support. DockerSW remains on its independently verified a6 pin.
+
+## Internal selection scope and access/release ownership
+
+Implementation `60934a16fed0f7ac329950bb146bc6bb99b50c9e` adds an internal
+selection-scope guard, not a public operation or depth setter. The portable
+suite ran **965 tests: 957 passed, eight Windows-only tests skipped**. Its 32 new
+cases cover typed/sentinel BYREF outputs, explicit/unknown directions, contour
+and body-scope refusals, exact cut-body identity, partial/false/throwing access,
+single release attempt, first-error preservation, missing fresh data,
+foreground/modified drift, incomplete diagnostics and geometric restoration.
+Portable refusals do not prove real protected-model mutation behavior.
+
+On Windows/SW2025 `33.5.0`, a calibration on disposable copies distinguished
+the default direction's complete native marker from a test-only staged plane
+reference using `BYREF|VT_DISPATCH`. The staged output had count **1**, types
+**[4,-1]** and **[non-null,null]**; after release, a fresh definition returned
+**-1**, **[-1,-1]**, **[null,null]**. `BYREF|VT_VARIANT` was rejected with a type
+mismatch. This proves the calibrated output binding/default readback, not a
+universal interpretation of `-1` or exact identity of an explicit reference.
+Earlier `IsSame` assertions against a plane feature/specific object failed;
+the failure remains in `plane-feature-identity-unproved.json`. Explicit
+direction references are rejected by the guard, not supported on weaker proof.
+No staged direction was committed with `ModifyDefinition` or saved.
+
+The actual guard then passed on another disposable part, using shared SW PID
+**1096** without replacing it. The merged 20 mm rectangle boss had no selected
+contours/scope bodies and **zero rollback solids**; the 5 mm circle cut had no
+selected contours and one selected body native-identical to its **one live
+rollback solid**. Both observed the calibrated default direction marker.
+Fresh directions, definitions/controls/profiles, configuration/edit/foreground,
+`modified: false`, one final solid and complete healthy 22-feature diagnostics
+were verified after release. Independent volume **99858.62833058844 mm³**, area
+**16094.247779607693 mm²** and centroid were unchanged. Stamps advanced
+**146 → 148 → 150**, so the result explicitly reports stamp changes rather than
+claiming a read-only/no-op lifecycle. Original documents, foreground and PID
+were preserved; the test copy was closed unsaved and its on-disk hash unchanged.
+
+Raw local evidence (not hosted artifacts):
+
+| Workspace | Generated evidence | SHA256 |
+| --- | --- | --- |
+| `/private/tmp/swcli-a7-binding.adkfKK/` | `direction-binding.json` | `d4640ae1fd41f8048fa2b12b220b0bd60c8b72db368c5d790ceaef0863c8f3e4` |
+| same | `plane-feature-identity-unproved.json` | `329903a00165af3b407a9a64334a196ca79a2cb3c48d1a0b0f75d2be0435923c` |
+| `/private/tmp/swcli-a7-selection.1iFNYp/` | `selection-scope.json` | `8ab3b92383f8bb5ed576fb6ac487f8c5b8f2c530c2d19d08df576b2d2e664be2` |
+| same | `logging-interrupted.json` | `92799b28015ad66d02d042178c0e246fb3aa22220e1c6567e5c346d518329ed9` |
+
+The Windows mirrors are under `C:\Workspace\SWCLI-tests\a7-depth-binding-adkfKK`
+and `C:\Workspace\SWCLI-tests\a7-selection-1iFNYp`. An earlier instrumented
+probe stalled with an empty trace log; its disposable part was still unmodified
+at stamp 146 on cleanup. A non-COM output control independently showed Windows
+PowerShell treating stderr trace text as `NativeCommandError`. The interrupted
+test Python/starter and exact test copy were cleaned up without stopping SW.
+The completed probe used direct file redirection via `Start-Process` and
+asserted its own results/cleanup. Its empty native trace is not call-boundary
+evidence; do not claim a traced COM diagnosis from it.
+
+This proves only the internal observer's Windows access/release lifecycle on
+these fixtures. No depth write, source save, setter retry, automatic rollback,
+public no-op contract, installed-wheel runtime gate, Wine support or a7 release
+is established by it.

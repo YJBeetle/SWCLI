@@ -24,6 +24,12 @@ surfaces). It passed portable and native Windows background checks without
 selection access. Final body count/profile area still do not identify selected
 contours, direction references or rollback-state feature-body scope.
 
+An independent **internal access/release guard** now observes that scope and
+verifies restoration on native Windows. It requires the exact part to be active,
+owns one access/release attempt, retains the first failure, and only returns
+fresh definition data after release/state/geometry checks. It is not attached
+to public `feature.list/inspect` or advertised as a setter.
+
 ## First slice
 
 Observe and edit exact solid blind bosses/cuts in part documents. Begin with
@@ -89,18 +95,39 @@ The first internal guard conservatively refuses **any** part containing equation
 or a design table, rather than guessing which named dimension owns depth. It
 also refuses multiple configurations until current-only modification scope has
 separate native proof. These are deliberate unsupported-scope outcomes, not
-claims that all parameters are externally controlled. Feature-selection scope,
-modification/restoration and independent post-change geometry remain pending.
+claims that all parameters are externally controlled. Selection-scope and
+access/release restoration now have separate internal proof. Depth modification,
+post-write verification and public no-op/failure contracts remain pending.
 
 Exact simple-profile ownership and final-body classification now have a
 nonmutating internal guard. Do not mistake these for complete feature-selection
 scope. A native SW2025 probe returned `-1` for body-scope/direction counts without
-selection access. Body-scope count became readable after access, but direction
-remained `-1` in that binding; absent output is not verified absence of a
-reference. Entering/releasing selection access also advanced update stamp
+selection access. Body-scope count became readable after access. A subsequent
+direction binding calibration used `BYREF|VT_DISPATCH` object outputs and
+sentinel-initialized `BYREF|VT_I4` types: default fixtures returned the complete
+`(-1, [-1,-1], [null,null])` marker; a test-only staged explicit plane returned
+`(1, [4,-1], [non-null,null])`, then fresh readback recovered the default marker
+after release. `BYREF|VT_VARIANT` was rejected by this host. This is empirical
+SW2025 binding proof, not documentation of a universally valid negative count
+or proof of the explicit returned object's identity. The guard accepts only
+the complete calibrated default marker and refuses explicit, unknown,
+unwritten or inconsistent outputs.
+
+The scope guard also refuses selected contours, extra/surface/sheet-metal
+rollback bodies, nonmerged/thickness-linked bosses and normal/flipped-side
+cuts. A scoped cut's selected body must be native-identical to its sole live
+rollback solid; an all-body cut still requires exactly one such solid. It does
+not infer that scope from final body count or a display name.
+
+Entering/releasing selection access advanced update stamp
 **146 → 148**, even though `modified` stayed false. This owned lifecycle cannot
 be smuggled into the public read-only path or described as an unchanged-stamp
-no-op. Its remaining binding/restoration boundaries need separate proof.
+no-op. Restoration checks include configuration, modified/edit/foreground
+identity, fresh exact definition/controls/profile, healthy complete diagnostics,
+fresh direction readback and independent volume/area/centroid measurements.
+The successful result reports the stamp change; it does not promise a pure
+read, mutation rollback or Wine compatibility. A future write must distinguish
+its own access stamp changes from intervening external edits.
 
 The explicit write path may require native selection access, which rolls the
 model back. Own and verify that lifecycle, modify the exact definition, then
@@ -145,3 +172,8 @@ Read-layer evidence and its distinct verification boundaries are recorded in
   and [SetDepth](https://help.solidworks.com/2026/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IExtrudeFeatureData2~SetDepth.html).
 - [AccessSelections](https://help.solidworks.com/2026/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IExtrudeFeatureData2~AccessSelections.html):
   selection access rolls the model back; modification or release must restore it.
+- [ReleaseSelectionAccess](https://help.solidworks.com/2020/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~ReleaseSelectionAccess.html):
+  release an accessed, uncommitted definition rather than leaving rollback state.
+- [GetDirectionReference](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IExtrudeFeatureData2~GetDirectionReference.html):
+  explicit references have object/type outputs; the native default marker above
+  is a separate runtime observation, not a documented negative-count rule.

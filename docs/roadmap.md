@@ -73,8 +73,11 @@ Next:
    Wine delivery and guarded depth writes remain pending.
    Preliminary nonmutating depth guards have portable/native Windows proof;
    exact simple-profile ownership and final single-solid classification now
-   have separate proof as well. Selected contour/direction/body references and
-   selection-access stamp/restoration semantics still need verification.
+   have separate proof as well. The internal selection-scope guard now has
+   portable/native Windows access/release and independent state/geometry
+   restoration proof; explicit direction/contour/body extensions remain
+   unsupported. Its stamp changes are reported, not called a pure read.
+   Actual depth modification, no-op/failure contracts and Wine proof remain.
    These guards do not yet expose a setter or promise complete edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with
