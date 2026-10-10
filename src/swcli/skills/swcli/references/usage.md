@@ -48,7 +48,6 @@ inventing a command or silently choosing a mesh/GUI workaround.
 sw-cli --session bracket document open model.SLDPRT --json
 sw-cli --session bracket document list --json
 sw-cli --session bracket document inspect --document d-ab12cd --json
-sw-cli --session bracket document status --document d-ab12cd --json
 ```
 
 Replace example IDs with real returned handles. Open/create sets the requesting
@@ -214,9 +213,11 @@ display chain is not proof of absent dimensions. Do not create replacements or
 guess names. Reads may observe a leased background document, but discovered
 handles do not grant modification authority or bypass lease/stamp guards.
 
-Inspect/diagnose have additional structure and feature evidence; status reports
-document state, not an invented `export_ready` flag. `modified` means the native
-save flag is set; `needs_rebuild` is a separate native state. Neither should be
+`document inspect` defaults to a summary with `.document.modified` and top-level
+`needs_rebuild`; there is no separate `document status` command or invented
+`export_ready` flag. Structure inspection and diagnosis add feature evidence.
+`modified` means the native save flag is set; `needs_rebuild` is a separate native
+state. Neither should be
 silently resolved by saving/rebuilding if the task is only to validate committed
 CI sources. Rebuild diagnostics, requested dimensions and geometry checks form
 the acceptance loop; an API returning success alone is insufficient.
