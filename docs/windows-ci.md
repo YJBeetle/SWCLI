@@ -33,6 +33,20 @@ while the kernel driver receives block reads through shared memory. The
 official standalone `devio.exe` URL and SHA-256 are pinned. The optical volume
 is detached before `devio` and rclone are stopped.
 
+WinFsp is installed from the fixed upstream
+[v2.1 MSI and published SHA-256](https://github.com/winfsp/winfsp/releases/tag/v2.1),
+not the Chocolatey WinFsp feed. Only its bounded network download is retried;
+hash mismatch, MSI failure/timeout or absent Launcher registration stops the job.
+Its MSI log is retained with runner evidence. Chocolatey still supplies rclone
+and ImDisk, but both its exit code and each required command are checked. This
+does not skip the subsequent real mount check or add native CAD retries.
+
+At `1cee28d`, [run 38056417517](https://github.com/YJBeetle/SWCLI/actions/runs/38056417517)
+failed in `Stream Google Drive through WinFsp`, before media mounting or
+SOLIDWORKS installation: the Chocolatey feed returned HTTP 504 for WinFsp and
+omitted that package despite its `3/3 packages` summary. Unit and package jobs
+passed. That run provides no native proof of the Toolbox selection correction.
+
 Required repository secret:
 
 - `RCLONE_CONFIG_B64`: base64-encoded rclone configuration containing a

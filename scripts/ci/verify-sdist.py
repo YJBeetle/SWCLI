@@ -26,6 +26,7 @@ REQUIRED = {
     "scripts/ci/fixtures/README.md",
     "scripts/ci/verify-sdist.py",
     "scripts/ci/windows/smoke-solidworks.ps1",
+    "scripts/ci/windows/install-winfsp.ps1",
     "scripts/ci/windows/start-external-host.ps1",
     "scripts/ci/windows/create-external-host.py",
     "src/swcli/skills/swcli/SKILL.md",

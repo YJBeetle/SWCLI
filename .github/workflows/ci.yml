@@ -192,7 +192,15 @@ jobs:
 
       - name: Install rclone, WinFsp, and ImDisk
         shell: powershell
-        run: choco install rclone winfsp imdisk --yes --no-progress
+        run: |
+          choco install rclone imdisk --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "rclone/ImDisk package installation failed" }
+          foreach ($command in @("rclone", "imdisk.exe")) {
+            if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
+              throw "Required media dependency is unavailable: $command"
+            }
+          }
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
 
       - name: Prepare protected Google Drive configuration
         shell: powershell
@@ -320,5 +328,6 @@ jobs:
             ${{ runner.temp }}\swcli-native-smoke
             ${{ runner.temp }}\swcli-hosted-media\*.json
             ${{ runner.temp }}\swcli-hosted-media\cache-size.txt
+            ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
           if-no-files-found: warn
           retention-days: 14
