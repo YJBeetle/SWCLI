@@ -62,7 +62,11 @@ after modeling/driving on the same host. A failure blocks delivery, never trigge
 a repair, restart or retry of the operation.
 The six DockerSW published export artifacts remain a separate delivery gate.
 Windows hosted CI runs that same wrapper in visible and `-Hidden` modes using
-one installation and independent evidence directories. Modeling and driving
+one installation and independent evidence directories. Its native job downloads
+the same run's `swcli-dist` artifact, requires exactly one wheel, installs it
+normally and verifies installed resources before either mode. It does not use
+an editable checkout as the native runtime; the checkout only supplies the CI
+scripts and fixtures. Modeling and driving
 share one unchanged native PID within each mode; passing visible mode is not
 proof of hidden/background behavior.
 The Windows-only equation setup attaches through ROT and is required in the

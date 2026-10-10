@@ -159,6 +159,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Download built SWCLI distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-dist
+          path: ${{ runner.temp }}/swcli-dist
+          digest-mismatch: error
+
       - name: Initialize private paths
         shell: powershell
         run: |
@@ -259,12 +266,18 @@ jobs:
             -AssetsRoot "$env:PRIVATE_ROOT\assets" `
             -StateDirectory "$env:PRIVATE_ROOT\state"
 
-      - name: Install current SWCLI checkout
+      - name: Install built SWCLI wheel
         shell: powershell
         run: |
+          $wheels = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\swcli-dist" -Filter *.whl -File)
+          if ($wheels.Count -ne 1) { throw "Expected exactly one SWCLI wheel from the package job" }
           python --version
           python -m pip install --upgrade pip
-          python -m pip install --editable .
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          python -m pip install $wheels[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell

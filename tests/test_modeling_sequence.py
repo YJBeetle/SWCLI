@@ -63,6 +63,29 @@ class ModelingSequenceTests(unittest.TestCase):
             wrapper,
         )
 
+    def test_windows_native_gate_consumes_the_same_run_package_not_editable_source(self):
+        workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        package, hosted = workflow.split("  solidworks-e2e:", 1)
+        self.assertIn("needs: [test, package]", hosted)
+        self.assertIn("name: swcli-dist", package)
+        download = hosted.split("      - name: Download built SWCLI distributions", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("uses: actions/download-artifact@v8", download)
+        self.assertIn("name: swcli-dist", download)
+        self.assertIn("path: ${{ runner.temp }}/swcli-dist", download)
+        self.assertIn("digest-mismatch: error", download)
+        self.assertNotIn("run-id:", download)
+        self.assertNotIn("repository:", download)
+        install = hosted.split("      - name: Install built SWCLI wheel", 1)[1].split("      - name:", 1)[0]
+        self.assertIn('$env:RUNNER_TEMP\\swcli-dist', install)
+        self.assertIn("if ($wheels.Count -ne 1)", install)
+        self.assertIn("python -m pip install $wheels[0].FullName", install)
+        self.assertIn("SWCLI wheel installation failed", install)
+        self.assertIn("python -I scripts/ci/verify-installed.py", install)
+        self.assertNotIn("--editable", hosted)
+        self.assertNotIn("pip install .", hosted)
+        self.assertLess(hosted.index("Download built SWCLI distributions"), hosted.index("Install native SOLIDWORKS"))
+        self.assertLess(hosted.index("Install built SWCLI wheel"), hosted.index("Run real SOLIDWORKS modeling and export smoke test"))
+
     def record(self):
         return {
             "state": "completed",
