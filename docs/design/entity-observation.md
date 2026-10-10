@@ -1,51 +1,27 @@
-# Exact face/edge observation — next modeling slice
+# Exact face/edge observation
 
-Status: **a8 development**, not an a7 capability. The a7 fixed-version
-gates and publication are complete. An internal persistent-reference binding
-now rejects malformed/oversized arrays, non-OK or unwritten status, null objects
-and non-exact native identity; its 13 portable cases and native Windows 8-face
-round trip pass, including strict pywin32 memoryview support. See the
-[binding verification](../verification/a8-entity-references-2026-10-10.md).
-The next internal complete single-solid observer has 12 portable cases and two
-native Windows reads proving face/body membership, count, duplicate identity and
-unchanged state. Its 64-face cap bounds pairwise comparisons; scalable enumeration
-and Wine gates remain pending.
-An internal per-document registry now allocates short `e-` IDs, reuses only
-exact native identities and permanently retires IDs after an observed scope
-change. Its lifecycle wiring to DocumentRegistry is implemented, with **19**
-portable registry/lifecycle cases and independent native close/reopen checks.
-Two additional trace cases cover private, paired native identity diagnostics.
-The geometry adapter now validates plane points and outward normals against
-native surface sense, and cylinder axes/radii, with **36** related portable
-binding/geometry/observer cases and two unchanged native background reads with
-matching geometric readback and short IDs. These remain internal Windows proofs.
-The development CLI/catalog now advertises `entity.list` and `entity.inspect`,
-with strict kind-aware parameters/results, default faces and explicit edges.
-Edge contract/operation tests cover complete-kind counts, disjoint curve shapes,
-raw parameters, wrong-kind refusal, mixed handle preservation and failed-read
-scope retirement. The parameter schema uses a conditional kind/limit rule;
-capabilities and its client checker accept and validate that schema too.
-The actual typed handlers passed leased-background reads, CAS/unknown/cross-doc
-refusals, real rebuild stamp invalidation and native close/reopen on Windows.
-The explicit edge typed handlers now also pass current-source Windows CLI
-mapping, background/mixed-kind reads, CAS/wrong-kind/cross-document refusal and
-native close/reopen; a multi-face semantic regression discovered during this
-run was fixed rather than bypassed. See the
-[edge operations receipt](../verification/a8-edge-operations-2026-10-10.md).
-This is not installed-client/TCP or Wine proof. The shared modeling gate now
-reuses its existing depth fixture for both face and explicit edge checks:
-8 faces, 12 box lines, 2 blind-hole circles, mixed exact-ID preservation,
-wrong-kind/CAS/cross-document refusal, real depth-write retirement and native
-close/reopen with fresh IDs. Analytical fixture checks do not infer public
-edge length, closure or normalized trim. Installed cross-host gates remain
-pending. A narrow installed Windows wheel/CLI/TCP run now passes those read-only
-face/edge observation methods on an own copy, including close/reopen and preserved
-user state; see the [installed receipt](../verification/a8-edge-installed-windows-2026-10-10.md).
-It does not establish the complete generated-modeling/depth-write gate.
-The complete shared modeling/depth-edit, driving and Toolbox sequence now passes
-on independent Linux/Wine using an exact wheel payload and one unchanged host;
-see the [Wine receipt](../verification/a8-entity-wine-2026-10-10.md). This is not
-a newly built DockerSW image, full hosted Windows proof or a published a8 release.
+Status: **a8 development**, not an a7 capability or a published a8 release.
+The CLI/catalog/schema implement read-only `entity.list/inspect` for default
+faces and explicit edges, complete bounded ownership/identity reads, analytic
+geometry, mixed short IDs and shared conservative scope retirement.
+
+The [native calibration record](../verification/a8-entity-references-2026-10-10.md),
+[edge observer](../verification/a8-edge-observer-2026-10-10.md),
+[mixed registry](../verification/a8-edge-registry-2026-10-10.md) and
+[typed operations](../verification/a8-edge-operations-2026-10-10.md) preserve
+the incremental Windows proofs, first failures and their fixes. The separate
+[installed Windows receipt](../verification/a8-edge-installed-windows-2026-10-10.md)
+proves narrow wheel/CLI/TCP copy-based reads, not the full generated-modeling gate.
+
+The shared gate reuses its existing depth fixture: 8 faces, 12 box lines,
+2 blind-hole circles, mixed exact-ID reuse, wrong-kind/CAS/cross-document
+refusal, real depth-write retirement and native close/reopen. The complete
+modeling/depth-edit, driving and Toolbox sequence passed independent Linux/Wine
+with an exact wheel payload and one unchanged host; see the
+[Wine receipt](../verification/a8-entity-wine-2026-10-10.md). This is not a new
+DockerSW image build/promotion. The [release draft](../releases/v0.1.0a8.md)
+tracks the full hosted Windows and formal-delivery gates still needed.
+
 The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
@@ -53,8 +29,8 @@ that arbitrary references survive every model edit.
 
 ## Start with a read-only part boundary
 
-The first increment should observe exact faces of one complete solid part, then
-extend to edges. Use bounded native body/face traversal and prove membership in
+This increment observes exact faces or explicit edges of one complete solid
+part. Use bounded native body/entity traversal and prove membership in
 the selected document/body. Do not derive identity from display names, a tree
 position, array order, a rounded geometric signature or GUI selection.
 
@@ -202,12 +178,14 @@ Configuration, stamp, modified flag, edit identity and foreground must remain
 unchanged. Any native, geometry, membership or state failure discards all edge
 records and bindings while retaining the first error. Thirteen portable cases
 cover this owning observer. The a8 development catalog, schema and CLI now wire
-this reader through explicit `--kind edge`; installed cross-host gates remain
-pending.
+this reader through explicit `--kind edge`; the verification status above
+separates internal, installed-client and full host-delivery proof.
 Two actual current-source Windows background observations now pass on the same
 host, with all 14 exact bindings and analytic arrays matching native readback.
 See the [edge receipt](../verification/a8-edge-observer-2026-10-10.md) for source
-hashes, unchanged state, traces and the unproved false-sense/Wine boundaries.
+hashes, unchanged state, traces and the boundaries of that historical Windows
+probe. The later Wine shared-gate proof is linked above; false-sense calibration
+is not inferred from its fixture.
 
 ### Internal face/edge registry increment
 

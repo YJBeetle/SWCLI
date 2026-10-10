@@ -77,9 +77,10 @@ part, specification selection or assembly insertion. This sequence does not
 claim the six official export artifacts, a new image build/promotion, native
 Mac proof, trimmed-edge/adjacency semantics or topology-edit survival.
 
-The narrow installed Windows copy proof is separate. Full hosted Windows
-visible/hidden a8 proof is still pending in
-[SWCLI CI 38056417517](https://github.com/YJBeetle/SWCLI/actions/runs/38056417517).
-Its cold installer includes the independently diagnosed Toolbox component-chain
-correction; this Wine run on an already deployed library does not prove that
-Windows installation fix.
+The narrow installed Windows copy proof is separate. The corresponding
+[Windows CI 38056417517](https://github.com/YJBeetle/SWCLI/actions/runs/38056417517)
+subsequently failed before SOLIDWORKS installation: a Chocolatey feed HTTP 504
+left WinFsp absent. It is not a successful Windows runtime receipt. The
+[a8 release draft](../releases/v0.1.0a8.md) tracks the corrected hosted gate.
+This Wine run on an already deployed library does not prove Windows cold
+installation, its Toolbox component-chain correction or visible/hidden delivery.
