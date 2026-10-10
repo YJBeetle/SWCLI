@@ -217,7 +217,7 @@ class FakeCLI:
             }
         if action == "document" and subcommand == "save":
             target = self.directory / gate.PureWindowsPath(document["path"]).name
-            if self.defect == "assembly-save-truncated":
+            if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
             return {"ok": True, "api_saved": True, "save_errors": 0,
                     "document_after": self.descriptor(document, session)}
@@ -834,13 +834,17 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(proof["fresh_document_id"])
         save_calls = [call for call in self.fake.calls
                       if call.command == "document" and call.document_command == "save"]
-        self.assertEqual(len(save_calls), 1)
+        self.assertEqual(len(save_calls), 2)
+        saves = self.record()["native_in_place_saves"]
+        self.assertEqual([saved["format"] for saved in saves], ["SLDPRT", "SLDASM"])
+        self.assertTrue(all(saved["size_bytes"] >= 512 for saved in saves))
         saved_assemblies = [document for path, document in self.fake.saved.items()
                             if path.endswith(".SLDASM")]
         self.assertEqual(len(saved_assemblies), 1)
 
     def test_assembly_gate_rejects_bad_save_reopen_and_changed_structure(self):
         for defect, message in (
+            ("part-save-truncated", "part in-place save produced an empty or truncated"),
             ("assembly-save-as-truncated", "empty or truncated"),
             ("assembly-save-truncated", "empty or truncated"),
             ("assembly-reopen-failed", "OpenFailed"),

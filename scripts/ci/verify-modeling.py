@@ -788,6 +788,7 @@ class ModelingSmoke:
             local_model.is_file() and local_model.stat().st_size > 0,
             "daemon-visible output did not produce a local native artifact",
         )
+        self.verify_in_place_save(a, local_model)
         digest = hashlib.sha256(local_model.read_bytes()).hexdigest()
         self.write(
             "document",
@@ -1373,12 +1374,7 @@ class ModelingSmoke:
         require(saved["artifact"]["size_bytes"] == save_as_bytes,
                 "assembly save-as size evidence disagrees with the artifact")
         # Also exercise Save3 on the new file, never on the installed sample.
-        in_place = self.write("document", "save", document=document)
-        require(in_place["api_saved"] is True and in_place["save_errors"] == 0
-                and in_place["document_after"]["modified"] is False,
-                "assembly in-place save failed")
-        require(native_file.stat().st_size >= 512,
-                "assembly in-place save produced an empty or truncated file")
+        self.verify_in_place_save(document, native_file)
         digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
         self.close(document)
         reopened = self.command("document", "open", target, "--read-only")
@@ -1402,6 +1398,19 @@ class ModelingSmoke:
             "fresh_document_id": True,
         }
         self.checkpoint("assembly-save-reopen.verified")
+
+    def verify_in_place_save(self, document, native_file):
+        kind = "assembly" if native_file.suffix.upper() == ".SLDASM" else "part"
+        saved = self.write("document", "save", document=document)
+        require(saved["api_saved"] is True and saved["save_errors"] == 0
+                and saved["document_after"]["modified"] is False,
+                f"{kind} in-place save failed")
+        require(native_file.is_file() and native_file.stat().st_size >= 512,
+                f"{kind} in-place save produced an empty or truncated file")
+        self.record.setdefault("native_in_place_saves", []).append({
+            "format": native_file.suffix[1:].upper(),
+            "size_bytes": native_file.stat().st_size,
+        })
 
     def verify_step(self, name):
         path = self.directory / name

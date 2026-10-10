@@ -29,7 +29,10 @@ provided by the host, now exercises:
 
 Portable regression cases cover empty/truncated assembly output, mismatched
 extensions, failed reopen, and changed structure. These are harness contracts,
-not native CAD proof. This increment has not yet been validated on a real host;
+not native CAD proof. The existing generated-part save/reopen sequence also
+executes an in-place save and checks its resulting size before close/reopen.
+Both PRT and ASM sizes appear in `native_in_place_saves` evidence.
+This increment has not yet been validated on a real host;
 it must not be included in the existing a8 runtime receipts as though it passed.
 The gate does not claim component-level geometry, mate behavior, external
 reference portability, or assembly insertion validation.
