@@ -46,6 +46,34 @@ def near(actual, expected, message, tolerance=0.00001):
     )
 
 
+def unchanged_depth_metrics(before, after):
+    # Independent kernel reads can differ by a few floating-point ULPs even
+    # without a setter/rebuild. Keep every metric guarded, not dict equality.
+    require(
+        type(before["solid_body_count"]) is int
+        and type(after["solid_body_count"]) is int
+        and before["solid_body_count"] == after["solid_body_count"],
+        "equal depth changed the solid body count",
+    )
+    pairs = [
+        (key, before[key], after[key]) for key in ("volume_mm3", "surface_area_mm2")
+    ] + [
+        (f"centroid_mm.{axis}", before["centroid_mm"][axis], after["centroid_mm"][axis])
+        for axis in "xyz"
+    ]
+    for label, expected, actual in pairs:
+        require(
+            type(expected) in (int, float) and math.isfinite(expected),
+            f"equal depth has invalid baseline {label}",
+        )
+        near(
+            actual,
+            expected,
+            f"equal depth changed {label}: {expected!r} -> {actual!r}",
+            max(1e-6, abs(expected) * 1e-12),
+        )
+
+
 def executable(value):
     path = Path(value).expanduser()
     if not path.is_absolute() or not path.is_file() or not os.access(path, os.X_OK):
@@ -848,9 +876,11 @@ class ModelingSmoke:
             require(
                 equal["depth_changed"] is False
                 and not any(equal["mutation"].values())
-                and "rebuilt" not in equal
-                and equal["measurement_after"] == changed["measurement_after"],
-                "equal depth performed modification/rebuild or changed geometry",
+                and "rebuilt" not in equal,
+                "equal depth performed modification/rebuild",
+            )
+            unchanged_depth_metrics(
+                changed["measurement_after"], equal["measurement_after"]
             )
             for response in (changed, equal):
                 require(

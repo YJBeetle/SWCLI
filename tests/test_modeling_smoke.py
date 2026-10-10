@@ -384,6 +384,23 @@ class FakeCLI:
                 ] = False
             if self.defect == "depth-equal-mutated" and not changed:
                 result["mutation"]["staging_attempted"] = True
+            if self.defect == "depth-equal-ulp" and not changed:
+                for key in ("volume_mm3", "surface_area_mm2"):
+                    metrics[key] = math.nextafter(metrics[key], math.inf)
+                for axis in "xyz":
+                    metrics["centroid_mm"][axis] = math.nextafter(
+                        metrics["centroid_mm"][axis], math.inf
+                    )
+            if self.defect == "depth-equal-volume" and not changed:
+                metrics["volume_mm3"] += 1e-4
+            if self.defect == "depth-equal-area" and not changed:
+                metrics["surface_area_mm2"] += 1e-4
+            if self.defect == "depth-equal-centroid" and not changed:
+                metrics["centroid_mm"]["z"] += 1e-4
+            if self.defect == "depth-equal-count" and not changed:
+                metrics["solid_body_count"] += 1
+            if self.defect == "depth-equal-invalid" and not changed:
+                metrics["volume_mm3"] = None
             if self.defect == "depth-foreground":
                 result["document"]["active"] = True
             return result
@@ -447,7 +464,9 @@ class FakeCLI:
             }
             if self.defect == "feature-read-depth":
                 definition["depth_mm"] += 1
-            if self.defect == "depth-reopen" and document["path"].endswith("edited-depth.SLDPRT"):
+            if self.defect == "depth-reopen" and document["path"].endswith(
+                "edited-depth.SLDPRT"
+            ):
                 definition["depth_mm"] += 1
             if self.defect == "feature-read-state":
                 observed["after"]["modified"] = not observed["before"]["modified"]
@@ -637,6 +656,34 @@ class ModelingSmokeTests(unittest.TestCase):
         )
         self.assertTrue(all(call.request_timeout == 300 for call in self.fake.calls))
 
+    def test_equal_depth_independent_kernel_reads_allow_only_numeric_roundoff(self):
+        self.fake.defect = "depth-equal-ulp"
+        self.run_gate()
+        self.assertTrue(self.record()["success"])
+        self.assertEqual(self.fake.documents, {})
+
+    def test_equal_depth_metric_check_refuses_invalid_baselines_and_counts(self):
+        baseline = {
+            "solid_body_count": 1,
+            "volume_mm3": 125000.0,
+            "surface_area_mm2": 18000.0,
+            "centroid_mm": {"x": 0.0, "y": 20.0, "z": 12.5},
+        }
+        for key, value in (("solid_body_count", True), ("volume_mm3", math.inf)):
+            with self.subTest(key=key):
+                invalid = {**baseline, key: value}
+                with self.assertRaises(RuntimeError):
+                    gate.unchanged_depth_metrics(invalid, baseline)
+        invalid = copy.deepcopy(baseline)
+        invalid["centroid_mm"]["x"] = math.nan
+        with self.assertRaises(RuntimeError):
+            gate.unchanged_depth_metrics(invalid, baseline)
+        for value in (True, math.nan, math.inf):
+            with self.subTest(actual=value):
+                invalid = {**baseline, "volume_mm3": value}
+                with self.assertRaises(RuntimeError):
+                    gate.unchanged_depth_metrics(baseline, invalid)
+
     def test_invalid_request_timeout_refused_before_work(self):
         for value in ("0", "-1", "nan", "inf", "-inf", "1e309", "3600.1", "invalid"):
             with (
@@ -712,6 +759,11 @@ class ModelingSmokeTests(unittest.TestCase):
             "depth-volume",
             "depth-unreleased",
             "depth-equal-mutated",
+            "depth-equal-volume",
+            "depth-equal-area",
+            "depth-equal-centroid",
+            "depth-equal-count",
+            "depth-equal-invalid",
             "depth-foreground",
             "depth-reopen",
             "depth-readonly-mutated",
