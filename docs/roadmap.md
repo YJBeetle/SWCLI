@@ -84,9 +84,12 @@ Next:
    checks pass, including real rebuild/close/reopen. The shared installed-client
    gate is implemented; hosted Windows/Wine proof and publication remain pending.
    Internal edge parameter/analytic-curve and complete bounded ownership readers
-   are implemented with portable failure tests. Native calibration and public
-   edge handles/contracts remain next; trimmed boundaries and topology-edit
-   survival are not implemented. Public entity commands still observe faces only.
+   are implemented with portable failure tests and two unchanged current-source
+   Windows background reads recorded in the
+   [edge receipt](verification/a8-edge-observer-2026-10-10.md). Public edge
+   handles/contracts and independent Wine proof remain next; trimmed boundaries
+   and topology-edit survival are not implemented. Public entity commands still
+   observe faces only.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
