@@ -64,7 +64,7 @@ def _single_body(document: Any) -> Any:
     )
     if len(solids) != 1 or surfaces:
         raise EntityObservationUnavailable(
-            "face observation requires one solid and no surface bodies"
+            "entity observation requires one solid and no surface bodies"
         )
     return solids[0]
 

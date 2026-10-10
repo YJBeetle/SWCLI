@@ -83,7 +83,10 @@ Next:
    and conservative stamp/configuration retirement. Actual Windows typed-handler
    checks pass, including real rebuild/close/reopen. The shared installed-client
    gate is implemented; hosted Windows/Wine proof and publication remain pending.
-   Edges, trimmed boundaries and topology-edit survival are not implemented.
+   Internal edge parameter/analytic-curve and complete bounded ownership readers
+   are implemented with portable failure tests. Native calibration and public
+   edge handles/contracts remain next; trimmed boundaries and topology-edit
+   survival are not implemented. Public entity commands still observe faces only.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

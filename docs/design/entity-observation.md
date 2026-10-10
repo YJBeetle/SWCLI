@@ -161,6 +161,17 @@ arc-length, adjacency or feature-owner claims. The owning observer must still
 prove complete membership, persistent-reference identity and unchanged state.
 This slice has 11 portable cases; these are not new native/Wine runtime proof.
 
+`windows_edge_observation.observe_part_edges_with_handles` additionally verifies
+one solid/no surface bodies, a complete 1–64-edge array, exact body ownership,
+pairwise native uniqueness and private persistent-reference round trips. A
+second complete enumeration must contain exactly the same native set; harmless
+array reordering is accepted, but same-count replacements and duplicates fail.
+Configuration, stamp, modified flag, edit identity and foreground must remain
+unchanged. Any native, geometry, membership or state failure discards all edge
+records and bindings while retaining the first error. Thirteen portable cases
+cover this owning observer; it has not yet been exposed to the public registry,
+catalog, schema or CLI. Public `entity.list/inspect` still observes faces only.
+
 Official semantics:
 [GetCurveParams3 ordering](https://help.solidworks.com/2012/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.iedge~getcurveparams3.html),
 [Sense](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icurveparamdata~sense.html),
