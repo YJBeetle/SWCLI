@@ -230,6 +230,11 @@ class FakeCLI:
             return self.failure("DocumentLeaseNotFound")
         if action == "document" and subcommand == "close":
             self.documents.pop(document_id)
+            if (self.defect == "generated-source-auto-unload"
+                    and document["path"].endswith("generated.SLDASM")):
+                for key, item in list(self.documents.items()):
+                    if item["path"].endswith("component.SLDPRT"):
+                        self.documents.pop(key)
             if self.active == document_id:
                 self.active = next(reversed(self.documents), None)
             for owner, current in list(self.current.items()):
@@ -1213,6 +1218,28 @@ class ModelingSmokeTests(unittest.TestCase):
                                      if "open" in event["command"]
                                      and any(arg.endswith("generated.SLDASM") for arg in event["command"]))
         self.assertLess(closed_source, first_assembly_reopen)
+
+    def test_generated_assembly_observes_source_auto_unload_before_reopen(self):
+        smoke = self.generated_gate("generated-source-auto-unload")
+        self.assertTrue(smoke.record["generated_assembly"]["source_unloaded_before_reopen"])
+        self.assertEqual(smoke.record["cleanup_errors"], [])
+        self.assertFalse(smoke.owned)
+        self.assertFalse(self.fake.documents)
+        events = smoke.record["events"]
+        source_id = next(event["result"]["document"]["document_id"] for event in events
+                         if "open" in event["command"] and "--read-only" in event["command"]
+                         and any(arg.endswith("component.SLDPRT") for arg in event["command"]))
+        self.assertFalse(any("close" in event["command"] and source_id in event["command"]
+                             for event in events))
+        first_reopen = next(index for index, event in enumerate(events)
+                            if "open" in event["command"]
+                            and any(arg.endswith("generated.SLDASM") for arg in event["command"]))
+        assembly_id = next(event["result"]["document"]["document_id"] for event in events
+                           if event["result"].get("inserted") is True)
+        closed_assembly = next(index for index, event in enumerate(events)
+                               if "close" in event["command"] and assembly_id in event["command"])
+        self.assertTrue(any(event["result"].get("documents") == []
+                            for event in events[closed_assembly + 1:first_reopen]))
 
     def test_generated_assembly_has_no_official_sample_error_exception(self):
         for defect, message in (

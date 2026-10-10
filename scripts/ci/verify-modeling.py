@@ -1421,7 +1421,15 @@ class ModelingSmoke:
         self.close(assembly)
         # Unload the explicitly opened part too: assembly reopens must not be
         # satisfied solely by this fixture's still-live source COM object.
-        self.close(source)
+        # Closing the assembly can already unload its referenced source. Observe
+        # this before issuing a second close; never swallow DocumentNotFound.
+        remaining = self.command("document", "list")["documents"]
+        if any(item["document_id"] == source for item in remaining):
+            self.close(source)
+        else:
+            self.owned.pop(source, None)
+            self.leases.pop(source, None)
+        self.require_empty()
         ids = {assembly}
         opens = []
         for read_only in (False, True):
@@ -1449,6 +1457,7 @@ class ModelingSmoke:
             "component_metrics": metrics, "save_as_bytes": save_as_bytes,
             "size_bytes": native_file.stat().st_size, "sha256": digest,
             "opens": opens, "structure_unchanged": True, "fresh_document_id": True,
+            "source_unloaded_before_reopen": True,
             "scope": "one-component-native-save-reopen",
         }
         self.checkpoint("generated-assembly.verified")

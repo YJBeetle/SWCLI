@@ -23,9 +23,11 @@ inserts exactly this loaded part using an explicit configuration. The generated
 `generated.SLDASM` must pass strict SaveAs and Save3, actual size checks, then
 separate writable and read-only reopens with clean modified flags, fresh document
 IDs, identical configurations/top-level feature trees and unchanged saved hashes.
-Both the original assembly and explicitly opened PRT are closed before reopening
-the ASM, so the test does not deliberately keep a source COM handle alive to
-satisfy references. Its tree must include one native component `Reference`.
+After closing the assembly, the gate closes the explicitly opened PRT if it
+remains loaded; SOLIDWORKS may already unload it with the assembly. The native
+document list must be empty before reopening the ASM, so the test does not keep
+a source COM handle alive to satisfy references. Its tree must include one
+native component `Reference`.
 The component's bytes must remain unchanged by insertion and assembly saving.
 
 No `DocumentStillModified` exception applies to generated documents, including
