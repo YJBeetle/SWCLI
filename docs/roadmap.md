@@ -70,15 +70,19 @@ Next:
    locally proved through Windows CLI/TCP/COM. Creation returns exact feature
    handles and live discovery reuses them, with independent Windows proof.
    The read/creation shared gate passed hosted Windows visible/hidden modes;
-   Wine delivery and guarded depth writes remain pending.
+   Wine delivery remains pending. Guarded internal depth writes now have native
+   Windows proof; public `feature.set-depth` wiring is implemented and its
+   runtime gates are being completed.
    Preliminary nonmutating depth guards have portable/native Windows proof;
    exact simple-profile ownership and final single-solid classification now
    have separate proof as well. The internal selection-scope guard now has
    portable/native Windows access/release and independent state/geometry
    restoration proof; explicit direction/contour/body extensions remain
    unsupported. Its stamp changes are reported, not called a pure read.
-   Actual depth modification, no-op/failure contracts and Wine proof remain.
-   These guards do not yet expose a setter or promise complete edit eligibility.
+   Boss/cut writes and equal-depth behavior have internal native proof, with
+   independent expected-volume checks and no source saves. Typed no-op/failure
+   contracts are implemented; public save/reopen, shared installed runtime and
+   Wine proof remain. These guards do not promise arbitrary edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.

@@ -334,8 +334,13 @@ modified flag and update stamp. They do not activate/select/rebuild or call
 `AccessSelections` (which would roll the model back). Native and wire contracts
 are checked before registering discovered handles; failed observations publish
 no usable partial list/definition. These reads can observe a leased or read-only
-document, but handles do not grant edit authority. Depth-only writes remain a
-separate pending slice. See [feature-depth design](design/feature-depth-editing.md)
+document, but handles do not grant edit authority. Development `feature.set-depth`
+uses an independent guarded write path, including lease/stamp checks before
+activation, owned selection access/release, staged current-config modification
+and independent post-write verification. Equal depth skips modification but
+does not promise an unchanged update stamp. Partial failures retain mutation
+and cleanup evidence; no implicit save/retry/rollback is performed. Public
+runtime/Wine delivery is still being verified. See [feature-depth design](design/feature-depth-editing.md)
 and [read-layer evidence](verification/a7-feature-observation-2026-10-10.md).
 
 ## Compatibility policy

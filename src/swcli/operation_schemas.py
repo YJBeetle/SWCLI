@@ -221,6 +221,16 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         required=("feature_id",),
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "feature.set-depth": _operation(
+        "feature.set-depth",
+        {
+            "feature_id": _string(pattern="^f-[a-z0-9]{6}$"),
+            "depth_mm": _number(exclusiveMinimum=2e-6),
+        },
+        required=("feature_id", "depth_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "sketch.inspect": _operation(
         "sketch.inspect",
         {

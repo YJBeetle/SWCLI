@@ -55,7 +55,9 @@ not general dimension editing or a promise of fully defined sketches.
 The **a7 development checkout** additionally exposes read-only `feature list`
 and `feature inspect`, with exact short feature handles. Successful boss/cut
 creation also returns `.feature.feature_id` from the exact native creation
-object. This is not in the published a6 wheel; depth editing is not yet implemented. See the
+object. The checkout also implements guarded `feature set-depth`; its public
+runtime/Wine release gates are still being completed. None of these additions
+is in the published a6 wheel. See the
 [feature-depth plan](docs/design/feature-depth-editing.md) and
 [read-layer verification](docs/verification/a7-feature-observation-2026-10-10.md).
 
@@ -697,6 +699,31 @@ sw-cli feature inspect $boss.feature.feature_id --json
 Use the same selected document/session and required write lease as for creation.
 A failed post-creation rebuild/verification may still report the created handle;
 this identifies a partial mutation, not a successful model or an automatic rollback.
+
+### Guarded feature depth editing (a7 development)
+
+```powershell
+sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
+  --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp UPDATE_STAMP --json
+```
+
+Replace the IDs/stamp with fresh observations and your selected document's
+lease. It edits only the forward blind depth of an exact supported boss/cut,
+not general feature parameters. The first slice requires one writable,
+single-configuration, non-sheet-metal solid and an exact absorbed circle or
+axis-aligned rectangle profile. Equations/design tables, protected features,
+existing edits/commands, contours and explicit direction references are refused.
+It temporarily activates a background target and restores the prior foreground
+without changing the session's remembered document. It never saves the part.
+
+`depth_changed: false` means the depth was already equal within 1e-6 mm: no
+setter, commit or rebuild was performed, but required selection access may
+advance `update_stamp`. Refresh the stamp before your next conditional write.
+Failures retain `mutation` and `selection_checks` evidence; staging/commit can
+have happened even though `ok` is false. There is no implicit retry or rollback.
+See the [depth-edit design](docs/design/feature-depth-editing.md) for the narrow
+scope and verification boundaries; source implementation is not a Wine or
+published-wheel support claim.
 
 ## Part modeling
 

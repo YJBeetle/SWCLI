@@ -7,9 +7,10 @@ The existing shared modeling gate now includes these reads; the read-only
 candidate passed hosted Windows visible/hidden modes in run `37993834203`.
 The later read/creation candidate also passed hosted Windows visible/hidden
 modes in run `37998293756`; Wine results remain pending. Public creation-result
-handles have independent native Windows CLI/TCP/COM proof. Depth writes remain pending;
-no shipped depth-setter proof is claimed. Test-only native feasibility is
-recorded separately below.
+handles have independent native Windows CLI/TCP/COM proof. The internal guarded
+writer now has native Windows boss/cut and equal-depth proof. Public
+`feature.set-depth` wiring is implemented; public runtime and Wine release
+gates remain in progress. No shipped a7 setter proof is claimed.
 
 An internal, nonmutating preliminary depth guard is also implemented. It reads
 strict writable/view-only, suppression/freeze/rollback, native command,
@@ -28,7 +29,7 @@ An independent **internal access/release guard** now observes that scope and
 verifies restoration on native Windows. It requires the exact part to be active,
 owns one access/release attempt, retains the first failure, and only returns
 fresh definition data after release/state/geometry checks. It is not attached
-to public `feature.list/inspect` or advertised as a setter.
+to public `feature.list/inspect`; the guarded depth writer owns it separately.
 
 ## First slice
 
@@ -41,8 +42,10 @@ silently normalized into this slice. An observed definition is not edit authorit
 Available development vocabulary: `feature list [--max-features N]` and
 `feature inspect FEATURE_ID`, with document selection and optional update-stamp
 preconditions. Listing is explicitly scoped to `part-extrusions`, not all
-features. Proposed next command: `feature set-depth FEATURE_ID --depth-mm VALUE`.
-Its contract is not exposed yet; this is not a generic COM bridge.
+features. The development command `feature set-depth FEATURE_ID --depth-mm VALUE`
+uses the same daemon, selected-document, optional lease and update-stamp context.
+It temporarily activates the exact target, restores the previous foreground and
+preserves session current. This is not a generic COM bridge or published a6 API.
 
 ## Handles and ownership
 
@@ -96,8 +99,10 @@ or a design table, rather than guessing which named dimension owns depth. It
 also refuses multiple configurations until current-only modification scope has
 separate native proof. These are deliberate unsupported-scope outcomes, not
 claims that all parameters are externally controlled. Selection-scope and
-access/release restoration now have separate internal proof. Depth modification,
-post-write verification and public no-op/failure contracts remain pending.
+access/release restoration now have separate internal proof. The internal writer
+also has actual depth/post-write verification proof. Public contracts retain
+mutation flags, bounded selection-check lifecycle evidence and independent
+metrics; installed-wheel/Wine delivery remains to be verified.
 
 Exact simple-profile ownership and final-body classification now have a
 nonmutating internal guard. Do not mistake these for complete feature-selection
@@ -140,6 +145,22 @@ Failures preserve the original error and available partial-mutation/cleanup
 evidence. No setter retry, implicit restart or automatic transaction rollback.
 No-op semantics must be independently proved, not implemented by skipping
 required native observations.
+
+The writer releases scope access before staging a fresh definition, verifies
+the live model has not changed before committing, applies current-configuration
+scope once, commits once, rebuilds and repeats the complete scope/profile/model
+checks. `depth_changed: false` still runs preflight access/release but skips the
+setter/configuration setter/commit/rebuild. It does not imply an unchanged
+stamp. On failure, inspect `mutation` and `selection_checks` and refresh document
+state; a native exception or false commit can leave partial changes. No implicit
+save, retry, restart or rollback. Staging failures use `depth_changed: null` when
+the final depth outcome cannot safely be promised.
+
+The public result is a typed projection, not a dump of private feature-data or
+native profile fingerprints. It validates exact target identity, mutation
+order, native depth, selection stamp/restoration reports, equal-depth versus
+write evidence and document/final-state consistency. Public `feature.inspect`
+keeps its separate unchanged-stamp, no-selection-access contract.
 
 A test-only SW2025 trial has proved `SetDepth` → current-configuration scope →
 `ModifyDefinition` → rebuild/readback on a simple single-config boss/cut part

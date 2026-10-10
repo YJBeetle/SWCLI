@@ -541,7 +541,9 @@ def feature_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str,
 
 
 @_register_handler
-def feature_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+def feature_inspect(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
     from ..hosts.windows_feature_inspection import (
         inspect_extrusion_feature_windows,
     )
@@ -560,6 +562,26 @@ def feature_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[s
     if result["ok"]:
         result["feature"]["feature_id"] = feature_id
     return result
+
+
+@_register_handler
+def feature_set_depth(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    from ..hosts.windows_feature_depth_edits import set_extrusion_depth_windows
+    from .feature_depth_results import feature_depth_result
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    feature_id = values["feature_id"]
+    feature = context.documents.resolve_feature(context.entry, feature_id)
+    native = set_extrusion_depth_windows(
+        app=context.app,
+        document=context.entry.document,
+        feature=feature,
+        depth_mm=values["depth_mm"],
+    )
+    return feature_depth_result(native, feature_id)
 
 
 @_register_handler

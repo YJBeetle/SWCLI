@@ -391,6 +391,15 @@ def build_parser() -> argparse.ArgumentParser:
     feature_inspect_parser.add_argument("feature_id")
     add_document_selector(feature_inspect_parser)
     feature_inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+    depth_parser = feature_commands.add_parser(
+        "set-depth",
+        help="change an exact supported single-direction blind extrusion depth",
+    )
+    depth_parser.add_argument("feature_id")
+    depth_parser.add_argument("--depth-mm", type=float, required=True)
+    add_document_selector(depth_parser)
+    add_lease_token(depth_parser)
+    depth_parser.add_argument("--json", action="store_true", dest="as_json")
     extrude_parser = feature_commands.add_parser(
         "extrude", help="extrude a registered 2D sketch"
     )
@@ -885,6 +894,15 @@ def _typed_operation(
             args.document_id,
             args.expected_update_stamp,
             None,
+        )
+    if args.command == "feature" and args.feature_command == "set-depth":
+        return (
+            "feature.set-depth",
+            {"feature_id": args.feature_id, "depth_mm": args.depth_mm},
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
         )
     if args.command == "feature" and args.feature_command in ("list", "inspect"):
         return (

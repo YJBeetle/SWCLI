@@ -733,6 +733,136 @@ _RESULT_FIELDS["feature.inspect"] = (
     ("document", "feature", "definition", "observation"),
 )
 
+_FEATURE_SELECTION_ACCESS = _object(
+    {
+        key: BOOL
+        for key in (
+            "attempted",
+            "acquired",
+            "release_attempted",
+            "released",
+            "state_restored",
+        )
+    },
+    ("attempted", "acquired", "release_attempted", "released", "state_restored"),
+)
+_FEATURE_SELECTION_CHECK = {
+    **_object(
+        {
+            "ok": BOOL,
+            "selection_access": _FEATURE_SELECTION_ACCESS,
+            "observation": _object(
+                {
+                    "before": _FEATURE_STATE,
+                    "after": _FEATURE_STATE,
+                    "update_stamp_changed": BOOL,
+                },
+                ("before",),
+            ),
+            "error": ERROR,
+            "warnings": WARNINGS,
+        },
+        ("ok", "selection_access"),
+    ),
+    "if": {"properties": {"ok": {"const": True}}},
+    "then": {
+        "required": ["observation"],
+        "properties": {
+            "selection_access": {
+                "properties": {
+                    key: {"const": True}
+                    for key in (
+                        "attempted",
+                        "acquired",
+                        "release_attempted",
+                        "released",
+                        "state_restored",
+                    )
+                }
+            },
+            "observation": {"required": ["after", "update_stamp_changed"]},
+        },
+        "not": {"required": ["error"]},
+    },
+    "else": {"required": ["error"]},
+}
+_FEATURE_DEPTH_MUTATION = _object(
+    {
+        key: BOOL
+        for key in (
+            "staging_attempted",
+            "configuration_scope_applied",
+            "commit_attempted",
+            "committed",
+        )
+    },
+    (
+        "staging_attempted",
+        "configuration_scope_applied",
+        "commit_attempted",
+        "committed",
+    ),
+)
+_FEATURE_DEPTH_METRICS = _object(
+    {
+        "solid_body_count": {"const": 1},
+        "volume_mm3": {"type": "number", "exclusiveMinimum": 0},
+        "surface_area_mm2": {"type": "number", "exclusiveMinimum": 0},
+        "centroid_mm": VECTOR,
+    },
+    ("solid_body_count", "volume_mm3", "surface_area_mm2", "centroid_mm"),
+)
+_RESULT_FIELDS["feature.set-depth"] = (
+    {
+        "feature_id": _FEATURE_DESCRIPTOR["properties"]["feature_id"],
+        "feature": _FEATURE_DESCRIPTOR,
+        "mutation": _FEATURE_DEPTH_MUTATION,
+        "requested_depth_mm": {"type": "number", "exclusiveMinimum": 0},
+        "before_depth_mm": {"type": "number", "exclusiveMinimum": 0},
+        "depth_changed": {"type": ["boolean", "null"]},
+        "modification_may_have_happened": BOOL,
+        "definition_after": _RESULT_FIELDS["feature.inspect"][0]["definition"],
+        "measurement_before": _FEATURE_DEPTH_METRICS,
+        "measurement_after": _FEATURE_DEPTH_METRICS,
+        "final_state": _FEATURE_STATE,
+        "rebuilt": BOOL,
+        "verification": _object(
+            {
+                "passed": BOOL,
+                "method": {
+                    "enum": [
+                        "guarded-equal-depth",
+                        "native-blind-depth-preserved-profile-and-scope",
+                    ]
+                },
+                "absolute_tolerance_mm": {"const": 1e-6},
+            },
+            ("passed", "method", "absolute_tolerance_mm"),
+        ),
+        "selection_checks": _object(
+            {
+                "preflight": _FEATURE_SELECTION_CHECK,
+                "postflight": _FEATURE_SELECTION_CHECK,
+            },
+        ),
+    },
+    (
+        "document",
+        "feature_id",
+        "feature",
+        "mutation",
+        "requested_depth_mm",
+        "before_depth_mm",
+        "depth_changed",
+        "definition_after",
+        "measurement_before",
+        "measurement_after",
+        "final_state",
+        "verification",
+        "selection_checks",
+    ),
+)
+
 
 _CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])
 del _CUT_FIELDS["merge"]
@@ -1210,6 +1340,22 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 "required": ["after"],
                 "properties": {"unchanged": {"const": True}},
             }
+        }
+    if name == "feature.set-depth":
+        schema["required"].extend(["feature_id", "mutation"])
+        schema["then"]["properties"] = {
+            "depth_changed": BOOL,
+            "verification": {"properties": {"passed": {"const": True}}},
+            "final_state": {
+                "properties": {
+                    "editing": {"const": False},
+                    "foreground_present": {"const": True},
+                }
+            },
+            "selection_checks": {
+                "required": ["preflight"],
+                "properties": {"preflight": {"properties": {"ok": {"const": True}}}},
+            },
         }
     if name in ("feature.extrude", "feature.cut-extrude"):
         schema["then"]["properties"] = {
@@ -2009,7 +2155,9 @@ def _validate_feature_state(name: str, result: Dict[str, Any]) -> None:
         # Native failed reads publish state/error evidence only, not a usable
         # partial feature list or definition.
         if any(field in result for field in ("features", "feature", "definition")):
-            raise OperationResultInvalid(f"{name}: failed observation published handles")
+            raise OperationResultInvalid(
+                f"{name}: failed observation published handles"
+            )
         return
     observation = result["observation"]
     before, after = observation["before"], observation["after"]
@@ -2034,10 +2182,14 @@ def _validate_feature_state(name: str, result: Dict[str, Any]) -> None:
                 and (("feature_scope" in result["definition"]) != is_cut)
             )
         ):
-            raise OperationResultInvalid(f"{name}: inconsistent native feature semantics")
+            raise OperationResultInvalid(
+                f"{name}: inconsistent native feature semantics"
+            )
     if name == "feature.list":
         if result["count"] != len(features):
-            raise OperationResultInvalid(f"{name}: feature count differs from observations")
+            raise OperationResultInvalid(
+                f"{name}: feature count differs from observations"
+            )
         ids = [feature["feature_id"] for feature in features if "feature_id" in feature]
         if len(ids) != len(set(ids)):
             raise OperationResultInvalid(f"{name}: duplicate feature handles")
@@ -2064,10 +2216,169 @@ def validate_feature_observation(name: str, result: Dict[str, Any]) -> None:
     _validate_feature_state(name, result)
 
 
+def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
+    def require(condition, message):
+        if not condition:
+            raise OperationResultInvalid("feature.set-depth: " + message)
+
+    mutation = result["mutation"]
+    flags = [
+        mutation[key]
+        for key in (
+            "staging_attempted",
+            "configuration_scope_applied",
+            "commit_attempted",
+            "committed",
+        )
+    ]
+    require(
+        all(not later or earlier for earlier, later in zip(flags, flags[1:])),
+        "inconsistent mutation lifecycle",
+    )
+    if "modification_may_have_happened" in result:
+        require(
+            result["modification_may_have_happened"] == flags[0],
+            "inconsistent possible mutation flag",
+        )
+    for check in result.get("selection_checks", {}).values():
+        lifecycle = check["selection_access"]
+        require(
+            not lifecycle["acquired"] or lifecycle["attempted"],
+            "access acquired without attempt",
+        )
+        require(
+            not lifecycle["release_attempted"] or lifecycle["attempted"],
+            "release without owned access",
+        )
+        require(
+            not lifecycle["released"] or lifecycle["release_attempted"],
+            "release succeeded without attempt",
+        )
+        require(
+            not lifecycle["state_restored"] or lifecycle["released"],
+            "restored without releasing access",
+        )
+        observation = check.get("observation", {})
+        if "after" in observation:
+            before, after = observation["before"], observation["after"]
+            require(
+                "update_stamp_changed" in observation,
+                "missing selection stamp-change report",
+            )
+            require(
+                observation["update_stamp_changed"]
+                == (before["update_stamp"] != after["update_stamp"]),
+                "incorrect selection stamp-change report",
+            )
+            if check["ok"]:
+                require(
+                    all(
+                        before[key] == after[key]
+                        for key in (
+                            "configuration",
+                            "modified",
+                            "editing",
+                            "foreground_present",
+                        )
+                    ),
+                    "successful selection access did not restore native state",
+                )
+    if not result["ok"]:
+        return
+    require(
+        result["feature_id"] == result["feature"]["feature_id"],
+        "feature target mismatch",
+    )
+    definition = result["definition_after"]
+    kind = result["feature"]["kind"]
+    require(
+        (kind == "boss-extrude") == ("merge" in definition),
+        "feature/definition kind mismatch",
+    )
+    require(
+        definition["end_condition"] == 0
+        and definition["from_type"] == 0
+        and not any(
+            definition[key]
+            for key in ("both_directions", "thin", "forward_draft", "reverse_draft")
+        )
+        and (kind != "boss-extrude" or definition["merge"]),
+        "unsupported successful depth definition",
+    )
+    require(
+        isclose(
+            definition["depth_mm"],
+            result["requested_depth_mm"],
+            rel_tol=0,
+            abs_tol=1e-6,
+        ),
+        "native depth differs from request",
+    )
+    checks = result["selection_checks"]
+    final_check = checks["preflight"]
+    if result["depth_changed"]:
+        require(
+            all(flags) and result.get("rebuilt") is True,
+            "uncommitted/unrebuilt depth change",
+        )
+        require(
+            "postflight" in checks and checks["postflight"]["ok"],
+            "missing successful postflight",
+        )
+        require(
+            result["verification"]["method"]
+            == "native-blind-depth-preserved-profile-and-scope",
+            "wrong write verification method",
+        )
+        require(
+            not isclose(
+                result["before_depth_mm"],
+                result["requested_depth_mm"],
+                rel_tol=0,
+                abs_tol=1e-6,
+            ),
+            "equal depth reported as changed",
+        )
+        final_check = checks["postflight"]
+    else:
+        require(
+            not any(flags) and "rebuilt" not in result and "postflight" not in checks,
+            "equal-depth call mutated/rebuilt",
+        )
+        require(
+            result["verification"]["method"] == "guarded-equal-depth",
+            "wrong equal-depth verification method",
+        )
+        require(
+            isclose(
+                result["before_depth_mm"],
+                result["requested_depth_mm"],
+                rel_tol=0,
+                abs_tol=1e-6,
+            ),
+            "unequal depth reported unchanged",
+        )
+        require(
+            result["measurement_before"] == result["measurement_after"],
+            "equal-depth geometry changed",
+        )
+    require(
+        result["final_state"] == final_check["observation"]["after"],
+        "final native state drift",
+    )
+    require(
+        result["document"]["modified"] == result["final_state"]["modified"]
+        and result["document"]["update_stamp"] == result["final_state"]["update_stamp"],
+        "document differs from verified final state",
+    )
+
+
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
     if name in ("feature.list", "feature.inspect"):
         _validate_feature_state(name, result)
+    if name == "feature.set-depth":
+        _validate_feature_depth_result(result)
     if name == "dimension.discover-diameter":
         _validate_dimension_discovery_state(result)
     if name == "sketch.dimension-rectangle":

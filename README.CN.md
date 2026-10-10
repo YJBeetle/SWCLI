@@ -34,7 +34,8 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 **a7 开发工作区**还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
 成功的拉伸和切除创建也会直接从原生创建返回对象提供 `.feature.feature_id`。
-这些命令不在已发布的 a6 wheel 中，深度编辑也尚未实现。设计与验证边界见
+开发工作区还实现了受保护的 `feature set-depth`，公共运行时与 Wine 发布门禁仍在完成中。
+这些新增能力均不在已发布的 a6 wheel 中。设计与验证边界见
 [特征深度计划](docs/design/feature-depth-editing.md) 和
 [只读层验证记录](docs/verification/a7-feature-observation-2026-10-10.md)。
 
@@ -398,6 +399,25 @@ sw-cli feature inspect $boss.feature.feature_id --json
 
 使用与创建相同的目标文档、会话及所需写租约。创建之后重建或验证失败时仍可能返回
 已创建句柄；它标识部分修改，不代表模型成功，也不意味着自动回滚。
+
+### 受保护的特征深度修改（a7 开发版）
+
+```powershell
+sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
+  --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp UPDATE_STAMP --json
+```
+
+用最新观测及目标文档的租约替换 ID 和 stamp。它只修改准确的受支持拉伸/切除特征的
+单方向定深参数，不是通用特征编辑。首版要求可写、单配置、非钣金的单实体零件，以及
+准确吸收的圆或轴对齐矩形轮廓。方程/设计表、受保护特征、已有编辑/命令、选择轮廓和
+显式方向引用均拒绝。后台目标会临时激活并恢复此前前台，不改变会话记忆的文档。
+命令不会保存零件。
+
+`depth_changed: false` 表示深度已在 1e-6 mm 容差内相等，没有调用 setter、提交或重建；
+必要的选择访问仍可能推进 `update_stamp`，下一次条件写入前应重新读取。
+失败会保留 `mutation` 和 `selection_checks` 证据，即使 `ok: false`，暂存/提交也可能
+已发生；不自动重试或回滚。范围和验证边界见[深度编辑设计](docs/design/feature-depth-editing.md)。
+源码实现不等于 Wine 或已发布 wheel 的支持承诺。
 
 ## 零件建模
 
