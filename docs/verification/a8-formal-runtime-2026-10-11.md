@@ -122,7 +122,36 @@ No container was started or modified for that query.
 
 Local normal wheel installation, isolated CLI/Schema/skill verification,
 `twine check`, source-payload checks and 69 affected portable tests passed.
-These are not published assets. Formal host gates are complete; distribution
-publication still needs its separate receipt. Exact face/edge IDs
+These checks were completed before publication; the public distribution receipt
+is recorded below. Formal host gates are complete. Exact face/edge IDs
 remain conservative worker/document-local references, not trimmed topology or
 arbitrary edit-survival guarantees.
+
+## Published distribution receipt
+
+[v0.1.0a8](https://github.com/YJBeetle/SWCLI/releases/tag/v0.1.0a8) was published
+as a non-draft **prerelease** at **2026-10-10 16:33:07 UTC** (2026-10-11
+00:33:07 Asia/Shanghai). Its annotated tag resolves to
+**`c2441d49010a64f6a9c50d5f11c42fafcc730d62`**. Final assets were built from a
+git archive of that exact commit, not the concurrently modified working tree;
+the other agent's assembly native-save changes are excluded.
+
+| Public asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `swcli-0.1.0a8-py3-none-any.whl` | 183767 | `5a65d7d9f5750804013156e3e32ba0ca06ff09ee8d1dd00c4fc48d2d4dd72c54` |
+| `swcli-0.1.0a8.tar.gz` | 648909 | `2b75c3d39fb741de3e237ee546a30b4bd9299c0531de495743209126ad30a757` |
+| `SHA256SUMS` | 184 | `0a9cbf957864a3af56cd144eafc93bf59449144b035f492785b6a56c605ca06e` |
+
+All three assets were downloaded anonymously from their public release URLs
+to `/private/tmp/swcli-a8-public-download.tsGTLc`. Both checksum entries passed;
+each downloaded file also compared byte for byte with the final local asset.
+GitHub's asset sizes/digests match this table, and its tag API confirms the
+exact source commit. The downloaded source archive passes the product-payload
+and owned-fixture verifier.
+
+The final wheel also passed normal non-editable installation and isolated
+CLI/Schema/packaged-agent-guide checks before upload. Its Python and Schema
+payload matches the formally tested Windows wheel byte for byte; only the
+packaged guide's availability wording changed. This receipt establishes public
+distribution integrity, not a new native host run, assembly-save validation or
+MacSW verification. DockerSW retains the formally verified runtime pin above.
