@@ -107,7 +107,12 @@ Next:
    DockerSW image delivery. Formal-version host delivery remains next;
    trimmed boundaries and topology-edit survival are
    not implemented.
-2. Extend profiles/end conditions and selected-body/face support only with
+2. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
+   on a generated part before exposing a new operation. Start with one explicit
+   edge and a constant radius, exact native target readback, independent geometry
+   checks and existing lease/stamp/restoration guards. This is planned, not an a8
+   capability.
+3. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
