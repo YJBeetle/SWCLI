@@ -32,12 +32,12 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务、SDK 和 MCP 仍属于后续工作。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
 
-**a7 开发工作区**还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
+**v0.1.0a7** 还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
 成功的拉伸和切除创建也会直接从原生创建返回对象提供 `.feature.feature_id`。
-开发工作区还实现了受保护的 `feature set-depth`，公共运行时与 Wine 发布门禁仍在完成中。
-这些新增能力均不在已发布的 a6 wheel 中。设计与验证边界见
+还支持受保护的 `feature set-depth`。正式安装包的 Windows 可见/隐藏模式与 DockerSW Wine
+门禁均已通过，包括原生保存重开、原有六项导出和镜像晋升。设计与验证边界见
 [特征深度计划](docs/design/feature-depth-editing.md) 和
-[只读层验证记录](docs/verification/a7-feature-observation-2026-10-10.md)。
+[运行时验证记录](docs/verification/a7-depth-runtime-2026-10-10.md)。
 
 ## 安装
 
@@ -49,19 +49,19 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a6` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a7` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a6/swcli-0.1.0a6-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a7/swcli-0.1.0a7-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a6` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a7` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸、特征句柄和 lease
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
-[a6 发行说明](docs/releases/v0.1.0a6.md)。
+[a7 发行说明](docs/releases/v0.1.0a7.md)。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -374,9 +374,9 @@ sw-cli document diagnose --json
 
 `feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。
 
-### 只读特征发现（a7 开发版）
+### 只读特征发现（自 a7 起）
 
-当匹配的开发版客户端与 daemon 广告这些操作时：
+当匹配的客户端与 daemon 广告这些操作时：
 
 ```powershell
 $features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
@@ -390,7 +390,7 @@ sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID -
 和以毫米计的正向深度参数，不代表允许编辑、实际材料厚度或非定深终止的行程。
 切除的原生 `reverse_direction` 与创建命令归一化后的 `--reverse` 不是同一语义。
 
-开发版创建结果可直接检查，不需要按名称反查：
+创建结果可直接检查，不需要按名称反查：
 
 ```powershell
 $boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
@@ -400,7 +400,7 @@ sw-cli feature inspect $boss.feature.feature_id --json
 使用与创建相同的目标文档、会话及所需写租约。创建之后重建或验证失败时仍可能返回
 已创建句柄；它标识部分修改，不代表模型成功，也不意味着自动回滚。
 
-### 受保护的特征深度修改（a7 开发版）
+### 受保护的特征深度修改（自 a7 起）
 
 ```powershell
 sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
@@ -417,7 +417,8 @@ sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
 必要的选择访问仍可能推进 `update_stamp`，下一次条件写入前应重新读取。
 失败会保留 `mutation` 和 `selection_checks` 证据，即使 `ok: false`，暂存/提交也可能
 已发生；不自动重试或回滚。范围和验证边界见[深度编辑设计](docs/design/feature-depth-editing.md)。
-源码实现不等于 Wine 或已发布 wheel 的支持承诺。
+确切的 Windows/Linux Wine 证据见[运行时验证记录](docs/verification/a7-depth-runtime-2026-10-10.md)，
+MacSW 验证仍属于独立边界。
 
 ## 零件建模
 

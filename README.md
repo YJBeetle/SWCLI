@@ -52,14 +52,14 @@ rediscovered after native save/reopen. `v0.1.0a6` adds explicit rectangle center
 fixing, driving width/height creation/editing and saved-pair discovery. This is
 not general dimension editing or a promise of fully defined sketches.
 
-The **a7 development checkout** additionally exposes read-only `feature list`
+**v0.1.0a7** additionally exposes read-only `feature list`
 and `feature inspect`, with exact short feature handles. Successful boss/cut
 creation also returns `.feature.feature_id` from the exact native creation
-object. The checkout also implements guarded `feature set-depth`; its public
-runtime/Wine release gates are still being completed. None of these additions
-is in the published a6 wheel. See the
+object. It also provides guarded `feature set-depth`. Formal installed Windows
+visible/hidden and DockerSW Wine gates passed, including native save/reopen and
+the six existing exports before image promotion. See the
 [feature-depth plan](docs/design/feature-depth-editing.md) and
-[read-layer verification](docs/verification/a7-feature-observation-2026-10-10.md).
+[runtime verification](docs/verification/a7-depth-runtime-2026-10-10.md).
 
 ## Installation
 
@@ -71,23 +71,23 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a6` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a7` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a6/swcli-0.1.0a6-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a7/swcli-0.1.0a7-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a6` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a7` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 Stop the old daemon before upgrading, then explicitly start the matching version.
 Temporary document/sketch/dimension/feature handles and leases expire on restart.
-See the [a6 release notes](docs/releases/v0.1.0a6.md) for portable-client
+See the [a7 release notes](docs/releases/v0.1.0a7.md) for portable-client
 installation, exact verification evidence and known limits.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
@@ -670,9 +670,9 @@ design dimensions or save the native document. Selection cleanup and foreground
 restoration follow the document guards; partial feature creation is not rolled
 back on failure.
 
-### Read-only feature discovery (a7 development)
+### Read-only feature discovery (since a7)
 
-With a matching development client/daemon advertising these operations:
+With a matching client/daemon advertising these operations:
 
 ```powershell
 $features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
@@ -689,7 +689,7 @@ Inspection reports native definition flags and the forward depth parameter in
 mm, not edit eligibility, actual material thickness or nonblind travel distance.
 Native cut `reverse_direction` is not creation's normalized `--reverse`.
 
-Development creation results can be inspected directly without a name lookup:
+Creation results can be inspected directly without a name lookup:
 
 ```powershell
 $boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
@@ -700,7 +700,7 @@ Use the same selected document/session and required write lease as for creation.
 A failed post-creation rebuild/verification may still report the created handle;
 this identifies a partial mutation, not a successful model or an automatic rollback.
 
-### Guarded feature depth editing (a7 development)
+### Guarded feature depth editing (since a7)
 
 ```powershell
 sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
@@ -722,8 +722,8 @@ advance `update_stamp`. Refresh the stamp before your next conditional write.
 Failures retain `mutation` and `selection_checks` evidence; staging/commit can
 have happened even though `ok` is false. There is no implicit retry or rollback.
 See the [depth-edit design](docs/design/feature-depth-editing.md) for the narrow
-scope and verification boundaries; source implementation is not a Wine or
-published-wheel support claim.
+scope and [runtime record](docs/verification/a7-depth-runtime-2026-10-10.md)
+for exact Windows/Linux Wine proof. MacSW verification is independent.
 
 ## Part modeling
 

@@ -1,8 +1,8 @@
 # a7 guarded feature-depth runtime verification — 2026-10-10
 
-This is development runtime evidence for `0.1.0a7.dev0`, not a formal a7 release,
-published wheel or DockerSW image-promotion claim. The earlier adapter, source
-CLI and read-only-refusal proofs are in the
+This record separates development evidence, formal `0.1.0a7` host gates and
+distribution publication. The earlier adapter, source CLI and read-only-refusal
+proofs are in the
 [feature observation record](a7-feature-observation-2026-10-10.md).
 
 ## Installed hosted Windows
@@ -104,7 +104,7 @@ macOS/Wine proof remains independent and pending.
 
 Complete local copy: `/private/tmp/swcli-a7-depth-edit.BiQz5q/wine-evidence`.
 
-## Formal-version gates pending
+## Formal-version gates passed
 
 Runtime candidate **`d5ab77c1d83ea9bcf81e71eabfd98abb4ec1da69`** reports `0.1.0a7`.
 Local full tests passed **1011 tests**, with eight Windows-only skips; wheel/sdist
@@ -114,9 +114,47 @@ skill checks passed. Local candidate wheel SHA-256:
 This is not a published asset or new native run of that local wheel.
 
 [SWCLI 38036335919](https://github.com/YJBeetle/SWCLI/actions/runs/38036335919)
-is verifying installed hosted Windows visible/hidden modes at that exact candidate.
-DockerSW **`d1f1f9dae9bc4ae502f4bdd63d7acc277e23510f`** pins it and is running
+passed installed hosted Windows visible/hidden modes at that exact candidate.
+DockerSW **`d1f1f9dae9bc4ae502f4bdd63d7acc277e23510f`** pins it and passed
 [CI 38036433572](https://github.com/YJBeetle/DockerSW/actions/runs/38036433572).
 Only modeling's phase budget increases to 30 minutes; six exports and driving
-stay at 10 minutes. Neither candidate pin nor registry build proves that the
-complete delivery gate or promotion passed. Formal results remain pending.
+stay at 10 minutes. That run also **passed**, including localized image smoke
+and atomic promotion after all real runtime gates, not merely a registry build.
+
+| Formal host | SW PID | Modeling events | Driving events | Result |
+| --- | --- | --- | --- | --- |
+| Windows visible | 2852 | 158 | 598 | completed, success, no cleanup errors |
+| Windows hidden | 5872 | 158 | 598 | completed, success, no cleanup errors |
+| DockerSW hidden Wine | 608 | 158 | 598 | completed, success, no cleanup errors |
+
+Each SW2025 `33.5.0` instance remained unchanged throughout its modeling/driving
+sequence. The Wine instance also completed all six STEP/PDF/DWG outputs before
+modeling. Depth edits, analytical volumes, equal-depth mutation flags, native
+save/read-only reopen, lease/CAS/cross-document refusals and the subsequent
+driving gates passed. Capabilities report server version `0.1.0a7`.
+
+| Formal terminal record | SHA-256 |
+| --- | --- |
+| Windows visible modeling | `c2b350f9798dc60e43e76aa5342cd3da464168753a6859f20a56fcb591b69951` |
+| Windows visible driving | `3baae783542c2cf366c12e5151341f1f94991d3114c471ef185b8c9249056061` |
+| Windows hidden modeling | `332f501da9acb856b2710b527aa77d0a1a0fd69279b3057317c369e2650f169c` |
+| Windows hidden driving | `f09481620813832b49df9d9b010c20109e3a1cecf358b35311177caeeed46e59` |
+| DockerSW modeling | `7421b222fd4614d030fd99fb578a748f524030b32463e3de1e4e29a189a72f03` |
+| DockerSW driving | `ebef2485cd8ed4eedbb5f9650960fc54904238cdfce3e784f7866302a76247c9` |
+
+Downloaded evidence: `/private/tmp/swcli-ci-38036335919-formal` and
+`/private/tmp/dockersw-ci-38036433572-depth`. The six outputs are PaperAirplane
+STEP, bezelmoldbase STEP/PDF/DWG, and cabinet_bath PDF/DWG; STEP delimiters,
+PDF page counts (5/16) and AutoCAD 2000 DWG signatures were independently checked.
+
+A read-only registry check confirms `sw-executable:sha-d1f1f9d-cli` and
+`sw-executable:2025-cli` reference the same Linux amd64 manifest
+`sha256:b74f9de64fe35de06586299a9efecb7e204091bddf5a18f0cb0c96b5db9b8da9`.
+This is the promoted delivery image, not the earlier source-overlay container.
+MacSW proof remains independent; no complete MacSW a7 pass is claimed here.
+
+Final distribution preparation changes documentation only after the tested
+runtime commit. All 42 Python files and three packaged Schema files match the
+formal CI wheel byte for byte. The packaged usage guide additionally fixes the
+nonexistent `document status` example to use `document inspect`; this is a
+resource correction, not a new runtime command or a repeat native test.

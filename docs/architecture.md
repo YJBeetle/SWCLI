@@ -319,7 +319,7 @@ controls. The [rectangle design](design/rectangle-driving-dimensions.md) and
 [a6 verification record](verification/a6-2026-10-10.md) distinguish
 implemented contracts, development native gates and formal release proof.
 
-The a7 development catalog adds `feature.list/inspect` for exact part boss/cut
+The a7 catalog adds `feature.list/inspect` for exact part boss/cut
 extrusions. A complete bounded traversal returns short document-local `f-` IDs;
 native `GetID` indexes `IsSame` verification, never a feature-name lookup or a
 persistent reference. Rename/repeated wrappers reuse live IDs, while retired
@@ -334,14 +334,16 @@ modified flag and update stamp. They do not activate/select/rebuild or call
 `AccessSelections` (which would roll the model back). Native and wire contracts
 are checked before registering discovered handles; failed observations publish
 no usable partial list/definition. These reads can observe a leased or read-only
-document, but handles do not grant edit authority. Development `feature.set-depth`
+document, but handles do not grant edit authority. `feature.set-depth`
 uses an independent guarded write path, including lease/stamp checks before
 activation, owned selection access/release, staged current-config modification
 and independent post-write verification. Equal depth skips modification but
 does not promise an unchanged update stamp. Partial failures retain mutation
 and cleanup evidence; no implicit save/retry/rollback is performed. Public
-runtime/Wine delivery is still being verified. See [feature-depth design](design/feature-depth-editing.md)
-and [read-layer evidence](verification/a7-feature-observation-2026-10-10.md).
+runtime passed formal installed Windows visible/hidden and DockerSW Wine gates.
+See [feature-depth design](design/feature-depth-editing.md) and
+[runtime evidence](verification/a7-depth-runtime-2026-10-10.md) for exact scope
+and independent MacSW limitations.
 
 ## Compatibility policy
 

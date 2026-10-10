@@ -63,41 +63,25 @@ origin-constraint refusal, native save/reopen and unchanged-read verification.
 The [a6 record](verification/a6-2026-10-10.md) separates development, formal host
 and distribution proof, including the independent MacSW verification boundary.
 
+The [a7 feature-depth slice](design/feature-depth-editing.md) is implemented:
+exact creation/discovery handles, read-only `feature.list/inspect` and guarded
+`feature.set-depth`. The formal-version candidate passed installed Windows
+visible/hidden and complete DockerSW Wine delivery gates, including depth writes,
+equal-depth behavior, native save/read-only reopen, lease/CAS guards, the six
+exports and subsequent driving dimensions on the same instance. See the
+[runtime record](verification/a7-depth-runtime-2026-10-10.md) for first-failure
+history, exact runtime provenance and independent MacSW limitations. Equal-depth
+selection access may advance the stamp; partial failures retain evidence, not
+an automatic rollback. Readable definitions do not imply arbitrary edit authority.
+
 Next:
 
-1. Finish the [a7 feature-depth slice](design/feature-depth-editing.md). Exact
-   feature handles and read-only `feature.list/inspect` are implemented and
-   locally proved through Windows CLI/TCP/COM. Creation returns exact feature
-   handles and live discovery reuses them, with independent Windows proof.
-   The read/creation shared gate passed hosted Windows visible/hidden modes;
-   Wine delivery remains pending. Guarded internal depth writes now have native
-   Windows proof; public `feature.set-depth` wiring is implemented and its
-   source CLI/TCP/lease/CAS and native save/reopen proof has passed; installed
-   installed hosted Windows visible/hidden runtime gates have passed at
-   `57f221a`. Independent source-overlay Wine gates now pass; the first run exposed
-   a cross-call floating-point equality issue in the gate, not a native write
-   failure. See the [runtime record](verification/a7-depth-runtime-2026-10-10.md).
-   Preliminary nonmutating depth guards have portable/native Windows proof;
-   exact simple-profile ownership and final single-solid classification now
-   have separate proof as well. The internal selection-scope guard now has
-   portable/native Windows access/release and independent state/geometry
-   restoration proof; explicit direction/contour/body extensions remain
-   unsupported. Its stamp changes are reported, not called a pure read.
-   Boss/cut writes and equal-depth behavior have internal native proof, with
-   independent expected-volume checks and no source saves. Typed no-op/failure
-   contracts are implemented and public save/reopen passed. A real public
-   read-only refusal also preserved state before access/staging. Shared
-   formal-version runtime and complete Wine delivery proof remain. The source-
-   overlay Wine host completed modeling and driving on the same hidden instance.
-   These guards
-   do not promise arbitrary edit eligibility.
-   Do not infer edit authority or arbitrary constraint support from these reads.
-2. After the a7 release gates, build the narrow
+1. Build the narrow
    [exact face/edge observation slice](design/entity-observation.md) as the
    foundation for explicit target-based modeling. The first Windows face
    reference round-trip probe passed without document changes; no public entity
    operation, topology-survival or Wine claim follows from that probe.
-3. Extend profiles/end conditions and selected-body/face support only with
+2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
@@ -124,7 +108,7 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a6 release notes](releases/v0.1.0a6.md). A pre-release does not imply a
+[v0.1.0a7 release notes](releases/v0.1.0a7.md). A pre-release does not imply a
 stable compatibility commitment.
 
 Continue pre-releases until the protocol and recovery boundaries can support a

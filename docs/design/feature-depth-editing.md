@@ -1,20 +1,15 @@
 # Feature observation and depth editing
 
-Status: **a7 development**, not a capability of the published a6 wheel.
-Document-local feature handles and public read-only `feature.list/inspect` are
-implemented, with portable contracts and native Windows CLI/TCP/COM proof.
-The existing shared modeling gate now includes these reads; the read-only
-candidate passed hosted Windows visible/hidden modes in run `37993834203`.
-The later read/creation candidate also passed hosted Windows visible/hidden
-modes in run `37998293756`; Wine results remain pending. Public creation-result
-handles have independent native Windows CLI/TCP/COM proof. The internal guarded
-writer now has native Windows boss/cut and equal-depth proof. Public
-`feature.set-depth` also has public source CLI/TCP/lease/CAS and native
-save/reopen proof. Installed-wheel hosted Windows visible/hidden gates now pass
-at `57f221a`. Independent source-overlay Linux/Wine modeling/driving gates also
-pass; complete formal Wine delivery and release gates remain in progress.
+Status: **implemented in a7**. Exact creation/discovery handles, read-only
+`feature.list/inspect` and guarded `feature.set-depth` passed portable contracts,
+native Windows source proofs and formal installed Windows visible/hidden gates.
+The fixed formal candidate `d5ab77c` also passed complete DockerSW Wine delivery:
+six exports, modeling/depth/save-reopen, driving dimensions, localized image
+smoke and image promotion. Development/source-overlay proof and distribution
+publication remain distinct from these formal runtime results.
 See the [depth runtime record](../verification/a7-depth-runtime-2026-10-10.md).
-No shipped a7 setter proof is claimed.
+MacSW a7 runtime proof remains independent; arbitrary feature editing is not
+claimed.
 
 An internal, nonmutating preliminary depth guard is also implemented. It reads
 strict writable/view-only, suppression/freeze/rollback, native command,
