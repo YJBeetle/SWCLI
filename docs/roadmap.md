@@ -78,9 +78,12 @@ Next:
 
 1. Build the narrow
    [exact face/edge observation slice](design/entity-observation.md) as the
-   foundation for explicit target-based modeling. The first Windows face
-   reference round-trip probe passed without document changes; no public entity
-   operation, topology-survival or Wine claim follows from that probe.
+   foundation for explicit target-based modeling. Development `entity.list/inspect`
+   now combines complete bounded face observations, short IDs, analytic geometry
+   and conservative stamp/configuration retirement. Actual Windows typed-handler
+   checks pass, including real rebuild/close/reopen. The shared installed-client
+   gate is implemented; hosted Windows/Wine proof and publication remain pending.
+   Edges, trimmed boundaries and topology-edit survival are not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

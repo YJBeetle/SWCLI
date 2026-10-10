@@ -1,6 +1,6 @@
 # Exact face/edge observation — next modeling slice
 
-Status: **a8 internal development**, not an a7 capability. The a7 fixed-version
+Status: **a8 development**, not an a7 capability. The a7 fixed-version
 gates and publication are complete. An internal persistent-reference binding
 now rejects malformed/oversized arrays, non-OK or unwritten status, null objects
 and non-exact native identity; its 13 portable cases and native Windows 8-face
@@ -8,18 +8,24 @@ round trip pass, including strict pywin32 memoryview support. See the
 [binding verification](../verification/a8-entity-references-2026-10-10.md).
 The next internal complete single-solid observer has 12 portable cases and two
 native Windows reads proving face/body membership, count, duplicate identity and
-unchanged state. Its provisional 64-face cap bounds pairwise comparisons; public
-handles, scalable enumeration and Wine gates remain pending.
+unchanged state. Its 64-face cap bounds pairwise comparisons; scalable enumeration
+and Wine gates remain pending.
 An internal per-document registry now allocates short `e-` IDs, reuses only
 exact native identities and permanently retires IDs after an observed scope
 change. Its lifecycle wiring to DocumentRegistry is implemented, with **19**
 portable registry/lifecycle cases and independent native close/reopen checks.
+Two additional trace cases cover private, paired native identity diagnostics.
 The geometry adapter now validates plane points and outward normals against
 native surface sense, and cylinder axes/radii, with **36** related portable
 binding/geometry/observer cases and two unchanged native background reads with
 matching geometric readback and short IDs. These remain internal Windows proofs.
-Public request/result schemas and cross-host gates are not implemented yet.
-No public entity operation is advertised. The purpose is to give AI enough
+The development CLI/catalog now advertises `entity.list` and `entity.inspect`,
+with strict parameters/results, 8 contract cases and 10 typed-operation cases.
+The actual typed handlers passed leased-background reads, CAS/unknown/cross-doc
+refusals, real rebuild stamp invalidation and native close/reopen on Windows.
+This is not installed-client/HTTP or Wine proof. The shared modeling gate reuses
+its existing depth fixture for entity checks; installed cross-host gates remain
+pending. The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
 that arbitrary references survive every model edit.
@@ -31,9 +37,9 @@ extend to edges. Use bounded native body/face traversal and prove membership in
 the selected document/body. Do not derive identity from display names, a tree
 position, array order, a rounded geometric signature or GUI selection.
 
-Proposed vocabulary is `entity.list` and `entity.inspect`; names and fields are
-not advertised until native feasibility, portable contracts and public wiring
-are implemented. Keep the initial scope explicit instead of quietly dropping
+The initial vocabulary is `entity.list` and `entity.inspect`, available only in
+the matching a8 development daemon/client, not the published a7 wheel. Keep the
+initial scope explicit instead of quietly dropping
 unsupported bodies or surface geometry from a supposedly complete list.
 Malformed/incomplete/cyclic/over-limit traversal fails without publishing a
 successful partial list. Unsupported analytic geometry may be explicitly
@@ -43,6 +49,30 @@ Reads stay on the owning STA without activation, selection, rollback, rebuild,
 solver/display changes or source saves. Verify configuration, edit identity,
 modified flag, update stamp and foreground before/after. A lease does not prevent
 another session from reading; unchanged state still has to be proved.
+
+## Development commands
+
+```sh
+sw-cli entity list --document DOCUMENT_ID --max-faces 64 --json
+sw-cli entity inspect ENTITY_ID --document DOCUMENT_ID --json
+```
+
+`list` returns `.entities` with short `e-xxxxxx` IDs, `face_count`, `body_count: 1`
+and `scope: single-solid-part-faces`. `inspect` returns `.entity`, but verifies
+the entire bounded face set to avoid assuming an old face remains a valid target.
+Both accept document/session/CAS context, not a lease token; they do not grant
+write authority or change session current. The initial limit is 1–64 faces,
+including hidden solids; empty, multibody, surface-body or over-limit parts fail
+instead of returning a supposedly complete subset. Other surfaces are explicitly
+unclassified with unavailable analytic geometry.
+
+IDs expire on close/worker replacement and are permanently stale after an
+observed configuration/stamp change. `EntityReferenceStale` requires explicit
+rediscovery and reconsideration of the target, never automatic nearest-face
+matching. `EntityNotFound` covers unknown/cross-document/closed IDs. A stamp
+change may be caused by selection access or rebuild, not a topology change;
+this first policy is deliberately conservative. Private persistent-reference
+bytes are not serialized and geometry is not an identity key.
 
 ## Identity before geometry heuristics
 

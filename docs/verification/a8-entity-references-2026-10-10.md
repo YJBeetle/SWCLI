@@ -1,7 +1,7 @@
 # a8 internal entity-reference binding — 2026-10-10
 
-This is **internal Windows feasibility/adapter proof**, not a public entity
-operation, Wine result or promise of topology survival after editing. a7 remains
+This records **Windows feasibility/adapter and typed-handler proof**, not an
+installed-client/HTTP gate, Wine result or promise of topology survival. a7 remains
 the published release; a8 development uses `0.1.0a8.dev0`.
 
 ## First failure and binding correction
@@ -187,3 +187,50 @@ unchanged before/after. Two observer+registration trace measurements were about
 Local production evidence: `/private/tmp/swcli-a8-geometry-observer-native.G7NhHM`.
 These prove the **internal** Windows observer/registry, not public CLI, Wine,
 arbitrary analytic surfaces, trimmed boundaries or actual topology-edit survival.
+
+## Typed handlers and real stamp retirement
+
+At fixed development commit `020be4c`, a separate probe exercised the real
+`execute_operation` handlers and DocumentRegistry on SW PID 1096. New writable
+copy A was leased by a writer (600 seconds); read-only B stayed foreground/current
+for the reader. Two reader lists without a write token reused all 8 IDs;
+plane/cylinder inspections matched. Wrong CAS, unknown and cross-document IDs
+returned expected refusals without changing state/current/foreground. Each
+successful result passed its actual operation result Schema and finite JSON.
+
+One rebuild of **disposable A** advanced its native stamp 146 → 163. The old ID
+failed with `EntityReferenceStale`; explicit listing issued 8 disjoint IDs. This
+proves conservative stamp invalidation, not topology change/survival. Typed
+close/discard rejected all retained IDs; same-path reopen rejected the prior ID
+with `EntityNotFound` and issued IDs disjoint from both sets. All 15 events used
+the same SW instance (about 32.9 seconds), original user state/foreground was
+restored, cleanup was empty and eight source hashes were unchanged before/after.
+
+| Typed handler evidence | SHA-256 |
+| --- | --- |
+| `entity-handler-native.json` | `255b9d239fe662c779c0ece2836312a78efc71dba5c96b15e12946f722a97eea` |
+| native trace | `37554673cb017fb55afc8ea74bef520de872d12ed08ec2d4024a08064ddf555b` |
+| probe source | `c46a41454ee807221ceb64d5474c3ca0931f9a46eae02c7150b26de7bdac11bd` |
+
+Local evidence: `/private/tmp/swcli-a8-entity-handler-native.oA8tOM`.
+No HTTP daemon/installed CLI was exercised here. The shared modeling script now
+reuses its existing depth fixture for installed-CLI entity checks: geometry,
+repeat, leased background reads, CAS/cross-document refusal, edit-stale and
+read-only reopen. Fifteen script tests including wrong-radius/plane/outward-normal
+refusal pass; installed Windows and Wine gates remain pending.
+
+## Portable integration and isolated packaging
+
+At runtime commit `fa935ab6dd9ff6a460d4f305de9e773b94653939`, all 1,087
+portable tests completed in 24.851 seconds: passed, with 8 Windows PowerShell
+prerequisite cases skipped on macOS. No socket/sandbox failures occurred.
+All 50 runtime Python/schema files retained aggregate SHA-256
+`16886f02875b33bdcd8c44744901e3fd8df33279377cfb356d32ff45cec97502`.
+
+A copied-source wheel/sdist build passed metadata and sdist-boundary checks.
+An isolated temporary installation passed installed command/schema/skill-resource
+checks and entity CLI/catalog/handler agreement; every runtime resource matched
+the copied source byte-for-byte. This proves packaging and portable wiring, not
+actual COM execution through the installed CLI. The concurrently updated guides
+were not part of that package snapshot, so a release package must be rebuilt.
+Local receipt: `/private/tmp/swcli-a8-integration-package.72outI/verification-receipt.md`.

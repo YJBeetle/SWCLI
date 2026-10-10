@@ -287,6 +287,42 @@ automatic rollback, setter retry, source save or host restart is provided.
 Successful in-memory editing does not save the native part. Save only with task
 authority, then close/reopen and use fresh handles to verify persistence.
 
+### Observe exact faces (a8 development)
+
+Only use this when both `entity.list` and `entity.inspect` are advertised. They
+are in the a8 development checkout, **not** the published a7 wheel.
+
+```bash
+sw-cli entity list --document DOCUMENT_ID --json
+sw-cli entity inspect ENTITY_ID --document DOCUMENT_ID --json
+```
+
+Take `ENTITY_ID` from `.entities[].entity_id`, not a face index/name or a geometric
+signature. List requires a complete single-solid part (including hidden solids),
+no surface bodies and 1–64 faces; `--max-faces` can lower that bound. Unsupported
+document/body/count cases fail without a partial list. Inspect returns `.entity`
+and verifies the complete bounded set, so it is not a constant-time lookup.
+These reads preserve foreground/session current and configuration/edit/stamp/
+modified state. They can observe another holder's leased document but do not
+accept a write token or grant edit authority.
+
+Planar `surface_geometry.plane` contains a native point in part-model mm,
+surface normal and independently verified outward face normal. Cylinders expose
+`axis_point_mm`, unit `axis_direction` and `radius_mm`, not a constant outward
+normal. Geometry is labelled `untrimmed-surface`; it is not the face's boundary,
+center or a guaranteed point on its trimmed region. Area is explicitly
+approximate mm². Unclassified surfaces have unavailable analytic geometry, not
+a guessed plane/cylinder.
+
+The short `e-xxxxxx` handles are local to the worker and document. Close/reopen
+requires fresh discovery. An observed configuration/stamp change permanently
+retires old IDs even when geometry may be unchanged; rebuild or equal-depth
+selection access can advance that stamp. `EntityReferenceStale` means explicitly
+rediscover and re-evaluate the intended target. `EntityNotFound` means unknown,
+cross-document or closed handle. Never revive an old token or automatically
+select the nearest geometric match. Edges and face-targeted mutations are not
+implemented by these read commands.
+
 ## Export and recover
 
 ```bash

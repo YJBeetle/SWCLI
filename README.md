@@ -140,6 +140,11 @@ SOLIDWORKS registration, and process lifecycle.
 
 ### Development checkout
 
+The a8 checkout adds read-only `entity list/inspect` for exact faces and short
+scope-sensitive IDs. This is **not in the published a7 wheel**; installed
+Windows/Wine integration gates are still pending. See the
+[entity slice](docs/design/entity-observation.md) for the explicit limits.
+
 Contributors who intentionally want source edits to take effect immediately can
 use an editable install:
 

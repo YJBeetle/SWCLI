@@ -102,6 +102,10 @@ sw-cli doctor --json
 
 ### 开发工作区
 
+a8 开发工作区新增只读 `entity list/inspect`，观测准确的面并提供随文档状态失效的短句柄。
+**已发布的 a7 wheel 不包含此能力**；安装后的 Windows/Wine 集成门禁仍待执行。
+具体限制见[实体观测设计](docs/design/entity-observation.md)。
+
 希望源码修改立即生效的贡献者可以使用 editable 安装：
 
 ```powershell
