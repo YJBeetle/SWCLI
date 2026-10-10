@@ -197,6 +197,24 @@ class SelectionScopeTests(unittest.TestCase):
         self.extension.NeedsRebuild2 = 1
         self.refused("ModelInvalid", attempted=False)
 
+    def test_intervening_edit_before_access_is_not_absorbed_into_its_stamp_change(self):
+        def changed(*args):
+            self.stamp += 1
+            return {"healthy": True, "truncated": False}
+
+        self.diagnose.side_effect = changed
+        self.refused("FeatureObservationUnavailable", attempted=False)
+
+    def test_stamp_change_during_final_readback_is_not_a_legitimate_access_delta(self):
+        original = self.fresh.GetDirectionReference.side_effect
+
+        def changed(*args):
+            self.stamp += 1
+            return original(*args)
+
+        self.fresh.GetDirectionReference.side_effect = changed
+        self.refused("FeatureSelectionStateNotRestored")
+
     def test_false_access_is_released_and_never_retried(self):
         self.definition.AccessSelections.return_value = False
         result = self.refused("FeatureSelectionAccessFailed")

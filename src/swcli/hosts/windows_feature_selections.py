@@ -290,6 +290,16 @@ def observe_extrusion_selection_scope_windows_with_definition(
             )
         measured = _measurement(document)
         _healthy(document)
+        ready, ready_edit, ready_foreground = _state(app, document)
+        if (
+            ready != snapshot
+            or not _same(app, edit, ready_edit)
+            or not _same(app, foreground, ready_foreground)
+        ):
+            raise _FeatureError(
+                "FeatureObservationUnavailable",
+                "native state changed before selection access",
+            )
         result.update(
             feature=before["feature"],
             definition=before["definition"],
@@ -374,6 +384,16 @@ def observe_extrusion_selection_scope_windows_with_definition(
                     raise _FeatureError(
                         "FeatureSelectionStateNotRestored",
                         "independent model geometry changed during selection observation",
+                    )
+                final, final_edit, final_foreground = _state(app, document)
+                if (
+                    final != after
+                    or not _same(app, edit_after, final_edit)
+                    or not _same(app, foreground_after, final_foreground)
+                ):
+                    raise _FeatureError(
+                        "FeatureSelectionStateNotRestored",
+                        "native state changed during post-release verification",
                     )
                 lifecycle["state_restored"] = lifecycle["released"]
             except Exception as exc:
