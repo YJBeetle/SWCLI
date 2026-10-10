@@ -3,7 +3,10 @@
 Status: **a8 internal development**, not an a7 capability. The a7 fixed-version
 gates and publication are complete. An internal persistent-reference binding
 now rejects malformed/oversized arrays, non-OK or unwritten status, null objects
-and non-exact native identity; its 11 portable cases pass. It does not yet prove
+and non-exact native identity; its 13 portable cases and native Windows 8-face
+round trip pass, including strict pywin32 memoryview support. See the
+[binding verification](../verification/a8-entity-references-2026-10-10.md).
+It does not yet prove
 entity kind, document/body membership or expose any public entity operation.
 The purpose is to give
 AI enough native topology evidence to choose explicit future fillet/chamfer or
