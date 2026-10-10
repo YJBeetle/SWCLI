@@ -1,6 +1,6 @@
-"""Internal guarded blind-depth editing on the owning COM STA.
+"""Guarded blind-depth adapter on the owning COM STA.
 
-No public protocol wiring yet. Selection scope is observed and released before
+The typed daemon handler owns activation and concurrency guards. Scope is released before
 staging fresh feature data; failed mutations are neither retried nor rolled back.
 """
 

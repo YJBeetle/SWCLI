@@ -240,8 +240,8 @@ removed volume/shape against the task, not merely `ok: true`.
 ### Observe features and edit depth
 
 Use this only when the running daemon advertises `feature.list`,
-`feature.inspect` and, for editing, `feature.set-depth`. These are a7 development
-operations, not capabilities of the published a6 wheel.
+`feature.inspect` and, for editing, `feature.set-depth`. These require a matching
+a7 daemon; the older a6 wheel does not implement them.
 
 ```bash
 sw-cli feature list --document DOCUMENT_ID --json
