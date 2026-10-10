@@ -6,10 +6,12 @@ now rejects malformed/oversized arrays, non-OK or unwritten status, null objects
 and non-exact native identity; its 13 portable cases and native Windows 8-face
 round trip pass, including strict pywin32 memoryview support. See the
 [binding verification](../verification/a8-entity-references-2026-10-10.md).
-It does not yet prove
-entity kind, document/body membership or expose any public entity operation.
-The purpose is to give
-AI enough native topology evidence to choose explicit future fillet/chamfer or
+The next internal complete single-solid observer has 12 portable cases and two
+native Windows reads proving face/body membership, count, duplicate identity and
+unchanged state. Its provisional 64-face cap bounds pairwise comparisons; public
+handles, fuller geometry, scalable enumeration and Wine gates remain pending.
+No public entity operation is advertised. The purpose is to give AI enough
+native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
 that arbitrary references survive every model edit.
 

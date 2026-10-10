@@ -49,5 +49,42 @@ Local evidence: `/private/tmp/swcli-a8-reference-helper.3C2pUY`. Work files are
 under `C:\Workspace\SWCLI-tests`; the VM and the user's interactive SW remain
 running. This round trip does **not** replace body/document ownership, complete
 enumeration, entity-kind, stamp/configuration validity, registry lifetime or
-post-edit topology checks. Those remain the next internal observation boundary
-before public `entity.list/inspect` wiring and independent host gates.
+post-edit topology checks. Public `entity.list/inspect` wiring and independent
+host gates remain pending.
+
+## Complete internal face observation
+
+The next internal observer passed **12 related portable cases**, alongside the
+13 binding cases, 11 native-trace cases and 18 existing feature-read cases. It
+requires exactly one solid with no surface bodies, includes hidden bodies,
+cross-checks the complete native face count, exact face/body ownership and native
+duplicate identity, and only returns private bindings after the entire
+configuration/stamp/edit/foreground check passes. Failed reads publish no
+partial geometry or binding list. Planes/cylinders are observed, other surfaces
+remain explicitly unclassified, and `area_mm2` carries `area_accuracy:
+approximate`, following the documented
+[IFace2.GetArea accuracy](https://help.solidworks.com/2018/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IFace2~GetArea.html).
+
+Its initial **64-face internal cap** bounds pairwise identity checks, not a
+promise of scalable enumeration or a public limit. Normal/radius/trimmed-boundary
+geometry and short-handle lifetime are not yet implemented.
+
+On another fresh read-only native fixture copy, the actual observer completed
+**two consecutive reads** on SW PID **1096**, reporting one solid, 8 faces
+(7 planes, 1 cylinder), identical complete payloads and binding lengths.
+Default configuration, stamp 146, modified false, edit state and exact foreground
+identity were unchanged. The original documents/state were preserved after
+closing only the copy; cleanup was empty and SW was not replaced. Paired native
+trace boundaries have no error; two reads total approximately 6.98 seconds of
+native calls (including 90 identity comparisons). This highlights the need to
+keep the current bounded probe separate from future enumeration scalability.
+
+| Observer evidence | SHA-256 |
+| --- | --- |
+| `observer-native.json` | `77b928b70746e58ff9a421857bdaaa3138d1626aadc16242709fcc7d1880963b` |
+| `native-call-trace.log` | `0c4f90875ea71167d9269a63d7d60fba083cd2708df34b5d38047beb228068a4` |
+| observer source | `556a73f0041dd251ce26db1b48e141b48957fc5844bf9cbb775a57c99353e658` |
+
+Local evidence: `/private/tmp/swcli-a8-observer-native.DvsH0i`. References source
+is the same hash listed above. These are internal Windows results, not public
+CLI, Wine or topology-edit survival proof.
