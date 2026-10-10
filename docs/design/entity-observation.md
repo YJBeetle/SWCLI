@@ -38,7 +38,11 @@ reuses its existing depth fixture for both face and explicit edge checks:
 wrong-kind/CAS/cross-document refusal, real depth-write retirement and native
 close/reopen with fresh IDs. Analytical fixture checks do not infer public
 edge length, closure or normalized trim. Installed cross-host gates remain
-pending. The purpose is to give AI enough
+pending. A narrow installed Windows wheel/CLI/TCP run now passes those read-only
+face/edge observation methods on an own copy, including close/reopen and preserved
+user state; see the [installed receipt](../verification/a8-edge-installed-windows-2026-10-10.md).
+It does not establish the complete generated-modeling/depth-write gate.
+The purpose is to give AI enough
 native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
 that arbitrary references survive every model edit.

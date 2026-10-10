@@ -95,7 +95,9 @@ Next:
    [operations receipt](verification/a8-edge-operations-2026-10-10.md).
    The shared installed-client gate now covers edges on its existing depth
    fixture, including analytic geometry, mixed IDs and real-edit retirement.
-   Installed Windows and independent Wine proof remain next;
+   A narrow installed Windows wheel/CLI/TCP copy check also passes; see the
+   [installed receipt](verification/a8-edge-installed-windows-2026-10-10.md).
+   Full hosted Windows and independent Wine proof remain next;
    trimmed boundaries and topology-edit survival are
    not implemented.
 2. Extend profiles/end conditions and selected-body/face support only with
