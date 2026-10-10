@@ -44,7 +44,7 @@ class FakeCLI:
             "title": document["id"],
             "document_id": document["id"],
             "path": document["path"],
-            "type": 1,
+            "type": document.get("type", 1),
             "modified": document["modified"],
             "update_stamp": document["stamp"],
             "active": self.active == document["id"],
@@ -135,12 +135,17 @@ class FakeCLI:
                     "lease": None,
                 }
             document["id"] = document_id
+            document.setdefault("type", 2 if subcommand == "open" and args.path.lower().endswith(".sldasm") else 1)
+            if self.defect == "assembly-reopen-failed" and subcommand == "open" and args.path.endswith("assembly.SLDASM"):
+                return self.failure("OpenFailed")
             document["read_only"] = args.read_only if subcommand == "open" else False
             self.documents[document_id] = document
             self.active = self.current[session] = document_id
             return {
                 "ok": True,
                 "created": True,
+                "read_only": document["read_only"],
+                "api_errors": 0,
                 "document": self.descriptor(document, session),
             }
         if action == "document" and subcommand == "list":
@@ -197,11 +202,25 @@ class FakeCLI:
         if action == "document" and subcommand == "inspect":
             if self.defect == "null-stamp":
                 descriptor["update_stamp"] = None
+            structure = {"bodies": {"count": document["count"]}}
+            if document.get("type") == 2:
+                structure.update({
+                    "configurations": {"names": ["Default"], "active": "Default"},
+                    "features": {"count": 1, "truncated": False, "items": [{"name": "Component1", "type": "Reference"}]},
+                })
+                if self.defect == "assembly-structure-changed" and document["path"].endswith("assembly.SLDASM"):
+                    structure["features"]["items"][0]["name"] = "LostComponent"
             return {
                 "ok": True,
                 "document": descriptor,
-                "structure": {"bodies": {"count": document["count"]}},
+                "structure": structure,
             }
+        if action == "document" and subcommand == "save":
+            target = self.directory / gate.PureWindowsPath(document["path"]).name
+            if self.defect == "assembly-save-truncated":
+                target.write_bytes(b"truncated")
+            return {"ok": True, "api_saved": True, "save_errors": 0,
+                    "document_after": self.descriptor(document, session)}
         if action == "document" and subcommand == "diagnose":
             return {"ok": True, "needs_rebuild": 0, "diagnostics": {"healthy": True}}
         if action == "document" and subcommand == "measure":
@@ -373,8 +392,10 @@ class FakeCLI:
                     target.write_bytes(b"damaged")
                 return self.failure("OutputExists")
             target.write_bytes(
-                b"ISO-10303-21;" if subcommand == "export" else b"native model"
+                b"ISO-10303-21;" if subcommand == "export" else bytes(1024)
             )
+            if self.defect == "assembly-save-as-truncated" and args.output.endswith(".SLDASM"):
+                target.write_bytes(b"truncated")
             if subcommand == "save-as":
                 document["path"], document["modified"] = args.output, False
                 self.saved[args.output] = copy.deepcopy(document)
@@ -382,6 +403,7 @@ class FakeCLI:
                 "ok": True,
                 "document": self.descriptor(document, session),
                 "file_verification": {"minimum_size_valid": True},
+                "artifact": {"format": gate.PureWindowsPath(args.output).suffix[1:].upper(), "size_bytes": target.stat().st_size},
             }
         if action == "sketch" and subcommand == "inspect":
             profile = document["profiles"][args.sketch_id]
@@ -802,6 +824,40 @@ class ModelingSmokeTests(unittest.TestCase):
         return json.loads(
             (self.directory / "modeling.json").read_text(encoding="utf-8")
         )
+
+    def test_assembly_save_and_read_only_reopen_have_size_and_structure_evidence(self):
+        self.run_gate(samples=True)
+        proof = self.record()["assembly_save_reopen"]
+        self.assertGreaterEqual(proof["save_as_bytes"], 512)
+        self.assertGreaterEqual(proof["size_bytes"], 512)
+        self.assertTrue(proof["structure_unchanged"])
+        self.assertTrue(proof["fresh_document_id"])
+        save_calls = [call for call in self.fake.calls
+                      if call.command == "document" and call.document_command == "save"]
+        self.assertEqual(len(save_calls), 1)
+        saved_assemblies = [document for path, document in self.fake.saved.items()
+                            if path.endswith(".SLDASM")]
+        self.assertEqual(len(saved_assemblies), 1)
+
+    def test_assembly_gate_rejects_bad_save_reopen_and_changed_structure(self):
+        for defect, message in (
+            ("assembly-save-as-truncated", "empty or truncated"),
+            ("assembly-save-truncated", "empty or truncated"),
+            ("assembly-reopen-failed", "OpenFailed"),
+            ("assembly-structure-changed", "changed configurations or feature tree"),
+        ):
+            with self.subTest(defect=defect):
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "evidence"
+                    fake = FakeCLI(path)
+                    fake.defect = defect
+                    arguments = ["--output-dir", str(path), "--host-output-dir", "C:\\proof",
+                                 "--sample-part", "C:\\samples\\Paper.SLDPRT",
+                                 "--sample-assembly", "C:\\samples\\Mold.SLDASM"]
+                    with mock.patch.object(gate.subprocess, "run", side_effect=fake.run), \
+                            mock.patch("sys.stdout", new=io.StringIO()):
+                        with self.assertRaisesRegex(RuntimeError, message):
+                            gate.main(arguments)
 
     def test_complete_shared_sequence_parses_real_cli_and_keeps_one_host(self):
         commands = self.run_gate(samples=True)

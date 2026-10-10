@@ -1337,6 +1337,71 @@ class ModelingSmoke:
         )
         self.close(foreground)
         self.close(document)
+        self.assembly_save_reopen(assembly)
+
+    def assembly_save_reopen(self, assembly):
+        # Rename only the assembly into the evidence directory. Referenced
+        # parts remain at their original paths: this is not Pack and Go.
+        opened = self.command("document", "open", assembly)
+        document = opened["document"]["document_id"]
+        require(opened["document"]["type"] == 2, "sample is not an assembly")
+        before = self.command(
+            "document", "inspect", "--detail", "structure", document=document
+        )["structure"]
+
+        def signature(structure):
+            features = structure["features"]
+            require(features["count"] > 0 and not features["truncated"],
+                    "assembly feature tree is empty or truncated")
+            return {
+                "configurations": structure["configurations"],
+                "features": [(item["name"], item["type"]) for item in features["items"]],
+            }
+
+        expected = signature(before)
+        target = str(PureWindowsPath(self.host_directory) / "assembly.SLDASM")
+        saved = self.write("document", "save-as", target, document=document)
+        require(saved["document"]["document_id"] == document
+                and saved["document"]["modified"] is False
+                and saved["artifact"]["format"] == "SLDASM"
+                and saved["file_verification"]["minimum_size_valid"] is True,
+                "assembly save-as left an invalid document/file state")
+        native_file = self.directory / "assembly.SLDASM"
+        require(native_file.is_file() and native_file.stat().st_size >= 512,
+                "assembly save-as produced an empty or truncated file")
+        save_as_bytes = native_file.stat().st_size
+        require(saved["artifact"]["size_bytes"] == save_as_bytes,
+                "assembly save-as size evidence disagrees with the artifact")
+        # Also exercise Save3 on the new file, never on the installed sample.
+        in_place = self.write("document", "save", document=document)
+        require(in_place["api_saved"] is True and in_place["save_errors"] == 0
+                and in_place["document_after"]["modified"] is False,
+                "assembly in-place save failed")
+        require(native_file.stat().st_size >= 512,
+                "assembly in-place save produced an empty or truncated file")
+        digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
+        self.close(document)
+        reopened = self.command("document", "open", target, "--read-only")
+        reopened_id = reopened["document"]["document_id"]
+        require(reopened_id != document and reopened["document"]["type"] == 2
+                and reopened["read_only"] is True and reopened["api_errors"] == 0,
+                "saved assembly did not reopen as a fresh read-only assembly")
+        after = self.command(
+            "document", "inspect", "--detail", "structure", document=reopened_id
+        )["structure"]
+        require(signature(after) == expected,
+                "assembly save/reopen changed configurations or feature tree")
+        self.close(reopened_id)
+        require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest,
+                "read-only assembly reopen changed the saved artifact")
+        self.record["assembly_save_reopen"] = {
+            "save_as_bytes": save_as_bytes,
+            "size_bytes": native_file.stat().st_size,
+            "sha256": digest,
+            "structure_unchanged": True,
+            "fresh_document_id": True,
+        }
+        self.checkpoint("assembly-save-reopen.verified")
 
     def verify_step(self, name):
         path = self.directory / name
