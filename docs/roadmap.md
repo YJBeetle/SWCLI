@@ -92,7 +92,12 @@ Next:
    These guards
    do not promise arbitrary edit eligibility.
    Do not infer edit authority or arbitrary constraint support from these reads.
-2. Extend profiles/end conditions and selected-body/face support only with
+2. After the a7 release gates, build the narrow
+   [exact face/edge observation slice](design/entity-observation.md) as the
+   foundation for explicit target-based modeling. The first Windows face
+   reference round-trip probe passed without document changes; no public entity
+   operation, topology-survival or Wine claim follows from that probe.
+3. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
