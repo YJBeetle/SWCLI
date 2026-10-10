@@ -1,7 +1,11 @@
 # Exact face/edge observation — next modeling slice
 
-Status: **design/feasibility only**, not an a7 capability. Finish a7's fixed-version
-release gates before exposing another public operation. The purpose is to give
+Status: **a8 internal development**, not an a7 capability. The a7 fixed-version
+gates and publication are complete. An internal persistent-reference binding
+now rejects malformed/oversized arrays, non-OK or unwritten status, null objects
+and non-exact native identity; its 11 portable cases pass. It does not yet prove
+entity kind, document/body membership or expose any public entity operation.
+The purpose is to give
 AI enough native topology evidence to choose explicit future fillet/chamfer or
 face-based sketch targets. This is not a complete topology kernel or a promise
 that arbitrary references survive every model edit.
