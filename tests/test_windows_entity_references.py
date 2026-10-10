@@ -1,5 +1,6 @@
 """Exact reference binding failures never become guessed topology identity."""
 
+from array import array
 import sys
 from types import SimpleNamespace
 import unittest
@@ -37,6 +38,42 @@ class EntityReferenceTests(unittest.TestCase):
         captured = references._reference_bytes(raw)
         raw[0] = 3
         self.assertEqual(captured, b"\x01\x02")
+
+    def test_native_unsigned_memoryview_is_copied_not_retained(self):
+        raw = bytearray((0, 255, 1))
+        view = memoryview(raw)
+        self.extension.GetPersistReference3.return_value = view
+        with mock.patch.object(
+            references, "_resolve_native", return_value=(self.resolved, 0)
+        ):
+            captured = references.capture_verified_reference(
+                self.app, self.extension, self.entity
+            )
+        raw[1] = 2
+        view.release()
+        self.assertEqual(captured, b"\0\xff\x01")
+        self.assertEqual(references._reference_bytes(memoryview(b"x")), b"x")
+
+    def test_malformed_empty_oversized_and_released_buffers_do_not_resolve(self):
+        released = memoryview(b"x")
+        released.release()
+        invalid = (
+            memoryview(b""),
+            memoryview(b"x" * (references.MAX_REFERENCE_BYTES + 1)),
+            memoryview(b"abcd")[::2],
+            memoryview(b"abcd").cast("B", shape=[2, 2]),
+            memoryview(b"abcd").cast("b"),
+            memoryview(array("I", (1, 2))),
+            released,
+        )
+        with mock.patch.object(references, "_resolve_native") as resolve:
+            for index, raw in enumerate(invalid):
+                with (
+                    self.subTest(index=index),
+                    self.assertRaises(references.EntityReferenceUnavailable),
+                ):
+                    references.resolve_verified_reference(self.extension, raw)
+            resolve.assert_not_called()
 
     def test_invalid_reference_never_attempts_resolution(self):
         invalid = (

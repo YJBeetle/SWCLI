@@ -21,7 +21,27 @@ class EntityReferenceUnavailable(RuntimeError):
 
 def _reference_bytes(raw: Any) -> bytes:
     # Do not coerce arbitrary iterables, integers, strings or bools into bytes.
-    # A bounded SAFEARRAY of UI1 arrives as bytes or a sequence of integers.
+    # pywin32 also returns a memoryview for a native SAFEARRAY of UI1. Accept
+    # only a contiguous one-dimensional unsigned-byte buffer, then copy it;
+    # arbitrary buffer casts must not silently become a valid reference.
+    if isinstance(raw, memoryview):
+        try:
+            valid = (
+                raw.ndim == 1
+                and raw.itemsize == 1
+                and raw.format == "B"
+                and raw.c_contiguous
+                and 0 < raw.nbytes <= MAX_REFERENCE_BYTES
+            )
+        except ValueError as exc:
+            raise EntityReferenceUnavailable(
+                "native byte buffer has been released"
+            ) from exc
+        if not valid:
+            raise EntityReferenceUnavailable(
+                "native byte buffer has invalid shape or size"
+            )
+        return raw.tobytes()
     if not isinstance(raw, (bytes, bytearray, tuple, list)):
         raise EntityReferenceUnavailable(
             "native persistent reference is not a byte array"
