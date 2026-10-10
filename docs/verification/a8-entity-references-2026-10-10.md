@@ -290,3 +290,47 @@ not overwritten. Local evidence: `/private/tmp/swcli-a8-installed-bind-native.X9
 documents; owned shutdown still refuses open documents and exits only an empty
 owned host. Seventy-nine daemon tests pass, including four ownership/document
 combinations. Installed native regression for that fix remains pending.
+
+## Shared-stop installed regression
+
+An independent installed regression used runtime
+`0d02694dd0ed397d23eef3a0ed79cbb5aa86ba64`, wheel SHA-256
+`081030157822e58ed573726397921cf90a0d2fd384c99264a52544ae117c2635`.
+Fifty installed Python/schema files matched the wheel. A disposable read-only
+copy passed entity list/cylinder inspect and was closed. With the original user
+document still open and foreground, actual CLI `daemon stop` returned success
+and exit code 0. No SW process was killed or user document modified.
+
+The probe's postcheck initially misinterpreted a PowerShell empty-property
+projection `[null]` as a live process list. Its first failure JSON remains
+unchanged. A separate read-only count check established zero listeners and zero
+remaining supervisor/worker/launcher processes; SW 1096, original document
+identity/foreground, modified=false and stamp 102 remained unchanged. This
+closes the runtime stop finding, not the old probe artifact's failed status.
+Local evidence: `/private/tmp/swcli-a8-shared-stop-native.wCvcRy`.
+
+| Shared-stop regression evidence | SHA-256 |
+| --- | --- |
+| first `shared-stop-native.json` | `a3bddbcd16065381f60c526fbfde400991a07edca9858fdfe892445578c341eb` |
+| independent `exit-readback.json` | `4c5780e0c9dda25fcc1e74991511719974b0874a7db22b4193c3db51ef95e51b` |
+| `daemon.log` | `5c8a8a4e441d8462bb5907f3344c588af39f875733d6b075716f09eff3d94b62` |
+
+## First Wine gate: CLI/result assertion mismatch
+
+Fixed runtime `7d2dc1e` on the verified a7 DockerSW base
+`sha256:b74f9de64fe35de06586299a9efecb7e204091bddf5a18f0cb0c96b5db9b8da9`
+passed native-model/reverse-cut and returned a successful first entity list.
+The shared script then incorrectly validated CLI `request_id` metadata against
+the daemon business-result schema and stopped. Cleanup succeeded. This is a
+gate defect, not a completed Wine entity gate or evidence of native failure.
+First modeling JSON SHA-256:
+`4193f5751254f4c9b0aa256f6a9f7a3e006ec4d97f7618b7680f547ab16ba277`;
+daemon log: `498b061b7a09659c8084fd20200684c49bcd83f13eb4aa60658a51875ea09f24`.
+Local first evidence: `/private/tmp/swcli-a8-wine-candidate.3IB1z4`.
+
+`9b82b4e` preserves complete CLI evidence and removes only known
+`request_id`/`replayed` fields from its business assertion view. Fake CLI results
+now use the actual presentation helper; 17 associated gate tests pass, including
+unknown-field rejection and replay metadata preservation. DockerSW/Wine follow-up
+is paused at the user's request while a separate agent handles that host project;
+its repository pin and images are not updated here.
