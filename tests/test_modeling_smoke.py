@@ -38,6 +38,7 @@ class FakeCLI:
         self.edge_reads = 0
         self.now = 0
         self.operation_seconds = 0
+        self.drawing_directory = directory
 
     def descriptor(self, document, session):
         return {
@@ -145,7 +146,7 @@ class FakeCLI:
                 if self.defect == "drawing-reopen-failed":
                     return self.failure("OpenFailed")
                 if self.defect == "drawing-reopen-changed-file":
-                    (self.directory / "drawing.SLDDRW").write_bytes(b"changed" * 100)
+                    (self.drawing_directory / "drawing.SLDDRW").write_bytes(b"changed" * 100)
                 if self.defect == "drawing-reused-id":
                     document_id = document["id"] = "d-000002"
                 if self.defect == "drawing-readonly-missing":
@@ -244,7 +245,8 @@ class FakeCLI:
                 "structure": structure,
             }
         if action == "document" and subcommand == "save":
-            target = self.directory / gate.PureWindowsPath(document["path"]).name
+            directory = self.drawing_directory if document.get("type") == 3 else self.directory
+            target = directory / gate.PureWindowsPath(document["path"]).name
             if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
             if document.get("type") == 3:
@@ -835,7 +837,7 @@ class ModelingSmokeTests(unittest.TestCase):
             "C:\\evidence with spaces",
         ]
 
-    def run_gate(self, *, samples=False, drawing=False):
+    def run_gate(self, *, samples=False, drawing=False, drawing_work_directory=None):
         arguments = self.arguments + (
             [
                 "--sample-part",
@@ -851,6 +853,10 @@ class ModelingSmokeTests(unittest.TestCase):
             source.write_bytes(b"drawing" * 100)
             arguments += ["--sample-drawing", "C:\\samples\\installed source.SLDDRW",
                           "--sample-drawing-local", str(source)]
+            if drawing_work_directory is not None:
+                self.fake.drawing_directory = drawing_work_directory
+                arguments += ["--drawing-work-dir", str(drawing_work_directory),
+                              "--host-drawing-work-dir", "C:\\private drawing refs"]
         with (
             mock.patch.object(
                 gate.subprocess, "run", side_effect=self.fake.run
@@ -865,11 +871,12 @@ class ModelingSmokeTests(unittest.TestCase):
             (self.directory / "modeling.json").read_text(encoding="utf-8")
         )
 
-    def drawing_gate(self, defect=None):
+    def drawing_gate(self, defect=None, *, work_directory=None, host_work_directory=None):
         self.directory.mkdir(parents=True, exist_ok=True)
         source = Path(self.temporary.name) / "installed source.SLDDRW"
         source.write_bytes(b"drawing" * 100)
         self.fake = FakeCLI(self.directory)
+        self.fake.drawing_directory = work_directory or self.directory
         self.fake.defect = defect
         self.fake.drawing_source = source
         smoke = gate.ModelingSmoke(directory=self.directory,
@@ -879,7 +886,9 @@ class ModelingSmokeTests(unittest.TestCase):
         with mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run), \
                 mock.patch("sys.stdout", new=io.StringIO()):
             try:
-                smoke.drawing_save_reopen("C:\\samples\\installed source.SLDDRW", source)
+                smoke.drawing_save_reopen("C:\\samples\\installed source.SLDDRW", source,
+                                         work_directory=work_directory,
+                                         host_work_directory=host_work_directory)
             finally:
                 smoke.cleanup()
         return smoke, source
@@ -948,6 +957,107 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertIn("drawing-save-reopen", proof["cases"])
         self.assertEqual(proof["host"]["process_id"], proof["host_after"]["process_id"])
         self.assertEqual(proof["cleanup_errors"], [])
+
+    def test_private_drawing_fixture_publishes_only_verified_hash_identical_drawing(self):
+        fixture = Path(self.temporary.name) / "private drawing refs"
+        fixture.mkdir()
+        (fixture / "referenced.SLDASM").write_bytes(b"fixture only")
+        smoke, source = self.drawing_gate(work_directory=fixture,
+                                        host_work_directory="C:\\private drawing refs")
+        proof = smoke.record["drawing_save_reopen"]
+        output = self.directory / "drawing.SLDDRW"
+        self.assertEqual(output.read_bytes(), (fixture / "drawing.SLDDRW").read_bytes())
+        self.assertEqual(gate.hashlib.sha256(output.read_bytes()).hexdigest(), proof["sha256"])
+        self.assertEqual(proof["work_path"], "C:\\private drawing refs\\drawing.SLDDRW")
+        self.assertEqual(proof["evidence_path"], str(output))
+        self.assertFalse((self.directory / "referenced.SLDASM").exists())
+        self.assertEqual(source.read_bytes(), b"drawing" * 100)
+        self.assertEqual((fixture / "referenced.SLDASM").read_bytes(), b"fixture only")
+
+    def test_private_drawing_failure_does_not_publish_unverified_file(self):
+        for defect in ("drawing-save-failed", "drawing-save-truncated",
+                       "drawing-reopen-failed", "drawing-structure-changed",
+                       "drawing-source-changed"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                fixture = Path(temporary)
+                with self.assertRaises(RuntimeError):
+                    self.drawing_gate(defect, work_directory=fixture,
+                                      host_work_directory="C:\\private drawing refs")
+                self.assertFalse((self.directory / "drawing.SLDDRW").exists())
+                self.assertEqual(self.fake.documents, {})
+
+    def test_private_drawing_preserves_existing_evidence(self):
+        fixture = Path(self.temporary.name) / "private drawing refs"
+        fixture.mkdir()
+        self.directory.mkdir()
+        output = self.directory / "drawing.SLDDRW"
+        output.write_bytes(b"existing evidence")
+        with self.assertRaises(FileExistsError):
+            self.drawing_gate(work_directory=fixture,
+                              host_work_directory="C:\\private drawing refs")
+        self.assertEqual(output.read_bytes(), b"existing evidence")
+        self.assertEqual(self.fake.documents, {})
+
+    def test_private_drawing_copy_failure_removes_only_incomplete_evidence(self):
+        fixture = Path(self.temporary.name) / "private drawing refs"
+        fixture.mkdir()
+        output = self.directory / "drawing.SLDDRW"
+        original_open = Path.open
+
+        class FailedWriter:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *arguments):
+                return False
+
+            def write(self, data):
+                raise OSError("evidence disk full")
+
+        def failing_output(path, mode="r", *arguments, **kwargs):
+            if path == output and mode == "xb":
+                with original_open(path, mode) as stream:
+                    stream.write(b"partial")
+                return FailedWriter()
+            return original_open(path, mode, *arguments, **kwargs)
+
+        with mock.patch.object(Path, "open", failing_output):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                self.drawing_gate(work_directory=fixture,
+                                  host_work_directory="C:\\private drawing refs")
+        self.assertFalse(output.exists())
+        self.assertEqual((fixture / "drawing.SLDDRW").read_bytes(), b"drawing" * 100)
+
+    def test_shared_gate_wires_private_drawing_fixture_namespaces(self):
+        fixture = Path(self.temporary.name) / "private drawing refs"
+        fixture.mkdir()
+        self.run_gate(drawing=True, drawing_work_directory=fixture)
+        proof = self.record()["drawing_save_reopen"]
+        self.assertEqual(proof["work_path"], "C:\\private drawing refs\\drawing.SLDDRW")
+        self.assertEqual(proof["evidence_path"], str(self.directory.resolve() / "drawing.SLDDRW"))
+        self.assertTrue(self.record()["success"])
+
+    def test_drawing_work_directories_require_pair_and_existing_directory(self):
+        for work_directory, host_work_directory, message in (
+            (Path(self.temporary.name), None, "both path namespaces"),
+            (None, "C:\\private", "both path namespaces"),
+            (Path(self.temporary.name) / "missing", "C:\\private", "does not exist"),
+        ):
+            with self.subTest(work_directory=work_directory, host=host_work_directory):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.drawing_gate(work_directory=work_directory,
+                                      host_work_directory=host_work_directory)
+                self.assertEqual(self.fake.calls, [])
+        for options in (["--drawing-work-dir", self.temporary.name],
+                        ["--host-drawing-work-dir", "C:\\private"],
+                        ["--drawing-work-dir", self.temporary.name,
+                         "--host-drawing-work-dir", "relative\\private"],
+                        ["--drawing-work-dir", self.temporary.name,
+                         "--host-drawing-work-dir", "C:\\private"]):
+            with self.subTest(options=options), mock.patch("sys.stderr", new=io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    gate.main(self.arguments + options)
+                self.assertEqual(error.exception.code, 2)
 
     def test_assembly_save_and_read_only_reopen_have_size_and_structure_evidence(self):
         self.run_gate(samples=True)

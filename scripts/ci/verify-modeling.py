@@ -1414,7 +1414,8 @@ class ModelingSmoke:
             "size_bytes": native_file.stat().st_size,
         })
 
-    def drawing_save_reopen(self, drawing, local_drawing):
+    def drawing_save_reopen(self, drawing, local_drawing, *,
+                            work_directory=None, host_work_directory=None):
         # Only Save3 a new byte-for-byte copy. The installed source is opened
         # read-only for the baseline; this is not a drawing SaveAs or Pack and Go.
         source = Path(local_drawing)
@@ -1423,12 +1424,22 @@ class ModelingSmoke:
         source_bytes = source.read_bytes()
         require(len(source_bytes) >= 512, "drawing source is empty or truncated")
         source_digest = hashlib.sha256(source_bytes).hexdigest()
-        native_file = self.directory / "drawing.SLDDRW"
-        target = str(PureWindowsPath(self.host_directory) / native_file.name)
+        require((work_directory is None) == (host_work_directory is None),
+                "drawing work directories must supply both path namespaces")
+        work_directory = (Path(work_directory).expanduser().resolve()
+                          if work_directory is not None else self.directory)
+        require(work_directory.is_dir(), "drawing work directory does not exist")
+        host_work_directory = (self.host_directory if host_work_directory is None
+                               else host_work_directory)
+        host_directory(host_work_directory)
+        native_file = work_directory / "drawing.SLDDRW"
+        target = str(PureWindowsPath(host_work_directory) / native_file.name)
+        evidence_file = self.directory / native_file.name
         proof = {
             "source": drawing,
             "source_sha256_before": source_digest,
             "observation_scope": "top-level-feature-tree",
+            "work_path": target,
             "opens": [],
         }
         self.record["drawing_save_reopen"] = proof
@@ -1485,6 +1496,21 @@ class ModelingSmoke:
             proof["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
             require(proof["source_sha256_after"] == source_digest,
                     "drawing gate changed the installed source")
+        # Keep reference bundles outside the evidence tree. Publish only after
+        # all checks, including source protection, without replacing evidence.
+        # The host adapter owns fixture preparation and cleanup on every exit.
+        if native_file.resolve() != evidence_file.resolve():
+            verified_bytes = native_file.read_bytes()
+            require(hashlib.sha256(verified_bytes).hexdigest() == digest,
+                    "drawing changed before copying verified evidence")
+            stream = evidence_file.open("xb")  # Failure here never owns an existing file.
+            try:
+                with stream:
+                    stream.write(verified_bytes)
+            except Exception:
+                evidence_file.unlink()  # Remove only this call's incomplete copy.
+                raise
+        proof["evidence_path"] = str(evidence_file)
         self.checkpoint("drawing-save-reopen.verified")
 
     def verify_step(self, name):
@@ -1558,7 +1584,8 @@ class ModelingSmoke:
         return status
 
     def run(self, *, sample_part=None, sample_assembly=None,
-            sample_drawing=None, sample_drawing_local=None):
+            sample_drawing=None, sample_drawing_local=None,
+            drawing_work_dir=None, host_drawing_work_dir=None):
         self.record["host"] = self.health()["host"]
         self.command(
             "capabilities"
@@ -1578,7 +1605,8 @@ class ModelingSmoke:
             )
         if sample_drawing:
             cases.append(("drawing-save-reopen", lambda: self.drawing_save_reopen(
-                sample_drawing, sample_drawing_local)))
+                sample_drawing, sample_drawing_local, work_directory=drawing_work_dir,
+                host_work_directory=host_drawing_work_dir)))
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
         for name, function in cases:
             self.checkpoint(name + ".starting")
@@ -1634,11 +1662,19 @@ def main(argv=None):
                         help="installed drawing source in the daemon's Windows namespace")
     parser.add_argument("--sample-drawing-local", type=Path,
                         help="same installed drawing source in the client's filesystem namespace")
+    parser.add_argument("--drawing-work-dir", type=Path,
+                        help="existing client-visible temporary drawing/reference fixture directory")
+    parser.add_argument("--host-drawing-work-dir", type=host_directory,
+                        help="same temporary fixture directory in the daemon's Windows namespace")
     arguments = parser.parse_args(argv)
     if bool(arguments.sample_part) != bool(arguments.sample_assembly):
         parser.error("sample-part and sample-assembly must be supplied together")
     if bool(arguments.sample_drawing) != bool(arguments.sample_drawing_local):
         parser.error("sample-drawing and sample-drawing-local must be supplied together")
+    if bool(arguments.drawing_work_dir) != bool(arguments.host_drawing_work_dir):
+        parser.error("drawing-work-dir and host-drawing-work-dir must be supplied together")
+    if arguments.drawing_work_dir and not arguments.sample_drawing:
+        parser.error("drawing work directories require a sample-drawing source")
     directory = arguments.output_dir.expanduser().resolve()
     host = arguments.host_output_dir or str(directory)
     host_directory(host)  # POSIX clients must explicitly supply the host namespace.
@@ -1661,6 +1697,8 @@ def main(argv=None):
             sample_part=arguments.sample_part, sample_assembly=arguments.sample_assembly,
             sample_drawing=arguments.sample_drawing,
             sample_drawing_local=arguments.sample_drawing_local,
+            drawing_work_dir=arguments.drawing_work_dir,
+            host_drawing_work_dir=arguments.host_drawing_work_dir,
         )
     except Exception as exc:
         error = exc
