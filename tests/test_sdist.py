@@ -24,7 +24,9 @@ class SourceDistributionTests(unittest.TestCase):
         self.verify(self.members())
 
     def test_missing_documentation_or_example_is_rejected(self):
-        for name in ("README.CN.md", "examples/model-plate.ps1", "docs/roadmap.md"):
+        for name in ("README.CN.md", "examples/model-plate.ps1", "docs/roadmap.md",
+                     "scripts/ci/gate_support/model_native.py",
+                     "scripts/ci/gate_support/driving_geometry.py"):
             with (
                 self.subTest(name=name),
                 self.assertRaisesRegex(RuntimeError, "missing product files"),

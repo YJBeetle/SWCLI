@@ -2,7 +2,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Workspace,
-    [switch]$Hidden
+    [switch]$Hidden,
+    [ValidateSet("core", "full")]
+    [string]$Suite = "full"
 )
 
 $ErrorActionPreference = "Stop"
@@ -250,10 +252,12 @@ try {
     $samplePart = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
     $sampleAssembly = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.sldasm"
     & python -I (Join-Path $PSScriptRoot "../verify-modeling.py") `
+        --suite $Suite `
         --output-dir $modelingFolder `
         --sample-part $samplePart --sample-assembly $sampleAssembly
     if ($LASTEXITCODE -ne 0) { throw "shared modeling CLI gate failed" }
     & python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py") `
+        --suite $Suite `
         --output-dir (Join-Path $Workspace "driving-dimensions") `
         --after-modeling (Join-Path $modelingFolder "modeling.json")
     if ($LASTEXITCODE -ne 0) { throw "driving-dimension CLI/protocol gate failed" }

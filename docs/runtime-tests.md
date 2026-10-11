@@ -8,6 +8,38 @@ source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
 
 ## Entry points
 
+### Coverage tiers and host modes
+
+The modeling and driving entry points accept `--suite core|full` (direct-call
+default: `full`). Evidence includes `suite`; driving refuses a predecessor
+record from a different tier. Both tiers retain same-host checks, lease renewal,
+strict artifact/geometry assertions, per-case empty document catalog checks and
+first-failure propagation. No hidden-mode lifecycle-only substitute is used.
+
+- `core`: native modeling, generated assembly save/reopen and mesh exports,
+  supplied official sample exports, supplied drawing roundtrips and failed-cut
+  recovery. Driving retains the full Front cases (guards, center fixes,
+  diameter/rectangle save/reopen and expired handles). Top/Right each verify
+  driving diameter, fixed rectangle center, width/height edits and solid geometry,
+  without repeating the Front permission/CAS/save-reopen matrix.
+- `full`: all original modeling cases, including reverse-cut and feature-depth
+  face/edge observations, plus all three-plane driving combinations. Optional
+  fixture switches remain explicit in both tiers; no missing fixture is inferred
+  as passing. Toolbox remains required by platform wrappers in both tiers.
+
+Windows and MacSW ordinary pushes run `core` in visible mode only. Manual
+complete acceptance selects `full` and runs visible then hidden, with separate
+evidence and an unrestarted host within each mode. Core success does not prove
+hidden-mode behavior and cannot authorize MacSW signing. DockerSW uses its
+existing background mode: automatic image promotion keeps `full`; manual `core`
+does not promote verified image tags. Six published exports remain independent.
+
+Case methods and shared geometry assertions are in `scripts/ci/gate_support/`.
+Entry points retain transport, fixture paths, leases, evidence and cleanup;
+platform wrappers only provision and sequence those entry points.
+
+### Full case catalog
+
 - `scripts/ci/verify-modeling.py`: capabilities, native update stamps, leases
   and stale-write rejection, background sketches/extrusions/cuts, analytical
   measurements, native save/reopen and existing-target protection. The final
@@ -61,7 +93,7 @@ the deployed result and public document operations. Each wrapper requires it
 after modeling/driving on the same host. A failure blocks delivery, never triggers
 a repair, restart or retry of the operation.
 The six DockerSW published export artifacts remain a separate delivery gate.
-Windows hosted CI runs that same wrapper in visible and `-Hidden` modes using
+Windows complete acceptance runs that same wrapper in visible and `-Hidden` modes using
 one installation and independent evidence directories. Its native job downloads
 the same run's `swcli-dist` artifact, requires exactly one wheel, installs it
 normally and verifies installed resources before either mode. It does not use
@@ -79,19 +111,6 @@ and does not select all add-ins. MSI success alone still does not prove Toolbox
 deployment: the shared inventory/read-only native gate must pass afterwards.
 
 ## Development validation
-
-### Minimal document lifecycle profile
-
-`verify-modeling.py --document-lifecycle-only` reuses the public CLI and gate
-checks to create one blank native part, save it as `.SLDPRT`, validate the
-native save result and real file size, close it, and require an empty document
-catalog and the same host PID. It performs no sketches, features, assembly or
-mesh exports. Its record explicitly has `profile: "document-lifecycle"` and
-only the `document-lifecycle` case; it is not a successful full modeling gate
-and cannot serve as the driving gate's `--after-modeling` predecessor.
-Full sample options cannot be combined with this profile. The default remains
-the full modeling gate for existing Windows and DockerSW callers. MacSW uses
-full visible coverage plus this required smoke on a separate hidden host.
 
 During implementation, run the directly affected tests and the relevant shared
 dependency/contract tests first. Do not repeat the entire suite or reinstall

@@ -6,6 +6,16 @@ import tarfile
 from pathlib import PurePosixPath
 
 REQUIRED = {
+    "scripts/ci/gate_support/__init__.py",
+    "scripts/ci/gate_support/model_checks.py",
+    "scripts/ci/gate_support/model_native.py",
+    "scripts/ci/gate_support/model_depth.py",
+    "scripts/ci/gate_support/model_files.py",
+    "scripts/ci/gate_support/driving_checks.py",
+    "scripts/ci/gate_support/driving_diameter.py",
+    "scripts/ci/gate_support/driving_rectangle.py",
+    "scripts/ci/gate_support/driving_center.py",
+    "scripts/ci/gate_support/driving_geometry.py",
     "README.md",
     "README.CN.md",
     "LICENSE",

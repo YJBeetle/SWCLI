@@ -48,13 +48,17 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('"attach-without-host"', script)
         self.assertIn('"daemon-disconnected"', script)
 
-    def test_windows_ci_runs_the_same_smoke_in_visible_and_hidden_modes(self):
+    def test_windows_ci_core_is_visible_and_full_retains_hidden_mode(self):
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
         visible = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT'
         hidden = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\hidden" -Hidden'
         self.assertLess(workflow.index(visible), workflow.index(hidden))
+        self.assertIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
+        self.assertIn("-Suite '${{ inputs.runtime_suite || 'core' }}'", workflow)
+        self.assertIn('-Hidden -Suite full', workflow)
+        self.assertIn('--suite $Suite', wrapper)
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
         self.assertIn('-ArgumentList $daemonArguments', wrapper)
@@ -163,6 +167,18 @@ class ModelingSequenceTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "replaced between"):
                     smoke.run()
             plane.assert_not_called()
+
+    def test_suite_mismatch_is_rejected_before_contacting_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "modeling.json"
+            path.write_text(json.dumps({**self.record(), "suite": "core"}))
+            smoke = gate.DrivingSmoke(endpoint="127.0.0.1:1", session="full",
+                                      output_directory="C:\\proof", after_modeling=path,
+                                      local_output_directory=temporary, suite="full")
+            with mock.patch.object(gate, "call_daemon") as rpc:
+                with self.assertRaisesRegex(RuntimeError, "suite coverage must match"):
+                    smoke.run()
+            rpc.assert_not_called()
 
     def test_failed_interrupted_or_inconsistent_predecessor_refused(self):
         for changed in (

@@ -10,6 +10,11 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      runtime_suite:
+        description: Core daily regression or full pre-release CAD coverage
+        type: choice
+        options: [core, full]
+        default: full
       media_path:
         description: Google Drive path to the SOLIDWORKS ISO
         required: true
@@ -290,9 +295,10 @@ jobs:
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell
         run: |
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT
-          # Same public gates on a fresh hidden host; no restart inside a gate.
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT -Suite '${{ inputs.runtime_suite || 'core' }}'
+          if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full') {
+            scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full
+          }
 
       - name: Measure streamed data and remaining disk
         if: always()

@@ -766,6 +766,22 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 self.progress = progress.getvalue()
         return rpc, cli
 
+    def test_core_keeps_three_plane_geometry_and_front_protocol_guards(self):
+        self.smoke.suite = "core"
+        self.smoke.record["suite"] = "core"
+        self.run_smoke()
+        self.assertEqual([item["plane"] for item in self.smoke.record["planes"]],
+                         ["front", "top", "right"])
+        self.assertEqual([item.get("coverage") for item in self.smoke.record["planes"]],
+                         [None, "geometry", "geometry"])
+        self.assertEqual(len(self.smoke.record["case_cleanup"]), 7)
+        self.assertTrue(all(item["empty"] for item in self.smoke.record["case_cleanup"]))
+        self.assertEqual(len(self.smoke.record["reopened_dimension_discoveries"]), 1)
+        self.assertTrue(any(item.get("expected_error") == "DocumentLeaseConflict"
+                            for item in self.smoke.record["events"]))
+        self.assertFalse(self.daemon.documents)
+        self.assertFalse(self.smoke.record["cleanup_errors"])
+
     def test_all_planes_and_installed_cli_route_pass(self):
         rpc, cli = self.run_smoke()
         self.assertEqual(self.smoke.record["request_timeout_seconds"], 120)
