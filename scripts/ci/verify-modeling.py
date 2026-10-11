@@ -1850,10 +1850,37 @@ class ModelingSmoke:
         )
         return status
 
+    def document_lifecycle(self):
+        """Minimal owned-host smoke; not a replacement for the modeling gate."""
+        document = self.create()
+        target = str(PureWindowsPath(self.host_directory) / "lifecycle.SLDPRT")
+        native_file = self.directory / "lifecycle.SLDPRT"
+        require(not native_file.exists(), "refusing to overwrite lifecycle artifact")
+        saved = self.write("document", "save-as", target, document=document)
+        require(saved["api_saved"] is True and saved["save_errors"] == 0
+                and saved["document"]["document_id"] == document
+                and saved["document"]["modified"] is False
+                and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(target)
+                and saved["artifact"]["format"] == "SLDPRT"
+                and native_file.is_file() and native_file.stat().st_size >= 512
+                and saved["artifact"]["size_bytes"] == native_file.stat().st_size,
+                "lifecycle save-as failed native/file verification")
+        self.record["document_lifecycle"] = {
+            "document_id": document, "artifact": saved["artifact"],
+            "sha256": hashlib.sha256(native_file.read_bytes()).hexdigest(),
+        }
+        self.close(document)
+
     def run(self, *, sample_part=None, sample_assembly=None,
             verify_sample_assembly_save=False,
             sample_drawing=None, sample_drawing_local=None,
-            drawing_work_dir=None, host_drawing_work_dir=None):
+            drawing_work_dir=None, host_drawing_work_dir=None,
+            document_lifecycle_only=False):
+        require(not document_lifecycle_only or not any((sample_part, sample_assembly,
+                verify_sample_assembly_save, sample_drawing, sample_drawing_local,
+                drawing_work_dir, host_drawing_work_dir)),
+                "document lifecycle smoke cannot include full-gate sample options")
+        self.record["profile"] = "document-lifecycle" if document_lifecycle_only else "full"
         self.record["host"] = self.health()["host"]
         self.command(
             "capabilities"
@@ -1883,6 +1910,8 @@ class ModelingSmoke:
             cases.append(("official-assembly-save-reopen",
                           lambda: self.assembly_save_reopen(sample_assembly)))
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
+        if document_lifecycle_only:
+            cases = [("document-lifecycle", self.document_lifecycle)]
         for name, function in cases:
             self.checkpoint(name + ".starting")
             function()
@@ -1938,6 +1967,8 @@ def main(argv=None):
         help="guarded depth-write/equal-depth request budget in seconds (default: 600)",
     )
     parser.add_argument("--sample-part", type=host_directory)
+    parser.add_argument("--document-lifecycle-only", action="store_true",
+                        help="only create/save/close a native part and verify an empty, unchanged host; not full CAD coverage")
     parser.add_argument("--sample-assembly", type=host_directory)
     parser.add_argument("--verify-sample-assembly-save", action="store_true",
                         help="also prepare and strictly save/reopen the official ASM fixture; generated ASM is always tested")
@@ -1985,6 +2016,7 @@ def main(argv=None):
             sample_drawing_local=arguments.sample_drawing_local,
             drawing_work_dir=arguments.drawing_work_dir,
             host_drawing_work_dir=arguments.host_drawing_work_dir,
+            document_lifecycle_only=arguments.document_lifecycle_only,
         )
     except Exception as exc:
         error = exc

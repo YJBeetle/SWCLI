@@ -80,6 +80,19 @@ deployment: the shared inventory/read-only native gate must pass afterwards.
 
 ## Development validation
 
+### Minimal document lifecycle profile
+
+`verify-modeling.py --document-lifecycle-only` reuses the public CLI and gate
+checks to create one blank native part, save it as `.SLDPRT`, validate the
+native save result and real file size, close it, and require an empty document
+catalog and the same host PID. It performs no sketches, features, assembly or
+mesh exports. Its record explicitly has `profile: "document-lifecycle"` and
+only the `document-lifecycle` case; it is not a successful full modeling gate
+and cannot serve as the driving gate's `--after-modeling` predecessor.
+Full sample options cannot be combined with this profile. The default remains
+the full modeling gate for existing Windows and DockerSW callers. MacSW uses
+full visible coverage plus this required smoke on a separate hidden host.
+
 During implementation, run the directly affected tests and the relevant shared
 dependency/contract tests first. Do not repeat the entire suite or reinstall
 SOLIDWORKS for every small edit. For example, the internal entity increment uses

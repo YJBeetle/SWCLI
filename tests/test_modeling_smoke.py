@@ -1016,7 +1016,8 @@ class ModelingSmokeTests(unittest.TestCase):
             "C:\\evidence with spaces",
         ]
 
-    def run_gate(self, *, samples=False, drawing=False, drawing_work_directory=None):
+    def run_gate(self, *, samples=False, drawing=False, drawing_work_directory=None,
+                 lifecycle=False):
         arguments = self.arguments + (
             [
                 "--sample-part",
@@ -1028,6 +1029,8 @@ class ModelingSmokeTests(unittest.TestCase):
             if samples
             else []
         )
+        if lifecycle:
+            arguments += ["--document-lifecycle-only"]
         if drawing:
             source = Path(self.temporary.name) / "installed source.SLDDRW"
             source.write_bytes(b"drawing" * 100)
@@ -1050,6 +1053,65 @@ class ModelingSmokeTests(unittest.TestCase):
         return json.loads(
             (self.directory / "modeling.json").read_text(encoding="utf-8")
         )
+
+    def test_document_lifecycle_smoke_only_creates_saves_and_closes_one_part(self):
+        self.run_gate(lifecycle=True)
+        record = self.record()
+        self.assertTrue(record["success"])
+        self.assertEqual(record["profile"], "document-lifecycle")
+        self.assertEqual(record["cases"], ["document-lifecycle"])
+        self.assertEqual(record["host"], record["host_after"])
+        self.assertEqual(record["case_cleanup"][0]["open_document_count"], 0)
+        self.assertEqual(self.fake.documents, {})
+        calls = [(call.command, getattr(call, call.command + "_command", None))
+                 for call in self.fake.calls]
+        self.assertEqual([action for action in calls if action[0] == "document"],
+                         [("document", "list"), ("document", "create"),
+                          ("document", "save-as"), ("document", "close"),
+                          ("document", "list"), ("document", "list")])
+        self.assertFalse(any(action[0] in ("sketch", "feature", "assembly") for action in calls))
+
+    def test_document_lifecycle_rejects_failed_or_truncated_save(self):
+        for defect in ("failed", "truncated"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                self.directory = Path(temporary) / "proof"
+                self.arguments = ["--output-dir", str(self.directory), "--host-output-dir", "C:\\proof"]
+                self.fake = FakeCLI(self.directory)
+                dispatch = self.fake.dispatch
+                def broken_save(args):
+                    result = dispatch(args)
+                    if args.command == "document" and args.document_command == "save-as":
+                        if defect == "failed":
+                            return self.fake.failure("SaveFailed")
+                        (self.directory / "lifecycle.SLDPRT").write_bytes(b"truncated")
+                    return result
+                self.fake.dispatch = broken_save
+                with self.assertRaises(RuntimeError):
+                    self.run_gate(lifecycle=True)
+                self.assertFalse(self.record()["success"])
+                self.assertEqual(self.fake.documents, {})
+
+    def test_document_lifecycle_rejects_host_replacement(self):
+        self.fake.defect = "host-replaced"
+        with self.assertRaisesRegex(RuntimeError, "replaced"):
+            self.run_gate(lifecycle=True)
+        self.assertFalse(self.record()["success"])
+
+    def test_document_lifecycle_rejects_close_success_with_remaining_document(self):
+        dispatch = self.fake.dispatch
+        def keep_document(args):
+            if args.command == "document" and args.document_command == "close":
+                return {"ok": True, "closed": True}
+            return dispatch(args)
+        self.fake.dispatch = keep_document
+        with self.assertRaisesRegex(RuntimeError, "empty host after document-lifecycle"):
+            self.run_gate(lifecycle=True)
+        self.assertFalse(self.record()["success"])
+
+    def test_document_lifecycle_cannot_silently_ignore_full_sample_options(self):
+        with self.assertRaisesRegex(RuntimeError, "cannot include full-gate sample"):
+            self.run_gate(lifecycle=True, samples=True)
+        self.assertEqual(self.fake.calls, [])
 
     def drawing_gate(self, defect=None, *, work_directory=None, host_work_directory=None,
                      save_as=False):
