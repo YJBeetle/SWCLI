@@ -137,6 +137,33 @@ class NativeSaveTests(unittest.TestCase):
                 self.assertFalse(self.output.exists())
                 validate_operation_result("document.save-as", result)
 
+    def test_drawing_sheet_sketch_does_not_trigger_model_sketch_edit_guard(self):
+        self.document.kind = 3
+        self.output = self.output.with_suffix(".SLDDRW")
+        sheet_sketch = object()
+        self.document.SketchManager.ActiveSketch = sheet_sketch
+        result = self.save()
+        self.assertTrue(result["ok"], result)
+        self.assertIs(self.document.SketchManager.ActiveSketch, sheet_sketch)
+        self.assertEqual(self.document.saved_calls, [(str(self.output), 0, 1)])
+        self.assertFalse(result["document"]["modified"])
+        self.assertEqual(result["artifact"]["format"], "SLDDRW")
+        validate_operation_result("document.save-as", result)
+
+    def test_model_sketch_edit_guard_still_rejects_part_and_assembly(self):
+        for kind, suffix in ((1, ".SLDPRT"), (2, ".SLDASM")):
+            with self.subTest(kind=kind):
+                self.document.kind = kind
+                self.output = self.output.with_suffix(suffix)
+                sketch = object()
+                self.document.SketchManager.ActiveSketch = sketch
+                result = self.save()
+                self.assertEqual(result["error"]["type"], "SketchEditInProgress")
+                self.assertIs(self.document.SketchManager.ActiveSketch, sketch)
+                self.assertFalse(self.output.exists())
+        self.assertEqual(self.document.saved_calls, [])
+        self.document.ClearSelection2.assert_not_called()
+
     def test_empty_or_truncated_assembly_is_rejected_and_removed(self):
         self.document.kind = 2
         self.output = self.output.with_suffix(".SLDASM")

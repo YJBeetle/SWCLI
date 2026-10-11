@@ -148,6 +148,14 @@ in `drawing_save_as_reopen`; the same sheet/view/reference-geometry limitations
 as the in-place case apply. This is a renamed live document, not SaveAsCopy,
 detached drawing conversion or Pack and Go.
 
+The part/assembly `SketchManager.ActiveSketch` edit guard is not applied to
+drawings: their sheet/view geometry already uses sketch contexts. A non-null
+sketch is not proof of an unfinished model-sketch edit. The adapter does not
+exit or change that drawing context; native save errors and the strict path,
+modified and size checks still decide success. This is not a separate drawing
+editing-state diagnostic. See the official
+[drawing EditSketch semantics](https://help.solidworks.com/2016/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDrawingDoc~EditSketch.html).
+
 Portable cases exercise save/reopen failures, truncation, changed/truncated
 feature trees, unexpected warnings, artifact/source mutation, and protection of
 existing output. These are harness tests, not real SOLIDWORKS proof. This case

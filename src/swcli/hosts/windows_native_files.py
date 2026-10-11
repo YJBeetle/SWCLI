@@ -56,7 +56,11 @@ def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
                 "message": "native output extension must match the selected document type",
             }
             return result
-        if (
+        # Drawing sheets/views have native sketch contexts even outside a part
+        # sketch-edit session. A non-null ActiveSketch is not a drawing save
+        # prohibition. Preserve the existing modeling guard for PRT/ASM only;
+        # drawing saves still require native success and all post-save checks.
+        if before["type"] in (1, 2) and (
             _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
             is not None
         ):
