@@ -86,25 +86,37 @@ design retains incremental native/development receipts. Trimmed boundaries,
 topology-edit survival and general entity-targeted writes are not implemented.
 
 The **a9 release candidate** groups minimal assembly creation, already-open
-saved-part insertion and native `.SLDASM`/`.SLDDRW` save-as. The shared gate
-covers generated assemblies and optional drawing save/reopen cases. Formal a9
+saved-part insertion, native `.SLDASM`/`.SLDDRW` save-as and STL/3MF/AMF plus
+part GLB export. The shared gate covers generated assemblies, eight generated
+part/assembly mesh exports and optional drawing save/reopen cases. Formal a9
 host and distribution receipts are still pending; a8 assets are unchanged.
 See the [a9 release draft](releases/v0.1.0a9.md) for precise scope and release gates.
 
 Next:
 
-1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
+1. Make agent discovery inexpensive: separate concise runtime status from the
+   full schema catalog, offer per-operation discovery, advertise document-type
+   export formats and clarify JSON envelopes, current modeling limits and host
+   ownership/visibility/PID namespaces. These are planned improvements, not
+   existing flags. Keep OS PID mapping and path-wrapper behavior host-owned.
+2. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
    on a generated part before exposing a new operation. Start with one explicit
    edge and a constant radius, exact native target readback, independent geometry
    checks and existing lease/stamp/restoration guards. This is planned, not an a8
    capability.
-2. Extend profiles/end conditions and selected-body/face support only with
+3. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
 portable failure tests, real Windows proof and the appropriate Wine gate.
 Partial mutation is not rollback; do not publish an automatic transaction
 guarantee without implementing and proving its recovery boundary.
+
+For agent usability, a Minecraft-style voxel fox is a bounded composition
+example, not a sculpting target; subsequent examples should cover mechanical
+parts. Do not add model-specific commands. If a goal requires disproportionate
+implementation cost, revisit its support scope and acceptance criteria rather
+than accumulating a general-purpose framework to meet one example.
 
 ## Later protocol and integrations
 

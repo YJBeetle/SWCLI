@@ -171,6 +171,15 @@ reopens, fresh IDs and unchanged configuration/feature signatures and hashes.
 No official-sample modified-state exception applies to this generated model.
 See [native assembly save boundaries](design/assembly-native-save.md).
 
+The saved PRT and ASM each strictly export STL, 3MF, AMF and GLB in that same
+daemon/SOLIDWORKS instance. Eight `model_exports` receipts record artifact
+metadata, bounded container/basic-geometry checks, unchanged source state and
+native-file hashes. Outputs stay in the modeling evidence directory, not the
+six formal DockerSW delivery artifacts. A missing translator, invalid output,
+source change or failure blocks the gate; no retry/restart or alternate format
+substitution is allowed. Passing these checks is not proof of watertightness,
+tessellation accuracy or material fidelity.
+
 Supply `--sample-part` and `--sample-assembly` together, both as absolute
 daemon-visible Windows/UNC paths, to add installed-sample update-stamp, lease
 export and multi-document foreground-restoration checks. They are opened

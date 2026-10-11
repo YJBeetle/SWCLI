@@ -373,6 +373,15 @@ replacing the final path; overwrite requires explicit `--overwrite` authority.
 Filename routing (which sources/formats CI wants) is the caller's policy, not
 an SWCLI export rule. Surface the failing source and structured reason.
 
+The a9 candidate adds STL/3MF/AMF for parts and assemblies, and GLB for parts
+(assembly GLB already exists). These additions are not in the published a8 wheel.
+Use the same command with an explicit `.STL`, `.3MF`, `.AMF` or `.GLB` output;
+drawings remain PDF/DWG. OBJ is not supported. Mesh container/basic-geometry
+checks do not prove tessellation accuracy, watertightness or material fidelity.
+Native translators and tessellation settings belong to the execution host;
+STL does not encode units. Assembly STL scopes and restores single-file output
+before publishing; restoration failure preserves the old target and fails.
+
 Observe exit codes and `error.type`/`error.code`; JSON alone is not proof of
 success. If an operation fails, inspect native state before another mutation:
 there is no general transaction rollback. After external host death, stale

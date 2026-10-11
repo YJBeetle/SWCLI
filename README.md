@@ -495,8 +495,10 @@ Use `--view` with `front`, `back`, `left`, `right`, `top`, `bottom`,
 `isometric`, `trimetric`, or `dimetric` for locale-independent deterministic
 orientation; the default `current` preserves the active UI orientation.
 
-`document export` converts the selected part or assembly to STEP, a selected
-assembly to GLB, or the selected drawing to PDF or DWG. It clears selections so
+`document export` converts the selected part or assembly to STEP, GLB, STL,
+3MF or AMF, or the selected drawing to PDF or DWG. Part GLB and the three print
+formats are a9 candidate additions, not features of the published a8 wheel.
+It clears selections so
 the whole document is exported, refuses overwrite by default, and verifies the
 resulting file signature and non-empty content. The default mode is permissive:
 it completes the export but reports structured warnings only when the source
@@ -507,6 +509,14 @@ in the destination directory and replace the requested output only after file
 verification and any strict checks pass. This core operation selects format
 only from the explicit output extension and does not interpret source naming
 conventions.
+
+Mesh exports use bounded container/basic-geometry checks, not a guarantee of
+watertightness, tessellation accuracy, materials or geometric equivalence.
+Native translator availability and tessellation settings belong to the host;
+STL carries no unit declaration. Assembly STL temporarily enables single-file
+output and restores that preference before publishing the artifact. Restoration
+failure fails the export and preserves an existing target. No OBJ export or
+mesh fallback is provided.
 
 ## Sketch operations (since v0.1.0a4)
 
