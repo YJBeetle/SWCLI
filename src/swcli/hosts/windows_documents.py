@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from .native_trace import native_call
+from .export_validation import export_file_valid
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -55,10 +57,59 @@ STANDARD_VIEW_IDS = {
 }
 RENDER_VIEWS = ("current", *STANDARD_VIEW_IDS)
 _EXPORT_FORMATS = {
-    1: {".step", ".stp"},
-    2: {".step", ".stp", ".glb"},
+    1: {".step", ".stp", ".glb", ".stl", ".3mf", ".amf"},
+    2: {".step", ".stp", ".glb", ".stl", ".3mf", ".amf"},
     3: {".pdf", ".dwg"},
 }
+# swUserPreferenceToggle_e.swSTLComponentsIntoOneFile, verified by reading
+# the installed SOLIDWORKS SwConst type library (without activating SW).
+_STL_COMPONENTS_INTO_ONE_FILE = 72
+
+
+class _ExportPreferenceError(RuntimeError):
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+@contextmanager
+def _stl_single_file(app: Any, required: bool):
+    """Scope the assembly single-file preference to the native save call."""
+    if not required:
+        yield
+        return
+    try:
+        original = app.GetUserPreferenceToggle(_STL_COMPONENTS_INTO_ONE_FILE)
+    except Exception as exc:
+        raise _ExportPreferenceError(
+            "ExportPreferenceUnavailable", "cannot observe assembly STL single-file preference"
+        ) from exc
+    if not isinstance(original, bool):
+        raise _ExportPreferenceError(
+            "ExportPreferenceUnavailable", "assembly STL single-file preference is not boolean"
+        )
+    if original:
+        yield
+        return
+    try:
+        app.SetUserPreferenceToggle(_STL_COMPONENTS_INTO_ONE_FILE, True)
+        if app.GetUserPreferenceToggle(_STL_COMPONENTS_INTO_ONE_FILE) is not True:
+            raise _ExportPreferenceError(
+                "ExportPreferenceUnavailable", "cannot enable assembly STL single-file export"
+            )
+        yield
+    finally:
+        try:
+            app.SetUserPreferenceToggle(_STL_COMPONENTS_INTO_ONE_FILE, original)
+            if app.GetUserPreferenceToggle(_STL_COMPONENTS_INTO_ONE_FILE) is not original:
+                raise RuntimeError("native preference did not return to its original value")
+        except Exception as exc:
+            raise _ExportPreferenceError(
+                "ExportPreferenceRestoreFailed",
+                "assembly STL single-file preference could not be restored; output was not published",
+            ) from exc
+
+
 _SAVE_ERRORS = {
     1: "generic-save-error",
     2: "read-only-save-error",
@@ -746,8 +797,11 @@ def export_active_windows_document(
         )
         export_path = temporary_output_path
 
-        document.ClearSelection2(True)
-        save_error = int(document.SaveAs3(str(export_path), 0, 1))
+        with _stl_single_file(
+            app, export_format == "STL" and before["document"]["type"] == 2
+        ):
+            document.ClearSelection2(True)
+            save_error = int(document.SaveAs3(str(export_path), 0, 1))
         if save_error != 0 or not export_path.is_file():
             result["error"] = {
                 "type": "ExportFailed",
@@ -757,10 +811,7 @@ def export_active_windows_document(
             return result
 
         size_bytes = export_path.stat().st_size
-        with export_path.open("rb") as exported_file:
-            signature_valid = _export_signature_valid(
-                export_format, exported_file.read(128)
-            )
+        signature_valid = export_file_valid(export_format, export_path)
         if size_bytes <= 0 or not signature_valid:
             result["error"] = {
                 "type": "ExportVerificationFailed",
@@ -795,6 +846,9 @@ def export_active_windows_document(
         if warnings:
             result["warnings"] = warnings
         result["ok"] = True
+        return result
+    except _ExportPreferenceError as exc:
+        result["error"] = {"type": exc.code, "message": str(exc)}
         return result
     except Exception as exc:
         result["error"] = _error(exc)

@@ -81,7 +81,7 @@ ARTIFACT = _object(
         "kind": STRING,
         "path": STRING,
         "size_bytes": {"type": "integer", "minimum": 1},
-        "format": {"enum": ["STEP", "GLB", "PDF", "DWG"]},
+        "format": {"enum": ["STEP", "STP", "GLB", "STL", "3MF", "AMF", "PDF", "DWG"]},
         "media_type": STRING,
     },
     ("kind", "path", "size_bytes"),
