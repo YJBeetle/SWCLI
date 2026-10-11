@@ -22,6 +22,7 @@ import tempfile
 import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT
+from swcli.hosts.export_validation import export_file_valid
 from swcli.result_schemas import validate_operation_result
 
 # Bound read-only observation groups independently of request/phase deadlines.
@@ -1348,6 +1349,56 @@ class ModelingSmoke:
         self.close(foreground)
         self.close(document)
 
+    def model_exports(self, document, stem, native_files):
+        """Exercise all mesh translators against our saved, clean native fixture.
+
+        Evidence stays in the modeling directory, outside the host project's
+        six formal delivery exports. Structural validation is not a claim of
+        tessellation accuracy, watertightness or material fidelity.
+        """
+        proofs = self.record.setdefault("model_exports", [])
+        before = self.command("document", "inspect", document=document)
+        descriptor = before["document"]
+        require(descriptor["document_id"] == document
+                and descriptor["type"] in (1, 2) and bool(descriptor["path"])
+                and descriptor["modified"] is False and before["needs_rebuild"] == 0,
+                "mesh export fixture is not a saved, rebuilt part or assembly")
+        source_hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                         for path in native_files}
+        for format_name in ("STL", "3MF", "AMF", "GLB"):
+            name = f"{stem}-export.{format_name}"
+            target = str(PureWindowsPath(self.host_directory) / name)
+            artifact_file = self.directory / name
+            exported = self.write("document", "export", target, "--strict",
+                                  document=document)
+            validate_operation_result("document.export", exported)
+            artifact = exported["artifact"]
+            require(PureWindowsPath(exported["output"]) == PureWindowsPath(target)
+                    and PureWindowsPath(artifact["path"]) == PureWindowsPath(target)
+                    and artifact["format"] == format_name
+                    and artifact_file.is_file()
+                    and artifact["size_bytes"] == artifact_file.stat().st_size
+                    and not exported.get("warnings"),
+                    f"{format_name} export artifact metadata/file verification failed")
+            require(export_file_valid(format_name, artifact_file),
+                    f"{format_name} export has invalid mesh container structure")
+            after = self.command("document", "inspect", document=document)
+            require(all(after["document"][key] == descriptor[key]
+                        for key in ("document_id", "path", "type", "modified",
+                                    "active", "current"))
+                    and after["needs_rebuild"] == 0,
+                    f"{format_name} export changed native document state")
+            require(all(hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest
+                        for path, digest in source_hashes.items()),
+                    f"{format_name} export changed native source bytes")
+            proofs.append({"document_id": document, "document_type": descriptor["type"],
+                           "artifact": artifact,
+                           "sha256": hashlib.sha256(artifact_file.read_bytes()).hexdigest(),
+                           "strict": True, "source_state_unchanged": True,
+                           "source_bytes_unchanged": True,
+                           "verification_scope": "bounded-mesh-container-structure"})
+            self.checkpoint(f"{stem}-export.{format_name}.verified")
+
     def generated_assembly(self):
         """Save our own solid part and one-component ASM, with no sample exception."""
         part = self.create()
@@ -1376,6 +1427,7 @@ class ModelingSmoke:
                                         document=source)["structure"]
         configuration = source_structure["configurations"]["active"]
         require(bool(configuration), "generated component has no active configuration")
+        self.model_exports(source, "component", (source_file,))
         created = self.command("document", "create", "--type", "assembly")
         assembly = created["document"]["document_id"]
         require(created["created"] is True and created["document"]["type"] == 2
@@ -1418,6 +1470,7 @@ class ModelingSmoke:
         save_as_bytes = native_file.stat().st_size
         self.verify_in_place_save(assembly, native_file)
         digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
+        self.model_exports(assembly, "assembly", (native_file, source_file))
         self.close(assembly)
         # Unload the explicitly opened part too: assembly reopens must not be
         # satisfied solely by this fixture's still-live source COM object.

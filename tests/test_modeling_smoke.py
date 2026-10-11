@@ -8,9 +8,11 @@ import math
 from itertools import combinations, product
 from pathlib import Path, PurePosixPath
 import subprocess
+import struct
 import tempfile
 import unittest
 from unittest import mock
+import zipfile
 
 from swcli.cli import build_parser, _typed_payload
 
@@ -18,6 +20,49 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts/ci/verify-modeling.py"
 spec = importlib.util.spec_from_file_location("modeling_smoke", SCRIPT)
 gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
+
+
+def mesh_fixture(format_name):
+    """Small real containers, not proof of native translator geometry."""
+    if format_name == "STL":
+        return b"SWCLI triangle".ljust(80, b"\0") + struct.pack("<I12fH", 1,
+            0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0)
+    if format_name == "AMF":
+        return b'''<?xml version="1.0"?><amf unit="millimeter"><object id="0"><mesh>
+<vertices><vertex><coordinates><x>0</x><y>0</y><z>0</z></coordinates></vertex>
+<vertex><coordinates><x>1</x><y>0</y><z>0</z></coordinates></vertex>
+<vertex><coordinates><x>0</x><y>1</y><z>0</z></coordinates></vertex></vertices>
+<volume><triangle><v1>0</v1><v2>1</v2><v3>2</v3></triangle></volume>
+</mesh></object></amf>'''
+    if format_name == "3MF":
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("[Content_Types].xml", '''<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>''')
+            archive.writestr("_rels/.rels", '''<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="r1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" Target="/3D/3dmodel.model"/></Relationships>''')
+            archive.writestr("3D/3dmodel.model", '''<model xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" unit="millimeter">
+<resources><object id="1" type="model"><mesh><vertices><vertex x="0" y="0" z="0"/>
+<vertex x="1" y="0" z="0"/><vertex x="0" y="1" z="0"/></vertices>
+<triangles><triangle v1="0" v2="1" v3="2"/></triangles></mesh></object></resources>
+<build><item objectid="1"/></build></model>''')
+        return stream.getvalue()
+    if format_name == "GLB":
+        positions = struct.pack("<9f", 0, 0, 0, 1, 0, 0, 0, 1, 0)
+        manifest = json.dumps({"asset": {"version": "2.0"},
+            "buffers": [{"byteLength": len(positions)}],
+            "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": len(positions)}],
+            "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3,
+                           "type": "VEC3", "min": [0, 0, 0], "max": [1, 1, 0]}],
+            "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+            "nodes": [{"mesh": 0}], "scenes": [{"nodes": [0]}], "scene": 0
+        }, separators=(",", ":")).encode("utf-8")
+        manifest += b" " * (-len(manifest) % 4)
+        return (struct.pack("<4sII", b"glTF", 2, 28 + len(manifest) + len(positions))
+                + struct.pack("<I4s", len(manifest), b"JSON") + manifest
+                + struct.pack("<I4s", len(positions), b"BIN\0") + positions)
+    return b"ISO-10303-21;"
 
 
 class FakeCLI:
@@ -283,6 +328,7 @@ class FakeCLI:
             return {
                 "ok": True,
                 "document": descriptor,
+                "needs_rebuild": document.get("needs_rebuild", 0),
                 "structure": structure,
             }
         if action == "document" and subcommand == "save":
@@ -499,9 +545,35 @@ class FakeCLI:
                 if self.defect == "overwrite-existing":
                     target.write_bytes(b"damaged")
                 return self.failure("OutputExists")
-            target.write_bytes(
-                b"ISO-10303-21;" if subcommand == "export" else bytes(1024)
-            )
+            format_name = target.suffix[1:].upper()
+            target.write_bytes(mesh_fixture(format_name) if subcommand == "export"
+                               else bytes(1024))
+            if subcommand == "export":
+                result = {"ok": True, "action": "document.export", "output": args.output,
+                          "artifact": {"kind": "cad-export", "path": args.output,
+                                       "format": format_name, "size_bytes": target.stat().st_size}}
+                if target.stem.endswith("-export"):
+                    if self.defect == "mesh-export-failed":
+                        target.unlink()
+                        return self.failure("ExportFailed")
+                    if self.defect == "mesh-export-missing":
+                        target.unlink()
+                    if self.defect == "mesh-export-malformed":
+                        target.write_bytes(b"invalid")
+                        result["artifact"]["size_bytes"] = target.stat().st_size
+                    if self.defect == "mesh-export-size-mismatch":
+                        result["artifact"]["size_bytes"] += 1
+                    if self.defect == "mesh-export-format-mismatch":
+                        result["artifact"]["format"] = "STEP"
+                    if self.defect == "mesh-export-path-mismatch":
+                        result["artifact"]["path"] = "C:\\wrong.STL"
+                    if self.defect == "mesh-export-modified":
+                        document["modified"] = True
+                    if self.defect == "mesh-export-needs-rebuild":
+                        document["needs_rebuild"] = 1
+                    if self.defect == "mesh-export-source-changed":
+                        (self.directory / "component.SLDPRT").write_bytes(b"changed" * 100)
+                return result
             if self.defect == "assembly-save-as-truncated" and args.output.endswith("assembly.SLDASM"):
                 target.write_bytes(b"truncated")
             if subcommand == "save-as":
@@ -1332,6 +1404,51 @@ class ModelingSmokeTests(unittest.TestCase):
                                if "close" in event["command"] and assembly_id in event["command"])
         self.assertTrue(any(event["result"].get("documents") == []
                             for event in events[closed_assembly + 1:first_reopen]))
+
+    def test_generated_model_exports_cover_all_mesh_formats_on_part_and_assembly(self):
+        smoke = self.generated_gate()
+        proofs = smoke.record["model_exports"]
+        self.assertEqual([(proof["document_type"], proof["artifact"]["format"])
+                          for proof in proofs],
+                         [(kind, format_name) for kind in (1, 2)
+                          for format_name in ("STL", "3MF", "AMF", "GLB")])
+        self.assertTrue(all(proof["strict"] and proof["source_state_unchanged"]
+                            and proof["source_bytes_unchanged"] for proof in proofs))
+        export_calls = [call for call in self.fake.calls
+                        if call.command == "document" and call.document_command == "export"]
+        self.assertEqual(len(export_calls), 8)
+        self.assertTrue(all(call.strict and call.document_id for call in export_calls))
+        self.assertEqual(len({call.document_id for call in export_calls}), 2)
+        self.assertFalse(any(call.command == "daemon" and call.daemon_command in
+                             ("start", "stop", "restart") for call in self.fake.calls))
+        for proof in proofs:
+            artifact = proof["artifact"]
+            path = self.directory / gate.PureWindowsPath(artifact["path"]).name
+            self.assertTrue(gate.export_file_valid(artifact["format"], path))
+            self.assertEqual(path.stat().st_size, artifact["size_bytes"])
+        self.assertEqual(smoke.record["cleanup_errors"], [])
+
+    def test_mesh_export_gate_rejects_translator_metadata_state_and_byte_failures(self):
+        for defect, message in (
+            ("mesh-export-failed", "ExportFailed"),
+            ("mesh-export-missing", "artifact metadata/file verification"),
+            ("mesh-export-malformed", "invalid mesh container structure"),
+            ("mesh-export-size-mismatch", "artifact metadata/file verification"),
+            ("mesh-export-format-mismatch", "artifact metadata/file verification"),
+            ("mesh-export-path-mismatch", "artifact metadata/file verification"),
+            ("mesh-export-modified", "changed native document state"),
+            ("mesh-export-needs-rebuild", "changed native document state"),
+            ("mesh-export-source-changed", "changed native source bytes"),
+        ):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                self.directory = Path(directory)
+                self.fake = FakeCLI(self.directory)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    self.generated_gate(defect)
+                exports = [call for call in self.fake.calls
+                           if call.command == "document" and call.document_command == "export"]
+                self.assertEqual(len(exports), 1, "failed exports must never be retried")
+                self.assertFalse(self.fake.documents)
 
     def test_generated_assembly_has_no_official_sample_error_exception(self):
         for defect, message in (
