@@ -208,6 +208,7 @@ class ModelingSmoke:
             ),
             "events": [],
             "cases": [],
+            "case_cleanup": [],
             "cleanup_errors": [],
         }
 
@@ -1822,11 +1823,20 @@ class ModelingSmoke:
         self.close(background)
         self.close(foreground)
 
-    def require_empty(self):
+    def require_empty(self, *, after_case=None):
         result = self.command("document", "list")
+        empty = result["count"] == 0 and result["documents"] == []
+        if after_case is not None:
+            self.record["case_cleanup"].append({
+                "case": after_case,
+                "open_document_count": result["count"],
+                "empty": empty,
+                "remaining_document_ids": [doc["document_id"] for doc in result["documents"]],
+            })
         require(
-            result["count"] == 0 and result["documents"] == [],
-            "native open documents remain; the gate requires an isolated empty host",
+            empty,
+            "native open documents remain; the gate requires an isolated empty host"
+            + (f" after {after_case}" if after_case is not None else ""),
         )
 
     def health(self):
@@ -1876,6 +1886,12 @@ class ModelingSmoke:
         for name, function in cases:
             self.checkpoint(name + ".starting")
             function()
+            # CloseDoc can return without unloading every referenced document.
+            # Confirm the real catalog is empty before admitting the next case;
+            # do not close unknown leftovers, restart the host or retry a case.
+            self.checkpoint(name + ".cleanup-check")
+            print(f"Modeling gate: {name}.cleanup-check", flush=True)
+            self.require_empty(after_case=name)
             self.record["cases"].append(name)
             self.checkpoint(name + ".verified")
         self.require_empty()

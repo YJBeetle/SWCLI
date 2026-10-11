@@ -1547,6 +1547,10 @@ class ModelingSmokeTests(unittest.TestCase):
             record["host"]["process_id"], record["host_after"]["process_id"]
         )
         self.assertEqual(record["cleanup_errors"], [])
+        self.assertEqual(record["case_cleanup"], [
+            {"case": name, "open_document_count": 0, "empty": True,
+             "remaining_document_ids": []} for name in record["cases"]
+        ])
         self.assertTrue(record["entity_observation"]["verified"])
         self.assertEqual(record["entity_observation"]["edge_count"], 14)
         self.assertTrue(record["entity_observation"]["mixed_kind_ids_preserved"])
@@ -1585,6 +1589,43 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(
             all(event["stderr"] == "native stderr\n" for event in record["events"])
         )
+
+    def test_case_cleanup_rejects_close_success_with_remaining_documents_before_next_case(self):
+        for method, next_method, case in (
+            ("native_model", "generated_assembly", "native-model"),
+            ("sample_exports", "assembly_save_reopen", "sample-exports"),
+        ):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                self.directory = Path(directory) / "proof"
+                self.fake = FakeCLI(self.directory)
+                self.arguments = ["--output-dir", str(self.directory),
+                                  "--host-output-dir", "C:\\proof"]
+                dispatch = self.fake.dispatch
+                def keep_closed_document(args):
+                    if args.command == "document" and args.document_command == "close":
+                        return {"ok": True, "closed": True}
+                    return dispatch(args)
+                def case_with_incomplete_close(smoke, *args):
+                    # Only this case adopts the defect; earlier cases remain real.
+                    self.fake.dispatch = keep_closed_document
+                    document = smoke.create()
+                    smoke.close(document)
+                with mock.patch.object(gate.ModelingSmoke, method, case_with_incomplete_close), \
+                        mock.patch.object(gate.ModelingSmoke, next_method) as successor:
+                    with self.assertRaisesRegex(RuntimeError, "empty host after " + case):
+                        self.run_gate(samples=True)
+                successor.assert_not_called()
+                record = self.record()
+                self.assertFalse(record["success"])
+                self.assertNotIn(case, record["cases"])
+                self.assertEqual(record["case_cleanup"][-1], {
+                    "case": case, "open_document_count": 1, "empty": False,
+                    "remaining_document_ids": list(self.fake.documents),
+                })
+                self.assertTrue(any(event["result"].get("closed") is True
+                                    for event in record["events"]))
+                self.assertFalse(any(call.command == "daemon" and call.daemon_command in
+                                     ("start", "stop", "restart") for call in self.fake.calls))
 
     def test_entity_geometry_gate_refuses_plausible_but_wrong_native_values(self):
         for defect in (

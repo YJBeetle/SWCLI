@@ -362,6 +362,7 @@ class DrivingSmoke:
             ),
             "planes": [],
             "events": [],
+            "case_cleanup": [],
         }
         self.owned = {}
         self.checkpoint_writer = None
@@ -1606,6 +1607,16 @@ class DrivingSmoke:
         self.close(reopened_foreground_id)
         self.close(foreground_id)
 
+    def require_empty(self, after_case):
+        result = self.call("document.list")
+        documents = result["documents"]
+        self.record["case_cleanup"].append({
+            "case": after_case, "open_document_count": len(documents),
+            "empty": documents == [],
+            "remaining_document_ids": [doc["document_id"] for doc in documents],
+        })
+        require(documents == [], f"native open documents remain after {after_case}")
+
     def run(self):
         predecessor_pid = (
             modeling_host(self.after_modeling) if self.after_modeling else None
@@ -1640,9 +1651,14 @@ class DrivingSmoke:
             self.record["current_plane"] = plane
             self.checkpoint(f"plane.{plane}.starting")
             print(f"Driving-dimension gate: {plane} starting", flush=True)
-            self.plane(plane)
-            self.center_constraints(plane)
-            self.rectangle_dimensions(plane)
+            for name, function in (("diameter", self.plane),
+                                   ("center", self.center_constraints),
+                                   ("rectangle", self.rectangle_dimensions)):
+                function(plane)
+                case = f"plane.{plane}.{name}"
+                self.checkpoint(case + ".cleanup-check")
+                print(f"Driving-dimension gate: {case}.cleanup-check", flush=True)
+                self.require_empty(case)
             self.checkpoint(f"plane.{plane}.completed")
             print(f"Driving-dimension gate: {plane} passed", flush=True)
         after = self.call("daemon.health")

@@ -115,6 +115,19 @@ class ModelingSequenceTests(unittest.TestCase):
             },
         }
 
+    def empty_host_calls(self, *pids):
+        health = iter(self.health(pid) for pid in pids)
+        def call(operation, *args, **kwargs):
+            if operation == "document.list":
+                return {"success": True, "result": {
+                    "action": operation, "ok": True, "count": 0,
+                    "documents": [], "current_document_id": None,
+                }}
+            if operation == "daemon.health":
+                return next(health)
+            raise AssertionError("unexpected fixture operation: " + operation)
+        return call
+
     def test_verified_predecessor_requires_same_host_before_any_plane(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "modeling.json"
@@ -127,7 +140,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 local_output_directory=temporary,
             )
             with (
-                mock.patch.object(gate, "call_daemon", return_value=self.health()),
+                mock.patch.object(gate, "call_daemon", side_effect=self.empty_host_calls(123, 123)) as rpc,
                 mock.patch.object(smoke, "plane") as plane,
                 mock.patch.object(smoke, "center_constraints") as centers,
                 mock.patch.object(smoke, "rectangle_dimensions") as sizes,
@@ -140,6 +153,7 @@ class ModelingSequenceTests(unittest.TestCase):
                 [mock.call(plane) for plane in ("front", "top", "right")],
             )
             self.assertEqual(sizes.call_args_list, centers.call_args_list)
+            self.assertEqual(sum(call.args[0] == "document.list" for call in rpc.call_args_list), 9)
             self.assertEqual(smoke.record["host_after"]["process_id"], 123)
             self.assertEqual(smoke.record["modeling_record"], str(path))
             with (
@@ -176,7 +190,7 @@ class ModelingSequenceTests(unittest.TestCase):
         )
         with (
             mock.patch.object(
-                gate, "call_daemon", side_effect=[self.health(), self.health(999)]
+                gate, "call_daemon", side_effect=self.empty_host_calls(123, 999)
             ),
             mock.patch.object(smoke, "plane"),
             mock.patch.object(smoke, "center_constraints"),

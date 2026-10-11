@@ -791,6 +791,12 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         )
         self.assertFalse(self.daemon.documents)
         self.assertFalse(self.smoke.record["cleanup_errors"])
+        self.assertEqual(self.smoke.record["case_cleanup"], [
+            {"case": f"plane.{plane}.{kind}", "open_document_count": 0,
+             "empty": True, "remaining_document_ids": []}
+            for plane in ("front", "top", "right")
+            for kind in ("diameter", "center", "rectangle")
+        ])
         self.assertTrue(
             all(
                 item["expired_handles_rejected"] for item in self.smoke.record["planes"]
@@ -855,9 +861,14 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         self.assertEqual(
             self.progress.splitlines(),
             [
-                f"Driving-dimension gate: {plane} {phase}"
+                line
                 for plane in ("front", "top", "right")
-                for phase in ("starting", "passed")
+                for line in [
+                    f"Driving-dimension gate: {plane} starting",
+                    *[f"Driving-dimension gate: plane.{plane}.{kind}.cleanup-check"
+                      for kind in ("diameter", "center", "rectangle")],
+                    f"Driving-dimension gate: {plane} passed",
+                ]
             ],
         )
 
@@ -1718,6 +1729,30 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             self.assertEqual(snapshots[-1]["state"], "completed")
             self.assertTrue(snapshots[-1]["success"])
             self.assertFalse(self.daemon.documents)
+
+    def test_case_cleanup_stops_after_close_leaves_a_document_without_restart(self):
+        original = self.daemon.call
+        def incomplete_close(operation, parameters=None, **context):
+            retained = dict(self.daemon.documents) if operation == "document.close" else None
+            result = original(operation, parameters, **context)
+            if retained is not None:
+                self.daemon.documents.update(retained)
+            return result
+        def diameter_case(plane):
+            document = self.smoke.create()
+            self.smoke.close(document)
+        with mock.patch.object(self.daemon, "call", side_effect=incomplete_close), \
+                mock.patch.object(self.smoke, "plane", side_effect=diameter_case), \
+                mock.patch.object(self.smoke, "center_constraints") as successor:
+            with self.assertRaisesRegex(RuntimeError, "remain after plane.front.diameter"):
+                self.run_smoke()
+        successor.assert_not_called()
+        self.assertEqual(self.smoke.record["case_cleanup"], [{
+            "case": "plane.front.diameter", "open_document_count": 1,
+            "empty": False, "remaining_document_ids": list(self.daemon.documents),
+        }])
+        self.assertFalse(any(operation.startswith("daemon.") and operation != "daemon.health"
+                             for operation, _, _ in self.daemon.calls))
 
     def test_atomic_replacement_failure_keeps_last_record_and_permissions(self):
         with tempfile.TemporaryDirectory() as directory:
