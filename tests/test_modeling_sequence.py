@@ -107,6 +107,16 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertLess(hosted.index("Download built SWCLI distributions"), hosted.index("Install native SOLIDWORKS"))
         self.assertLess(hosted.index("Install built SWCLI wheel"), hosted.index("Run real SOLIDWORKS modeling and export smoke test"))
 
+    def test_windows_extra_host_wait_is_bounded_by_elapsed_time_not_probe_count(self):
+        wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        block = wrapper.split('# Shared sets stop', 1)[1].split('# This Windows-only fixture', 1)[0]
+        self.assertIn('$startupWait = [Diagnostics.Stopwatch]::StartNew()', block)
+        self.assertIn('while ($startupWait.Elapsed.TotalSeconds -lt 180)', block)
+        self.assertNotIn('$attempt -lt 180', block)
+        self.assertIn('if ($daemon.HasExited)', block)
+        self.assertIn('"TimeoutError", "ConnectionResetError"', block)
+        self.assertIn('throw "Windows-only daemon startup deadline exceeded"', block)
+
     def record(self):
         return {
             "state": "completed",

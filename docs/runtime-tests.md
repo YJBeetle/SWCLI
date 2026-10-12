@@ -57,6 +57,17 @@ bridge deliberately runs two scripts in ONE session to retain cross-script
 failure-recovery proof. No Wine server, license service or container restart is
 performed between sets.
 
+Lifecycle status probes may time out while our foreground daemon is acquiring
+SW, or reset after an exclusive empty daemon acknowledged shutdown. Only those
+known transitions wait within their original deadlines, with each probe capped
+by the remaining time. A timeout/reset on the initial unknown endpoint is fatal;
+it does not authorize stopping or starting a host. Shutdown still requires an
+acknowledged stop followed by a refused connection, or an explicitly tagged
+connect timeout (Windows closed loopback ports may time out instead of refusing).
+A generic timeout/reset alone is never shutdown proof. Startup still requires a live launcher and an
+exclusive connected host. CAD failures and post-case health failures are never
+retried. Windows-only extra-host startup uses an elapsed-time deadline too.
+
 Use `--output-dir` and its matching Windows `--host-output-dir`, `--mode`,
 `--suite`, the installed sample paths, and a private `--fixture-work-dir` with
 matching `--host-fixture-work-dir`. An integration wrapper may supply one

@@ -623,7 +623,10 @@ def run(args: argparse.Namespace) -> int:
                     "result": {"stopping": False, "already_stopped": True},
                 }
             else:
-                response = _failure(type(exc).__name__, str(exc))
+                details = {}
+                if getattr(exc, "_swcli_transport_phase", None) == "connect":
+                    details["transport_phase"] = "connect"
+                response = _failure(type(exc).__name__, str(exc), **details)
 
     if args.as_json:
         print(json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True))

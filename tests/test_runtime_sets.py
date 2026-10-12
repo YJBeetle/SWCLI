@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import sys
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -164,7 +165,9 @@ class RuntimeSetsTests(unittest.TestCase):
         runner.record["sets"] = [item]
         launcher = SimpleNamespace(pid=222, poll=lambda: None)
         with patch.object(gate.subprocess, "Popen", return_value=launcher), \
-                patch.object(runner, "health", side_effect=[gate.DaemonStarting("initializing"), self.host(42)]), \
+                patch.object(runner, "health", side_effect=[gate.DaemonTransportPending("TimeoutError"),
+                    gate.DaemonTransportPending("ConnectionResetError"), gate.DaemonStarting("initializing"),
+                    self.host(42)]), \
                 patch.object(runner, "empty") as empty, patch.object(gate.time, "sleep"):
             runner.start(item)
         empty.assert_called_once_with("native-model-before")
@@ -177,6 +180,128 @@ class RuntimeSetsTests(unittest.TestCase):
                 patch.object(runner, "health", return_value=self.host(42)), \
                 patch.object(runner, "empty") as empty, self.assertRaisesRegex(RuntimeError, "reused"):
             runner.start(next_item)
+        empty.assert_not_called()
+        runner.server_log.close()
+
+    def test_actual_cli_error_envelopes_classify_only_status_transitions(self):
+        runner = gate.Runner(self.args)
+        # Real subprocess/stdout parsing, not mocked health exceptions. These
+        # match the MacSW/DockerSW failed CI status envelopes.
+        for code, phase, exception in (("TimeoutError", None, gate.DaemonTransportPending),
+                                ("TimeoutError", "connect", gate.DaemonConnectTimeout),
+                                ("ConnectionResetError", None, gate.DaemonTransportPending),
+                                ("ConnectionRefusedError", None, gate.DaemonUnavailable),
+                                ("Starting", None, gate.DaemonStarting), ("WorkerTimeout", None, RuntimeError)):
+            error = {"code": code, "message": "fixture"}
+            if phase:
+                error["transport_phase"] = phase
+            payload = json.dumps({"success": False, "error": error})
+            child = "import sys; print(" + repr(payload) + "); sys.exit(1)"
+            with self.subTest(code=code), self.assertRaises(exception) as caught:
+                runner.command([sys.executable, "-c", child, "daemon", "status", "--json"],
+                               timeout=5, label="status-" + code + (phase or ""), json_result=True)
+            self.assertIs(type(caught.exception), exception)
+            self.assertEqual(runner.record["commands"][-1]["exit_code"], 1)
+        payload = json.dumps({"success": False, "error": {"code": "TimeoutError", "message": "fixture"}})
+        child = "import sys; print(" + repr(payload) + "); sys.exit(1)"
+        with self.assertRaisesRegex(RuntimeError, "Functional command failed") as caught:
+            runner.command([sys.executable, "-c", child, "document", "list", "--json"],
+                           timeout=5, label="document-timeout", json_result=True)
+        self.assertIs(type(caught.exception), RuntimeError)  # No CAD retry classification.
+
+    def test_shutdown_reset_and_timeout_do_not_count_as_stopped(self):
+        runner = gate.Runner(self.args)
+        runner.plan = runner.plan[:1]
+        runner.record["expected_sets"] = [runner.plan[0].name]
+        events, patches = self.simulate(runner)
+        statuses = [self.host(41), gate.DaemonTransportPending("reset"),
+                    gate.DaemonTransportPending("timeout"), gate.DaemonUnavailable("refused"), self.host(100)]
+        def health(label, **kwargs):
+            result = statuses.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+        with patch.object(runner, "health", side_effect=health) as probes, patches[1], patches[2], \
+                patches[3], patches[4], patch.object(runner, "public", return_value={"stopping": True}) as stop, \
+                patch.object(gate.time, "sleep"):
+            runner.run()
+        stop.assert_called_once_with("daemon", "stop", label="preflight-stop")
+        self.assertEqual([call.args[0] for call in probes.call_args_list[:4]],
+                         ["preflight-status", "preflight-shutdown-1", "preflight-shutdown-2", "preflight-shutdown-3"])
+        self.assertTrue(runner.record["success"])
+        self.assertEqual([event[0] for event in events], ["start", "step", "stop"])
+
+    def test_ambiguous_initial_probe_never_authorizes_stop_or_start(self):
+        runner = gate.Runner(self.args)
+        with patch.object(runner, "health", side_effect=gate.DaemonTransportPending("timeout")), \
+                patch.object(runner, "public") as public, patch.object(runner, "start") as start, \
+                self.assertRaises(gate.DaemonTransportPending):
+            runner.run()
+        public.assert_not_called()
+        start.assert_not_called()
+
+    def test_persistent_shutdown_transport_errors_exhaust_original_deadline(self):
+        runner = gate.Runner(self.args)
+        clock = [0]
+        with patch.object(runner, "health", side_effect=[self.host(41), gate.DaemonTransportPending("reset")]) as probes, \
+                patch.object(runner, "public", return_value={"stopping": True}) as public, patch.object(runner, "empty"), \
+                patch.object(runner, "start") as start, patch.object(gate.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(gate.time, "sleep", side_effect=lambda _: clock.__setitem__(0, 31)), \
+                self.assertRaisesRegex(RuntimeError, "endpoint did not stop"):
+            runner.run()
+        public.assert_called_once_with("daemon", "stop", label="preflight-stop")
+        start.assert_not_called()
+        self.assertEqual(probes.call_args_list[-1].kwargs["timeout"], 30)
+
+    def test_windows_connect_timeout_after_acknowledged_stop_allows_fresh_start(self):
+        runner = gate.Runner(self.args)
+        runner.plan = runner.plan[:1]
+        runner.record["expected_sets"] = [runner.plan[0].name]
+        events, patches = self.simulate(runner)
+        with patch.object(runner, "health", side_effect=[self.host(41), gate.DaemonConnectTimeout("closed"), self.host(100)]), \
+                patches[1], patches[2], patches[3], patches[4], \
+                patch.object(runner, "public", return_value={"stopping": True}):
+            runner.run()
+        self.assertTrue(runner.record["success"])
+        self.assertEqual([event[0] for event in events], ["start", "step", "stop"])
+
+    def test_unacknowledged_stop_and_initial_connect_timeout_cannot_start_a_host(self):
+        runner = gate.Runner(self.args)
+        with patch.object(runner, "health", side_effect=gate.DaemonConnectTimeout("initial unknown")), \
+                patch.object(runner, "public") as public, patch.object(runner, "start") as start, \
+                self.assertRaises(gate.DaemonConnectTimeout):
+            runner.run()
+        public.assert_not_called()
+        start.assert_not_called()
+        with patch.object(runner, "health", return_value=self.host(41)), \
+                patch.object(runner, "empty"), patch.object(runner, "public", return_value={"already_stopped": True}), \
+                patch.object(runner, "start") as start, self.assertRaisesRegex(RuntimeError, "not acknowledged"):
+            runner.run()
+        start.assert_not_called()
+
+    def test_startup_transport_wait_has_finite_deadline_and_one_launcher(self):
+        runner = gate.Runner(self.args)
+        clock = [0]
+        launcher = SimpleNamespace(pid=222, poll=lambda: None)
+        with patch.object(gate.subprocess, "Popen", return_value=launcher) as spawn, \
+                patch.object(runner, "health", side_effect=gate.DaemonTransportPending("timeout")), \
+                patch.object(runner, "empty") as empty, \
+                patch.object(gate.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(gate.time, "sleep", side_effect=lambda _: clock.__setitem__(0, 331)), \
+                self.assertRaisesRegex(RuntimeError, "startup exceeded"):
+            runner.start({"name": "native-model"})
+        spawn.assert_called_once()
+        empty.assert_not_called()
+        runner.server_log.close()
+
+    def test_startup_never_accepts_health_after_its_launcher_exits(self):
+        runner = gate.Runner(self.args)
+        polls = iter((None, 1))
+        launcher = SimpleNamespace(pid=222, poll=lambda: next(polls))
+        with patch.object(gate.subprocess, "Popen", return_value=launcher), \
+                patch.object(runner, "health", return_value=self.host(42)), \
+                patch.object(runner, "empty") as empty, self.assertRaisesRegex(RuntimeError, "exited during startup"):
+            runner.start({"name": "native-model"})
         empty.assert_not_called()
         runner.server_log.close()
 

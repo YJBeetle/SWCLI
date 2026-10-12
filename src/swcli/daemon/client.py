@@ -78,7 +78,14 @@ def call_daemon(
     connect_timeout = (
         timeout_seconds if connect_timeout_seconds is None else connect_timeout_seconds
     )
-    with socket.create_connection((host, port), timeout=connect_timeout) as connection:
+    try:
+        transport = socket.create_connection((host, port), timeout=connect_timeout)
+    except OSError as exc:
+        # Preserve the exception type/message; lifecycle diagnostics need to
+        # distinguish a failed connect from a timeout reading an RPC response.
+        exc._swcli_transport_phase = "connect"
+        raise
+    with transport as connection:
         connection.settimeout(timeout_seconds + 10.0)
         connection.sendall(encoded)
         reader = connection.makefile("rb")

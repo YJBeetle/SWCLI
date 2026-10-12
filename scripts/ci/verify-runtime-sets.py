@@ -33,6 +33,14 @@ class DaemonStarting(RuntimeError):
     """The foreground daemon has bound its endpoint but is not ready yet."""
 
 
+class DaemonTransportPending(RuntimeError):
+    """A status probe timed out/reset; this is NOT proof of a stopped endpoint."""
+
+
+class DaemonConnectTimeout(DaemonTransportPending):
+    """Windows may time out connecting to a closed loopback port instead of refusing."""
+
+
 def host_join(root, *parts):
     return str(PureWindowsPath(root).joinpath(*parts))
 
@@ -97,10 +105,16 @@ class Runner:
                 event["exit_code"] = process.returncode
                 if json_result and process.returncode != 0:
                     rejected = json.loads(stdout_path.read_text(encoding="utf-8-sig"))
-                    if rejected.get("error", {}).get("code") == "ConnectionRefusedError":
-                        raise DaemonUnavailable("Dedicated daemon endpoint is not listening")
-                    if rejected.get("error", {}).get("code") == "Starting":
-                        raise DaemonStarting("Dedicated daemon is initializing its worker")
+                    if list(args[-3:]) == ["daemon", "status", "--json"] and rejected.get("success") is False:
+                        code = rejected.get("error", {}).get("code")
+                        if code == "ConnectionRefusedError":
+                            raise DaemonUnavailable("Dedicated daemon endpoint is not listening")
+                        if code == "Starting":
+                            raise DaemonStarting("Dedicated daemon is initializing its worker")
+                        if code == "TimeoutError" and rejected["error"].get("transport_phase") == "connect":
+                            raise DaemonConnectTimeout("Lifecycle status could not connect to the endpoint")
+                        if code in ("TimeoutError", "ConnectionResetError"):
+                            raise DaemonTransportPending("Lifecycle status probe returned " + code)
                 require(process.returncode == 0, "Functional command failed: " + label)
             except BaseException as error:
                 event["error_type"] = type(error).__name__
@@ -124,12 +138,12 @@ class Runner:
             require(result.get("success") is True or result.get("ok") is True, "CLI command rejected: " + label)
             return result.get("result", result)
 
-    def public(self, *args, label):
+    def public(self, *args, label, timeout=60):
         return self.command([*self.cli, "--endpoint", self.args.endpoint, *args, "--json"],
-                            timeout=60, label=label, json_result=True)
+                            timeout=timeout, label=label, json_result=True)
 
-    def health(self, label):
-        return self.public("daemon", "status", label=label)
+    def health(self, label, *, timeout=60):
+        return self.public("daemon", "status", label=label, timeout=timeout)
 
     def exclusive(self, health):
         host = health.get("host", {})
@@ -163,10 +177,12 @@ class Runner:
             require(self.server.poll() is None, "Owned daemon exited during startup")
             poll += 1
             try:
-                health = self.health(item["name"] + "-startup-" + str(poll))
-            except (DaemonUnavailable, DaemonStarting):
+                health = self.health(item["name"] + "-startup-" + str(poll),
+                                     timeout=min(60, max(0.01, deadline - time.monotonic())))
+            except (DaemonUnavailable, DaemonStarting, DaemonTransportPending):
                 time.sleep(1)
                 continue  # Startup observation only; never replay CAD calls.
+            require(self.server.poll() is None, "Owned daemon exited during startup")
             item["host"] = self.exclusive(health)
             previous = [record["host"]["process_id"] for record in self.record["sets"][:-1] if "host" in record]
             require(item["host"]["process_id"] not in previous, "Previous SW process was reused instead of restarted")
@@ -242,15 +258,24 @@ class Runner:
         if existing is not None:
             self.exclusive(existing)
             self.empty("preflight-documents")
-            self.public("daemon", "stop", label="preflight-stop")
+            stopped = self.public("daemon", "stop", label="preflight-stop")
+            require(stopped.get("stopping") is True, "Exclusive daemon shutdown was not acknowledged")
             deadline = time.monotonic() + 30
             poll = 0
             while time.monotonic() < deadline:
                 poll += 1
                 try:
-                    self.health("preflight-shutdown-" + str(poll))
+                    self.health("preflight-shutdown-" + str(poll),
+                                timeout=min(60, max(0.01, deadline - time.monotonic())))
                 except DaemonUnavailable:
                     break
+                except DaemonConnectTimeout:
+                    break  # Known stop acknowledged; the socket never connected.
+                except DaemonTransportPending:
+                    pass  # Stop was acknowledged for an exclusive empty host.
+                    # Reset/timeout is transitional, NOT stopped. Require a
+                    # failed connection (not an RPC response timeout) before
+                    # starting any new host.
                 time.sleep(0.2)
             else:
                 raise RuntimeError("Previous owned endpoint did not stop")

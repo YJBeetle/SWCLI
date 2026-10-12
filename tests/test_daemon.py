@@ -10,6 +10,7 @@ from unittest import mock
 
 from swcli import PROTOCOL_VERSION
 from swcli.daemon import client, operations, server
+import swcli.daemon.main as daemon_main
 from swcli.hosts.native_trace import native_call
 from swcli.daemon.documents import (
     DocumentLeaseConflict,
@@ -1852,6 +1853,28 @@ class DaemonProtocolTests(unittest.TestCase):
             with self.subTest(host=host):
                 require_remote_bind_opt_in(host, allow_remote=False)
         require_remote_bind_opt_in("0.0.0.0", allow_remote=True)
+
+    def test_status_connect_timeout_keeps_error_type_and_marks_transport_phase(self):
+        error = TimeoutError("timed out")
+        with mock.patch.object(client.socket, "create_connection", side_effect=error), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as output:
+            result = daemon_main.main(["status", "--json"])
+        self.assertEqual(result, 1)
+        self.assertEqual(json.loads(output.getvalue()), {"success": False,
+            "error": {"code": "TimeoutError", "message": "timed out", "transport_phase": "connect"}})
+
+    def test_status_response_timeout_is_not_marked_as_a_failed_connect(self):
+        connection = mock.MagicMock()
+        connection.__enter__.return_value = connection
+        error = TimeoutError("timed out")
+        connection.makefile.return_value.readline.side_effect = error
+        with mock.patch.object(client.socket, "create_connection", return_value=connection), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as output:
+            result = daemon_main.main(["status", "--json"])
+        self.assertEqual(result, 1)
+        self.assertEqual(json.loads(output.getvalue()), {"success": False,
+            "error": {"code": "TimeoutError", "message": "timed out"}})
+        self.assertFalse(hasattr(error, "_swcli_transport_phase"))
 
     def test_client_sends_versioned_request_and_checks_request_id(self):
         response = {

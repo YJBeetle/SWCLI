@@ -286,7 +286,10 @@ try {
         -RedirectStandardError (Join-Path $Workspace "windows-extra.stderr.log") `
         -NoNewWindow -PassThru
     $ready = $false
-    for ($attempt = 0; $attempt -lt 180; $attempt++) {
+    $startupWait = [Diagnostics.Stopwatch]::StartNew()
+    $attempt = 0
+    while ($startupWait.Elapsed.TotalSeconds -lt 180) {
+        $attempt++
         $daemon.Refresh()
         if ($daemon.HasExited) { throw "Windows-only daemon exited during startup" }
         $status = Invoke-SwCliJson -Name "windows-extra-startup-$attempt" -AllowFailure -Arguments @("daemon", "status", "--json")
@@ -298,7 +301,9 @@ try {
             $ready = $true
             break
         }
-        if ($status.error.code -notin @("ConnectionRefusedError", "Starting")) { throw "Windows-only daemon status failed" }
+        if ($status.error.code -notin @("ConnectionRefusedError", "Starting", "TimeoutError", "ConnectionResetError")) {
+            throw "Windows-only daemon status failed"
+        }
         Start-Sleep -Seconds 1
     }
     if (-not $ready) { throw "Windows-only daemon startup deadline exceeded" }
