@@ -251,11 +251,33 @@ try {
     $modelingFolder = Join-Path $Workspace "modeling"
     $samplePart = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
     $sampleAssembly = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.sldasm"
-    & python -I (Join-Path $PSScriptRoot "../verify-modeling.py") `
-        --suite $Suite `
-        --output-dir $modelingFolder `
-        --sample-part $samplePart --sample-assembly $sampleAssembly
-    if ($LASTEXITCODE -ne 0) { throw "shared modeling CLI gate failed" }
+    $sampleDrawing = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.slddrw"
+    if (-not (Test-Path -LiteralPath $sampleDrawing -PathType Leaf)) {
+        throw "Installed drawing fixture is missing: $sampleDrawing"
+    }
+    # Preserve relative references, but keep the fixture outside uploaded evidence.
+    $drawingWorkFolder = Join-Path ([IO.Path]::GetTempPath()) ("swcli-drawing-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $drawingWorkFolder | Out-Null
+    $modelingFailed = $true
+    try {
+        Get-ChildItem -LiteralPath (Split-Path -Parent $sampleDrawing) -Force |
+            Copy-Item -Destination $drawingWorkFolder -Recurse -Force
+        & python -I (Join-Path $PSScriptRoot "../verify-modeling.py") `
+            --suite $Suite `
+            --output-dir $modelingFolder `
+            --sample-part $samplePart --sample-assembly $sampleAssembly `
+            --sample-drawing $sampleDrawing --sample-drawing-local $sampleDrawing `
+            --drawing-work-dir $drawingWorkFolder --host-drawing-work-dir $drawingWorkFolder
+        if ($LASTEXITCODE -ne 0) { throw "shared modeling CLI gate failed" }
+        $modelingFailed = $false
+    }
+    finally {
+        try { Remove-Item -LiteralPath $drawingWorkFolder -Recurse -Force -ErrorAction Stop }
+        catch {
+            if (-not $modelingFailed) { throw }
+            Write-Warning "Drawing fixture cleanup failed; preserving the original gate failure: $_"
+        }
+    }
     & python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py") `
         --suite $Suite `
         --output-dir (Join-Path $Workspace "driving-dimensions") `

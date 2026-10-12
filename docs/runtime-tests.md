@@ -38,6 +38,14 @@ Case methods and shared geometry assertions are in `scripts/ci/gate_support/`.
 Entry points retain transport, fixture paths, leases, evidence and cleanup;
 platform wrappers only provision and sequence those entry points.
 
+The Windows wrapper supplies the installed `bezel moldbase.slddrw` in both
+tiers and modes. It copies the complete sibling reference tree to a unique
+temporary directory outside uploaded evidence, then delegates both drawing
+Save3 and native SaveAs roundtrips to the shared modeling gate. Missing fixtures
+fail explicitly; temporary references are cleaned on success and failure without
+masking the original gate error. Only validated drawings and result records are
+published as evidence; installed drawings are never saved in place.
+
 ### Full case catalog
 
 - `scripts/ci/verify-modeling.py`: capabilities, native update stamps, leases

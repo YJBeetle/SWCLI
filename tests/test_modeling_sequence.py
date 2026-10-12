@@ -48,6 +48,30 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('"attach-without-host"', script)
         self.assertIn('"daemon-disconnected"', script)
 
+    def test_windows_wrapper_delegates_both_drawing_roundtrips_with_private_references(self):
+        script = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        prepare = script.index("$sampleDrawing =")
+        modeling = script.index('& python -I (Join-Path $PSScriptRoot "../verify-modeling.py")')
+        driving = script.index('& python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py")')
+        block = script[prepare:driving]
+        self.assertIn('sldBenchmarking\\Macro\\Mold\\bezel moldbase.slddrw', block)
+        self.assertIn('Test-Path -LiteralPath $sampleDrawing -PathType Leaf', block)
+        self.assertIn('throw "Installed drawing fixture is missing: $sampleDrawing"', block)
+        self.assertIn('[IO.Path]::GetTempPath()', block)
+        self.assertIn('[guid]::NewGuid()', block)
+        self.assertIn('Get-ChildItem -LiteralPath (Split-Path -Parent $sampleDrawing) -Force', block)
+        self.assertIn('Copy-Item -Destination $drawingWorkFolder -Recurse -Force', block)
+        self.assertLess(prepare, modeling)
+        self.assertIn('--sample-drawing $sampleDrawing --sample-drawing-local $sampleDrawing', block)
+        self.assertIn('--drawing-work-dir $drawingWorkFolder --host-drawing-work-dir $drawingWorkFolder', block)
+        self.assertIn('finally {', block)
+        self.assertIn('Remove-Item -LiteralPath $drawingWorkFolder -Recurse -Force -ErrorAction Stop', block)
+        self.assertIn('if (-not $modelingFailed) { throw }', block)
+        self.assertIn('preserving the original gate failure', block)
+        self.assertNotIn('if ($Suite', block)
+        self.assertNotIn('SaveAs3', block)
+        self.assertNotIn('Save3', block)
+
     def test_windows_ci_core_is_visible_and_full_retains_hidden_mode(self):
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
