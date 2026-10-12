@@ -6,6 +6,21 @@ import tarfile
 from pathlib import PurePosixPath
 
 REQUIRED = {
+    "scripts/ci/verify-runtime-sets.py",
+    "scripts/ci/gate_support/runtime_plan.py",
+    "scripts/ci/gate_support/entrypoints.py",
+    "scripts/ci/verify-native-model.py",
+    "scripts/ci/verify-assemblies.py",
+    "scripts/ci/verify-exports.py",
+    "scripts/ci/verify-reverse-cut.py",
+    "scripts/ci/verify-feature-depth.py",
+    "scripts/ci/verify-drawing-save.py",
+    "scripts/ci/verify-drawing-save-as.py",
+    "scripts/ci/verify-host-continuation.py",
+    "scripts/ci/verify-diameter-dimensions.py",
+    "scripts/ci/verify-center-constraints.py",
+    "scripts/ci/verify-rectangle-dimensions.py",
+    "scripts/ci/verify-plane-geometry.py",
     "scripts/ci/gate_support/__init__.py",
     "scripts/ci/gate_support/model_checks.py",
     "scripts/ci/gate_support/model_native.py",

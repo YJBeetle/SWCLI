@@ -29,17 +29,44 @@ first-failure propagation. No hidden-mode lifecycle-only substitute is used.
 
 Windows and MacSW ordinary pushes run `core` in visible mode only. Manual
 complete acceptance selects `full` and runs visible then hidden, with separate
-evidence and an unrestarted host within each mode. Core success does not prove
+evidence. Each functional set owns a fresh daemon/SOLIDWORKS session; the host
+is never restarted inside a set. Core success does not prove
 hidden-mode behavior and cannot authorize MacSW signing. DockerSW uses its
 existing background mode: automatic image promotion keeps `full`; manual `core`
 does not promote verified image tags. Six published exports remain independent.
 
 Case methods and shared geometry assertions are in `scripts/ci/gate_support/`.
 Entry points retain transport, fixture paths, leases, evidence and cleanup;
-platform wrappers only provision and sequence those entry points.
+platform wrappers only provision and invoke the shared coordinator.
+
+### Isolated functional sets
+
+`scripts/ci/verify-runtime-sets.py` is the shared Windows/Linux-Wine/macOS-Wine
+coordinator. Install and prepare once on one runner/container, then run its
+platform-independent plan: 11 sets in core, 17 in full. Named entrypoints cover
+native modeling, assemblies, exports, drawing Save/SaveAs, continuation,
+diameter dimensions, center constraints, rectangle dimensions and Toolbox;
+full additionally runs reverse-cut, feature-depth and complete Top/Right cases.
+The entrypoints delegate existing CAD assertions; they do not duplicate them.
+
+Every set starts a foreground daemon with a new owned SW PID and stops it after
+checking the real document catalog is empty. Unknown documents, attached/shared
+hosts, wrong visibility, reused PIDs, incomplete proof or shutdown failure stop
+the run; failed CAD operations are not retried. The continuation→Front diameter
+bridge deliberately runs two scripts in ONE session to retain cross-script
+failure-recovery proof. No Wine server, license service or container restart is
+performed between sets.
+
+Use `--output-dir` and its matching Windows `--host-output-dir`, `--mode`,
+`--suite`, the installed sample paths, and a private `--fixture-work-dir` with
+matching `--host-fixture-work-dir`. An integration wrapper may supply one
+absolute executable `--cli-command`; Windows defaults to the current isolated
+Python's installed SWCLI. `runtime-sets.json` records expected/completed sets,
+per-set host/server PIDs, step records, shutdown status and finite budgets.
+Public modeling/driving/Toolbox result files and command logs remain separate.
 
 The Windows wrapper supplies the installed `bezel moldbase.slddrw` in both
-tiers and modes. It copies the complete sibling reference tree to a unique
+tiers and modes. The shared coordinator copies the complete sibling reference tree to a unique
 temporary directory outside uploaded evidence, then delegates both drawing
 Save3 and native SaveAs roundtrips to the shared modeling gate. Missing fixtures
 fail explicitly; temporary references are cleaned on success and failure without

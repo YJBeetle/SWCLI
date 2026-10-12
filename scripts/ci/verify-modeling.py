@@ -73,10 +73,14 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
         request_timeout_seconds=DEFAULT_REQUEST_TIMEOUT_SECONDS,
         depth_request_timeout_seconds=DEFAULT_DEPTH_REQUEST_TIMEOUT_SECONDS,
         suite="full",
+        case_set="all",
     ):
         self.directory = directory
         require(suite in ("core", "full"), "unknown modeling suite")
         self.suite = suite
+        require(case_set in ("all", "native", "assembly", "exports", "reverse-cut", "depth",
+                             "drawing-save", "drawing-save-as", "continuation"), "unknown modeling case set")
+        self.case_set = case_set
         self.host_directory = host_directory
         self.endpoint = endpoint
         self.cli = cli or [sys.executable, "-I", "-m", "swcli"]
@@ -495,6 +499,17 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
             cases.append(("official-assembly-save-reopen",
                           lambda: self.assembly_save_reopen(sample_assembly)))
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
+        selection = getattr(self, "case_set", "all")
+        if selection != "all":
+            names = {"native": {"native-model"},
+                     "assembly": {"generated-assembly", "official-assembly-save-reopen"},
+                     "exports": {"sample-exports"}, "reverse-cut": {"reverse-cut"},
+                     "depth": {"feature-depth"}, "drawing-save": {"drawing-save-reopen"},
+                     "drawing-save-as": {"drawing-save-as-reopen"},
+                     "continuation": {"rejected-cut-then-sketch"}}[selection]
+            cases = [(name, function) for name, function in cases if name in names]
+            require(cases, "selected modeling case set is unavailable for this suite/fixtures")
+            self.record["case_set"] = selection
         for name, function in cases:
             self.checkpoint(name + ".starting")
             function()
@@ -552,6 +567,8 @@ def main(argv=None):
     parser.add_argument("--sample-part", type=host_directory)
     parser.add_argument("--suite", choices=("core", "full"), default="full",
                         help="core daily regression or complete CAD/negative-case coverage")
+    parser.add_argument("--case-set", choices=("all", "native", "assembly", "exports", "reverse-cut", "depth",
+                                              "drawing-save", "drawing-save-as", "continuation"), default="all")
     parser.add_argument("--sample-assembly", type=host_directory)
     parser.add_argument("--verify-sample-assembly-save", action="store_true",
                         help="also prepare and strictly save/reopen the official ASM fixture; generated ASM is always tested")
@@ -586,6 +603,7 @@ def main(argv=None):
         request_timeout_seconds=arguments.request_timeout,
         depth_request_timeout_seconds=arguments.depth_request_timeout,
         suite=arguments.suite,
+        case_set=arguments.case_set,
     )
     # Never overwrite prior evidence, even before the first host operation.
     with smoke.record_path.open("x", encoding="utf-8") as stream:

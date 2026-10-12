@@ -26,6 +26,8 @@ class SourceDistributionTests(unittest.TestCase):
     def test_missing_documentation_or_example_is_rejected(self):
         for name in ("README.CN.md", "examples/model-plate.ps1", "docs/roadmap.md",
                      "scripts/ci/gate_support/model_native.py",
+                     "scripts/ci/verify-runtime-sets.py", "scripts/ci/gate_support/runtime_plan.py",
+                     "scripts/ci/verify-drawing-save-as.py",
                      "scripts/ci/gate_support/driving_geometry.py"):
             with (
                 self.subTest(name=name),

@@ -87,9 +87,9 @@ checks do not imply topology-edit survival or replace distribution publication p
 The hosted installation is performed once. Its smoke wrapper runs first in the
 default visible test mode, then again with `-Hidden` and a separate `hidden/`
 evidence directory. Both modes use the same public gates and lifecycle checks;
-there is no restart between modeling and driving within either mode. A fresh
-host between these two independent mode runs is not native-failure recovery.
-The hidden run is mandatory: visible-only success did not expose the rejected
+the shared coordinator restarts CLI/SW between functional sets, while the
+rejected-cut continuation→Front diameter bridge retains the same host. The
+full hidden run is mandatory: visible-only success did not expose the rejected
 cut's residual native command state. See the
 [matched investigation](verification/linux-wine-rejected-cut-2026-10-08.md).
 The Windows-only equation fixture remains mandatory in the visible run: its

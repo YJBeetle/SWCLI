@@ -19,19 +19,14 @@ class ModelingSequenceTests(unittest.TestCase):
         script = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(
             encoding="utf-8"
         )
-        modeling = script.index('"../verify-modeling.py"')
-        driving = script.index('"../verify-driving-dimensions.py"')
-        toolbox = script.index('"../verify-toolbox.py"')
+        modeling = script.index('"../verify-runtime-sets.py"')
         equation = script.index('"verify-equation-dimension.py"')
-        self.assertLess(modeling, driving)
-        self.assertLess(driving, toolbox)
-        self.assertLess(toolbox, equation)
-        self.assertIn('--output-dir (Join-Path $Workspace "toolbox") --require-toolbox', script)
-        self.assertIn('throw "Toolbox deployment/read-only CLI gate failed"', script)
-        self.assertNotIn("--inventory-only", script[toolbox:equation])
-        self.assertIn(
-            '--after-modeling (Join-Path $modelingFolder "modeling.json")', script
-        )
+        self.assertLess(modeling, equation)
+        self.assertEqual(script.count('"../verify-runtime-sets.py"'), 1)
+        for name in ("verify-modeling.py", "verify-driving-dimensions.py", "verify-toolbox.py"):
+            self.assertNotIn(name, script)
+        self.assertIn('throw "shared isolated functional sets failed"', script)
+        self.assertIn('$daemon.WaitForExit(30000)', script[modeling:equation])
         self.assertIn(
             "--sample-part $samplePart --sample-assembly $sampleAssembly", script
         )
@@ -51,22 +46,20 @@ class ModelingSequenceTests(unittest.TestCase):
     def test_windows_wrapper_delegates_both_drawing_roundtrips_with_private_references(self):
         script = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
         prepare = script.index("$sampleDrawing =")
-        modeling = script.index('& python -I (Join-Path $PSScriptRoot "../verify-modeling.py")')
-        driving = script.index('& python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py")')
-        block = script[prepare:driving]
+        modeling = script.index('& python -I (Join-Path $PSScriptRoot "../verify-runtime-sets.py")')
+        block = script[prepare:script.index('# Shared sets stop')]
         self.assertIn('sldBenchmarking\\Macro\\Mold\\bezel moldbase.slddrw', block)
         self.assertIn('Test-Path -LiteralPath $sampleDrawing -PathType Leaf', block)
         self.assertIn('throw "Installed drawing fixture is missing: $sampleDrawing"', block)
         self.assertIn('[IO.Path]::GetTempPath()', block)
         self.assertIn('[guid]::NewGuid()', block)
-        self.assertIn('Get-ChildItem -LiteralPath (Split-Path -Parent $sampleDrawing) -Force', block)
-        self.assertIn('Copy-Item -Destination $drawingWorkFolder -Recurse -Force', block)
+        self.assertNotIn('Copy-Item', block)  # Per-set private copies belong to the shared coordinator.
         self.assertLess(prepare, modeling)
         self.assertIn('--sample-drawing $sampleDrawing --sample-drawing-local $sampleDrawing', block)
-        self.assertIn('--drawing-work-dir $drawingWorkFolder --host-drawing-work-dir $drawingWorkFolder', block)
+        self.assertIn('--fixture-work-dir $drawingWorkFolder --host-fixture-work-dir $drawingWorkFolder', block)
         self.assertIn('finally {', block)
         self.assertIn('Remove-Item -LiteralPath $drawingWorkFolder -Recurse -Force -ErrorAction Stop', block)
-        self.assertIn('if (-not $modelingFailed) { throw }', block)
+        self.assertIn('if (-not $setsFailed) { throw }', block)
         self.assertIn('preserving the original gate failure', block)
         self.assertNotIn('if ($Suite', block)
         self.assertNotIn('SaveAs3', block)

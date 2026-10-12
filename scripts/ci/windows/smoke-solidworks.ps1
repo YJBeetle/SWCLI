@@ -12,7 +12,7 @@ New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
 $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
 $stepPath = Join-Path $Workspace "swcli-box-100x50x20.STEP"
 $renderPath = Join-Path $Workspace "swcli-box-isometric-800x600.bmp"
-$genericPartPath = Join-Path $Workspace "modeling\model.SLDPRT"
+$genericPartPath = Join-Path $Workspace "runtime-sets\native-model\modeling\model.SLDPRT"
 
 function Save-DesktopDiagnostic {
     param([Parameter(Mandatory = $true)][string]$Name)
@@ -244,11 +244,10 @@ try {
         throw "invalid restart parameters stopped or replaced the running SOLIDWORKS host"
     }
 
-    # Shared public modeling assertions live in SWCLI, not this host wrapper.
-    # A native cut rejection must precede the driving gate in the SAME daemon.
+    # Shared scripts own CAD coverage and fresh CLI/SW session boundaries.
     $installation = @($doctor.installations | Where-Object { $_.year -eq 2025 }) | Select-Object -First 1
     if ($null -eq $installation) { throw "SOLIDWORKS 2025 installation path is unavailable" }
-    $modelingFolder = Join-Path $Workspace "modeling"
+    $setsFolder = Join-Path $Workspace "runtime-sets"
     $samplePart = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
     $sampleAssembly = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.sldasm"
     $sampleDrawing = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.slddrw"
@@ -258,34 +257,51 @@ try {
     # Preserve relative references, but keep the fixture outside uploaded evidence.
     $drawingWorkFolder = Join-Path ([IO.Path]::GetTempPath()) ("swcli-drawing-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $drawingWorkFolder | Out-Null
-    $modelingFailed = $true
+    $setsFailed = $true
     try {
-        Get-ChildItem -LiteralPath (Split-Path -Parent $sampleDrawing) -Force |
-            Copy-Item -Destination $drawingWorkFolder -Recurse -Force
-        & python -I (Join-Path $PSScriptRoot "../verify-modeling.py") `
-            --suite $Suite `
-            --output-dir $modelingFolder `
+        $mode = if ($Hidden) { "hidden" } else { "visible" }
+        & python -I (Join-Path $PSScriptRoot "../verify-runtime-sets.py") `
+            --suite $Suite --mode $mode `
+            --output-dir $setsFolder --host-output-dir $setsFolder `
             --sample-part $samplePart --sample-assembly $sampleAssembly `
             --sample-drawing $sampleDrawing --sample-drawing-local $sampleDrawing `
-            --drawing-work-dir $drawingWorkFolder --host-drawing-work-dir $drawingWorkFolder
-        if ($LASTEXITCODE -ne 0) { throw "shared modeling CLI gate failed" }
-        $modelingFailed = $false
+            --fixture-work-dir $drawingWorkFolder --host-fixture-work-dir $drawingWorkFolder
+        if ($LASTEXITCODE -ne 0) { throw "shared isolated functional sets failed" }
+        $setsFailed = $false
     }
     finally {
         try { Remove-Item -LiteralPath $drawingWorkFolder -Recurse -Force -ErrorAction Stop }
         catch {
-            if (-not $modelingFailed) { throw }
+            if (-not $setsFailed) { throw }
             Write-Warning "Drawing fixture cleanup failed; preserving the original gate failure: $_"
         }
     }
-    & python -I (Join-Path $PSScriptRoot "../verify-driving-dimensions.py") `
-        --suite $Suite `
-        --output-dir (Join-Path $Workspace "driving-dimensions") `
-        --after-modeling (Join-Path $modelingFolder "modeling.json")
-    if ($LASTEXITCODE -ne 0) { throw "driving-dimension CLI/protocol gate failed" }
-    & python -I (Join-Path $PSScriptRoot "../verify-toolbox.py") `
-        --output-dir (Join-Path $Workspace "toolbox") --require-toolbox
-    if ($LASTEXITCODE -ne 0) { throw "Toolbox deployment/read-only CLI gate failed" }
+    # Shared sets stop their last owned session. Windows-only lifecycle/ROT
+    # assertions below need a separate fresh daemon, not a surviving CAD set.
+    if (-not $daemon.WaitForExit(30000) -or $daemon.ExitCode -ne 0) {
+        throw "preflight daemon did not finish shutdown"
+    }
+    $daemon = Start-Process -FilePath $python -ArgumentList $daemonArguments `
+        -RedirectStandardOutput (Join-Path $Workspace "windows-extra.stdout.log") `
+        -RedirectStandardError (Join-Path $Workspace "windows-extra.stderr.log") `
+        -NoNewWindow -PassThru
+    $ready = $false
+    for ($attempt = 0; $attempt -lt 180; $attempt++) {
+        $daemon.Refresh()
+        if ($daemon.HasExited) { throw "Windows-only daemon exited during startup" }
+        $status = Invoke-SwCliJson -Name "windows-extra-startup-$attempt" -AllowFailure -Arguments @("daemon", "status", "--json")
+        if ($status.success) {
+            if (-not $status.result.host_connected -or -not $status.result.host.owned_by_daemon -or
+                $status.result.host.shared_interactive -or $status.result.host.visible -eq [bool]$Hidden) {
+                throw "Windows-only daemon has unexpected host ownership or visibility"
+            }
+            $ready = $true
+            break
+        }
+        if ($status.error.code -notin @("ConnectionRefusedError", "Starting")) { throw "Windows-only daemon status failed" }
+        Start-Sleep -Seconds 1
+    }
+    if (-not $ready) { throw "Windows-only daemon startup deadline exceeded" }
     # This Windows-only fixture bootstraps an equation via the existing ROT
     # host. Hidden background hosts need not register there; do not Dispatch
     # another instance or make them visible to prepare the fixture.

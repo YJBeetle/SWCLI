@@ -159,10 +159,14 @@ class DrivingSmoke(DiameterCases, RectangleCases, CenterCases, GeometryCases):
         self, *, endpoint, session, output_directory, cli=None, after_modeling=None,
         local_output_directory=None,
         request_timeout_seconds=DEFAULT_REQUEST_TIMEOUT_SECONDS,
-        suite="full",
+        suite="full", plane="all", case_set="all",
     ):
         require(suite in ("core", "full"), "unknown driving suite")
         self.suite = suite
+        require(plane in ("all", "front", "top", "right"), "unknown driving plane selection")
+        require(case_set in ("all", "diameter", "center", "rectangle", "geometry"), "unknown driving case set")
+        self.plane_selection = plane
+        self.case_set = case_set
         self.endpoint = endpoint
         self.session = session
         self.output_directory = output_directory
@@ -473,7 +477,10 @@ class DrivingSmoke(DiameterCases, RectangleCases, CenterCases, GeometryCases):
             )
         self.checkpoint("host.verified")
         self.prepare_origin_fixture()
-        for plane in ("front", "top", "right"):
+        planes = ("front", "top", "right") if self.plane_selection == "all" else (self.plane_selection,)
+        if self.plane_selection != "all" or self.case_set != "all":
+            self.record["selection"] = {"plane": self.plane_selection, "case_set": self.case_set}
+        for plane in planes:
             self.record["current_plane"] = plane
             self.checkpoint(f"plane.{plane}.starting")
             print(f"Driving-dimension gate: {plane} starting", flush=True)
@@ -481,6 +488,9 @@ class DrivingSmoke(DiameterCases, RectangleCases, CenterCases, GeometryCases):
                      ("rectangle", self.rectangle_dimensions))
             if self.suite == "core" and plane != "front":
                 cases = (("geometry", self.plane_geometry),)
+            if self.case_set != "all":
+                cases = tuple((name, function) for name, function in cases if name == self.case_set)
+                require(cases, "selected driving case set is unavailable for this suite/plane")
             for name, function in cases:
                 function(plane)
                 case = f"plane.{plane}.{name}"
@@ -502,6 +512,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", choices=("core", "full"), default="full",
                         help="core: shared guards on front plus three-plane geometry; full: all combinations")
+    parser.add_argument("--plane", choices=("all", "front", "top", "right"), default="all")
+    parser.add_argument("--case-set", choices=("all", "diameter", "center", "rectangle", "geometry"), default="all")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--after-modeling",
@@ -539,6 +551,7 @@ def main(argv=None):
         local_output_directory=directory,
         request_timeout_seconds=arguments.request_timeout,
         suite=arguments.suite,
+        plane=arguments.plane, case_set=arguments.case_set,
     )
     checkpoint = EvidenceCheckpoint(record_path)
     checkpoint.reserve(smoke.record)

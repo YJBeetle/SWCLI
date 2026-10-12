@@ -766,6 +766,19 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 self.progress = progress.getvalue()
         return rpc, cli
 
+    def test_named_driving_selection_keeps_plane_and_case_without_duplicate_geometry(self):
+        self.smoke.plane_selection = "top"
+        self.smoke.case_set = "center"
+        with mock.patch.object(self.smoke, "center_constraints") as center, \
+                mock.patch.object(self.smoke, "plane") as diameter, \
+                mock.patch.object(self.smoke, "rectangle_dimensions") as rectangle:
+            self.run_smoke()
+        center.assert_called_once_with("top")
+        diameter.assert_not_called()
+        rectangle.assert_not_called()
+        self.assertEqual(self.smoke.record["selection"], {"plane": "top", "case_set": "center"})
+        self.assertEqual(len(self.smoke.record["case_cleanup"]), 1)
+
     def test_core_keeps_three_plane_geometry_and_front_protocol_guards(self):
         self.smoke.suite = "core"
         self.smoke.record["suite"] = "core"
