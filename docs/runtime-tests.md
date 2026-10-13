@@ -84,6 +84,12 @@ path. Evidence records the explicit paths. Windows pins foreground daemon
 handles at launch and records bounded shutdown/exit-code proof even when the
 preflight launcher exited long before the final check; null/nonzero exits fail.
 
+With `SWCLI_TRACE_NATIVE_CALLS=1`, document opening also flushes native boundaries
+around `SldWorks.OpenDoc6` (including dispatch lookup) and subsequent document
+description. These contain no file/configuration arguments and preserve native
+results/exceptions. A pending open boundary enables existing bounded macOS host
+sampling; no timeout extension or failed-operation retry is introduced.
+
 The Windows wrapper supplies the installed `bezel moldbase.slddrw` in both
 tiers and modes. The shared coordinator copies the complete sibling reference tree to a unique
 temporary directory outside uploaded evidence, then delegates both drawing

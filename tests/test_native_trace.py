@@ -1,6 +1,9 @@
 import io
 import json
 import os
+from pathlib import Path
+import tempfile
+from types import ModuleType
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -39,6 +42,76 @@ class NativeTraceTests(unittest.TestCase):
     def test_calls_outside_request_including_idle_probes_are_silent(self):
         self.assertEqual(_com_value(SimpleNamespace(RevisionNumber='33.5.0'), 'RevisionNumber'), '33.5.0')
         self.assertEqual(self.records(), [])
+
+    def test_document_open_traces_dispatch_and_description_without_private_paths(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.VT_BYREF, pythoncom.VT_I4 = 1, 2
+        client = ModuleType("win32com.client")
+        client.VARIANT = lambda kind, value: SimpleNamespace(value=value)
+        win32com = ModuleType("win32com")
+        win32com.client = client
+        document = object()
+        description = {"title": "private title"}
+        def opened(*args):
+            self.assertEqual(self.records()[-1]["call"], "SldWorks.OpenDoc6")
+            self.assertEqual(self.records()[-1]["phase"], "begin")
+            self.assertEqual(args[1:4], (2, 3, "private config"))
+            args[5].value = 8
+            return document
+        def described(value):
+            self.assertIs(value, document)
+            self.assertEqual(self.records()[-1]["call"], "describeDocument")
+            self.assertEqual(self.records()[-1]["phase"], "begin")
+            return description
+        app = mock.Mock()
+        app.OpenDoc6.side_effect = opened
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "private assembly.sldasm"
+            path.write_bytes(b"fixture")
+            with mock.patch.object(windows_documents.sys, "platform", "win32"), \
+                    mock.patch.dict("sys.modules", {"pythoncom": pythoncom, "win32com": win32com,
+                                                    "win32com.client": client}), \
+                    mock.patch.object(windows_documents, "_describe_document", side_effect=described), \
+                    trace_native_request("req-open", "document.open"):
+                result, handle = windows_documents.open_windows_document_with_handle(
+                    str(path), read_only=True, configuration="private config", app=app)
+        self.assertTrue(result["ok"])
+        self.assertIs(handle, document)
+        self.assertIs(result["document"], description)
+        self.assertEqual(result["api_warnings"], 8)
+        app.OpenDoc6.assert_called_once()
+        events = self.records()
+        self.assertEqual([(e["call"], e["phase"]) for e in events[1:-1]],
+            [("SldWorks.OpenDoc6", "begin"), ("SldWorks.OpenDoc6", "end"),
+             ("describeDocument", "begin"), ("describeDocument", "end")])
+        self.assertNotIn("private", self.stream.getvalue())
+
+    def test_document_open_error_is_traced_without_retry_or_description(self):
+        pythoncom = ModuleType("pythoncom")
+        pythoncom.VT_BYREF, pythoncom.VT_I4 = 1, 2
+        client = ModuleType("win32com.client")
+        client.VARIANT = lambda kind, value: SimpleNamespace(value=value)
+        win32com = ModuleType("win32com")
+        win32com.client = client
+        app = mock.Mock()
+        app.OpenDoc6.side_effect = RuntimeError("private failure")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "private.sldasm"
+            path.write_bytes(b"fixture")
+            with mock.patch.object(windows_documents.sys, "platform", "win32"), \
+                    mock.patch.dict("sys.modules", {"pythoncom": pythoncom, "win32com": win32com,
+                                                    "win32com.client": client}), \
+                    mock.patch.object(windows_documents, "_describe_document") as describe, \
+                    trace_native_request("req-open", "document.open"):
+                result, handle = windows_documents.open_windows_document_with_handle(str(path), app=app)
+        self.assertFalse(result["ok"])
+        self.assertIsNone(handle)
+        app.OpenDoc6.assert_called_once()
+        describe.assert_not_called()
+        events = self.records()
+        self.assertEqual(events[-2]["phase"], "error")
+        self.assertEqual(events[-2]["exception_type"], "RuntimeError")
+        self.assertNotIn("private", self.stream.getvalue())
 
     def test_begin_is_flushed_before_native_invocation_and_end_after_return(self):
         stream = mock.Mock(spec=io.StringIO, wraps=self.stream)

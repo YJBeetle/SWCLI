@@ -339,13 +339,11 @@ def open_windows_document_with_handle(
             pythoncom.VT_BYREF | pythoncom.VT_I4, 0
         )
         options = _OPEN_SILENT | (_OPEN_READ_ONLY if read_only else 0)
-        document = app.OpenDoc6(
-            str(document_path),
-            document_type,
-            options,
-            configuration,
-            errors,
-            warnings,
+        document = native_call(
+            "document-open", "SldWorks.OpenDoc6",
+            lambda: app.OpenDoc6(
+                str(document_path), document_type, options, configuration, errors, warnings,
+            ),
         )
         result["api_errors"] = int(errors.value)
         result["api_warnings"] = int(warnings.value)
@@ -356,7 +354,9 @@ def open_windows_document_with_handle(
             }
             return result, None
 
-        result["document"] = _describe_document(document)
+        result["document"] = native_call(
+            "document-open", "describeDocument", lambda: _describe_document(document),
+        )
         result["ok"] = True
         return result, document
     except Exception as exc:
