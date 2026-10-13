@@ -3,12 +3,14 @@ import io
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/ci/verify-driving-dimensions.py"
+POWERSHELL = shutil.which("pwsh") or (shutil.which("powershell") if sys.platform == "win32" else None)
 spec = importlib.util.spec_from_file_location("sequence_gate", SCRIPT)
 gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
@@ -130,7 +132,7 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('wait_completed = $finished', check)
         self.assertIn('"$Name-exit.json"', check)
 
-    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell required for real process exit checks")
+    @unittest.skipUnless(POWERSHELL, "PowerShell required for real process exit checks")
     def test_windows_delayed_exit_check_accepts_zero_rejects_nonzero_and_live(self):
         source = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
         function = 'function Assert-OwnedDaemonExit {' + source.split(
@@ -138,8 +140,11 @@ class ModelingSequenceTests(unittest.TestCase):
         program = function + '''
 $ErrorActionPreference = 'Stop'
 $Workspace = $args[0]
+$childPowerShell = Join-Path $PSHOME $args[1]
 foreach ($code in @(0, 7)) {
-    $process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh') -ArgumentList @('-NoProfile', '-Command', "exit $code") -PassThru
+    $process = Start-Process -FilePath $childPowerShell -ArgumentList @('-NoProfile', '-Command', "exit $code") `
+        -RedirectStandardOutput (Join-Path $Workspace "exit-$code.stdout.log") `
+        -RedirectStandardError (Join-Path $Workspace "exit-$code.stderr.log") -NoNewWindow -PassThru
     $null = $process.Handle
     if (-not $process.WaitForExit(10000)) { throw 'fixture did not exit' }
     Start-Sleep -Milliseconds 100
@@ -151,7 +156,9 @@ foreach ($code in @(0, 7)) {
     if (-not $proof.wait_completed -or $proof.exit_code -ne $code) { throw 'wrong exit proof' }
     $process.Dispose()
 }
-$process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh') -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep -Seconds 30') -PassThru
+$process = Start-Process -FilePath $childPowerShell -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep -Seconds 30') `
+    -RedirectStandardOutput (Join-Path $Workspace 'live.stdout.log') `
+    -RedirectStandardError (Join-Path $Workspace 'live.stderr.log') -NoNewWindow -PassThru
 $null = $process.Handle
 try {
     $rejected = $false
@@ -165,7 +172,10 @@ try {
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "exit-check.ps1"
             path.write_text(program, encoding="utf-8")
-            completed = subprocess.run([shutil.which("pwsh"), "-NoProfile", "-File", str(path), temporary],
+            # Process-only policy for this generated, local regression script;
+            # never change the user's machine/user execution policy.
+            completed = subprocess.run([POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+                                        "-File", str(path), temporary, Path(POWERSHELL).name],
                                        capture_output=True, text=True, timeout=40)
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
