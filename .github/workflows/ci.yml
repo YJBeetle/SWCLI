@@ -10,11 +10,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      runtime_suite:
-        description: Core daily regression or full pre-release CAD coverage
-        type: choice
-        options: [core, full]
-        default: full
       media_path:
         description: Google Drive path to the SOLIDWORKS ISO
         required: true
@@ -296,7 +291,7 @@ jobs:
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite '${{ inputs.runtime_suite || 'full' }}'
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full
 
       - name: Measure streamed data and remaining disk
         if: always()

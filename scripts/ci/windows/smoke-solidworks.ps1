@@ -254,36 +254,17 @@ try {
     }
 
     if ($VisibleSmoke) {
-        $health = Invoke-SwCliJson -Name "visible-status" -Arguments @("daemon", "status", "--json")
-        if (-not $health.result.host_connected -or -not $health.result.host.visible -or
-            -not $health.result.host.owned_by_daemon -or $health.result.host.shared_interactive) {
-            throw "Visible smoke requires a connected, visible, exclusively owned host"
-        }
         $sample = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
-        $opened = Invoke-SwCliJson -Name "visible-open" -Arguments @("document", "open", $sample, "--read-only", "--json")
-        if ($opened.api_errors -ne 0 -or -not $opened.read_only) {
-            throw "Visible smoke failed to open its source read-only without native errors"
-        }
-        $id = $opened.document.document_id
-        $inspected = Invoke-SwCliJson -Name "visible-inspect" -Arguments @("document", "inspect", "--document", $id, "--json")
-        if ($inspected.document.document_id -ne $id -or $inspected.document.type -ne 1) {
-            throw "Visible smoke did not inspect the opened part"
-        }
-        Invoke-SwCliJson -Name "visible-close" -Arguments @("document", "close", "--document", $id, "--discard", "--json") | Out-Null
-        $catalog = Invoke-SwCliJson -Name "visible-empty" -Arguments @("document", "list", "--json")
-        if ($catalog.count -ne 0) { throw "Visible smoke left native documents open" }
-        $after = Invoke-SwCliJson -Name "visible-status-after" -Arguments @("daemon", "status", "--json")
-        if (-not $after.result.host_connected -or -not $after.result.host.visible -or
-            $after.result.host.process_id -ne $health.result.host.process_id) {
-            throw "Visible smoke replaced or hid its host"
-        }
-        Invoke-SwCliJson -Name "visible-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+        & python -I (Join-Path $PSScriptRoot "../verify-visible.py") `
+            --output-dir $Workspace --sample-part $sample
+        if ($LASTEXITCODE -ne 0) { throw "shared visible smoke failed" }
+        $proof = Get-Content (Join-Path $Workspace "visible.json") -Raw -Encoding utf8 | ConvertFrom-Json
         Assert-OwnedDaemonExit -Process $daemon -Name "visible"
         $started = $false
         $exitWait = [Diagnostics.Stopwatch]::StartNew()
-        while ($null -ne (Get-Process -Id $health.result.host.process_id -ErrorAction SilentlyContinue) -and
+        while ($null -ne (Get-Process -Id $proof.host.process_id -ErrorAction SilentlyContinue) -and
             $exitWait.Elapsed.TotalSeconds -lt 10) { Start-Sleep -Milliseconds 200 }
-        if ($null -ne (Get-Process -Id $health.result.host.process_id -ErrorAction SilentlyContinue)) {
+        if ($null -ne (Get-Process -Id $proof.host.process_id -ErrorAction SilentlyContinue)) {
             throw "Visible smoke did not stop its owned SOLIDWORKS process"
         }
         return

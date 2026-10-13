@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 
 REQUIRED = {
     "scripts/ci/verify-runtime-sets.py",
+    "scripts/ci/verify-visible.py",
     "scripts/ci/gate_support/runtime_plan.py",
     "scripts/ci/gate_support/entrypoints.py",
     "scripts/ci/gate_support/python_entrypoint.py",

@@ -29,12 +29,21 @@ first-failure propagation. No hidden-mode lifecycle-only substitute is used.
 
 Windows always runs a lightweight visible startup/open/inspect/close/stop smoke
 followed by hidden business tests, using separate instances and evidence.
-Main pushes select hidden `full`; manual runs may explicitly select `core`,
+Main pushes and manual CI runs select hidden `full`, with no coverage-tier input,
 without repeating the CAD suite visibly. Each functional set owns a
 fresh session, with no restart inside a set. MacSW retains its own host-mode
-policy; core success cannot authorize MacSW signing. DockerSW uses its
-existing background mode: automatic image promotion keeps `full`; manual `core`
-does not promote verified image tags. Six published exports remain independent.
+policy; this does not authorize MacSW signing. DockerSW uses the same independent
+visible smoke plus hidden `full` acceptance before image promotion. Six published
+exports remain independent. Lower-level scripts retain `core` for focused developer
+diagnostics, not an alternative CI acceptance policy.
+
+`scripts/ci/verify-visible.py` is an independent shared entrypoint: it checks
+visible/owned/connected host identity, opens one supplied part read-only, inspects
+it, closes it, verifies an empty catalog and unchanged host, and requests stop.
+Adapters start the host and verify process teardown. It does not create models,
+save, rebuild or export, and does not invoke the full set coordinator. MacSW can
+call this entrypoint alone when only lightweight visible coverage is desired;
+that is not hidden CAD proof. Existing evidence is never overwritten.
 
 Case methods and shared geometry assertions are in `scripts/ci/gate_support/`.
 Entry points retain transport, fixture paths, leases, evidence and cleanup;
@@ -164,9 +173,9 @@ Its native job downloads
 the same run's `swcli-dist` artifact, requires exactly one wheel, installs it
 normally and verifies installed resources before either mode. It does not use
 an editable checkout as the native runtime; the checkout only supplies the CI
-scripts and fixtures. Modeling and driving
-share one unchanged native PID within each mode; passing visible mode is not
-proof of hidden/background behavior.
+scripts and fixtures. Each hidden functional set retains an unchanged native
+PID; the continuation-to-Front-diameter bridge retains that same host across
+its two scripts. Passing visible mode is not proof of hidden/background behavior.
 The Windows-only equation setup runs in a separate hidden test daemon. A
 source-delivered, test-only launcher prepares the exact equation fixture in the
 worker's existing STA COM session using a private one-shot request file. It

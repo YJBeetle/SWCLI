@@ -78,7 +78,8 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertLess(workflow.index(visible), workflow.index(hidden))
         self.assertNotIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
         self.assertNotIn("inputs.runtime_suite || 'core'", workflow)
-        self.assertIn("-Hidden -Suite '${{ inputs.runtime_suite || 'full' }}'", workflow)
+        self.assertNotIn("runtime_suite:", workflow)
+        self.assertIn("-Hidden -Suite full", workflow)
         self.assertIn('--suite $Suite', wrapper)
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
@@ -90,11 +91,9 @@ class ModelingSequenceTests(unittest.TestCase):
     def test_visible_smoke_returns_before_any_business_sets(self):
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
         block = wrapper.split('    if ($VisibleSmoke) {', 1)[1].split('    Invoke-SwCliJson -Name "capabilities"', 1)[0]
-        for name in ("visible-status", "visible-open", "visible-inspect", "visible-close", "visible-empty", "visible-stop"):
-            self.assertIn(f'-Name "{name}"', block)
-        self.assertIn('"--read-only"', block)
-        self.assertIn('$health.result.host.visible', block)
-        self.assertIn('$after.result.host.process_id -ne $health.result.host.process_id', block)
+        self.assertEqual(block.count('"../verify-visible.py"'), 1)
+        self.assertIn('--output-dir $Workspace --sample-part $sample', block)
+        self.assertNotIn('Invoke-SwCliJson', block)
         self.assertIn('Assert-OwnedDaemonExit -Process $daemon -Name "visible"', block)
         self.assertIn('        return', block)
         for name in ("verify-runtime-sets.py", "verify-equation-dimension.py", "create-box", "export", "rebuild"):
