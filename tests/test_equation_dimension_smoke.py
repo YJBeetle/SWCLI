@@ -517,6 +517,14 @@ class NativeFixtureBindingTests(unittest.TestCase):
             }
         )
 
+    def test_borrowed_worker_app_never_attaches_or_changes_sta_initialization(self):
+        result = self.call(app=self.app)
+        self.assertEqual(result["equation_index"], 0)
+        self.client.GetActiveObject.assert_not_called()
+        self.pythoncom.CoInitialize.assert_not_called()
+        self.pythoncom.CoUninitialize.assert_not_called()
+        self.add_call.assert_called_once()
+
     def test_getactiveobject_pid_document_and_configuration_guard_then_indexed_property_read(
         self,
     ):

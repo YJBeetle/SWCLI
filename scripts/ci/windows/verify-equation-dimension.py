@@ -1,8 +1,9 @@
 """TEST ONLY: prove native equation ownership cannot be overwritten by typed edits.
 
 The public daemon creates and owns the fixture document. The only direct COM
-mutation is adding an equation to that exact fixture and rebuilding it; there
-is no Dispatch, host startup/shutdown, eval or production raw-COM entry point.
+mutation is adding an equation to that exact fixture and rebuilding it. CI uses
+a private test-only worker handoff, not ROT; no Dispatch, eval or production
+raw-COM entry point is added. The standalone ROT helper remains diagnostic only.
 Run with the installed package on Windows while its daemon is already ready.
 """
 
@@ -65,7 +66,7 @@ def _fixture_equations(evidence, manager, field, count):
     )
 
 
-def add_native_equation(*, process_id, document_descriptor, native_name):
+def add_native_equation(*, process_id, document_descriptor, native_name, app=None):
     """Attach to the exact existing host and mutate only its fresh active fixture."""
     import pythoncom
     import win32com.client
@@ -82,8 +83,10 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
         and not any(character in native_name for character in ('"', "\r", "\n")),
         "fixture requires an unambiguous native dimension name",
     )
-    pythoncom.CoInitialize()
-    app = document = manager = None
+    attach_rot = app is None
+    if attach_rot:
+        pythoncom.CoInitialize()
+    document = manager = None
     evidence = {
         "stage": "attach-existing-host",
         "process_id": process_id,
@@ -95,7 +98,8 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
     try:
         # GetActiveObject never starts a missing host. Refuse a different ROT
         # instance rather than falling back to Dispatch or an active document.
-        app = win32com.client.GetActiveObject(PROG_ID)
+        if attach_rot:
+            app = win32com.client.GetActiveObject(PROG_ID)
         require(
             int(_com_value(app, "GetProcessID")) == process_id,
             "ROT SOLIDWORKS PID differs from the daemon-owned fixture host",
@@ -208,7 +212,8 @@ def add_native_equation(*, process_id, document_descriptor, native_name):
         raise
     finally:
         manager = document = app = None
-        pythoncom.CoUninitialize()
+        if attach_rot:
+            pythoncom.CoUninitialize()
 
 
 class EquationSmoke:
@@ -504,19 +509,45 @@ def _evidence_failure(record, exc):
     record["success"] = False
 
 
+def worker_fixture(directory, *, endpoint, session_id):
+    """Ask the test-only worker to prepare the equation, never attach through ROT."""
+    directory = Path(directory).resolve(strict=True)
+
+    def prepare(**values):
+        with (directory / "request.json").open("x", encoding="utf-8") as stream:
+            json.dump({**values, "session_id": session_id}, stream, ensure_ascii=False)
+        response = call_daemon("document.inspect", endpoint=endpoint, timeout_seconds=120,
+                               session_id=session_id,
+                               document_id=values["document_descriptor"]["document_id"])
+        require(response.get("success"), f"worker fixture inspection failed: {response}")
+        result = json.loads((directory / "result.json").read_text(encoding="utf-8"))
+        if not result["success"]:
+            error = RuntimeError(f"worker equation fixture failed: {result['error']}")
+            error.native_fixture = result["native_fixture"]
+            raise error
+        require(result["native_fixture"]["visible"] is False, "equation fixture host is not hidden")
+        return result["native_fixture"]
+
+    return prepare
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
     parser.add_argument("--session", default="equation-smoke-" + uuid.uuid4().hex[:12])
+    parser.add_argument("--fixture-dir", help="private directory of the test-only STA fixture daemon")
     parser.add_argument(
         "--output-dir", help="local directory for the UTF-8 evidence record"
     )
     arguments = parser.parse_args(argv)
     try:
+        options = {} if not arguments.fixture_dir else {
+            "fixture": worker_fixture(arguments.fixture_dir, endpoint=arguments.endpoint, session_id=arguments.session)}
         record = run_gate(
             endpoint=arguments.endpoint,
             session_id=arguments.session,
             output_dir=arguments.output_dir,
+            **options,
         )
     except Exception as exc:
         record = {

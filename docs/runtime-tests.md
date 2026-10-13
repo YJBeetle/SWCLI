@@ -161,9 +161,14 @@ an editable checkout as the native runtime; the checkout only supplies the CI
 scripts and fixtures. Modeling and driving
 share one unchanged native PID within each mode; passing visible mode is not
 proof of hidden/background behavior.
-The Windows-only equation setup attaches through ROT and is required in the
-visible run only. Its hidden-host ROT limitation does not make the public
-modeling/driving gates optional and is not resolved by starting another host.
+The Windows-only equation setup runs in a separate hidden test daemon. A
+source-delivered, test-only launcher prepares the exact equation fixture in the
+worker's existing STA COM session using a private one-shot request file. It
+checks session/document/PID identity and never uses ROT or starts another SW
+instance. Production protocol operations, schemas and installed sources are
+unchanged; no raw-COM endpoint is added. The subsequent equation protection
+assertions still use the public installed daemon operations. The old ROT helper
+remains available for independent fixture diagnostics, not the CI path.
 The Windows CI installer explicitly selects the official Toolbox program,
 data and English-resource feature chains alongside the core features. It requires
 the installation medium's `Toolbox/ToolboxUpdates.zip`, keeps `INSTALLLEVEL=100`

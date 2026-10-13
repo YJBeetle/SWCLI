@@ -34,7 +34,7 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn(
             "--sample-part $samplePart --sample-assembly $sampleAssembly", script
         )
-        between = script[modeling:equation]
+        between = script[modeling:script.index('# Shared sets stop')]
         self.assertNotIn('"restart"', between)
         self.assertNotIn('"serve"', between)
         for old in (
@@ -83,10 +83,9 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
         self.assertIn('-ArgumentList $daemonArguments', wrapper)
-        self.assertIn(
-            'if (-not $Hidden) {\n        & python -I (Join-Path $PSScriptRoot "verify-equation-dimension.py")',
-            wrapper,
-        )
+        self.assertIn('--fixture-dir $equationFixtureFolder', wrapper)
+        self.assertIn('"equation-fixture-daemon.py"', wrapper)
+        self.assertNotIn('Native equation ROT fixture remains mandatory', wrapper)
 
     def test_windows_native_gate_consumes_the_same_run_package_not_editable_source(self):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")

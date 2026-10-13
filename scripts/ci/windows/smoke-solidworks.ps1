@@ -302,7 +302,11 @@ try {
     # Shared sets stop their last owned session. Windows-only lifecycle/ROT
     # assertions below need a separate fresh daemon, not a surviving CAD set.
     Assert-OwnedDaemonExit -Process $daemon -Name "preflight"
-    $daemon = Start-Process -FilePath $python -ArgumentList $daemonArguments `
+    $equationFixtureFolder = Join-Path $Workspace "equation-fixture"
+    New-Item -ItemType Directory -Path $equationFixtureFolder | Out-Null
+    $extraArguments = @("-I", ('"' + (Join-Path $PSScriptRoot "equation-fixture-daemon.py") + '"'),
+        ('"' + $equationFixtureFolder + '"'), "daemon", "serve", "--startup-timeout", "120")
+    $daemon = Start-Process -FilePath $python -ArgumentList $extraArguments `
         -RedirectStandardOutput (Join-Path $Workspace "windows-extra.stdout.log") `
         -RedirectStandardError (Join-Path $Workspace "windows-extra.stderr.log") `
         -NoNewWindow -PassThru
@@ -317,7 +321,7 @@ try {
         $status = Invoke-SwCliJson -Name "windows-extra-startup-$attempt" -AllowFailure -Arguments @("daemon", "status", "--json")
         if ($status.success) {
             if (-not $status.result.host_connected -or -not $status.result.host.owned_by_daemon -or
-                $status.result.host.shared_interactive -or $status.result.host.visible -eq [bool]$Hidden) {
+                $status.result.host.shared_interactive -or $status.result.host.visible) {
                 throw "Windows-only daemon has unexpected host ownership or visibility"
             }
             $ready = $true
@@ -329,15 +333,10 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $ready) { throw "Windows-only daemon startup deadline exceeded" }
-    # This Windows-only fixture bootstraps an equation via the existing ROT
-    # host. Hidden background hosts need not register there; do not Dispatch
-    # another instance or make them visible to prepare the fixture.
-    if (-not $Hidden) {
-        & python -I (Join-Path $PSScriptRoot "verify-equation-dimension.py") `
-            --output-dir (Join-Path $Workspace "equation-dimension")
-        if ($LASTEXITCODE -ne 0) { throw "equation-owned dimension protection gate failed" }
-    }
-    else { Write-Host "[gate] Native equation ROT fixture remains mandatory in the visible run" }
+    # Prepare the private equation through this worker's own hidden STA COM session.
+    & python -I (Join-Path $PSScriptRoot "verify-equation-dimension.py") `
+        --fixture-dir $equationFixtureFolder --output-dir (Join-Path $Workspace "equation-dimension")
+    if ($LASTEXITCODE -ne 0) { throw "equation-owned dimension protection gate failed" }
 
     $created = Invoke-SwCliJson -Name "part-create-box" -Arguments @(
         "part", "create-box", $partPath,
