@@ -27,11 +27,12 @@ first-failure propagation. No hidden-mode lifecycle-only substitute is used.
   fixture switches remain explicit in both tiers; no missing fixture is inferred
   as passing. Toolbox remains required by platform wrappers in both tiers.
 
-Windows and MacSW ordinary pushes run `core` in visible mode only. Manual
-complete acceptance selects `full` and runs visible then hidden, with separate
-evidence. Each functional set owns a fresh daemon/SOLIDWORKS session; the host
-is never restarted inside a set. Core success does not prove
-hidden-mode behavior and cannot authorize MacSW signing. DockerSW uses its
+Windows always runs a lightweight visible startup/open/inspect/close/stop smoke
+followed by hidden business tests, using separate instances and evidence.
+Ordinary pushes select hidden `core`; manual complete acceptance selects hidden
+`full`, without repeating the CAD suite visibly. Each functional set owns a
+fresh session, with no restart inside a set. MacSW retains its own host-mode
+policy; core success cannot authorize MacSW signing. DockerSW uses its
 existing background mode: automatic image promotion keeps `full`; manual `core`
 does not promote verified image tags. Six published exports remain independent.
 
@@ -153,8 +154,13 @@ the deployed result and public document operations. Each wrapper requires it
 after modeling/driving on the same host. A failure blocks delivery, never triggers
 a repair, restart or retry of the operation.
 The six DockerSW published export artifacts remain a separate delivery gate.
-Windows complete acceptance runs that same wrapper in visible and `-Hidden` modes using
-one installation and independent evidence directories. Its native job downloads
+Windows complete acceptance runs `-VisibleSmoke` then `-Hidden -Suite full` using
+one installation and independent evidence directories. The visible smoke checks
+an exclusively owned, connected host with `visible=true`, reads one installed
+part read-only, checks unchanged host identity and an empty catalog, then stops
+its own daemon/SW. It never runs CAD, dimension, export or equation cases.
+Business runs require `-Hidden`; visible success is not full interactive CAD proof.
+Its native job downloads
 the same run's `swcli-dist` artifact, requires exactly one wheel, installs it
 normally and verifies installed resources before either mode. It does not use
 an editable checkout as the native runtime; the checkout only supplies the CI

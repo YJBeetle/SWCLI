@@ -295,10 +295,8 @@ jobs:
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell
         run: |
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT -Suite '${{ inputs.runtime_suite || 'core' }}'
-          if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full') {
-            scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full
-          }
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite '${{ inputs.runtime_suite || 'core' }}'
 
       - name: Measure streamed data and remaining disk
         if: always()

@@ -69,16 +69,16 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertNotIn('SaveAs3', block)
         self.assertNotIn('Save3', block)
 
-    def test_windows_ci_core_is_visible_and_full_retains_hidden_mode(self):
+    def test_windows_ci_only_smokes_visible_and_always_runs_hidden_business_suite(self):
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
-        visible = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace $env:SWCLI_SMOKE_ROOT'
+        visible = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\visible" -VisibleSmoke'
         hidden = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\hidden" -Hidden'
         self.assertLess(workflow.index(visible), workflow.index(hidden))
-        self.assertIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
+        self.assertNotIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
         self.assertIn("-Suite '${{ inputs.runtime_suite || 'core' }}'", workflow)
-        self.assertIn('-Hidden -Suite full', workflow)
+        self.assertIn("-Hidden -Suite '${{ inputs.runtime_suite || 'core' }}'", workflow)
         self.assertIn('--suite $Suite', wrapper)
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
@@ -86,6 +86,20 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('--fixture-dir $equationFixtureFolder', wrapper)
         self.assertIn('"equation-fixture-daemon.py"', wrapper)
         self.assertNotIn('Native equation ROT fixture remains mandatory', wrapper)
+
+    def test_visible_smoke_returns_before_any_business_sets(self):
+        wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        block = wrapper.split('    if ($VisibleSmoke) {', 1)[1].split('    Invoke-SwCliJson -Name "capabilities"', 1)[0]
+        for name in ("visible-status", "visible-open", "visible-inspect", "visible-close", "visible-empty", "visible-stop"):
+            self.assertIn(f'-Name "{name}"', block)
+        self.assertIn('"--read-only"', block)
+        self.assertIn('$health.result.host.visible', block)
+        self.assertIn('$after.result.host.process_id -ne $health.result.host.process_id', block)
+        self.assertIn('Assert-OwnedDaemonExit -Process $daemon -Name "visible"', block)
+        self.assertIn('        return', block)
+        for name in ("verify-runtime-sets.py", "verify-equation-dimension.py", "create-box", "export", "rebuild"):
+            self.assertNotIn(name, block)
+        self.assertIn('if (-not $VisibleSmoke -and -not $Hidden)', wrapper)
 
     def test_windows_native_gate_consumes_the_same_run_package_not_editable_source(self):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")

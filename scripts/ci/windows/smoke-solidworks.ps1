@@ -3,11 +3,14 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Workspace,
     [switch]$Hidden,
+    [switch]$VisibleSmoke,
     [ValidateSet("core", "full")]
     [string]$Suite = "full"
 )
 
 $ErrorActionPreference = "Stop"
+if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
+if (-not $VisibleSmoke -and -not $Hidden) { throw "Business suites require -Hidden; use -VisibleSmoke for the lightweight visible check" }
 New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
 $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
 $stepPath = Join-Path $Workspace "swcli-box-100x50x20.STEP"
@@ -248,6 +251,42 @@ try {
     }
     if (-not $doctor.daemon.reachable) {
         throw "swclid is not reachable after startup"
+    }
+
+    if ($VisibleSmoke) {
+        $health = Invoke-SwCliJson -Name "visible-status" -Arguments @("daemon", "status", "--json")
+        if (-not $health.result.host_connected -or -not $health.result.host.visible -or
+            -not $health.result.host.owned_by_daemon -or $health.result.host.shared_interactive) {
+            throw "Visible smoke requires a connected, visible, exclusively owned host"
+        }
+        $sample = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
+        $opened = Invoke-SwCliJson -Name "visible-open" -Arguments @("document", "open", $sample, "--read-only", "--json")
+        if ($opened.api_errors -ne 0 -or -not $opened.read_only) {
+            throw "Visible smoke failed to open its source read-only without native errors"
+        }
+        $id = $opened.document.document_id
+        $inspected = Invoke-SwCliJson -Name "visible-inspect" -Arguments @("document", "inspect", "--document", $id, "--json")
+        if ($inspected.document.document_id -ne $id -or $inspected.document.type -ne 1) {
+            throw "Visible smoke did not inspect the opened part"
+        }
+        Invoke-SwCliJson -Name "visible-close" -Arguments @("document", "close", "--document", $id, "--discard", "--json") | Out-Null
+        $catalog = Invoke-SwCliJson -Name "visible-empty" -Arguments @("document", "list", "--json")
+        if ($catalog.count -ne 0) { throw "Visible smoke left native documents open" }
+        $after = Invoke-SwCliJson -Name "visible-status-after" -Arguments @("daemon", "status", "--json")
+        if (-not $after.result.host_connected -or -not $after.result.host.visible -or
+            $after.result.host.process_id -ne $health.result.host.process_id) {
+            throw "Visible smoke replaced or hid its host"
+        }
+        Invoke-SwCliJson -Name "visible-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+        Assert-OwnedDaemonExit -Process $daemon -Name "visible"
+        $started = $false
+        $exitWait = [Diagnostics.Stopwatch]::StartNew()
+        while ($null -ne (Get-Process -Id $health.result.host.process_id -ErrorAction SilentlyContinue) -and
+            $exitWait.Elapsed.TotalSeconds -lt 10) { Start-Sleep -Milliseconds 200 }
+        if ($null -ne (Get-Process -Id $health.result.host.process_id -ErrorAction SilentlyContinue)) {
+            throw "Visible smoke did not stop its owned SOLIDWORKS process"
+        }
+        return
     }
 
     Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
