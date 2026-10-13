@@ -77,8 +77,8 @@ class ModelingSequenceTests(unittest.TestCase):
         hidden = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\hidden" -Hidden'
         self.assertLess(workflow.index(visible), workflow.index(hidden))
         self.assertNotIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
-        self.assertIn("-Suite '${{ inputs.runtime_suite || 'core' }}'", workflow)
-        self.assertIn("-Hidden -Suite '${{ inputs.runtime_suite || 'core' }}'", workflow)
+        self.assertNotIn("inputs.runtime_suite || 'core'", workflow)
+        self.assertIn("-Hidden -Suite '${{ inputs.runtime_suite || 'full' }}'", workflow)
         self.assertIn('--suite $Suite', wrapper)
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)

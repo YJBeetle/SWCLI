@@ -296,7 +296,7 @@ jobs:
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite '${{ inputs.runtime_suite || 'core' }}'
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite '${{ inputs.runtime_suite || 'full' }}'
 
       - name: Measure streamed data and remaining disk
         if: always()
