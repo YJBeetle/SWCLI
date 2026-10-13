@@ -58,6 +58,27 @@ function Save-DesktopDiagnostic {
     }
 }
 
+function Assert-OwnedDaemonExit {
+    param(
+        [Parameter(Mandatory = $true)][Diagnostics.Process]$Process,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [int]$TimeoutMilliseconds = 30000
+    )
+    $finished = $Process.WaitForExit($TimeoutMilliseconds)
+    if ($finished) {
+        # Populate ExitCode and finish redirected output after the bounded wait.
+        $Process.WaitForExit()
+        $Process.Refresh()
+    }
+    $exitCode = if ($finished) { $Process.ExitCode } else { $null }
+    [ordered]@{ process_id = $Process.Id; wait_completed = $finished;
+        has_exited = $Process.HasExited; exit_code = $exitCode } |
+        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Workspace "$Name-exit.json") -Encoding utf8
+    if (-not $finished -or $null -eq $exitCode -or $exitCode -ne 0) {
+        throw "$Name daemon shutdown failed: wait_completed=$finished exit_code=$exitCode"
+    }
+}
+
 function Invoke-SwCliJson {
     param(
         [Parameter(Mandatory = $true)]
@@ -182,6 +203,8 @@ $daemon = Start-Process `
     -RedirectStandardError $daemonStderr `
     -NoNewWindow `
     -PassThru
+# Pin the OS handle while it is alive; preflight exits long before we check it.
+$null = $daemon.Handle
 [IO.File]::WriteAllText(
     (Join-Path $Workspace "swclid.pid"),
     [string]$daemon.Id,
@@ -278,13 +301,12 @@ try {
     }
     # Shared sets stop their last owned session. Windows-only lifecycle/ROT
     # assertions below need a separate fresh daemon, not a surviving CAD set.
-    if (-not $daemon.WaitForExit(30000) -or $daemon.ExitCode -ne 0) {
-        throw "preflight daemon did not finish shutdown"
-    }
+    Assert-OwnedDaemonExit -Process $daemon -Name "preflight"
     $daemon = Start-Process -FilePath $python -ArgumentList $daemonArguments `
         -RedirectStandardOutput (Join-Path $Workspace "windows-extra.stdout.log") `
         -RedirectStandardError (Join-Path $Workspace "windows-extra.stderr.log") `
         -NoNewWindow -PassThru
+    $null = $daemon.Handle
     $ready = $false
     $startupWait = [Diagnostics.Stopwatch]::StartNew()
     $attempt = 0

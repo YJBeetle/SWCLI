@@ -76,6 +76,14 @@ Python's installed SWCLI. `runtime-sets.json` records expected/completed sets,
 per-set host/server PIDs, step records, shutdown status and finite budgets.
 Public modeling/driving/Toolbox result files and command logs remain separate.
 
+Source-only integration adapters also supply repeatable `--python-path` absolute
+source/dependency directories. Child scripts retain `python -I`; an explicit
+bootstrap inserts only these trusted directories, never ambient `PYTHONPATH` or
+the working directory. Windows and MacSW keep the default installed-package
+path. Evidence records the explicit paths. Windows pins foreground daemon
+handles at launch and records bounded shutdown/exit-code proof even when the
+preflight launcher exited long before the final check; null/nonzero exits fail.
+
 The Windows wrapper supplies the installed `bezel moldbase.slddrw` in both
 tiers and modes. The shared coordinator copies the complete sibling reference tree to a unique
 temporary directory outside uploaded evidence, then delegates both drawing

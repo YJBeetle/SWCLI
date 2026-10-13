@@ -1,6 +1,8 @@
 import importlib.util
 import io
 import json
+import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -26,7 +28,7 @@ class ModelingSequenceTests(unittest.TestCase):
         for name in ("verify-modeling.py", "verify-driving-dimensions.py", "verify-toolbox.py"):
             self.assertNotIn(name, script)
         self.assertIn('throw "shared isolated functional sets failed"', script)
-        self.assertIn('$daemon.WaitForExit(30000)', script[modeling:equation])
+        self.assertIn('Assert-OwnedDaemonExit -Process $daemon -Name "preflight"', script[modeling:equation])
         self.assertIn(
             "--sample-part $samplePart --sample-assembly $sampleAssembly", script
         )
@@ -116,6 +118,56 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn('if ($daemon.HasExited)', block)
         self.assertIn('"TimeoutError", "ConnectionResetError"', block)
         self.assertIn('throw "Windows-only daemon startup deadline exceeded"', block)
+
+    def test_windows_pins_handles_before_delayed_strict_exit_check(self):
+        script = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        self.assertEqual(script.count('$null = $daemon.Handle'), 2)
+        self.assertLess(script.index('$null = $daemon.Handle'), script.index('"../verify-runtime-sets.py"'))
+        check = script.split('function Assert-OwnedDaemonExit {', 1)[1].split('function Invoke-SwCliJson', 1)[0]
+        self.assertIn('$Process.WaitForExit($TimeoutMilliseconds)', check)
+        self.assertIn('$Process.WaitForExit()', check)
+        self.assertIn('$null -eq $exitCode -or $exitCode -ne 0', check)
+        self.assertIn('wait_completed = $finished', check)
+        self.assertIn('"$Name-exit.json"', check)
+
+    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell required for real process exit checks")
+    def test_windows_delayed_exit_check_accepts_zero_rejects_nonzero_and_live(self):
+        source = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
+        function = 'function Assert-OwnedDaemonExit {' + source.split(
+            'function Assert-OwnedDaemonExit {', 1)[1].split('function Invoke-SwCliJson', 1)[0]
+        program = function + '''
+$ErrorActionPreference = 'Stop'
+$Workspace = $args[0]
+foreach ($code in @(0, 7)) {
+    $process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh') -ArgumentList @('-NoProfile', '-Command', "exit $code") -PassThru
+    $null = $process.Handle
+    if (-not $process.WaitForExit(10000)) { throw 'fixture did not exit' }
+    Start-Sleep -Milliseconds 100
+    $rejected = $false
+    try { Assert-OwnedDaemonExit -Process $process -Name "exit-$code" }
+    catch { $rejected = $true }
+    if ($rejected -ne ($code -ne 0)) { throw "wrong rejection: $code" }
+    $proof = Get-Content (Join-Path $Workspace "exit-$code-exit.json") -Raw | ConvertFrom-Json
+    if (-not $proof.wait_completed -or $proof.exit_code -ne $code) { throw 'wrong exit proof' }
+    $process.Dispose()
+}
+$process = Start-Process -FilePath (Join-Path $PSHOME 'pwsh') -ArgumentList @('-NoProfile', '-Command', 'Start-Sleep -Seconds 30') -PassThru
+$null = $process.Handle
+try {
+    $rejected = $false
+    try { Assert-OwnedDaemonExit -Process $process -Name 'live' -TimeoutMilliseconds 1 }
+    catch { $rejected = $true }
+    if (-not $rejected) { throw 'live process accepted' }
+    $proof = Get-Content (Join-Path $Workspace 'live-exit.json') -Raw | ConvertFrom-Json
+    if ($proof.wait_completed -or $null -ne $proof.exit_code) { throw 'wrong live proof' }
+} finally { $process.Kill(); $process.WaitForExit(); $process.Dispose() }
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "exit-check.ps1"
+            path.write_text(program, encoding="utf-8")
+            completed = subprocess.run([shutil.which("pwsh"), "-NoProfile", "-File", str(path), temporary],
+                                       capture_output=True, text=True, timeout=40)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def record(self):
         return {

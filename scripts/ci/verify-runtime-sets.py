@@ -49,6 +49,12 @@ class Runner:
     def __init__(self, args):
         self.args = args
         self.plan = runtime_plan(args.suite)
+        self.python_paths = getattr(args, "python_path", [])
+        require(not self.python_paths or args.cli_command,
+                "Explicit import directories require an adapter-owned CLI executable")
+        for path in self.python_paths:
+            require(path.is_absolute() and path.is_dir(),
+                    "Python import directory must exist and be absolute")
         self.cli = [args.cli_command] if args.cli_command else [sys.executable, "-I", "-m", "swcli"]
         self.directory = args.output_dir.resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -62,6 +68,7 @@ class Runner:
                        "budgets_seconds": {"request": args.request_timeout, "startup": args.startup_timeout,
                                            "test_set": args.set_timeout},
                        "sets": [], "commands": [], "cleanup_errors": [], "active_set": None}
+        self.record["python_import_paths"] = [str(path.resolve()) for path in self.python_paths]
         endpoint_host, endpoint_port = args.endpoint.rsplit(":", 1)
         self.bind_host, self.bind_port = endpoint_host.strip("[]"), int(endpoint_port)
         require(ipaddress.ip_address(self.bind_host).is_loopback and 0 < self.bind_port <= 65535,
@@ -225,7 +232,12 @@ class Runner:
     def step_args(self, test_set, step, fixture, host_fixture):
         output = self.directory / test_set.name / step.kind
         output.mkdir(parents=True, exist_ok=True)
-        arguments = [sys.executable, "-I", SCRIPTS / step.script, "--output-dir", output,
+        arguments = [sys.executable, "-I"]
+        if self.python_paths:
+            arguments.append(SCRIPTS / "gate_support/python_entrypoint.py")
+            for path in self.python_paths:
+                arguments += ["--python-path", path.resolve()]
+        arguments += [SCRIPTS / step.script, "--output-dir", output,
                      "--endpoint", self.args.endpoint, "--request-timeout", str(self.args.request_timeout)]
         if self.args.cli_command:
             arguments += ["--cli-command", self.args.cli_command]
@@ -363,6 +375,8 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--host-output-dir", type=host_directory, required=True)
     parser.add_argument("--cli-command")
+    parser.add_argument("--python-path", action="append", type=Path, default=[],
+                        help="Explicit trusted source/dependency directory for source-only adapters; repeatable")
     parser.add_argument("--endpoint", default=os.environ.get("SWCLI_ENDPOINT", "127.0.0.1:18495"))
     parser.add_argument("--sample-part", type=host_directory, required=True)
     parser.add_argument("--sample-assembly", type=host_directory, required=True)

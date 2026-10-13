@@ -1,8 +1,10 @@
 """Shared plan and session boundaries; no native SW or Wine required."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
+import subprocess
 import sys
 from types import SimpleNamespace
 import unittest
@@ -158,6 +160,38 @@ class RuntimeSetsTests(unittest.TestCase):
             completed = subprocess.run([sys.executable, "-I", SCRIPT.parent / name, "--help"],
                                        capture_output=True, text=True, timeout=10)
             self.assertEqual(completed.returncode, 0, completed.stderr)
+
+    def test_source_only_adapter_uses_explicit_paths_not_ambient_pythonpath(self):
+        self.args.cli_command = "/adapter/sw-cli"
+        self.args.python_path = [ROOT / "src"]
+        runner = gate.Runner(self.args)
+        step = runner.plan[0].steps[0]
+        arguments, _ = runner.step_args(runner.plan[0], step, Path("private"), "C:\\Private")
+        self.assertEqual(arguments[:3], [sys.executable, "-I", SCRIPT.parent / "gate_support/python_entrypoint.py"])
+        self.assertEqual(arguments[3:5], ["--python-path", (ROOT / "src").resolve()])
+        self.assertEqual(runner.record["python_import_paths"], [str((ROOT / "src").resolve())])
+        # No installed package/site: emulate the Linux source-only interpreter.
+        # Poisoned cwd/PYTHONPATH must not override explicitly supplied SWCLI.
+        poison = Path(self.temp.name) / "swcli.py"
+        poison.write_text("raise RuntimeError('ambient path must not be imported')\n")
+        for name in sorted({step.script for item in gate.runtime_plan("full") for step in item.steps}):
+            base = [sys.executable, "-I", "-S", SCRIPT.parent / "gate_support/python_entrypoint.py"]
+            completed = subprocess.run([*base, "--python-path", ROOT / "src", SCRIPT.parent / name, "--help"],
+                cwd=self.temp.name, env={**os.environ, "PYTHONPATH": self.temp.name},
+                capture_output=True, text=True, timeout=10)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+        # This is the original failure without the explicit source bootstrap.
+        missing = subprocess.run([sys.executable, "-I", "-S", SCRIPT.parent / step.script, "--help"],
+                                 capture_output=True, text=True, timeout=10)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("No module named 'swcli'", missing.stderr)
+
+    def test_explicit_paths_require_adapter_and_existing_absolute_directories(self):
+        for paths, cli in (([ROOT / "src"], None), ([Path("relative")], "/adapter/sw-cli"),
+                           ([Path(self.temp.name) / "missing"], "/adapter/sw-cli")):
+            self.args.python_path, self.args.cli_command = paths, cli
+            with self.subTest(paths=paths, cli=cli), self.assertRaises(RuntimeError):
+                gate.Runner(self.args)
 
     def test_start_waits_for_initializing_daemon_but_rejects_reused_pid(self):
         runner = gate.Runner(self.args)

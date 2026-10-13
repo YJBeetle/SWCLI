@@ -9,6 +9,7 @@ REQUIRED = {
     "scripts/ci/verify-runtime-sets.py",
     "scripts/ci/gate_support/runtime_plan.py",
     "scripts/ci/gate_support/entrypoints.py",
+    "scripts/ci/gate_support/python_entrypoint.py",
     "scripts/ci/verify-native-model.py",
     "scripts/ci/verify-assemblies.py",
     "scripts/ci/verify-exports.py",
