@@ -21,6 +21,9 @@ class RuntimeSetsTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
+        inventory = patch.object(gate, "solidworks_process_ids", return_value=[])
+        inventory.start()
+        self.addCleanup(inventory.stop)
         root = Path(self.temp.name)
         source = root / "source"
         source.mkdir()
@@ -193,7 +196,7 @@ class RuntimeSetsTests(unittest.TestCase):
             with self.subTest(paths=paths, cli=cli), self.assertRaises(RuntimeError):
                 gate.Runner(self.args)
 
-    def test_start_waits_for_initializing_daemon_but_rejects_reused_pid(self):
+    def test_start_waits_for_initializing_daemon_and_allows_recycled_pid_after_exit(self):
         runner = gate.Runner(self.args)
         item = {"name": "native-model"}
         runner.record["sets"] = [item]
@@ -212,10 +215,75 @@ class RuntimeSetsTests(unittest.TestCase):
         runner.record["sets"].append(next_item)
         with patch.object(gate.subprocess, "Popen", return_value=launcher), \
                 patch.object(runner, "health", return_value=self.host(42)), \
-                patch.object(runner, "empty") as empty, self.assertRaisesRegex(RuntimeError, "reused"):
+                patch.object(runner, "empty") as empty:
             runner.start(next_item)
-        empty.assert_not_called()
+        empty.assert_called_once_with("assemblies-before")
+        self.assertEqual(next_item["host"]["process_id"], item["host"]["process_id"])
+        self.assertNotEqual(next_item["instance_id"], item["instance_id"])
+        self.assertTrue(item["before_start"]["verified"])
+        self.assertTrue(next_item["before_start"]["verified"])
         runner.server_log.close()
+
+    def test_remaining_sw_blocks_start_without_spawning_or_killing(self):
+        runner = gate.Runner(self.args)
+        clock = [0]
+        item = {"name": "native-model"}
+        with patch.object(gate, "solidworks_process_ids", return_value=[777]), \
+                patch.object(gate.subprocess, "Popen") as spawn, \
+                patch.object(gate.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(gate.time, "sleep", side_effect=lambda _: clock.__setitem__(0, 31)), \
+                self.assertRaisesRegex(RuntimeError, "remained at test-set boundary"):
+            runner.start(item)
+        spawn.assert_not_called()
+        self.assertEqual(item["before_start"]["native_process_ids"], [777])
+        self.assertFalse(item["before_start"]["verified"])
+
+    def test_stop_waits_for_real_host_exit_after_normal_launcher_exit(self):
+        from unittest.mock import Mock
+        runner = gate.Runner(self.args)
+        runner.server = Mock(returncode=0)
+        runner.server.poll.return_value = None
+        launcher = runner.server
+        runner.server_log = Mock()
+        item = {"name": "native-model", "host": self.host(42)["host"]}
+        with patch.object(runner, "public") as stop, \
+                patch.object(gate, "solidworks_process_ids", side_effect=[[777], []]) as inventory, \
+                patch.object(gate.time, "sleep"):
+            runner.stop(item)
+        self.assertEqual(inventory.call_count, 2)
+        self.assertTrue(item["after_stop"]["verified"])
+        self.assertEqual(item["server_exit_code"], 0)
+        launcher.terminate.assert_not_called()
+        launcher.kill.assert_not_called()
+        stop.assert_called_once()
+
+    def test_inventory_failure_is_not_treated_as_no_host(self):
+        runner = gate.Runner(self.args)
+        with patch.object(gate, "solidworks_process_ids", side_effect=RuntimeError("inventory unavailable")), \
+                patch.object(gate.subprocess, "Popen") as spawn, \
+                self.assertRaisesRegex(RuntimeError, "inventory unavailable"):
+            runner.start({"name": "native-model"})
+        spawn.assert_not_called()
+
+    def test_stop_with_surviving_sw_fails_without_force_killing_it(self):
+        from unittest.mock import Mock
+        runner = gate.Runner(self.args)
+        launcher = Mock(returncode=0)
+        launcher.poll.side_effect = [None, 0]
+        runner.server, runner.server_log = launcher, Mock()
+        item = {"name": "native-model", "host": self.host(42)["host"]}
+        clock = [0]
+        with patch.object(runner, "public"), \
+                patch.object(gate, "solidworks_process_ids", return_value=[777]), \
+                patch.object(gate.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(gate.time, "sleep", side_effect=lambda _: clock.__setitem__(0, 31)), \
+                self.assertRaisesRegex(RuntimeError, "remained at test-set boundary"):
+            runner.stop(item)
+        self.assertFalse(item["after_stop"]["verified"])
+        self.assertEqual(item["server_exit_code"], 0)
+        launcher.terminate.assert_not_called()
+        launcher.kill.assert_not_called()
+        self.assertIsNone(runner.server)
 
     def test_actual_cli_error_envelopes_classify_only_status_transitions(self):
         runner = gate.Runner(self.args)

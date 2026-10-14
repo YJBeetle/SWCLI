@@ -17,10 +17,12 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gate_support.runtime_plan import runtime_plan
 from gate_support.model_checks import host_directory, require
+from gate_support.host_processes import solidworks_process_ids
 
 SCRIPTS = Path(__file__).resolve().parent
 
@@ -66,7 +68,7 @@ class Runner:
         self.record = {"completed": False, "success": False, "suite": args.suite, "mode": args.mode,
                        "session_policy": "fresh-per-test-set", "expected_sets": [item.name for item in self.plan],
                        "budgets_seconds": {"request": args.request_timeout, "startup": args.startup_timeout,
-                                           "test_set": args.set_timeout},
+                                           "test_set": args.set_timeout, "host_exit": 30},
                        "sets": [], "commands": [], "cleanup_errors": [], "active_set": None}
         self.record["python_import_paths"] = [str(path.resolve()) for path in self.python_paths]
         endpoint_host, endpoint_port = args.endpoint.rsplit(":", 1)
@@ -166,9 +168,28 @@ class Runner:
         require(result.get("documents") == [] and result.get("count") == 0,
                 "Unknown open documents block test-set transitions")
 
+    def wait_host_exit(self, item, stage):
+        # This runner owns an isolated VM/container. A remaining SW process,
+        # including an unknown one, blocks a new session; never kill it here.
+        started = time.monotonic()
+        deadline = started + 30
+        while True:
+            remaining = deadline - time.monotonic()
+            require(remaining > 0, "SLDWORKS process remained at test-set boundary: " + stage)
+            ids = solidworks_process_ids(timeout=min(10, remaining))
+            item[stage] = {"native_process_ids": ids, "verified": not ids,
+                           "pid_namespace": "windows" if sys.platform == "win32" else "unix",
+                           "seconds": time.monotonic() - started}
+            self.checkpoint()
+            if not ids:
+                return
+            time.sleep(0.2)
+
     def start(self, item):
         # The previous owned server must have exited, not merely acknowledged.
         require(self.server is None, "Previous session was not fully stopped")
+        self.wait_host_exit(item, "before_start")
+        item["instance_id"] = uuid.uuid4().hex
         command = [*self.cli, "daemon", "serve", "--host", self.bind_host, "--port", str(self.bind_port),
                    "--startup-timeout", str(self.args.startup_timeout)]
         if self.args.mode == "visible":
@@ -191,8 +212,9 @@ class Runner:
                 continue  # Startup observation only; never replay CAD calls.
             require(self.server.poll() is None, "Owned daemon exited during startup")
             item["host"] = self.exclusive(health)
-            previous = [record["host"]["process_id"] for record in self.record["sets"][:-1] if "host" in record]
-            require(item["host"]["process_id"] not in previous, "Previous SW process was reused instead of restarted")
+            # A Windows/Wine PID may be recycled after exit. Session freshness
+            # follows from verified process absence and a new owned launcher,
+            # not global PID uniqueness. Within-set host checks stay unchanged.
             item["server_process_id"] = self.server.pid
             self.empty(item["name"] + "-before")
             self.checkpoint()
@@ -212,6 +234,7 @@ class Runner:
                 self.server.terminate()
             self.server.wait(30)
             require(self.server.returncode == 0, "Owned daemon exited abnormally")
+            self.wait_host_exit(item, "after_stop")
         except BaseException as failure:
             error = failure
             if self.server.poll() is None:

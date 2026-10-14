@@ -59,13 +59,21 @@ diameter dimensions, center constraints, rectangle dimensions and Toolbox;
 full additionally runs reverse-cut, feature-depth and complete Top/Right cases.
 The entrypoints delegate existing CAD assertions; they do not duplicate them.
 
-Every set starts a foreground daemon with a new owned SW PID and stops it after
+Every set starts a foreground daemon with a fresh owned SW session and stops it after
 checking the real document catalog is empty. Unknown documents, attached/shared
-hosts, wrong visibility, reused PIDs, incomplete proof or shutdown failure stop
+hosts, wrong visibility, remaining SW processes, incomplete proof or shutdown failure stop
 the run; failed CAD operations are not retried. The continuation→Front diameter
 bridge deliberately runs two scripts in ONE session to retain cross-script
 failure-recovery proof. No Wine server, license service or container restart is
 performed between sets.
+
+PID values may be recycled, particularly inside Wine. After normal launcher exit
+and before the next start, the shared runner checks the native OS process inventory
+(`tasklist` on Windows, `ps` on Linux/macOS). It must find no `SLDWORKS.exe` process
+within a bounded 30-second wait; unavailable/malformed inventory fails closed.
+Evidence records a fresh test-instance UUID and both boundary observations, not globally
+unique PID numbers. This does not weaken unchanged-host checks inside a set, kill
+leftover processes, or retry failed CAD calls. Run only in an isolated CI environment.
 
 Lifecycle status probes may time out while our foreground daemon is acquiring
 SW, or reset after an exclusive empty daemon acknowledged shutdown. Only those
