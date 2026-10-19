@@ -44,6 +44,12 @@ Adapters start the host and verify process teardown. It does not create models,
 save, rebuild or export, and does not invoke the full set coordinator. MacSW can
 call this entrypoint alone when only lightweight visible coverage is desired;
 that is not hidden CAD proof. Existing evidence is never overwritten.
+The entrypoint accepts `--request-timeout` (default: 120 seconds), reusing the
+shared finite, positive, at-most-3600-second validation. Platform adapters may
+explicitly select a larger budget for slow hosts; this changes no CAD assertions
+or product defaults. The CLI subprocess limit is the request budget plus the
+existing 15-second transport grace. Evidence records both limits, and a timeout
+still fails the run without retrying the CAD call.
 
 Case methods and shared geometry assertions are in `scripts/ci/gate_support/`.
 Entry points retain transport, fixture paths, leases, evidence and cleanup;

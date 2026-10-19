@@ -48,11 +48,14 @@ def main(argv=None):
     parser.add_argument("--sample-part", required=True, type=transport.host_directory)
     parser.add_argument("--endpoint", default=os.environ.get("SWCLI_ENDPOINT", transport.DEFAULT_ENDPOINT))
     parser.add_argument("--cli-command", type=transport.executable)
+    parser.add_argument("--request-timeout", type=transport.request_timeout,
+                        default=transport.DEFAULT_REQUEST_TIMEOUT_SECONDS,
+                        help="Per-request deadline in seconds; adapters may override for slower hosts")
     args = parser.parse_args(argv)
     directory = args.output_dir.resolve()
     directory.mkdir(parents=True, exist_ok=True)
     smoke = transport.ModelingSmoke(directory=directory, host_directory=str(directory), endpoint=args.endpoint,
-        cli=[args.cli_command] if args.cli_command else None)
+        cli=[args.cli_command] if args.cli_command else None, request_timeout_seconds=args.request_timeout)
     smoke.record_path = directory / "visible.json"
     with smoke.record_path.open("x", encoding="utf-8") as stream:
         json.dump(smoke.record, stream)
