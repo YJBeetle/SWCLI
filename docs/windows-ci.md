@@ -248,3 +248,20 @@ workflow no longer calls these scripts. Snapshot caching must remain disabled
 until fresh-runner restoration proves native core/VBA integration and passes
 the same real gates. Broad registry imports and fabricated Windows Installer
 product/component registration are not a substitute for that proof.
+
+## Explicit internal API calibration
+
+Manual workflow runs can enable `calibrate_fillet` (default **false**) to run
+`scripts/ci/verify-fillet-calibration.py` against the installed native Windows
+host before normal smoke tests. It uses an independent output directory, one
+owned STA/SW instance and a generated box; the type-library path is passed from
+this workflow's explicit installation location. The step has a five-minute
+budget and retains traces/geometry results in uploaded smoke evidence even on
+failure. It does not retry failed CAD calls or attach to an existing host.
+
+This direct internal COM experiment is not a new public CLI/eval surface and
+is not enabled for ordinary pushes or a9 release acceptance. Its purpose is to
+establish the proposed operation's native feasibility before adding a protocol
+contract. An enabled calibration failure still fails that manual run. The
+[macOS/Wine receipt](verification/fillet-calibration-macos-2026-10-23.md) is local
+proof only; Windows CI must produce its own result.

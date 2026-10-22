@@ -102,3 +102,12 @@ or model creation was performed, and MacSW was not touched. Native enum values,
 late-bound creation and exact target/geometry readback remain unverified;
 this is not evidence of an API failure. Free disk capacity before resuming the
 Windows calibration; do not add public operations to bypass the missing proof.
+
+The user subsequently authorized local MacSW calibration. The generated-box
+single-edge case passed creation, exact native target/settings readback,
+selection-access release, rebuild and analytic volume checks; see the
+[2026-10-23 local receipt](../verification/fillet-calibration-macos-2026-10-23.md).
+Native Windows proof is moved to explicitly enabled CI calibration, not a
+requirement to free space or start the local VM. The public operation remains
+unimplemented; neither the local receipt nor a future calibration replaces the
+protocol/concurrency/restoration gates.
