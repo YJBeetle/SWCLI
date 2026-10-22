@@ -193,13 +193,7 @@ jobs:
       - name: Install rclone, WinFsp, and ImDisk
         shell: powershell
         run: |
-          choco install rclone imdisk --yes --no-progress
-          if ($LASTEXITCODE -ne 0) { throw "rclone/ImDisk package installation failed" }
-          foreach ($command in @("rclone", "imdisk.exe")) {
-            if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
-              throw "Required media dependency is unavailable: $command"
-            }
-          }
+          scripts/ci/windows/install-media-dependencies.ps1
           scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
 
       - name: Prepare protected Google Drive configuration

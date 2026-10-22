@@ -39,11 +39,9 @@ class WinFspDependencyContractsTests(unittest.TestCase):
     def test_workflow_checks_packages_and_retains_the_installer_log(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         step = workflow.split("      - name: Install rclone, WinFsp, and ImDisk", 1)[1].split("\n      - ", 1)[0]
-        self.assertIn("choco install rclone imdisk --yes --no-progress", step)
         self.assertNotIn("choco install rclone winfsp", step)
-        self.assertIn("if ($LASTEXITCODE -ne 0)", step)
-        self.assertIn('@("rclone", "imdisk.exe")', step)
-        self.assertIn("Get-Command $command", step)
+        self.assertIn("scripts/ci/windows/install-media-dependencies.ps1", step)
+        self.assertLess(step.index("install-media-dependencies.ps1"), step.index("install-winfsp.ps1"))
         self.assertIn("scripts/ci/windows/install-winfsp.ps1", step)
         self.assertIn("swcli-hosted-media\\winfsp\\winfsp-install.log", workflow)
         self.assertIn("mount-google-drive.ps1", workflow)
