@@ -332,9 +332,15 @@ class EquationSmoke:
             health.get("host_connected") and health.get("host"),
             "existing SOLIDWORKS daemon host is disconnected",
         )
+        capabilities = self.call("daemon.capabilities")
+        require(
+            capabilities.get("host_connected")
+            and capabilities.get("host", {}).get("process_id") == health["host"]["process_id"],
+            "SOLIDWORKS disconnected or was replaced during capability discovery",
+        )
         require(
             all(
-                operation in health["operations"]
+                operation in capabilities["operations"]
                 for operation in (
                     "sketch.dimension-diameter",
                     "dimension.inspect",

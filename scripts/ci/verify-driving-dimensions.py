@@ -462,6 +462,12 @@ class DrivingSmoke(DiameterCases, RectangleCases, CenterCases, GeometryCases):
                 "SOLIDWORKS was replaced between modeling and driving gates",
             )
             self.record["modeling_record"] = str(self.after_modeling)
+        capabilities = self.call("daemon.capabilities")
+        require(
+            capabilities["host_connected"]
+            and capabilities["host"]["process_id"] == health["host"]["process_id"],
+            "SOLIDWORKS disconnected or was replaced during capability discovery",
+        )
         for operation in (
             "sketch.fix-center",
             "sketch.dimension-diameter",
@@ -473,7 +479,7 @@ class DrivingSmoke(DiameterCases, RectangleCases, CenterCases, GeometryCases):
             "sketch.list",
         ):
             require(
-                operation in health["operations"], f"installed daemon lacks {operation}"
+                operation in capabilities["operations"], f"installed daemon lacks {operation}"
             )
         self.checkpoint("host.verified")
         self.prepare_origin_fixture()

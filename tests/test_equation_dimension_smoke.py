@@ -56,6 +56,14 @@ class FakeDaemon:
                 "result": {
                     "host_connected": True,
                     "host": {"process_id": pid},
+                },
+            }
+        if operation == "daemon.capabilities":
+            return {
+                "success": True,
+                "result": {
+                    "host_connected": True,
+                    "host": {"process_id": 123},
                     "operations": [
                         "sketch.dimension-diameter",
                         "dimension.inspect",
@@ -199,7 +207,7 @@ class EquationGateTests(unittest.TestCase):
         self.assertEqual(self.daemon.calls[-1][2]["document_id"], "d-000001")
         self.assertFalse(
             any(
-                operation.startswith("daemon.") and operation != "daemon.health"
+                operation.startswith("daemon.") and operation not in ("daemon.health", "daemon.capabilities")
                 for operation, _, _ in self.daemon.calls
             )
         )
@@ -228,6 +236,44 @@ class EquationGateTests(unittest.TestCase):
                 self.assertFalse(self.daemon.owned)
                 self.assertEqual(record["cleanup_errors"], [])
 
+    def test_runtime_health_and_catalog_are_separate_and_precede_document_creation(self):
+        record = self.run_gate()
+        self.assertTrue(record["success"], record)
+        self.assertEqual(
+            [operation for operation, _, _ in self.daemon.calls[:3]],
+            ["daemon.health", "daemon.capabilities", "document.create"],
+        )
+        self.assertNotIn("operations", record["events"][0]["response"]["result"])
+        self.assertIn("operations", record["events"][1]["response"]["result"])
+        self.assertEqual(self.daemon.calls[1][1], None)
+
+    def test_catalog_failure_or_changed_host_stops_before_any_document_creation(self):
+        for defect in ("rpc-error", "disconnected", "replaced", "missing-operation"):
+            with self.subTest(defect=defect):
+                self.daemon = FakeDaemon()
+                original = self.daemon.call
+                def probe(operation, parameters=None, **context):
+                    response = original(operation, parameters, **context)
+                    if operation == "daemon.capabilities":
+                        if defect == "rpc-error":
+                            return {"success": False, "error": {"code": "UnsupportedOperation"}}
+                        if defect == "disconnected":
+                            response["result"].update(host_connected=False, host=None)
+                        elif defect == "replaced":
+                            response["result"]["host"]["process_id"] = 999
+                        else:
+                            response["result"]["operations"].remove("dimension.set")
+                    return response
+                with mock.patch.object(equation_smoke, "call_daemon", side_effect=probe):
+                    record = self.run_gate()
+                self.assertFalse(record["success"])
+                self.assertEqual(
+                    [operation for operation, _, _ in self.daemon.calls],
+                    ["daemon.health", "daemon.capabilities"],
+                )
+                self.assertFalse(self.daemon.owned)
+                self.assertEqual(record["cleanup_errors"], [])
+
     def test_partial_native_document_creation_is_cleaned_even_when_rpc_failed(self):
         self.daemon.create_partial_failure = True
         record = self.run_gate()
@@ -236,7 +282,7 @@ class EquationGateTests(unittest.TestCase):
         self.assertIn("PartialCreate", record["failure"]["message"])
         self.assertEqual(
             [operation for operation, _, _ in self.daemon.calls],
-            ["daemon.health", "document.create", "document.close"],
+            ["daemon.health", "daemon.capabilities", "document.create", "document.close"],
         )
 
     def test_fixture_failure_and_cleanup_failure_are_both_retained(self):

@@ -281,6 +281,8 @@ class FakeDaemon:
         session = context["session_id"]
         document_id = context.get("document_id")
         if operation == "daemon.health":
+            return self.response({"host_connected": True, "host": {"process_id": 123}})
+        if operation == "daemon.capabilities":
             return self.response(
                 {
                     "host_connected": True,
@@ -778,6 +780,46 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         rectangle.assert_not_called()
         self.assertEqual(self.smoke.record["selection"], {"plane": "top", "case_set": "center"})
         self.assertEqual(len(self.smoke.record["case_cleanup"]), 1)
+
+    def test_runtime_health_and_catalog_are_queried_separately_before_modeling(self):
+        self.smoke.plane_selection = "front"
+        self.smoke.case_set = "diameter"
+        with mock.patch.object(self.smoke, "plane"):
+            self.run_smoke()
+        self.assertEqual(
+            [operation for operation, _, _ in self.daemon.calls[:2]],
+            ["daemon.health", "daemon.capabilities"],
+        )
+        events = self.smoke.record["events"]
+        self.assertNotIn("operations", events[0]["response"]["result"])
+        self.assertIn("operations", events[1]["response"]["result"])
+        self.assertEqual(events[1]["parameters"], {})
+        self.assertEqual(self.smoke.record["host"]["process_id"], 123)
+        self.assertEqual(self.smoke.record["host_after"]["process_id"], 123)
+
+    def test_capability_failure_disconnect_or_host_replacement_stops_before_modeling(self):
+        for defect in ("rpc-error", "disconnected", "replaced"):
+            with self.subTest(defect=defect):
+                original = self.daemon.call
+                def probe(operation, parameters=None, **context):
+                    response = original(operation, parameters, **context)
+                    if operation == "daemon.capabilities":
+                        if defect == "rpc-error":
+                            return self.daemon.error("UnsupportedOperation")
+                        if defect == "disconnected":
+                            response["result"].update(host_connected=False, host=None)
+                        else:
+                            response["result"]["host"]["process_id"] = 999
+                    return response
+                self.daemon.calls.clear()
+                with mock.patch.object(self.daemon, "call", side_effect=probe):
+                    with self.assertRaisesRegex(RuntimeError, "UnsupportedOperation|capability discovery"):
+                        self.run_smoke()
+                self.assertEqual(
+                    [operation for operation, _, _ in self.daemon.calls],
+                    ["daemon.health", "daemon.capabilities"],
+                )
+                self.assertFalse(self.daemon.documents)
 
     def test_core_keeps_three_plane_geometry_and_front_protocol_guards(self):
         self.smoke.suite = "core"
@@ -1349,7 +1391,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         self.assertFalse(self.daemon.documents)
         self.assertFalse(
             any(
-                item[0].startswith("daemon.") and item[0] != "daemon.health"
+                item[0].startswith("daemon.") and item[0] not in ("daemon.health", "daemon.capabilities")
                 for item in self.daemon.calls
             )
         )
@@ -1780,7 +1822,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
             "case": "plane.front.diameter", "open_document_count": 1,
             "empty": False, "remaining_document_ids": list(self.daemon.documents),
         }])
-        self.assertFalse(any(operation.startswith("daemon.") and operation != "daemon.health"
+        self.assertFalse(any(operation.startswith("daemon.") and operation not in ("daemon.health", "daemon.capabilities")
                              for operation, _, _ in self.daemon.calls))
 
     def test_atomic_replacement_failure_keeps_last_record_and_permissions(self):
