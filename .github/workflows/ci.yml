@@ -37,6 +37,11 @@ on:
           - "6"
           - "8"
           - "12"
+      calibrate_fillet:
+        description: Run internal single-edge fillet calibration (not a public CLI feature)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -280,6 +285,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
           python -I scripts/ci/verify-installed.py
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
+
+      - name: Calibrate single-edge fillet API
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate_fillet }}
+        timeout-minutes: 5
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-fillet-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\fillet-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "internal fillet calibration failed; see calibration evidence" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell
