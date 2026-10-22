@@ -94,17 +94,18 @@ See the [a9 release draft](releases/v0.1.0a9.md) for precise scope and release g
 
 Next:
 
-1. Make agent discovery inexpensive: separate concise runtime status from the
-   full schema catalog, offer per-operation discovery, advertise document-type
-   export formats and clarify JSON envelopes, current modeling limits and host
-   ownership/visibility/PID namespaces. These are planned improvements, not
-   existing flags. Keep OS PID mapping and path-wrapper behavior host-owned.
-2. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
+The a9 candidate now separates lightweight status and summary capabilities,
+supports `--operation NAME` and explicit `--full`, and advertises adapter export
+extensions. The packaged guide documents JSON field paths, current modeling
+limits and host/PID semantics. OS PID mapping and path wrappers remain
+host-owned. These discovery changes still require formal host verification.
+
+1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
    on a generated part before exposing a new operation. Start with one explicit
    edge and a constant radius, exact native target readback, independent geometry
    checks and existing lease/stamp/restoration guards. This is planned, not an a8
    capability.
-3. Extend profiles/end conditions and selected-body/face support only with
+2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
 Each increment needs request/result Schema, document/lease/stamp guards,

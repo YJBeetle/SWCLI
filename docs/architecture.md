@@ -351,12 +351,22 @@ and independent MacSW limitations.
 
 Protocol and host implementation versions are independent. `sw-cli
 capabilities` exposes the running daemon's server version, supported protocol
-versions, operations, per-operation parameter schemas and request context,
-request replay policy, worker/recovery state, and host details without starting
+versions, operations, adapter export extensions, request replay policy,
+worker/recovery state, and host details without starting
 a missing local service. Its successful JSON output conforms directly to the
 published capabilities schema. The schemas advertised by the daemon are the
 same definitions used for request validation, so capability discovery cannot
 drift from runtime parameter handling.
+
+The a9 candidate separates `daemon.health` (runtime state only) from supervisor
+`daemon.capabilities` (summary by default). Its optional `operation` selects
+one request/result schema pair; `include_schemas: true` selects the full catalog.
+The CLI exposes mutually exclusive `--operation NAME` and `--full`. Both schema
+maps are absent from summaries and present together in detailed views. Queries
+do not dispatch COM business work or start a missing worker. This is a
+pre-stable contract change: upgrade client and daemon together; there is no
+silent fallback to an older full-health payload. `host.process_id` remains a
+Windows/Wine PID, not a host OS PID.
 
 Starting with `v0.1.0a4`, each operation declaration also
 owns its handler name, selected-document policy, lease guard, temporary

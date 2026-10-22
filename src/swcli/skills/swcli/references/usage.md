@@ -36,11 +36,65 @@ an authenticated tunnel or a trusted boundary. Native save/open/output paths
 belong to the server. DockerSW's Linux entry point translates mounted Linux
 paths for Wine; this is not a general remote file-transfer facility.
 
-Capabilities publishes `operations`, `operation_schemas` and (on supported
-versions) `operation_result_schemas`. Check the requested operation and its
-`x-swcli-context` before assembling a request. `--help` is available locally.
+The a9 candidate's capabilities summary publishes `operations` and
+`export_formats` (adapter extensions grouped by `part`, `assembly`, `drawing`).
+It does not probe whether every native translator is installed. Query details
+only as needed:
+
+```bash
+sw-cli capabilities --operation sketch.rectangle --json
+sw-cli capabilities --operation document.export --json
+```
+
+The selected view contains `operations: [NAME]`, `operation_schemas[NAME]` and
+`operation_result_schemas[NAME]`. Check `x-swcli-context` before assembling a
+request. `--full` explicitly requests all schemas; CI uses it for contract
+validation, not as an agent's routine status probe. `daemon status` contains
+runtime state only. These changes require a matching a9 client/daemon; older
+clients may expose only the full default catalog. `--help` is available locally.
 If the host lacks a requested operation, report that limitation rather than
 inventing a command or silently choosing a mesh/GUI workaround.
+
+### JSON field paths
+
+Always check the process exit code first; a missing JSON key is not an empty
+successful result. Current CLI views deliberately distinguish protocol status
+from typed CAD results; do not apply one view's `jq` path to another.
+
+| Command | Successful JSON fields |
+| --- | --- |
+| `version --json` | `.client_version`, `.protocol_version` |
+| `daemon status --json` | `.success == true`, runtime `.result.host_connected`, `.result.host` |
+| `capabilities --json` | top-level `.operations`, `.export_formats`, `.server_version` |
+| `document list --json` | `.ok == true`, top-level `.count`, `.documents` |
+| Typed open/create/export | `.ok == true`, `.document` or `.artifact` as described by that operation's result schema |
+
+Status failures use `.success == false` and `.error.code`; capabilities/typed
+CLI failures use `.ok == false` and usually `.error.type`. Read `.error.message`
+as well. Capabilities success does not contain an `.ok` field.
+
+### Host identity and visibility
+
+`host` is null when unavailable. Its `process_id` is the SOLIDWORKS Windows
+process ID, including inside Wine, **not** the Linux/macOS host PID. Do not
+compare it directly with host `ps`; OS PID mapping belongs to the host product.
+`owned_by_daemon: true` identifies a host acquired for daemon ownership;
+`shared_interactive: true` means explicit attachment without ownership.
+`visible` reports the SOLIDWORKS application visibility, not proof that its
+window is foreground, unminimized or the same instance as a host menu's window.
+The flags do not grant permission to stop or modify a user's host/documents.
+
+### Current modeling limits
+
+The a9 candidate provides origin-plane (`front`, `top`, `right`) rectangle and
+full-circle sketches, boxes, blind boss/cut extrusions and the documented narrow
+dimension/depth edits. It has no general offset-plane, spline/3D-sketch,
+loft/sweep or fillet command. Assembly insertion accepts approximate-center
+coordinates, not a verified exact transform or mates. Entity observation does
+not imply entity-targeted editing. These are CLI limits, not SOLIDWORKS limits;
+check the actual advertised version before proposing a workflow. A voxel-style
+composition is a reasonable bounded example; do not promise organic sculpting
+or invent an unsupported operation to make a requested model seem achievable.
 
 ## Select documents and coordinate writers
 

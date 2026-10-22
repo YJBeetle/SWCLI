@@ -177,6 +177,10 @@ the deployed result and public document operations. Each wrapper requires it
 after modeling/driving on the same host. A failure blocks delivery, never triggers
 a repair, restart or retry of the operation.
 The six DockerSW published export artifacts remain a separate delivery gate.
+Shared modeling and the Windows wrapper explicitly request `capabilities
+--full --json` so detailed request/result contract drift remains a CI failure;
+normal clients use the small summary or one operation instead. Health probes
+do not serialize the schema catalog.
 Windows complete acceptance runs `-VisibleSmoke` then `-Hidden -Suite full` using
 one installation and independent evidence directories. The visible smoke checks
 an exclusively owned, connected host with `visible=true`, reads one installed

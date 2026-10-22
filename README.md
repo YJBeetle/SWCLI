@@ -317,12 +317,19 @@ SOLIDWORKS implicitly:
 
 ```bash
 sw-cli capabilities --json
+sw-cli capabilities --operation document.export --json
+sw-cli capabilities --full --json
 ```
 
 On success, the JSON output directly conforms to the published capabilities
-schema and includes protocol/server versions, the operation list, each
-operation's parameter schema and supported request context, worker and recovery
-state, request replay policy, and the current host description. The server
+schema. In the a9 candidate, the default is a small summary with protocol/server
+versions, operation names, adapter `export_formats` by document type, replay
+policy and host/recovery state. `--operation NAME` returns only that operation's
+request/result schemas and supported context; `--full` returns the complete
+catalog. These switches require the matching a9 candidate client/daemon, not
+the published a8 wheel. `daemon status` now returns runtime state only, without
+the operation catalog. Export extensions describe adapter support, not proof
+that a particular native translator is installed. The server
 validates requests against the same operation catalog it publishes. In the
 `v0.1.0a4` release, the catalog also declares handlers, document
 selection, lease guards, temporary activation and result contracts. Result

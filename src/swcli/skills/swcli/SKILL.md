@@ -15,9 +15,12 @@ skill; it does not depend on the developer's machine or repository checkout.
 ## Working rules
 
 - First run `sw-cli version --json`, `sw-cli daemon status --json` and
-  `sw-cli capabilities --json`. The running daemon's operation schemas, result
-  schemas and request contexts are authoritative. Do not assume an operation
-  exists because a newer README mentions it.
+  `sw-cli capabilities --json`. On the a9 candidate, this is a concise summary;
+  request `capabilities --operation NAME --json` for the needed request/result
+  schemas and context, rather than loading every schema with `--full`.
+  Older clients may have only the full default view: check local `--help`.
+  The running daemon is authoritative; do not assume a newer README's operation
+  exists. See the guide for current modeling limits and JSON field paths.
 - Use `--json` and check the process exit code as well as the response. Successful
   daemon management and CAD results have different envelopes; a connection
   failure is not an empty document list.

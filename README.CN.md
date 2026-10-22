@@ -207,9 +207,11 @@ sw-cli --request-id export-build-42 document export output.STEP --strict --json
 
 ```bash
 sw-cli capabilities --json
+sw-cli capabilities --operation document.export --json
+sw-cli capabilities --full --json
 ```
 
-成功时，JSON 输出直接符合公开的 capabilities schema，包含协议与服务版本、操作列表、每个操作的参数 schema 与可用请求上下文、worker 与恢复状态、请求重放策略及当前宿主描述。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
+成功时，JSON 输出直接符合公开的 capabilities schema。a9 候选版默认只返回简短摘要：协议与服务版本、操作名称、按文档类型列出的适配器 `export_formats`、重放策略和宿主／恢复状态。`--operation NAME` 只返回指定操作的请求／结果 Schema 与上下文；`--full` 返回完整目录。这些开关需要匹配的 a9 候选客户端和 daemon，已发布 a8 wheel 尚不包含。`daemon status` 仅返回运行状态，不再携带操作目录。导出扩展名表示适配器支持范围，不证明宿主已安装相应原生转换器。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
 
 `v0.1.0a4` 在操作目录中统一声明 handler、文档选择、lease 守卫、临时前台激活和输出契约。结果 Schema 描述协议响应中的 `result`；类型化 CLI JSON 将它展开，并可能添加 `request_id` 和 `replayed`。适配器输出违反契约时返回 `OperationResultInvalid`；此时 CAD 操作可能已经改变了状态，发起新请求重试前应先检查文档。
 
