@@ -207,29 +207,39 @@ try {
             "result": {
                 "host_connected": True,
                 "host": {"process_id": pid},
-                "operations": [
-                    "sketch.fix-center",
-                    "sketch.dimension-diameter",
-                    "sketch.dimension-rectangle",
-                    "dimension.discover-diameter",
-                    "dimension.discover-rectangle",
-                    "dimension.inspect",
-                    "dimension.set",
-                    "sketch.list",
-                ],
             },
         }
 
+    def capabilities(self, pid=123):
+        response = self.health(pid)
+        response["result"]["operations"] = [
+            "sketch.fix-center",
+            "sketch.dimension-diameter",
+            "sketch.dimension-rectangle",
+            "dimension.discover-diameter",
+            "dimension.discover-rectangle",
+            "dimension.inspect",
+            "dimension.set",
+            "sketch.list",
+        ]
+        return response
+
     def empty_host_calls(self, *pids):
         health = iter(self.health(pid) for pid in pids)
+        current_pid = None
         def call(operation, *args, **kwargs):
+            nonlocal current_pid
             if operation == "document.list":
                 return {"success": True, "result": {
                     "action": operation, "ok": True, "count": 0,
                     "documents": [], "current_document_id": None,
                 }}
             if operation == "daemon.health":
-                return next(health)
+                response = next(health)
+                current_pid = response["result"]["host"]["process_id"]
+                return response
+            if operation == "daemon.capabilities":
+                return self.capabilities(current_pid)
             raise AssertionError("unexpected fixture operation: " + operation)
         return call
 
@@ -259,6 +269,8 @@ try {
             )
             self.assertEqual(sizes.call_args_list, centers.call_args_list)
             self.assertEqual(sum(call.args[0] == "document.list" for call in rpc.call_args_list), 9)
+            self.assertEqual(sum(call.args[0] == "daemon.capabilities" for call in rpc.call_args_list), 1)
+            self.assertNotIn("operations", self.health()["result"])
             self.assertEqual(smoke.record["host_after"]["process_id"], 123)
             self.assertEqual(smoke.record["modeling_record"], str(path))
             with (
