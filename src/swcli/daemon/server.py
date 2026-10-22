@@ -23,8 +23,9 @@ from ..hosts.com_errors import (
     DISCONNECTED_COM_HRESULTS,
     com_hresult as _com_hresult,
 )
-from ..operation_schemas import operation_schemas, operation_result_schemas, validate_operation_request
+from ..operation_schemas import OPERATION_CATALOG, validate_operation_request
 from ..result_schemas import validate_operation_result
+from ..hosts.windows_documents import supported_export_formats
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import (
     LEASE_TOKEN_OPERATIONS,
@@ -735,21 +736,37 @@ class WorkerManager:
         return {
             "server_version": __version__,
             "protocol_versions": [PROTOCOL_VERSION],
-            "operations": list(OPERATIONS),
-            "operation_schemas": operation_schemas(),
-            "operation_result_schemas": operation_result_schemas(),
-            "request_replay": {
-                "supported": True,
-                "max_entries": REQUEST_REPLAY_MAX_ENTRIES,
-                "max_bytes": REQUEST_REPLAY_MAX_BYTES,
-                "scope": "daemon",
-            },
             "worker_alive": worker_alive,
             "host_connected": host_connected,
             "recovery_required": recovery_error is not None,
             "recovery_error": recovery_error,
             "host": host,
         }
+
+    def capabilities(
+        self, *, include_schemas: bool = False, operation: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Describe support without dispatching COM or restarting a host."""
+        if operation is not None and operation not in OPERATIONS:
+            raise ValueError(f"unknown operation: {operation}")
+        names = list(OPERATIONS) if operation is None else [operation]
+        payload = {
+            **self.health(),
+            "operations": names,
+            "export_formats": supported_export_formats(),
+            "request_replay": {
+                "supported": True, "max_entries": REQUEST_REPLAY_MAX_ENTRIES,
+                "max_bytes": REQUEST_REPLAY_MAX_BYTES, "scope": "daemon",
+            },
+        }
+        if include_schemas or operation is not None:
+            payload["operation_schemas"] = {
+                name: deepcopy(OPERATION_CATALOG[name].parameters) for name in names
+            }
+            payload["operation_result_schemas"] = {
+                name: deepcopy(OPERATION_CATALOG[name].result) for name in names
+            }
+        return payload
 
     def shutdown(self, request: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
@@ -857,6 +874,10 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                 )
             elif request["operation"] == "daemon.health":
                 response = _success_response(request_id, self.server.manager.health())
+            elif request["operation"] == "daemon.capabilities":
+                response = _success_response(
+                    request_id, self.server.manager.capabilities(**request["parameters"])
+                )
             elif request["operation"] == "daemon.shutdown":
                 response = self.server.manager.shutdown(request)
                 if response.get("success"):

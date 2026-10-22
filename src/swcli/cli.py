@@ -87,6 +87,13 @@ def build_parser() -> argparse.ArgumentParser:
     capabilities_parser.add_argument(
         "--json", action="store_true", dest="as_json"
     )
+    discovery = capabilities_parser.add_mutually_exclusive_group()
+    discovery.add_argument(
+        "--full", action="store_true", help="include all request/result schemas in JSON output"
+    )
+    discovery.add_argument(
+        "--operation", help="select one operation; use --json for its request/result schemas"
+    )
 
     document_parser = subcommands.add_parser(
         "document", help="open and inspect SOLIDWORKS documents"
@@ -597,8 +604,12 @@ def _run_capabilities(args: argparse.Namespace) -> int:
     """Query a running daemon without implicitly starting a local host."""
 
     try:
+        parameters = {"include_schemas": args.full}
+        if args.operation is not None:
+            parameters["operation"] = args.operation
         response = call_daemon(
-            "daemon.health",
+            "daemon.capabilities",
+            parameters,
             endpoint=args.endpoint,
             timeout_seconds=min(args.request_timeout, 10.0),
             connect_timeout_seconds=args.connect_timeout,
@@ -624,7 +635,12 @@ def _run_capabilities(args: argparse.Namespace) -> int:
             }
         else:
             capabilities = response.get("result")
-            mismatch = _capabilities_mismatch(capabilities)
+            mismatch = _capabilities_mismatch(
+                capabilities, include_schemas=args.full or args.operation is not None
+            )
+            if mismatch is None and args.operation is not None:
+                if capabilities["operations"] != [args.operation]:
+                    mismatch = "daemon returned schemas for a different operation"
             if mismatch is None:
                 payload = capabilities
             else:
@@ -655,6 +671,8 @@ def _run_capabilities(args: argparse.Namespace) -> int:
                 f"{host['platform']} / SOLIDWORKS {host['solidworks_revision']}"
             )
         print(f"Operations: {', '.join(payload['operations'])}")
+        for kind, extensions in payload["export_formats"].items():
+            print(f"Export {kind}: {', '.join(extensions)}")
         if payload["recovery_required"]:
             print(
                 "Recovery required: "
@@ -663,13 +681,15 @@ def _run_capabilities(args: argparse.Namespace) -> int:
     return 1 if payload.get("ok") is False else 0
 
 
-def _capabilities_mismatch(payload: Any) -> Optional[str]:
-    """Return why a health payload cannot satisfy the public capabilities schema."""
+def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Optional[str]:
+    """Validate summary or explicit detailed discovery without hiding drift."""
 
     if not isinstance(payload, dict):
         return "daemon returned a non-object capabilities payload"
     schema = load_schema("capabilities")
     expected = set(schema["properties"])
+    if not include_schemas:
+        expected -= {"operation_schemas", "operation_result_schemas"}
     actual = set(payload)
     if actual != expected:
         missing = sorted(expected - actual)
@@ -691,9 +711,10 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
         and len(payload["operations"]) == len(set(payload["operations"]))
     ):
         return "operations must be a unique string array"
-    operation_schemas = payload["operation_schemas"]
-    if not isinstance(operation_schemas, dict) or set(operation_schemas) != set(
-        payload["operations"]
+    operation_schemas = payload.get("operation_schemas", {})
+    if include_schemas and (
+        not isinstance(operation_schemas, dict)
+        or set(operation_schemas) != set(payload["operations"])
     ):
         return "operation_schemas must describe every advertised operation"
     operation_schema_fields = {
@@ -734,8 +755,11 @@ def _capabilities_mismatch(payload: Any) -> Optional[str]:
             or not all(value in context_modes for value in context.values())
         ):
             return f"operation context schema is invalid for {operation}"
-    result_schemas = payload["operation_result_schemas"]
-    if not isinstance(result_schemas, dict) or set(result_schemas) != set(payload["operations"]):
+    result_schemas = payload.get("operation_result_schemas", {})
+    if include_schemas and (
+        not isinstance(result_schemas, dict)
+        or set(result_schemas) != set(payload["operations"])
+    ):
         return "operation_result_schemas must describe every advertised operation"
     from jsonschema import Draft202012Validator
     from jsonschema.exceptions import SchemaError

@@ -1311,6 +1311,15 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
     if name == "daemon.health":
+        capabilities = load_schema("capabilities")
+        fields = ("server_version", "protocol_versions", "worker_alive", "host_connected",
+                  "recovery_required", "recovery_error", "host")
+        return {
+            "$schema": capabilities["$schema"],
+            "$id": "https://swcli.dev/schema/v1/results/daemon.health.schema.json",
+            **_object({key: capabilities["properties"][key] for key in fields}, fields),
+        }
+    if name == "daemon.capabilities":
         return load_schema("capabilities")
     if name == "daemon.shutdown":
         return {

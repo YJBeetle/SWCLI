@@ -18,6 +18,7 @@ from swcli.operation_schemas import (
     operation_result_schemas,
     validate_operation_request,
 )
+from swcli.hosts.windows_documents import supported_export_formats
 
 
 class CliTests(unittest.TestCase):
@@ -383,13 +384,14 @@ class CliTests(unittest.TestCase):
         self.assertTrue(attached_serve.attach_existing)
 
     @mock.patch("swcli.cli.call_daemon")
-    def test_capabilities_json_matches_daemon_health(self, call_daemon):
+    def test_full_capabilities_json_matches_daemon_catalog(self, call_daemon):
         capabilities = {
             "server_version": "0.1.0.dev0",
             "protocol_versions": ["swcli/v1"],
             "operations": list(operation_schemas()),
             "operation_schemas": operation_schemas(),
             "operation_result_schemas": operation_result_schemas(),
+            "export_formats": supported_export_formats(),
             "request_replay": {
                 "supported": True,
                 "max_entries": 1024,
@@ -416,12 +418,13 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
 
         with contextlib.redirect_stdout(output):
-            exit_code = main(["capabilities", "--json"])
+            exit_code = main(["capabilities", "--full", "--json"])
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(json.loads(output.getvalue()), capabilities)
         call_daemon.assert_called_once_with(
-            "daemon.health",
+            "daemon.capabilities",
+            {"include_schemas": True},
             endpoint="127.0.0.1:18495",
             timeout_seconds=10.0,
             connect_timeout_seconds=3.0,
@@ -446,7 +449,7 @@ class CliTests(unittest.TestCase):
 
     def test_capabilities_rejects_schema_drift(self):
         self.assertIn(
-            "missing=['host_connected', 'operation_result_schemas', 'recovery_error', 'recovery_required', 'request_replay']",
+            "missing=['export_formats', 'host_connected', 'operation_result_schemas', 'recovery_error', 'recovery_required', 'request_replay']",
             _capabilities_mismatch(
                 {
                     "server_version": "old",

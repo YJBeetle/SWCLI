@@ -66,6 +66,12 @@ _EXPORT_FORMATS = {
 _STL_COMPONENTS_INTO_ONE_FILE = 72
 
 
+def supported_export_formats() -> Dict[str, list[str]]:
+    """Advertise adapter extensions, not the presence of every host translator."""
+    return {name: sorted(_EXPORT_FORMATS[kind])
+            for kind, name in ((1, "part"), (2, "assembly"), (3, "drawing"))}
+
+
 class _ExportPreferenceError(RuntimeError):
     def __init__(self, code: str, message: str):
         super().__init__(message)

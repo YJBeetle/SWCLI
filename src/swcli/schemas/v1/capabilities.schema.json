@@ -9,15 +9,28 @@
     "server_version",
     "host",
     "operations",
-    "operation_schemas",
-    "operation_result_schemas",
+    "export_formats",
     "request_replay",
     "worker_alive",
     "host_connected",
     "recovery_required",
     "recovery_error"
   ],
+  "dependentRequired": {
+    "operation_schemas": ["operation_result_schemas"],
+    "operation_result_schemas": ["operation_schemas"]
+  },
   "properties": {
+    "export_formats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["part", "assembly", "drawing"],
+      "properties": {
+        "part": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^\\.[a-z0-9]+$"}},
+        "assembly": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^\\.[a-z0-9]+$"}},
+        "drawing": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^\\.[a-z0-9]+$"}}
+      }
+    },
     "protocol_versions": {
       "type": "array",
       "items": {"type": "string"},

@@ -102,6 +102,10 @@ _DOCUMENT_WRITE_CONTEXT = {
 
 OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.health": _operation("daemon.health"),
+    "daemon.capabilities": _operation(
+        "daemon.capabilities",
+        {"include_schemas": _boolean(), "operation": _string(minLength=1)},
+    ),
     "daemon.shutdown": _operation("daemon.shutdown"),
     "document.create": _operation(
         "document.create",

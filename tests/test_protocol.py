@@ -233,6 +233,7 @@ class ProtocolSchemaTests(unittest.TestCase):
                 "operations",
                 "operation_schemas",
                 "operation_result_schemas",
+                "export_formats",
                 "request_replay",
                 "worker_alive",
                 "host_connected",
@@ -241,7 +242,9 @@ class ProtocolSchemaTests(unittest.TestCase):
                 "host",
             },
         )
-        self.assertEqual(set(schema["required"]), set(schema["properties"]))
+        self.assertEqual(set(schema["required"]), set(schema["properties"]) - {
+            "operation_schemas", "operation_result_schemas"
+        })
         operation_schema = schema["properties"]["operation_schemas"][
             "additionalProperties"
         ]

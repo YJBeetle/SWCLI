@@ -187,8 +187,8 @@ class EdgeOperationTests(unittest.TestCase):
 
     def test_conditional_parameter_schema_is_valid_capability_not_unchecked_escape(self):
         with mock.patch.object(WorkerManager, "_start_worker"):
-            payload = WorkerManager().health()
-        validate_operation_result("daemon.health", payload)
+            payload = WorkerManager().capabilities(include_schemas=True)
+        validate_operation_result("daemon.capabilities", payload)
         self.assertIsNone(_capabilities_mismatch(payload))
         for conditions in ([], "unchecked", [{"if": {"type": "bogus-type"}}]):
             changed = deepcopy(payload)
