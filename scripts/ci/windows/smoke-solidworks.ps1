@@ -270,7 +270,7 @@ try {
         return
     }
 
-    Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--json") | Out-Null
+    Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--full", "--json") | Out-Null
     & python (Join-Path $PSScriptRoot "../verify-invalid-requests.py")
     if ($LASTEXITCODE -ne 0) { throw "invalid wire requests changed the running host or documents" }
 

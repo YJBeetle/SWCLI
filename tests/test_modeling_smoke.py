@@ -1549,6 +1549,9 @@ class ModelingSmokeTests(unittest.TestCase):
     def test_complete_shared_sequence_parses_real_cli_and_keeps_one_host(self):
         commands = self.run_gate(samples=True)
         record = self.record()
+        catalogs = [call for call in self.fake.calls if call.command == "capabilities"]
+        self.assertTrue(catalogs)
+        self.assertTrue(all(call.full and call.operation is None for call in catalogs))
         self.assertEqual(record["request_timeout_seconds"], 120)
         self.assertEqual(record["cli_process_timeout_seconds"], 135)
         self.assertEqual(record["depth_request_timeout_seconds"], 600)

@@ -226,7 +226,7 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
                         result.get("ok") is True
                         or result.get("success") is True
                         or (
-                            arguments == ("capabilities",)
+                            arguments in (("capabilities",), ("capabilities", "--full"))
                             and result.get("host_connected") is True
                         )
                     ),
@@ -470,7 +470,7 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
             drawing_work_dir=None, host_drawing_work_dir=None):
         self.record["host"] = self.health()["host"]
         self.command(
-            "capabilities"
+            "capabilities", "--full"
         )  # The client validates the real capabilities Schema.
         self.require_empty()
         cases = [
