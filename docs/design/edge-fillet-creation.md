@@ -1,6 +1,6 @@
 # Exact edge-targeted fillet creation
 
-Status: **planned after a8**, not an advertised operation or a release promise.
+Status: **planned after a9**, not an advertised operation or a release promise.
 This is the next proposed use of a8's exact edge observations. Native feasibility
 and installed Windows/Wine gates must precede public exposure.
 
@@ -50,6 +50,14 @@ exactly; otherwise reject it before changing it. Preserve the former foreground
 and session current. No global display/inference preference changes are needed
 merely to create a fillet.
 
+Keep the first increment conservative: reject a nonempty initial selection
+instead of implementing a general selection-restoration system. Creation may
+require selection mark 1; verify a marked selection against the exact native
+edge object, not location/name selection. Do not assume the writable `Edges`
+property replaces that creation requirement. Definition selection access can
+roll the model back, so target readback and its release need their own traces
+and post-release geometry/state checks.
+
 ## Result and failure evidence
 
 Retain the exact feature returned by creation, not ActiveDoc's last feature.
@@ -83,3 +91,14 @@ clients rediscover and reconsider targets before another edit.
 
 This plan does not claim MacSW validation, general topology survival, editable
 fillet radius discovery or a transaction guarantee.
+
+## Calibration checkpoint — 2026-10-23
+
+The Windows VM was stopped. Its only startup attempt was rejected by Parallels:
+`Free at least 3440 MB on the hard disk that stores "Windows" and try again.`
+The volume reported about 4.1 GiB free; this is an environment checkpoint, not
+an enduring capacity requirement. No disk cleanup, second startup, SW activation
+or model creation was performed, and MacSW was not touched. Native enum values,
+late-bound creation and exact target/geometry readback remain unverified;
+this is not evidence of an API failure. Free disk capacity before resuming the
+Windows calibration; do not add public operations to bypass the missing proof.
