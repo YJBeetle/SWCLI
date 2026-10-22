@@ -17,6 +17,32 @@ spec.loader.exec_module(gate)
 
 
 class FilletCalibrationTests(unittest.TestCase):
+    def test_radius_uses_the_native_probe_tolerance(self):
+        self.assertTrue(gate.radius_matches(0.002 + 5e-13))
+        for value in (0.002 + 2e-12, float("nan"), float("inf")):
+            self.assertFalse(gate.radius_matches(value))
+
+    def test_owned_process_handle_uses_only_synchronize_access(self):
+        api = SimpleNamespace(OpenProcess=mock.Mock(return_value="handle"))
+        constants = SimpleNamespace(SYNCHRONIZE=0x100000)
+        with mock.patch.dict("sys.modules", {"win32api": api, "win32con": constants}):
+            self.assertEqual(gate.capture_process(321), "handle")
+            api.OpenProcess.assert_called_once_with(constants.SYNCHRONIZE, False, 321)
+            for pid in (True, 0, -1, "321"):
+                with self.assertRaisesRegex(RuntimeError, "process ID is invalid"):
+                    gate.capture_process(pid)
+            api.OpenProcess.assert_called_once()
+
+    def test_only_a_signaled_held_handle_confirms_exit(self):
+        event = SimpleNamespace(WAIT_OBJECT_0=0, WaitForSingleObject=mock.Mock(return_value=0))
+        with mock.patch.dict("sys.modules", {"win32event": event}):
+            gate.wait_process("held-handle")
+            event.WaitForSingleObject.assert_called_once_with("held-handle", 10000)
+            for status in (258, 0x80, 0xffffffff):
+                event.WaitForSingleObject.return_value = status
+                with self.assertRaisesRegex(RuntimeError, "exit was not confirmed"):
+                    gate.wait_process("held-handle")
+
     def test_constants_are_read_from_type_library_not_assumed(self):
         descriptor = namedtuple("Descriptor", "memid value")
         names = ("swFmFillet", "swConstRadiusFillet", "swFeatureFilletCircular")
@@ -84,6 +110,7 @@ class FilletCalibrationTests(unittest.TestCase):
         package, client = ModuleType("win32com"), ModuleType("win32com.client")
         package.client = client
         document = SimpleNamespace(GetTitle="fixture.SLDPRT")
+        process_handle = SimpleNamespace(Close=mock.Mock())
         exit_app = mock.Mock()
         app = SimpleNamespace(RevisionNumber="33.5.0", GetProcessID=123,
             CloseDoc=mock.Mock(side_effect=RuntimeError("close failed")), ExitApp=lambda: exit_app())
@@ -92,18 +119,36 @@ class FilletCalibrationTests(unittest.TestCase):
                 mock.patch.object(gate, "read_constants", return_value={}), \
                 mock.patch.object(gate, "acquire_resident_app", return_value=(app, True)) as acquire, \
                 mock.patch.object(gate, "wait_windows_host_ready"), \
+                mock.patch.object(gate, "capture_process", return_value=process_handle) as capture, \
+                mock.patch.object(gate, "wait_process", side_effect=TimeoutError("still exiting")) as wait, \
                 mock.patch.object(gate, "create_box_part_windows_with_handle",
                                   return_value=({"ok": True}, document)) as create, \
                 mock.patch.object(gate, "calibrate", side_effect=RuntimeError("first native failure")) as calibrate:
             self.assertEqual(gate.run(Path(temporary), Path("official.tlb"), False), 1)
             report = json.loads((Path(temporary) / "report.json").read_text())
             self.assertEqual(report["failure"]["message"], "first native failure")
-            self.assertEqual(report["cleanup_errors"], [{"stage": "CloseDoc", "error": "close failed"}])
+            self.assertEqual(report["cleanup_errors"], [{"stage": "CloseDoc", "error": "close failed"},
+                {"stage": "WaitForOwnedProcess", "error": "still exiting"}])
             acquire.assert_called_once_with(client, visible=False)
             create.assert_called_once()
             calibrate.assert_called_once()
             exit_app.assert_called_once()
+            capture.assert_called_once_with(123)
+            wait.assert_called_once_with(process_handle)
+            process_handle.Close.assert_called_once()
             com.CoUninitialize.assert_called_once()
+            self.assertFalse(report["success"])
+            # Even otherwise successful CAD must fail if the owned host has
+            # not actually exited; a following CI daemon must not race it.
+            calibrate.side_effect = None
+            app.CloseDoc.side_effect = None
+            second = Path(temporary) / "exit-timeout"
+            second.mkdir()
+            self.assertEqual(gate.run(second, Path("official.tlb"), False), 1)
+            report = json.loads((second / "report.json").read_text())
+            self.assertNotIn("failure", report)
+            self.assertEqual(report["cleanup_errors"], [
+                {"stage": "WaitForOwnedProcess", "error": "still exiting"}])
             self.assertFalse(report["success"])
 
 

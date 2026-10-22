@@ -24,6 +24,23 @@ def checked(condition, message):
         raise RuntimeError(message)
 
 
+def capture_process(pid):
+    import win32api
+    import win32con
+    checked(type(pid) is int and pid > 0, "owned host process ID is invalid")
+    return win32api.OpenProcess(win32con.SYNCHRONIZE, False, pid)
+
+
+def wait_process(handle):
+    import win32event
+    status = win32event.WaitForSingleObject(handle, 10000)
+    checked(status == win32event.WAIT_OBJECT_0, "owned host exit was not confirmed within 10 seconds")
+
+
+def radius_matches(value):
+    return math.isclose(value, 0.002, rel_tol=0, abs_tol=1e-12)
+
+
 def verify_geometry(before, after, body_count, length_mm):
     checked(math.isfinite(length_mm) and length_mm > 0, "fixture edge length must be positive and finite")
     expected = (1 - math.pi / 4) * 2**2 * length_mm
@@ -88,7 +105,9 @@ def calibrate(app, document, constants, client, pythoncom, call, report):
     for name, value in (("ConicTypeForCrossSectionProfile", constants["swFeatureFilletCircular"]),
                         ("DefaultRadius", 0.002), ("PropagateToTangentFaces", False)):
         call("set." + name, lambda n=name, v=value: setattr(definition, n, v))
-        checked(_com_value(definition, name) == value, "creation setting did not round-trip: " + name)
+        actual = _com_value(definition, name)
+        checked(radius_matches(actual) if name == "DefaultRadius" else actual == value,
+                "creation setting did not round-trip: " + name)
     feature = call("CreateFeature", lambda: manager.CreateFeature(definition))
     checked(feature is not None, "CreateFeature returned null; do not retry")
     report["feature"] = dict(name=_com_value(feature, "Name"), kind=_com_value(feature, "GetTypeName2"))
@@ -106,8 +125,9 @@ def calibrate(app, document, constants, client, pythoncom, call, report):
             tangent_propagation=_com_value(data, "PropagateToTangentFaces"))
         checked(len(targets) == 1 and capture_verified_reference(app, extension, targets[0]) == reference,
                 "created fillet target differs from the exact original edge")
-        checked(report["readback"] == dict(edge_count=1, radius_m=0.002,
-            profile=constants["swFeatureFilletCircular"], tangent_propagation=False),
+        checked(radius_matches(report["readback"]["radius_m"]) and
+            report["readback"]["profile"] == constants["swFeatureFilletCircular"] and
+            report["readback"]["tangent_propagation"] is False,
             "created fillet settings differ from requested settings")
     finally:
         try:
@@ -128,7 +148,7 @@ def calibrate(app, document, constants, client, pythoncom, call, report):
 
 def run(output, swconst, visible):
     report = dict(success=False, cleanup_errors=[])
-    app = document = pythoncom = None
+    app = document = pythoncom = process_handle = None
     initialized = owned = False
     with (output / "trace.jsonl").open("w", encoding="utf-8", buffering=1) as trace:
         def call(name, function):
@@ -148,9 +168,10 @@ def run(output, swconst, visible):
             report["constants"] = call("read-official-swconst", lambda: read_constants(pythoncom, swconst))
             app, owned = call("acquire-owned-host", lambda: acquire_resident_app(client, visible=visible))
             checked(owned, "calibration must never attach to an existing host")
+            call("wait-ready", lambda: wait_windows_host_ready(app, timeout_seconds=120))
             report["host"] = dict(revision=_com_value(app, "RevisionNumber"),
                                   process_id=_com_value(app, "GetProcessID"), visible=visible)
-            call("wait-ready", lambda: wait_windows_host_ready(app, timeout_seconds=120))
+            process_handle = call("capture-owned-process", lambda: capture_process(report["host"]["process_id"]))
             result, document = call("create-independent-box", lambda: create_box_part_windows_with_handle(
                 str(output / "fixture.SLDPRT"), width_mm=40, height_mm=30, depth_mm=10, app=app))
             report["fixture"] = result
@@ -162,8 +183,11 @@ def run(output, swconst, visible):
         finally:
             for name, function in (("CloseDoc", lambda: app.CloseDoc(_com_value(document, "GetTitle"))),
                                    ("ExitApp", lambda: _com_value(app, "ExitApp")),
+                                   ("WaitForOwnedProcess", lambda: wait_process(process_handle)),
+                                   ("CloseProcessHandle", lambda: process_handle.Close()),
                                    ("CoUninitialize", lambda: pythoncom.CoUninitialize())):
                 if (name == "CloseDoc" and document is None or name == "ExitApp" and not owned
+                        or name in ("WaitForOwnedProcess", "CloseProcessHandle") and process_handle is None
                         or name == "CoUninitialize" and not initialized):
                     continue
                 try:
