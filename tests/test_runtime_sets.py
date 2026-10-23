@@ -45,7 +45,7 @@ class RuntimeSetsTests(unittest.TestCase):
     def test_plan_is_identical_for_platforms_and_core_is_not_silent_full(self):
         core, full = gate.runtime_plan("core"), gate.runtime_plan("full")
         self.assertEqual(len(core), 11)
-        self.assertEqual(len(full), 17)
+        self.assertEqual(len(full), 18)
         for plan in (core, full):
             self.assertEqual(len(plan), len({item.name for item in plan}))
             self.assertEqual(plan[-1].name, "toolbox")
@@ -54,6 +54,8 @@ class RuntimeSetsTests(unittest.TestCase):
                     self.assertTrue((SCRIPT.parent / step.script).is_file())
         self.assertNotIn("feature-depth", [item.name for item in core])
         self.assertIn("feature-depth", [item.name for item in full])
+        self.assertNotIn("fillets", [item.name for item in core])
+        self.assertIn("fillets", [item.name for item in full])
         bridge = next(item for item in full if item.name == "continuation-front-diameter")
         self.assertEqual([step.script for step in bridge.steps],
                          ["verify-host-continuation.py", "verify-diameter-dimensions.py"])
@@ -421,8 +423,8 @@ class RuntimeSetsTests(unittest.TestCase):
         with patches[0], patches[1], patches[2], patches[3], patches[4]:
             runner.run()
         starts = [event for event in events if event[0] == "start"]
-        self.assertEqual(len(starts), 17)
-        self.assertEqual(len({event[2] for event in starts}), 17)
+        self.assertEqual(len(starts), 18)
+        self.assertEqual(len({event[2] for event in starts}), 18)
         self.assertTrue(runner.record["success"])
 
     def test_preflight_does_not_stop_shared_or_nonempty_host(self):

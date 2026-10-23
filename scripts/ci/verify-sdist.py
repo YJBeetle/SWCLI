@@ -13,6 +13,7 @@ REQUIRED = {
     "scripts/ci/gate_support/entrypoints.py",
     "scripts/ci/gate_support/python_entrypoint.py",
     "scripts/ci/verify-native-model.py",
+    "scripts/ci/verify-fillets.py",
     "scripts/ci/verify-assemblies.py",
     "scripts/ci/verify-exports.py",
     "scripts/ci/verify-reverse-cut.py",
