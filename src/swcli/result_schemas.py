@@ -208,7 +208,43 @@ PART_TEMPLATE = _object(
 )
 
 
+DRAWING_SHEET = _object({
+    "unit": {"const": "meter"},
+    "name": STRING, "properties": {"type": "array", "minItems": 8, "maxItems": 8,
+                                   "items": {"type": ["number", "boolean"]}},
+    "format_path": STRING, "format_available": BOOL,
+    "projection": {"enum": ["first-angle", "third-angle"]},
+}, ("name", "properties", "format_path", "format_available", "projection"))
+
+def _drawing_vector(length):
+    return {"type": "array", "minItems": length, "maxItems": length, "items": NUMBER}
+
+DRAWING_VIEW = _object({
+    "unit": {"const": "meter"},
+    "coordinate_system": {"const": "sheet"},
+    "name": STRING, "path": STRING, "configuration": STRING,
+    "position": _drawing_vector(2), "outline": _drawing_vector(4),
+    "scale": _drawing_vector(2), "transform": _drawing_vector(16),
+    "role": {"enum": ["front", "top", "left", "right"]},
+}, ("name", "path", "configuration", "position", "outline", "scale", "transform"))
+
 _RESULT_FIELDS = {
+    "drawing.standard-views": ({
+        "coordinate_system": {"const": "sheet"},
+        "source_document_id": DOCUMENT["properties"]["document_id"],
+        "source": _object({"path": STRING, "configuration": STRING, "type": INTEGER,
+                           "modified": BOOL, "update_stamp": {"type": ["integer", "null"]},
+                           "needs_rebuild": INTEGER}),
+        "sheet": DRAWING_SHEET,
+        "views": {"type": "array", "maxItems": 32, "items": DRAWING_VIEW},
+        "mutation": _object({"attempted": BOOL, "may_have_changed": BOOL},
+                            ("attempted", "may_have_changed")),
+        "rebuilt": BOOL,
+        "verification": _object({"passed": BOOL, "source_unchanged": BOOL, "layout_verified": BOOL}),
+        "diagnostics": DIAGNOSTICS,
+        "cleanup_errors": {"type": "array", "items": _object({"type": STRING, "message": STRING}, ("type", "message"))},
+    }, ("document", "source_document_id", "source", "sheet", "views", "mutation", "rebuilt",
+        "verification", "diagnostics", "cleanup_errors")),
     "assembly.add-component": (
         {
             "inserted": {"const": True},
@@ -387,7 +423,10 @@ _RESULT_FIELDS = {
         ("document", "scope", "coordinate_system", "method", "metrics", "bodies"),
     ),
     "document.create": (
-        {"created": {"const": True}, "template": PART_TEMPLATE},
+        {"created": {"const": True}, "template": PART_TEMPLATE, "sheet": DRAWING_SHEET,
+         "views": {"type": "array", "maxItems": 32, "items": DRAWING_VIEW},
+         "diagnostics": DIAGNOSTICS,
+         "cleanup_errors": {"type": "array", "items": _object({"type": STRING, "message": STRING}, ("type", "message"))}},
         ("created", "template", "document"),
     ),
     "document.open": (
@@ -2506,6 +2545,28 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "drawing.standard-views" and result["ok"] is True:
+        source, sheet, views = result["source"], result["sheet"], result["views"]
+        from .hosts.drawing_geometry import standard_layout
+        try:
+            standard_layout(result, sheet["projection"])
+        except (RuntimeError, KeyError, TypeError, ValueError) as exc:
+            raise OperationResultInvalid("drawing.standard-views: invalid layout evidence: " + str(exc)) from exc
+        roles = {"front", "top", "left" if sheet["projection"] == "first-angle" else "right"}
+        if (result["document"]["type"] != 3 or source.get("type") not in (1, 2)
+                or not source.get("path") or not source.get("configuration")
+                or source.get("modified") is not False or source.get("needs_rebuild") != 0
+                or len(views) != 3 or {view.get("role") for view in views} != roles
+                or any(view["path"].replace("/", "\\").casefold() != source["path"].replace("/", "\\").casefold()
+                       or view["configuration"] != source["configuration"] for view in views)
+                or any(result["verification"].get(key) is not True for key in
+                       ("passed", "source_unchanged", "layout_verified"))
+                or not result["rebuilt"] or result["cleanup_errors"]
+                or not result["diagnostics"]["healthy"]):
+            raise OperationResultInvalid("drawing.standard-views: inconsistent successful drawing evidence")
+    if name == "document.create" and result["ok"] is True and result["document"]["type"] == 3:
+        if "sheet" not in result:
+            raise OperationResultInvalid("document.create: drawing requires sheet evidence")
     if name == "feature.fillet" and result["ok"] is True:
         if (not isclose(result["radius_mm"], result["verification"]["radius_mm"],
                         rel_tol=0, abs_tol=1e-9)

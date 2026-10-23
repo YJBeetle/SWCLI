@@ -104,8 +104,9 @@ def build_parser() -> argparse.ArgumentParser:
     create_parser = document_commands.add_parser(
         "create", help="create an unsaved part or assembly from a real SOLIDWORKS template"
     )
-    create_parser.add_argument("--type", choices=("part", "assembly"), default="part")
-    create_parser.add_argument("--template", help="explicit .PRTDOT or .ASMDOT template path")
+    create_parser.add_argument("--type", choices=("part", "assembly", "drawing"), default="part")
+    create_parser.add_argument("--template", help="explicit .PRTDOT, .ASMDOT or .DRWDOT template path")
+    create_parser.add_argument("--projection", choices=("first-angle", "third-angle"))
     create_parser.add_argument("--json", action="store_true", dest="as_json")
     open_parser = document_commands.add_parser(
         "open", help="open a SOLIDWORKS document silently"
@@ -146,6 +147,15 @@ def build_parser() -> argparse.ArgumentParser:
             dest="lease_id",
             help="active l-... lease token for this document operation",
         )
+
+    drawing_parser = subcommands.add_parser("drawing", help="create drawing views")
+    drawing_commands = drawing_parser.add_subparsers(dest="drawing_command", required=True)
+    views_parser = drawing_commands.add_parser("standard-views", help="insert verified standard views of a saved model")
+    views_parser.add_argument("source_document_id", help="explicit source d-... document ID")
+    views_parser.add_argument("--configuration", required=True)
+    views_parser.add_argument("--json", action="store_true", dest="as_json")
+    add_document_selector(views_parser)
+    add_lease_token(views_parser)
 
     lease_parser = document_commands.add_parser(
         "lease", help="manage a short-lived exclusive document lease"
@@ -1087,12 +1097,18 @@ def _typed_operation(
             },
             args.as_json, args.document_id, args.expected_update_stamp, args.lease_id,
         )
+    if args.command == "drawing":
+        return ("drawing.standard-views",
+                {"source_document_id": args.source_document_id, "configuration": args.configuration},
+                args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
     if args.command == "document":
         command = args.document_command
         if command == "create":
             parameters = {"type": args.type}
             if args.template is not None:
                 parameters["template"] = args.template
+            if args.projection is not None:
+                parameters["projection"] = args.projection
             return "document.create", parameters, args.as_json, None, None, None
         if command == "open":
             return (

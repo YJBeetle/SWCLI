@@ -109,7 +109,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.shutdown": _operation("daemon.shutdown"),
     "document.create": _operation(
         "document.create",
-        {"type": _string(enum=["part", "assembly"]), "template": _string(minLength=1)},
+        {"type": _string(enum=["part", "assembly", "drawing"]), "template": _string(minLength=1),
+         "projection": _string(enum=["first-angle", "third-angle"])},
+        parameter_conditions=[{"if": {"required": ["type"], "properties": {"type": {"const": "drawing"}}},
+                               "then": {"required": ["template", "projection"]},
+                               "else": {"not": {"required": ["projection"]}}}],
+    ),
+    "drawing.standard-views": _operation(
+        "drawing.standard-views",
+        {"source_document_id": _string(pattern="^d-[a-z0-9]{6}$"), "configuration": _string(minLength=1)},
+        required=("source_document_id", "configuration"), temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "assembly.add-component": _operation(
         "assembly.add-component",
@@ -477,6 +487,12 @@ def validate_operation_request(
         raise ValueError(f"{operation} requires {', '.join(missing)}")
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.create":
+        if parameters.get("type", "part") == "drawing":
+            if not parameters.get("template") or not parameters.get("projection"):
+                raise ValueError("drawing creation requires explicit template and projection")
+        elif "projection" in parameters:
+            raise ValueError("projection is only supported for drawing creation")
     if operation == "entity.list":
         kind = parameters.get("kind", "face")
         wrong_limit = "max_faces" if kind == "edge" else "max_edges"
