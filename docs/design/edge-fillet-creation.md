@@ -111,3 +111,9 @@ Native Windows proof is moved to explicitly enabled CI calibration, not a
 requirement to free space or start the local VM. The public operation remains
 unimplemented; neither the local receipt nor a future calibration replaces the
 protocol/concurrency/restoration gates.
+
+Native Windows calibration subsequently passed at `10e85d9`, with the same
+single-edge settings and analytical volume as the local Mac/Wine probe. See the
+[Windows runtime receipt](../verification/a9-runtime-2026-10-23.md). Feasibility
+is established for this fixture; public implementation and its safety gates
+remain separate work after a9.

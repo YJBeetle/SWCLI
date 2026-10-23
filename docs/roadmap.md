@@ -98,7 +98,8 @@ The a9 candidate now separates lightweight status and summary capabilities,
 supports `--operation NAME` and explicit `--full`, and advertises adapter export
 extensions. The packaged guide documents JSON field paths, current modeling
 limits and host/PID semantics. OS PID mapping and path wrappers remain
-host-owned. These discovery changes still require formal host verification.
+host-owned. The [candidate Windows/Wine gates](verification/a9-runtime-2026-10-23.md)
+now pass; publication remains separate.
 
 1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
    on a generated part before exposing a new operation. Start with one explicit
