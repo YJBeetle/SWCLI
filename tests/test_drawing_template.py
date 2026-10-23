@@ -8,6 +8,21 @@ from gate_support.drawing_template import drawing_template
 
 
 class DrawingTemplateTests(unittest.TestCase):
+    def test_fresh_install_uses_base_gb_without_first_run_generated_template(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            installation = root / "Program Files/SOLIDWORKS"
+            fixture = installation / "data/templates/gb.drwdot"
+            fixture.parent.mkdir(parents=True)
+            fixture.write_bytes(b"official base template")
+            self.assertEqual(drawing_template(root / "ProgramData", installation=installation), fixture.resolve())
+            explicit = root / "custom.drwdot"
+            explicit.write_bytes(b"explicit")
+            self.assertEqual(drawing_template(root, explicit, installation), explicit.resolve())
+            fixture.unlink()
+            with self.assertRaisesRegex(RuntimeError, "Explicit drawing template"):
+                drawing_template(root, installation=installation)
+
     def test_missing_and_ambiguous_fail_with_available_fixtures(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

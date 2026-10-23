@@ -67,9 +67,12 @@ standard views and complete Top/Right cases.
 The entrypoints delegate existing CAD assertions; they do not duplicate them.
 
 The full coordinator requires `--drawing-template` with the host's Windows path.
-Platform wrappers discover the installed `templates/gb_a4.drwdot`, or use an explicit
-`SWCLI_DRAWING_TEMPLATE` local filesystem path. Missing or ambiguous templates fail
-instead of silently selecting a different sheet format. The drawing entrypoint
+Windows supplies the registry-discovered installation and selects its official
+`data/templates/gb.drwdot`, as do the Wine host adapters. Clean installs do not
+necessarily contain the first-run-generated `ProgramData/.../gb_a4.drwdot` found
+on a configured workstation. An explicit `SWCLI_DRAWING_TEMPLATE` local filesystem
+path overrides host selection. Missing templates fail; actual A4 sheet properties
+remain checked by the CAD adapter. The drawing entrypoint
 uses `--drawing-template` directly (no `--suite`) and writes `drawings.json`.
 
 Every set starts a foreground daemon with a fresh owned SW session and stops it after

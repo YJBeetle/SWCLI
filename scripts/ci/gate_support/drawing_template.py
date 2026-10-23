@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 
 
-def drawing_template(program_data, explicit=None):
+def drawing_template(program_data, explicit=None, installation=None):
+    if not explicit and installation:
+        explicit = Path(installation) / "data/templates/gb.drwdot"
     if explicit:
         result = Path(explicit)
         if not result.is_file() or result.is_symlink() or result.suffix.lower() != ".drwdot":
@@ -24,5 +26,6 @@ def drawing_template(program_data, explicit=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--program-data", required=True)
+    parser.add_argument("--installation", help="Explicit SOLIDWORKS installation; use its official base GB template")
     args = parser.parse_args()
-    print(drawing_template(args.program_data, os.environ.get("SWCLI_DRAWING_TEMPLATE")))
+    print(drawing_template(args.program_data, os.environ.get("SWCLI_DRAWING_TEMPLATE"), args.installation))

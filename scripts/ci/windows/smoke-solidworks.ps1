@@ -293,7 +293,7 @@ try {
     $setsFolder = Join-Path $Workspace "runtime-sets"
     $drawingTemplateArguments = @()
     if ($Suite -eq "full") {
-        $drawingTemplate = & python -I (Join-Path $PSScriptRoot "../gate_support/drawing_template.py") --program-data $env:ProgramData
+        $drawingTemplate = & python -I (Join-Path $PSScriptRoot "../gate_support/drawing_template.py") --program-data $env:ProgramData --installation $installation.install_dir
         if ($LASTEXITCODE -ne 0) { throw "Installed drawing template fixture discovery failed" }
         $drawingTemplateArguments = @("--drawing-template", $drawingTemplate)
     }
