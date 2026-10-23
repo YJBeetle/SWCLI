@@ -90,10 +90,24 @@ class DrawingCalibrationTests(unittest.TestCase):
             with mock.patch.object(gate, "run", return_value=0) as run:
                 args = ["--template", str(template), "--swconst", str(library), "--output-dir", str(root / "new")]
                 self.assertEqual(gate.main(args), 0)
-                self.assertTrue(run.call_args.args[-2])
+                self.assertTrue(run.call_args.args[3])
+                self.assertEqual(run.call_args.args[5:], ("part", False))
                 with mock.patch("sys.stderr"), self.assertRaises(SystemExit):
                     gate.main(args)
                 self.assertEqual(run.call_count, 1)
+
+    def test_assembly_and_strict_exports_are_explicit_options(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            template = root / "official.drwdot"
+            template.write_bytes(b"test")
+            library = root / "swconst.tlb"
+            library.write_bytes(b"test")
+            with mock.patch.object(gate, "run", return_value=0) as run:
+                gate.main(["--template", str(template), "--swconst", str(library),
+                    "--output-dir", str(root / "new"), "--source-kind", "assembly",
+                    "--exports", "--projection", "third-angle"])
+                self.assertEqual(run.call_args.args[4:], ("third-angle", "assembly", True))
 
 
 if __name__ == "__main__":

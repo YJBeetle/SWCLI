@@ -16,7 +16,9 @@ import traceback
 from swcli.daemon.server import acquire_resident_app
 from swcli.hosts.windows import _com_value, wait_windows_host_ready
 from swcli.hosts.windows_parts import create_box_part_windows_with_handle
-from swcli.hosts.windows_documents import open_windows_document_with_handle
+from swcli.hosts.windows_documents import open_windows_document_with_handle, export_active_windows_document
+from swcli.hosts.windows_assemblies import create_assembly_windows_with_handle, add_part_component_windows
+from swcli.hosts.windows_native_files import save_as_native_windows
 
 
 def checked(condition, message):
@@ -119,7 +121,7 @@ def verify_views(snapshot, source, configuration):
         checked(len(view["scale"]) == 2 and min(view["scale"]) > 0, "invalid view scale")
 
 
-def run(output, template, swconst, visible, projection=None):
+def run(output, template, swconst, visible, projection=None, source_kind="part", exports=False):
     report = dict(success=False, cleanup_errors=[], template=str(template),
                   template_sha256=hashlib.sha256(template.read_bytes()).hexdigest())
     app = com = process = None
@@ -163,6 +165,27 @@ def run(output, template, swconst, visible, projection=None):
             checked(result["ok"] and part is not None, "box creation failed")
             checked(not _com_value(part, "GetSaveFlag"), "source fixture is not saved clean")
             report["source_before"] = call("source.before", lambda: source_state(part))
+            part_before = report["source_before"]
+            report["child_before"] = part_before
+            source_document = part
+            if source_kind == "assembly":
+                assembly_result, assembly = call("create-assembly", lambda: create_assembly_windows_with_handle(app=app))
+                report["assembly_create"] = assembly_result
+                if assembly is not None:
+                    documents.append(assembly)
+                checked(assembly_result["ok"] and assembly is not None, "assembly creation failed")
+                inserted = call("add-part-component", lambda: add_part_component_windows(
+                    app=app, document=assembly, path=source, configuration=part_before["configuration"]))
+                report["component"] = inserted
+                checked(inserted["ok"], "component insertion failed")
+                source = str(output / "fixture.SLDASM")
+                saved_assembly = call("save-assembly", lambda: save_as_native_windows(source, document=assembly))
+                report["assembly_save"] = saved_assembly
+                checked(saved_assembly["ok"], "assembly save failed")
+                source_document = assembly
+                report["source_before"] = call("assembly.source.before", lambda: source_state(assembly))
+                checked(not report["source_before"]["modified"], "saved source assembly is modified")
+                checked(source_state(part) == part_before, "assembly creation modified child source")
             configuration = report["source_before"]["configuration"]
             drawing = call("NewDocument", lambda: app.NewDocument(str(template), paper, 0.0, 0.0))
             checked(drawing is not None, "drawing creation returned null")
@@ -186,8 +209,8 @@ def run(output, template, swconst, visible, projection=None):
             checked(call("EditRebuild3", lambda: _com_value(drawing, "EditRebuild3")), "drawing rebuild failed")
             after = observe(drawing, call, report, "after")
             verify_views(after, source, configuration)
-            checked(not _com_value(part, "GetSaveFlag"), "view insertion modified source fixture")
-            report["source_after_insertion"] = call("source.after-insertion", lambda: source_state(part))
+            checked(not _com_value(source_document, "GetSaveFlag"), "view insertion modified source fixture")
+            report["source_after_insertion"] = call("source.after-insertion", lambda: source_state(source_document))
             checked(report["source_before"] == report["source_after_insertion"], "view insertion changed source state")
             saved = output / "fixture.SLDDRW"
             checked(call("SaveAs3", lambda: drawing.SaveAs3(str(saved), 0, 1)) == 0 and saved.is_file()
@@ -200,8 +223,20 @@ def run(output, template, swconst, visible, projection=None):
                 documents.append(reopened)
             checked(result["ok"] and reopened is not None, "drawing reopen failed")
             verify_views(observe(reopened, call, report, "reopened"), source, configuration)
-            report["source_after_reopen"] = call("source.after-reopen", lambda: source_state(part))
+            report["source_after_reopen"] = call("source.after-reopen", lambda: source_state(source_document))
             checked(report["source_before"] == report["source_after_reopen"], "drawing save/reopen changed source state")
+            if exports:
+                report["exports"] = {}
+                for extension in ("PDF", "DWG"):
+                    result = call("strict-export." + extension, lambda suffix=extension:
+                        export_active_windows_document(str(output / ("fixture." + suffix)),
+                            strict=True, app=app, document=reopened))
+                    report["exports"][extension] = result
+                    checked(result["ok"], "strict " + extension + " export failed")
+            report["source_final"] = call("source.final", lambda: source_state(source_document))
+            report["child_final"] = call("child.final", lambda: source_state(part))
+            checked(report["source_before"] == report["source_final"] and part_before == report["child_final"],
+                    "drawing operations changed source or child state")
             report["validation_scope"] = "native observation and reference/configuration persistence; direction/layout validation pending"
             report["success"] = True
         except BaseException as error:
@@ -233,6 +268,8 @@ def main(argv=None):
     parser.add_argument("--hidden", action="store_true", help="default is visible")
     parser.add_argument("--projection", choices=("first-angle", "third-angle"),
                         help="set only sheet projection, then read back every sheet property; omitted observes template")
+    parser.add_argument("--source-kind", choices=("part", "assembly"), default="part")
+    parser.add_argument("--exports", action="store_true", help="strict PDF/DWG export after native reopen")
     args = parser.parse_args(argv)
     if args.template.suffix.lower() != ".drwdot" or not args.template.is_file() or not args.template.stat().st_size:
         parser.error("--template must be an existing nonempty DRWDOT")
@@ -242,7 +279,8 @@ def main(argv=None):
         args.output_dir.mkdir()
     except OSError as error:
         parser.error("--output-dir must be new: " + str(error))
-    return run(args.output_dir.resolve(), args.template.resolve(), args.swconst.resolve(), not args.hidden, args.projection)
+    return run(args.output_dir.resolve(), args.template.resolve(), args.swconst.resolve(),
+               not args.hidden, args.projection, args.source_kind, args.exports)
 
 
 if __name__ == "__main__":
