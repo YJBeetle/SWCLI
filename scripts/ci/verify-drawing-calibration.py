@@ -6,6 +6,7 @@ The template's actual projection selects the one standard-three-view call.
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import ntpath
@@ -19,6 +20,13 @@ from swcli.hosts.windows_parts import create_box_part_windows_with_handle
 from swcli.hosts.windows_documents import open_windows_document_with_handle, export_active_windows_document
 from swcli.hosts.windows_assemblies import create_assembly_windows_with_handle, add_part_component_windows
 from swcli.hosts.windows_native_files import save_as_native_windows
+
+# Explicit sibling-file loading also works under Python -I (no script sys.path).
+_checks_spec = importlib.util.spec_from_file_location("drawing_calibration_checks",
+    Path(__file__).resolve().parent / "gate_support" / "drawing_checks.py")
+_checks = importlib.util.module_from_spec(_checks_spec)
+_checks_spec.loader.exec_module(_checks)
+standard_layout = _checks.standard_layout
 
 
 def checked(condition, message):
@@ -209,6 +217,7 @@ def run(output, template, swconst, visible, projection=None, source_kind="part",
             checked(call("EditRebuild3", lambda: _com_value(drawing, "EditRebuild3")), "drawing rebuild failed")
             after = observe(drawing, call, report, "after")
             verify_views(after, source, configuration)
+            report["layout_after"] = standard_layout(after, report["projection"])
             checked(not _com_value(source_document, "GetSaveFlag"), "view insertion modified source fixture")
             report["source_after_insertion"] = call("source.after-insertion", lambda: source_state(source_document))
             checked(report["source_before"] == report["source_after_insertion"], "view insertion changed source state")
@@ -222,7 +231,9 @@ def run(output, template, swconst, visible, projection=None, source_kind="part",
             if reopened is not None:
                 documents.append(reopened)
             checked(result["ok"] and reopened is not None, "drawing reopen failed")
-            verify_views(observe(reopened, call, report, "reopened"), source, configuration)
+            reopened_snapshot = observe(reopened, call, report, "reopened")
+            verify_views(reopened_snapshot, source, configuration)
+            report["layout_reopened"] = standard_layout(reopened_snapshot, report["projection"])
             report["source_after_reopen"] = call("source.after-reopen", lambda: source_state(source_document))
             checked(report["source_before"] == report["source_after_reopen"], "drawing save/reopen changed source state")
             if exports:
@@ -237,7 +248,7 @@ def run(output, template, swconst, visible, projection=None, source_kind="part",
             report["child_final"] = call("child.final", lambda: source_state(part))
             checked(report["source_before"] == report["source_final"] and part_before == report["child_final"],
                     "drawing operations changed source or child state")
-            report["validation_scope"] = "native observation and reference/configuration persistence; direction/layout validation pending"
+            report["validation_scope"] = "generated standard-frame fixture: references, configuration, directions, layout and save/reopen persistence"
             report["success"] = True
         except BaseException as error:
             report["failure"] = dict(type=type(error).__name__, message=str(error), traceback=traceback.format_exc())
