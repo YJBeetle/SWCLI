@@ -79,6 +79,24 @@ class RuntimeSetsTests(unittest.TestCase):
             with self.subTest(changes=host_changes), self.assertRaises(RuntimeError):
                 runner.exclusive(value)
 
+    def test_diagnostic_selection_is_explicit_and_never_full_plan_proof(self):
+        self.args.suite = "full"
+        self.args.diagnostic_set = "drawing-save"
+        runner = gate.Runner(self.args)
+        self.assertEqual([item.name for item in runner.plan], ["drawing-save"])
+        self.assertEqual(runner.record["expected_sets"], ["drawing-save"])
+        self.assertEqual(runner.record["coverage_scope"], "selected-set")
+        self.assertEqual(runner.record["diagnostic_set"], "drawing-save")
+        events, patches = self.simulate(runner)
+        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+            runner.run()
+        self.assertEqual([e[0] for e in events], ["start", "step", "stop"])
+        self.assertTrue(runner.record["success"])
+        self.assertEqual(runner.record["coverage_scope"], "selected-set")
+        self.args.diagnostic_set = "unknown"
+        with self.assertRaisesRegex(RuntimeError, "Unknown diagnostic"):
+            gate.Runner(self.args)
+
     def test_drawings_require_explicit_template_and_forward_it(self):
         self.args.suite = "full"
         template = self.args.drawing_template

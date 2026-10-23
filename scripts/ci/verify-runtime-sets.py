@@ -51,6 +51,10 @@ class Runner:
     def __init__(self, args):
         self.args = args
         self.plan = runtime_plan(args.suite)
+        diagnostic_set = getattr(args, "diagnostic_set", None)
+        if diagnostic_set:
+            require(diagnostic_set in {item.name for item in self.plan}, "Unknown diagnostic test set")
+            self.plan = [item for item in self.plan if item.name == diagnostic_set]
         require(args.suite != "full" or getattr(args, "drawing_template", None),
                 "Full runtime suite requires an explicit installed drawing template")
         self.python_paths = getattr(args, "python_path", [])
@@ -72,6 +76,8 @@ class Runner:
                        "budgets_seconds": {"request": args.request_timeout, "startup": args.startup_timeout,
                                            "test_set": args.set_timeout, "host_exit": 30},
                        "sets": [], "commands": [], "cleanup_errors": [], "active_set": None}
+        self.record["diagnostic_set"] = diagnostic_set
+        self.record["coverage_scope"] = "selected-set" if diagnostic_set else "full-plan"
         self.record["python_import_paths"] = [str(path.resolve()) for path in self.python_paths]
         endpoint_host, endpoint_port = args.endpoint.rsplit(":", 1)
         self.bind_host, self.bind_port = endpoint_host.strip("[]"), int(endpoint_port)
@@ -401,6 +407,7 @@ class Runner:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", choices=("core", "full"), default="full")
+    parser.add_argument("--diagnostic-set", help="Run one named set; records selected-set coverage, not full acceptance")
     parser.add_argument("--mode", choices=("visible", "hidden"), default="visible")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--host-output-dir", type=host_directory, required=True)

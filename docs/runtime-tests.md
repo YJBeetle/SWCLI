@@ -66,6 +66,12 @@ full additionally runs reverse-cut, feature-depth, fillets, drawing creation wit
 standard views and complete Top/Right cases.
 The entrypoints delegate existing CAD assertions; they do not duplicate them.
 
+For focused failure investigation, `--diagnostic-set NAME` runs exactly one named
+set with the same assertions, deadlines and owned-host cleanup. Its evidence
+explicitly records `coverage_scope: selected-set` and `diagnostic_set`; success
+does **not** satisfy a full-plan acceptance gate. Unknown names fail before any
+host is started. Default platform acceptance remains the complete plan.
+
 The full coordinator requires `--drawing-template` with the host's Windows path.
 Windows supplies the registry-discovered installation and selects its official
 `data/templates/gb.drwdot`, as do the Wine host adapters. Clean installs do not
