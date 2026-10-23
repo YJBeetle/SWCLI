@@ -162,13 +162,18 @@ def _register_handler(handler):
 def document_create(
     context: OperationContext, values: Dict[str, Any]
 ) -> Dict[str, Any]:
+    from ..hosts.windows_drawings import create_drawing_windows_with_handle
+
+    kind = values.get("type", "part")
     create = (
-        create_assembly_windows_with_handle
-        if values.get("type", "part") == "assembly"
+        create_drawing_windows_with_handle if kind == "drawing"
+        else create_assembly_windows_with_handle
+        if kind == "assembly"
         else create_part_windows_with_handle
     )
     result, created_document = create(
-        app=context.app, template=values.get("template")
+        app=context.app, template=values.get("template"),
+        **({"projection": values["projection"]} if kind == "drawing" else {}),
     )
     if context.documents is not None and created_document is not None:
         context.entry = context.documents.register(created_document)
@@ -176,6 +181,21 @@ def document_create(
         return _with_document(
             result, context.documents, context.entry, session_id=context.session_id
         )
+    return result
+
+
+@_register_handler
+def drawing_standard_views(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_drawings import insert_standard_views_windows
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    source = context.documents.resolve(values["source_document_id"], session_id=context.session_id)
+    result = insert_standard_views_windows(
+        app=context.app, document=context.entry.document,
+        source_document=source.document, configuration=values["configuration"],
+    )
+    result["source_document_id"] = source.document_id
     return result
 
 
@@ -1181,6 +1201,15 @@ def execute_operation(
             documents.resolve_sketch(context.entry, values["sketch_id"])
         if "feature_id" in values:
             documents.resolve_feature(context.entry, values["feature_id"])
+        if operation == "drawing.standard-views":
+            from .documents import DocumentLeaseConflict
+
+            source = documents.resolve(values["source_document_id"], session_id=session_id)
+            if source is context.entry:
+                raise ValueError("a drawing cannot be its own source model")
+            source_lease = documents.active_lease(source)
+            if source_lease is not None and source_lease["session_id"] != session_id:
+                raise DocumentLeaseConflict("the source model is leased by another session")
         if operation == "feature.fillet":
             from ..hosts.windows_feature_inspection import _state
 
