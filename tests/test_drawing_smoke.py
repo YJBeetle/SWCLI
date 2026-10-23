@@ -67,9 +67,10 @@ class DrawingSmokeTests(unittest.TestCase):
             self.assertEqual([item["stage"] for item in smoke.record["source_lifecycle"]],
                              ["part-first-angle.before-drawing-close",
                               "part-first-angle.after-drawing-close",
-                              "part-first-angle.after-drawing-reopen"])
+                              "part-first-angle.after-drawing-reopen",
+                              "part-first-angle.after-final-drawing-close"])
             self.assertTrue(all(item["source_document_id"] == "part"
-                                for item in smoke.record["source_lifecycle"]))
+                                for item in smoke.record["source_lifecycle"][:3]))
             guards = [call.kwargs.get("expected_error") for call in smoke.command.call_args_list
                       if call.args[:2] == ("drawing", "standard-views")]
             self.assertEqual(guards, ["DocumentLeaseConflict", "DocumentUpdateConflict",
@@ -85,6 +86,16 @@ class DrawingSmokeTests(unittest.TestCase):
             self.assertTrue(all("--strict" in call.args and call.kwargs["document"] == "reopened"
                                 for call in exports))
             self.assertEqual(smoke.record["cases"], ["part-first-angle"])
+
+    def test_retire_only_known_handles_absent_from_native_catalog(self):
+        with tempfile.TemporaryDirectory() as directory:
+            smoke = self.smoke(directory)
+            smoke.owned = {"old": "session", "retained": "session", "unrelated": "session"}
+            smoke.leases = {"old": "lease", "retained": "live-lease"}
+            opened = smoke.retire_unloaded(("old", "retained"), [{"document_id": "retained"}])
+            self.assertEqual(opened, {"retained"})
+            self.assertEqual(smoke.owned, {"retained": "session", "unrelated": "session"})
+            self.assertEqual(smoke.leases, {"retained": "live-lease"})
 
     def test_projection_cases_and_same_host(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -22,11 +22,23 @@ require = base.require
 
 class DrawingSmoke(base.ModelingSmoke):
     def observe_catalog(self, stage, source):
+        documents = self.command("document", "list")["documents"]
         self.record.setdefault("source_lifecycle", []).append({
             "stage": stage, "source_document_id": source,
-            "documents": self.command("document", "list")["documents"],
+            "documents": documents,
         })
         self.checkpoint(stage)
+        return documents
+
+    def retire_unloaded(self, candidates, documents):
+        # Closing a drawing may unload its background model dependencies too.
+        # Only retire our known handles absent from the actual native catalog.
+        opened = {item["document_id"] for item in documents}
+        for document in candidates:
+            if document not in opened:
+                self.owned.pop(document, None)
+                self.leases.pop(document, None)
+        return opened
 
     @staticmethod
     def structure_signature(structure):
@@ -111,9 +123,12 @@ class DrawingSmoke(base.ModelingSmoke):
         native = self.save_native(drawing, stem + ".SLDDRW")
         structure = self.command("document", "inspect", "--detail", "structure",
                                  document=drawing)["structure"]
+        require(self.clean_source(source)["structure"] == before["structure"],
+                "drawing changed source public structure before close")
         self.observe_catalog(stem + ".before-drawing-close", source)
         self.close(drawing)
-        self.observe_catalog(stem + ".after-drawing-close", source)
+        closed_catalog = self.observe_catalog(stem + ".after-drawing-close", source)
+        self.retire_unloaded((source, part), closed_catalog)
         reopened = self.command("document", "open", self.target(native.name))["document"]["document_id"]
         self.observe_catalog(stem + ".after-drawing-reopen", source)
         observed = self.command("document", "inspect", "--detail", "structure", document=reopened)
@@ -128,13 +143,23 @@ class DrawingSmoke(base.ModelingSmoke):
                        "--strict", document=reopened)
             require(base.export_file_valid(extension, self.directory / (stem + "." + extension)),
                     "drawing export failed bounded file validation")
+        # Resolve the saved source explicitly after the deliberate drawing
+        # close/reopen. Never assume a handle survives native dependency unload.
+        for index, path in enumerate(files):
+            opened = self.command("document", "open", self.target(path.name))["document"]["document_id"]
+            if index == 0:
+                part = opened
+            if index == len(files) - 1:
+                source = opened
         require(self.clean_source(source)["structure"] == before["structure"],
                 "drawing changed source public structure")
         require(all(hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest
                     for path, digest in hashes.items()), "drawing modified source bytes")
         self.close(reopened)
+        documents = self.observe_catalog(stem + ".after-final-drawing-close", source)
+        opened_ids = self.retire_unloaded((source, part), documents)
         self.close(blocker)
-        if source != part:
+        if source != part and source in opened_ids:
             self.close(source)
         # Closing an assembly can unload its referenced component implicitly.
         opened = self.command("document", "list")["documents"]
