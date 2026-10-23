@@ -64,6 +64,12 @@ class DrawingSmokeTests(unittest.TestCase):
             smoke.background = mock.Mock()
             with mock.patch.object(gate.base, "export_file_valid", return_value=True):
                 smoke.drawing_case("part", "first-angle", "C:\\a4.DRWDOT")
+            self.assertEqual([item["stage"] for item in smoke.record["source_lifecycle"]],
+                             ["part-first-angle.before-drawing-close",
+                              "part-first-angle.after-drawing-close",
+                              "part-first-angle.after-drawing-reopen"])
+            self.assertTrue(all(item["source_document_id"] == "part"
+                                for item in smoke.record["source_lifecycle"]))
             guards = [call.kwargs.get("expected_error") for call in smoke.command.call_args_list
                       if call.args[:2] == ("drawing", "standard-views")]
             self.assertEqual(guards, ["DocumentLeaseConflict", "DocumentUpdateConflict",

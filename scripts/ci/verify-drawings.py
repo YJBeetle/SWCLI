@@ -21,6 +21,13 @@ require = base.require
 
 
 class DrawingSmoke(base.ModelingSmoke):
+    def observe_catalog(self, stage, source):
+        self.record.setdefault("source_lifecycle", []).append({
+            "stage": stage, "source_document_id": source,
+            "documents": self.command("document", "list")["documents"],
+        })
+        self.checkpoint(stage)
+
     @staticmethod
     def structure_signature(structure):
         features = structure["features"]
@@ -104,8 +111,11 @@ class DrawingSmoke(base.ModelingSmoke):
         native = self.save_native(drawing, stem + ".SLDDRW")
         structure = self.command("document", "inspect", "--detail", "structure",
                                  document=drawing)["structure"]
+        self.observe_catalog(stem + ".before-drawing-close", source)
         self.close(drawing)
+        self.observe_catalog(stem + ".after-drawing-close", source)
         reopened = self.command("document", "open", self.target(native.name))["document"]["document_id"]
+        self.observe_catalog(stem + ".after-drawing-reopen", source)
         observed = self.command("document", "inspect", "--detail", "structure", document=reopened)
         require(reopened != drawing and observed["document"]["modified"] is False
                 and self.structure_signature(observed["structure"]) == self.structure_signature(structure),
