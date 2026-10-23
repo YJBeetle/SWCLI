@@ -360,6 +360,16 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "feature.fillet": _operation(
+        "feature.fillet",
+        {
+            "entity_id": _string(pattern="^e-[a-z0-9]{6}$"),
+            "radius_mm": _number(exclusiveMinimum=0),
+        },
+        required=("entity_id", "radius_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "feature.extrude": _operation(
         "feature.extrude",
         {

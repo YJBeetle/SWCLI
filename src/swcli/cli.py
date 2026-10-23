@@ -426,6 +426,15 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(depth_parser)
     add_lease_token(depth_parser)
     depth_parser.add_argument("--json", action="store_true", dest="as_json")
+    fillet_parser = feature_commands.add_parser(
+        "fillet", help="create a constant-radius circular fillet on one registered edge"
+    )
+    fillet_parser.add_argument("entity_id")
+    fillet_parser.add_argument("--radius-mm", type=float, required=True)
+    add_document_selector(fillet_parser)
+    add_lease_token(fillet_parser)
+    fillet_parser.add_argument("--json", action="store_true", dest="as_json")
+
     extrude_parser = feature_commands.add_parser(
         "extrude", help="extrude a registered 2D sketch"
     )
@@ -1012,6 +1021,15 @@ def _typed_operation(
                 "depth_mm": args.depth_mm,
                 "reverse": args.reverse,
             },
+            args.as_json,
+            args.document_id,
+            args.expected_update_stamp,
+            args.lease_id,
+        )
+    if args.command == "feature" and args.feature_command == "fillet":
+        return (
+            "feature.fillet",
+            {"entity_id": args.entity_id, "radius_mm": args.radius_mm},
             args.as_json,
             args.document_id,
             args.expected_update_stamp,

@@ -1306,6 +1306,35 @@ _RESULT_FIELDS["dimension.set"] = (
 
 _RESULT_FIELDS.update(entity_result_fields())
 
+_RESULT_FIELDS["feature.fillet"] = (
+    {
+        "entity_id": {"type": "string", "pattern": "^e-[a-z0-9]{6}$"},
+        "radius_mm": {"type": "number", "exclusiveMinimum": 0},
+        "mutation": _object({key: BOOL for key in
+                             ("attempted", "creation_returned", "may_have_changed")},
+                            ("attempted", "creation_returned", "may_have_changed")),
+        "feature": _object({"name": STRING, "type": {"const": "Fillet"},
+                            "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"}},
+                           ("name", "type")),
+        "verification": _object({
+            "passed": BOOL,
+            "radius_mm": {"type": "number", "exclusiveMinimum": 0},
+            "edge_count": INTEGER,
+            "profile": {"const": "circular"},
+            "tangent_propagation": BOOL,
+        }),
+        "rebuilt": BOOL,
+        "diagnostics": DIAGNOSTICS,
+        "bodies": {"type": "integer", "minimum": 0},
+        "before_volume_mm3": {"type": "number", "exclusiveMinimum": 0},
+        "after_volume_mm3": {"type": "number", "exclusiveMinimum": 0},
+        "cleanup_errors": {"type": "array", "items": _object(
+            {"stage": STRING, "error": STRING}, ("stage", "error"))},
+    },
+    ("entity_id", "radius_mm", "mutation", "feature", "verification", "rebuilt",
+     "diagnostics", "bodies", "before_volume_mm3", "after_volume_mm3", "cleanup_errors"),
+)
+
 
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
@@ -1351,6 +1380,24 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "then": {"required": list(success_required), "not": {"required": ["error"]}},
         "else": {"required": ["error"]},
     }
+    if name == "feature.fillet":
+        schema["required"].append("entity_id")
+        schema["then"]["properties"] = {
+            "feature": {"required": ["feature_id"]},
+            "mutation": {"properties": {key: {"const": True} for key in
+                         ("attempted", "creation_returned", "may_have_changed")}},
+            "verification": {
+                "required": ["passed", "radius_mm", "edge_count", "profile", "tangent_propagation"],
+                "properties": {"passed": {"const": True}, "edge_count": {"const": 1},
+                               "tangent_propagation": {"const": False}},
+            },
+            "rebuilt": {"const": True},
+            "diagnostics": {"properties": {"healthy": {"const": True},
+                            "truncated": {"const": False}, "issue_count": {"const": 0},
+                            "issues": {"maxItems": 0}}},
+            "bodies": {"const": 1},
+            "cleanup_errors": {"maxItems": 0},
+        }
     if name in (
         "document.lease.acquire",
         "document.lease.renew",
@@ -2459,6 +2506,11 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "feature.fillet" and result["ok"] is True:
+        if (not isclose(result["radius_mm"], result["verification"]["radius_mm"],
+                        rel_tol=0, abs_tol=1e-9)
+                or result["after_volume_mm3"] == result["before_volume_mm3"]):
+            raise OperationResultInvalid("feature.fillet: inconsistent radius/volume evidence")
     if name in ("entity.list", "entity.inspect"):
         _validate_entity_semantics(name, result)
     if name in ("feature.list", "feature.inspect"):
