@@ -60,10 +60,14 @@ skill; it does not depend on the developer's machine or repository checkout.
   nearest-looking entity. Untrimmed surfaces/curves and raw edge parameters
   are not trimmed boundaries, length/closure guarantees or edit authority.
   See the usage guide for scope/units and unknown/stale handling.
-- If `feature.fillet` is advertised (a10 development, not the a9 wheel), read
+- If `feature.fillet` is advertised (since a10, not the a9 wheel), read
   the guide's single-edge boundary first. Use a freshly observed edge ID;
   possible creation retires face/edge IDs even on failure. Do not retry a failed
   fillet or assume its returned feature supports extrusion depth editing.
+- For a host advertising `drawing.standard-views` (a11 development), read the
+  guide's drawing workflow. It needs an explicit A4 DRWDOT, projection and a
+  saved clean source/configuration. Do not infer drawing creation from PDF/DWG
+  export support or save/modify the source to bypass a refusal.
 - For CI acceptance use `document export --strict`. Do not suppress source
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does

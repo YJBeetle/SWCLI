@@ -415,9 +415,49 @@ kind before rediscovering; never revive an old token or automatically select
 the nearest geometric match. Entity-targeted mutations are not implemented
 by these read commands.
 
+## Create a drawing (a11 development)
+
+Check `capabilities --operation document.create --json` and
+`capabilities --operation drawing.standard-views --json` first. These additions
+are not in the published a10 wheel. Open a saved, clean, rebuilt PRT/ASM first;
+use its returned document ID and actual current configuration. Do not silently
+switch configuration or save/rebuild the source if the task only authorizes
+making a drawing from committed input.
+
+```bash
+sw-cli document create --type drawing --template HOST_A4.DRWDOT --projection third-angle --json
+sw-cli drawing standard-views SOURCE_DOCUMENT_ID --configuration CONFIGURATION --document DRAWING_ID --json
+sw-cli document save-as new-drawing.SLDDRW --document DRAWING_ID --json
+sw-cli document export drawing.PDF --document DRAWING_ID --strict --json
+```
+
+Replace placeholders with host paths and returned IDs; add the drawing's lease
+and current update stamp when coordinating writers. The source must be already
+open; a source held by another session's lease is refused. Creation makes the
+drawing session-current. Standard-view insertion temporarily activates the
+target and restores foreground/current state; automatic native title changes
+do not change the live document ID or lease.
+
+The first slice is A4, one writable sheet without existing model views, and
+explicit `first-angle` or `third-angle` projection. It verifies three exact
+model references/configurations, calibrated standard-frame directions, scale,
+alignment and nonoverlapping paper bounds. Source-redefined standard views may
+be refused rather than relabeled. Sheet/view geometric values are meters;
+the native model-to-view matrix retains its scale and meter translations.
+Automatic native layout may change sheet scale. This is not automatic
+dimensioning, title-block layout, BOM or manufacturing approval.
+
+A missing external sheet-format path is reported, never rewritten. Export file
+validation does not establish embedded title-block fidelity. Failure can leave
+partial views: preserve `mutation`, `views`, `verification` and cleanup evidence,
+inspect before any further mutation, and do not repeat insertion blindly.
+Save-as does not copy model references. Keep source files available, close and
+reopen the saved drawing with task authority, then check native state and export.
+No public view inspection/editing command is implied by creation support.
+
 ## Export and recover
 
-### Single-edge fillet (a10 development)
+### Single-edge fillet (since a10)
 
 Use only when `capabilities --operation feature.fillet --json` confirms support;
 this command is not in the published a9 wheel. First discover edges with
