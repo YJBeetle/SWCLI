@@ -3,6 +3,7 @@ import copy
 import importlib.util
 from pathlib import Path
 import tempfile
+from types import ModuleType, SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -13,6 +14,30 @@ spec.loader.exec_module(gate)
 
 
 class DrawingCalibrationTests(unittest.TestCase):
+    def test_raw_dispatch_is_wrapped_but_existing_wrapper_is_preserved(self):
+        raw = object()
+        wrapped = SimpleNamespace(_oleobj_=object())
+        client = ModuleType("win32com.client")
+        client.Dispatch = mock.Mock(return_value=wrapped)
+        package = ModuleType("win32com")
+        package.client = client
+        with mock.patch.dict("sys.modules", {"win32com": package, "win32com.client": client}):
+            self.assertIs(gate.dispatch_view(raw), wrapped)
+            self.assertIs(gate.dispatch_view(wrapped), wrapped)
+            client.Dispatch.assert_called_once_with(raw)
+
+    def test_observe_requires_documented_sheet_first_and_model_references(self):
+        sheet = SimpleNamespace(GetName="Sheet1", GetProperties2=[6, 12, 1, 1, 1, .297, .21, 1], GetTemplateName="format")
+        pseudo = SimpleNamespace(GetReferencedModelName="", GetName2="Sheet1")
+        unknown = SimpleNamespace(GetReferencedModelName="")
+        drawing = SimpleNamespace(GetCurrentSheet=sheet, GetViews=((pseudo, unknown),))
+        with mock.patch.object(gate, "dispatch_view", side_effect=lambda value: value):
+            with self.assertRaisesRegex(RuntimeError, "cannot classify"):
+                gate.observe(drawing, lambda name, function: function(), {}, "before")
+            drawing.GetViews = ((SimpleNamespace(GetReferencedModelName="wrong"),),)
+            with self.assertRaisesRegex(RuntimeError, "pseudo-view"):
+                gate.observe(drawing, lambda name, function: function(), {}, "before")
+
     def snapshot(self):
         view = dict(source="C:\\fixture.SLDPRT", configuration="Default", position=[0.1, 0.1, 0],
                     outline=[0.01, 0.01, 0.1, 0.1], scale=[1, 2], transform=[1, 0, 0])

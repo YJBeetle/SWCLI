@@ -41,6 +41,14 @@ def normalized(path):
     return ntpath.normcase(ntpath.normpath(path))
 
 
+def dispatch_view(view):
+    """GetViews SAFEARRAY elements can be raw PyIDispatch rather than CDispatch."""
+    if hasattr(view, "_oleobj_"):
+        return view
+    import win32com.client
+    return win32com.client.Dispatch(view)
+
+
 def view_record(view):
     return dict(name=_com_value(view, "GetName2"),
         source=_com_value(view, "GetReferencedModelName"),
@@ -59,12 +67,20 @@ def observe(drawing, call, report, label):
         template=call(label + ".sheet.GetTemplateName", lambda: _com_value(sheet, "GetTemplateName")))
     groups = call(label + ".GetViews", lambda: _com_value(drawing, "GetViews"))
     snapshot["group_sizes"] = [len(group) for group in groups]
+    snapshot["sheet_pseudo_views"] = []
     snapshot["views"] = []
     for group in groups:
-        for view in group:
+        checked(bool(group), "sheet view array is empty")
+        for index, raw_view in enumerate(group):
+            view = dispatch_view(raw_view)
             source = call(label + ".view.source", lambda v=view: _com_value(v, "GetReferencedModelName"))
-            if source:
-                snapshot["views"].append(call(label + ".view.record", lambda v=view: view_record(v)))
+            if index == 0:
+                checked(not source, "first sheet pseudo-view unexpectedly references a model")
+                snapshot["sheet_pseudo_views"].append(dict(source=source,
+                    name=call(label + ".pseudo.GetName2", lambda v=view: _com_value(v, "GetName2"))))
+                continue
+            checked(bool(source), "non-sheet view has no model reference; cannot classify")
+            snapshot["views"].append(call(label + ".view.record", lambda v=view: view_record(v)))
     return snapshot
 
 
