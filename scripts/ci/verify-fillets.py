@@ -32,7 +32,8 @@ def fixture_edge(edges):
 class FilletSmoke(base.ModelingSmoke):
     def run(self, **unused):
         self.record["host"] = self.health()["host"]
-        self.command("capabilities", "--operation", "feature.fillet")
+        capabilities = self.command("capabilities", "--full")
+        base.require("feature.fillet" in capabilities["operations"], "fillet capability unavailable")
         self.require_empty()
         a = self.create()
         profile = self.rectangle(a)
@@ -71,7 +72,7 @@ class FilletSmoke(base.ModelingSmoke):
         base.near(result["after_volume_mm3"], expected, "fillet volume delta changed")
         self.measure(a, volume=expected)
         self.command("entity", "inspect", edge, "--kind", "edge", document=a,
-                     expected_error="EntityNotFound")
+                     expected_error="EntityReferenceStale")
         rediscovered = self.command("entity", "list", "--kind", "edge", document=a)
         base.require(rediscovered["entities"] and edge not in
                      {item["entity_id"] for item in rediscovered["entities"]},
