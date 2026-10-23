@@ -80,3 +80,32 @@ Projection/source invariance is now proven for this native PRT fixture.
 ASM, general template inheritance, orientation/layout predicates, exports and
 typed Windows/Wine integration remain open. Public drawing commands and a
 MacSW CLI update have not been completed by this calibration.
+
+## Direction/layout and native ASM export checkpoint
+
+The bounded `drawing_checks.standard_layout` predicate classifies native
+rotation matrices rather than names or array order. Both earlier PRT reports
+passed it after insertion and reopen: first-angle roles front/top/left,
+third-angle front/top/right; all outlines remained on paper, nonoverlapping
+and aligned with the observed projection. This is a known standard-frame
+fixture predicate, not a promise for user-redefined standard views.
+
+`drawing-native-20261023-asm-exports`, using the script at `45156f9`, passed on
+the Windows VM. It generated and saved a one-component native ASM, switched
+the new drawing to third-angle, verified direction/layout/references, saved
+and reopened SLDDRW, then strictly exported PDF (42028 bytes) and DWG (35039
+bytes). No dirty-state override or CAD-operation retry was used. Source ASM
+configuration/path/modified/stamp remained unchanged (`modified=false`, stamp
+142), as did the saved child PRT (`modified=false`, stamp 144). Cleanup errors
+were empty and the held owned process handle confirmed SW exit.
+
+| ASM evidence | SHA-256 |
+| --- | --- |
+| `report.json` | `df3d3165ff234263513532de85ea5520ce42648bb69640b12d83c33f268e07b2` |
+| `trace.jsonl` | `80c9c3114eda8ac5807df9472e37197dcf438a70f33fefc66a47d24b15e0382e` |
+| `fixture.SLDDRW` | `5d133a8b6ca8082c7eea353b573730e638a5705c99db7a981f9032407171082a` |
+
+File validation/strict-state success does not prove title-block fidelity or
+DWG visual equivalence. Public request/result schemas, concurrency guards,
+typed installed Windows/Wine gates and the requested MacSW update remain
+separate follow-up work; no public drawing command has been added yet.
