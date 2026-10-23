@@ -242,7 +242,7 @@ _RESULT_FIELDS = {
         "rebuilt": BOOL,
         "verification": _object({"passed": BOOL, "source_unchanged": BOOL, "layout_verified": BOOL}),
         "diagnostics": DIAGNOSTICS,
-        "cleanup_errors": {"type": "array", "items": _object({"type": STRING, "message": STRING}, ("type", "message"))},
+        "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))},
     }, ("document", "source_document_id", "source", "sheet", "views", "mutation", "rebuilt",
         "verification", "diagnostics", "cleanup_errors")),
     "assembly.add-component": (
@@ -426,7 +426,7 @@ _RESULT_FIELDS = {
         {"created": {"const": True}, "template": PART_TEMPLATE, "sheet": DRAWING_SHEET,
          "views": {"type": "array", "maxItems": 32, "items": DRAWING_VIEW},
          "diagnostics": DIAGNOSTICS,
-         "cleanup_errors": {"type": "array", "items": _object({"type": STRING, "message": STRING}, ("type", "message"))}},
+         "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))}},
         ("created", "template", "document"),
     ),
     "document.open": (
@@ -2565,8 +2565,8 @@ def validate_operation_result(name: str, result: Any) -> None:
                 or not result["diagnostics"]["healthy"]):
             raise OperationResultInvalid("drawing.standard-views: inconsistent successful drawing evidence")
     if name == "document.create" and result["ok"] is True and result["document"]["type"] == 3:
-        if "sheet" not in result:
-            raise OperationResultInvalid("document.create: drawing requires sheet evidence")
+        if "sheet" not in result or result.get("cleanup_errors"):
+            raise OperationResultInvalid("document.create: drawing requires sheet evidence and clean completion")
     if name == "feature.fillet" and result["ok"] is True:
         if (not isclose(result["radius_mm"], result["verification"]["radius_mm"],
                         rel_tol=0, abs_tol=1e-9)

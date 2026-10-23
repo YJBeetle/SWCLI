@@ -56,8 +56,10 @@ class DrawingContracts(unittest.TestCase):
                 validate_operation_result('drawing.standard-views', broken)
 
     def test_partial_failure_and_no_masquerade(self):
-        value = dict(ok=False, action='drawing.standard-views', error=dict(type='NativeFailed', message='failure'), views=[])
+        value = dict(ok=False, action='drawing.standard-views', error=dict(type='NativeFailed', message='first failure'), views=[],
+                     cleanup_errors=[dict(stage='observe', error='secondary failure')])
         validate_operation_result('drawing.standard-views', value)
+        self.assertEqual(value['error']['message'], 'first failure')
         value['ok'] = True
         with self.assertRaises(OperationResultInvalid):
             validate_operation_result('drawing.standard-views', value)
@@ -71,6 +73,12 @@ class DrawingContracts(unittest.TestCase):
                       cleanup_errors=[], warnings=[dict(code='DrawingFormatUnavailable',
                           message='embedded format path is unavailable; retained unchanged')])
         validate_operation_result('document.create', result)
+        dirty = copy.deepcopy(result)
+        dirty['cleanup_errors'] = [dict(stage='observe', error='secondary failure')]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result('document.create', dirty)
+        dirty.update(ok=False, error=dict(type='NativeFailed', message='first failure'))
+        validate_operation_result('document.create', dirty)
         for missing in ('ok', 'source'):
             broken = copy.deepcopy(result)
             del broken['template'][missing]
