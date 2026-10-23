@@ -33,10 +33,12 @@ def _null_dispatch():
 
 def _volume(document):
     body = _single_body(document)
-    value = body.GetMassProperties(1.0)[3]
+    value = native_call("feature-fillet", "Body.GetMassProperties", lambda: body.GetMassProperties(1.0))[3]
     _check(type(value) in (int, float) and math.isfinite(value) and value > 0,
            "solid volume must be finite and positive")
-    return value * 1e9
+    converted = value * 1e9
+    _check(math.isfinite(converted) and converted > 0, "converted solid volume is invalid")
+    return converted
 
 
 def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBinding, radius_mm):
@@ -65,11 +67,16 @@ def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBindin
         _check(type(profile) is int and profile == _CIRCULAR and
                _com_value(data, "PropagateToTangentFaces") is False,
                "native fillet profile or tangent propagation differs")
+        return radius * 1000
 
     try:
-        _check(type(radius_mm) in (int, float) and math.isfinite(radius_mm) and radius_mm > 0,
-               "radius_mm must be finite and positive")
+        _check(type(radius_mm) in (int, float) and math.isfinite(radius_mm) and
+               radius_mm > 2e-6 and math.ulp(radius_mm) <= 1e-6 and
+               math.isfinite(radius_mm / 1000) and radius_mm / 1000 > 0,
+               "radius_mm must be finite, greater than 2e-6 mm and numerically resolvable")
         _check(isinstance(binding, EdgeBinding), "an exact edge binding is required")
+        _check(type(_com_value(document, "GetType")) is int and _com_value(document, "GetType") == 1,
+               "fillet requires a part")
         before, edit_before, foreground_before = _state(app, document)
         _check(_same(app, document, foreground_before) and not before["editing"],
                "fillet requires the active part outside sketch edit")
@@ -98,7 +105,8 @@ def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBindin
         owned_selection = True
         _check(call("Edge.Select4", lambda: binding.edge.Select4(False, data)) is True,
                "exact edge selection failed")
-        _check(selection.GetSelectedObjectCount2(-1) == 1 and
+        selected_count = selection.GetSelectedObjectCount2(-1)
+        _check(type(selected_count) is int and selected_count == 1 and
                _identical(app, selection.GetSelectedObject6(1, 1), binding.edge),
                "marked selection does not identify exact edge")
         manager = _com_value(document, "FeatureManager")
@@ -106,9 +114,9 @@ def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBindin
         _check(definition is not None, "fillet definition is absent")
         _check(call("Initialize", lambda: definition.Initialize(_CONSTANT_RADIUS)) is True,
                "constant-radius initialization failed")
-        definition.ConicTypeForCrossSectionProfile = _CIRCULAR
-        definition.DefaultRadius = radius_mm / 1000
-        definition.PropagateToTangentFaces = False
+        for name, value in (("ConicTypeForCrossSectionProfile", _CIRCULAR),
+                            ("DefaultRadius", radius_mm / 1000), ("PropagateToTangentFaces", False)):
+            call("set." + name, lambda n=name, v=value: setattr(definition, n, v))
         settings(definition)
         result["mutation"].update(attempted=True, may_have_changed=True)
         feature = call("CreateFeature", lambda: manager.CreateFeature(definition))
@@ -126,7 +134,7 @@ def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBindin
             _check(isinstance(targets, (tuple, list)) and len(targets) == 1 and
                    capture_verified_reference(app, extension, targets[0]) == binding.reference,
                    "created fillet targets another edge")
-            settings(readback)
+            actual_radius_mm = settings(readback)
         finally:
             cleanup("ReleaseSelectionAccess", lambda: _com_value(readback, "ReleaseSelectionAccess"))
         _check(not result["cleanup_errors"], "selection access release failed")
@@ -139,7 +147,7 @@ def create_edge_fillet_windows_with_handle(*, app, document, binding: EdgeBindin
         result["after_volume_mm3"] = _volume(document)
         _check(not math.isclose(result["before_volume_mm3"], result["after_volume_mm3"], rel_tol=1e-12, abs_tol=1e-9),
                "fillet did not measurably change solid volume")
-        result.update(bodies=1, verification=dict(passed=True, radius_mm=radius_mm, edge_count=1,
+        result.update(bodies=1, verification=dict(passed=True, radius_mm=actual_radius_mm, edge_count=1,
                                                 profile="circular", tangent_propagation=False))
     except Exception as exc:
         result["error"] = _error(exc)
