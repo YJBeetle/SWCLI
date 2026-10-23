@@ -1,9 +1,9 @@
 # Exact edge-targeted fillet creation
 
-Status: **implemented in a10 development; typed native gates pending**, not in
-the published a9 wheel. This uses a8's exact edge observations. Native API
-feasibility passed Windows and local Mac/Wine; fresh installed typed
-Windows/Wine gates remain necessary before release.
+Status: **published in a10; typed Windows/Wine gates passed**, not in older
+a9 wheels. This uses a8's exact edge observations. Native API feasibility
+passed Windows and local Mac/Wine; installed typed Windows/Wine acceptance is
+recorded in the [a10 notes](../releases/v0.1.0a10.md).
 
 ## First increment
 
