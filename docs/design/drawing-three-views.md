@@ -1,6 +1,9 @@
 # 工程图创建与标准三视图：最小切片
 
 状态：设计与原生校准计划，**尚无新增公开命令**。a10 圆角发布不包含本能力。
+Windows PRT 的第一角与显式第三角创建、视图引用、保存重开及源状态保护已校准，
+见[原生记录](../verification/drawing-native-windows-2026-10-23.md)。当前验证的投影
+切换路径是 `ISheet.SetProperties2`，不是尚未验证的 `SetupSheet6`。
 目标是从已保存的 PRT/ASM 生成可编辑的 SLDDRW，再保存重开、导出 PDF/DWG；
 不是截图拼图，也不是自动出完整制造图。所有公开动作仍通过 daemon 单 STA worker。
 

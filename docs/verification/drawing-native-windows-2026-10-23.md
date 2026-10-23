@@ -45,3 +45,38 @@ Remaining gates: deliberate projection change preserving template state,
 orientation/layout classification, full source-state invariance, ASM reference,
 strict PDF/DWG exports and Windows/Wine typed integration. No runtime passed
 merely because the portable calibration-script tests passed.
+
+## Explicit third-angle projection
+
+The subsequent `drawing-native-20261023-third` run at `23087b8` passed with no
+failure or cleanup errors. Before invoking the setter, the installed SW2025
+`sldworks.tlb` confirmed ISheet.SetProperties2's eight arguments and void
+return: `(I4,I4,R8,R8,BOOL,R8,R8,BOOL)`. No boolean success was invented for
+that void method. The [official getter documentation](https://help.solidworks.com/2018/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isheet~getproperties2.html)
+explains the corresponding eight property slots.
+
+Changing first-angle to third-angle through SetProperties2 and rebuilding
+preserved the other seven sheet properties, sheet name and format path on the
+generated drawing. Three model views then referenced the exact saved part and
+configuration. Native save/reopen preserved those references and the third-angle
+flag. Source path/configuration/modified/update stamp matched the baseline both
+after insertion and after drawing reopen. The owned SW exited normally.
+
+The native matrices and positions differ consistently between both runs:
+front is identity; the horizontal-axis rotation view is below front for first
+angle and above front for third angle. Both side views are placed to the right,
+but their rotation matrices have opposite signs. These are raw calibration
+observations, not yet a general orientation classifier. Both runs auto-scaled
+to 2:1. The legacy external format path was confirmed absent; embedded format
+fidelity still needs separate validation rather than a silent path rewrite.
+
+| Third-angle evidence | SHA-256 |
+| --- | --- |
+| `report.json` | `81cb03fe5388fd7df7f093fbe1c40dd959a3f7baf5e82c23a1c0a44889c708f2` |
+| `trace.jsonl` | `98367675135767212f276c7d1f84e34036abe3e6491320a95db7d321dac0958f` |
+| `fixture.SLDDRW` | `ed0fbdc9726b3663690c64f5b743ad93d743b069b578587d1527ba9ac00947fa` |
+
+Projection/source invariance is now proven for this native PRT fixture.
+ASM, general template inheritance, orientation/layout predicates, exports and
+typed Windows/Wine integration remain open. Public drawing commands and a
+MacSW CLI update have not been completed by this calibration.
