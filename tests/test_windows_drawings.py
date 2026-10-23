@@ -8,6 +8,23 @@ from swcli.hosts import windows_drawings as drawing
 
 
 class DrawingTests(unittest.TestCase):
+    def test_created_native_shape_passes_result_contract(self):
+        from swcli.result_schemas import validate_operation_result
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "fixture.drwdot"
+            path.write_bytes(b"fixture")
+            sheet = NS(SetProperties2=Mock())
+            doc = NS(ForceRebuild3=lambda flag: True)
+            state = dict(name="Sheet1", properties=[6,12,1,1,1,.297,.21,1], unit="meter",
+                format_path="", format_available=False, projection="first-angle")
+            def observe(document, result):
+                result.update(sheet=state.copy(), views=[])
+            diagnostic = dict(healthy=True, issues=[], issue_count=0, scanned_feature_count=0, truncated=False, limit=500)
+            with patch.object(drawing, "_active"), patch.object(drawing, "_empty_target", side_effect=observe), patch.object(drawing, "_observe", side_effect=observe), patch.object(drawing, "_sheet", return_value=(sheet,state)), patch.object(drawing, "_healthy", return_value=diagnostic), patch.object(drawing, "_describe_document", return_value=dict(title="Drawing",path="",type=3,modified=True,update_stamp=1)):
+                result, handle = drawing.create_drawing_windows_with_handle(app=NS(NewDocument=lambda *args:doc), template=str(path), projection="first-angle")
+            self.assertTrue(result["ok"], result)
+            validate_operation_result("document.create", result)
+
     def test_bad_template_does_not_create(self):
         app = Mock()
         result, handle = drawing.create_drawing_windows_with_handle(app=app, template="missing.drwdot", projection="first-angle")

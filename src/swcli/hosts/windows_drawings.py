@@ -104,7 +104,7 @@ def create_drawing_windows_with_handle(*, app, template, projection):
         path = Path(template).expanduser().resolve()
         require(path.suffix.casefold() == ".drwdot" and path.is_file() and path.stat().st_size > 0,
                 "template must be an existing nonempty DRWDOT")
-        result["template"] = dict(path=str(path))
+        result["template"] = dict(ok=True, path=str(path), source="explicit")
         document = native_call("drawing-create", "NewDocument", lambda: app.NewDocument(str(path), 6, 0.0, 0.0))
         require(document is not None, "NewDocument returned null")
         result["created"] = True
