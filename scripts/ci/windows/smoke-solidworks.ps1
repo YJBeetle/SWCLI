@@ -293,7 +293,10 @@ try {
     $setsFolder = Join-Path $Workspace "runtime-sets"
     $drawingTemplateArguments = @()
     if ($Suite -eq "full") {
-        $drawingTemplate = & python -I (Join-Path $PSScriptRoot "../gate_support/drawing_template.py") --program-data $env:ProgramData --installation $installation.install_dir
+        # Windows PowerShell 5 native argument quoting mishandles a space-bearing
+        # directory ending in backslash. The registry commonly supplies one.
+        $drawingInstallDir = $installation.install_dir.TrimEnd([char[]]"\/")
+        $drawingTemplate = & python -I (Join-Path $PSScriptRoot "../gate_support/drawing_template.py") --program-data $env:ProgramData --installation $drawingInstallDir
         if ($LASTEXITCODE -ne 0) { throw "Installed drawing template fixture discovery failed" }
         $drawingTemplateArguments = @("--drawing-template", $drawingTemplate)
     }
