@@ -61,3 +61,18 @@ class DrawingContracts(unittest.TestCase):
         value['ok'] = True
         with self.assertRaises(OperationResultInvalid):
             validate_operation_result('drawing.standard-views', value)
+
+    def test_native_drawing_create_evidence(self):
+        fixture = self.success()
+        result = dict(ok=True, action='document.create', created=True,
+                      document=fixture['document'],
+                      template=dict(ok=True, path='C:\\drawing.DRWDOT', source='explicit'),
+                      sheet=fixture['sheet'], views=[], diagnostics=fixture['diagnostics'],
+                      cleanup_errors=[], warnings=[dict(code='DrawingFormatUnavailable',
+                          message='embedded format path is unavailable; retained unchanged')])
+        validate_operation_result('document.create', result)
+        for missing in ('ok', 'source'):
+            broken = copy.deepcopy(result)
+            del broken['template'][missing]
+            with self.assertRaises(OperationResultInvalid):
+                validate_operation_result('document.create', broken)
