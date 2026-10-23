@@ -63,13 +63,13 @@ the six existing exports before image promotion. See the
 
 ## Installation
 
-The a9 release candidate additionally supports unsaved assembly creation with
+The a9 pre-release additionally supports unsaved assembly creation with
 `document create --type assembly` and insertion of an already-open saved part
 with `assembly add-component PATH --document ID`. This is a minimal native
 assembly surface, not mates or reference packaging, plus native `.SLDASM` and
-`.SLDDRW` save-as. It is not part of the published a8 release below.
+`.SLDDRW` save-as. Install the published a9 wheel below for these capabilities.
 See the [assembly contract](docs/design/assembly-creation.md) and
-[a9 release draft](docs/releases/v0.1.0a9.md); formal release gates are pending.
+[a9 release notes](docs/releases/v0.1.0a9.md) and [runtime receipt](docs/verification/a9-runtime-2026-10-23.md).
 
 ### Windows
 
@@ -79,23 +79,23 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a8` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a9` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a8/swcli-0.1.0a8-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a9/swcli-0.1.0a9-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The
 `[windows]` suffix shown in the `v0.1.0a1` notes is no longer needed.
 
-`v0.1.0a8` is a pre-release: commands and the `swcli/v1` protocol may still
+`v0.1.0a9` is a pre-release: commands and the `swcli/v1` protocol may still
 change before `v0.1.0`.
 
 Stop the old daemon before upgrading, then explicitly start the matching version.
 Temporary document/sketch/dimension/feature handles and leases expire on restart.
-See the [a8 release notes](docs/releases/v0.1.0a8.md) for portable-client
+See the [a9 release notes](docs/releases/v0.1.0a9.md) for portable-client
 installation, exact verification evidence and known limits.
 
 The installation creates `sw-cli.exe` in Python's scripts directory. If a new
@@ -156,7 +156,7 @@ Formal installed Windows visible/hidden and DockerSW hidden Wine delivery gates
 passed, including the six exports, modeling, dimensions, Toolbox and image
 promotion; see the [formal receipt](docs/verification/a8-formal-runtime-2026-10-11.md).
 See the [entity slice](docs/design/entity-observation.md) for explicit limits and
-the [a8 release notes](docs/releases/v0.1.0a8.md) for installation and proof boundaries.
+the [a9 release notes](docs/releases/v0.1.0a9.md) for installation and proof boundaries.
 
 ### Development checkout
 
@@ -322,11 +322,11 @@ sw-cli capabilities --full --json
 ```
 
 On success, the JSON output directly conforms to the published capabilities
-schema. In the a9 candidate, the default is a small summary with protocol/server
+schema. In a9, the default is a small summary with protocol/server
 versions, operation names, adapter `export_formats` by document type, replay
 policy and host/recovery state. `--operation NAME` returns only that operation's
 request/result schemas and supported context; `--full` returns the complete
-catalog. These switches require the matching a9 candidate client/daemon, not
+catalog. These switches require the matching a9 client/daemon, not
 the published a8 wheel. `daemon status` now returns runtime state only, without
 the operation catalog. Export extensions describe adapter support, not proof
 that a particular native translator is installed. The server
@@ -504,7 +504,7 @@ orientation; the default `current` preserves the active UI orientation.
 
 `document export` converts the selected part or assembly to STEP, GLB, STL,
 3MF or AMF, or the selected drawing to PDF or DWG. Part GLB and the three print
-formats are a9 candidate additions, not features of the published a8 wheel.
+formats are a9 additions, not features of the published a8 wheel.
 It clears selections so
 the whole document is exported, refuses overwrite by default, and verifies the
 resulting file signature and non-empty content. The default mode is permissive:

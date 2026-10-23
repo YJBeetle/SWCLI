@@ -41,12 +41,12 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
-a9 候选版还支持 `document create --type assembly` 新建未保存装配体，以及
+a9 预发行版还支持 `document create --type assembly` 新建未保存装配体，以及
 `assembly add-component PATH --document ID` 插入已经打开并保存的零件。
 这是最小原生装配接口，不包括配合或引用文件打包；还支持 `.SLDASM`、`.SLDDRW`
-原生另存为。这些能力尚未包含在下文已发布的 a8 中，a9 正式发布门禁仍待完成。
+原生另存为。请安装下文已发布的 a9 wheel 使用这些能力。
 详见[装配体契约](docs/design/assembly-creation.md) 和
-[a9 发行草稿](docs/releases/v0.1.0a9.md)。
+[a9 发行说明](docs/releases/v0.1.0a9.md)及[运行验证记录](docs/verification/a9-runtime-2026-10-23.md)。
 
 ### Windows 平台
 
@@ -56,19 +56,19 @@ a9 候选版还支持 `document create --type assembly` 新建未保存装配体
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a8` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a9` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a8/swcli-0.1.0a8-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a9/swcli-0.1.0a9-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
 
-`v0.1.0a8` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
+`v0.1.0a9` 是预发行版本；命令和 `swcli/v1` 协议在 `v0.1.0` 之前仍可能调整。
 
 升级前先停止旧 daemon，安装后明确启动同版本服务。临时文档、草图、尺寸、特征句柄和 lease
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
-[a8 发行说明](docs/releases/v0.1.0a8.md)。
+[a9 发行说明](docs/releases/v0.1.0a9.md)。
 
 安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
@@ -113,7 +113,7 @@ sw-cli doctor --json
 边结果区分原始参数与未裁剪的直线/圆几何，不宣称边长、闭合性或编辑权限。
 旧 a7 wheel 不包含此能力。正式 Windows 安装包的可见/隐藏双模式和 DockerSW 隐藏 Wine 交付门禁均已通过，覆盖六个导出、建模、尺寸、Toolbox 和镜像晋升，见[正式验证记录](docs/verification/a8-formal-runtime-2026-10-11.md)。
 具体限制见[实体观测设计](docs/design/entity-observation.md)。
-[a8 发行说明](docs/releases/v0.1.0a8.md) 提供安装命令和验证边界。
+[a9 发行说明](docs/releases/v0.1.0a9.md) 提供安装命令和验证边界。
 
 ### 开发工作区
 
@@ -211,7 +211,7 @@ sw-cli capabilities --operation document.export --json
 sw-cli capabilities --full --json
 ```
 
-成功时，JSON 输出直接符合公开的 capabilities schema。a9 候选版默认只返回简短摘要：协议与服务版本、操作名称、按文档类型列出的适配器 `export_formats`、重放策略和宿主／恢复状态。`--operation NAME` 只返回指定操作的请求／结果 Schema 与上下文；`--full` 返回完整目录。这些开关需要匹配的 a9 候选客户端和 daemon，已发布 a8 wheel 尚不包含。`daemon status` 仅返回运行状态，不再携带操作目录。导出扩展名表示适配器支持范围，不证明宿主已安装相应原生转换器。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
+成功时，JSON 输出直接符合公开的 capabilities schema。a9 预发行版默认只返回简短摘要：协议与服务版本、操作名称、按文档类型列出的适配器 `export_formats`、重放策略和宿主／恢复状态。`--operation NAME` 只返回指定操作的请求／结果 Schema 与上下文；`--full` 返回完整目录。这些开关需要匹配的 a9 客户端和 daemon，已发布 a8 wheel 尚不包含。`daemon status` 仅返回运行状态，不再携带操作目录。导出扩展名表示适配器支持范围，不证明宿主已安装相应原生转换器。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
 
 `v0.1.0a4` 在操作目录中统一声明 handler、文档选择、lease 守卫、临时前台激活和输出契约。结果 Schema 描述协议响应中的 `result`；类型化 CLI JSON 将它展开，并可能添加 `request_id` 和 `replayed`。适配器输出违反契约时返回 `OperationResultInvalid`；此时 CAD 操作可能已经改变了状态，发起新请求重试前应先检查文档。
 
@@ -280,7 +280,7 @@ lease 的边界有意保持狭窄：
 
 `document render` 会使所选模型适合其视口，并按明确的像素尺寸导出 BMP。默认拒绝覆盖文件，并在返回图像产物前验证 BMP 头和尺寸。渲染始终先写入目标目录内的临时文件，验证通过后才替换正式输出。`--view` 支持与本地化无关的确定性方向：`front`、`back`、`left`、`right`、`top`、`bottom`、`isometric`、`trimetric` 或 `dimetric`；默认值 `current` 保留当前 UI 视角。
 
-`document export` 可将所选零件或装配体转换为 STEP、GLB、STL、3MF 或 AMF，或将所选工程图转换为 PDF/DWG。零件 GLB 及三种打印格式是 a9 候选版的新增能力，已发布的 a8 wheel 尚不包含。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。两种模式都先写入目标目录内的临时文件，通过文件验证及严格模式检查后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
+`document export` 可将所选零件或装配体转换为 STEP、GLB、STL、3MF 或 AMF，或将所选工程图转换为 PDF/DWG。零件 GLB 及三种打印格式是 a9 预发行版的新增能力，已发布的 a8 wheel 尚不包含。它会清除选择以导出完整文档，默认拒绝覆盖，并验证结果文件签名及非空内容。默认模式是宽容的：即使源文档需要保存、需要重建，或导出过程中状态发生变化，也会完成导出，但只在发现这些问题时返回结构化警告。`--strict` 会在调用 SOLIDWORKS 前拒绝需要保存或重建的源文件，并在导出导致源状态变化时判定失败。两种模式都先写入目标目录内的临时文件，通过文件验证及严格模式检查后才替换正式输出。核心导出操作只按明确的输出扩展名选择格式，不解释源文件命名约定。
 
 网格导出只做有界的容器和基本几何检查，不保证水密性、离散精度、材质或几何等价性。原生转换器是否可用和离散设置由宿主决定；STL 不携带单位声明。装配体 STL 导出临时启用单文件输出，并在发布产物前恢复该偏好；恢复失败时导出失败且不替换已有目标。不提供 OBJ 导出或静默网格后备方案。
 

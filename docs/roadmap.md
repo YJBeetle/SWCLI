@@ -85,21 +85,21 @@ runtime candidates, first failures/fixes and distribution proof; the linked
 design retains incremental native/development receipts. Trimmed boundaries,
 topology-edit survival and general entity-targeted writes are not implemented.
 
-The **a9 release candidate** groups minimal assembly creation, already-open
+The **a9 pre-release** groups minimal assembly creation, already-open
 saved-part insertion, native `.SLDASM`/`.SLDDRW` save-as and STL/3MF/AMF plus
 part GLB export. The shared gate covers generated assemblies, eight generated
 part/assembly mesh exports and optional drawing save/reopen cases. Formal a9
-host and distribution receipts are still pending; a8 assets are unchanged.
+host and distribution receipts now pass; a8 assets are unchanged.
 See the [a9 release draft](releases/v0.1.0a9.md) for precise scope and release gates.
 
 Next:
 
-The a9 candidate now separates lightweight status and summary capabilities,
+The a9 pre-release separates lightweight status and summary capabilities,
 supports `--operation NAME` and explicit `--full`, and advertises adapter export
 extensions. The packaged guide documents JSON field paths, current modeling
 limits and host/PID semantics. OS PID mapping and path wrappers remain
 host-owned. The [candidate Windows/Wine gates](verification/a9-runtime-2026-10-23.md)
-now pass; publication remains separate.
+now pass; the unchanged tested CI assets are published as `v0.1.0a9`.
 
 1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
    on a generated part before exposing a new operation. Start with one explicit
