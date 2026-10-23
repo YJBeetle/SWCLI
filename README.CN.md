@@ -41,6 +41,9 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
+a11 开发版新增 A4 工程图创建与标准三视图插入，已发布的 a10 wheel 不包含。
+安装包与 Wine 门禁尚待完成，详见 [a11 草稿](docs/releases/v0.1.0a11.md)。
+
 a10 预发行版新增精确单边恒定半径 `feature fillet`，类型化 Windows/Wine
 实机门禁已通过。旧 a9 wheel 不包含该命令，详见
 [a10 发行说明](docs/releases/v0.1.0a10.md)。

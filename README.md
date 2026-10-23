@@ -63,6 +63,10 @@ the six existing exports before image promotion. See the
 
 ## Installation
 
+a11 development adds A4 drawing creation and standard three-view insertion.
+It is not in the published a10 wheel; installed Windows/Wine gates are pending.
+See the [a11 draft](docs/releases/v0.1.0a11.md).
+
 The a10 pre-release adds exact single-edge constant-radius `feature fillet`
 creation. Installed typed Windows/Wine acceptance passed. It is not in older
 a9 wheels; see the [a10 notes](docs/releases/v0.1.0a10.md).
