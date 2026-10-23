@@ -89,6 +89,10 @@ class FilletContractTests(unittest.TestCase):
         result = {"ok": False, "action": "feature.fillet", "entity_id": "e-ab12cd",
                   "error": {"type": "FilletFailed", "message": "native creation failed"}}
         validate_operation_result("feature.fillet", result)
+        for feature in ({"name": "Unexpected1", "type": "Boss", "feature_id": "f-ab12cd"},
+                        {"feature_id": "f-ab12cd"}):
+            result["feature"] = feature
+            validate_operation_result("feature.fillet", result)
         result["verification"] = {"passed": False}
         validate_operation_result("feature.fillet", result)
         result["verification"]["guessed_field"] = 1

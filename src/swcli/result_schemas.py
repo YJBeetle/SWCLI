@@ -1313,9 +1313,8 @@ _RESULT_FIELDS["feature.fillet"] = (
         "mutation": _object({key: BOOL for key in
                              ("attempted", "creation_returned", "may_have_changed")},
                             ("attempted", "creation_returned", "may_have_changed")),
-        "feature": _object({"name": STRING, "type": {"const": "Fillet"},
-                            "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"}},
-                           ("name", "type")),
+        "feature": _object({"name": STRING, "type": STRING,
+                            "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"}}),
         "verification": _object({
             "passed": BOOL,
             "radius_mm": {"type": "number", "exclusiveMinimum": 0},
@@ -1383,7 +1382,8 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {
-            "feature": {"required": ["feature_id"]},
+            "feature": {"required": ["name", "type", "feature_id"],
+                        "properties": {"type": {"const": "Fillet"}}},
             "mutation": {"properties": {key: {"const": True} for key in
                          ("attempted", "creation_returned", "may_have_changed")}},
             "verification": {
