@@ -101,11 +101,12 @@ limits and host/PID semantics. OS PID mapping and path wrappers remain
 host-owned. The [candidate Windows/Wine gates](verification/a9-runtime-2026-10-23.md)
 now pass; the unchanged tested CI assets are published as `v0.1.0a9`.
 
-1. Calibrate the narrow [exact edge-targeted fillet slice](design/edge-fillet-creation.md)
-   on a generated part before exposing a new operation. Start with one explicit
-   edge and a constant radius, exact native target readback, independent geometry
-   checks and existing lease/stamp/restoration guards. This is planned, not an a8
-   capability.
+1. Complete installed typed Windows/Wine acceptance for the
+   [exact edge-targeted fillet slice](design/edge-fillet-creation.md). Native API
+   calibration passed; a10 development implements one explicit edge, constant
+   radius, native target readback and lease/stamp/restoration guards. The new
+   shared gate adds independent geometry and native save/reopen checks. This
+   is not in the published a9 wheel.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 

@@ -1,8 +1,9 @@
 # Exact edge-targeted fillet creation
 
-Status: **planned after a9**, not an advertised operation or a release promise.
-This is the next proposed use of a8's exact edge observations. Native feasibility
-and installed Windows/Wine gates must precede public exposure.
+Status: **implemented in a10 development; typed native gates pending**, not in
+the published a9 wheel. This uses a8's exact edge observations. Native API
+feasibility passed Windows and local Mac/Wine; fresh installed typed
+Windows/Wine gates remain necessary before release.
 
 ## First increment
 
@@ -14,7 +15,7 @@ edges from that fixture. Tangent propagation, multiple targets/radii, face/full-
 round/partial fillets, conic profiles, surfaces and assembly features remain
 outside the first contract.
 
-The proposed operation is `feature.fillet`, with an exact `e-` edge handle and
+The operation is `feature.fillet`, with an exact `e-` edge handle and
 `radius_mm`. CLI spelling and final result fields follow the proven adapter,
 not the other way around. A face handle, stale scope, unknown or cross-document
 handle must fail before native mutation. Coordinates, edge array indices,

@@ -63,6 +63,10 @@ the six existing exports before image promotion. See the
 
 ## Installation
 
+Development after a9 adds exact single-edge constant-radius `feature fillet`
+creation. It is **not in the published a9 wheel**; installed typed Windows/Wine
+acceptance is pending. See the [a10 draft](docs/releases/v0.1.0a10.md).
+
 The a9 pre-release additionally supports unsaved assembly creation with
 `document create --type assembly` and insertion of an already-open saved part
 with `assembly add-component PATH --document ID`. This is a minimal native

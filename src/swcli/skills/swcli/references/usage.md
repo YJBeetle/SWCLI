@@ -89,7 +89,8 @@ The flags do not grant permission to stop or modify a user's host/documents.
 The a9 candidate provides origin-plane (`front`, `top`, `right`) rectangle and
 full-circle sketches, boxes, blind boss/cut extrusions and the documented narrow
 dimension/depth edits. It has no general offset-plane, spline/3D-sketch,
-loft/sweep or fillet command. Assembly insertion accepts approximate-center
+loft/sweep command. The published a9 wheel has no fillet command; a10 development
+adds the narrow `feature.fillet` slice described below. Assembly insertion accepts approximate-center
 coordinates, not a verified exact transform or mates. Entity observation does
 not imply entity-targeted editing. These are CLI limits, not SOLIDWORKS limits;
 check the actual advertised version before proposing a workflow. A voxel-style
@@ -415,6 +416,42 @@ the nearest geometric match. Entity-targeted mutations are not implemented
 by these read commands.
 
 ## Export and recover
+
+### Single-edge fillet (a10 development)
+
+Use only when `capabilities --operation feature.fillet --json` confirms support;
+this command is not in the published a9 wheel. First discover edges with
+`entity list --kind edge --document DOCUMENT_ID --json` and choose the intended
+native edge from the task's geometry, not an array index or a localized name.
+
+```bash
+sw-cli --session bracket feature fillet EDGE_ID --radius-mm 2 \
+  --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp STAMP --json
+```
+
+The first slice creates one circular constant-radius fillet without tangent
+propagation, in a writable, single-configuration, single-solid part with no
+surface bodies, active sketch/command or preexisting selection. The complete
+edge set is bounded at 64. Native feasibility is proven on a convex box edge,
+not arbitrary topology or arbitrary radii. Refusals do not authorize clearing
+someone else's selection, changing configuration or deleting existing features.
+
+Successful creation verifies exact target/settings, rebuild health, one solid
+and a finite nonzero volume change; those checks are not an engineering-design
+approval. Temporary activation preserves session current and restores the old
+foreground. Creation does not save the document. Save only with task authority.
+
+`mutation` distinguishes attempted creation, a returned native feature and
+possible changes. Partial native/cleanup failures retain that evidence and any
+registered exact feature ID; there is no automatic deletion, retry or rollback.
+A possible topology write (including failed creation) retires old face/edge
+IDs even if the host stamp did not change. Rediscover and re-evaluate targets,
+never select the nearest match automatically. Fillet feature IDs do not make
+the extrusion-only `feature.inspect/set-depth` adapters applicable; their depth
+semantics do not describe a fillet. Save/reopen requires fresh document/entity
+handles; general fillet-radius discovery/editing remains unsupported.
+
+### File exports
 
 ```bash
 sw-cli --session bracket document export output.STEP --document d-ab12cd --strict --json

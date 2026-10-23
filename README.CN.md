@@ -41,6 +41,10 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
+a9 之后的开发版本新增精确单边恒定半径 `feature fillet`，**已发布的 a9 wheel
+不包含该命令**；新的类型化 Windows/Wine 实机门禁尚待通过。详见
+[a10 草稿](docs/releases/v0.1.0a10.md)。
+
 a9 预发行版还支持 `document create --type assembly` 新建未保存装配体，以及
 `assembly add-component PATH --document ID` 插入已经打开并保存的零件。
 这是最小原生装配接口，不包括配合或引用文件打包；还支持 `.SLDASM`、`.SLDDRW`
