@@ -59,12 +59,34 @@ def view_record(view):
         transform=list(_com_value(_com_value(view, "ModelToViewTransform"), "ArrayData")))
 
 
+def source_state(part):
+    return dict(path=_com_value(part, "GetPathName"), modified=_com_value(part, "GetSaveFlag"),
+        update_stamp=_com_value(part, "GetUpdateStamp"),
+        configuration=_com_value(_com_value(_com_value(part, "ConfigurationManager"), "ActiveConfiguration"), "Name"))
+
+
+def projection_arguments(properties, projection):
+    checked(len(properties) == 8 and all(math.isfinite(x) for x in properties), "unrecognized sheet properties")
+    checked(projection in ("first-angle", "third-angle"), "invalid projection")
+    return (int(properties[0]), int(properties[1]), properties[2], properties[3],
+            projection == "first-angle", properties[5], properties[6], bool(properties[7]))
+
+
+def check_projection_change(before, after, projection):
+    checked(before["template"] == after["template"] and before["name"] == after["name"],
+            "projection setting changed sheet name or format path")
+    expected = list(before["properties"])
+    expected[4] = projection == "first-angle"
+    checked(after["properties"] == expected, "projection setting changed unrelated sheet properties")
+
+
 def observe(drawing, call, report, label):
     snapshot = report.setdefault(label, {})
     sheet = call(label + ".GetCurrentSheet", lambda: _com_value(drawing, "GetCurrentSheet"))
     snapshot["sheet"] = dict(name=call(label + ".sheet.GetName", lambda: _com_value(sheet, "GetName")),
         properties=call(label + ".sheet.GetProperties2", lambda: list(_com_value(sheet, "GetProperties2"))),
         template=call(label + ".sheet.GetTemplateName", lambda: _com_value(sheet, "GetTemplateName")))
+    snapshot["sheet"]["template_exists"] = Path(snapshot["sheet"]["template"]).is_file()
     groups = call(label + ".GetViews", lambda: _com_value(drawing, "GetViews"))
     snapshot["group_sizes"] = [len(group) for group in groups]
     snapshot["sheet_pseudo_views"] = []
@@ -97,7 +119,7 @@ def verify_views(snapshot, source, configuration):
         checked(len(view["scale"]) == 2 and min(view["scale"]) > 0, "invalid view scale")
 
 
-def run(output, template, swconst, visible):
+def run(output, template, swconst, visible, projection=None):
     report = dict(success=False, cleanup_errors=[], template=str(template),
                   template_sha256=hashlib.sha256(template.read_bytes()).hexdigest())
     app = com = process = None
@@ -140,13 +162,22 @@ def run(output, template, swconst, visible):
             report["fixture"] = result
             checked(result["ok"] and part is not None, "box creation failed")
             checked(not _com_value(part, "GetSaveFlag"), "source fixture is not saved clean")
-            configuration = _com_value(_com_value(_com_value(part, "ConfigurationManager"), "ActiveConfiguration"), "Name")
+            report["source_before"] = call("source.before", lambda: source_state(part))
+            configuration = report["source_before"]["configuration"]
             drawing = call("NewDocument", lambda: app.NewDocument(str(template), paper, 0.0, 0.0))
             checked(drawing is not None, "drawing creation returned null")
             documents.append(drawing)
             checked(_com_value(drawing, "GetType") == 3, "template did not create drawing")
             before = observe(drawing, call, report, "before")
             checked(len(before["group_sizes"]) == 1 and not before["views"], "template must have one empty sheet")
+            if projection is not None:
+                sheet = _com_value(drawing, "GetCurrentSheet")
+                arguments = projection_arguments(before["sheet"]["properties"], projection)
+                call("sheet.SetProperties2", lambda: sheet.SetProperties2(*arguments))
+                call("ForceRebuild3.projection", lambda: drawing.ForceRebuild3(False))
+                configured = observe(drawing, call, report, "configured")
+                check_projection_change(before["sheet"], configured["sheet"], projection)
+                before = configured
             properties = before["sheet"]["properties"]
             checked(len(properties) >= 7 and properties[4] in (0, 1, False, True), "unrecognized sheet properties")
             report["projection"] = "first-angle" if properties[4] else "third-angle"
@@ -156,6 +187,8 @@ def run(output, template, swconst, visible):
             after = observe(drawing, call, report, "after")
             verify_views(after, source, configuration)
             checked(not _com_value(part, "GetSaveFlag"), "view insertion modified source fixture")
+            report["source_after_insertion"] = call("source.after-insertion", lambda: source_state(part))
+            checked(report["source_before"] == report["source_after_insertion"], "view insertion changed source state")
             saved = output / "fixture.SLDDRW"
             checked(call("SaveAs3", lambda: drawing.SaveAs3(str(saved), 0, 1)) == 0 and saved.is_file()
                     and saved.stat().st_size > 0, "native drawing save failed")
@@ -167,6 +200,9 @@ def run(output, template, swconst, visible):
                 documents.append(reopened)
             checked(result["ok"] and reopened is not None, "drawing reopen failed")
             verify_views(observe(reopened, call, report, "reopened"), source, configuration)
+            report["source_after_reopen"] = call("source.after-reopen", lambda: source_state(part))
+            checked(report["source_before"] == report["source_after_reopen"], "drawing save/reopen changed source state")
+            report["validation_scope"] = "native observation and reference/configuration persistence; direction/layout validation pending"
             report["success"] = True
         except BaseException as error:
             report["failure"] = dict(type=type(error).__name__, message=str(error), traceback=traceback.format_exc())
@@ -195,6 +231,8 @@ def main(argv=None):
     parser.add_argument("--template", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--hidden", action="store_true", help="default is visible")
+    parser.add_argument("--projection", choices=("first-angle", "third-angle"),
+                        help="set only sheet projection, then read back every sheet property; omitted observes template")
     args = parser.parse_args(argv)
     if args.template.suffix.lower() != ".drwdot" or not args.template.is_file() or not args.template.stat().st_size:
         parser.error("--template must be an existing nonempty DRWDOT")
@@ -204,7 +242,7 @@ def main(argv=None):
         args.output_dir.mkdir()
     except OSError as error:
         parser.error("--output-dir must be new: " + str(error))
-    return run(args.output_dir.resolve(), args.template.resolve(), args.swconst.resolve(), not args.hidden)
+    return run(args.output_dir.resolve(), args.template.resolve(), args.swconst.resolve(), not args.hidden, args.projection)
 
 
 if __name__ == "__main__":

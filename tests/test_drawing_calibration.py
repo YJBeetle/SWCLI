@@ -14,6 +14,23 @@ spec.loader.exec_module(gate)
 
 
 class DrawingCalibrationTests(unittest.TestCase):
+    def test_projection_preserves_every_other_property(self):
+        properties = [6, 12, 1, 1, 1, .297, .21, 1]
+        self.assertEqual(gate.projection_arguments(properties, "third-angle"),
+                         (6, 12, 1, 1, False, .297, .21, True))
+        before = dict(name="Sheet1", template="original.slddrt", properties=properties)
+        after = copy.deepcopy(before)
+        after["properties"][4] = False
+        gate.check_projection_change(before, after, "third-angle")
+        for index in (0, 1, 2, 3, 5, 6, 7):
+            changed = copy.deepcopy(after)
+            changed["properties"][index] += 1
+            with self.subTest(index=index), self.assertRaises(RuntimeError):
+                gate.check_projection_change(before, changed, "third-angle")
+        after["template"] = "replaced.slddrt"
+        with self.assertRaises(RuntimeError):
+            gate.check_projection_change(before, after, "third-angle")
+
     def test_raw_dispatch_is_wrapped_but_existing_wrapper_is_preserved(self):
         raw = object()
         wrapped = SimpleNamespace(_oleobj_=object())
@@ -73,7 +90,7 @@ class DrawingCalibrationTests(unittest.TestCase):
             with mock.patch.object(gate, "run", return_value=0) as run:
                 args = ["--template", str(template), "--swconst", str(library), "--output-dir", str(root / "new")]
                 self.assertEqual(gate.main(args), 0)
-                self.assertTrue(run.call_args.args[-1])
+                self.assertTrue(run.call_args.args[-2])
                 with mock.patch("sys.stderr"), self.assertRaises(SystemExit):
                     gate.main(args)
                 self.assertEqual(run.call_count, 1)
