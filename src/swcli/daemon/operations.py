@@ -195,6 +195,17 @@ def drawing_standard_views(context: OperationContext, values: Dict[str, Any]) ->
         app=context.app, document=context.entry.document,
         source_document=source.document, configuration=values["configuration"],
     )
+    # SOLIDWORKS can rename an unsaved drawing after assigning model views.
+    # Preserve its exact live handle and lease rather than letting the next
+    # registry sync mistake the changed title for a closed/reopened document.
+    try:
+        context.documents.refresh_key(context.entry)
+    except Exception as exc:
+        result["ok"] = False
+        result.setdefault("cleanup_errors", []).append(
+            {"stage": "refresh-drawing-key", "error": str(exc)}
+        )
+        result.setdefault("error", {"type": "DocumentRegistrationFailed", "message": str(exc)})
     result["source_document_id"] = source.document_id
     return result
 

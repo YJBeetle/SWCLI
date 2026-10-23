@@ -105,3 +105,15 @@ class DrawingOperationTests(unittest.TestCase):
         self.assertIs(self.registry.resolve(None, session_id="writer"), self.d)
         self.assertEqual(result["document"]["document_id"], self.d.document_id)
         self.assertEqual(create.call_args.kwargs["projection"], "third-angle")
+
+    def test_native_unsaved_title_change_preserves_document_id_and_lease(self):
+        for success in (True, False):
+            with self.subTest(success=success):
+                lease = self.registry.acquire_lease(self.d, session_id="writer", ttl_seconds=60)
+                def insert(**kwargs):
+                    self.drawing.GetTitle = lambda title="Part - renamed sheet" + str(success): title
+                    return {"ok":success,"action":"drawing.standard-views"}
+                self.native.side_effect = insert
+                self.call(lease_id=lease["lease_id"])
+                self.assertIs(self.registry.resolve(self.d.document_id, session_id="writer"), self.d)
+                self.assertEqual(self.registry.active_lease(self.d)["lease_id"], lease["lease_id"])
