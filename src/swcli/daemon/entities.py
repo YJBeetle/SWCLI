@@ -94,6 +94,19 @@ class EntityRegistry:
         self._live()
         self._refresh(_scope(configuration, update_stamp))
 
+    def retire_scope(self) -> None:
+        """Retire every known target after a possible topology write.
+
+        Even a failed write or an unavailable final stamp must not leave old
+        face/edge handles usable. Fresh complete observations can register new
+        handles, but never revive the retired ones.
+        """
+        self._live()
+        self._stale_ids.update(self._entries)
+        self._entries.clear()
+        self._complete_kinds.clear()
+        self._scope = None
+
     def _same(self, first: Any, second: Any) -> bool:
         status = native_call(
             "entity-registry",

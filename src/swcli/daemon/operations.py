@@ -660,6 +660,62 @@ def entity_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[st
 
 
 @_register_handler
+def feature_fillet(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_fillets import create_edge_fillet_windows_with_handle
+    from ..hosts.windows_feature_inspection import _state
+
+    if context.documents is None or context.entry is None or context.entry.entities is None:
+        raise RuntimeError("document entity registry is unavailable")
+    registry = context.entry.entities
+    token = values["entity_id"]
+    state, _, _ = _state(context.app, context.entry.document)
+    registry.resolve(token, kind="edge", configuration=state["configuration"],
+                     update_stamp=state["update_stamp"])
+    # Reobserve the complete native edge set, not just the cached target. A
+    # coordinate, wrapper identity or matching reference bytes alone is not
+    # authority to mutate this document/body.
+    observation, bindings = _observe_entities(context, "edge")
+    if not observation["ok"]:
+        return {
+            "ok": False, "action": "feature.fillet", "entity_id": token,
+            "radius_mm": values["radius_mm"],
+            "mutation": {"attempted": False, "creation_returned": False,
+                         "may_have_changed": False},
+            "cleanup_errors": [], "error": observation["error"],
+        }
+    _register_entities(context, observation, bindings, "edge")
+    state = observation["observation"]["after"]
+    target = registry.resolve(token, kind="edge", configuration=state["configuration"],
+                              update_stamp=state["update_stamp"])
+    try:
+        result, feature = create_edge_fillet_windows_with_handle(
+            app=context.app, document=context.entry.document,
+            binding=target.binding, radius_mm=values["radius_mm"],
+        )
+    except Exception:
+        # Unexpected adapter exceptions have no trustworthy mutation boundary.
+        registry.retire_scope()
+        raise
+    result["entity_id"] = token
+    if result["mutation"]["may_have_changed"] or result.get("cleanup_errors"):
+        registry.retire_scope()
+    if feature is not None:
+        try:
+            feature_id = context.documents.register_feature(context.entry, feature)
+            result.setdefault("feature", {})["feature_id"] = feature_id
+        except Exception as exc:
+            result["ok"] = False
+            result.setdefault("cleanup_errors", []).append(
+                {"stage": "register-created-feature", "error": str(exc)}
+            )
+            result.setdefault("error", {
+                "type": "FeatureRegistrationFailed",
+                "message": "creation returned an object but its exact handle could not be registered",
+            })
+    return result
+
+
+@_register_handler
 def feature_inspect(
     context: OperationContext, values: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -1125,6 +1181,16 @@ def execute_operation(
             documents.resolve_sketch(context.entry, values["sketch_id"])
         if "feature_id" in values:
             documents.resolve_feature(context.entry, values["feature_id"])
+        if operation == "feature.fillet":
+            from ..hosts.windows_feature_inspection import _state
+
+            if context.entry.entities is None:
+                raise RuntimeError("document entity registry is unavailable")
+            state, _, _ = _state(app, context.entry.document)
+            context.entry.entities.resolve(
+                values["entity_id"], kind="edge",
+                configuration=state["configuration"], update_stamp=state["update_stamp"],
+            )
         if "dimension_id" in values:
             binding = documents.resolve_dimension(context.entry, values["dimension_id"])
             if (binding.kind, binding.profile_kind) not in (
