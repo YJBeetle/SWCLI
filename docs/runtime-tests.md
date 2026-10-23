@@ -59,11 +59,18 @@ platform wrappers only provision and invoke the shared coordinator.
 
 `scripts/ci/verify-runtime-sets.py` is the shared Windows/Linux-Wine/macOS-Wine
 coordinator. Install and prepare once on one runner/container, then run its
-platform-independent plan: 11 sets in core, 17 in full. Named entrypoints cover
+platform-independent plan: 11 sets in core, 19 in full. Named entrypoints cover
 native modeling, assemblies, exports, drawing Save/SaveAs, continuation,
 diameter dimensions, center constraints, rectangle dimensions and Toolbox;
-full additionally runs reverse-cut, feature-depth and complete Top/Right cases.
+full additionally runs reverse-cut, feature-depth, fillets, drawing creation with
+standard views and complete Top/Right cases.
 The entrypoints delegate existing CAD assertions; they do not duplicate them.
+
+The full coordinator requires `--drawing-template` with the host's Windows path.
+Platform wrappers discover the installed `templates/gb_a4.drwdot`, or use an explicit
+`SWCLI_DRAWING_TEMPLATE` local filesystem path. Missing or ambiguous templates fail
+instead of silently selecting a different sheet format. The drawing entrypoint
+uses `--drawing-template` directly (no `--suite`) and writes `drawings.json`.
 
 Every set starts a foreground daemon with a fresh owned SW session and stops it after
 checking the real document catalog is empty. Unknown documents, attached/shared

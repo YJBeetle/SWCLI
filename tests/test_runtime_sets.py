@@ -33,6 +33,7 @@ class RuntimeSetsTests(unittest.TestCase):
             host_output_dir="C:\\Evidence", cli_command=None, endpoint="127.0.0.1:18495",
             sample_part="C:\\Installed\\part.sldprt", sample_assembly="C:\\Installed\\asm.sldasm",
             sample_drawing="C:\\Installed\\sample.slddrw", sample_drawing_local=drawing,
+            drawing_template="C:\\Installed\\templates\\gb_a4.drwdot",
             fixture_work_dir=root / "private-work", host_fixture_work_dir="C:\\PrivateWork",
             request_timeout=600, startup_timeout=300, set_timeout=1800,
             daemon_log=None, wine_prefix=None)
@@ -45,7 +46,7 @@ class RuntimeSetsTests(unittest.TestCase):
     def test_plan_is_identical_for_platforms_and_core_is_not_silent_full(self):
         core, full = gate.runtime_plan("core"), gate.runtime_plan("full")
         self.assertEqual(len(core), 11)
-        self.assertEqual(len(full), 18)
+        self.assertEqual(len(full), 19)
         for plan in (core, full):
             self.assertEqual(len(plan), len({item.name for item in plan}))
             self.assertEqual(plan[-1].name, "toolbox")
@@ -56,6 +57,8 @@ class RuntimeSetsTests(unittest.TestCase):
         self.assertIn("feature-depth", [item.name for item in full])
         self.assertNotIn("fillets", [item.name for item in core])
         self.assertIn("fillets", [item.name for item in full])
+        self.assertNotIn("drawings", [item.name for item in core])
+        self.assertIn("drawings", [item.name for item in full])
         bridge = next(item for item in full if item.name == "continuation-front-diameter")
         self.assertEqual([step.script for step in bridge.steps],
                          ["verify-host-continuation.py", "verify-diameter-dimensions.py"])
@@ -75,6 +78,28 @@ class RuntimeSetsTests(unittest.TestCase):
             value.update(root_changes)
             with self.subTest(changes=host_changes), self.assertRaises(RuntimeError):
                 runner.exclusive(value)
+
+    def test_drawings_require_explicit_template_and_forward_it(self):
+        self.args.suite = "full"
+        template = self.args.drawing_template
+        self.args.drawing_template = None
+        with self.assertRaisesRegex(RuntimeError, "explicit installed drawing template"):
+            gate.Runner(self.args)
+        self.args.drawing_template = template
+        runner = gate.Runner(self.args)
+        test_set = next(item for item in runner.plan if item.name == "drawings")
+        arguments, _ = runner.step_args(test_set, test_set.steps[0], Path("private"), "C:\\Private")
+        self.assertEqual(arguments[arguments.index("--drawing-template") + 1], template)
+        self.assertNotIn("--sample-drawing", arguments)
+        self.assertNotIn("--suite", arguments)
+        self.assertNotIn("--sample-part", arguments)
+        # Exercise the real entrypoint parser, not a second copy of its flags.
+        spec = importlib.util.spec_from_file_location("drawing_parser_gate", SCRIPT.parent / "verify-drawings.py")
+        drawings = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(drawings)
+        with patch.object(drawings, "DrawingSmoke", side_effect=RuntimeError("parsed drawing arguments")):
+            with self.assertRaisesRegex(RuntimeError, "parsed drawing arguments"):
+                drawings.main([str(value) for value in arguments[3:]])
 
     def simulate(self, runner, failure_at=None, cleanup_failure=False):
         events = []
@@ -98,7 +123,7 @@ class RuntimeSetsTests(unittest.TestCase):
             if script == failure_at:
                 raise RuntimeError("original native failure")
             output = Path(arguments[arguments.index("--output-dir") + 1])
-            filename = "toolbox.json" if script == "verify-toolbox.py" else (
+            filename = "drawings.json" if script == "verify-drawings.py" else "toolbox.json" if script == "verify-toolbox.py" else (
                 "driving-dimensions.json" if "--sample-part" not in arguments else "modeling.json")
             proof = {"success": True, "state": "completed", "completed": True,
                      "native_test": "passed", "cleanup_errors": [], "suite": self.args.suite,
@@ -423,8 +448,8 @@ class RuntimeSetsTests(unittest.TestCase):
         with patches[0], patches[1], patches[2], patches[3], patches[4]:
             runner.run()
         starts = [event for event in events if event[0] == "start"]
-        self.assertEqual(len(starts), 18)
-        self.assertEqual(len({event[2] for event in starts}), 18)
+        self.assertEqual(len(starts), 19)
+        self.assertEqual(len({event[2] for event in starts}), 19)
         self.assertTrue(runner.record["success"])
 
     def test_preflight_does_not_stop_shared_or_nonempty_host(self):

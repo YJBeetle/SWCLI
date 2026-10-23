@@ -291,6 +291,12 @@ try {
     $installation = @($doctor.installations | Where-Object { $_.year -eq 2025 }) | Select-Object -First 1
     if ($null -eq $installation) { throw "SOLIDWORKS 2025 installation path is unavailable" }
     $setsFolder = Join-Path $Workspace "runtime-sets"
+    $drawingTemplateArguments = @()
+    if ($Suite -eq "full") {
+        $drawingTemplate = & python -I (Join-Path $PSScriptRoot "../gate_support/drawing_template.py") --program-data $env:ProgramData
+        if ($LASTEXITCODE -ne 0) { throw "Installed drawing template fixture discovery failed" }
+        $drawingTemplateArguments = @("--drawing-template", $drawingTemplate)
+    }
     $samplePart = Join-Path $env:PUBLIC "Documents\SOLIDWORKS\SOLIDWORKS 2025\samples\learn\Paper Airplane.SLDPRT"
     $sampleAssembly = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.sldasm"
     $sampleDrawing = Join-Path $installation.install_dir "sldBenchmarking\Macro\Mold\bezel moldbase.slddrw"
@@ -308,7 +314,7 @@ try {
             --output-dir $setsFolder --host-output-dir $setsFolder `
             --sample-part $samplePart --sample-assembly $sampleAssembly `
             --sample-drawing $sampleDrawing --sample-drawing-local $sampleDrawing `
-            --fixture-work-dir $drawingWorkFolder --host-fixture-work-dir $drawingWorkFolder
+            --fixture-work-dir $drawingWorkFolder --host-fixture-work-dir $drawingWorkFolder @drawingTemplateArguments
         if ($LASTEXITCODE -ne 0) { throw "shared isolated functional sets failed" }
         $setsFailed = $false
     }

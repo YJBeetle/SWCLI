@@ -51,6 +51,8 @@ class Runner:
     def __init__(self, args):
         self.args = args
         self.plan = runtime_plan(args.suite)
+        require(args.suite != "full" or getattr(args, "drawing_template", None),
+                "Full runtime suite requires an explicit installed drawing template")
         self.python_paths = getattr(args, "python_path", [])
         require(not self.python_paths or args.cli_command,
                 "Explicit import directories require an adapter-owned CLI executable")
@@ -265,9 +267,12 @@ class Runner:
         if self.args.cli_command:
             arguments += ["--cli-command", self.args.cli_command]
         if step.kind != "toolbox":
-            arguments += ["--suite", self.args.suite,
-                          "--host-output-dir", host_join(self.args.host_output_dir, test_set.name, step.kind)]
-        if step.kind == "modeling":
+            arguments += ["--host-output-dir", host_join(self.args.host_output_dir, test_set.name, step.kind)]
+            if test_set.name != "drawings":
+                arguments += ["--suite", self.args.suite]
+        if test_set.name == "drawings":
+            arguments += ["--drawing-template", self.args.drawing_template]
+        elif step.kind == "modeling":
             arguments += ["--sample-part", self.args.sample_part, "--sample-assembly", self.args.sample_assembly]
             if test_set.name.startswith("drawing-"):
                 arguments += ["--sample-drawing", self.args.sample_drawing,
@@ -340,6 +345,8 @@ class Runner:
                                      label=test_set.name + "-" + step.kind)
                         filename = {"modeling": "modeling.json", "driving": "driving-dimensions.json",
                                     "toolbox": "toolbox.json"}[step.kind]
+                        if test_set.name == "drawings":
+                            filename = "drawings.json"
                         proof = json.loads((output / filename).read_text())
                         if step.kind == "toolbox":
                             require(proof.get("completed") is True and proof.get("native_test") == "passed"
@@ -404,6 +411,8 @@ def main(argv=None):
     parser.add_argument("--sample-part", type=host_directory, required=True)
     parser.add_argument("--sample-assembly", type=host_directory, required=True)
     parser.add_argument("--sample-drawing", type=host_directory, required=True)
+    parser.add_argument("--drawing-template", type=host_directory,
+                        help="Explicit installed engineering drawing template; required for full suite")
     parser.add_argument("--sample-drawing-local", type=Path, required=True)
     parser.add_argument("--fixture-work-dir", type=Path, required=True)
     parser.add_argument("--host-fixture-work-dir", type=host_directory, required=True)

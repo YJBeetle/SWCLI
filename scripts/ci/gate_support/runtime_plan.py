@@ -26,7 +26,8 @@ def runtime_plan(suite):
     if suite == "full":
         sets += [TestSet("reverse-cut", (Step("verify-reverse-cut.py", "modeling"),)),
                  TestSet("feature-depth", (Step("verify-feature-depth.py", "modeling"),)),
-                 TestSet("fillets", (Step("verify-fillets.py", "modeling"),))]
+                 TestSet("fillets", (Step("verify-fillets.py", "modeling"),)),
+                 TestSet("drawings", (Step("verify-drawings.py", "modeling"),))]
     # Preserve cross-script host continuity without making unrelated CAD sets
     # inherit hours of graphics allocations. No restart between these two steps.
     sets.append(TestSet("continuation-front-diameter", (
