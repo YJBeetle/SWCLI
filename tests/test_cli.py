@@ -954,6 +954,16 @@ class CliTests(unittest.TestCase):
 
 
 class PathTranslationTests(unittest.TestCase):
+    def test_unicode_paths_are_single_literal_arguments(self):
+        value = "/workspace/中文 路径/垫片 导出.STEP"
+        parameters = {"output": value}
+        with mock.patch.dict(os.environ, {"SWCLI_PATH_TRANSLATE_CMD": "to-win"}), \
+                mock.patch("swcli.cli.subprocess.check_output",
+                           return_value="Z:\\workspace\\中文 路径\\垫片 导出.STEP\n") as translate:
+            translate_parameter_paths(parameters)
+        translate.assert_called_once_with(["to-win", value], text=True)
+        self.assertEqual(parameters["output"], "Z:\\workspace\\中文 路径\\垫片 导出.STEP")
+
     def test_no_op_without_translator_command(self):
         parameters = {"path": "/workspace/model.SLDPRT"}
         with mock.patch.dict(os.environ, {}, clear=True):

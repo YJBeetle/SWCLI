@@ -165,7 +165,13 @@ published as evidence; installed drawings are never saved in place.
 
 - `scripts/ci/verify-modeling.py`: capabilities, native update stamps, leases
   and stale-write rejection, background sketches/extrusions/cuts, analytical
-  measurements, native save/reopen and existing-target protection. The final
+  measurements, native save/reopen and existing-target protection. The native
+  case also saves a generated part under `中文 路径/垫片 零件.SLDPRT`, saves it
+  in place, closes/reopens it read-only, checks unchanged measurements, and
+  strictly exports `垫片 导出.STEP` in that directory. Exact returned paths,
+  native size, STEP header and source-byte preservation are required; this
+  runs on both Windows and Wine through the shared CLI gate. It does not
+  decode Git's quoted filename listings on behalf of callers. The final
   case rejects a nonintersecting cut, checks no cleanup warnings, closed sketch
   edit state and unchanged solid geometry, closes the native document, then
   creates a new background circle **without restarting the host**.

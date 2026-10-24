@@ -18,6 +18,51 @@ from gate_support.model_checks import (
 
 
 class NativeFileCases:
+    def unicode_file_roundtrip(self, source):
+        """Exercise real CLI argv/JSON/COM paths, not just Unicode log output."""
+        folder = self.directory / "中文 路径"
+        folder.mkdir()
+        native_file = folder / "垫片 零件.SLDPRT"
+        step_file = folder / "垫片 导出.STEP"
+        native = str(PureWindowsPath(self.host_directory) / folder.name / native_file.name)
+        output = str(PureWindowsPath(self.host_directory) / folder.name / step_file.name)
+        source_path = str(PureWindowsPath(self.host_directory) / source.name)
+        source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+        document = self.command("document", "open", source_path)["document"]["document_id"]
+        metrics = self.measure(document)["metrics"]
+        saved = self.write("document", "save-as", native, document=document)
+        require(saved["document"]["modified"] is False
+                and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(native)
+                and saved["file_verification"]["minimum_size_valid"] is True
+                and native_file.is_file() and native_file.stat().st_size >= 512,
+                "Unicode native save-as path/file verification failed")
+        self.verify_in_place_save(document, native_file)
+        self.close(document)
+        digest = hashlib.sha256(native_file.read_bytes()).hexdigest()
+        opened = self.command("document", "open", native, "--read-only")
+        reopened = opened["document"]["document_id"]
+        require(reopened != document and opened["read_only"] is True
+                and opened["api_errors"] == 0 and opened["api_warnings"] in (0, 2)
+                and opened["document"]["modified"] is False
+                and PureWindowsPath(opened["document"]["path"]) == PureWindowsPath(native),
+                "Unicode native file did not reopen at the exact path")
+        self.measure(reopened, volume=metrics["volume_mm3"], area=metrics["surface_area_mm2"])
+        exported = self.write("document", "export", "--strict", output, document=reopened)
+        require(PureWindowsPath(exported["output"]) == PureWindowsPath(output)
+                and PureWindowsPath(exported["artifact"]["path"]) == PureWindowsPath(output)
+                and exported["artifact"]["format"] == "STEP" and step_file.is_file()
+                and exported["artifact"]["size_bytes"] == step_file.stat().st_size,
+                "Unicode export returned a different path or file size")
+        self.verify_step(str(step_file.relative_to(self.directory)))
+        self.close(reopened)
+        require(hashlib.sha256(native_file.read_bytes()).hexdigest() == digest
+                and hashlib.sha256(source.read_bytes()).hexdigest() == source_hash,
+                "Unicode roundtrip changed saved source bytes")
+        self.record["unicode_paths"] = {"native_path": native, "output_path": output,
+                                        "size_bytes": native_file.stat().st_size,
+                                        "reopened": True, "strict_export": True}
+        self.checkpoint("unicode-paths.verified")
+
     def sample_exports(self, part, assembly):
         document = self.command("document", "open", part, "--read-only")["document"][
             "document_id"

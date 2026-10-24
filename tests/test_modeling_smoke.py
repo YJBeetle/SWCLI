@@ -189,6 +189,8 @@ class FakeCLI:
             if self.defect == "assembly-reopen-failed" and subcommand == "open" and args.path.endswith("assembly.SLDASM"):
                 return self.failure("OpenFailed")
             document["read_only"] = args.read_only if subcommand == "open" else False
+            if subcommand == "open" and "垫片" in args.path and self.defect == "unicode-reopen-path":
+                document["path"] = args.path.replace("垫片", "??")
             if subcommand == "open" and args.path.endswith("generated.SLDASM"):
                 if self.defect == "generated-reopen-failed":
                     return self.failure("OpenFailed")
@@ -333,7 +335,8 @@ class FakeCLI:
             }
         if action == "document" and subcommand == "save":
             directory = self.drawing_directory if document.get("type") == 3 else self.directory
-            target = directory / gate.PureWindowsPath(document["path"]).name
+            path = gate.PureWindowsPath(document["path"])
+            target = directory / path.name if document.get("type") == 3 else directory.joinpath(*path.parts[2:])
             if self.defect == "assembly-save-truncated" and target.suffix == ".SLDASM" or self.defect == "part-save-truncated" and target.suffix == ".SLDPRT":
                 target.write_bytes(b"truncated")
             if target.name == "generated.SLDASM":
@@ -540,7 +543,8 @@ class FakeCLI:
             return result
         if action == "document" and subcommand in ("save-as", "export"):
             directory = self.drawing_directory if document.get("type") == 3 else self.directory
-            target = directory / gate.PureWindowsPath(args.output).name
+            path = gate.PureWindowsPath(args.output)
+            target = directory / path.name if document.get("type") == 3 else directory.joinpath(*path.parts[2:])
             if target.exists():
                 if self.defect == "overwrite-existing":
                     target.write_bytes(b"damaged")
@@ -548,6 +552,8 @@ class FakeCLI:
             format_name = target.suffix[1:].upper()
             target.write_bytes(mesh_fixture(format_name) if subcommand == "export"
                                else bytes(1024))
+            if "垫片" in target.name and self.defect == "unicode-truncated":
+                target.write_bytes(b"truncated")
             if subcommand == "export":
                 result = {"ok": True, "action": "document.export", "output": args.output,
                           "artifact": {"kind": "cad-export", "path": args.output,
@@ -1046,6 +1052,30 @@ class ModelingSmokeTests(unittest.TestCase):
             gate.main(arguments)
         return command
 
+    def test_native_case_covers_unicode_directory_and_filenames(self):
+        self.arguments += ["--case-set", "native"]
+        self.run_gate()
+        proof = json.loads((self.directory / "modeling.json").read_text(encoding="utf-8"))["unicode_paths"]
+        self.assertTrue(proof["reopened"] and proof["strict_export"])
+        self.assertIn("中文 路径", proof["native_path"])
+        self.assertIn("垫片 零件.SLDPRT", proof["native_path"])
+        self.assertIn("垫片 导出.STEP", proof["output_path"])
+        self.assertTrue((self.directory / "中文 路径" / "垫片 导出.STEP").is_file())
+
+    def test_unicode_roundtrip_rejects_truncation_and_wrong_reopen_path(self):
+        for defect in ("unicode-truncated", "unicode-reopen-path"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                self.directory = Path(temporary) / "evidence with spaces"
+                self.fake = FakeCLI(self.directory)
+                self.fake.defect = defect
+                self.arguments = ["--output-dir", str(self.directory),
+                                  "--host-output-dir", "C:\\evidence with spaces",
+                                  "--case-set", "native"]
+                with self.assertRaisesRegex(RuntimeError, "Unicode"):
+                    self.run_gate()
+                record = json.loads((self.directory / "modeling.json").read_text(encoding="utf-8"))
+                self.assertNotIn("unicode_paths", record)
+
     def test_named_case_selections_preserve_only_the_requested_case(self):
         selections = {"native": "native-model", "assembly": "generated-assembly",
                       "exports": "sample-exports", "reverse-cut": "reverse-cut",
@@ -1347,9 +1377,9 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(proof["fresh_document_id"])
         save_calls = [call for call in self.fake.calls
                       if call.command == "document" and call.document_command == "save"]
-        self.assertEqual(len(save_calls), 3)
+        self.assertEqual(len(save_calls), 4)
         saves = self.record()["native_in_place_saves"]
-        self.assertEqual([saved["format"] for saved in saves], ["SLDPRT", "SLDASM", "SLDASM"])
+        self.assertEqual([saved["format"] for saved in saves], ["SLDPRT", "SLDPRT", "SLDASM", "SLDASM"])
         self.assertTrue(all(saved["size_bytes"] >= 512 for saved in saves))
         saved_assemblies = [document for path, document in self.fake.saved.items()
                             if path.endswith(".SLDASM")]

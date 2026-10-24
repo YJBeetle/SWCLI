@@ -340,6 +340,7 @@ class NativeModelCases:
             "independent reopen session changed the original session current",
         )
         self.close(b)
+        self.unicode_file_roundtrip(local_model)
 
     def reverse_cut(self):
         document = self.create()
