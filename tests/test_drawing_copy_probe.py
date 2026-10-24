@@ -25,9 +25,9 @@ class DrawingCopyProbeTests(unittest.TestCase):
         self.smoke.checkpoint = Mock()
         self.smoke.close = Mock()
 
-    def probe(self):
+    def probe(self, *, reopen=False):
         self.smoke.drawing_copy_first(self.source, work_directory=self.work,
-                                     host_work_directory="C:\\private")
+                                     host_work_directory="C:\\private", reopen=reopen)
 
     def test_only_private_copy_is_opened_once_and_never_saved(self):
         opened = {"document": {"document_id": "d-copy", "type": 3},
@@ -55,6 +55,37 @@ class DrawingCopyProbeTests(unittest.TestCase):
         proof = self.smoke.record["drawing_copy_first"]
         self.assertEqual(proof["source_sha256_before"], proof["source_sha256_after"])
 
+    def test_reopen_control_closes_and_checks_empty_before_same_path_new_handle(self):
+        events = []
+        ids = iter(("d-first", "d-second"))
+        structure = {"features": {"count": 1, "truncated": False,
+                                  "items": [{"name": "Sheet1", "type": "Sheet"}]}}
+        def command(*args, **kwargs):
+            events.append(args[1])
+            if args[1] == "open":
+                self.assertEqual(args[2], "C:\\private\\drawing.SLDDRW")
+                return {"document": {"document_id": next(ids), "type": 3},
+                        "read_only": False, "api_errors": 0, "api_warnings": 0}
+            return {"structure": structure}
+        self.smoke.command = Mock(side_effect=command)
+        self.smoke.close.side_effect = lambda document: events.append("close")
+        self.smoke.require_empty = Mock(side_effect=lambda **kwargs: events.append("empty"))
+        self.probe(reopen=True)
+        self.assertEqual(events, ["open", "inspect", "close", "empty", "open", "inspect", "close"])
+        proof = self.smoke.record["drawing_copy_first"]
+        self.assertTrue(proof["reopen_requested"])
+        self.assertFalse(proof["save_attempted"])
+        self.assertEqual(proof["reopened"]["document"]["document_id"], "d-second")
+
+    def test_reopen_control_never_retries_failed_first_open(self):
+        self.smoke.command = Mock(side_effect=RuntimeError("first native failure"))
+        self.smoke.require_empty = Mock()
+        with self.assertRaisesRegex(RuntimeError, "first native failure"):
+            self.probe(reopen=True)
+        self.smoke.command.assert_called_once()
+        self.smoke.close.assert_not_called()
+        self.smoke.require_empty.assert_not_called()
+
     def test_selected_probe_never_runs_normal_modeling_or_roundtrips(self):
         self.smoke.health = Mock(return_value={"host": {"process_id": 10}})
         self.smoke.command = Mock()
@@ -78,6 +109,21 @@ class DrawingCopyProbeTests(unittest.TestCase):
             self.probe()
         self.assertEqual(target.read_bytes(), b"existing")
         self.smoke.command.assert_not_called()
+
+    def test_reopen_case_selects_only_the_reopen_control(self):
+        smoke = base.ModelingSmoke(directory=self.root, host_directory="C:\\evidence",
+                                   endpoint="127.0.0.1:18495", case_set="drawing-copy-reopen")
+        smoke.health = Mock(return_value={"host": {"process_id": 10}})
+        smoke.command = Mock()
+        smoke.require_empty = Mock()
+        smoke.checkpoint = Mock()
+        smoke.drawing_copy_first = Mock()
+        smoke.run(sample_drawing="C:\\installed.SLDDRW", sample_drawing_local=self.source,
+                  drawing_work_dir=self.work, host_drawing_work_dir="C:\\private")
+        self.assertEqual(smoke.record["cases"], ["drawing-copy-reopen"])
+        self.assertFalse(smoke.record["full_acceptance_eligible"])
+        smoke.drawing_copy_first.assert_called_once_with(self.source, work_directory=self.work,
+                                                       host_work_directory="C:\\private", reopen=True)
 
 
 if __name__ == "__main__":

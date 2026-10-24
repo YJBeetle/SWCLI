@@ -80,6 +80,13 @@ installed source, isolating that preceding lifecycle from relocation/loading.
 Source/copy hashes, unchanged host and empty-catalog cleanup are checked. This
 does not verify save/reopen and cannot replace either drawing roundtrip gate.
 
+`--diagnostic-set drawing-copy-reopen` adds exactly one close/reopen of that
+same private path in the same host, still without saving or opening the source.
+It requires an empty catalog at the close boundary, a fresh document ID and
+unchanged feature structure/file hashes. No failed call is retried. Like the
+first-open probe, this diagnostic is absent from both default plans and is not
+save/reopen acceptance evidence.
+
 The full coordinator requires `--drawing-template` with the host's Windows path.
 Windows supplies the registry-discovered installation and selects its official
 `data/templates/gb.drwdot`, as do the Wine host adapters. Clean installs do not

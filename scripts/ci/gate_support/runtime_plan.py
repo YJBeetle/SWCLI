@@ -51,8 +51,10 @@ def runtime_plan(suite):
 def diagnostic_plan(suite, name):
     """Explicit probes never become part of either acceptance plan."""
     plan = runtime_plan(suite)
-    if name == "drawing-copy-first":
-        return (TestSet(name, (Step("diagnose-drawing-copy.py", "modeling"),)),)
+    probes = {"drawing-copy-first": "diagnose-drawing-copy.py",
+              "drawing-copy-reopen": "diagnose-drawing-reopen.py"}
+    if name in probes:
+        return (TestSet(name, (Step(probes[name], "modeling"),)),)
     selected = tuple(item for item in plan if item.name == name)
     if not selected:
         raise ValueError("Unknown diagnostic test set")

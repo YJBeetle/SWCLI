@@ -361,7 +361,7 @@ class NativeFileCases:
             "size_bytes": native_file.stat().st_size,
         })
 
-    def drawing_copy_first(self, local_drawing, *, work_directory, host_work_directory):
+    def drawing_copy_first(self, local_drawing, *, work_directory, host_work_directory, reopen=False):
         # Diagnostic control: no baseline source open/close, no save, no retry.
         # The coordinator has already cloned the sibling reference bundle.
         source = Path(local_drawing)
@@ -380,7 +380,8 @@ class NativeFileCases:
         digest = hashlib.sha256(data).hexdigest()
         path = str(PureWindowsPath(host_work_directory) / target.name)
         proof = {"path": path, "source_sha256_before": digest,
-                 "baseline_source_opened": False, "save_attempted": False}
+                 "baseline_source_opened": False, "save_attempted": False,
+                 "reopen_requested": reopen}
         self.record["drawing_copy_first"] = proof
         self.checkpoint("drawing-copy-first.opening")
         try:
@@ -397,6 +398,27 @@ class NativeFileCases:
                     "private drawing structure is empty or truncated")
             proof["structure"] = structure
             self.close(document)
+            if reopen:
+                # A second lifecycle operation, not retrying a failed open.
+                # Do not reset the host, change paths/mode, or save the copy.
+                self.require_empty(after_case="drawing-copy-first-close")
+                self.checkpoint("drawing-copy-reopen.opening")
+                reopened = self.command("document", "open", path)
+                fresh = reopened["document"]["document_id"]
+                proof["reopened"] = reopened
+                require(fresh != document and reopened["document"]["type"] == 3
+                        and reopened["read_only"] is False
+                        and reopened["api_errors"] == 0 and reopened["api_warnings"] == 0,
+                        "private drawing reopen is not fresh, writable and warning-free")
+                observed = self.command("document", "inspect", "--detail", "structure",
+                                        document=fresh)["structure"]
+                features = observed["features"]
+                require(features["count"] > 0 and not features["truncated"]
+                        and [(item["name"], item["type"]) for item in features["items"]]
+                        == [(item["name"], item["type"]) for item in structure["features"]["items"]],
+                        "private drawing reopen changed the feature structure")
+                proof["reopened_structure"] = observed
+                self.close(fresh)
         finally:
             proof["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
             proof["copy_sha256_after"] = hashlib.sha256(target.read_bytes()).hexdigest()

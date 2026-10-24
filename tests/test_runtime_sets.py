@@ -122,6 +122,10 @@ class RuntimeSetsTests(unittest.TestCase):
     def test_copy_first_probe_is_diagnostic_only_and_forwards_private_fixture(self):
         for suite in ("core", "full"):
             self.assertNotIn("drawing-copy-first", [item.name for item in gate.runtime_plan(suite)])
+            self.assertNotIn("drawing-copy-reopen", [item.name for item in gate.runtime_plan(suite)])
+            repeated, = gate.diagnostic_plan(suite, "drawing-copy-reopen")
+            self.assertEqual(repeated.steps[0].script, "diagnose-drawing-reopen.py")
+            self.assertTrue((SCRIPT.parent / repeated.steps[0].script).is_file())
         self.args.diagnostic_set = "drawing-copy-first"
         runner = gate.Runner(self.args)
         self.assertEqual(runner.record["coverage_scope"], "selected-set")
