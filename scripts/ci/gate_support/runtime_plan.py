@@ -52,7 +52,8 @@ def diagnostic_plan(suite, name):
     """Explicit probes never become part of either acceptance plan."""
     plan = runtime_plan(suite)
     probes = {"drawing-copy-first": "diagnose-drawing-copy.py",
-              "drawing-copy-reopen": "diagnose-drawing-reopen.py"}
+              "drawing-copy-reopen": "diagnose-drawing-reopen.py",
+              "drawing-reopen-no-inspect": "diagnose-drawing-no-inspect.py"}
     if name in probes:
         return (TestSet(name, (Step(probes[name], "modeling"),)),)
     selected = tuple(item for item in plan if item.name == name)

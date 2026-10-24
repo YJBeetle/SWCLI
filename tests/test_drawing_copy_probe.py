@@ -25,9 +25,37 @@ class DrawingCopyProbeTests(unittest.TestCase):
         self.smoke.checkpoint = Mock()
         self.smoke.close = Mock()
 
-    def probe(self, *, reopen=False):
+    def probe(self, *, reopen=False, inspect_structure=True):
         self.smoke.drawing_copy_first(self.source, work_directory=self.work,
-                                     host_work_directory="C:\\private", reopen=reopen)
+                                     host_work_directory="C:\\private", reopen=reopen,
+                                     inspect_structure=inspect_structure)
+
+    def test_no_inspect_control_only_opens_closes_and_checks_empty(self):
+        opened = lambda token: {"document": {"document_id": token, "type": 3},
+                                "read_only": False, "api_errors": 0, "api_warnings": 0}
+        self.smoke.command = Mock(side_effect=[opened("d-first"), opened("d-second")])
+        self.smoke.require_empty = Mock()
+        self.probe(reopen=True, inspect_structure=False)
+        self.assertEqual([c.args[:2] for c in self.smoke.command.call_args_list],
+                         [("document", "open"), ("document", "open")])
+        self.assertEqual([c.args[0] for c in self.smoke.close.call_args_list],
+                         ["d-first", "d-second"])
+        self.smoke.require_empty.assert_called_once_with(after_case="drawing-copy-first-close")
+        proof = self.smoke.record["drawing_copy_first"]
+        self.assertFalse(proof["structure_inspected"])
+        self.assertNotIn("structure", proof)
+        self.assertNotIn("reopened_structure", proof)
+        self.assertEqual(proof["source_sha256_before"], proof["copy_sha256_after"])
+
+    def test_no_inspect_control_does_not_retry_failed_second_open(self):
+        self.smoke.command = Mock(side_effect=[
+            {"document": {"document_id": "d-first", "type": 3}, "read_only": False,
+             "api_errors": 0, "api_warnings": 0}, RuntimeError("second native failure")])
+        self.smoke.require_empty = Mock()
+        with self.assertRaisesRegex(RuntimeError, "second native failure"):
+            self.probe(reopen=True, inspect_structure=False)
+        self.assertEqual(self.smoke.command.call_count, 2)
+        self.smoke.close.assert_called_once_with("d-first")
 
     def test_only_private_copy_is_opened_once_and_never_saved(self):
         opened = {"document": {"document_id": "d-copy", "type": 3},
@@ -124,6 +152,23 @@ class DrawingCopyProbeTests(unittest.TestCase):
         self.assertFalse(smoke.record["full_acceptance_eligible"])
         smoke.drawing_copy_first.assert_called_once_with(self.source, work_directory=self.work,
                                                        host_work_directory="C:\\private", reopen=True)
+
+
+    def test_no_inspect_case_is_explicitly_diagnostic_and_not_a_structure_gate(self):
+        smoke = base.ModelingSmoke(directory=self.root, host_directory="C:\\evidence",
+                                   endpoint="127.0.0.1:18495", case_set="drawing-reopen-no-inspect")
+        smoke.health = Mock(return_value={"host": {"process_id": 10}})
+        smoke.command = Mock()
+        smoke.require_empty = Mock()
+        smoke.checkpoint = Mock()
+        smoke.drawing_copy_first = Mock()
+        smoke.run(sample_drawing="C:\\installed.SLDDRW", sample_drawing_local=self.source,
+                  drawing_work_dir=self.work, host_drawing_work_dir="C:\\private")
+        self.assertFalse(smoke.record["full_acceptance_eligible"])
+        self.assertEqual(smoke.record["cases"], ["drawing-reopen-no-inspect"])
+        smoke.drawing_copy_first.assert_called_once_with(
+            self.source, work_directory=self.work, host_work_directory="C:\\private",
+            reopen=True, inspect_structure=False)
 
 
 if __name__ == "__main__":

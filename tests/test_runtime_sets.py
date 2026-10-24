@@ -123,6 +123,10 @@ class RuntimeSetsTests(unittest.TestCase):
         for suite in ("core", "full"):
             self.assertNotIn("drawing-copy-first", [item.name for item in gate.runtime_plan(suite)])
             self.assertNotIn("drawing-copy-reopen", [item.name for item in gate.runtime_plan(suite)])
+            self.assertNotIn("drawing-reopen-no-inspect", [item.name for item in gate.runtime_plan(suite)])
+            unobserved, = gate.diagnostic_plan(suite, "drawing-reopen-no-inspect")
+            self.assertEqual(unobserved.steps[0].script, "diagnose-drawing-no-inspect.py")
+            self.assertTrue((SCRIPT.parent / unobserved.steps[0].script).is_file())
             repeated, = gate.diagnostic_plan(suite, "drawing-copy-reopen")
             self.assertEqual(repeated.steps[0].script, "diagnose-drawing-reopen.py")
             self.assertTrue((SCRIPT.parent / repeated.steps[0].script).is_file())

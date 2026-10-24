@@ -1,5 +1,13 @@
 # Shared real-runtime tests
 
+`drawing-reopen-no-inspect` is an explicit diagnostic-only control for the
+same-path complex drawing reopen timeout. It uses the same writable open,
+close, empty-catalog check, fresh handle and unchanged-byte checks as
+`drawing-copy-reopen`, but omits both `document inspect --detail structure`
+calls. Evidence records `structure_inspected=false`; it proves neither feature
+structure preservation nor save/reopen acceptance. Existing copy diagnostics,
+the default core/full plans and all acceptance assertions remain unchanged.
+
 SWCLI owns the CAD test operations and assertions. Its Windows CI prepares a
 native SOLIDWORKS host; DockerSW prepares Linux/Wine; MacSW is responsible for
 macOS/Wine provisioning. The two integration projects call the same scripts,

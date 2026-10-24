@@ -361,7 +361,8 @@ class NativeFileCases:
             "size_bytes": native_file.stat().st_size,
         })
 
-    def drawing_copy_first(self, local_drawing, *, work_directory, host_work_directory, reopen=False):
+    def drawing_copy_first(self, local_drawing, *, work_directory, host_work_directory,
+                           reopen=False, inspect_structure=True):
         # Diagnostic control: no baseline source open/close, no save, no retry.
         # The coordinator has already cloned the sibling reference bundle.
         source = Path(local_drawing)
@@ -381,7 +382,8 @@ class NativeFileCases:
         path = str(PureWindowsPath(host_work_directory) / target.name)
         proof = {"path": path, "source_sha256_before": digest,
                  "baseline_source_opened": False, "save_attempted": False,
-                 "reopen_requested": reopen}
+                 "reopen_requested": reopen, "structure_inspected": False,
+                 "structure_inspection_requested": inspect_structure}
         self.record["drawing_copy_first"] = proof
         self.checkpoint("drawing-copy-first.opening")
         try:
@@ -392,11 +394,13 @@ class NativeFileCases:
                     "private drawing did not open writable without warnings")
             proof["opened"] = opened
             self.checkpoint("drawing-copy-first.opened")
-            structure = self.command("document", "inspect", "--detail", "structure",
-                                     document=document)["structure"]
-            require(structure["features"]["count"] > 0 and not structure["features"]["truncated"],
-                    "private drawing structure is empty or truncated")
-            proof["structure"] = structure
+            if inspect_structure:
+                structure = self.command("document", "inspect", "--detail", "structure",
+                                         document=document)["structure"]
+                require(structure["features"]["count"] > 0 and not structure["features"]["truncated"],
+                        "private drawing structure is empty or truncated")
+                proof["structure"] = structure
+                proof["structure_inspected"] = True
             self.close(document)
             if reopen:
                 # A second lifecycle operation, not retrying a failed open.
@@ -410,14 +414,15 @@ class NativeFileCases:
                         and reopened["read_only"] is False
                         and reopened["api_errors"] == 0 and reopened["api_warnings"] == 0,
                         "private drawing reopen is not fresh, writable and warning-free")
-                observed = self.command("document", "inspect", "--detail", "structure",
-                                        document=fresh)["structure"]
-                features = observed["features"]
-                require(features["count"] > 0 and not features["truncated"]
-                        and [(item["name"], item["type"]) for item in features["items"]]
-                        == [(item["name"], item["type"]) for item in structure["features"]["items"]],
-                        "private drawing reopen changed the feature structure")
-                proof["reopened_structure"] = observed
+                if inspect_structure:
+                    observed = self.command("document", "inspect", "--detail", "structure",
+                                            document=fresh)["structure"]
+                    features = observed["features"]
+                    require(features["count"] > 0 and not features["truncated"]
+                            and [(item["name"], item["type"]) for item in features["items"]]
+                            == [(item["name"], item["type"]) for item in structure["features"]["items"]],
+                            "private drawing reopen changed the feature structure")
+                    proof["reopened_structure"] = observed
                 self.close(fresh)
         finally:
             proof["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
