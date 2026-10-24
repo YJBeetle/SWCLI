@@ -119,6 +119,24 @@ class RuntimeSetsTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "parsed drawing arguments"):
                 drawings.main([str(value) for value in arguments[3:]])
 
+    def test_copy_first_probe_is_diagnostic_only_and_forwards_private_fixture(self):
+        for suite in ("core", "full"):
+            self.assertNotIn("drawing-copy-first", [item.name for item in gate.runtime_plan(suite)])
+        self.args.diagnostic_set = "drawing-copy-first"
+        runner = gate.Runner(self.args)
+        self.assertEqual(runner.record["coverage_scope"], "selected-set")
+        self.assertEqual(runner.record["expected_sets"], ["drawing-copy-first"])
+        item, = runner.plan
+        arguments, _ = runner.step_args(item, item.steps[0], Path("private"), "C:\\Private")
+        self.assertIn("diagnose-drawing-copy.py", [Path(str(value)).name for value in arguments])
+        self.assertEqual(arguments[arguments.index("--host-drawing-work-dir") + 1], "C:\\Private")
+        events, patches = self.simulate(runner)
+        with patches[0], patches[1], patches[2], patches[3], patches[4]:
+            runner.run()
+        self.assertEqual([event[0] for event in events], ["start", "step", "stop"])
+        self.assertTrue(runner.record["success"])
+        self.assertEqual(runner.record["coverage_scope"], "selected-set")
+
     def simulate(self, runner, failure_at=None, cleanup_failure=False):
         events = []
         active = [None]

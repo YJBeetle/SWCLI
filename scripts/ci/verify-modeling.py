@@ -79,7 +79,7 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
         require(suite in ("core", "full"), "unknown modeling suite")
         self.suite = suite
         require(case_set in ("all", "native", "assembly", "exports", "reverse-cut", "depth",
-                             "drawing-save", "drawing-save-as", "continuation"), "unknown modeling case set")
+                             "drawing-save", "drawing-save-as", "drawing-copy-first", "continuation"), "unknown modeling case set")
         self.case_set = case_set
         self.host_directory = host_directory
         self.endpoint = endpoint
@@ -111,6 +111,8 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
             "case_cleanup": [],
             "cleanup_errors": [],
         }
+        if case_set == "drawing-copy-first":
+            self.record.update(diagnostic_case=case_set, full_acceptance_eligible=False)
 
     def checkpoint(self, stage):
         try:
@@ -495,6 +497,10 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
             cases.append(("drawing-save-as-reopen", lambda: self.drawing_save_reopen(
                 sample_drawing, sample_drawing_local, work_directory=drawing_work_dir,
                 host_work_directory=host_drawing_work_dir, save_as=True)))
+            if self.case_set == "drawing-copy-first":
+                cases.append(("drawing-copy-first", lambda: self.drawing_copy_first(
+                    sample_drawing_local, work_directory=drawing_work_dir,
+                    host_work_directory=host_drawing_work_dir)))
         if verify_sample_assembly_save:
             cases.append(("official-assembly-save-reopen",
                           lambda: self.assembly_save_reopen(sample_assembly)))
@@ -506,6 +512,7 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
                      "exports": {"sample-exports"}, "reverse-cut": {"reverse-cut"},
                      "depth": {"feature-depth"}, "drawing-save": {"drawing-save-reopen"},
                      "drawing-save-as": {"drawing-save-as-reopen"},
+                     "drawing-copy-first": {"drawing-copy-first"},
                      "continuation": {"rejected-cut-then-sketch"}}[selection]
             cases = [(name, function) for name, function in cases if name in names]
             require(cases, "selected modeling case set is unavailable for this suite/fixtures")
@@ -568,7 +575,7 @@ def main(argv=None):
     parser.add_argument("--suite", choices=("core", "full"), default="full",
                         help="core daily regression or complete CAD/negative-case coverage")
     parser.add_argument("--case-set", choices=("all", "native", "assembly", "exports", "reverse-cut", "depth",
-                                              "drawing-save", "drawing-save-as", "continuation"), default="all")
+                                              "drawing-save", "drawing-save-as", "drawing-copy-first", "continuation"), default="all")
     parser.add_argument("--sample-assembly", type=host_directory)
     parser.add_argument("--verify-sample-assembly-save", action="store_true",
                         help="also prepare and strictly save/reopen the official ASM fixture; generated ASM is always tested")

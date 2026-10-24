@@ -361,6 +361,48 @@ class NativeFileCases:
             "size_bytes": native_file.stat().st_size,
         })
 
+    def drawing_copy_first(self, local_drawing, *, work_directory, host_work_directory):
+        # Diagnostic control: no baseline source open/close, no save, no retry.
+        # The coordinator has already cloned the sibling reference bundle.
+        source = Path(local_drawing)
+        require(source.is_file() and source.suffix.lower() == ".slddrw",
+                "drawing source must be a readable local SLDDRW file")
+        data = source.read_bytes()
+        require(len(data) >= 512, "drawing source is empty or truncated")
+        require(work_directory is not None and host_work_directory is not None,
+                "copy-first diagnosis requires both private fixture namespaces")
+        host_directory(host_work_directory)
+        target = Path(work_directory) / "drawing.SLDDRW"
+        require(target.parent.is_dir() and target.resolve() != source.resolve(),
+                "copy-first diagnosis requires a separate private work directory")
+        with target.open("xb") as stream:
+            stream.write(data)
+        digest = hashlib.sha256(data).hexdigest()
+        path = str(PureWindowsPath(host_work_directory) / target.name)
+        proof = {"path": path, "source_sha256_before": digest,
+                 "baseline_source_opened": False, "save_attempted": False}
+        self.record["drawing_copy_first"] = proof
+        self.checkpoint("drawing-copy-first.opening")
+        try:
+            opened = self.command("document", "open", path)
+            document = opened["document"]["document_id"]
+            require(opened["document"]["type"] == 3 and opened["read_only"] is False
+                    and opened["api_errors"] == 0 and opened["api_warnings"] == 0,
+                    "private drawing did not open writable without warnings")
+            proof["opened"] = opened
+            self.checkpoint("drawing-copy-first.opened")
+            structure = self.command("document", "inspect", "--detail", "structure",
+                                     document=document)["structure"]
+            require(structure["features"]["count"] > 0 and not structure["features"]["truncated"],
+                    "private drawing structure is empty or truncated")
+            proof["structure"] = structure
+            self.close(document)
+        finally:
+            proof["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
+            proof["copy_sha256_after"] = hashlib.sha256(target.read_bytes()).hexdigest()
+            require(proof["source_sha256_after"] == digest and proof["copy_sha256_after"] == digest,
+                    "copy-first diagnosis changed drawing bytes without saving")
+
     def drawing_save_reopen(self, drawing, local_drawing, *,
                             work_directory=None, host_work_directory=None,
                             save_as=False):

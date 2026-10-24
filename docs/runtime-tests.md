@@ -72,6 +72,14 @@ explicitly records `coverage_scope: selected-set` and `diagnostic_set`; success
 does **not** satisfy a full-plan acceptance gate. Unknown names fail before any
 host is started. Default platform acceptance remains the complete plan.
 
+`--diagnostic-set drawing-copy-first` is a diagnostic-only probe, absent from
+both default plans. It copies the same official drawing beside the cloned
+reference bundle, then opens that private copy writable exactly once, inspects
+its structure, and closes it without saving. It never first opens/closes the
+installed source, isolating that preceding lifecycle from relocation/loading.
+Source/copy hashes, unchanged host and empty-catalog cleanup are checked. This
+does not verify save/reopen and cannot replace either drawing roundtrip gate.
+
 The full coordinator requires `--drawing-template` with the host's Windows path.
 Windows supplies the registry-discovered installation and selects its official
 `data/templates/gb.drwdot`, as do the Wine host adapters. Clean installs do not

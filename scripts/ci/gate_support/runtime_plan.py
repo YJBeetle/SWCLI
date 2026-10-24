@@ -46,3 +46,14 @@ def runtime_plan(suite):
             sets.append(TestSet(aspect + "-" + plane, (Step(script, "driving", ("--plane", plane)),)))
     sets.append(TestSet("toolbox", (Step("verify-toolbox.py", "toolbox"),)))
     return tuple(sets)
+
+
+def diagnostic_plan(suite, name):
+    """Explicit probes never become part of either acceptance plan."""
+    plan = runtime_plan(suite)
+    if name == "drawing-copy-first":
+        return (TestSet(name, (Step("diagnose-drawing-copy.py", "modeling"),)),)
+    selected = tuple(item for item in plan if item.name == name)
+    if not selected:
+        raise ValueError("Unknown diagnostic test set")
+    return selected

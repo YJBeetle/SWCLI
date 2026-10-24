@@ -20,7 +20,7 @@ import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gate_support.runtime_plan import runtime_plan
+from gate_support.runtime_plan import runtime_plan, diagnostic_plan
 from gate_support.model_checks import host_directory, require
 from gate_support.host_processes import solidworks_process_ids
 
@@ -53,8 +53,10 @@ class Runner:
         self.plan = runtime_plan(args.suite)
         diagnostic_set = getattr(args, "diagnostic_set", None)
         if diagnostic_set:
-            require(diagnostic_set in {item.name for item in self.plan}, "Unknown diagnostic test set")
-            self.plan = [item for item in self.plan if item.name == diagnostic_set]
+            try:
+                self.plan = diagnostic_plan(args.suite, diagnostic_set)
+            except ValueError as error:
+                raise RuntimeError(str(error)) from error
         require(args.suite != "full" or getattr(args, "drawing_template", None),
                 "Full runtime suite requires an explicit installed drawing template")
         self.python_paths = getattr(args, "python_path", [])
