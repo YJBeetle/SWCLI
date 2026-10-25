@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
+import subprocess
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 import weakref
@@ -198,6 +200,150 @@ class NativeDrawingProbeTests(unittest.TestCase):
         process.terminate.assert_called_once()
         self.assertEqual(record["error"], {"type": "FirstFailure"})
         self.assertEqual(record["cleanup_errors"][0]["stage"], "owned-host-cleanup")
+
+
+class TimeoutBacktraceTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        (self.root / "system32").mkdir()
+        (self.root / "system32/winedbg.exe").write_bytes(b"bundled debugger")
+        self.environment = patch.dict(probe.os.environ, {"SystemRoot": str(self.root), "WINEPREFIX": "private-ci"})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+        self.record = {"success": False, "host": {"process_id": 123, "owned_by_probe": True,
+                                                  "owned_by_daemon": False},
+                       "error": {"type": "NativeCallTimeout", "call": "OpenDoc6", "sequence": 8}}
+
+    def capture(self, content=b'probe-backtrace-begin\nBacktrace:\n=>0 0x00001234 in native\nprobe-backtrace-end\n', error=None):
+        def command(arguments, **kwargs):
+            self.assertEqual(arguments[-1], "123")
+            self.assertEqual(arguments[0], str(self.root / "system32/winedbg.exe"))
+            self.assertEqual(arguments[1], "--command")
+            commands = arguments[2].splitlines()
+            self.assertEqual([c for c in commands if c.startswith("bt ")], ["bt 16", "bt 32"])
+            self.assertNotIn("bt all", commands)
+            self.assertEqual(commands[-1], "detach")
+            self.assertNotIn("minidump", arguments[2])
+            self.assertEqual(kwargs["timeout"], 30)
+            self.assertEqual(kwargs["env"]["WINEDEBUG"], "-all")
+            self.assertEqual(kwargs["env"]["_NT_SYMBOL_PATH"], "")
+            kwargs["stdout"].write(content)
+            if error:
+                raise error
+            return SimpleNamespace(returncode=0)
+        with patch.object(probe, "native_pids", return_value=[123]), patch.object(probe, "owned_threads", return_value=[16, 32]), patch.object(probe.subprocess, "run", side_effect=command) as call:
+            probe.timeout_backtrace(self.record, self.root)
+        return call
+
+    def test_only_owned_thread_stacks_after_failed_deadline_and_failure_is_preserved(self):
+        self.capture().assert_called_once()
+        self.assertTrue(self.record["timeout_backtrace"]["success"])
+        self.assertEqual(self.record["timeout_backtrace"]["frame_lines"], 1)
+        self.assertEqual(self.record["error"]["sequence"], 8)
+        self.assertFalse(self.record["success"])
+        self.assertTrue((self.root / "timeout-backtrace.log").is_file())
+
+    def test_tool_timeout_keeps_partial_text_and_first_business_error(self):
+        self.capture(content=b"partial text", error=subprocess.TimeoutExpired("winedbg", 30))
+        self.assertEqual((self.root / "timeout-backtrace.log").read_bytes(), b"partial text")
+        self.assertFalse(self.record["timeout_backtrace"]["success"])
+        self.assertEqual(self.record["timeout_backtrace"]["diagnostic_error"], "TimeoutExpired")
+        self.assertEqual(self.record["error"]["type"], "NativeCallTimeout")
+
+    def test_output_is_bounded_and_truncation_never_proves_capture(self):
+        self.capture(content=b"x" * (probe.BACKTRACE_MAX_BYTES + 2))
+        self.assertEqual((self.root / "timeout-backtrace.log").stat().st_size, probe.BACKTRACE_MAX_BYTES)
+        self.assertTrue(self.record["timeout_backtrace"]["truncated"])
+        self.assertFalse(self.record["timeout_backtrace"]["success"])
+
+    def test_exit_zero_without_real_frames_is_not_success(self):
+        self.capture(content=b"probe-backtrace-end\nBacktrace:\n")
+        self.assertFalse(self.record["timeout_backtrace"]["success"])
+
+    def test_non_owned_or_unconfirmed_host_never_runs_debugger(self):
+        for field, value in (("owned_by_probe", False), ("owned_by_daemon", True), ("process_id", "123")):
+            with self.subTest(field=field), patch.dict(self.record["host"], {field: value}), patch.object(probe.subprocess, "run") as command:
+                probe.timeout_backtrace(self.record, self.root)
+                command.assert_not_called()
+                self.assertFalse(self.record["timeout_backtrace"]["success"])
+
+    def test_exited_host_is_not_replaced_with_a_different_target(self):
+        with patch.object(probe, "native_pids", return_value=[999]), patch.object(probe.subprocess, "run") as command:
+            probe.timeout_backtrace(self.record, self.root)
+        command.assert_not_called()
+
+    def test_unknown_thread_snapshot_does_not_fallback_to_all(self):
+        with patch.object(probe, "native_pids", return_value=[123]), patch.object(probe, "owned_threads", side_effect=OSError("unavailable")), patch.object(probe.subprocess, "run") as command:
+            probe.timeout_backtrace(self.record, self.root)
+        command.assert_not_called()
+        self.assertEqual(self.record["timeout_backtrace"]["diagnostic_error"], "OSError")
+
+    def test_checkpoint_of_failed_call_precedes_debugger(self):
+        checkpoint = Mock()
+        def debugger(record, output):
+            checkpoint.assert_called_once()
+            self.assertFalse(record["success"])
+        with patch.object(probe, "timeout_backtrace", side_effect=debugger) as capture:
+            probe.diagnose_timeout(SimpleNamespace(timeout_backtrace=True, output_dir=self.root), self.record, checkpoint)
+        capture.assert_called_once()
+        self.assertEqual(checkpoint.call_count, 2)
+
+    def test_no_capture_before_timeout_for_other_failure_or_when_not_requested(self):
+        for enabled, error in ((False, self.record["error"]), (True, {"type": "OtherFailure"}),
+                               (True, {"type": "NativeCallTimeout", "call": "ExitApp"}), (True, {})):
+            with self.subTest(enabled=enabled, error=error), patch.object(probe, "timeout_backtrace") as capture:
+                probe.diagnose_timeout(SimpleNamespace(timeout_backtrace=enabled), {"error": error}, Mock())
+                capture.assert_not_called()
+
+    def test_thread_snapshot_filters_pid_and_always_closes_handle(self):
+        import ctypes
+        kernel = SimpleNamespace(CreateToolhelp32Snapshot=Mock(return_value=77), Thread32First=Mock(),
+                                 Thread32Next=Mock(), CloseHandle=Mock())
+        entries = iter([(123, 32), (999, 1), (123, 16)])
+        def next_thread(snapshot, reference):
+            self.assertEqual(snapshot, 77)
+            item = next(entries, None)
+            if item is None:
+                return False
+            reference._obj.th32OwnerProcessID, reference._obj.th32ThreadID = item
+            return True
+        kernel.Thread32First.side_effect = kernel.Thread32Next.side_effect = next_thread
+        with patch.object(ctypes, "WinDLL", return_value=kernel, create=True), patch.object(ctypes, "get_last_error", return_value=18, create=True):
+            self.assertEqual(probe.owned_threads(123), [16, 32])
+        kernel.CloseHandle.assert_called_once_with(77)
+
+    def test_partial_thread_snapshot_fails_and_closes_handle(self):
+        import ctypes
+        kernel = SimpleNamespace(CreateToolhelp32Snapshot=Mock(return_value=77), Thread32First=Mock(return_value=True),
+                                 Thread32Next=Mock(return_value=False), CloseHandle=Mock())
+        with patch.object(ctypes, "WinDLL", return_value=kernel, create=True), patch.object(ctypes, "get_last_error", return_value=5, create=True):
+            with self.assertRaisesRegex(OSError, "enumeration failed"):
+                probe.owned_threads(123)
+        kernel.CloseHandle.assert_called_once_with(77)
+
+    def test_invalid_snapshot_handle_is_not_enumerated(self):
+        import ctypes
+        kernel = SimpleNamespace(CreateToolhelp32Snapshot=Mock(return_value=ctypes.c_void_p(-1).value),
+                                 Thread32First=Mock(), Thread32Next=Mock(), CloseHandle=Mock())
+        with patch.object(ctypes, "WinDLL", return_value=kernel, create=True):
+            with self.assertRaisesRegex(OSError, "snapshot unavailable"):
+                probe.owned_threads(123)
+        kernel.Thread32First.assert_not_called()
+        kernel.CloseHandle.assert_not_called()
+
+    def test_requested_missing_debugger_fails_before_any_cad_host(self):
+        (self.root / "system32/winedbg.exe").unlink()
+        with patch.object(probe.sys, "platform", "win32"), patch.dict(probe.os.environ, {"GITHUB_ACTIONS": "true"}), patch.object(probe, "native_pids") as inventory:
+            with self.assertRaisesRegex(RuntimeError, "uninstrumented repeat"):
+                probe.run(SimpleNamespace(timeout_backtrace=True))
+        inventory.assert_not_called()
+
+    def test_windows_without_wine_cannot_opt_into_wine_debugger(self):
+        with patch.object(probe.sys, "platform", "win32"), patch.dict(probe.os.environ, {"GITHUB_ACTIONS": "true", "WINEPREFIX": ""}):
+            with self.assertRaisesRegex(RuntimeError, "Wine-only"):
+                probe.run(SimpleNamespace(timeout_backtrace=True))
 
 
 if __name__ == "__main__":

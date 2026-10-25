@@ -14,11 +14,124 @@ import multiprocessing
 import ntpath
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+
+BACKTRACE_TIMEOUT_SECONDS = 30
+BACKTRACE_MAX_BYTES = 2 * 1024 * 1024
+
+
+def owned_threads(pid):
+    """Enumerate only this native PID's threads; never use WineDbg's bt all.
+
+    bt all can attach to other Wine processes, even with an initial PID.
+    Explicit thread IDs retain the probe's ownership boundary.
+    """
+    import ctypes
+    from ctypes import wintypes
+    if type(pid) is not int or pid <= 0:
+        raise ValueError("Invalid owned process ID")
+
+    class ThreadEntry(ctypes.Structure):
+        _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD),
+                    ("th32ThreadID", wintypes.DWORD), ("th32OwnerProcessID", wintypes.DWORD),
+                    ("tpBasePri", wintypes.LONG), ("tpDeltaPri", wintypes.LONG),
+                    ("dwFlags", wintypes.DWORD)]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+    kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    kernel.Thread32First.argtypes = kernel.Thread32Next.argtypes = [wintypes.HANDLE, ctypes.POINTER(ThreadEntry)]
+    kernel.Thread32First.restype = kernel.Thread32Next.restype = wintypes.BOOL
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    snapshot = kernel.CreateToolhelp32Snapshot(4, 0)  # TH32CS_SNAPTHREAD
+    if snapshot is None or snapshot == ctypes.c_void_p(-1).value:
+        raise OSError("Thread snapshot unavailable")
+    try:
+        entry = ThreadEntry()
+        entry.dwSize = ctypes.sizeof(entry)
+        found = []
+        more = kernel.Thread32First(snapshot, ctypes.byref(entry))
+        if not more:
+            raise OSError("Thread snapshot is empty")
+        while more:
+            if entry.th32OwnerProcessID == pid:
+                found.append(int(entry.th32ThreadID))
+            entry.dwSize = ctypes.sizeof(entry)
+            more = kernel.Thread32Next(snapshot, ctypes.byref(entry))
+        if ctypes.get_last_error() != 18:  # ERROR_NO_MORE_FILES, not a partial inventory
+            raise OSError("Thread snapshot enumeration failed")
+        if not found or len(found) > 256:
+            raise RuntimeError("Owned thread inventory missing or exceeds diagnostic bound")
+        return sorted(set(found))
+    finally:
+        kernel.CloseHandle(snapshot)
+
+
+def timeout_backtrace(record, output_dir, *, clock=time.monotonic):
+    """Post-failure text only. Never allows a failed CAD call to pass later."""
+    observation = {"after_failure": True, "tool": "winedbg", "timeout_seconds": BACKTRACE_TIMEOUT_SECONDS,
+                   "max_bytes": BACKTRACE_MAX_BYTES, "success": False}
+    record["timeout_backtrace"] = observation
+    started = clock()
+    try:
+        host = record.get("host", {})
+        pid = host.get("process_id")
+        if (record.get("error", {}).get("type") != "NativeCallTimeout"
+                or record["error"].get("call") != "OpenDoc6"
+                or host.get("owned_by_probe") is not True or host.get("owned_by_daemon") is not False
+                or type(pid) is not int or pid <= 0):
+            raise RuntimeError("Native timeout and probe ownership required")
+        if pid not in native_pids():
+            raise RuntimeError("Owned native host already exited")
+        threads = owned_threads(pid)
+        if any(type(tid) is not int or tid <= 0 for tid in threads) or not threads or len(threads) > 256:
+            raise RuntimeError("Invalid owned thread inventory")
+        debugger = Path(os.environ["SystemRoot"]) / "system32/winedbg.exe"
+        if not debugger.is_file():
+            raise RuntimeError("Bundled Wine debugger is unavailable")
+        commands = "echo \"probe-backtrace-begin\"\n" + "\n".join("bt " + str(tid) for tid in threads)
+        commands += '\ninfo share\necho "probe-backtrace-end"\ndetach\n'
+        observation.update(process_id=pid, thread_ids=threads, call=record["error"]["call"],
+                           sequence=record["error"]["sequence"], evidence="timeout-backtrace.log")
+        environment = dict(os.environ, WINEDEBUG="-all", _NT_SYMBOL_PATH="", _NT_ALT_SYMBOL_PATH="")
+        with tempfile.TemporaryFile() as stream:
+            try:
+                result = subprocess.run([str(debugger), "--command", commands, str(pid)],
+                                        stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
+                                        timeout=BACKTRACE_TIMEOUT_SECONDS, env=environment)
+                observation["exit_code"] = result.returncode
+            finally:
+                stream.seek(0)
+                data = stream.read(BACKTRACE_MAX_BYTES + 1)
+                observation["truncated"] = len(data) > BACKTRACE_MAX_BYTES
+                with (output_dir / "timeout-backtrace.log").open("xb") as output:
+                    output.write(data[:BACKTRACE_MAX_BYTES])
+            # Exit zero alone does not prove commands parsed or stacks were captured.
+            observation["frame_lines"] = len(re.findall(rb"(?m)^(?:=>|\s+)\d+\s+0x[0-9a-fA-F]+", data))
+            observation["success"] = (result.returncode == 0 and not observation["truncated"]
+                                      and b"probe-backtrace-end" in data and b"Backtrace:" in data
+                                      and observation["frame_lines"] > 0
+                                      and b"syntax error" not in data.lower() and b"Can't attach" not in data)
+    except Exception as error:
+        observation["diagnostic_error"] = type(error).__name__
+    finally:
+        observation["elapsed_seconds"] = clock() - started
+
+
+def diagnose_timeout(args, record, checkpoint):
+    if (getattr(args, "timeout_backtrace", False)
+            and record.get("error", {}).get("type") == "NativeCallTimeout"
+            and record["error"].get("call") == "OpenDoc6"):
+        record["success"] = False
+        checkpoint()  # Commit the business failure before any debugger attaches.
+        timeout_backtrace(record, args.output_dir)
+        checkpoint()
 
 
 def value(obj, name):
@@ -239,6 +352,11 @@ def monitor(process, connection, record, checkpoint, *, request_timeout, startup
 def run(args):
     if sys.platform != "win32" or os.environ.get("GITHUB_ACTIONS") != "true":
         raise RuntimeError("Direct COM probe is restricted to isolated Windows CI/Wine runners")
+    if getattr(args, "timeout_backtrace", False) and not os.environ.get("WINEPREFIX"):
+        raise RuntimeError("Wine-only timeout backtrace requires the isolated prefix")
+    if (getattr(args, "timeout_backtrace", False)
+            and not (Path(os.environ.get("SystemRoot", "")) / "system32/winedbg.exe").is_file()):
+        raise RuntimeError("Requested Wine debugger is missing; refuse an uninstrumented repeat")
     if not (0 < args.request_timeout <= 600 and 0 < args.startup_timeout <= 300
             and math.isfinite(args.request_timeout) and math.isfinite(args.startup_timeout)):
         raise ValueError("Direct probe cannot increase the accepted request/startup budgets")
@@ -253,6 +371,7 @@ def run(args):
               "coverage_scope": "direct-native-control", "full_acceptance_eligible": False,
               "save_attempted": False, "structure_inspected": False, "events": [], "cleanup_errors": [],
               "request_timeout_seconds": args.request_timeout, "startup_timeout_seconds": args.startup_timeout}
+    record["timeout_backtrace_requested"] = getattr(args, "timeout_backtrace", False)
 
     def checkpoint():
         temporary = receipt.with_suffix(".tmp")
@@ -286,6 +405,7 @@ def run(args):
                 sender.close()
                 record["success"] = monitor(process, receiver, record, checkpoint,
                                             request_timeout=args.request_timeout, startup_timeout=args.startup_timeout)
+                diagnose_timeout(args, record, checkpoint)
             finally:
                 stop_owned_worker(process, record)
                 receiver.close()
@@ -317,6 +437,8 @@ def main():
     parser.add_argument("--request-timeout", type=float, default=600)
     parser.add_argument("--startup-timeout", type=float, default=300)
     parser.add_argument("--visible", action="store_true")
+    parser.add_argument("--timeout-backtrace", action="store_true",
+                        help="Wine CI only: bounded text stacks after OpenDoc6 already failed its deadline")
     run(parser.parse_args())
 
 
