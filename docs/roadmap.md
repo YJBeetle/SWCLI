@@ -110,9 +110,10 @@ Current work:
 
 1. Finish a11 [drawing creation and standard three views](design/drawing-three-views.md).
    The typed operations are implemented. Installed Windows and DockerSW gates
-   have passed; the independent MacSW complex official drawing reopen timeout
-   remains unresolved. Selected simple-drawing and fresh-first-open successes
-   are not full Mac acceptance. See the [current receipt matrix](verification/a11-runtime-2026-10-25.md).
+   have passed. The owner accepted the hosted Mac software-rendering complex
+   drawing timeout as a non-blocking a11 CI limitation on 2026-10-25; retain the
+   failed diagnostic, and keep Mac integration/smoke evidence separate rather
+   than claiming a full Mac pass. See the [current receipt matrix and policy](verification/a11-runtime-2026-10-25.md).
    Freeze final host pins and reuse unchanged accepted CI packages before publication.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
