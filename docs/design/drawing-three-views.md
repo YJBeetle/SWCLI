@@ -1,13 +1,14 @@
 # 工程图创建与标准三视图：最小切片
 
-状态：**a11 开发版已接入命令，安装包／Wine 门禁待完成**。a10 圆角发布不包含本能力。
+状态：**a11 开发版已接入命令，Windows／DockerSW 已有通过证据，Mac 完整验收阻塞，尚未发布**。
+详见[当前验收记录](../verification/a11-runtime-2026-10-25.md)。a10 圆角发布不包含本能力。
 Windows PRT 的第一角与显式第三角创建、视图引用、保存重开及源状态保护已校准，
 见[原生记录](../verification/drawing-native-windows-2026-10-23.md)。当前验证的投影
 切换路径是 `ISheet.SetProperties2`，不是尚未验证的 `SetupSheet6`。
 目标是从已保存的 PRT/ASM 生成可编辑的 SLDDRW，再保存重开、导出 PDF/DWG；
 不是截图拼图，也不是自动出完整制造图。所有公开动作仍通过 daemon 单 STA worker。
 
-## 建议契约
+## 当前契约
 
 分成两个可组合动作，而不是自动保存/导出的巨型命令：
 
@@ -18,7 +19,7 @@ Windows PRT 的第一角与显式第三角创建、视图引用、保存重开�
   `source_document_id` 与必填、非空 `configuration`。只往单张、尚无模型视图的
   图纸插入一次原生标准三视图，使用创建时明确设定并回读的投影方式。
 
-名称仍是提案，需在校准完成后锁定 schema/CLI。创建只更新调用 session current；
+上述名称已在 operation catalog、schema 和 CLI 接入。创建只更新调用 session current；
 `NewDocument` 返回的精确对象须立即登记，不再从 ActiveDoc 反查。
 视图操作使用现有目标选择、租约、CAS、临时激活与前台恢复约定。
 创建成功后后续检查失败仍登记文档并返回已取得证据；不声称事务或自动回滚。
@@ -45,7 +46,7 @@ Windows PRT 的第一角与显式第三角创建、视图引用、保存重开�
    类型必须确认为 drawing。现有 part/assembly 的 `0,0,0` 参数不可盲搬：
    绘图 PaperSize 与模板继承行为、真实 swconst 枚举必须先校准。
 2. `GetCurrentSheet` 取得当前真实 sheet；读取尺寸、比例、格式路径、投影、区划等原设置。
-   如用 `SetupSheet6` 设置 FirstAngle，只改变投影并保留其余实际配置，随后
+   实现使用已校准的 `SetProperties2` 设置 FirstAngle，只改变投影并保留其余实际配置，随后
    `ForceRebuild3` 并回读。不可猜 paper/template 枚举，不能清空格式或删除标题栏注释。
    若不能无损取得所需原值，应失败而不是传默认值覆盖模板。
 3. 按显式投影调用且仅调用一次 `Create1stAngleViews2(source_path)` 或
@@ -56,7 +57,7 @@ Windows PRT 的第一角与显式第三角创建、视图引用、保存重开�
    **不能把数组长度 3/4 或前 3 项直接当三视图**；多 sheet 数组顺序也非保证。
    按当前 sheet 的实际身份关联，恰有三个新增模型视图，无额外模型视图。
 5. 每视图返回 native name（描述而非稳定 ID）、源完整路径、配置、实际比例、
-   sheet 上 Position 与 GetOutline（接口米转公开毫米）、方向/投影证据。
+   sheet 上 Position 与 GetOutline（公开结果保留接口米，显式 `unit=meter`）、方向/投影证据。
    路径须规范化比对，`ReferencedDocument` 能取得时以原生身份交叉验证源对象；
    同名文件不能误认。比例有限且正，位置/包围框有限、非退化。
 6. 不用本地化的 `Drawing View1`、数组顺序或屏幕截图认定 front/top/side。
@@ -103,6 +104,7 @@ Windows PRT 的第一角与显式第三角创建、视图引用、保存重开�
 - [GetViews](https://help.solidworks.com/2016/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDrawingDoc~GetViews.html)：sheet 嵌套数组及 pseudo-view、顺序限制。
 - [IView 引用路径](https://help.solidworks.com/2011/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IView~GetReferencedModelName.html)、[IView 成员](https://help.solidworks.com/2017/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IView_members.html)：ReferencedConfiguration、ModelToViewTransform、Position、ScaleRatio 等候选观察面。
 
-尚未证明：NewDocument 对 DRWDOT 纸张继承的具体行为、SetupSheet6 无损修改路径、
-配置默认选择/父子联动、三个视图准确方向与投影布局、自动比例及格式依赖在三宿主的一致性。
-这些不由 fake 测试或已有工程图导出覆盖，校准前不发布能力声明。
+已校准的 A4、显式投影、标准模型坐标系下三视图方向与布局见原生记录；不能再将它们
+描述为全部尚未验证。仍不承诺任意 DRWDOT 纸张继承、SetupSheet6 无损修改、隐式
+配置选择/父子联动、任意模型方向或自动比例/外部格式依赖在三宿主的一致性。
+标题栏视觉保真与导出视觉等价也不是文件校验通过即可证明；Mac 完整验收仍待完成。

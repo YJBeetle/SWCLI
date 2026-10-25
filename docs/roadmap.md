@@ -101,12 +101,19 @@ limits and host/PID semantics. OS PID mapping and path wrappers remain
 host-owned. The [candidate Windows/Wine gates](verification/a9-runtime-2026-10-23.md)
 now pass; the unchanged tested CI assets are published as `v0.1.0a9`.
 
-1. Complete installed typed Windows/Wine acceptance for the
-   [exact edge-targeted fillet slice](design/edge-fillet-creation.md). Native API
-   calibration passed; a10 development implements one explicit edge, constant
-   radius, native target readback and lease/stamp/restoration guards. The new
-   shared gate adds independent geometry and native save/reopen checks. This
-   is not in the published a9 wheel.
+The [exact edge-targeted fillet slice](design/edge-fillet-creation.md) is published
+in [a10](releases/v0.1.0a10.md), using the verified Windows/Linux-Wine CI assets.
+It supports one explicit edge and constant radius with native target readback,
+lease/stamp/restoration guards, geometry and native save/reopen checks.
+
+Current work:
+
+1. Finish a11 [drawing creation and standard three views](design/drawing-three-views.md).
+   The typed operations are implemented. Installed Windows and DockerSW gates
+   have passed; the independent MacSW complex official drawing reopen timeout
+   remains unresolved. Selected simple-drawing and fresh-first-open successes
+   are not full Mac acceptance. See the [current receipt matrix](verification/a11-runtime-2026-10-25.md).
+   Freeze final host pins and reuse unchanged accepted CI packages before publication.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
@@ -130,7 +137,8 @@ than accumulating a general-purpose framework to meet one example.
   second public COM/raw-Python execution surface.
 - Authenticated encrypted remote transport, workspace/file transfer and
   artifact IDs/downloads before treating server paths as a remote product API.
-- Assembly and drawing creation/editing after the part loop is reliable.
+- Extend the implemented minimal assembly/drawing creation toward editing,
+  arbitrary views, sheets, dimensions and BOM only through separately verified slices.
 
 The longer-term application goal includes translating supported OpenSCAD
 descriptions into editable SOLIDWORKS-native sketches, dimensions and feature
@@ -140,10 +148,11 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a8 release notes](releases/v0.1.0a8.md). A pre-release does not imply a
+[v0.1.0a10 release notes](releases/v0.1.0a10.md). A pre-release does not imply a
 stable compatibility commitment.
 Runtime and distribution receipts remain distinct; the
-[a8 formal record](verification/a8-formal-runtime-2026-10-11.md) tracks both.
+[a10 release receipt](releases/v0.1.0a10.md) tracks both. The [a11 draft](releases/v0.1.0a11.md)
+is not a publication or a completed three-platform acceptance claim.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,
