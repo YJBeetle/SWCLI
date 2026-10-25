@@ -108,13 +108,13 @@ lease/stamp/restoration guards, geometry and native save/reopen checks.
 
 Current work:
 
-1. Finish a11 [drawing creation and standard three views](design/drawing-three-views.md).
-   The typed operations are implemented. Installed Windows and DockerSW gates
-   have passed. The owner accepted the hosted Mac software-rendering complex
+1. a11 [drawing creation and standard three views](design/drawing-three-views.md)
+   is published using unchanged CI assets at `499ca8b`. Installed Windows and
+   DockerSW full gates passed at that commit. The owner accepted the hosted Mac software-rendering complex
    drawing timeout as a non-blocking a11 CI limitation on 2026-10-25; retain the
    failed diagnostic, and keep Mac integration/smoke evidence separate rather
    than claiming a full Mac pass. See the [current receipt matrix and policy](verification/a11-runtime-2026-10-25.md).
-   Freeze final host pins and reuse unchanged accepted CI packages before publication.
+   Both hosts pin the released commit; retain these acceptance boundaries for future work.
 2. Extend profiles/end conditions and selected-body/face support only with
    explicit reference and verification semantics.
 
@@ -149,11 +149,12 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a10 release notes](releases/v0.1.0a10.md). A pre-release does not imply a
+[v0.1.0a11 release notes](releases/v0.1.0a11.md). A pre-release does not imply a
 stable compatibility commitment.
 Runtime and distribution receipts remain distinct; the
-[a10 release receipt](releases/v0.1.0a10.md) tracks both. The [a11 draft](releases/v0.1.0a11.md)
-is not a publication or a completed three-platform acceptance claim.
+[a11 release receipt](verification/a11-runtime-2026-10-25.md) tracks both.
+Publication does not turn the known Mac diagnostic limitation into a full Mac
+CAD acceptance claim.
 
 Continue pre-releases until the protocol and recovery boundaries can support a
 compatibility commitment. A new release must name its exact verified commit,

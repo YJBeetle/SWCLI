@@ -63,9 +63,10 @@ the six existing exports before image promotion. See the
 
 ## Installation
 
-a11 development adds A4 drawing creation and standard three-view insertion.
-It is not in the published a10 wheel; installed Windows/Wine gates are pending.
-See the [a11 draft](docs/releases/v0.1.0a11.md).
+The a11 pre-release adds A4 drawing creation and standard three-view insertion.
+Installed Windows and DockerSW full gates passed at the released commit;
+Mac integration/smoke passed with a documented software-rendering CI limitation.
+See the [a11 release notes](docs/releases/v0.1.0a11.md).
 
 The a10 pre-release adds exact single-edge constant-radius `feature fillet`
 creation. Installed typed Windows/Wine acceptance passed. It is not in older
@@ -75,7 +76,7 @@ The a9 pre-release additionally supports unsaved assembly creation with
 `document create --type assembly` and insertion of an already-open saved part
 with `assembly add-component PATH --document ID`. This is a minimal native
 assembly surface, not mates or reference packaging, plus native `.SLDASM` and
-`.SLDDRW` save-as. Install the published a9 wheel below for these capabilities.
+`.SLDDRW` save-as. These capabilities are included in the a11 wheel below.
 See the [assembly contract](docs/design/assembly-creation.md) and
 [a9 release notes](docs/releases/v0.1.0a9.md) and [runtime receipt](docs/verification/a9-runtime-2026-10-23.md).
 
@@ -87,12 +88,12 @@ Requirements:
 - a native SOLIDWORKS installation with working COM registration;
 - pywin32, installed automatically on Windows by the package metadata.
 
-Install the pinned `v0.1.0a10` pre-release wheel from GitHub Releases. This keeps the
+Install the pinned `v0.1.0a11` pre-release wheel from GitHub Releases. This keeps the
 installed command independent from a checkout and avoids silently following
 later protocol changes:
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a10/swcli-0.1.0a10-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a11/swcli-0.1.0a11-py3-none-any.whl"
 ```
 
 The package installs pywin32 automatically when running on Windows. The

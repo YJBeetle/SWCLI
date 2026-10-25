@@ -41,8 +41,9 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## 安装
 
-a11 开发版新增 A4 工程图创建与标准三视图插入，已发布的 a10 wheel 不包含。
-安装包与 Wine 门禁尚待完成，详见 [a11 草稿](docs/releases/v0.1.0a11.md)。
+a11 预发行版新增 A4 工程图创建与标准三视图插入，发布提交已通过 Windows
+和 DockerSW 完整门禁；Mac 集成/冒烟通过，并保留软件渲染 CI 的已知限制。
+详见 [a11 发行说明](docs/releases/v0.1.0a11.md)。
 
 a10 预发行版新增精确单边恒定半径 `feature fillet`，类型化 Windows/Wine
 实机门禁已通过。旧 a9 wheel 不包含该命令，详见
@@ -51,7 +52,7 @@ a10 预发行版新增精确单边恒定半径 `feature fillet`，类型化 Wind
 a9 预发行版还支持 `document create --type assembly` 新建未保存装配体，以及
 `assembly add-component PATH --document ID` 插入已经打开并保存的零件。
 这是最小原生装配接口，不包括配合或引用文件打包；还支持 `.SLDASM`、`.SLDDRW`
-原生另存为。请安装下文已发布的 a9 wheel 使用这些能力。
+原生另存为。这些能力均已包含在下文的 a11 wheel 中。
 详见[装配体契约](docs/design/assembly-creation.md) 和
 [a9 发行说明](docs/releases/v0.1.0a9.md)及[运行验证记录](docs/verification/a9-runtime-2026-10-23.md)。
 
@@ -63,10 +64,10 @@ a9 预发行版还支持 `document create --type assembly` 新建未保存装配
 - 已安装原生 SOLIDWORKS，且 COM 注册工作正常；
 - pywin32；软件包元数据会在 Windows 上自动安装它。
 
-请从 GitHub Releases 安装固定的 `v0.1.0a10` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
+请从 GitHub Releases 安装固定的 `v0.1.0a11` 预发行 wheel。安装完成后，命令不依赖源码工作区，也不会在后续协议变化时被静默升级：
 
 ```powershell
-python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a10/swcli-0.1.0a10-py3-none-any.whl"
+python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/releases/download/v0.1.0a11/swcli-0.1.0a11-py3-none-any.whl"
 ```
 
 软件包会在 Windows 上自动安装 pywin32；`v0.1.0a1` 说明中的 `[windows]` 后缀已不再需要。
