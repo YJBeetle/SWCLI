@@ -30,7 +30,7 @@
       "commit": "7e2f73207a8c828eb55551f36f9a81ca00615a9f",
       "path": "swcli/SWCLI",
       "swcli_commit": "499ca8bd030d7fb35d60307352201088095beac5",
-      "new_pin_runtime_receipt": "pending",
+      "new_pin_runtime_receipt": "success",
       "new_pin_run_id": 40171213170
     },
     "MacSW": {
@@ -42,8 +42,13 @@
   },
   "acceptance": {
     "windows_full_19_run": 40168288872,
-    "docker_full_run": 40126785960,
-    "docker_tested_swcli_commit": "8800d1e3a3cc5c091c8cca9b4ae4b694d45cc7dd",
+    "docker_full_run": 40171213170,
+    "docker_tested_swcli_commit": "499ca8bd030d7fb35d60307352201088095beac5",
+    "docker_runtime_coverage_scope": "full-plan",
+    "docker_runtime_expected_set_count": 19,
+    "docker_runtime_diagnostic_set": null,
+    "docker_runtime_cleanup_errors": [],
+    "docker_original_payload_comparison_run": 40126785960,
     "docker_to_candidate_product_wheel_files": 59,
     "docker_to_candidate_product_wheel_differences": 0,
     "mac_integration_visible_smoke_run": 40168366219,
@@ -52,6 +57,18 @@
     "mac_timeout_owner_accepted_non_blocking_on": "2026-10-25",
     "native_call_timeout_seconds": 600
   },
+  "docker_evidence_artifacts": [
+    {
+      "id": 12591632206,
+      "name": "sw-cli-export-smoke-40171213170",
+      "digest": "sha256:8df932f32966dabc20258e47bb7b11fce235c0cd5ffcea6637df9680ec8e48dc"
+    },
+    {
+      "id": 12591811856,
+      "name": "sw-language-smoke-40171213170",
+      "digest": "sha256:b3cee6f9ecbfe8f0a1b800a29fdac9e3046385adc5e9400c22640db8c9bb0e42"
+    }
+  ],
   "portable_distribution_checks": {
     "twine": "passed",
     "sdist_payload": "passed",
