@@ -1,0 +1,61 @@
+{
+  "version": "0.1.0a11",
+  "tag": "v0.1.0a11",
+  "publication_state": "draft",
+  "draft_url": "https://github.com/YJBeetle/SWCLI/releases/tag/untagged-d74bb5bde185b4ca4db7",
+  "uploaded_asset_digests_match_originals": true,
+  "candidate_commit": "499ca8bd030d7fb35d60307352201088095beac5",
+  "distribution_source": {
+    "repository": "YJBeetle/SWCLI",
+    "run_id": 40168288872,
+    "artifact_id": 12589005938,
+    "artifact_name": "swcli-dist",
+    "artifact_archive_digest": "sha256:62d18c78d01fd2b265d8e42f81dcf8f8b14b76688d6f4cfcb22b868b8f2b0cda",
+    "rebuilt": false
+  },
+  "assets": [
+    {
+      "name": "swcli-0.1.0a11-py3-none-any.whl",
+      "size": 207926,
+      "sha256": "c71e68e27241e9a48f4504f804dae140a4e4c86e3652ab95b6d91f7b3fbf603e"
+    },
+    {
+      "name": "swcli-0.1.0a11.tar.gz",
+      "size": 808581,
+      "sha256": "b30826cd851a1789f4960202e8cbff4ff3a13f7adaba877ec7dfac059528564b"
+    }
+  ],
+  "host_pins": {
+    "DockerSW": {
+      "commit": "7e2f73207a8c828eb55551f36f9a81ca00615a9f",
+      "path": "swcli/SWCLI",
+      "swcli_commit": "499ca8bd030d7fb35d60307352201088095beac5",
+      "new_pin_runtime_receipt": "pending",
+      "new_pin_run_id": 40171213170
+    },
+    "MacSW": {
+      "commit": "2c5d99da494d88bf07b4076a44b9d0163251cae1",
+      "path": "Dependencies/SWCLI",
+      "swcli_commit": "499ca8bd030d7fb35d60307352201088095beac5",
+      "matching_version_config": true
+    }
+  },
+  "acceptance": {
+    "windows_full_19_run": 40168288872,
+    "docker_full_run": 40126785960,
+    "docker_tested_swcli_commit": "8800d1e3a3cc5c091c8cca9b4ae4b694d45cc7dd",
+    "docker_to_candidate_product_wheel_files": 59,
+    "docker_to_candidate_product_wheel_differences": 0,
+    "mac_integration_visible_smoke_run": 40168366219,
+    "mac_full_cad_acceptance": false,
+    "mac_known_complex_drawing_timeout_run": 40168325145,
+    "mac_timeout_owner_accepted_non_blocking_on": "2026-10-25",
+    "native_call_timeout_seconds": 600
+  },
+  "portable_distribution_checks": {
+    "twine": "passed",
+    "sdist_payload": "passed",
+    "isolated_installed_cli_schemas_skill": "passed",
+    "com_activated_for_installation_check": false
+  }
+}
