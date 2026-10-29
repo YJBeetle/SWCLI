@@ -1,4 +1,4 @@
-"""Internal polygon creation/readback pending native and public-contract proof."""
+"""Exact simple polygon creation and native closed-cycle readback."""
 
 import math
 

@@ -71,3 +71,15 @@ Then exercise installed public CLI, lease/CAS/cross-document refusals and failur
 continuation, integrate into full19 without weakening older assertions, run full
 Windows and Wine and validate original final-version CI packages. Record runtime,
 distribution and publication separately. Release approval remains a final step.
+
+## Implementation status
+
+The internal 48-case proof is complete; see
+[the exact Windows artifact and limits](../verification/a13-native-windows-2026-10-30.md).
+The development catalog now includes `sketch.polygon`, recursive object/array
+parameter validation, pair-array CLI parsing and exact surviving sketch handles
+on partial native failure. Successful results require the closed native cycle,
+consistent readback geometry, complete metadata and closed edit state.
+The existing full native-model set additionally runs `polygon-model` with 48
+installed public cases; core11 and full19 group topology are unchanged. This
+new public path still requires its own Windows/Wine receipts before acceptance.

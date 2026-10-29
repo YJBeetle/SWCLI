@@ -362,6 +362,82 @@ class DaemonProtocolTests(unittest.TestCase):
             registry.resolve_sketch(entry, result["sketch"]["sketch_id"]), feature
         )
 
+    @mock.patch("swcli.daemon.operations.create_polygon_sketch_windows_with_handle")
+    def test_polygon_guards_and_registers_metadata_free_partial_sketch_in_exact_document(self, create):
+        target = self.FakeDocument("Part1", "")
+        target.GetUpdateStamp = lambda: 0
+        foreground = self.FakeDocument("Part2", "")
+        app = self.FakeApp([target, foreground], active=foreground)
+        registry = DocumentRegistry(app)
+        entry = registry.register(target)
+        other = registry.register(foreground)
+        registry.set_current(other, session_id="modeler")
+        lease = registry.acquire_lease(entry, session_id="modeler", ttl_seconds=60)
+        values = {"plane": "top", "vertices_mm": [{"x":0,"y":0},{"x":20,"y":0},{"x":0,"y":15}]}
+        with self.assertRaises(DocumentLeaseConflict):
+            operations.execute_operation(
+                app,
+                "sketch.polygon",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="contender",
+            )
+        with self.assertRaises(operations.DocumentUpdateConflict):
+            operations.execute_operation(
+                app,
+                "sketch.polygon",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=1,
+            )
+        create.assert_not_called()
+        feature = SimpleNamespace(GetID=lambda: 1)
+        create.return_value = (
+            {
+                "ok": False,
+                "action": "sketch.polygon",
+                "error": {"type": "SketchVerificationFailed", "message": "failed"},
+            },
+            feature,
+        )
+
+        @contextmanager
+        def activate(selected):
+            self.assertIs(selected, entry)
+            app.ActiveDoc = target
+            try:
+                yield
+            finally:
+                app.ActiveDoc = foreground
+
+        with mock.patch.object(registry, "temporarily_activate", side_effect=activate):
+            result = operations.execute_operation(
+                app,
+                "sketch.polygon",
+                values,
+                documents=registry,
+                document_id=entry.document_id,
+                session_id="modeler",
+                lease_id=lease["lease_id"],
+                expected_update_stamp=0,
+            )
+        create.assert_called_once_with(
+            app=app,
+            document=target,
+            plane="top",
+            vertices_mm=values["vertices_mm"],
+        )
+        self.assertFalse(result["document"]["active"])
+        self.assertFalse(result["document"]["current"])
+        self.assertIs(registry.resolve(None, session_id="modeler"), other)
+        self.assertIs(
+            registry.resolve_sketch(entry, result["sketch"]["sketch_id"]), feature
+        )
+
     @mock.patch("swcli.daemon.operations.measure_part_windows")
     def test_measure_can_observe_another_session_leased_background_part(self, measure):
         target = self.FakeDocument("Part1", "")

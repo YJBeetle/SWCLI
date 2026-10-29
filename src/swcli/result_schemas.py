@@ -3,7 +3,8 @@
 from copy import deepcopy
 from functools import lru_cache
 import json
-from math import isclose
+from math import isclose, dist
+from .polygon_geometry import TOLERANCE_MM, validate_polygon
 from typing import Any, Dict
 
 from .protocol import load_schema
@@ -1007,6 +1008,26 @@ _CIRCLE_FIELDS["geometry_verification"] = _object(
 _RESULT_FIELDS["sketch.circle"] = (_CIRCLE_FIELDS, _CIRCLE_REQUIRED)
 
 
+_POLYGON_VERTEX = _object({"x": NUMBER, "y": NUMBER}, ("x", "y"))
+_POLYGON_VERTICES = {"type": "array", "items": _POLYGON_VERTEX, "minItems": 3, "maxItems": 64}
+_POLYGON_FIELDS, _POLYGON_REQUIRED = deepcopy(_RESULT_FIELDS["sketch.rectangle"])
+_POLYGON_FIELDS["dimensions"] = _object(
+    {"unit": {"const": "millimeter"}, "vertices_mm": _POLYGON_VERTICES}, ("unit", "vertices_mm"))
+# Native creation can fail before metadata is readable. The exact surviving
+# handle remains useful on failure; successful results require all metadata.
+_POLYGON_FIELDS["sketch"]["required"] = ["sketch_id"]
+_POLYGON_FIELDS["geometry_verification"] = _object({
+    "passed": BOOL, "method": {"const": "sketch-local-polygon-edge-cycle"},
+    "segment_count": {"type": "integer", "minimum": 3, "maximum": 64},
+    "vertex_count": {"type": "integer", "minimum": 3, "maximum": 64},
+    "contour_count": {"const": 1}, "native_closed": {"const": True},
+    "actual_vertices_mm": _POLYGON_VERTICES, "signed_area_mm2": NUMBER,
+    "perimeter_mm": {"type": "number", "exclusiveMinimum": 0},
+    "centroid_mm": _POLYGON_VERTEX, "absolute_tolerance_mm": {"const": TOLERANCE_MM},
+}, ("passed", "method", "segment_count", "vertex_count", "contour_count", "native_closed",
+    "actual_vertices_mm", "signed_area_mm2", "perimeter_mm", "centroid_mm", "absolute_tolerance_mm"))
+_RESULT_FIELDS["sketch.polygon"] = (_POLYGON_FIELDS, _POLYGON_REQUIRED)
+
 _RECTANGLE_GEOMETRY = _object(
     {
         "width_mm": {"type": "number", "exclusiveMinimum": 0},
@@ -1536,12 +1557,15 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                         "absolute_depth_tolerance_mm": {"type": "number"}}},
                 }},
             }]
-    if name in ("sketch.rectangle", "sketch.circle"):
+    if name in ("sketch.rectangle", "sketch.circle", "sketch.polygon"):
         schema["then"]["properties"] = {
             "editing": {"const": False},
             "sketch": {"required": ["sketch_id"]},
             "geometry_verification": {"properties": {"passed": {"const": True}}},
         }
+        if name == "sketch.polygon":
+            schema["then"]["properties"]["sketch"]["required"] = [
+                "sketch_id", "name", "type", "constraint_status", "dimensions_created"]
         if name == "sketch.circle":
             schema["then"]["properties"]["geometry_verification"]["properties"].update(
                 {
@@ -2579,6 +2603,21 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "sketch.polygon" and result["ok"] is True:
+        try:
+            expected = validate_polygon(result["dimensions"]["vertices_mm"])
+            proof = result["geometry_verification"]
+            actual = validate_polygon(proof["actual_vertices_mm"])
+            if (len(expected.vertices_mm) != proof["segment_count"]
+                    or len(expected.vertices_mm) != proof["vertex_count"]
+                    or len(expected.vertices_mm) != len(actual.vertices_mm)
+                    or any(dist(a, b) > TOLERANCE_MM for a, b in zip(expected.vertices_mm, actual.vertices_mm))
+                    or not isclose(actual.signed_area_mm2, proof["signed_area_mm2"], rel_tol=0, abs_tol=1e-9)
+                    or not isclose(actual.perimeter_mm, proof["perimeter_mm"], rel_tol=0, abs_tol=1e-9)
+                    or dist(actual.centroid_mm, (proof["centroid_mm"]["x"], proof["centroid_mm"]["y"])) > TOLERANCE_MM):
+                raise ValueError("polygon geometry evidence is inconsistent")
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise OperationResultInvalid("sketch.polygon: " + str(exc)) from exc
     if name == "drawing.standard-views" and result["ok"] is True:
         source, sheet, views = result["source"], result["sheet"], result["views"]
         from .hosts.drawing_geometry import standard_layout

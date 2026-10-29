@@ -162,6 +162,21 @@ sw-cli --session bracket document inspect --detail structure --json
 sw-cli --session bracket document diagnose --json
 ```
 
+Hosts advertising `sketch.polygon` accept:
+
+```bash
+sw-cli --session bracket sketch polygon --plane front --vertices-mm '[[0,0],[20,0],[0,15]]' --json
+```
+
+The 3–64 ordered numeric pairs use sketch-local millimeters with implicit
+closure. Do not repeat the first point. Simple concave and either winding order
+are allowed; holes, arcs, self crossing/touching, redundant collinear vertices
+and ambiguous short edges are refused. Coordinates locate geometry without
+adding driving dimensions or guaranteeing full definition. Preserve the exact
+returned sketch ID for blind extrusion/cut. Through-all and feature depth
+editing remain limited to their existing supported profiles. Partial creation
+is not rolled back; inspect the returned surviving sketch handle on failure.
+
 Save-as supports parts (`.SLDPRT`), with assemblies (`.SLDASM`) and drawings
 (`.SLDDRW`) added in the a9 candidate, not the published a8 wheel. It rejects
 existing targets; use the host's advertised schemas, not an

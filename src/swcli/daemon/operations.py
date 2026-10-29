@@ -45,6 +45,7 @@ from ..hosts.windows_linear_dimensions import (
     inspect_rectangle_dimension_windows,
     set_rectangle_dimension_windows,
 )
+from ..hosts.windows_polygons import create_polygon_sketch_windows_with_handle
 from ..hosts.windows_features import extrude_sketch_windows_with_handle
 from ..hosts.windows_native_files import save_as_native_windows
 from ..hosts.windows_measurements import measure_part_windows
@@ -807,6 +808,23 @@ def sketch_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[st
     return _with_document(
         result, context.documents, context.entry, session_id=context.session_id
     )
+
+
+@_register_handler
+def sketch_polygon(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result, feature = create_polygon_sketch_windows_with_handle(
+        app=context.app, document=context.entry.document,
+        plane=values["plane"], vertices_mm=values["vertices_mm"],
+    )
+    if feature is not None:
+        # Even a partially created sketch belongs to this exact document. Return
+        # its handle on failure so the caller can inspect the surviving feature.
+        result.setdefault("sketch", {})["sketch_id"] = context.documents.register_sketch(
+            context.entry, feature
+        )
+    return result
 
 
 @_register_handler

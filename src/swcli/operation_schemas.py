@@ -12,6 +12,7 @@ from .cut_termination import cut_termination_fields, cut_termination_conditions,
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
+from .polygon_geometry import validate_polygon
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CONTEXT_FIELDS = ("document_id", "expected_update_stamp", "lease_id")
@@ -303,6 +304,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "sketch.polygon": _operation(
+        "sketch.polygon",
+        {
+            "plane": _string(enum=list(STANDARD_PLANES)),
+            "vertices_mm": {"type": "array", "minItems": 3, "maxItems": 64,
+                "items": {"type": "object", "properties": {"x": _number(), "y": _number()},
+                          "required": ["x", "y"], "additionalProperties": False}},
+        },
+        required=("plane", "vertices_mm"),
+        temporary_activation=True,
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
     "sketch.circle": _operation(
         "sketch.circle",
         {
@@ -444,13 +457,36 @@ def _validate_parameter(name: str, value: Any, schema: Dict[str, Any]) -> None:
         valid = isinstance(value, int) and not isinstance(value, bool)
     elif expected == "number":
         valid = isinstance(value, (int, float)) and not isinstance(value, bool)
-    else:  # pragma: no cover - operation schemas only use the types above
+    elif expected == "array":
+        valid = isinstance(value, list)
+    elif expected == "object":
+        valid = isinstance(value, dict)
+    else:  # pragma: no cover - declarations use only supported JSON types
         raise RuntimeError(f"unsupported operation schema type: {expected}")
     if not valid:
         article = "an" if expected == "integer" else "a"
         raise ValueError(f"{name} must be {article} {expected}")
-    if expected == "number" and not isfinite(float(value)):
-        raise ValueError(f"{name} must be finite")
+    if expected == "number":
+        try:
+            finite = isfinite(float(value))
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise ValueError(f"{name} must be finite")
+    if expected == "array":
+        if len(value) < schema.get("minItems", 0) or len(value) > schema.get("maxItems", len(value)):
+            raise ValueError(f"{name} has an unsupported item count")
+        for index, item in enumerate(value):
+            _validate_parameter(f"{name}[{index}]", item, schema["items"])
+    if expected == "object":
+        properties = schema.get("properties", {})
+        if schema.get("additionalProperties") is False and set(value) - set(properties):
+            raise ValueError(f"{name} contains unsupported properties")
+        if any(key not in value for key in schema.get("required", ())):
+            raise ValueError(f"{name} is missing required properties")
+        for key, item in value.items():
+            if key in properties:
+                _validate_parameter(f"{name}.{key}", item, properties[key])
     if "minLength" in schema and len(value) < schema["minLength"]:
         raise ValueError(f"{name} must not be empty")
     if "pattern" in schema and search(schema["pattern"], value) is None:
@@ -491,6 +527,8 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "sketch.polygon":
+        validate_polygon(parameters["vertices_mm"])
     if operation == "document.create":
         if parameters.get("type", "part") == "drawing":
             if not parameters.get("template") or not parameters.get("projection"):

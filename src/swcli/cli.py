@@ -26,6 +26,21 @@ from .daemon.main import (
 )
 
 
+def _polygon_vertices(text):
+    from .polygon_geometry import validate_polygon
+    try:
+        pairs = json.loads(text)
+        if not isinstance(pairs, list) or any(
+            not isinstance(p, list) or len(p) != 2 for p in pairs
+        ):
+            raise ValueError("expected an array of [x, y] numeric pairs")
+        vertices = [dict(x=p[0], y=p[1]) for p in pairs]
+        validate_polygon(vertices)
+        return vertices
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sw-cli",
@@ -307,6 +322,16 @@ def build_parser() -> argparse.ArgumentParser:
     rectangle_parser.add_argument("--center-x-mm", type=float, default=0.0)
     rectangle_parser.add_argument("--center-y-mm", type=float, default=0.0)
     rectangle_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    polygon_parser = sketch_commands.add_parser(
+        "polygon", help="create a simple closed polygon from ordered sketch-local vertices"
+    )
+    add_document_selector(polygon_parser)
+    add_lease_token(polygon_parser)
+    polygon_parser.add_argument("--plane", choices=tuple(STANDARD_PLANES), required=True)
+    polygon_parser.add_argument("--vertices-mm", type=_polygon_vertices, required=True,
+                                help="JSON array of 3–64 [x, y] pairs; closure is implicit")
+    polygon_parser.add_argument("--json", action="store_true", dest="as_json")
 
     circle_parser = sketch_commands.add_parser(
         "circle", help="create and close a new full-circle sketch"
@@ -1061,6 +1086,11 @@ def _typed_operation(
             args.document_id,
             args.expected_update_stamp,
             args.lease_id,
+        )
+    if args.command == "sketch" and args.sketch_command == "polygon":
+        return (
+            "sketch.polygon", {"plane": args.plane, "vertices_mm": args.vertices_mm},
+            args.as_json, args.document_id, args.expected_update_stamp, args.lease_id,
         )
     if args.command == "sketch" and args.sketch_command == "circle":
         return (

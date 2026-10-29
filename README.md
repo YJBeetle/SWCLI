@@ -573,6 +573,18 @@ coordinates. The radius is not a diameter. Verification reads the final native
 arc's complete-circle flag, radius and center, rejects partial arcs or extra
 profile segments, and returns a document-scoped sketch ID for extrusion. It
 does not add driving dimensions or guarantee full definition.
+Development a13 adds `sketch polygon --plane front --vertices-mm '[[0,0],[20,0],[0,15]]'`.
+Supply 3–64 ordered sketch-local millimeter points; closure is implicit. Simple
+clockwise/counterclockwise and concave polygons are supported. Repeating the
+first vertex, redundant collinear points, self crossings/touching, ambiguous
+short edges and nonfinite coordinates are rejected before CAD access. There
+are no holes, arcs, automatic repair or driving dimensions. The result verifies
+one closed native straight-edge cycle and returns an exact document-scoped
+sketch ID, including a surviving partial sketch on creation failure. Use that
+ID with existing blind `feature extrude` / `feature cut-extrude --depth-mm`.
+Polygon through-all cuts and `feature set-depth` remain outside this slice.
+This development capability awaits separate public Windows/Wine acceptance.
+
 `sketch inspect SKETCH_ID --json` reads a registered 2D sketch without entering
 edit mode, selecting geometry, rebuilding, saving or activating its document.
 It works even if the sketch was subsequently absorbed by a boss/cut and reports

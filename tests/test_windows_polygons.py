@@ -59,6 +59,39 @@ class PolygonNativeBoundaryTests(unittest.TestCase):
             self.assertIsNone(handle)
         self.assertEqual(app.mock_calls, []); self.assertEqual(document.mock_calls, [])
 
+    def test_creation_mode_restore_warning_cannot_report_success(self):
+        class Manager:
+            mode = False
+            @property
+            def AddToDB(self): return self.mode
+            @AddToDB.setter
+            def AddToDB(self, value):
+                if value is False: raise RuntimeError('restore failed')
+                self.mode = value
+            def CreateLine(self, *args): return object()
+        feature = object()
+        def lifecycle(**kwargs):
+            kwargs['create_segments'](Manager())
+            return dict(ok=True, action='sketch.polygon'), feature
+        with mock.patch.object(native, '_create_profile_sketch_windows_with_handle', side_effect=lifecycle):
+            result, actual = native.create_polygon_sketch_windows_with_handle(
+                app=object(), document=object(), plane='front', vertices_mm=POINTS)
+        self.assertIs(actual, feature)
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['type'], 'SketchStateRestoreFailed')
+        self.assertTrue(result['warnings'])
+
+    def test_polygon_does_not_broaden_through_all_profile_scope(self):
+        from swcli.hosts.windows_cuts import _through_all_preflight
+        from swcli.hosts.windows_rectangle_profiles import RectangleObservationError
+        document = NS(SelectionManager=NS(GetSelectedObjectCount2=lambda mark: 0),
+                      GetBodies2=lambda kind, hidden: [NS(GetType=lambda: 0)])
+        profile = sketch(); profile.Is3D = False
+        feature = NS(GetSpecificFeature2=profile)
+        with self.assertRaises(RectangleObservationError) as refused:
+            _through_all_preflight(document, feature)
+        self.assertEqual(refused.exception.code, 'UnsupportedDimensionProfile')
+
     def test_partial_line_failure_retains_handle_and_does_not_retry(self):
         feature = object(); manager = NS(AddToDB=False, CreateLine=mock.Mock(side_effect=[object(), RuntimeError('native failure')]))
         def lifecycle(**kwargs):
