@@ -98,3 +98,10 @@ depth must never be presented as a verified travel length. The helper is not
 yet connected to schemas, CLI routing or COM execution. Tests explicitly check
 that the public operation still requires depth and rejects unproved through-all
 requests until native proof permits integration.
+
+Read-boundary regressions additionally cover exact observed through-all native
+codes with stored depths of 0, 1 and 25 mm, including background reads under
+another session's write lease. Those reads preserve foreground/current, handles,
+stamp and configuration without selection access; raw stored depth does not
+invent travel, material thickness or permission to edit. This is portable
+contract evidence, not an actual native through-all acceptance receipt.

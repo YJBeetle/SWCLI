@@ -153,6 +153,30 @@ class FeatureObservationOperationTests(unittest.TestCase):
             self.assertTrue(result["observation"]["unchanged"])
         self.app.ActivateDoc3.assert_not_called()
 
+    def test_through_all_read_under_other_sessions_lease_does_not_grant_edit_authority(self):
+        listed = self.call()
+        descriptor = next(f for f in listed["features"] if f["kind"] == "cut-extrude")
+        feature_id = descriptor["feature_id"]
+        for end in (1, 9):
+            self.cut.definition.GetEndCondition = lambda forward, value=end: value
+            for depth_m in (0.0, 0.001, 0.025):
+                self.cut.definition.GetDepth = lambda forward, value=depth_m: value
+                with self.subTest(end=end, depth_m=depth_m), \
+                        mock.patch.object(self.registry, "temporarily_activate") as activate:
+                    result = self.call("feature.inspect", {"feature_id": feature_id}, expected_update_stamp=0)
+                    validate_operation_result("feature.inspect", result)
+                    self.assertEqual(result["feature"], descriptor)
+                    self.assertEqual(result["definition"]["end_condition"], end)
+                    self.assertEqual(result["definition"]["depth_mm"], depth_m*1000)
+                    self.assertTrue(result["observation"]["unchanged"])
+                    self.assertFalse(result["document"]["active"] or result["document"]["current"])
+                    self.assertNotIn("editable", result)
+                    self.assertIs(self.registry.resolve_feature(self.entry, feature_id), self.cut)
+                    self.assertIs(self.registry.resolve(None, session_id="reader"), self.other_entry)
+                    activate.assert_not_called()
+        self.app.ActivateDoc3.assert_not_called()
+        self.assertIs(self.app.ActiveDoc, self.other)
+
     def test_repeat_and_renamed_wrappers_reuse_exact_live_ids(self):
         first = self.call()
         replacement = Feature(1, "Extrusion", identity=self.boss.identity)

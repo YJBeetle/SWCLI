@@ -144,6 +144,24 @@ class FeatureInspectionTests(unittest.TestCase):
         self.assertNotIn("merge", result["definition"])
         self.assert_nonmutating()
 
+    def test_through_all_observation_retains_stored_depth_without_inventing_travel(self):
+        self.feature.kind = "Cut"
+        for end in (1, 9):
+            self.feature.definition.GetEndCondition.return_value = end
+            for stored_m in (0.0, 0.001, 0.025):
+                self.feature.definition.GetDepth.return_value = stored_m
+                with self.subTest(end=end, stored_m=stored_m):
+                    result = self.inspect()
+                    self.assertTrue(result["ok"], result)
+                    self.assertEqual(result["definition"]["end_condition"], end)
+                    self.assertEqual(result["definition"]["depth_mm"], stored_m * 1000)
+                    self.assertTrue(result["observation"]["unchanged"])
+                    self.assertEqual(result["observation"]["before"], result["observation"]["after"])
+                    for field in ("editable", "travel_mm", "material_thickness_mm", "through_all_verified"):
+                        self.assertNotIn(field, result)
+                        self.assertNotIn(field, result["definition"])
+        self.assert_nonmutating()
+
     def test_instant3d_uses_documented_underlying_type_not_feature_name(self):
         self.feature.kind = "ICE"
         self.feature.GetTypeName.return_value = "Cut"
