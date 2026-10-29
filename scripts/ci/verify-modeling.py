@@ -59,10 +59,11 @@ from gate_support.model_checks import (
     LEASE_TTL_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS, DEFAULT_DEPTH_REQUEST_TIMEOUT_SECONDS, MAX_REQUEST_TIMEOUT_SECONDS, CLI_TIMEOUT_GRACE_SECONDS, require, near, unchanged_depth_metrics, verify_fixture_edges
 )
 from gate_support.model_native import NativeModelCases
+from gate_support.model_through_all import ThroughAllCases
 from gate_support.model_depth import FeatureDepthCases
 from gate_support.model_files import NativeFileCases
 
-class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
+class ModelingSmoke(ThroughAllCases, NativeModelCases, FeatureDepthCases, NativeFileCases):
     def __init__(
         self,
         *,
@@ -78,7 +79,7 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
         self.directory = directory
         require(suite in ("core", "full"), "unknown modeling suite")
         self.suite = suite
-        require(case_set in ("all", "native", "assembly", "exports", "reverse-cut", "depth",
+        require(case_set in ("all", "native", "assembly", "exports", "reverse-cut", "through-all", "depth",
                              "drawing-save", "drawing-save-as", "drawing-copy-first", "drawing-copy-reopen", "drawing-reopen-no-inspect", "continuation"), "unknown modeling case set")
         self.case_set = case_set
         self.host_directory = host_directory
@@ -483,6 +484,10 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
         ]
         if self.suite == "core":
             cases = cases[:2]
+        # Extend the existing reverse-cut full set; both cut contracts share
+        # one host/receipt, with no extra restart or diagnostic-only shortcut.
+        if self.case_set in ("reverse-cut", "through-all") and self.suite == "full":
+            cases.append(("through-all-cut", self.through_all_cut))
         if sample_part:
             cases.append(
                 (
@@ -513,7 +518,8 @@ class ModelingSmoke(NativeModelCases, FeatureDepthCases, NativeFileCases):
         if selection != "all":
             names = {"native": {"native-model"},
                      "assembly": {"generated-assembly", "official-assembly-save-reopen"},
-                     "exports": {"sample-exports"}, "reverse-cut": {"reverse-cut"},
+                     "exports": {"sample-exports"}, "reverse-cut": {"reverse-cut", "through-all-cut"},
+                     "through-all": {"through-all-cut"},
                      "depth": {"feature-depth"}, "drawing-save": {"drawing-save-reopen"},
                      "drawing-save-as": {"drawing-save-as-reopen"},
                      "drawing-copy-first": {"drawing-copy-first"},
@@ -580,7 +586,7 @@ def main(argv=None):
     parser.add_argument("--sample-part", type=host_directory)
     parser.add_argument("--suite", choices=("core", "full"), default="full",
                         help="core daily regression or complete CAD/negative-case coverage")
-    parser.add_argument("--case-set", choices=("all", "native", "assembly", "exports", "reverse-cut", "depth",
+    parser.add_argument("--case-set", choices=("all", "native", "assembly", "exports", "reverse-cut", "through-all", "depth",
                                               "drawing-save", "drawing-save-as", "drawing-copy-first", "drawing-copy-reopen", "drawing-reopen-no-inspect", "continuation"), default="all")
     parser.add_argument("--sample-assembly", type=host_directory)
     parser.add_argument("--verify-sample-assembly-save", action="store_true",

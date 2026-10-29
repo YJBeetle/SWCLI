@@ -22,6 +22,8 @@ REQUIRED = {
     "scripts/ci/verify-feature-depth.py",
     "scripts/ci/verify-fillet-calibration.py",
     "scripts/ci/verify-through-all-calibration.py",
+    "scripts/ci/verify-through-all.py",
+    "scripts/ci/gate_support/model_through_all.py",
     "scripts/ci/verify-drawing-save.py",
     "scripts/ci/verify-drawing-save-as.py",
     "scripts/ci/verify-host-continuation.py",

@@ -1,7 +1,7 @@
 # Through-all cut — a12 first slice
 
-Status: twelve circle/rectangle native Windows development cases passed; public API is
-not implemented. See the [VM proof and preserved failure chain](../verification/a12-native-windows-2026-10-30.md).
+Status: twelve circle/rectangle native Windows development cases passed; public
+Schema/CLI/guarded adapter integration is in development. See the [VM proof and preserved failure chain](../verification/a12-native-windows-2026-10-30.md).
 The released a11 wheel remains unchanged. This increment is authorized as the
 next native modeling slice, not a generic COM or feature-editing framework.
 
@@ -57,8 +57,8 @@ After native feasibility: strict request/result/CLI contracts, adapter and
 daemon guards, invalid/conflicting inputs, cross-document/stale/leased targets,
 partial failures and restoration; then shared public-CLI through-all cases and
 full installed Windows/DockerSW gates. Keep the six Docker delivery outputs and
-the original assertion/timeout policy. Mac receives integration/smoke coverage
-under the accepted a11 policy; do not repeat the known complex-drawing control.
+the original assertion/timeout policy. MacSW is excluded by the current owner instruction; do not run its host/CI or
+repeat the known complex-drawing control.
 Freeze host pins and original CI distribution hashes before release preparation.
 
 ## Official references
@@ -79,27 +79,29 @@ solid/scope assertion failed. No later case, thickness edit or reopen ran;
 cleanup errors were empty. The initial report dropped the rejected definition
 values, so it does not yet identify which setting differed. The next probe
 retains partial and complete readback before validation, without changing the
-native arguments, geometry assertions or expected settings. Public support is
-still unimplemented pending that evidence.
+native arguments, geometry assertions or expected settings. This was a calibration failure; later controls and integration are recorded below.
 
-## Independent contract preparation
+## Public termination contract
 
-`cut_termination.py` prepares pure termination validation without registering or
-advertising a public capability. Proposed request field `end_condition` accepts
-`blind` or `through-all`; omission retains legacy blind behavior and requires
-positive finite representable `depth_mm`. Through-all rejects the presence of
-`depth_mm`, including null/zero, rather than silently ignoring a conflicting
-instruction. Its internal normalized depth is absent, never a fabricated travel
-distance. Invalid or unrecognized termination values must not default to blind.
+`cut_termination.py` supplies the same conditional fields to published discovery
+schemas and strict request validation. `end_condition` accepts `blind` or
+`through-all`; omission retains legacy blind behavior and requires a positive
+finite representable `depth_mm`. Through-all rejects any presence of `depth_mm`,
+including null/zero. The CLI requires either `--depth-mm VALUE` or `--through-all`.
+Existing blind routing and native creation flags remain compatible.
 
-After native proof, the CLI can expose a required exclusive choice of
-`--depth-mm VALUE` or `--through-all`. Existing blind requests and their guarded
-execution remain compatible. Through-all results must distinguish the native
-termination setting from actual material removed; the unused native creation
-depth must never be presented as a verified travel length. The helper is not
-yet connected to schemas, CLI routing or COM execution. Tests explicitly check
-that the public operation still requires depth and rejects unproved through-all
-requests until native proof permits integration.
+The through-all adapter preflights an empty selection, exactly one solid/no
+other bodies and an exact supported planar profile before selection or creation.
+It uses native end 1 with both scope/auto-selection flags false. It reads back
+one-sided/direction/solid/from-plane/all-body/non-draft settings, requires complete
+healthy diagnostics and no pending rebuild, and verifies actual volume removal
+with one remaining solid. Creation does not depend on `GetDepth`: response
+`depth_mm`, verified actual depth and depth tolerance are null. The top-level
+`end_condition: through-all` is distinct from the native integer end-condition
+readback. Success schemas require those settings and reject invented travel.
+A created native feature remains bound to its exact public handle even when a
+later check fails; there is no rollback or retry. The existing selected-document,
+lease/CAS and foreground restoration path is reused.
 
 Read-boundary regressions additionally cover exact observed through-all native
 codes with stored depths of 0, 1 and 25 mm, including background reads under
@@ -133,3 +135,17 @@ both count and one-to-one native document identity must match after each close.
 The normal owned-host CI path retains the empty baseline and initial zero-count
 requirement. This avoids claiming that a local host with a user document is
 empty, and does not introduce a public attach/raw-COM operation.
+
+
+## Installed public gate integration
+
+The full plan retains 19 host sets and core retains 11. The existing
+`reverse-cut` full set now requires both its original blind reverse-cut case and
+`through-all-cut` before its empty-catalog/host-continuity checks pass. Twelve
+new public-CLI fixtures cover circle/rectangle × front/top/right × normal/reverse.
+They check background restoration, null travel, independent volume/area,
+through-all set-depth refusal, public blind-boss growth to 25 mm, unchanged cut
+termination, native save/readonly reopen/fresh exact handles, diagnostics and
+hashes. There is no restart between the blind and through-all cases or among
+these twelve fixtures. `verify-through-all.py` selects just this functional case
+for focused testing; that subset cannot substitute for the installed full plan.

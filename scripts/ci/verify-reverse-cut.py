@@ -1,4 +1,4 @@
-"""Full-suite reverse-cut geometry functional set."""
+"""Full-suite blind reverse-cut and through-all geometry/roundtrip set."""
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))

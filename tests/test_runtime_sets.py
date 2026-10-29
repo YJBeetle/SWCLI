@@ -59,6 +59,9 @@ class RuntimeSetsTests(unittest.TestCase):
         self.assertIn("fillets", [item.name for item in full])
         self.assertNotIn("drawings", [item.name for item in core])
         self.assertIn("drawings", [item.name for item in full])
+        cuts = next(item for item in full if item.name == "reverse-cut")
+        self.assertEqual([step.script for step in cuts.steps],
+                         ["verify-reverse-cut.py"])
         bridge = next(item for item in full if item.name == "continuation-front-diameter")
         self.assertEqual([step.script for step in bridge.steps],
                          ["verify-host-continuation.py", "verify-diameter-dimensions.py"])

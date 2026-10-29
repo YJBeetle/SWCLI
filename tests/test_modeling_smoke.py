@@ -1079,6 +1079,7 @@ class ModelingSmokeTests(unittest.TestCase):
     def test_named_case_selections_preserve_only_the_requested_case(self):
         selections = {"native": "native-model", "assembly": "generated-assembly",
                       "exports": "sample-exports", "reverse-cut": "reverse-cut",
+                      "through-all": "through-all-cut",
                       "depth": "feature-depth", "drawing-save": "drawing-save-reopen",
                       "drawing-save-as": "drawing-save-as-reopen", "continuation": "rejected-cut-then-sketch"}
         for selection, expected in selections.items():
@@ -1088,11 +1089,11 @@ class ModelingSmokeTests(unittest.TestCase):
                         mock.patch.object(smoke, "command"), mock.patch.object(smoke, "require_empty"), \
                         mock.patch.object(smoke, "checkpoint"), mock.patch.object(smoke, "native_model"), \
                         mock.patch.object(smoke, "generated_assembly"), mock.patch.object(smoke, "sample_exports"), \
-                        mock.patch.object(smoke, "reverse_cut"), mock.patch.object(smoke, "feature_depth"), \
+                        mock.patch.object(smoke, "reverse_cut"), mock.patch.object(smoke, "through_all_cut"), mock.patch.object(smoke, "feature_depth"), \
                         mock.patch.object(smoke, "drawing_save_reopen"), mock.patch.object(smoke, "rejected_cut_then_sketch"):
                     smoke.run(sample_part="C:\\part.SLDPRT", sample_assembly="C:\\asm.SLDASM",
                               sample_drawing="C:\\drawing.SLDDRW")
-                self.assertEqual(smoke.record["cases"], [expected])
+                self.assertEqual(smoke.record["cases"], ["reverse-cut", "through-all-cut"] if selection == "reverse-cut" else [expected])
                 self.assertEqual(smoke.record["case_set"], selection)
         smoke = gate.ModelingSmoke(directory=self.directory, host_directory="C:\\Evidence", endpoint="127.0.0.1:1", suite="core", case_set="depth")
         with mock.patch.object(smoke, "health", return_value={"host": {"process_id": 42}}), \
