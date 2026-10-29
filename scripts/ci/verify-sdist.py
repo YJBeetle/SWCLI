@@ -21,6 +21,7 @@ REQUIRED = {
     "scripts/ci/verify-reverse-cut.py",
     "scripts/ci/verify-feature-depth.py",
     "scripts/ci/verify-fillet-calibration.py",
+    "scripts/ci/verify-through-all-calibration.py",
     "scripts/ci/verify-drawing-save.py",
     "scripts/ci/verify-drawing-save-as.py",
     "scripts/ci/verify-host-continuation.py",

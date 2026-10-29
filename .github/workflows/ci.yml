@@ -42,6 +42,11 @@ on:
         required: false
         default: false
         type: boolean
+      calibrate_through_all:
+        description: Run internal through-all calibration before the full CAD gate
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -145,7 +150,7 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: Install, patch, start, and export
+    name: ${{ inputs.calibrate_through_all && 'Calibrate through-all, then full CAD gate' || 'Install, patch, start, and export' }}
     needs: [test, package]
     if: >-
       success() &&
@@ -296,6 +301,17 @@ jobs:
             --output-dir "$env:SWCLI_SMOKE_ROOT\fillet-calibration" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "internal fillet calibration failed; see calibration evidence" }
+
+      - name: Calibrate native through-all cuts (not full CAD acceptance)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate_through_all }}
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-through-all-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\through-all-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "internal through-all calibration failed; see report/trace evidence" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell

@@ -1,0 +1,68 @@
+# Through-all cut — a12 first slice
+
+Status: internal native calibration prepared; public API is not implemented.
+The released a11 wheel remains unchanged. This increment is authorized as the
+next native modeling slice, not a generic COM or feature-editing framework.
+
+## Intended public scope
+
+Extend the existing cut operation with an explicit one-direction through-all
+termination on a single-solid part, using the existing exact unabsorbed
+rectangle/full-circle sketch. Blind depth remains the compatible default;
+through-all must reject a supplied travel depth. CLI spelling and public result
+fields are finalized only after native proof. The native unused depth argument
+is not the material thickness or a reported through-all travel distance.
+
+Keep document/session/lease/CAS guards, direction normalization, foreground
+restoration and native feature identity. Existing blind-only depth editing
+must continue to reject through-all features. No selected body/face scope,
+two-sided through-all, thin/draft cut, reference start or arbitrary profile is
+added. Do not retry native failures, roll back partial geometry or implicitly
+save a user's document.
+
+## Native calibration before implementation
+
+`verify-through-all-calibration.py` owns one new hidden SOLIDWORKS host on the
+existing CI calibration execution path. It refuses attachment and runs six
+generated fixtures (front/top/right, each normal and reverse) without replacing
+the host. Each 40×30×10 mm boss receives a centered radius-3 mm through-hole.
+The cut's unused forward-depth argument is deliberately only 1 mm, so passing
+analytic volume/area checks cannot be explained by a sufficiently deep blind
+cut. End condition/direction/single-sided/non-thin/non-draft/start/scope readback,
+complete diagnostics and one-solid metrics are required.
+
+The exact generated boss is then changed to 25 mm through an internal native
+definition edit. The cut must remain through-all and match independently
+calculated volume and surface area. Native save, close, an empty host document
+catalog, read-only reopen and fresh unique-cut discovery must retain the
+definition and geometry; read-only observations must preserve file hashes and
+the saved state. This test-only boss edit does not expand public depth-edit
+eligibility. Failure stops the plan and preserves the first error, traces and
+owned-host cleanup evidence.
+
+The opt-in workflow input `calibrate_through_all=true` runs this diagnostic
+before the mandatory full modeling suite. It retains a 10-minute calibration-step
+budget, read-only repository permissions and the existing isolated CI runtime.
+The diagnostic result explicitly sets `full_acceptance_eligible=false`; it is
+native feasibility only, not installed public-operation acceptance. If calibration
+succeeds, the unchanged installed a11 public full gate runs and keeps its own
+independent receipt. Failure stops further CAD work. Normal push/manual workflows
+and the default 19-set plan are unchanged.
+
+## Subsequent gates
+
+After native feasibility: strict request/result/CLI contracts, adapter and
+daemon guards, invalid/conflicting inputs, cross-document/stale/leased targets,
+partial failures and restoration; then shared public-CLI through-all cases and
+full installed Windows/DockerSW gates. Keep the six Docker delivery outputs and
+the original assertion/timeout policy. Mac receives integration/smoke coverage
+under the accepted a11 policy; do not repeat the known complex-drawing control.
+Freeze host pins and original CI distribution hashes before release preparation.
+
+## Official references
+
+- [FeatureCut4](https://help.solidworks.com/2024/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.ifeaturemanager~featurecut4.html)
+- [swEndConditions_e](https://help.solidworks.com/2024/english/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swEndConditions_e.html)
+
+Read the official installed `swconst.tlb` in calibration; documentation or enum
+constants alone do not prove the host's late-bound COM behavior.
