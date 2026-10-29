@@ -81,19 +81,26 @@ def verify_geometry(metrics, thickness_mm, *, cut):
                 thickness_mm=thickness_mm, metrics=metrics)
 
 
-def observe(document, feature, constants, reverse, call):
+def observe(document, feature, constants, reverse, call, evidence=None):
+    # Bind the report snapshot before reading/validating so failed readback is
+    # inspectable too. A failure must not erase the very fields it rejected.
+    result = {} if evidence is None else evidence
     checked(_types(feature)[1] == "Cut", "returned native feature is not a cut")
     data = call("Cut.GetDefinition", lambda: _com_value(feature, "GetDefinition"))
     checked(data is not None, "cut definition is unavailable")
-    result = dict(
-        end_condition=call("Cut.GetEndCondition", lambda: data.GetEndCondition(True)),
-        native_reverse_direction=_com_value(data, "ReverseDirection"),
-        both_directions=_com_value(data, "BothDirections"),
-        thin=_com_value(data, "IsThinFeature"),
-        feature_scope=_com_value(data, "FeatureScope"),
-        from_type=_com_value(data, "FromType"),
-        forward_draft=call("Cut.GetDraftWhileExtruding", lambda: data.GetDraftWhileExtruding(True)),
-    )
+    for name, function in (
+        ("end_condition", lambda: data.GetEndCondition(True)),
+        ("native_reverse_direction", lambda: _com_value(data, "ReverseDirection")),
+        ("both_directions", lambda: _com_value(data, "BothDirections")),
+        ("thin", lambda: _com_value(data, "IsThinFeature")),
+        ("feature_scope", lambda: _com_value(data, "FeatureScope")),
+        ("from_type", lambda: _com_value(data, "FromType")),
+        ("forward_draft", lambda: data.GetDraftWhileExtruding(True)),
+    ):
+        result[name] = call("Cut.read." + name, function)
+    result["expected_settings"] = dict(end_condition=constants["swEndCondThroughAll"],
+        native_reverse_direction=not reverse, both_directions=False, thin=False,
+        feature_scope=False, from_type=0, forward_draft=False)
     checked(type(result["end_condition"]) is int and
             result["end_condition"] == constants["swEndCondThroughAll"],
             "native cut did not retain the through-all end condition")
@@ -175,7 +182,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                                name=str(_com_value(cut, "Name")), kind=_types(cut)[1])
     checked(not report["cleanup_errors"], "cut creation cleanup failed")
     checked(call("rebuild-cut", lambda: _com_value(document, "EditRebuild3")), "cut rebuild failed")
-    case["initial_definition"] = observe(document, cut, constants, reverse, call)
+    observe(document, cut, constants, reverse, call, case.setdefault("initial_definition", {}))
     measured = call("measure-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "through-hole measurement failed")
     case["initial_geometry"] = verify_geometry(measured["metrics"], 10, cut=True)
@@ -193,7 +200,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(call("rebuild-grown-part", lambda: _com_value(document, "EditRebuild3")), "grown part rebuild failed")
     checked(math.isclose(_com_value(boss, "GetDefinition").GetDepth(True), 0.025,
                          abs_tol=1e-12, rel_tol=0), "committed boss thickness differs")
-    case["grown_definition"] = observe(document, cut, constants, reverse, call)
+    observe(document, cut, constants, reverse, call, case.setdefault("grown_definition", {}))
     measured = call("measure-grown-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "grown part measurement failed")
     case["grown_geometry"] = verify_geometry(measured["metrics"], 25, cut=True)
@@ -218,7 +225,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             "native read-only reopen failed")
     candidates = [f for f in _features(document) if _types(f)[1] == "Cut"]
     checked(len(candidates) == 1, "reopened fixture does not contain exactly one cut")
-    case["reopened_definition"] = observe(document, candidates[0], constants, reverse, call)
+    observe(document, candidates[0], constants, reverse, call,
+            case.setdefault("reopened_definition", {}))
     measured = call("measure-reopened-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "reopened part measurement failed")
     case["reopened_geometry"] = verify_geometry(measured["metrics"], 25, cut=True)

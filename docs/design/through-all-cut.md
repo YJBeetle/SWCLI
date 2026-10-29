@@ -66,3 +66,16 @@ Freeze host pins and original CI distribution hashes before release preparation.
 
 Read the official installed `swconst.tlb` in calibration; documentation or enum
 constants alone do not prove the host's late-bound COM behavior.
+
+## First native checkpoint — 2026-10-30
+
+[40852812777](https://github.com/YJBeetle/SWCLI/actions/runs/40852812777) at
+`d8dcfe7` passed both Windows unit versions and packaging, then failed the first
+front/forward calibration after creating `Cut-Extrude1` (native ID 55).
+Through-all end-condition readback passed, but the combined direction/start/
+solid/scope assertion failed. No later case, thickness edit or reopen ran;
+cleanup errors were empty. The initial report dropped the rejected definition
+values, so it does not yet identify which setting differed. The next probe
+retains partial and complete readback before validation, without changing the
+native arguments, geometry assertions or expected settings. Public support is
+still unimplemented pending that evidence.

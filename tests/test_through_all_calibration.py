@@ -51,8 +51,13 @@ class ThroughAllCalibrationTests(unittest.TestCase):
                                ("FeatureScope",True),("FromType",2),
                                ("GetDraftWhileExtruding",lambda forward:True)):
                 before=getattr(data,name);setattr(data,name,value)
+                evidence={}
                 with self.subTest(member=name),self.assertRaises(RuntimeError):
-                    gate.observe(document,feature,{"swEndCondThroughAll":17},False,invoke)
+                    gate.observe(document,feature,{"swEndCondThroughAll":17},False,invoke,evidence)
+                self.assertEqual(evidence["end_condition"],0 if name=="GetEndCondition" else 17)
+                self.assertEqual(evidence["expected_settings"]["end_condition"],17)
+                self.assertEqual(evidence["expected_settings"]["feature_scope"],False)
+                self.assertNotIn("diagnostics",evidence)
                 setattr(data,name,before)
         with mock.patch.object(gate,"_diagnose_features",return_value={"healthy":True,"truncated":True}):
             with self.assertRaisesRegex(RuntimeError,"incomplete"):
