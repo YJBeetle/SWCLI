@@ -1011,6 +1011,11 @@ class FakeCLI:
 
 class ModelingSmokeTests(unittest.TestCase):
     def setUp(self):
+        # The new polygon case has separate cycle/geometry/control-flow tests.
+        # This fixture continues exercising every existing native-model case.
+        polygons = mock.patch.object(gate.ModelingSmoke, "polygon_model")
+        polygons.start()
+        self.addCleanup(polygons.stop)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name) / "evidence with spaces"
@@ -1093,7 +1098,7 @@ class ModelingSmokeTests(unittest.TestCase):
                         mock.patch.object(smoke, "drawing_save_reopen"), mock.patch.object(smoke, "rejected_cut_then_sketch"):
                     smoke.run(sample_part="C:\\part.SLDPRT", sample_assembly="C:\\asm.SLDASM",
                               sample_drawing="C:\\drawing.SLDDRW")
-                self.assertEqual(smoke.record["cases"], ["reverse-cut", "through-all-cut"] if selection == "reverse-cut" else [expected])
+                self.assertEqual(smoke.record["cases"], ["reverse-cut", "through-all-cut"] if selection == "reverse-cut" else ["native-model", "polygon-model"] if selection == "native" else [expected])
                 self.assertEqual(smoke.record["case_set"], selection)
         smoke = gate.ModelingSmoke(directory=self.directory, host_directory="C:\\Evidence", endpoint="127.0.0.1:1", suite="core", case_set="depth")
         with mock.patch.object(smoke, "health", return_value={"host": {"process_id": 42}}), \
@@ -1603,6 +1608,7 @@ class ModelingSmokeTests(unittest.TestCase):
             record["cases"],
             [
                 "native-model",
+                "polygon-model",
                 "generated-assembly",
                 "reverse-cut",
                 "feature-depth",

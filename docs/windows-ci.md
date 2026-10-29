@@ -265,3 +265,13 @@ establish the proposed operation's native feasibility before adding a protocol
 contract. An enabled calibration failure still fails that manual run. The
 [macOS/Wine receipt](verification/fillet-calibration-macos-2026-10-23.md) is local
 proof only; Windows CI must produce its own result.
+
+## a13 polygon acceptance
+
+`calibrate_polygon=true` is an optional internal 48-case native proof, explicitly
+not public polygon acceptance. After that proof, the regular manual full run
+with `calibrate_polygon=false` must pass the installed public `polygon-model`
+case within the original native-model group. Its `polygon_cases` array must
+contain all 48 successful combinations with empty cleanup, same-host evidence,
+independent geometry and saved file hashes. The rest of full19, exports and
+visible smoke remain required. No MacSW execution is authorized by this work.

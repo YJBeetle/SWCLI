@@ -24,6 +24,8 @@ REQUIRED = {
     "scripts/ci/verify-through-all-calibration.py",
     "scripts/ci/verify-through-all.py",
     "scripts/ci/gate_support/model_through_all.py",
+    "scripts/ci/gate_support/model_polygons.py",
+    "scripts/ci/verify-polygon-calibration.py",
     "scripts/ci/verify-drawing-save.py",
     "scripts/ci/verify-drawing-save-as.py",
     "scripts/ci/verify-host-continuation.py",

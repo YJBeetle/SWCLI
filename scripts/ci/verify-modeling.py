@@ -60,10 +60,11 @@ from gate_support.model_checks import (
 )
 from gate_support.model_native import NativeModelCases
 from gate_support.model_through_all import ThroughAllCases
+from gate_support.model_polygons import PolygonCases
 from gate_support.model_depth import FeatureDepthCases
 from gate_support.model_files import NativeFileCases
 
-class ModelingSmoke(ThroughAllCases, NativeModelCases, FeatureDepthCases, NativeFileCases):
+class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDepthCases, NativeFileCases):
     def __init__(
         self,
         *,
@@ -484,6 +485,8 @@ class ModelingSmoke(ThroughAllCases, NativeModelCases, FeatureDepthCases, Native
         ]
         if self.suite == "core":
             cases = cases[:2]
+        else:
+            cases.insert(1, ("polygon-model", self.polygon_model))
         # Extend the existing reverse-cut full set; both cut contracts share
         # one host/receipt, with no extra restart or diagnostic-only shortcut.
         if self.case_set in ("reverse-cut", "through-all") and self.suite == "full":
@@ -516,7 +519,7 @@ class ModelingSmoke(ThroughAllCases, NativeModelCases, FeatureDepthCases, Native
         cases.append(("rejected-cut-then-sketch", self.rejected_cut_then_sketch))
         selection = getattr(self, "case_set", "all")
         if selection != "all":
-            names = {"native": {"native-model"},
+            names = {"native": {"native-model", "polygon-model"},
                      "assembly": {"generated-assembly", "official-assembly-save-reopen"},
                      "exports": {"sample-exports"}, "reverse-cut": {"reverse-cut", "through-all-cut"},
                      "through-all": {"through-all-cut"},

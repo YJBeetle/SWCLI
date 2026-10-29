@@ -35,6 +35,18 @@ first-failure propagation. No hidden-mode lifecycle-only substitute is used.
   fixture switches remain explicit in both tiers; no missing fixture is inferred
   as passing. Toolbox remains required by platform wrappers in both tiers.
 
+The a13 full `native-model` group includes a second `polygon-model` case, with
+48 installed public combinations: triangle/L × clockwise/counterclockwise ×
+blind boss/cut × front/top/right × normal/reverse. Its `polygon_cases` receipt
+records each creation, independent analytic volume/surface/centroid proof,
+lease/CAS and cross-document refusals, unchanged-state rejection of unsupported
+through-all/depth edits, fresh sketch/feature discovery after read-only reopen,
+healthy clean diagnostics and unchanged saved hashes. A partial matrix is a
+failure. All 48 cases share the group's existing host; no restart or native
+failure retry occurs. The full19/core11 group counts stay unchanged; core does
+not claim polygon coverage. The internal `calibrate_polygon` option is a
+separate diagnostic proof and cannot replace these public cases.
+
 Windows always runs a lightweight visible startup/open/inspect/close/stop smoke
 followed by hidden business tests, using separate instances and evidence.
 Main pushes and manual CI runs select hidden `full`, with no coverage-tier input,
