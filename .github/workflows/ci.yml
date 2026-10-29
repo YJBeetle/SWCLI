@@ -47,6 +47,11 @@ on:
         required: false
         default: false
         type: boolean
+      calibrate_polygon:
+        description: Run internal simple-polygon calibration before the existing full CAD gate
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -150,7 +155,7 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.calibrate_through_all && 'Calibrate through-all, then full CAD gate' || 'Install, patch, start, and export' }}
+    name: ${{ inputs.calibrate_polygon && 'Calibrate polygon, then existing full CAD gate' || inputs.calibrate_through_all && 'Calibrate through-all, then full CAD gate' || 'Install, patch, start, and export' }}
     needs: [test, package]
     if: >-
       success() &&
@@ -312,6 +317,17 @@ jobs:
             --output-dir "$env:SWCLI_SMOKE_ROOT\through-all-calibration" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "internal through-all calibration failed; see report/trace evidence" }
+
+      - name: Calibrate native polygon profiles (not public polygon acceptance)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate_polygon }}
+        timeout-minutes: 20
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-polygon-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\polygon-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "internal polygon calibration failed; see report/trace evidence" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell

@@ -277,9 +277,11 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case["success"] = True
 
 
-def run(output, swconst, visible):
-    report = dict(success=False, diagnostic_case="through-all-calibration",
+def run(output, swconst, visible, *, case_runner=None, case_plan=None,
+        diagnostic_case="through-all-calibration"):
+    report = dict(success=False, diagnostic_case=diagnostic_case,
                   full_acceptance_eligible=False, cases=[], cleanup_errors=[])
+    case_runner = calibrate_case if case_runner is None else case_runner
     app = process_handle = pythoncom = None
     live = {"document": None}
     initialized = owned = False
@@ -311,13 +313,15 @@ def run(output, swconst, visible):
                                   revision=_com_value(app, "RevisionNumber"), visible=visible)
             process_handle = call("capture-owned-process", lambda: capture_process(report["host"]["process_id"]))
             checked(_com_value(app, "GetDocumentCount") == 0, "owned calibration host is not empty")
-            for profile_kind in ("circle", "rectangle"):
-                for plane in ("front", "top", "right"):
-                    for reverse in (False, True):
-                        case = {}
-                        report["cases"].append(case)
-                        calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
-                                       profile_kind=profile_kind)
+            plan = ([(kind, plane, reverse)
+                     for kind in ("circle", "rectangle")
+                     for plane in ("front", "top", "right") for reverse in (False, True)]
+                    if case_plan is None else case_plan)
+            for profile_kind, plane, reverse in plan:
+                case = {}
+                report["cases"].append(case)
+                case_runner(app, output, constants, plane, reverse, call, case, report, live,
+                            profile_kind=profile_kind)
             checked(_com_value(app, "GetProcessID") == report["host"]["process_id"], "host changed during calibration")
             report["success"] = True
         except BaseException as error:
