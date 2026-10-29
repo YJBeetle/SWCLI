@@ -1,6 +1,7 @@
 # Through-all cut — a12 first slice
 
-Status: internal native calibration prepared; public API is not implemented.
+Status: twelve circle/rectangle native Windows development cases passed; public API is
+not implemented. See the [VM proof and preserved failure chain](../verification/a12-native-windows-2026-10-30.md).
 The released a11 wheel remains unchanged. This increment is authorized as the
 next native modeling slice, not a generic COM or feature-editing framework.
 
@@ -23,9 +24,10 @@ save a user's document.
 ## Native calibration before implementation
 
 `verify-through-all-calibration.py` owns one new hidden SOLIDWORKS host on the
-existing CI calibration execution path. It refuses attachment and runs six
-generated fixtures (front/top/right, each normal and reverse) without replacing
-the host. Each 40×30×10 mm boss receives a centered radius-3 mm through-hole.
+existing CI calibration execution path. It refuses attachment and runs twelve
+generated fixtures (front/top/right, each normal and reverse, for circle and
+rectangle profiles) without replacing the host. Each 40×30×10 mm boss receives
+a centered radius-3 mm through-hole or a 6×4 mm rectangular through-slot.
 The cut's unused forward-depth argument is deliberately only 1 mm, so passing
 analytic volume/area checks cannot be explained by a sufficiently deep blind
 cut. End condition/direction/single-sided/non-thin/non-draft/start/scope readback,
@@ -105,3 +107,29 @@ another session's write lease. Those reads preserve foreground/current, handles,
 stamp and configuration without selection access; raw stored depth does not
 invent travel, material thickness or permission to edit. This is portable
 contract evidence, not an actual native through-all acceptance receipt.
+
+## Windows VM scope control — 2026-10-30
+
+The owner authorized the Windows VM and excluded MacSW for this stage. The VM
+already had a saved foreground part; `DispatchEx` returned that same PID, so
+the isolated-host attempt refused it without configuring/exiting the host or
+executing CAD. A separate temporary-part control preserved the original native
+document identity, path, save flag, stamp, visibility and foreground.
+
+That control located the failed setting: `FeatureScope=true`, while through-all
+end condition, direction, one-sided/solid/non-draft/start settings and analytic
+hole volume/area all matched. Changing only `UseAutoSelect` from true to false
+(retaining `UseFeatScope=false`) made `FeatureScope=false`, with the full original
+definition and geometry assertions passing. The calibration creation arguments
+now explicitly disable both flags; it does not accept a broader scope as success.
+
+The subsequent fixture-growth control found that native `ModifyDefinition` can
+leave an owned selection. Growth now records and clears that selection after its
+own edit, then still requires an empty selection. An existing selection is
+refused before staging. No setter retry or partial rollback is introduced.
+
+For local controls only, `calibrate_case` can retain an exact baseline catalog:
+both count and one-to-one native document identity must match after each close.
+The normal owned-host CI path retains the empty baseline and initial zero-count
+requirement. This avoids claiming that a local host with a user document is
+empty, and does not introduce a public attach/raw-COM operation.

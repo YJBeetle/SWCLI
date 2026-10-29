@@ -36,6 +36,17 @@ class ThroughAllCalibrationTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(RuntimeError):
                 gate.verify_geometry(metrics,10,cut=True)
 
+    def test_rectangular_slot_uses_independent_volume_and_four_wall_area(self):
+        for thickness in (10,25):
+            metrics={'solid_body_count':1,'volume_mm3':1176*thickness,
+                     'surface_area_mm2':2352+160*thickness}
+            gate.verify_geometry(metrics,thickness,cut=True,profile_kind='rectangle')
+            with self.assertRaises(RuntimeError):
+                gate.verify_geometry(metrics,thickness,cut=True,profile_kind='circle')
+            metrics['surface_area_mm2']-=24
+            with self.assertRaises(RuntimeError):
+                gate.verify_geometry(metrics,thickness,cut=True,profile_kind='rectangle')
+
     def test_native_cut_must_match_end_direction_scope_and_health(self):
         data = SimpleNamespace(GetEndCondition=lambda forward: 17, ReverseDirection=True,
             BothDirections=False, IsThinFeature=False, FeatureScope=False, FromType=0,
@@ -69,6 +80,62 @@ class ThroughAllCalibrationTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,"selection is not owned"):
             gate.create_cut(document,profile,{},False,lambda n,f:f(),{"cleanup_errors":[]})
         profile.Select2.assert_not_called()
+
+    def test_all_body_creation_disables_auto_selection_instead_of_accepting_wrong_scope(self):
+        feature=object()
+        create=mock.Mock(return_value=feature)
+        document=SimpleNamespace(SelectionManager=SimpleNamespace(GetSelectedObjectCount2=lambda mark:0),
+            FeatureManager=SimpleNamespace(FeatureCut4=create), ClearSelection2=mock.Mock())
+        for reverse in (False,True):
+            self.assertIs(gate.create_cut(document,SimpleNamespace(Select2=lambda a,m:True),
+                {"swEndCondThroughAll":1,"swEndCondBlind":0},reverse,lambda n,f:f(),{"cleanup_errors":[]}),feature)
+            args=create.call_args.args
+            self.assertEqual(len(args),27)
+            self.assertIs(args[2],not reverse)
+            self.assertEqual(args[3],1)
+            self.assertIs(args[18],False)  # UseFeatScope
+            self.assertIs(args[19],False)  # UseAutoSelect must not normalize to scoped selection.
+
+    def test_exact_retained_catalog_cannot_hide_a_new_missing_or_replaced_document(self):
+        a,b=object(),object()
+        actual=[]
+        app=SimpleNamespace(GetDocumentCount=lambda:len(actual),GetDocuments=lambda:actual,
+                            IsSame=lambda x,y:int(x is y))
+        invoke=lambda n,f:f()
+        gate.require_catalog(app,(),invoke,'empty')
+        actual[:]=[a]
+        gate.require_catalog(app,(a,),invoke,'retained')
+        for expected in ((),(b,),(a,b)):
+            with self.subTest(expected=len(expected)),self.assertRaises(RuntimeError):
+                gate.require_catalog(app,expected,invoke,'bad')
+        actual[:]=[a,a]
+        with self.assertRaises(RuntimeError):
+            gate.require_catalog(app,(a,a),invoke,'duplicate')
+        actual[:]=[a,b]
+        with self.assertRaises(RuntimeError):
+            gate.require_catalog(app,(a,a),invoke,'duplicate-retained')
+
+    def test_fixture_growth_cleans_native_edit_selection_without_clearing_preexisting_selection(self):
+        selected=[0]
+        data=SimpleNamespace(SetDepth=mock.Mock(),GetDepth=lambda forward:0.025,
+                             SetChangeToConfigurations=lambda scope,names:True)
+        def commit(*args):
+            selected[0]=1
+            return True
+        boss=SimpleNamespace(GetDefinition=lambda:data,ModifyDefinition=mock.Mock(side_effect=commit))
+        document=SimpleNamespace(SelectionManager=SimpleNamespace(GetSelectedObjectCount2=lambda mark:selected[0]),
+            EditRebuild3=lambda:True,ClearSelection2=lambda all_:selected.__setitem__(0,0))
+        evidence={}
+        with mock.patch.object(gate,'_empty_variant'),mock.patch.object(gate,'_null_dispatch'):
+            gate.grow_fixture_boss(document,boss,{'swThisConfiguration':1},lambda n,f:f(),evidence)
+            self.assertEqual(evidence['selection_count_before_owned_cleanup'],1)
+            self.assertEqual(selected[0],0)
+            boss.ModifyDefinition.assert_called_once()
+            selected[0]=2
+            with self.assertRaisesRegex(RuntimeError,'existing selection'):
+                gate.grow_fixture_boss(document,boss,{'swThisConfiguration':1},lambda n,f:f(),{})
+            self.assertEqual(selected[0],2)
+            boss.ModifyDefinition.assert_called_once()
 
     def test_failed_creation_is_never_retried_and_keeps_cleanup_evidence(self):
         cut=mock.Mock(side_effect=RuntimeError("first CAD failure"))

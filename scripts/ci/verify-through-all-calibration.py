@@ -1,6 +1,6 @@
 """Opt-in native through-all cut calibration; not a public modeling API.
 
-Own one new host and six generated fixtures. No attachment, CAD retries,
+Own one new host and twelve generated fixtures. No attachment, CAD retries,
 preference changes or host replacement between cases. A failure stops the plan.
 """
 
@@ -16,7 +16,7 @@ from swcli.daemon.server import acquire_resident_app
 from swcli.hosts.windows import _com_value, wait_windows_host_ready
 from swcli.hosts.windows_documents import _diagnose_features, open_windows_document_with_handle
 from swcli.hosts.windows_feature_depth_edits import _empty_variant
-from swcli.hosts.windows_feature_inspection import _types
+from swcli.hosts.windows_feature_inspection import _same, _types
 from swcli.hosts.windows_feature_selections import _null_dispatch
 from swcli.hosts.windows_features import extrude_sketch_windows_with_handle
 from swcli.hosts.windows_measurements import measure_part_windows
@@ -65,13 +65,16 @@ def read_constants(pythoncom, path):
     return found
 
 
-def verify_geometry(metrics, thickness_mm, *, cut):
+def verify_geometry(metrics, thickness_mm, *, cut, profile_kind="circle"):
     """Independent analytic box/cylindrical-through-hole volume and area."""
     checked(math.isfinite(thickness_mm) and thickness_mm > 0, "invalid fixture thickness")
-    volume = (40 * 30 - (math.pi * 3**2 if cut else 0)) * thickness_mm
-    area = 2 * (40 * 30 - (math.pi * 3**2 if cut else 0)) + 2 * (40 + 30) * thickness_mm
+    checked(profile_kind in ("circle", "rectangle"), "unknown calibration profile")
+    profile_area, perimeter = ((math.pi * 3**2, 2 * math.pi * 3)
+                               if profile_kind == "circle" else (6 * 4, 2 * (6 + 4)))
+    volume = (40 * 30 - (profile_area if cut else 0)) * thickness_mm
+    area = 2 * (40 * 30 - (profile_area if cut else 0)) + 2 * (40 + 30) * thickness_mm
     if cut:
-        area += 2 * math.pi * 3 * thickness_mm
+        area += perimeter * thickness_mm
     checked(metrics["solid_body_count"] == 1, "fixture must leave exactly one solid")
     for key, expected in (("volume_mm3", volume), ("surface_area_mm2", area)):
         actual = metrics[key]
@@ -136,7 +139,9 @@ def create_cut(document, profile, constants, reverse, call, report):
                 0.001, 0.0,  # Deliberately shorter than either fixture thickness.
                 False, False, False, False, 0.0, 0.0,
                 False, False, False, False, False,
-                False, True, False, False, False, 0, 0.0, False, False))
+                # UseFeatScope=False and UseAutoSelect=False. Native SW2025
+                # can otherwise normalize automatic selection to scoped bodies.
+                False, False, False, False, False, 0, 0.0, False, False))
         checked(feature is not None, "FeatureCut4 returned null; no retry")
         attempted = False
         return feature
@@ -153,9 +158,47 @@ def create_cut(document, profile, constants, reverse, call, report):
                 report["cleanup_errors"].append(dict(stage="ClearSelection2", error=str(error)))
 
 
-def calibrate_case(app, output, constants, plane, reverse, call, case, report, live):
+def require_catalog(app, expected_documents, call, label):
+    """Require the exact retained catalog; never hide unrelated open documents."""
+    count = call(label + ".count", lambda: _com_value(app, "GetDocumentCount"))
+    checked(type(count) is int and count == len(expected_documents),
+            "closing generated fixture changed the retained document count")
+    actual = tuple(call(label + ".documents", lambda: _com_value(app, "GetDocuments")) or ())
+    checked(len(actual) == len(expected_documents), "native document catalog is incomplete")
+    checked(all(sum(_same(app, found, expected) for found in actual) == 1
+                for expected in expected_documents)
+            and all(sum(_same(app, found, expected) for expected in expected_documents) == 1
+                    for found in actual),
+            "closing generated fixture changed a retained document identity")
+
+
+def grow_fixture_boss(document, boss, constants, call, evidence):
+    """Test-only edit of our generated boss; cleanup is part of the proof."""
+    checked(_com_value(document, "SelectionManager").GetSelectedObjectCount2(-1) == 0,
+            "fixture growth must not clear an existing selection")
+    data = call("Boss.GetDefinition", lambda: _com_value(boss, "GetDefinition"))
+    call("Boss.SetDepth.25mm", lambda: data.SetDepth(True, 0.025))
+    checked(math.isclose(data.GetDepth(True), 0.025, abs_tol=1e-12, rel_tol=0), "boss staging failed")
+    checked(call("Boss.SetChangeToConfigurations", lambda:
+                 data.SetChangeToConfigurations(constants["swThisConfiguration"], _empty_variant())),
+            "current-configuration scope was refused")
+    checked(call("Boss.ModifyDefinition", lambda: boss.ModifyDefinition(data, document, _null_dispatch())),
+            "boss thickness commit failed")
+    checked(call("rebuild-grown-part", lambda: _com_value(document, "EditRebuild3")), "grown part rebuild failed")
+    checked(math.isclose(_com_value(boss, "GetDefinition").GetDepth(True), 0.025,
+                         abs_tol=1e-12, rel_tol=0), "committed boss thickness differs")
+    evidence["selection_count_before_owned_cleanup"] = call("Boss.selection-after-edit",
+        lambda: _com_value(document, "SelectionManager").GetSelectedObjectCount2(-1))
+    call("Boss.ClearSelection2.after-owned-edit", lambda: document.ClearSelection2(True))
+    checked(_com_value(document, "SelectionManager").GetSelectedObjectCount2(-1) == 0,
+            "owned fixture growth selection cleanup failed")
+
+
+def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
+                   retained_documents=(), profile_kind="circle"):
+    checked(profile_kind in ("circle", "rectangle"), "unknown calibration profile")
     case.update(plane=plane, reverse=reverse, success=False, ignored_depth_argument_mm=1,
-                ignored_depth_is_not_a_travel_measurement=True)
+                ignored_depth_is_not_a_travel_measurement=True, profile_kind=profile_kind)
     result, document = call("create-part", lambda: create_part_windows_with_handle(app=app))
     live["document"] = document
     case["creation"] = result
@@ -172,10 +215,14 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     measure = call("measure-box", lambda: measure_part_windows(document=document))
     checked(measure["ok"], "box measurement failed")
     case["box"] = verify_geometry(measure["metrics"], 10, cut=False)
-    circle, profile = call("circle", lambda: create_circle_sketch_windows_with_handle(
-        app=app, document=document, plane=plane, radius_mm=3))
-    checked(circle["ok"] and profile is not None and not circle.get("warnings"),
-            "circle creation/restoration failed")
+    if profile_kind == "circle":
+        profile_result, profile = call("circle", lambda: create_circle_sketch_windows_with_handle(
+            app=app, document=document, plane=plane, radius_mm=3))
+    else:
+        profile_result, profile = call("slot-rectangle", lambda: create_rectangle_sketch_windows_with_handle(
+            app=app, document=document, plane=plane, width_mm=6, height_mm=4))
+    checked(profile_result["ok"] and profile is not None and not profile_result.get("warnings"),
+            "cut profile creation/restoration failed")
     cut = create_cut(document, profile, constants, reverse, call, report)
     case["cut_created"] = True
     case["cut_feature"] = dict(native_id=_com_value(cut, "GetID"),
@@ -185,26 +232,17 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     observe(document, cut, constants, reverse, call, case.setdefault("initial_definition", {}))
     measured = call("measure-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "through-hole measurement failed")
-    case["initial_geometry"] = verify_geometry(measured["metrics"], 10, cut=True)
+    case["initial_geometry"] = verify_geometry(measured["metrics"], 10, cut=True, profile_kind=profile_kind)
 
     # Test-only direct definition edit on our exact generated boss; not a new
     # public depth setter or permission to edit arbitrary upstream features.
-    data = call("Boss.GetDefinition", lambda: _com_value(boss, "GetDefinition"))
-    call("Boss.SetDepth.25mm", lambda: data.SetDepth(True, 0.025))
-    checked(math.isclose(data.GetDepth(True), 0.025, abs_tol=1e-12, rel_tol=0), "boss staging failed")
-    checked(call("Boss.SetChangeToConfigurations", lambda:
-                 data.SetChangeToConfigurations(constants["swThisConfiguration"], _empty_variant())),
-            "current-configuration scope was refused")
-    checked(call("Boss.ModifyDefinition", lambda: boss.ModifyDefinition(data, document, _null_dispatch())),
-            "boss thickness commit failed")
-    checked(call("rebuild-grown-part", lambda: _com_value(document, "EditRebuild3")), "grown part rebuild failed")
-    checked(math.isclose(_com_value(boss, "GetDefinition").GetDepth(True), 0.025,
-                         abs_tol=1e-12, rel_tol=0), "committed boss thickness differs")
+    grow_fixture_boss(document, boss, constants, call, case.setdefault("fixture_growth", {}))
     observe(document, cut, constants, reverse, call, case.setdefault("grown_definition", {}))
     measured = call("measure-grown-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "grown part measurement failed")
-    case["grown_geometry"] = verify_geometry(measured["metrics"], 25, cut=True)
-    path = output / (plane + ("-reverse" if reverse else "-forward") + ".SLDPRT")
+    case["grown_geometry"] = verify_geometry(measured["metrics"], 25, cut=True, profile_kind=profile_kind)
+    path = output / (plane + ("-reverse" if reverse else "-forward")
+                     + ("-rectangle" if profile_kind == "rectangle" else "") + ".SLDPRT")
     saved = call("native-save-as", lambda: save_as_native_windows(str(path), document=document))
     case["save"] = saved
     checked(saved["ok"] and not saved.get("warnings"), "native save failed")
@@ -212,11 +250,10 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     title = _com_value(document, "GetTitle")
     # Release fixture references before closing, then independently rediscover
     # the only cut from the freshly opened generated file, never its old name.
-    data = cut = boss = profile = sketch = None
+    cut = boss = profile = sketch = None
     document = live["document"] = None
     call("close-before-reopen", lambda: app.CloseDoc(title))
-    checked(call("empty-after-close", lambda: _com_value(app, "GetDocumentCount")) == 0,
-            "closing generated fixture left an open document")
+    require_catalog(app, retained_documents, call, "catalog-after-close")
     reopened, document = call("native-readonly-reopen", lambda:
         open_windows_document_with_handle(str(path), read_only=True, app=app))
     live["document"] = document
@@ -229,15 +266,14 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             case.setdefault("reopened_definition", {}))
     measured = call("measure-reopened-through-hole", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "reopened part measurement failed")
-    case["reopened_geometry"] = verify_geometry(measured["metrics"], 25, cut=True)
+    case["reopened_geometry"] = verify_geometry(measured["metrics"], 25, cut=True, profile_kind=profile_kind)
     checked(not _com_value(document, "GetSaveFlag"), "read-only observations modified reopened fixture")
     case["file_sha256"] = digest
     checked(hashlib.sha256(path.read_bytes()).hexdigest() == digest, "read-only reopen changed fixture bytes")
     title = _com_value(document, "GetTitle")
     candidates = document = live["document"] = None
     call("close-reopened-fixture", lambda: app.CloseDoc(title))
-    checked(call("empty-after-case", lambda: _com_value(app, "GetDocumentCount")) == 0,
-            "case cleanup left an open document")
+    require_catalog(app, retained_documents, call, "catalog-after-case")
     case["success"] = True
 
 
@@ -275,11 +311,13 @@ def run(output, swconst, visible):
                                   revision=_com_value(app, "RevisionNumber"), visible=visible)
             process_handle = call("capture-owned-process", lambda: capture_process(report["host"]["process_id"]))
             checked(_com_value(app, "GetDocumentCount") == 0, "owned calibration host is not empty")
-            for plane in ("front", "top", "right"):
-                for reverse in (False, True):
-                    case = {}
-                    report["cases"].append(case)
-                    calibrate_case(app, output, constants, plane, reverse, call, case, report, live)
+            for profile_kind in ("circle", "rectangle"):
+                for plane in ("front", "top", "right"):
+                    for reverse in (False, True):
+                        case = {}
+                        report["cases"].append(case)
+                        calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
+                                       profile_kind=profile_kind)
             checked(_com_value(app, "GetProcessID") == report["host"]["process_id"], "host changed during calibration")
             report["success"] = True
         except BaseException as error:
