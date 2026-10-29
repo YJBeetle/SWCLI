@@ -79,3 +79,22 @@ values, so it does not yet identify which setting differed. The next probe
 retains partial and complete readback before validation, without changing the
 native arguments, geometry assertions or expected settings. Public support is
 still unimplemented pending that evidence.
+
+## Independent contract preparation
+
+`cut_termination.py` prepares pure termination validation without registering or
+advertising a public capability. Proposed request field `end_condition` accepts
+`blind` or `through-all`; omission retains legacy blind behavior and requires
+positive finite representable `depth_mm`. Through-all rejects the presence of
+`depth_mm`, including null/zero, rather than silently ignoring a conflicting
+instruction. Its internal normalized depth is absent, never a fabricated travel
+distance. Invalid or unrecognized termination values must not default to blind.
+
+After native proof, the CLI can expose a required exclusive choice of
+`--depth-mm VALUE` or `--through-all`. Existing blind requests and their guarded
+execution remain compatible. Through-all results must distinguish the native
+termination setting from actual material removed; the unused native creation
+depth must never be presented as a verified travel length. The helper is not
+yet connected to schemas, CLI routing or COM execution. Tests explicitly check
+that the public operation still requires depth and rejects unproved through-all
+requests until native proof permits integration.

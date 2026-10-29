@@ -227,6 +227,8 @@ class FeatureDepthContractTests(unittest.TestCase):
             (("verification", "passed"), False),
             (("definition_after", "depth_mm"), 24),
             (("definition_after", "both_directions"), True),
+            (("definition_after", "end_condition"), 1),
+            (("definition_after", "end_condition"), 9),
             (("definition_after", "merge"), False),
             (("final_state", "update_stamp"), 13),
             (("document", "modified"), False),

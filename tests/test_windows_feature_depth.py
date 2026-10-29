@@ -9,6 +9,7 @@ from swcli.hosts.windows_feature_depth import (
     _running_command,
     prepare_extrusion_depth_edit_windows_with_definition,
 )
+from swcli.hosts.windows_feature_depth_edits import set_extrusion_depth_windows
 
 
 class FeatureDepthPreflightTests(unittest.TestCase):
@@ -178,6 +179,24 @@ class FeatureDepthPreflightTests(unittest.TestCase):
         self.document.GetConfigurationNames.return_value = ("Default", "Other")
         self.document.GetConfigurationCount.return_value = 2
         self.refused("FeatureConfigurationScopeUnsupported")
+
+    def test_through_all_depth_write_refused_before_access_or_staging(self):
+        self.feature.GetTypeName2 = lambda: "Cut"
+        for end_condition in (1, 9):  # one-sided and two-sided native through-all
+            for stored_depth in (0.0, 0.001, 0.025):
+                self.definition.GetEndCondition.return_value = end_condition
+                self.definition.GetDepth.return_value = stored_depth
+                with self.subTest(end_condition=end_condition, stored_depth=stored_depth):
+                    result = set_extrusion_depth_windows(
+                        app=self.app, document=self.document,
+                        feature=self.feature, depth_mm=25,
+                    )
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(result["error"]["type"], "UnsupportedDepthDefinition")
+                    self.assertTrue(all(v is False for v in result["mutation"].values()))
+                    self.assertFalse(result["modification_may_have_happened"])
+                    self.assertNotIn("depth_changed", result)
+                    self.assertEqual((self.stamp, self.modified), (17, False))
 
     def test_single_direction_solid_blind_definition_is_required(self):
         for member, value in (
