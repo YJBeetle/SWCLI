@@ -297,6 +297,20 @@ class CliTests(unittest.TestCase):
             ),
         )
 
+    def test_through_all_cli_has_no_depth_and_keeps_write_context(self):
+        parser = build_parser()
+        args = parser.parse_args([
+            "feature", "cut-extrude", "s-ab12cd", "--through-all", "--reverse",
+            "--document", "d-ab12cd", "--if-update-stamp", "0",
+            "--lease", "l-ab12cd34ef56", "--json",
+        ])
+        self.assertEqual(_typed_operation(args), (
+            "feature.cut-extrude", {"sketch_id": "s-ab12cd", "end_condition": "through-all", "reverse": True},
+            True, "d-ab12cd", 0, "l-ab12cd34ef56"))
+        for options in ([], ["--through-all", "--depth-mm", "10"]):
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                parser.parse_args(["feature", "cut-extrude", "s-ab12cd", *options])
+
     def test_cut_extrude_maps_explicit_sketch_and_write_guards(self):
         args = build_parser().parse_args(
             [

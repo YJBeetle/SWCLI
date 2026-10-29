@@ -8,6 +8,7 @@ from math import isfinite
 from re import search
 from typing import Any, Dict, Optional
 
+from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -396,10 +397,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "feature.cut-extrude",
         {
             "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
-            "depth_mm": _number(exclusiveMinimum=0),
+            **cut_termination_fields(),
             "reverse": _boolean(),
         },
-        required=("sketch_id", "depth_mm"),
+        required=("sketch_id",),
+        parameter_conditions=cut_termination_conditions(),
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
@@ -485,6 +487,8 @@ def validate_operation_request(
     )
     if missing:
         raise ValueError(f"{operation} requires {', '.join(missing)}")
+    if operation == "feature.cut-extrude":
+        resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
     if operation == "document.create":

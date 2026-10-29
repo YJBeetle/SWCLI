@@ -815,7 +815,7 @@ inside an unused 2D profile with a one-direction blind cut. Like `feature extrud
 the CLI's default direction is **along the sketch normal**; `--reverse` means
 against it. The adapter accounts for SOLIDWORKS's opposite native cut default.
 The cut affects all intersected solid bodies; it does not infer a selected-body
-scope or support through-all/draft/thin/sheet-metal-normal options. It rebuilds,
+scope or support draft/thin/sheet-metal-normal options. It rebuilds,
 checks native depth/direction/end condition, and requires a measurable decrease
 in summed solid volume (above `max(1e-6 mm³, prior volume × 1e-12)`). A part with
 no measurable solids, or a cut leaving no measurable solids, cannot pass this
@@ -830,6 +830,22 @@ sw-cli document measure --json
 
 Run this against a part whose solid intersects that profile/depth, not an empty
 document. All selected-document, lease and update-stamp guards apply.
+
+The **a12 development build** adds `feature cut-extrude SKETCH_ID --through-all`
+using one exact unused full-circle or axis-aligned rectangle sketch in a part
+with exactly one solid and no other bodies. Choose either `--depth-mm` or
+`--through-all`; a through-all protocol request uses `end_condition: "through-all"`
+and rejects any supplied `depth_mm`. Default and `--reverse` directions retain
+the same convention. An existing selection is refused before creating the cut.
+Success requires native through-all/single-sided/solid/start-plane/all-body
+settings, complete healthy diagnostics, rebuild completion and measurable
+material removal with one remaining solid. The result sets `depth_mm`,
+`geometry_verification.actual_depth_mm` and its depth tolerance to `null`;
+the native API's unused length is never reported as travel. `feature set-depth`
+continues to reject through-all features. This development capability is not
+available in the published a11 package; installed Windows/Wine acceptance and
+release are tracked separately.
+
 
 `part create-box` is the first typed modeling operation. It creates a centered
 rectangle sketch, extrudes it, rebuilds and diagnoses the result, saves a native

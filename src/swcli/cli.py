@@ -457,10 +457,12 @@ def build_parser() -> argparse.ArgumentParser:
     extrude_parser.add_argument("--json", action="store_true", dest="as_json")
 
     cut_parser = feature_commands.add_parser(
-        "cut-extrude", help="remove material using a registered sketch and blind depth"
+        "cut-extrude", help="remove material using a blind depth or one-direction through-all"
     )
     cut_parser.add_argument("sketch_id")
-    cut_parser.add_argument("--depth-mm", type=float, required=True)
+    cut_termination = cut_parser.add_mutually_exclusive_group(required=True)
+    cut_termination.add_argument("--depth-mm", type=float)
+    cut_termination.add_argument("--through-all", action="store_true")
     cut_parser.add_argument("--reverse", action="store_true")
     add_document_selector(cut_parser)
     add_lease_token(cut_parser)
@@ -1028,7 +1030,8 @@ def _typed_operation(
             "feature.cut-extrude",
             {
                 "sketch_id": args.sketch_id,
-                "depth_mm": args.depth_mm,
+                **({"end_condition": "through-all"} if args.through_all
+                   else {"depth_mm": args.depth_mm}),
                 "reverse": args.reverse,
             },
             args.as_json,

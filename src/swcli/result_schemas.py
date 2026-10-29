@@ -928,6 +928,12 @@ _RESULT_FIELDS["feature.set-depth"] = (
 
 _CUT_FIELDS, _CUT_REQUIRED = deepcopy(_RESULT_FIELDS["feature.extrude"])
 del _CUT_FIELDS["merge"]
+_CUT_FIELDS["depth_mm"] = {"type": ["number", "null"]}
+_CUT_FIELDS["end_condition"] = {"enum": ["blind", "through-all"]}
+_CUT_FIELDS["through_all_settings"] = _object({
+    "thin": BOOL, "feature_scope": BOOL, "from_type": INTEGER,
+    "forward_draft": BOOL, "needs_rebuild": INTEGER,
+})
 _CUT_FIELDS["affected_scope"] = {"const": "all-solid-bodies"}
 for _measurement_phase in ("measurement_before", "measurement_after"):
     _CUT_FIELDS[_measurement_phase] = deepcopy(
@@ -937,14 +943,14 @@ _CUT_FIELDS["geometry_verification"] = _object(
     {
         "passed": BOOL,
         "method": {"const": "native-cut-definition-and-volume"},
-        "actual_depth_mm": NUMBER,
+        "actual_depth_mm": {"type": ["number", "null"]},
         "actual_reverse": BOOL,
         "native_reverse_direction": BOOL,
         "end_condition": INTEGER,
         "both_directions": BOOL,
         "volume_removed_mm3": NUMBER,
         "minimum_volume_change_mm3": NUMBER,
-        "absolute_depth_tolerance_mm": NUMBER,
+        "absolute_depth_tolerance_mm": {"type": ["number", "null"]},
     },
     (
         "passed",
@@ -1498,10 +1504,38 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             schema["then"]["properties"]["geometry_verification"]["properties"].update(
                 {
                     "volume_removed_mm3": {"type": "number", "exclusiveMinimum": 0},
-                    "end_condition": {"const": 0},
                     "both_directions": {"const": False},
                 }
             )
+        if name == "feature.cut-extrude":
+            schema["then"]["allOf"] = [{
+                "if": {"required": ["end_condition"],
+                       "properties": {"end_condition": {"const": "through-all"}}},
+                "then": {
+                    "required": ["through_all_settings"],
+                    "properties": {
+                        "depth_mm": {"type": "null"},
+                        "through_all_settings": {"const": dict(
+                            thin=False, feature_scope=False, from_type=0,
+                            forward_draft=False, needs_rebuild=0)},
+                        "diagnostics": {"properties": {"truncated": {"const": False}}},
+                        "bodies": {"properties": {"applicable": {"const": True}, "count": {"const": 1}}},
+                        "measurement_before": {"properties": {"solid_body_count": {"const": 1}}},
+                        "measurement_after": {"properties": {"solid_body_count": {"const": 1}}},
+                        "geometry_verification": {"properties": {
+                            "end_condition": {"const": 1},
+                            "actual_depth_mm": {"type": "null"},
+                            "absolute_depth_tolerance_mm": {"type": "null"}}},
+                    },
+                },
+                "else": {"properties": {
+                    "depth_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "geometry_verification": {"properties": {
+                        "end_condition": {"const": 0},
+                        "actual_depth_mm": {"type": "number"},
+                        "absolute_depth_tolerance_mm": {"type": "number"}}},
+                }},
+            }]
     if name in ("sketch.rectangle", "sketch.circle"):
         schema["then"]["properties"] = {
             "editing": {"const": False},

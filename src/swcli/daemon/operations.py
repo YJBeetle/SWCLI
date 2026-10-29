@@ -1123,7 +1123,9 @@ def feature_cut_extrude(
         app=context.app,
         document=context.entry.document,
         sketch_feature=sketch_feature,
-        depth_mm=float(values["depth_mm"]),
+        **({"end_condition": "through-all"}
+           if values.get("end_condition") == "through-all"
+           else {"depth_mm": float(values["depth_mm"])}),
         reverse=values.get("reverse", False),
     )
     result["sketch_id"] = sketch_id

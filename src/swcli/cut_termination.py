@@ -1,8 +1,4 @@
-"""Prepared cut termination contract; not advertised until native proof.
-
-Pure request handling, without CAD, file access or capability registration.
-The existing public blind-only schema and adapter remain authoritative.
-"""
+"""Strict blind and one-direction through-all request termination contract."""
 
 from dataclasses import dataclass
 import math
@@ -16,7 +12,7 @@ class CutTermination:
 
 
 def cut_termination_fields() -> Dict[str, Any]:
-    """Fresh schema fields for integration after native behavior is proved."""
+    """Fresh schema fields for the public cut request."""
     return {
         "end_condition": {"type": "string", "enum": ["blind", "through-all"]},
         "depth_mm": {"type": "number", "exclusiveMinimum": 0},

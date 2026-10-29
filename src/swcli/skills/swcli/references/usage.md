@@ -302,10 +302,21 @@ mass; approximate boxes remain a different kind of evidence.
 Hosts advertising `feature.cut-extrude` accept a live sketch ID and positive
 `--depth-mm`, with the same normal/default and `--reverse` convention as bosses.
 It cuts all intersected solids and requires native-definition/rebuild checks
-plus measured volume reduction; this is blind depth, not through-all. It does
+plus measured volume reduction. It does
 not choose a body from GUI selection or roll back a failed partial feature.
 Create a profile that intersects existing solid material and verify the actual
 removed volume/shape against the task, not merely `ok: true`.
+
+For an a12 development daemon whose `feature.cut-extrude` request schema includes
+`end_condition: "through-all"`, choose `--through-all` instead of `--depth-mm`.
+This requires exactly one solid/no other bodies and an unused full-circle or
+axis-aligned rectangle profile, with no pre-existing selection. Directions and
+all document/lease/update-stamp guards are unchanged. Never send a depth with
+through-all or infer travel/thickness from its unused native depth argument:
+the result's `depth_mm` and verified depth/tolerance are `null`. Inspect the
+native end condition and actual before/after geometry; `feature.set-depth`
+remains blind-only. This is a development feature, absent from the published a11.
+
 
 ### Observe features and edit depth
 

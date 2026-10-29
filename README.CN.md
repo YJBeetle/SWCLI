@@ -471,7 +471,10 @@ sw-cli daemon start --visible --json
 失败立即停止并释放 lease，不悄悄丢弃/保存部分模型，也不重启 daemon。
 生成原生可编辑草图和特征，但尚无驱动尺寸/全约束保证；这是本机 Windows 案例，不是远程文件传输或容器启动脚本。
 
-`feature cut-extrude SKETCH_ID --depth-mm 20`（自 v0.1.0a4 起）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持贯穿、拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
+`feature cut-extrude SKETCH_ID --depth-mm 20`（自 v0.1.0a4 起）从未吸收的二维轮廓创建单方向定深切除，移除轮廓内部材料。与 `feature extrude` 一致，CLI 默认**沿草图法线**，`--reverse` 表示反法线；adapter 会转换 SOLIDWORKS 原生切除相反的默认方向。切除作用于全部相交实体，不猜测已选实体范围，暂不支持拔模、薄壁或钣金法向选项。它重建模型、核对原生深度/方向/终止条件，并要求实体求和体积实际减少，超过 `max(1e-6 mm³, 原体积 × 1e-12)`。没有可测实体或切除后不再有可测实体的零件，不能通过这版验收契约。响应提供前后几何证据，不承诺自动回滚或完整孔形验证；失败时特征可能已创建。
+
+
+a12 开发版新增 `feature cut-extrude SKETCH_ID --through-all`：仅接受单实体、无其他体的零件，以及未吸收的完整圆或轴对齐矩形草图。它与 `--depth-mm` 必须二选一，沿用默认法线/`--reverse` 方向；已有选区会在创建前被拒绝。协议使用 `end_condition: "through-all"`，禁止同时提供任何 `depth_mm`。成功需确认原生贯穿、单向、非薄壁/拔模、草图平面起始、整实体作用范围、完整健康诊断、重建完成和实际材料减少。贯穿回执的 `depth_mm`、`geometry_verification.actual_depth_mm` 及深度公差为 `null`，不把原生占位长度当成行程；`feature set-depth` 仍拒绝贯穿特征。已发布 a11 不包含此能力，开发版的安装后 Windows/Wine 验收与发布另行记录。
 
 ```powershell
 $hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json

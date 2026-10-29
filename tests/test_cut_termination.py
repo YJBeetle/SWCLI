@@ -1,4 +1,4 @@
-"""Prepared termination semantics, independent of pending native calibration."""
+"""Public termination semantics shared by discovery and request validation."""
 
 from copy import deepcopy
 import unittest
@@ -70,16 +70,25 @@ class CutTerminationTests(unittest.TestCase):
         self.assertNotIn("unsafe", cut_termination_fields()["end_condition"]["enum"])
         self.assertEqual(cut_termination_conditions()[0]["then"], {"not": {"required": ["depth_mm"]}})
 
-    def test_prepared_contract_does_not_advertise_unproved_public_capability(self):
+    def test_public_contract_advertises_termination_without_weakening_guards(self):
         spec = OPERATION_CATALOG["feature.cut-extrude"]
-        self.assertNotIn("end_condition", spec.parameters["properties"])
-        self.assertIn("depth_mm", spec.parameters["required"])
-        with self.assertRaises(ValueError):
-            validate_operation_request("feature.cut-extrude", {
-                "sketch_id": "s-ab12cd", "end_condition": "through-all",
-            })
-        legacy = {"sketch_id": "s-ab12cd", "depth_mm": 10, "reverse": True}
-        self.assertEqual(validate_operation_request("feature.cut-extrude", legacy), legacy)
+        validator = Draft202012Validator(spec.parameters)
+        for values in (
+            {"sketch_id": "s-ab12cd", "end_condition": "through-all"},
+            {"sketch_id": "s-ab12cd", "depth_mm": 10, "reverse": True},
+            {"sketch_id": "s-ab12cd", "end_condition": "blind", "depth_mm": 10},
+        ):
+            self.assertTrue(validator.is_valid(values))
+            self.assertEqual(validate_operation_request("feature.cut-extrude", values), values)
+        for values in (
+            {"sketch_id": "s-ab12cd"},
+            {"sketch_id": "s-ab12cd", "end_condition": "blind"},
+            *({"sketch_id": "s-ab12cd", "end_condition": "through-all", "depth_mm": depth}
+              for depth in (None, 0, 1, True)),
+        ):
+            self.assertFalse(validator.is_valid(values))
+            with self.assertRaises(ValueError):
+                validate_operation_request("feature.cut-extrude", values)
         self.assertTrue(spec.lease_guarded)
         self.assertTrue(spec.temporary_activation)
 
