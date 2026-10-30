@@ -122,7 +122,8 @@ Current work:
    again through anonymous public downloads. Polygon blind boss/cut is covered
    by 48 combinations, while polygon through-all and depth editing remain
    explicitly unsupported.
-3. The next bounded modeling investigation is polygon feature-depth editing:
+3. The next bounded modeling investigation is
+   [polygon feature-depth editing](design/polygon-depth-editing.md):
    first define native profile recognition and readback, partial mutation and
    save/reopen evidence before expanding the existing profile guard. General
    selected-body/face support and additional end conditions stay separate.
