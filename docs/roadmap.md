@@ -115,8 +115,18 @@ Current work:
    failed diagnostic, and keep Mac integration/smoke evidence separate rather
    than claiming a full Mac pass. See the [current receipt matrix and policy](verification/a11-runtime-2026-10-25.md).
    Both hosts pin the released commit; retain these acceptance boundaries for future work.
-2. Extend profiles/end conditions and selected-body/face support only with
-   explicit reference and verification semantics.
+2. [a12 single-direction through-all cuts](releases/v0.1.0a12.md) and
+   [a13 simple closed polygon sketches](releases/v0.1.0a13.md) are published.
+   a13's exact final `8d6e5d3` source passed installed Windows and full Wine
+   acceptance; unchanged original CI wheel/sdist were independently checked
+   again through anonymous public downloads. Polygon blind boss/cut is covered
+   by 48 combinations, while polygon through-all and depth editing remain
+   explicitly unsupported.
+3. The next bounded modeling investigation is polygon feature-depth editing:
+   first define native profile recognition and readback, partial mutation and
+   save/reopen evidence before expanding the existing profile guard. General
+   selected-body/face support and additional end conditions stay separate.
+   This roadmap entry is a direction, not an implemented a14 capability.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
 portable failure tests, real Windows proof and the appropriate Wine gate.
@@ -149,10 +159,10 @@ upper-layer application; this goal does not require designing it now.
 ## Release gate
 
 The current pre-release and its verification boundaries are recorded in
-[v0.1.0a11 release notes](releases/v0.1.0a11.md). A pre-release does not imply a
+[v0.1.0a13 release notes](releases/v0.1.0a13.md). A pre-release does not imply a
 stable compatibility commitment.
 Runtime and distribution receipts remain distinct; the
-[a11 release receipt](verification/a11-runtime-2026-10-25.md) tracks both.
+[a13 release notes](releases/v0.1.0a13.md) link the final runtime and distribution evidence.
 Publication does not turn the known Mac diagnostic limitation into a full Mac
 CAD acceptance claim.
 
