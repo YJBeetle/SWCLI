@@ -1,12 +1,14 @@
 ---
 name: swcli
-description: Use SWCLI to inspect, model, render and export SOLIDWORKS documents through a running swclid daemon. Use when a task calls for SWCLI CAD automation, not for developing its Python implementation or installing Wine/SOLIDWORKS.
+description: Use SWCLI for SOLIDWORKS CAD automation through a running swclid daemon. Applies to inspecting the active model, opening, modeling, rendering or exporting SLDPRT, SLDASM, SLDDRW and CAD STEP/STP files, and checking capabilities for assemblies, motion studies and other SOLIDWORKS features.
 ---
 
 # SWCLI
 
-Use the typed CLI as the CAD control plane. Do not replace it with generated
-COM/Python scripts, GUI clicks, or an imagined SDK/MCP interface.
+Use the typed CLI for operations it advertises. If the operation is missing
+or its documented scope excludes the task, consult the
+[official SOLIDWORKS API workflow](references/solidworks-api.md). A failure
+of a supported operation follows the CLI's diagnostic and recovery path.
 
 Read [the usage guide](references/usage.md) when preparing a modeling/export
 workflow or connecting to an unfamiliar host. The guide travels with this
@@ -15,9 +17,9 @@ skill; it does not depend on the developer's machine or repository checkout.
 ## Working rules
 
 - First run `sw-cli version --json`, `sw-cli daemon status --json` and
-  `sw-cli capabilities --json`. On the a9 candidate, this is a concise summary;
+  `sw-cli capabilities --json`. Read the capability summary, then
   request `capabilities --operation NAME --json` for the needed request/result
-  schemas and context, rather than loading every schema with `--full`.
+  schemas and context, instead of loading all schemas with `--full`.
   Older clients may have only the full default view: check local `--help`.
   The running daemon is authoritative; do not assume a newer README's operation
   exists. See the guide for current modeling limits and JSON field paths.
@@ -25,7 +27,8 @@ skill; it does not depend on the developer's machine or repository checkout.
   daemon management and CAD results have different envelopes; a connection
   failure is not an empty document list.
 - Choose a session and explicit document IDs for multi-document work. Omitting
-  `--document` means the session's current document, not the visible front tab.
+  `--document` means the session's current document. Use `--document active` for the active
+  SOLIDWORKS document.
 - Read document state before modifying it. Use a lease and the observed update
   stamp for cooperating writers; zero is a valid stamp. These guards are not
   filesystem locks or protection from human edits.
@@ -60,11 +63,11 @@ skill; it does not depend on the developer's machine or repository checkout.
   nearest-looking entity. Untrimmed surfaces/curves and raw edge parameters
   are not trimmed boundaries, length/closure guarantees or edit authority.
   See the usage guide for scope/units and unknown/stale handling.
-- If `feature.fillet` is advertised (since a10, not the a9 wheel), read
+- If `feature.fillet` is advertised, read
   the guide's single-edge boundary first. Use a freshly observed edge ID;
   possible creation retires face/edge IDs even on failure. Do not retry a failed
   fillet or assume its returned feature supports extrusion depth editing.
-- For a host advertising `drawing.standard-views` (a11 development), read the
+- For a host advertising `drawing.standard-views`, read the
   guide's drawing workflow. It needs an explicit A4 DRWDOT, projection and a
   saved clean source/configuration. Do not infer drawing creation from PDF/DWG
   export support or save/modify the source to bypass a refusal.
