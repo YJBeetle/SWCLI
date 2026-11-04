@@ -46,6 +46,11 @@ def main():
         )
     if "# Agent usage guide" not in guide or "sw-cli capabilities --json" not in guide:
         raise RuntimeError("installed skill usage guide is missing or incomplete")
+    api_guide = skill.joinpath("references").joinpath("solidworks-api.md")
+    if ("references/solidworks-api.md" not in instructions
+            or "](solidworks-api.md)" not in guide
+            or not api_guide.read_text(encoding="utf-8").startswith("# Official SOLIDWORKS API workflow\n")):
+        raise RuntimeError("installed skill is missing its linked native API guide")
     print("Installed SWCLI CLI, schemas and product skill verified (no COM activation)")
 
 

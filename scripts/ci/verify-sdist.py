@@ -69,6 +69,7 @@ REQUIRED = {
     "scripts/ci/windows/create-external-host.py",
     "src/swcli/skills/swcli/SKILL.md",
     "src/swcli/skills/swcli/references/usage.md",
+    "src/swcli/skills/swcli/references/solidworks-api.md",
 }
 FORBIDDEN_SUFFIXES = {".iso", ".msi", ".reg", ".sldprt", ".sldasm", ".slddrw"}
 OWNED_FIXTURE = "scripts/ci/fixtures/rectangle-origin-bound.SLDPRT"
