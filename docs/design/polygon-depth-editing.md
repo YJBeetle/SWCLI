@@ -1,10 +1,8 @@
 # Polygon feature-depth editing: next bounded investigation
 
-Status: **internal sketch observation implemented, native acceptance pending**.
-The observer reconstructs the closed cycle from native endpoints and retains
-the full edge coordinates for fingerprint comparison. The next verification
-must prove absorbed ownership and stable readback on real saved and reopened
-fixtures before wiring this observer into the depth guard. Polygon
+Status: **internal read-only observation verified on Windows**. The hosted
+calibration below proves absorbed ownership and stable readback across native
+save/reopen. A separate depth mutation diagnostic is the next gate. Polygon
 `feature.set-depth` continues to return `UnsupportedDepthProfile`.
 
 ## Current evidence and missing proof
@@ -66,6 +64,42 @@ values and ambiguous endpoint clusters. Fixtures must distinguish a supported
 geometric refusal from an unavailable observation. The existing rectangle/circle
 tests must remain unchanged in meaning.
 
+## Windows native observation evidence
+
+[Windows run 41808319235](https://github.com/YJBeetle/SWCLI/actions/runs/41808319235)
+tested commit `c75c7a294797b8f24c1a19227a99b8a3ac6a356c` with
+`calibrate_polygon=true`. Artifact `13314305201` contains the diagnostic
+`polygon-calibration/report.json`, `trace.jsonl` and 48 native part files.
+The artifact API reports archive SHA-256
+`7c24c69a57c1930bc9ebdc0544521a2e788ccb575f872848cc83fa73c6856c27`.
+
+- Triangle and concave L profiles covered both windings, boss and cut,
+  front/top/right planes and both directions. All 96 observations resolved
+  the absorbed profile through the live parent/owner checks. The audit matched
+  every pre-save and reopened edge to the independent fixture coordinates with
+  zero endpoint deviation and found zero transform drift across reopen.
+- Each observation requires exact agreement between two native reads. The
+  receipt stores the accepted fingerprint and before/after state, so the
+  second read is attested by the passing check rather than archived separately.
+  All observations reported unchanged configuration, stamp, modified state,
+  edit context and foreground identity. Reopen was explicitly verified
+  read-only and clean. All 48 downloaded part hashes matched the receipts.
+- The trace has 776 completed call pairs, one owned hidden SW 33.5.0 process
+  (PID 8904), per-fixture catalog cleanup and successful process exit.
+  The diagnostic report retains `full_acceptance_eligible=false`.
+- The subsequent existing Windows full gate separately passed 19 groups,
+  20 steps and visible smoke. This verifies the existing public behavior on
+  this revision. It does not exercise polygon depth mutation.
+
+Receipt SHA-256 values:
+
+| File | SHA-256 |
+| --- | --- |
+| Diagnostic report | `5ecfef93dbb345e26c72ed81891ff85514552cabc378881fd5ea6f1c5b4169ef` |
+| Diagnostic trace | `9cdfc8f562349dfe3560f91d9b7f2457e5eb8a5d950bd6357059a75db24799ea` |
+| Full gate summary | `9814bbd5ced80643d24c857759ba3d2594f00a634f6ef33d7fce979f236fa6ae` |
+| Visible smoke | `523bf729ae7a9c0fc68388c6f0d01ba56084ab549ba8f5c83363700c2f96586f` |
+
 ## Writer integration remains a separate gate
 
 Only after native Windows observer proof should a narrow profile classification
@@ -73,6 +107,14 @@ be admitted into the existing depth writer. There is no new public operation:
 the proposed behavior is a carefully evidenced extension of `feature.set-depth`
 on an exact live supported blind feature. Do not catch a failed native rectangle
 read and silently reinterpret the same sketch as a polygon.
+
+For the first mutation diagnostic, use only the verified triangle and L
+fixtures and route their polygon fingerprints through the existing writer's
+preflight, selection restoration, staging and post-commit comparisons. Keep
+the experiment internal until actual depth, unchanged profile/scope, analytic
+geometry and save/reopen are proven. Four-edge classification needs its own
+test so the rectangle route retains its existing construction handling and a
+failed rectangle read cannot silently fall through.
 
 All existing feature controls, supported blind start/end/direction defaults,
 single configuration, exact profile ownership, final/rollback body scope,
