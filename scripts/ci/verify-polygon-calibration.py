@@ -13,9 +13,14 @@ from swcli.hosts.windows_cuts import cut_extrude_sketch_windows_with_handle
 from swcli.hosts.windows_measurements import measure_part_windows
 from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_part_windows_with_handle
-from swcli.hosts.windows_polygons import create_polygon_sketch_windows_with_handle
+from swcli.hosts.windows_polygons import (
+    create_polygon_sketch_windows_with_handle, observe_native_polygon_profile,
+)
+from swcli.hosts.windows_feature_depth_profiles import _owned_profile, _profile_transform
+from swcli.hosts.windows_sketch_inspection import _feature_id
+from swcli.polygon_geometry import TOLERANCE_MM
 from swcli.hosts.windows_sketches import create_rectangle_sketch_windows_with_handle, _features
-from swcli.hosts.windows_feature_inspection import _types
+from swcli.hosts.windows_feature_inspection import _FeatureError, _observe, _same, _types
 from swcli.hosts.windows_dimensions import _variant
 
 spec = importlib.util.spec_from_file_location("_polygon_owned_harness",
@@ -64,6 +69,43 @@ def verify_centroid(app, transform, metric, expected):
             "polygon centroid/direction differs in sketch-local coordinates")
 
 
+def observe_owned_polygon(app, document, feature, expected_sketch=None):
+    def fingerprint():
+        profile, parent_ids, sketch = _owned_profile(app, document, feature)
+        if expected_sketch is not None and not _same(app, profile, expected_sketch):
+            raise _FeatureError("FeatureProfileUnavailable", "absorbed sketch differs from the created sketch")
+        geometry, edges = observe_native_polygon_profile(sketch)
+        return dict(
+            profile_id=_feature_id(profile), parent_ids=parent_ids,
+            vertices_mm=geometry.vertices_mm, edges_mm=edges,
+            model_to_sketch_transform=_profile_transform(sketch),
+        )
+
+    def read():
+        profile = fingerprint()
+        if fingerprint() != profile:
+            raise _FeatureError("FeatureObservationUnavailable", "owned polygon changed across native reads")
+        return {"profile": profile}, []
+
+    result, _ = _observe(action="polygon-profile-calibration", app=app, document=document, read=read)
+    return result
+
+
+def require_same_edges(actual, expected):
+    checked(len(actual) == len(expected), "native polygon edge count differs")
+    matches = []
+    for a, b in actual:
+        candidates = [
+            index for index, (c, d) in enumerate(expected)
+            if (max(math.dist(a, c), math.dist(b, d)) <= TOLERANCE_MM
+                or max(math.dist(a, d), math.dist(b, c)) <= TOLERANCE_MM)
+        ]
+        checked(len(candidates) == 1, "native polygon edge differs or matches ambiguously")
+        matches.append(candidates[0])
+    checked(len(set(matches)) == len(expected), "native polygon edges do not cover the fixture")
+
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
                    retained_documents=(), profile_kind="triangle-ccw-boss"):
     shape, winding, mode = profile_kind.split("-")
@@ -90,6 +132,12 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         sketch_feature=sketch, depth_mm=10 if mode == "boss" else 5, reverse=reverse))
     case["feature_creation"] = built
     checked(built["ok"] and feature is not None and not built.get("warnings"), "polygon solid feature failed")
+    observation = case["owned_profile"] = call("polygon-owned-profile", lambda: observe_owned_polygon(
+        app, document, feature, expected_sketch=sketch))
+    checked(observation["ok"], "created polygon profile observation failed: " + str(observation.get("error")))
+    profile = observation["profile"]
+    expected_edges = [((*point, 0), (*points[(i + 1) % len(points)], 0)) for i, point in enumerate(points)]
+    require_same_edges(profile["edges_mm"], expected_edges)
     measured = call("polygon-measure", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "polygon fixture measurement failed")
     case["geometry"] = verify_geometry(measured["metrics"], shape, plane, reverse, mode)
@@ -114,6 +162,16 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     kind = "Extrusion" if mode == "boss" else "Cut"
     features = [f for f in _features(document) if _types(f)[1] == kind]
     checked(len(features) == 1, "reopened polygon feature is ambiguous")
+    checked(_com_value(document, "IsOpenedReadOnly") is True, "reopened fixture is not read-only")
+    reopened = case["reopened_owned_profile"] = call("polygon-reopened-owned-profile", lambda: observe_owned_polygon(
+        app, document, features[0]))
+    checked(reopened["ok"], "reopened polygon profile observation failed: " + str(reopened.get("error")))
+    reopened_profile = reopened["profile"]
+    require_same_edges(reopened_profile["edges_mm"], expected_edges)
+    require_same_edges(reopened_profile["edges_mm"], profile["edges_mm"])
+    checked(all(abs(a - b) <= 1e-9 for a, b in zip(
+        reopened_profile["model_to_sketch_transform"], profile["model_to_sketch_transform"])),
+        "polygon model-to-sketch transform changed after reopen")
     definition = _com_value(features[0], "GetDefinition")
     checked(definition.GetEndCondition(True) == 0 and abs(definition.GetDepth(True) * 1000 - (10 if mode == "boss" else 5)) < 1e-6,
             "reopened polygon feature depth/end condition changed")

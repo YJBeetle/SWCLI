@@ -39,7 +39,7 @@ def _array(value: Any, name: str, limit: int) -> tuple:
     return tuple(value)
 
 
-def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
+def _owned_profile(app: Any, document: Any, feature: Any):
     live = {_feature_id(item): item for item in _list_features(app, document)}
     parents = _array(_com_value(feature, "GetParents"), "feature parents", 1000)
     identities, profiles = [], []
@@ -72,6 +72,32 @@ def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
         raise _FeatureError(
             "FeatureProfileUnavailable", "native profile sketch is unavailable"
         )
+    return profile, sorted(identities), sketch
+
+
+def _profile_transform(sketch: Any):
+    raw = _com_value(_com_value(sketch, "ModelToSketchTransform"), "ArrayData")
+    if (
+        not isinstance(raw, (tuple, list))
+        or len(raw) != 16
+        or any(
+            isinstance(value, bool) or not isinstance(value, (int, float))
+            for value in raw
+        )
+    ):
+        raise _FeatureError(
+            "FeatureObservationUnavailable", "native profile transform is unreadable"
+        )
+    transform = [float(value) for value in raw]
+    if not all(math.isfinite(value) for value in transform):
+        raise _FeatureError(
+            "FeatureObservationUnavailable", "native profile transform is nonfinite"
+        )
+    return transform
+
+
+def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
+    profile, identities, sketch = _owned_profile(app, document, feature)
     segments = _array(_com_value(sketch, "GetSketchSegments"), "profile segments", 64)
     try:
         if len(segments) == 1:
@@ -109,27 +135,11 @@ def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
         raise _FeatureError(
             "FeatureObservationUnavailable", "native profile area is unrepresentable"
         )
-    raw = _com_value(_com_value(sketch, "ModelToSketchTransform"), "ArrayData")
-    if (
-        not isinstance(raw, (tuple, list))
-        or len(raw) != 16
-        or any(
-            isinstance(value, bool) or not isinstance(value, (int, float))
-            for value in raw
-        )
-    ):
-        raise _FeatureError(
-            "FeatureObservationUnavailable", "native profile transform is unreadable"
-        )
-    transform = [float(value) for value in raw]
-    if not all(math.isfinite(value) for value in transform):
-        raise _FeatureError(
-            "FeatureObservationUnavailable", "native profile transform is nonfinite"
-        )
+    transform = _profile_transform(sketch)
     # This is a current native identity fingerprint, never a persistent/public ID.
     return {
         "native_profile_id": _feature_id(profile),
-        "native_parent_ids": sorted(identities),
+        "native_parent_ids": identities,
         "geometry": geometry,
         "segment_count": len(segments),
         "model_to_sketch_transform": transform,
