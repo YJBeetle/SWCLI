@@ -153,6 +153,20 @@ than accumulating a general-purpose framework to meet one example.
    environment, a bounded mechanism and independent checks on computed
    results before widening the supported study types.
 
+## Document custom properties
+
+Planned as a separate CLI increment for metadata such as `Chinese Name`,
+`English Name` and `Drawing No`. Start with read-only listing and lookup of
+document-level properties. Return the property type, stored expression and
+evaluated value separately, with resolution status when available. Distinguish
+a missing property from a present property with an empty value.
+
+Add configuration-specific access with an explicit configuration name and
+report cached results as such. Verify that reads preserve the active
+configuration and document state. For writes, start with explicit text
+property creation and updates, use the existing document, lease and stamp
+guards, and require readback plus an explicit save/reopen check for persistence.
+
 ## Later protocol and integrations
 
 - Stable entity references with topology/revision validation and explicit stale
