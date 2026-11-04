@@ -12,7 +12,7 @@ sw-cli daemon status --json
 sw-cli capabilities --json
 ```
 
-The client runs on Windows, macOS or Linux. Only swclid's STA worker performs
+The client runs on Windows, macOS or Linux. Within SWCLI, swclid's STA worker performs
 SOLIDWORKS COM operations. Typed commands never start a daemon implicitly or
 fall back to direct COM. For an authorized local Windows test:
 
@@ -36,7 +36,7 @@ an authenticated tunnel or a trusted boundary. Native save/open/output paths
 belong to the server. DockerSW's Linux entry point translates mounted Linux
 paths for Wine; this is not a general remote file-transfer facility.
 
-The a9 candidate's capabilities summary publishes `operations` and
+The capabilities summary publishes `operations` and
 `export_formats` (adapter extensions grouped by `part`, `assembly`, `drawing`).
 It does not probe whether every native translator is installed. Query details
 only as needed:
@@ -50,10 +50,9 @@ The selected view contains `operations: [NAME]`, `operation_schemas[NAME]` and
 `operation_result_schemas[NAME]`. Check `x-swcli-context` before assembling a
 request. `--full` explicitly requests all schemas; CI uses it for contract
 validation, not as an agent's routine status probe. `daemon status` contains
-runtime state only. These changes require a matching a9 client/daemon; older
-clients may expose only the full default catalog. `--help` is available locally.
-If the host lacks a requested operation, report that limitation rather than
-inventing a command or silently choosing a mesh/GUI workaround.
+runtime state only. Older clients may expose only the full default catalog. `--help` is available locally.
+If the host lacks a requested operation, consult the
+[official SOLIDWORKS API workflow](solidworks-api.md) for the uncovered part.
 
 ### JSON field paths
 
@@ -86,11 +85,10 @@ The flags do not grant permission to stop or modify a user's host/documents.
 
 ### Current modeling limits
 
-The a9 candidate provides origin-plane (`front`, `top`, `right`) rectangle and
+For supported hosts, SWCLI provides origin-plane (`front`, `top`, `right`) rectangle and
 full-circle sketches, boxes, blind boss/cut extrusions and the documented narrow
 dimension/depth edits. It has no general offset-plane, spline/3D-sketch,
-loft/sweep command. The published a9 wheel has no fillet command; a10 development
-adds the narrow `feature.fillet` slice described below. Assembly insertion accepts approximate-center
+loft/sweep command. The narrow `feature.fillet` scope is described below. Assembly insertion accepts approximate-center
 coordinates, not a verified exact transform or mates. Entity observation does
 not imply entity-targeted editing. These are CLI limits, not SOLIDWORKS limits;
 check the actual advertised version before proposing a workflow. A voxel-style
@@ -177,8 +175,8 @@ returned sketch ID for blind extrusion/cut. Through-all and feature depth
 editing remain limited to their existing supported profiles. Partial creation
 is not rolled back; inspect the returned surviving sketch handle on failure.
 
-Save-as supports parts (`.SLDPRT`), with assemblies (`.SLDASM`) and drawings
-(`.SLDDRW`) added in the a9 candidate, not the published a8 wheel. It rejects
+On supported hosts, save-as accepts parts (`.SLDPRT`), assemblies (`.SLDASM`)
+and drawings (`.SLDDRW`). It rejects
 existing targets; use the host's advertised schemas, not an
 older package's assumed support. There is no overwrite or copy mode. Assembly
 and drawing references are not copied or requested to be saved; this is not Pack and Go.
@@ -188,7 +186,8 @@ file-size/native-state checks are not a full integrity proof; reopen and verify
 the geometry. Saving is allowed only when the task authorizes source changes.
 Use only the save-as/feature operations the host advertises.
 
-The a9 candidate also adds `document create --type assembly` and
+For hosts advertising assembly creation and insertion, use
+`document create --type assembly` and
 `assembly add-component PATH --document ID`. Open the saved, clean source PRT
 first; insertion never opens or saves it implicitly. Choose an explicit
 configuration when needed. Millimeter insertion coordinates are approximate
@@ -322,7 +321,7 @@ not choose a body from GUI selection or roll back a failed partial feature.
 Create a profile that intersects existing solid material and verify the actual
 removed volume/shape against the task, not merely `ok: true`.
 
-For an a12 development daemon whose `feature.cut-extrude` request schema includes
+For a daemon whose `feature.cut-extrude` request schema includes
 `end_condition: "through-all"`, choose `--through-all` instead of `--depth-mm`.
 This requires exactly one solid/no other bodies and an unused full-circle or
 axis-aligned rectangle profile, with no pre-existing selection. Directions and
@@ -330,7 +329,7 @@ all document/lease/update-stamp guards are unchanged. Never send a depth with
 through-all or infer travel/thickness from its unused native depth argument:
 the result's `depth_mm` and verified depth/tolerance are `null`. Inspect the
 native end condition and actual before/after geometry; `feature.set-depth`
-remains blind-only. This is a development feature, absent from the published a11.
+remains blind-only.
 
 
 ### Observe features and edit depth
@@ -441,11 +440,11 @@ kind before rediscovering; never revive an old token or automatically select
 the nearest geometric match. Entity-targeted mutations are not implemented
 by these read commands.
 
-## Create a drawing (a11 development)
+## Create a drawing
 
 Check `capabilities --operation document.create --json` and
-`capabilities --operation drawing.standard-views --json` first. These additions
-are not in the published a10 wheel. Open a saved, clean, rebuilt PRT/ASM first;
+`capabilities --operation drawing.standard-views --json` first. If advertised,
+open a saved, clean, rebuilt PRT/ASM first;
 use its returned document ID and actual current configuration. Do not silently
 switch configuration or save/rebuild the source if the task only authorizes
 making a drawing from committed input.
@@ -483,10 +482,10 @@ No public view inspection/editing command is implied by creation support.
 
 ## Export and recover
 
-### Single-edge fillet (since a10)
+### Single-edge fillet
 
-Use only when `capabilities --operation feature.fillet --json` confirms support;
-this command is not in the published a9 wheel. First discover edges with
+Use only when `capabilities --operation feature.fillet --json` confirms support.
+First discover edges with
 `entity list --kind edge --document DOCUMENT_ID --json` and choose the intended
 native edge from the task's geometry, not an array index or a localized name.
 
@@ -530,8 +529,8 @@ replacing the final path; overwrite requires explicit `--overwrite` authority.
 Filename routing (which sources/formats CI wants) is the caller's policy, not
 an SWCLI export rule. Surface the failing source and structured reason.
 
-The a9 candidate adds STL/3MF/AMF for parts and assemblies, and GLB for parts
-(assembly GLB already exists). These additions are not in the published a8 wheel.
+The capabilities summary advertises supported mesh formats by document type.
+Check the requested format against the part or assembly list.
 Use the same command with an explicit `.STL`, `.3MF`, `.AMF` or `.GLB` output;
 drawings remain PDF/DWG. OBJ is not supported. Mesh container/basic-geometry
 checks do not prove tessellation accuracy, watertightness or material fidelity.
