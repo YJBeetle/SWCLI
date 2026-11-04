@@ -124,10 +124,11 @@ Current work:
    explicitly unsupported.
 3. The next bounded modeling investigation is
    [polygon feature-depth editing](design/polygon-depth-editing.md):
-   first define native profile recognition and readback, partial mutation and
-   save/reopen evidence before expanding the existing profile guard. General
-   selected-body/face support and additional end conditions stay separate.
-   This roadmap entry is a direction, not an implemented a14 capability.
+   the development branch exposes blind depth editing for simple triangles and
+   axis-aligned concave L profiles after the Windows internal proof. A bounded
+   public matrix checks write, equal-depth and save/reopen in installed Windows
+   and Wine. General selected-body/face support and additional end conditions
+   stay separate.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
 portable failure tests, real Windows proof and the appropriate Wine gate.

@@ -13,15 +13,31 @@ PROFILES = {
 }
 
 
-def verify_polygon_metrics(metrics, shape, mode, reverse, transform):
+DEPTH_TARGETS = {
+    ('triangle', 'ccw', 'boss', 'front', False): 14,
+    ('ell', 'cw', 'boss', 'top', True): 6,
+    ('triangle', 'cw', 'cut', 'right', True): 7,
+    ('ell', 'ccw', 'cut', 'front', False): 3,
+}
+MUTATION_FLAGS = ('staging_attempted', 'configuration_scope_applied', 'commit_attempted', 'committed')
+
+
+def verify_polygon_metrics(metrics, shape, mode, reverse, transform, depth=None):
     require(shape in PROFILES and mode in ('boss', 'cut'), 'unknown polygon fixture')
     perimeter, cx = (60, -10 + 20 / 3) if shape == 'triangle' else (70, -2.5)
-    volume, surface = (1500, 300 + perimeter * 10) if mode == 'boss' else (11250, 3800 + perimeter * 5)
+    if depth is None:
+        depth = 10 if mode == 'boss' else 5
+    if mode == 'boss':
+        volume, surface = 150 * depth, 300 + perimeter * depth
+        target = [cx, 0, depth / 2]
+    else:
+        removed = 150 * depth
+        volume, surface = 12000 - removed, 3800 + perimeter * depth
+        target = [-removed * cx / volume, 0, (60000 - removed * depth / 2) / volume]
     require(type(metrics['solid_body_count']) is int and metrics['solid_body_count'] == 1,
             'polygon fixture changed solid count')
     near(metrics['volume_mm3'], volume, 'polygon analytic volume mismatch')
     near(metrics['surface_area_mm2'], surface, 'polygon analytic surface mismatch')
-    target = [cx, 0, 5] if mode == 'boss' else [-750 * cx / 11250, 0, (60000 - 1875) / 11250]
     if reverse:
         target[2] *= -1
     require(len(transform) == 16 and all(type(v) in (int, float) and math.isfinite(v) for v in transform),
@@ -112,17 +128,16 @@ class PolygonCases:
                 and feature['diagnostics']['healthy'] is True and feature['diagnostics']['truncated'] is False
                 and feature['bodies']['count'] == 1, 'polygon solid creation is incomplete or left restoration warnings')
         feature_id = feature['feature']['feature_id']
-        before = self.command('document', 'inspect', document=document)['document']
-        refusal = case['depth_refusal'] = self.write('feature', 'set-depth', feature_id, '--depth-mm', 12,
-                   document=document, expected_error='UnsupportedDepthProfile', timeout_seconds=self.depth_request_timeout_seconds)
-        require(all(refusal['mutation'][flag] is False for flag in
-                    ('staging_attempted', 'configuration_scope_applied', 'commit_attempted', 'committed'))
-                and self.command('document', 'inspect', document=document)['document'] == before,
-                'unsupported polygon depth edit staged, committed or changed state')
         transform = made['model_to_sketch_transform']
+        initial_depth = 10 if mode == 'boss' else 5
         case['geometry'] = self.measure(document)['metrics']
         verify_polygon_metrics(case['geometry'], shape, mode, reverse, transform)
-        self._polygon_definition(document, feature_id, mode, reverse)
+        self._polygon_definition(document, feature_id, mode, reverse, initial_depth)
+        target = DEPTH_TARGETS.get((shape, winding, mode, plane, reverse))
+        saved_depth = initial_depth
+        if target is not None:
+            self._polygon_depth(case, document, foreground, feature_id, target, initial_depth, transform)
+            saved_depth = target
         stem = '-'.join(('polygon', shape, winding, mode, plane, 'reverse' if reverse else 'forward'))
         host_path = str(PureWindowsPath(self.host_directory) / (stem+'.SLDPRT'))
         path = self.directory / (stem+'.SLDPRT')
@@ -143,7 +158,8 @@ class PolygonCases:
         candidates = [f for f in listed['features'] if f['kind'] == kind]
         require(listed['count'] == len(listed['features']) == (1 if mode == 'boss' else 2)
                 and len(candidates) == 1 and candidates[0]['feature_id'] != feature_id, 'fresh polygon feature discovery failed')
-        self._polygon_definition(reopened, candidates[0]['feature_id'], mode, reverse)
+        case['reopened_definition'] = self._polygon_definition(
+            reopened, candidates[0]['feature_id'], mode, reverse, saved_depth)
         sketches = self.command('sketch', 'list', document=reopened)
         candidates = [s for s in sketches['sketches'] if s['name'] == made['sketch']['name']]
         # Names locate candidates only; exact fresh handle geometry proves identity.
@@ -151,7 +167,7 @@ class PolygonCases:
         observed = self.command('sketch', 'inspect', candidates[0]['sketch_id'], document=reopened)
         verify_polygon_segments(observed, points)
         case['reopened_geometry'] = self.measure(reopened)['metrics']
-        verify_polygon_metrics(case['reopened_geometry'], shape, mode, reverse, transform)
+        verify_polygon_metrics(case['reopened_geometry'], shape, mode, reverse, transform, saved_depth)
         diagnostic = case['reopened_diagnostics'] = self.command('document', 'diagnose', document=reopened)
         require(diagnostic['diagnostics']['healthy'] is True and diagnostic['diagnostics']['truncated'] is False
                 and diagnostic['needs_rebuild'] == 0, 'polygon reopen is not healthy/clean')
@@ -161,10 +177,43 @@ class PolygonCases:
         self.close(reopened)
         self.close(foreground)
 
-    def _polygon_definition(self, document, feature_id, mode, reverse):
+    def _polygon_depth(self, case, document, foreground, feature_id, target, initial_depth, transform):
+        args = ('feature', 'set-depth', feature_id, '--depth-mm', target)
+        self.command(*args, document=foreground, expected_error='FeatureNotFound')
+        before = self.command('document', 'inspect', document=document)['document']
+        self.command(*args, document=document, session=self.session + '-contender',
+                     expected_error='DocumentLeaseConflict')
+        self.write(*args, '--if-update-stamp', before['update_stamp'] + 1,
+                   document=document, expected_error='DocumentUpdateConflict')
+        require(self.command('document', 'inspect', document=document)['document'] == before,
+                'refused polygon depth write changed document state')
+        stamp = before['update_stamp']
+        for label, changes, starting_depth in (
+            ('depth_write', True, initial_depth), ('depth_equal', False, target)
+        ):
+            result = case[label] = self.write(
+                *args, '--if-update-stamp', stamp, document=document,
+                timeout_seconds=self.depth_request_timeout_seconds)
+            self.background(result, document)
+            require(result['feature_id'] == feature_id and result['depth_changed'] is changes
+                    and all(result['mutation'][flag] is changes for flag in MUTATION_FLAGS)
+                    and (result.get('rebuilt') is True if changes else 'rebuilt' not in result)
+                    and result['verification']['passed'] is True and not result.get('warnings'),
+                    'polygon depth lifecycle differs from requested edit')
+            for check in result['selection_checks'].values():
+                require(check['ok'] is True and all(check['selection_access'].values()),
+                        'polygon depth selection access was not released and restored')
+            near(result['before_depth_mm'], starting_depth, 'polygon initial depth mismatch', 1e-6)
+            near(result['definition_after']['depth_mm'], target, 'polygon depth readback mismatch', 1e-6)
+            verify_polygon_metrics(result['measurement_after'], case['shape'], case['mode'],
+                                   case['reverse'], transform, target)
+            stamp = result['document']['update_stamp']
+
+    def _polygon_definition(self, document, feature_id, mode, reverse, depth):
         result = self.command('feature', 'inspect', feature_id, document=document)
         definition = result['definition']
         require(definition['end_condition'] == 0 and definition['both_directions'] is False
                 and definition['thin'] is False and definition['reverse_direction'] is (reverse if mode == 'boss' else not reverse)
                 and result['observation']['unchanged'] is True, 'polygon blind feature definition changed')
-        near(definition['depth_mm'], 10 if mode == 'boss' else 5, 'polygon native depth changed', 1e-6)
+        near(definition['depth_mm'], depth, 'polygon native depth changed', 1e-6)
+        return definition

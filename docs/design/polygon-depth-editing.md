@@ -1,9 +1,9 @@
 # Polygon feature-depth editing: next bounded investigation
 
-Status: **Windows internal read and depth mutation diagnostics verified**.
-The first public integration still needs its own installed Windows and Wine
-acceptance. Polygon `feature.set-depth` continues to return
-`UnsupportedDepthProfile` in the current public CLI.
+Status: **public triangle and axis-aligned L integration in development**.
+The internal Windows diagnostics passed. The public operation uses the same
+writer and now classifies eligible native polygon profiles directly. Installed
+Windows and Wine acceptance are required before release.
 
 ## Current evidence and missing proof
 

@@ -172,7 +172,9 @@ are allowed; holes, arcs, self crossing/touching, redundant collinear vertices
 and ambiguous short edges are refused. Coordinates locate geometry without
 adding driving dimensions or guaranteeing full definition. Preserve the exact
 returned sketch ID for blind extrusion/cut. Through-all and feature depth
-editing remain limited to their existing supported profiles. Partial creation
+editing are separately scoped. Depth editing on a14 supports triangles and
+axis-aligned concave L profiles. Through-all supports the documented circle and
+rectangle profiles. Partial creation
 is not rolled back; inspect the returned surviving sketch handle on failure.
 
 On supported hosts, save-as accepts parts (`.SLDPRT`), assemblies (`.SLDASM`)
@@ -354,9 +356,11 @@ access or rebuild, and does not promise that the feature is editable. Native
 `depth_mm` is the forward parameter, not actual material thickness or through-all
 travel. A cut's native direction flag is not the creation CLI's normalized flag.
 
-The first setter supports only writable, single-configuration parts with one
-solid, an exact absorbed full-circle/axis-aligned rectangle profile and a simple
-one-direction solid blind boss/cut. Equations/design tables, ongoing edits,
+The setter supports writable, single-configuration parts with one solid, an
+exact absorbed profile and a simple one-direction solid blind boss/cut.
+Supported profiles are a full circle or axis-aligned rectangle. Starting in
+a14, a simple triangle or six-edge axis-aligned concave L also qualifies when
+its native sketch has exactly one closed contour and no construction segments. Equations/design tables, ongoing edits,
 suppression/freeze/rollback, thin/draft/nonblind/reference-start features,
 explicit direction/contour references and unsupported body scopes are refused,
 not removed or silently normalized. A supported depth read is not permission

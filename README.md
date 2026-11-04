@@ -582,7 +582,9 @@ are no holes, arcs, automatic repair or driving dimensions. The result verifies
 one closed native straight-edge cycle and returns an exact document-scoped
 sketch ID, including a surviving partial sketch on creation failure. Use that
 ID with existing blind `feature extrude` / `feature cut-extrude --depth-mm`.
-Polygon through-all cuts and `feature set-depth` remain outside this slice.
+The a14 development branch supports blind depth edits for simple triangles
+and axis-aligned concave L profiles. Through-all cuts use the separate circle
+and rectangle scope.
 This development capability awaits separate public Windows/Wine acceptance.
 
 `sketch inspect SKETCH_ID --json` reads a registered 2D sketch without entering
@@ -777,7 +779,9 @@ Replace the IDs/stamp with fresh observations and your selected document's
 lease. It edits only the forward blind depth of an exact supported boss/cut,
 not general feature parameters. The first slice requires one writable,
 single-configuration, non-sheet-metal solid and an exact absorbed circle or
-axis-aligned rectangle profile. Equations/design tables, protected features,
+axis-aligned rectangle profile. The a14 development branch also accepts
+a triangle or six-edge axis-aligned concave L with one closed native contour
+and no construction segments. Equations/design tables, protected features,
 existing edits/commands, contours and explicit direction references are refused.
 It temporarily activates a background target and restores the prior foreground
 without changing the session's remembered document. It never saves the part.

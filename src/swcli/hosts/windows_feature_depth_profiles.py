@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Optional, Tuple
 
+from ..polygon_geometry import TOLERANCE_MM
 from .windows import _com_value
 from .windows_dimensions import _DimensionError, _circle_geometry
 from .windows_feature_depth import prepare_extrusion_depth_edit_windows_with_definition
@@ -97,7 +98,7 @@ def _profile_transform(sketch: Any):
     return transform
 
 
-def _profile(app: Any, document: Any, feature: Any, *, _polygon_calibration: bool) -> Dict[str, Any]:
+def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
     profile, identities, sketch = _owned_profile(app, document, feature)
     segments = _array(_com_value(sketch, "GetSketchSegments"), "profile segments", 64)
     try:
@@ -110,10 +111,24 @@ def _profile(app: Any, document: Any, feature: Any, *, _polygon_calibration: boo
                 "area_mm2": math.pi * radius * radius,
                 "construction_segment_count": 0,
             }
-        elif _polygon_calibration and len(segments) in (3, 6):
+        elif len(segments) in (3, 6) and not any(
+            [_boolean(_com_value(segment, "ConstructionGeometry"), "ConstructionGeometry")
+             for segment in segments]
+        ):
             polygon, edges = observe_native_polygon_profile(sketch)
             if len(edges) != len(segments):
                 raise _FeatureError("FeatureObservationUnavailable", "native segment count changed")
+            if len(edges) == 6:
+                points = polygon.vertices_mm
+                sides = [(abs(a[0] - b[0]), abs(a[1] - b[1]))
+                         for a, b in zip(points, points[1:] + points[:1])]
+                axes = [dx > dy for dx, dy in sides]
+                # Six alternating sides in a simple orthogonal cycle give one reflex corner.
+                if (any(min(dx, dy) > TOLERANCE_MM for dx, dy in sides)
+                        or any(a == b for a, b in zip(axes, axes[1:] + axes[:1]))
+                        or any(min(abs(a[0] - b[0]), abs(a[1] - b[1])) > TOLERANCE_MM
+                               for a, b in edges)):
+                    raise _FeatureError("UnsupportedDepthProfile", "six-edge depth profile must be an axis-aligned L")
             geometry = {
                 "kind": "polygon",
                 "vertices_mm": polygon.vertices_mm,
@@ -173,7 +188,7 @@ def _body(document: Any) -> Dict[str, Any]:
 
 
 def prepare_profiled_extrusion_depth_edit_windows_with_definition(
-    *, app: Any, document: Any, feature: Any, _polygon_calibration: bool = False
+    *, app: Any, document: Any, feature: Any
 ) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Add stable exact-profile/final-body proof to preliminary controls.
 
@@ -188,9 +203,9 @@ def prepare_profiled_extrusion_depth_edit_windows_with_definition(
         )
         if not first["ok"]:
             raise _FeatureError(first["error"]["type"], first["error"]["message"])
-        profile = _profile(app, document, feature, _polygon_calibration=_polygon_calibration)
+        profile = _profile(app, document, feature)
         body = _body(document)
-        repeated_profile = _profile(app, document, feature, _polygon_calibration=_polygon_calibration)
+        repeated_profile = _profile(app, document, feature)
         repeated_body = _body(document)
         repeated, _ = prepare_extrusion_depth_edit_windows_with_definition(
             app=app, document=document, feature=feature

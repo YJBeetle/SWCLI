@@ -34,6 +34,8 @@ class DepthProfileGuardTests(unittest.TestCase):
         self.sketch = SimpleNamespace(
             GetSketchSegments=lambda: self.segments,
             ModelToSketchTransform=self.transform,
+            Is3D=False,
+            GetSketchContours=[SimpleNamespace(IsClosed=True)],
         )
         self.profile = SimpleNamespace(
             identity=object(),
@@ -72,16 +74,10 @@ class DepthProfileGuardTests(unittest.TestCase):
         for key in ("profile", "body", "definition", "controls"):
             self.assertNotIn(key, result)
 
-    def test_triangle_depth_profile_requires_internal_calibration(self):
+    def test_triangle_depth_profile_uses_exact_native_cycle(self):
         corners = [point(0, 0), point(20, 0), point(0, 15)]
         self.segments = [line(corners[i], corners[(i + 1) % 3]) for i in range(3)]
-        self.sketch.Is3D = False
-        self.sketch.GetSketchContours = [SimpleNamespace(IsClosed=True)]
-        self.refused("UnsupportedDepthProfile")
-
-        result, definition = prepare_profiled_extrusion_depth_edit_windows_with_definition(
-            app=self.app, document=self.document, feature=self.feature, _polygon_calibration=True,
-        )
+        result, definition = self.prepare()
         self.assertTrue(result["ok"], result)
         self.assertIs(definition, self.fixture.definition)
         geometry = result["profile"]["geometry"]
@@ -89,6 +85,25 @@ class DepthProfileGuardTests(unittest.TestCase):
         self.assertEqual(geometry["area_mm2"], 150)
         self.assertEqual(len(geometry["edges_mm"]), 3)
         self.assertTrue(result["observation"]["unchanged"])
+
+    def test_orthogonal_l_passes_but_skew_six_edge_profile_is_refused(self):
+        corners = [point(x, y) for x, y in ((0, 0), (20, 0), (20, 5), (5, 5), (5, 20), (0, 20))]
+        self.segments = [line(corners[i], corners[(i + 1) % 6]) for i in range(6)]
+        result, _ = self.prepare()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["profile"]["geometry"]["area_mm2"], 175)
+        corners[2].X += 0.001
+        self.refused("UnsupportedDepthProfile")
+
+    def test_rectangle_with_two_construction_lines_keeps_rectangle_route(self):
+        diagonals = [line(self.corners[i], self.corners[i + 2]) for i in (0, 1)]
+        for segment in diagonals:
+            segment.ConstructionGeometry = True
+        self.segments.extend(diagonals)
+        result, _ = self.prepare()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["profile"]["geometry"]["kind"], "rectangle")
+        self.assertEqual(result["profile"]["geometry"]["construction_segment_count"], 2)
 
     def test_rectangle_retains_exact_profile_parent_area_and_transform(self):
         result, definition = self.prepare()

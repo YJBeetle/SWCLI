@@ -43,6 +43,13 @@ class PolygonGateTests(unittest.TestCase):
                     changed=copy.deepcopy(metric);changed['centroid_mm']['z']+=.01
                     with self.assertRaises(RuntimeError): verify_polygon_metrics(changed,shape,mode,reverse,IDENTITY)
 
+    def test_edited_depth_oracle_rejects_original_geometry(self):
+        changed = dict(solid_body_count=1, volume_mm3=2100, surface_area_mm2=1140,
+                       centroid_mm=dict(x=-10+20/3, y=0, z=7))
+        verify_polygon_metrics(changed, 'triangle', 'boss', False, IDENTITY, depth=14)
+        with self.assertRaises(RuntimeError):
+            verify_polygon_metrics(changed, 'triangle', 'boss', False, IDENTITY, depth=10)
+
     def test_readback_cycle_rejects_wrong_vertices_extra_or_duplicate_edges(self):
         for points in PROFILES.values():
             observed=dict(geometry_complete=True,editing=False,segment_count=len(points),profile_segment_count=len(points),

@@ -121,7 +121,7 @@ def require_same_edges(actual, expected):
 def verify_depth_mutation(app, document, feature, target, call, case):
     for label, changed in (("polygon-depth-write", True), ("polygon-depth-equal", False)):
         result = case[label] = call(label, lambda: set_extrusion_depth_windows(
-            app=app, document=document, feature=feature, depth_mm=target, _polygon_calibration=True))
+            app=app, document=document, feature=feature, depth_mm=target))
         checked(result["ok"] and not result.get("warnings"),
                 label + " failed: " + str(result.get("error")))
         expected_mutation = dict.fromkeys(
