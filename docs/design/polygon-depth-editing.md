@@ -1,9 +1,9 @@
 # Polygon feature-depth editing: next bounded investigation
 
-Status: **internal read-only observation verified on Windows**. The hosted
-calibration below proves absorbed ownership and stable readback across native
-save/reopen. A separate depth mutation diagnostic is the next gate. Polygon
-`feature.set-depth` continues to return `UnsupportedDepthProfile`.
+Status: **Windows internal read and depth mutation diagnostics verified**.
+The first public integration still needs its own installed Windows and Wine
+acceptance. Polygon `feature.set-depth` continues to return
+`UnsupportedDepthProfile` in the current public CLI.
 
 ## Current evidence and missing proof
 
@@ -143,6 +143,51 @@ Before freezing the next release, verify that the source includes
 source archive contain its linked SOLIDWORKS API guide. That guide concerns
 a separate native client for capability gaps. This calibration uses the
 existing SWCLI depth writer under its internal test option.
+
+### Windows depth mutation evidence
+
+[Windows run 41822901293](https://github.com/YJBeetle/SWCLI/actions/runs/41822901293)
+tested `1c8bd26de11711f00b45b92582e3c76cb7e858ba`. It retains the requested
+`16075bd5c68f8f2898310a8b5763c6eb85972b87` merge ancestry. Hosted artifact
+`13322597877` contains the diagnostic and existing public gate receipts.
+
+| Internal fixture | Plane and direction | Read-back depth, mm |
+| --- | --- | --- |
+| Triangle boss, CCW | Front, forward | 10 → 14 |
+| Concave L boss, CW | Top, reverse | 10 → 6 |
+| Triangle cut, CW | Right, reverse | 5 → 7 |
+| Concave L cut, CCW | Front, forward | 5 → 3 |
+
+The audit matched 48 owned profiles and all 48 saved part hashes. The 96
+pre-save and reopened observations matched the independent fixture edges
+exactly and showed zero transform drift. All four mutations recorded the
+complete staging, configuration and commit sequence. Equal-depth calls
+recorded all four flags false. Native selection access, release and state
+restoration passed, with equal profile, body, scope and controls before and
+after each write. Analytic volume, area and world centroid matched before and
+after mutation and after read-only reopen. The calibration checks native
+depth on reopen in-process. The trace and successful case attest that check,
+and the receipt archives the depth value from the writer's postflight.
+
+The trace contains 788 completed call pairs on one owned hidden SW 33.5.0
+process (PID 3452), with clean document and process teardown. This diagnostic
+keeps `full_acceptance_eligible=false`. Separately, the existing Windows full
+gate passed 19 groups, 20 steps and visible smoke, including all 48 public
+polygon depth refusals and 12 existing through-all cases.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Diagnostic report | `c2af6810e423c19d6d8eca175d6ee79952d0d93c319d812c607f3a378e7449da` |
+| Diagnostic trace | `7507376738052e78cd750279a243ffbe330a6162c58c45c5bf9c0efc706b23ea` |
+| Full gate summary | `a1db4ededc4e58918f1fc366879b015aaf7ea6d53efcf3d127f92830e78d1454` |
+| Visible smoke | `e304914ed1ed155c0613aa3513e361b1bb18bbe9a1b8fcf3cd8cdc34a1cff768` |
+
+The next public increment should start with the proven triangle and concave
+orthogonal L families. Classify eligible profiles from native line topology,
+and preserve the rectangle path for rectangles with construction geometry.
+Use a bounded public growth, shrink and equal-depth matrix with reopen
+readback. Verify the total group time under the existing limits before
+expanding coverage.
 
 ## Native and installed acceptance before publication
 
