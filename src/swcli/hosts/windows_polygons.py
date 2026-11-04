@@ -2,12 +2,113 @@
 
 import math
 
-from ..polygon_geometry import TOLERANCE_MM, validate_polygon
+from ..polygon_geometry import MAX_VERTICES, TOLERANCE_MM, validate_polygon
 from .windows import _com_value
 from .windows_sketches import (
     STANDARD_PLANES, _create_profile_sketch_windows_with_handle,
     _create_without_inference,
 )
+
+
+class PolygonObservationError(ValueError):
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+def _native_point_mm(point):
+    if point is None:
+        raise PolygonObservationError("PolygonObservationUnavailable", "native endpoint is missing")
+    coordinates = []
+    for axis in "XYZ":
+        value = _com_value(point, axis)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise PolygonObservationError("PolygonObservationUnavailable", "native coordinate is not numeric")
+        try:
+            mm = float(value) * 1000
+        except OverflowError as exc:
+            raise PolygonObservationError("PolygonObservationUnavailable", "native coordinate overflows") from exc
+        if not math.isfinite(mm) or math.ulp(mm) > TOLERANCE_MM:
+            raise PolygonObservationError("PolygonObservationUnavailable", "native coordinate cannot resolve tolerance")
+        coordinates.append(mm)
+    return tuple(coordinates)
+
+
+def observe_native_polygon_profile(sketch):
+    """Read a closed polygon from native endpoints, independent of creation history.
+
+    Canonical vertices describe the cycle; the full undirected endpoint pairs
+    retain small native differences for later fingerprint comparisons.
+    """
+    unavailable = "PolygonObservationUnavailable"
+    unsupported = "UnsupportedPolygonProfile"
+    is_3d = _com_value(sketch, "Is3D")
+    if type(is_3d) is not bool:
+        raise PolygonObservationError(unavailable, "native sketch dimension is unreadable")
+    if is_3d:
+        raise PolygonObservationError(unsupported, "polygon requires a 2D sketch")
+    segments = _com_value(sketch, "GetSketchSegments")
+    if not isinstance(segments, (tuple, list)):
+        raise PolygonObservationError(unavailable, "native sketch segments are unreadable")
+    if not 3 <= len(segments) <= MAX_VERTICES:
+        raise PolygonObservationError(unsupported, "polygon requires 3 to 64 lines")
+    endpoints = []
+    for segment in segments:
+        if segment is None:
+            raise PolygonObservationError(unavailable, "native sketch segment is missing")
+        construction = _com_value(segment, "ConstructionGeometry")
+        kind = _com_value(segment, "GetType")
+        if type(construction) is not bool or type(kind) is not int:
+            raise PolygonObservationError(unavailable, "native segment metadata is unreadable")
+        if construction or kind != 0:
+            raise PolygonObservationError(unsupported, "polygon requires nonconstruction lines")
+        start = _native_point_mm(_com_value(segment, "GetStartPoint2"))
+        end = _native_point_mm(_com_value(segment, "GetEndPoint2"))
+        if max(abs(start[2]), abs(end[2])) > TOLERANCE_MM:
+            raise PolygonObservationError(unsupported, "polygon endpoints must lie in sketch-local XY")
+        if math.dist(start[:2], end[:2]) <= 2 * TOLERANCE_MM:
+            raise PolygonObservationError(unsupported, "polygon has a short native edge")
+        endpoints.extend((start, end))
+
+    # Each endpoint occurrence must match exactly one occurrence from another
+    # line. This rules out branches and transitive tolerance clusters.
+    mates = []
+    for i, point in enumerate(endpoints):
+        candidates = [j for j, other in enumerate(endpoints)
+                      if i != j and math.dist(point[:2], other[:2]) <= TOLERANCE_MM]
+        if len(candidates) != 1:
+            raise PolygonObservationError(unsupported, "polygon endpoints do not pair uniquely")
+        mates.append(candidates[0])
+
+    first = min(range(len(endpoints)), key=endpoints.__getitem__)
+    current, visited, cycle = first, set(), []
+    while current // 2 not in visited:
+        visited.add(current // 2)
+        cycle.append(min(endpoints[current], endpoints[mates[current]])[:2])
+        current = mates[current ^ 1]
+    if current != first or len(visited) != len(segments):
+        raise PolygonObservationError(unsupported, "native lines must form one complete cycle")
+
+    cycle = min(cycle, [cycle[0], *reversed(cycle[1:])])
+    try:
+        geometry = validate_polygon([dict(x=x, y=y) for x, y in cycle])
+    except (ValueError, OverflowError) as exc:
+        raise PolygonObservationError(unsupported, str(exc)) from exc
+
+    contours = _com_value(sketch, "GetSketchContours")
+    if not isinstance(contours, (tuple, list)) or any(contour is None for contour in contours):
+        raise PolygonObservationError(unavailable, "native sketch contours are unreadable")
+    if len(contours) != 1:
+        raise PolygonObservationError(unsupported, "polygon requires one native contour")
+    closed = _com_value(contours[0], "IsClosed")
+    if type(closed) is not bool:
+        raise PolygonObservationError(unavailable, "native contour closure is unreadable")
+    if not closed:
+        raise PolygonObservationError(unsupported, "native contour is open")
+
+    edges = tuple(sorted(tuple(sorted(endpoints[i:i + 2]))
+                         for i in range(0, len(endpoints), 2)))
+    return geometry, edges
 
 
 def observe_polygon_sketch(sketch, expected):

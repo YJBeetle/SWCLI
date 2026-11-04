@@ -140,6 +140,19 @@ parts. Do not add model-specific commands. If a goal requires disproportionate
 implementation cost, revisit its support scope and acceptance criteria rather
 than accumulating a general-purpose framework to meet one example.
 
+## Modeling and assembly sequence
+
+1. Finish the foundational part modeling increments, including reliable
+   feature readback, editing and native save/reopen.
+2. Build assembly placement and mates on stable component and geometry
+   references. Start with explicit constraints and verify the solved state
+   after edits and reopen.
+3. Add editable exploded views with explicit component displacement and
+   ordered steps, then presentation animations with defined trajectories.
+4. Evaluate physical motion studies separately. Establish a supported native
+   environment, a bounded mechanism and independent checks on computed
+   results before widening the supported study types.
+
 ## Later protocol and integrations
 
 - Stable entity references with topology/revision validation and explicit stale

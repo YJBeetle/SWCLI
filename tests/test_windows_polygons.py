@@ -105,6 +105,60 @@ class PolygonNativeBoundaryTests(unittest.TestCase):
         self.assertEqual(manager.CreateLine.call_count, 2); self.assertIs(manager.AddToDB, False)
 
 
+class NativePolygonProfileTests(unittest.TestCase):
+    def observe(self, value):
+        value.Is3D = False
+        return native.observe_native_polygon_profile(value)
+
+    def test_native_fingerprint_survives_order_and_direction_changes(self):
+        fixtures = [
+            (POINTS, 150),
+            ([dict(x=x, y=y) for x, y in [(0, 0), (20, 0), (20, 5),
+                                         (5, 5), (5, 20), (0, 20)]], 175),
+            ([dict(x=x, y=y) for x, y in [(0, 0), (20, 0), (25, 10), (5, 10)]], 200),
+        ]
+        for points, area in fixtures:
+            original = sketch(points)
+            expected = self.observe(original)
+            shuffled = sketch(list(reversed(points)))
+            shuffled.GetSketchSegments = shuffled.GetSketchSegments[1::2] + shuffled.GetSketchSegments[::2]
+            with self.subTest(points=points):
+                self.assertEqual(self.observe(shuffled), expected)
+                self.assertEqual(abs(expected[0].signed_area_mm2), area)
+                self.assertEqual(len(expected[1]), len(points))
+
+    def test_native_endpoint_differences_are_retained_in_fingerprint(self):
+        value = sketch()
+        first = self.observe(value)
+        value.GetSketchSegments[-1].GetEndPoint2.X += 0.5e-9
+        second = self.observe(value)
+        self.assertEqual(first[0], second[0])
+        self.assertNotEqual(first[1], second[1])
+
+    def test_geometric_refusals_are_distinct_from_unreadable_native_data(self):
+        separate = sketch([dict(x=p["x"] + 100, y=p["y"]) for p in POINTS])
+        cases = [
+            ("unsupported", lambda s: s.GetSketchSegments.extend(separate.GetSketchSegments)),
+            ("unsupported", lambda s: s.GetSketchSegments.append(s.GetSketchSegments[0])),
+            ("unsupported", lambda s: setattr(s.GetSketchSegments[0], "ConstructionGeometry", True)),
+            ("unsupported", lambda s: setattr(s.GetSketchSegments[0].GetStartPoint2, "Z", 1)),
+            ("unsupported", lambda s: setattr(s.GetSketchSegments[0].GetStartPoint2, "X", 0.001)),
+            ("unsupported", lambda s: setattr(s.GetSketchContours[0], "IsClosed", False)),
+            ("unavailable", lambda s: setattr(s, "GetSketchSegments", None)),
+            ("unavailable", lambda s: setattr(s.GetSketchSegments[0], "GetType", True)),
+            ("unavailable", lambda s: setattr(s.GetSketchSegments[0].GetStartPoint2, "X", math.nan)),
+            ("unavailable", lambda s: setattr(s.GetSketchContours[0], "IsClosed", 1)),
+        ]
+        for category, mutate in cases:
+            value = sketch()
+            mutate(value)
+            code = ("UnsupportedPolygonProfile" if category == "unsupported"
+                    else "PolygonObservationUnavailable")
+            with self.subTest(mutation=mutate), self.assertRaises(native.PolygonObservationError) as caught:
+                self.observe(value)
+            self.assertEqual(caught.exception.code, code)
+
+
 spec = importlib.util.spec_from_file_location('polygon_calibration', Path(__file__).resolve().parents[1] / 'scripts/ci/verify-polygon-calibration.py')
 gate = importlib.util.module_from_spec(spec); spec.loader.exec_module(gate)
 

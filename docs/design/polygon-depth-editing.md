@@ -1,9 +1,11 @@
 # Polygon feature-depth editing: next bounded investigation
 
-Status: **design only, not implemented or accepted**. The published a13
-`8d6e5d3` still refuses polygon `feature.set-depth` with
-`UnsupportedDepthProfile`. No new native setter authority, schema capability,
-through-all support or release is introduced by this document.
+Status: **internal sketch observation implemented, native acceptance pending**.
+The observer reconstructs the closed cycle from native endpoints and retains
+the full edge coordinates for fingerprint comparison. The next verification
+must prove absorbed ownership and stable readback on real saved and reopened
+fixtures before wiring this observer into the depth guard. Polygon
+`feature.set-depth` continues to return `UnsupportedDepthProfile`.
 
 ## Current evidence and missing proof
 
