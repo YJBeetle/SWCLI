@@ -130,6 +130,20 @@ error, exact handle and cleanup evidence. No retry, automatic rollback, implicit
 save, daemon restart or group-internal host restart is added. Native 600-second
 and per-set 1800-second limits stay unchanged.
 
+The existing opt-in Windows polygon calibration now runs four internal
+depth fixtures in addition to the read-only matrix. Triangle bosses grow
+from 10 to 14 mm, L bosses shrink from 10 to 6 mm, triangle cuts grow from
+5 to 7 mm and L cuts shrink from 5 to 3 mm. Each case verifies an equal-depth
+request without staging or committing again, analytic geometry and native
+depth after explicit save and read-only reopen. The diagnostic selects only
+these generated fixtures and uses the same writer checks throughout.
+
+Before freezing the next release, verify that the source includes
+`16075bd5c68f8f2898310a8b5763c6eb85972b87` and that the installed wheel and
+source archive contain its linked SOLIDWORKS API guide. That guide concerns
+a separate native client for capability gaps. This calibration uses the
+existing SWCLI depth writer under its internal test option.
+
 ## Native and installed acceptance before publication
 
 1. Prove the read-only observer on triangle and concave L fixtures, both

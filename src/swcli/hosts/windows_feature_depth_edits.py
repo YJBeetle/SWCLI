@@ -90,7 +90,8 @@ def _stable(
 
 
 def set_extrusion_depth_windows(
-    *, app: Any, document: Any, feature: Any, depth_mm: float
+    *, app: Any, document: Any, feature: Any, depth_mm: float,
+    _polygon_calibration: bool = False,
 ) -> Dict[str, Any]:
     """Change only forward blind depth; caller owns activation/lease/stamp guards.
 
@@ -98,6 +99,9 @@ def set_extrusion_depth_windows(
     the update stamp even for equal-depth requests; depth_changed is therefore
     not a promise of an unchanged document stamp. Never saves, restarts or undoes.
     """
+    context = dict(app=app, document=document, feature=feature)
+    if _polygon_calibration:
+        context["_polygon_calibration"] = True
     result: Dict[str, Any] = {"ok": False, "action": "feature.set-depth"}
     result["mutation"] = {
         "staging_attempted": False,
@@ -112,7 +116,7 @@ def set_extrusion_depth_windows(
         target = _depth(depth_mm)
         result["requested_depth_mm"] = target
         before, definition = observe_extrusion_selection_scope_windows_with_definition(
-            app=app, document=document, feature=feature
+            **context
         )
         result["preflight"] = before
         if not before["ok"]:
@@ -173,7 +177,7 @@ def set_extrusion_depth_windows(
         # Data staging is not model mutation. Verify the live part remains at
         # the original definition/profile/controls/geometry before committing.
         check, _ = prepare_profiled_extrusion_depth_edit_windows_with_definition(
-            app=app, document=document, feature=feature
+            **context
         )
         if not check["ok"]:
             raise _FeatureError(check["error"]["type"], check["error"]["message"])
@@ -212,7 +216,7 @@ def set_extrusion_depth_windows(
                 "ModelInvalid", "modified depth did not rebuild successfully"
             )
         after, _ = observe_extrusion_selection_scope_windows_with_definition(
-            app=app, document=document, feature=feature
+            **context
         )
         result["postflight"] = after
         if not after["ok"]:

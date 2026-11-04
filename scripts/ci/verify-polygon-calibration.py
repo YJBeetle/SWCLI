@@ -16,6 +16,7 @@ from swcli.hosts.windows_parts import create_part_windows_with_handle
 from swcli.hosts.windows_polygons import (
     create_polygon_sketch_windows_with_handle, observe_native_polygon_profile,
 )
+from swcli.hosts.windows_feature_depth_edits import set_extrusion_depth_windows
 from swcli.hosts.windows_feature_depth_profiles import _owned_profile, _profile_transform
 from swcli.hosts.windows_sketch_inspection import _feature_id
 from swcli.polygon_geometry import TOLERANCE_MM
@@ -35,17 +36,28 @@ PROFILES = {
 }
 
 
-def verify_geometry(metrics, shape, plane, reverse, mode):
+# Keep the first mutation proof bounded. The other cases retain read-only proof.
+DEPTH_CASES = {
+    ("triangle-ccw-boss", "front", False): 14,
+    ("ell-cw-boss", "top", True): 6,
+    ("triangle-cw-cut", "right", True): 7,
+    ("ell-ccw-cut", "front", False): 3,
+}
+
+
+def verify_geometry(metrics, shape, plane, reverse, mode, depth_mm=None):
     # Independent fixture oracles; do not call the product's shoelace code here.
     area, perimeter, cx, cy = ((150, 60, -10 + 20 / 3, 0) if shape == "triangle"
                               else (150, 70, -2.5, 0))
+    depth = depth_mm if depth_mm is not None else (10 if mode == "boss" else 5)
     if mode == "boss":
-        volume, surface, normal = area * 10, 2 * area + perimeter * 10, 5
+        volume, surface, normal = area * depth, 2 * area + perimeter * depth, depth / 2
         local_x, local_y = cx, cy
     else:
-        volume, surface = 12000 - area * 5, 3800 + perimeter * 5
-        local_x, local_y = -area * 5 * cx / volume, -area * 5 * cy / volume
-        normal = (12000 * 5 - area * 5 * 2.5) / volume
+        removed_volume = area * depth
+        volume, surface = 12000 - removed_volume, 3800 + perimeter * depth
+        local_x, local_y = -removed_volume * cx / volume, -removed_volume * cy / volume
+        normal = (12000 * 5 - removed_volume * depth / 2) / volume
     checked(metrics["solid_body_count"] == 1, "polygon fixture did not leave one solid")
     for key, expected in (("volume_mm3", volume), ("surface_area_mm2", surface)):
         checked(math.isfinite(metrics[key]) and abs(metrics[key] - expected) < 1e-5,
@@ -106,6 +118,24 @@ def require_same_edges(actual, expected):
 
 
 
+def verify_depth_mutation(app, document, feature, target, call, case):
+    for label, changed in (("polygon-depth-write", True), ("polygon-depth-equal", False)):
+        result = case[label] = call(label, lambda: set_extrusion_depth_windows(
+            app=app, document=document, feature=feature, depth_mm=target, _polygon_calibration=True))
+        checked(result["ok"] and not result.get("warnings"),
+                label + " failed: " + str(result.get("error")))
+        expected_mutation = dict.fromkeys(
+            ("staging_attempted", "configuration_scope_applied", "commit_attempted", "committed"),
+            changed,
+        )
+        checked(result["mutation"] == expected_mutation and result["depth_changed"] is changed,
+                label + " mutation state differs")
+        checked(result["verification"]["passed"] and
+                abs(result["definition_after"]["depth_mm"] - target) <= TOLERANCE_MM,
+                label + " did not read back the requested depth")
+
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
                    retained_documents=(), profile_kind="triangle-ccw-boss"):
     shape, winding, mode = profile_kind.split("-")
@@ -142,6 +172,14 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(measured["ok"], "polygon fixture measurement failed")
     case["geometry"] = verify_geometry(measured["metrics"], shape, plane, reverse, mode)
     verify_centroid(app, result["model_to_sketch_transform"], measured["metrics"], case["geometry"])
+    target = DEPTH_CASES.get((profile_kind, plane, reverse))
+    saved_depth = target if target is not None else (10 if mode == "boss" else 5)
+    if target is not None:
+        verify_depth_mutation(app, document, feature, target, call, case)
+        changed = call("polygon-edited-measure", lambda: measure_part_windows(document=document))
+        checked(changed["ok"], "edited polygon measurement failed")
+        case["edited_geometry"] = verify_geometry(changed["metrics"], shape, plane, reverse, mode, target)
+        verify_centroid(app, profile["model_to_sketch_transform"], changed["metrics"], case["edited_geometry"])
     checked(_diagnose_features(document, 500)["healthy"], "polygon fixture diagnosis failed")
     path = output / (profile_kind + "-" + plane + ("-reverse" if reverse else "-forward") + ".SLDPRT")
     saved = call("polygon-save", lambda: save_as_native_windows(str(path), document=document))
@@ -157,7 +195,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(opened["ok"] and opened["api_errors"] == 0, "polygon readonly reopen failed")
     measured = call("polygon-reopened-measure", lambda: measure_part_windows(document=document))
     checked(measured["ok"], "reopened polygon measurement failed")
-    case["reopened_geometry"] = verify_geometry(measured["metrics"], shape, plane, reverse, mode)
+    case["reopened_geometry"] = verify_geometry(measured["metrics"], shape, plane, reverse, mode, saved_depth)
     verify_centroid(app, result["model_to_sketch_transform"], measured["metrics"], case["reopened_geometry"])
     kind = "Extrusion" if mode == "boss" else "Cut"
     features = [f for f in _features(document) if _types(f)[1] == kind]
@@ -173,7 +211,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         reopened_profile["model_to_sketch_transform"], profile["model_to_sketch_transform"])),
         "polygon model-to-sketch transform changed after reopen")
     definition = _com_value(features[0], "GetDefinition")
-    checked(definition.GetEndCondition(True) == 0 and abs(definition.GetDepth(True) * 1000 - (10 if mode == "boss" else 5)) < 1e-6,
+    checked(definition.GetEndCondition(True) == 0 and abs(definition.GetDepth(True) * 1000 - saved_depth) < 1e-6,
             "reopened polygon feature depth/end condition changed")
     diagnostic = case["reopened_diagnostics"] = _diagnose_features(document, 500)
     checked(diagnostic["healthy"] and not diagnostic["truncated"] and _com_value(document.Extension, "NeedsRebuild2") == 0,

@@ -72,6 +72,24 @@ class DepthProfileGuardTests(unittest.TestCase):
         for key in ("profile", "body", "definition", "controls"):
             self.assertNotIn(key, result)
 
+    def test_triangle_depth_profile_requires_internal_calibration(self):
+        corners = [point(0, 0), point(20, 0), point(0, 15)]
+        self.segments = [line(corners[i], corners[(i + 1) % 3]) for i in range(3)]
+        self.sketch.Is3D = False
+        self.sketch.GetSketchContours = [SimpleNamespace(IsClosed=True)]
+        self.refused("UnsupportedDepthProfile")
+
+        result, definition = prepare_profiled_extrusion_depth_edit_windows_with_definition(
+            app=self.app, document=self.document, feature=self.feature, _polygon_calibration=True,
+        )
+        self.assertTrue(result["ok"], result)
+        self.assertIs(definition, self.fixture.definition)
+        geometry = result["profile"]["geometry"]
+        self.assertEqual(geometry["kind"], "polygon")
+        self.assertEqual(geometry["area_mm2"], 150)
+        self.assertEqual(len(geometry["edges_mm"]), 3)
+        self.assertTrue(result["observation"]["unchanged"])
+
     def test_rectangle_retains_exact_profile_parent_area_and_transform(self):
         result, definition = self.prepare()
         self.assertTrue(result["ok"], result)

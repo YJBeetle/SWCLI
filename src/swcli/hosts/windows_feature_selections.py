@@ -247,7 +247,7 @@ def _failure(result: Dict[str, Any], exc: Exception, warning: str = "") -> None:
 
 
 def observe_extrusion_selection_scope_windows_with_definition(
-    *, app: Any, document: Any, feature: Any
+    *, app: Any, document: Any, feature: Any, _polygon_calibration: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Own access/release, prove restored model state and return fresh data.
 
@@ -255,6 +255,9 @@ def observe_extrusion_selection_scope_windows_with_definition(
     set feature data, rebuild, save or retry. Successful access may advance the
     stamp: that change is reported rather than misrepresented as a pure read.
     """
+    context = dict(app=app, document=document, feature=feature)
+    if _polygon_calibration:
+        context["_polygon_calibration"] = True
     result: Dict[str, Any] = {
         "ok": False,
         "action": "feature.selection-scope-preflight",
@@ -273,7 +276,7 @@ def observe_extrusion_selection_scope_windows_with_definition(
     try:
         before, definition = (
             prepare_profiled_extrusion_depth_edit_windows_with_definition(
-                app=app, document=document, feature=feature
+                **context
             )
         )
         if not before["ok"]:
@@ -359,7 +362,7 @@ def observe_extrusion_selection_scope_windows_with_definition(
                     )
                 post, fresh = (
                     prepare_profiled_extrusion_depth_edit_windows_with_definition(
-                        app=app, document=document, feature=feature
+                        **context
                     )
                 )
                 if not post["ok"]:

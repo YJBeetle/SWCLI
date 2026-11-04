@@ -23,6 +23,7 @@ from .windows_rectangle_profiles import (
     RectangleObservationError,
     observe_rectangle_profile,
 )
+from .windows_polygons import PolygonObservationError, observe_native_polygon_profile
 from .windows_sketch_inspection import _feature_id, _list_features
 
 
@@ -96,7 +97,7 @@ def _profile_transform(sketch: Any):
     return transform
 
 
-def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
+def _profile(app: Any, document: Any, feature: Any, *, _polygon_calibration: bool) -> Dict[str, Any]:
     profile, identities, sketch = _owned_profile(app, document, feature)
     segments = _array(_com_value(sketch, "GetSketchSegments"), "profile segments", 64)
     try:
@@ -108,6 +109,16 @@ def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
                 "center_mm": {"x": x, "y": y, "z": z},
                 "area_mm2": math.pi * radius * radius,
                 "construction_segment_count": 0,
+            }
+        elif _polygon_calibration and len(segments) in (3, 6):
+            polygon, edges = observe_native_polygon_profile(sketch)
+            if len(edges) != len(segments):
+                raise _FeatureError("FeatureObservationUnavailable", "native segment count changed")
+            geometry = {
+                "kind": "polygon",
+                "vertices_mm": polygon.vertices_mm,
+                "edges_mm": edges,
+                "area_mm2": abs(polygon.signed_area_mm2),
             }
         else:
             rectangle = observe_rectangle_profile(sketch)
@@ -124,10 +135,10 @@ def _profile(app: Any, document: Any, feature: Any) -> Dict[str, Any]:
                 "area_mm2": rectangle.width_mm * rectangle.height_mm,
                 "construction_segment_count": rectangle.construction_segment_count,
             }
-    except (_DimensionError, RectangleObservationError) as exc:
+    except (_DimensionError, RectangleObservationError, PolygonObservationError) as exc:
         code = (
             "UnsupportedDepthProfile"
-            if exc.code == "UnsupportedDimensionProfile"
+            if exc.code in ("UnsupportedDimensionProfile", "UnsupportedPolygonProfile")
             else "FeatureObservationUnavailable"
         )
         raise _FeatureError(code, str(exc)) from exc
@@ -162,7 +173,7 @@ def _body(document: Any) -> Dict[str, Any]:
 
 
 def prepare_profiled_extrusion_depth_edit_windows_with_definition(
-    *, app: Any, document: Any, feature: Any
+    *, app: Any, document: Any, feature: Any, _polygon_calibration: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Any]]:
     """Add stable exact-profile/final-body proof to preliminary controls.
 
@@ -177,10 +188,10 @@ def prepare_profiled_extrusion_depth_edit_windows_with_definition(
         )
         if not first["ok"]:
             raise _FeatureError(first["error"]["type"], first["error"]["message"])
-        profile, body = _profile(app, document, feature), _body(document)
-        repeated_profile, repeated_body = _profile(app, document, feature), _body(
-            document
-        )
+        profile = _profile(app, document, feature, _polygon_calibration=_polygon_calibration)
+        body = _body(document)
+        repeated_profile = _profile(app, document, feature, _polygon_calibration=_polygon_calibration)
+        repeated_body = _body(document)
         repeated, _ = prepare_extrusion_depth_edit_windows_with_definition(
             app=app, document=document, feature=feature
         )
