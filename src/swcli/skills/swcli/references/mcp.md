@@ -100,8 +100,13 @@ definition after startup. No password, boot/logon trigger or service is added.
 If this path is unavailable, report the error and start explicitly from the
 host terminal instead of repeatedly creating hosts.
 
-MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` is
-explicit, affects all clients on the endpoint, and keeps MCP connected. It
+At task completion, the agent can choose to keep the host ready or explicitly
+stop it, based on the user's stated preferences, resource needs and expected
+follow-up work. There is no rule requiring the agent to leave it running.
+MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` and `sw-cli daemon stop` send the same
+`daemon.shutdown` request and use the same protections. The tool returns its
+structured result while keeping the MCP connection open; the CLI returns
+text/JSON plus an exit code and finishes. Shutdown is explicit, affects all clients on the endpoint, and keeps MCP connected. It
 uses the existing shutdown guard: an owned host with any open document refuses
 shutdown; save/close only as authorized. An attached user's SW is preserved.
 No native-operation retry, implicit restart or rollback is added.

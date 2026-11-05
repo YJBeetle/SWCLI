@@ -91,6 +91,10 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does
   not upload local files, and `--allow-remote` does not provide authentication.
+- At task completion, choose whether to keep the host ready or explicitly call
+  `swcli_daemon_stop` using the user's stated preferences and expected follow-up
+  work. MCP disconnect leaves the host running. Stopping affects all clients
+  on that endpoint and does not authorize discarding or closing unrelated work.
 - MCP and CLI CAD/status calls do not start SW implicitly. Explicit MCP
   lifecycle tools and CLI daemon commands share the host manager; Wine startup
   uses the configured host wrapper, not the client Python. Starting/restarting/
