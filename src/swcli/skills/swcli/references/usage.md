@@ -21,12 +21,8 @@ sw-cli capabilities --json
 ```
 
 The client runs on Windows, macOS or Linux. Within SWCLI, swclid's STA worker performs
-SOLIDWORKS COM operations. Typed commands do not start a daemon unless `--auto-start` is explicitly
-selected, and never fall back to direct COM. `sw-cli --auto-start document list
---json` probes/reuses a local daemon and starts one only when unreachable at
-connect time. Remote endpoints only connect. Version/help/schema/status and
-capability discovery stay non-starting even with this flag. Existing unhealthy
-hosts and failed native operations require explicit recovery. For an authorized local Windows test:
+SOLIDWORKS COM operations. Typed commands never start a daemon implicitly or
+fall back to direct COM. For an authorized local Windows test:
 
 ```powershell
 sw-cli daemon start --visible --json

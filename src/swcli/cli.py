@@ -71,10 +71,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="daemon-side current-document session (default: shared default session)",
     )
     parser.add_argument(
-        "--auto-start", action="store_true",
-        help="start/reuse a local daemon before a typed CAD command (opt-in; remote endpoints only connect)",
-    )
-    parser.add_argument(
         "--request-id",
         help="stable idempotency key for one typed request (default: random UUID)",
     )
@@ -617,11 +613,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         request_id = args.request_id or str(uuid.uuid4())
         try:
             translate_parameter_paths(parameters)
-            if args.auto_start:
-                from .client_startup import ensure_local_daemon
-                ensure_local_daemon(
-                    endpoint=args.endpoint, connect_timeout_seconds=args.connect_timeout,
-                )
             response = call_daemon(
                 operation,
                 parameters,

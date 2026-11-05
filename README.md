@@ -69,9 +69,7 @@ as a **stdio** server. Initialization and tool discovery are lightweight; the
 first valid tool call starts or reuses a local daemon. Remote endpoints only
 connect; `--connect-only` also disables local startup. Existing visible SW
 instances still require explicit attach. Disconnecting MCP leaves swclid and
-its SW instance running. The CLI can explicitly opt into the same startup
-checks with `sw-cli --auto-start document list --json`; discovery/status remain
-non-starting.
+its SW instance running.
 
 ```json
 {"mcpServers":{"swcli":{"command":"sw-cli","args":["mcp","serve"]}}}
