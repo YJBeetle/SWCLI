@@ -32,7 +32,7 @@ reopen, file hashes and host cleanup. The fixture seeding is private calibration
 code. Drawing and broader saved-document fixtures require subsequent proof.
 The calibration receipt is followed by the existing full CAD gate.
 
-Installed CLI and Wine acceptance remain pending for this candidate.
+Installed Windows and Wine development gates passed as recorded below. Exact final-version acceptance remains pending.
 
 ## Native API sources
 
@@ -87,3 +87,32 @@ Wine validation will use these Windows-prepared fixture files and public
 `document save-as` to new native files, then close/read-only reopen and compare
 the property rows and saved hashes. Explicit local/host fixture and output
 directories preserve the adapter's path namespaces.
+
+## Installed Wine persistence proof
+
+[Wine gate 42005850194](https://github.com/YJBeetle/DockerSW/actions/runs/42005850194)
+passed with Docker `80a866312538270b930e2144b9da89987ad56cdd` and SWCLI
+`f8155e12b7b9e1aada2a53bdff3a1e498f9cfff0` (`0.1.0a15.dev0`). Its Docker base
+includes Wine patch 0020 for empty XML namespaces. Independent review confirmed
+sixteen public property reads and two stale-stamp refusals, then actual native
+save-as of both prepared part and assembly to new files. Each saved file opened
+read-only with a fresh handle and retained all five exact property rows,
+including Chinese and empty text. Save errors were zero, native warnings were
+absent (`null`), source hashes remained unchanged, and saved file hashes matched.
+The host remained owned and hidden, and cleanup reported no errors.
+
+The full nineteen-set/twenty-step matrix, polygon48, four depth writes/four equal
+calls, through-all12, fifteen shared exports, six delivery exports, one localized
+STEP and visible gate also passed. Actual execution logs confirmed Chinese UI
+and SHA-only candidate images without alias promotion.
+
+| Original evidence | SHA-256 |
+| --- | --- |
+| Export ZIP, artifact 13410400228 | `270769a07a9a7091b3d9d9a9bca9d17c142f4d55647b50e5b10416b2d777387d` |
+| Language ZIP, artifact 13410535090 | `9ff84b050aba0dd7359ea8aa55ac435574b60952f74756c540218e56f346393f` |
+| Public property receipt | `49a54426d2a037eb648621132b19257ea2ce161be42083e26f38a783bfa360b2` |
+| Full matrix summary | `7ee63a2e13d8a4c5ad0ea491aa644988e65e2a3eddb7e5e5a3ca25d63c3a59cd` |
+
+These results establish the prepared part/assembly read and save/reopen cases;
+configuration-scoped reads, drawing fixtures and public property writes remain
+future work. Final version freezing does not itself establish release acceptance.
