@@ -44,7 +44,8 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 使用 Python 3.10+ 安装可选依赖（源码目录执行 `python -m pip install ".[mcp]"`），
 让 AI 客户端通过 **stdio** 启动 `sw-cli mcp serve`。握手和工具发现不会启动 SW；
 第一次有效工具调用才启动或复用本地 daemon。远程只连接，`--connect-only` 可关闭本地
-自动启动。已有可见 SW 仍需显式 attach；关闭 MCP 不会关闭 daemon/SW。
+自动启动。已有可见 SW 仍需显式 attach；关闭 MCP 不会关闭 daemon/SW。普通 CLI 可显式使用
+`sw-cli --auto-start document list --json`，状态/版本/Schema/能力查询不启动宿主。
 
 ```json
 {"mcpServers":{"swcli":{"command":"sw-cli","args":["mcp","serve"]}}}

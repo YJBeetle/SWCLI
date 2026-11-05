@@ -89,8 +89,9 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does
   not upload local files, and `--allow-remote` does not provide authentication.
-- MCP may start a local host on first tool use; use connection-only mode for
-  observation that must not start SW. Starting/restarting/stopping a daemon changes the host lifecycle. Obtain the
+- MCP may start a local host on first tool use; the CLI can opt in with
+  `--auto-start` on typed CAD commands. Use connection-only mode for observation
+  that must not start SW. Starting/restarting/stopping a daemon changes the host lifecycle. Obtain the
   necessary user authority and never terminate another user's interactive host.
   Visible Windows tests use `daemon start --visible` or `daemon serve --visible`.
 

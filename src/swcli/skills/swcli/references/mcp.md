@@ -78,6 +78,11 @@ MCP connection can reuse the host. Stop/restart remains an explicit, authorized
 session, inspect the error and host state, recover explicitly, and reconnect;
 the adapter does not repeatedly start hosts or retry failed native operations.
 
+The ordinary CLI keeps connection-only behavior unless `--auto-start` is
+explicitly selected for a typed CAD command, for example
+`sw-cli --auto-start document list --json`. It uses the same startup checks as
+MCP. CLI version/help/schema/status/capabilities do not start a host.
+
 ## Discover, execute and check results
 
 The three stable MCP tools are:
