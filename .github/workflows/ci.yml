@@ -349,7 +349,11 @@ jobs:
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full
+          $propertyArguments = @{}
+          if ("${{ inputs.calibrate_properties }}" -eq "true") {
+            $propertyArguments.PropertyFixtureDirectory = "$env:SWCLI_SMOKE_ROOT\properties-calibration"
+          }
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full @propertyArguments
 
       - name: Measure streamed data and remaining disk
         if: always()

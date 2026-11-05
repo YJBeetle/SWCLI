@@ -5,7 +5,8 @@ param(
     [switch]$Hidden,
     [switch]$VisibleSmoke,
     [ValidateSet("core", "full")]
-    [string]$Suite = "full"
+    [string]$Suite = "full",
+    [string]$PropertyFixtureDirectory
 )
 
 $ErrorActionPreference = "Stop"
@@ -285,6 +286,13 @@ try {
     if (-not $afterInvalidRestart.result.host_connected -or
         $afterInvalidRestart.result.host.process_id -ne $beforeInvalidRestart.result.host.process_id) {
         throw "invalid restart parameters stopped or replaced the running SOLIDWORKS host"
+    }
+
+    if ($PropertyFixtureDirectory) {
+        & python -I (Join-Path $PSScriptRoot "../verify-properties.py") `
+            --output-dir (Join-Path $Workspace "properties") `
+            --fixture-dir $PropertyFixtureDirectory
+        if ($LASTEXITCODE -ne 0) { throw "public custom property CLI gate failed" }
     }
 
     # Shared scripts own CAD coverage and fresh CLI/SW session boundaries.
