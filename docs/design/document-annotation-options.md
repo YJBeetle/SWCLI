@@ -90,3 +90,41 @@ unattached→closed 仍待公共门禁覆盖，不能把原生初始值当成反
 
 注释字体需要 ITextFormat 原生对象，且可能联动各注释子类型；总体绘图标准也会
 联动子标准。两者本阶段均不开放写入，另行设计和原生验证后再扩展。
+
+## 公共门禁代码已准备（尚未执行原生验收）
+
+独立脚本 `scripts/ci/verify-document-annotations.py` 不读取 COM，不创建/重启 daemon，
+不触发 CI。需要已安装 A18 和开启 `SWCLI_TRACE_NATIVE_CALLS=1` 的自有隐藏 daemon，
+以及三份明确的准备样件：`annotations.SLDPRT`、`annotations.SLDASM`、`annotations.SLDDRW`。
+工程图缺失即失败，不以零件/装配替代；零件须有一个可测量实体。
+
+```powershell
+C:\Workspace\SWCLI\.venv\Scripts\python.exe -I C:\Workspace\SWCLI\scripts\ci\verify-document-annotations.py --fixture-dir C:\Workspace\SWCLI-tests\a18-fixtures --output-dir C:\Workspace\SWCLI-tests\a18-public-unique --native-trace C:\Workspace\SWCLI-tests\a18-daemon-stderr.log
+```
+
+样件来源可以是 c197 的三份原始 baseline，逐字节复制到独立 fixture 目录并更名，
+保留原件和 SHA-256；这只是公共门禁输入，不把私有脚本当成公共回执。
+门禁开始前要求空文档目录，固定请求600秒/组1800秒。它执行：
+
+1. 后台、跨 session 且已有写租约时读七字段，精确比较先前文档描述符。
+2. lease/stamp/每字段 expected_value 冲突，以及自身写入后的旧值冲突；均核零 native setter。
+3. 三类各七字段改为与初值不同的值，检查其他字段保持，另存 `changed-annotations.*`。
+4. clean 状态七次同值操作核零 setter/零 SetSaveFlag，然后关闭并用新只读 ID 重开，
+   检查七个改变值和 readonly 拒绝，零件 V/S/质心保持。
+5. 再次可写重开第一份副本，仅反向修改三箭头，另存 `reverse-annotations.*`，
+   再以新只读 ID 重开核反向值及其余四字段保持。
+6. 核三类原始文件和两份副本 hash/size、同宿主、空文档/cleanup；不保存回原输入。
+
+每个读/写/拒绝的 CLI request_id 与 daemon stderr 的 native-call begin/end/error 关联。
+成功改变要求恰好一次 IModelDocExtension setter；同值/拒绝为零；SetSaveFlag最多一次，
+同值/拒绝为零。还核 getter 数量：只读/同值/旧值冲突7次，成功改变21次（前读/首次读回/标脏后读回），
+lease/stamp/readonly前置拒绝零次，并核三轮读取与单 setter/SetSaveFlag 的实际先后顺序。
+缺失、重复或不完整 trace 即失败，
+不只依据 mutation 回执声称零写入。
+最终记录 stderr 的已消费前缀长度和 SHA-256，后续正常 daemon 退出追加日志不冒充旧前缀。
+
+便携 FakeCLI 测试验证三类流程、30次实际改变、21次 clean 同值，以及丢持久化、
+源文件改动、伪同值 setter、CAS误触setter、读脏状态、缺失/残缺trace、保存size错配、
+首失败单次尝试、旧证据不覆盖和最终checkpoint首错保留。
+这些通过仅证明门禁控制代码；**尚无这份 A18 公共门禁的实际原生回执**，
+未运行 VM/CI，c197 的有限持久化范围保持前述限制。
