@@ -70,10 +70,26 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertNotIn('SaveAs3', block)
         self.assertNotIn('Save3', block)
 
-    def test_complete_native_ci_requires_explicit_manual_selection(self):
+    def test_complete_native_ci_requires_manual_selection_or_validated_version_tag(self):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         light, native = workflow.split("  solidworks-e2e:", 1)
-        self.assertIn("if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.native_full }}", native)
+        native_guard = native.split("runs-on:", 1)[0]
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.native_full", native_guard)
+        self.assertIn("needs.tag-policy.result == 'success'", native_guard)
+        self.assertIn("startsWith(github.ref, 'refs/tags/v')", native_guard)
+        self.assertIn("needs.test.result == 'success'", native_guard)
+        self.assertIn("needs.package.result == 'success'", native_guard)
+        self.assertIn("github.repository == 'YJBeetle/SWCLI'", native_guard)
+        policy = light.split("  tag-policy:", 1)[1].split("  test:", 1)[0]
+        self.assertIn("ref: main", policy)
+        self.assertIn("fetch-depth: 0", policy)
+        self.assertIn("tag-release.py check-tag", policy)
+        publishing = native.split("  release:", 1)[1]
+        self.assertIn("needs.solidworks-e2e.result == 'success'", publishing)
+        self.assertIn("github.event_name == 'push'", publishing)
+        self.assertNotIn("workflow_dispatch", publishing)
+        self.assertIn("contents: write", publishing)
+        self.assertNotIn("contents: write", light)
         self.assertIn("default: false", light.split("      native_full:", 1)[1])
         for forbidden in ("secrets.", "RCLONE_CONFIG", "calibrate_", "pull_request:"):
             self.assertNotIn(forbidden, light)

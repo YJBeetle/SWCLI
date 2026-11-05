@@ -15,8 +15,17 @@ resources, and build, install and validate wheel/sdist distributions on Linux.
 Select `native_full=true` on manual dispatch to run complete SOLIDWORKS
 functional verification in CI. This job installs the built wheel on a fresh
 host, runs visible smoke and the hidden full plan, verifies public document
-metadata using prepared fixtures, and uploads original evidence. Only this
-explicitly selected job accesses the Google Drive credential.
+metadata using prepared fixtures, and uploads original evidence. A trusted SWCLI
+version-tag push also selects this same complete job after a separate secret-free
+tag policy check. Ordinary branch pushes do not select it. The Google Drive
+credential is available only to the native job; pull requests have no trigger.
+
+A future `v<version>` tag is the release instruction: after unit tests, package
+checks and complete native verification succeed, the release job validates the
+original artifacts and publishes them without rebuilding. Tags must match the
+source version and point to a commit reachable from upstream `main`. See
+[tag release automation](tag-releases.md) for provenance, immutable assets and
+failure recovery. Manual full verification alone never publishes a release.
 
 The former four development-calibration workflow inputs are removed.
 Their diagnostic scripts remain available for local Windows VM use.
@@ -102,9 +111,10 @@ through the independent shared `verify-visible.py` entrypoint (open/inspect/clos
 stop only), then runs `-Hidden -Suite full` in a separate `hidden/` evidence directory.
 SWCLI CI runs on branch pushes and authorized manual dispatch. Opening or
 updating a PR does not trigger a PR workflow. The Google Drive credential is
-used only by the explicitly dispatched hosted native installation job.
-Normal development uses the local Windows VM for native calibration and full
-acceptance. Main pushes perform the same lightweight checks as other pushes.
+used only by the manually selected or validated-version-tag native installation
+job. Native API development calibration uses the local Windows VM; complete
+acceptance remains available in CI. Main pushes perform the same lightweight
+checks as other branch pushes.
 
 Automatic runner cleanup stops after reaching 48 GiB of free space with the
 default 8 GiB VFS cache. Larger caches increase the target. The manual

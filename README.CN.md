@@ -530,7 +530,7 @@ python -m unittest discover -s tests -v
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-CI 在 Windows 2025 上使用 Python 3.9 和 3.14 运行单元测试及安装后 CLI 冒烟，并在 Linux 上构建、安装和检查 wheel/sdist。原生 API 开发校准在本地 Windows 虚拟机中执行，工作文件统一位于 `C:\Workspace`。完整 SOLIDWORKS 功能验证仍在 CI 中执行，手动运行时选择 `native_full=true`。Wine 集成由 DockerSW 和 MacSW 负责。详见 [Windows 测试](docs/windows-ci.md) 和 [共享运行时测试](docs/runtime-tests.md)。
+CI 在 Windows 2025 上使用 Python 3.9 和 3.14 运行单元测试及安装后 CLI 冒烟，并在 Linux 上构建、安装和检查 wheel/sdist。原生 API 开发校准在本地 Windows 虚拟机中执行，工作文件统一位于 `C:\Workspace`。完整 SOLIDWORKS 功能验证仍在 CI 中执行，手动运行时选择 `native_full=true`；未来推送与源码版本一致且可从 main 到达的 `v<version>` tag 时，自动执行完整验证，通过后使用本次 CI 原始 wheel/sdist 发布 Release。手动完整测试不自动发版，普通分支 push 仍为轻量检查。详见 [tag 发布门禁](docs/tag-releases.md)。Wine 集成由 DockerSW 和 MacSW 负责。详见 [Windows 测试](docs/windows-ci.md) 和 [共享运行时测试](docs/runtime-tests.md)。
 
 ## 许可证
 

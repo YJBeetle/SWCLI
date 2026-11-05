@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches: ["**"]
+    tags: ["v*"]
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -47,6 +49,23 @@ permissions:
   contents: read
 
 jobs:
+  tag-policy:
+    name: Validate release tag before private native runtime
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Execute the policy from main, not from an untrusted tag target.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Require version match and main ancestry
+        run: python scripts/ci/tag-release.py check-tag
+
   test:
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
@@ -149,8 +168,8 @@ jobs:
 
   solidworks-e2e:
     name: Complete SOLIDWORKS functional verification
-    needs: [test, package]
-    if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.native_full }}
+    needs: [test, package, tag-policy]
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -341,3 +360,56 @@ jobs:
             ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
           if-no-files-found: warn
           retention-days: 14
+
+
+  release:
+    name: Publish original verified version-tag artifacts
+    needs: [tag-policy, test, package, solidworks-e2e]
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && needs.solidworks-e2e.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: swcli-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Download original distributions from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-dist
+          path: ${{ runner.temp }}/release-dist
+          digest-mismatch: error
+      - name: Download original native receipts from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-windows-hosted-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-native
+          digest-mismatch: error
+      - name: Verify source, original artifacts and full native proof; publish without replacing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          python scripts/ci/tag-release.py release \
+            --dist "${{ runner.temp }}/release-dist" \
+            --evidence "${{ runner.temp }}/release-native/swcli-native-smoke" \
+            --output "${{ runner.temp }}/release-assets" \
+            | tee "${{ runner.temp }}/release-public-verification.json"
+      - name: Retain publication and anonymous-download verification receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-assets
+            ${{ runner.temp }}/release-public-verification.json
+          if-no-files-found: warn
+          retention-days: 90
