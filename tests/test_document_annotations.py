@@ -70,6 +70,9 @@ class DocumentAnnotationTests(unittest.TestCase):
             getattr(self.extension, "SetUserPreference" + kind).assert_not_called()
         self.document.SetSaveFlag.assert_not_called()
         self.app.ActivateDoc3.assert_not_called()
+        self.app.SetUserPreferenceIntegerValue.assert_not_called()
+        self.app.SetUserPreferenceToggle.assert_not_called()
+        self.app.SetUserPreferenceDoubleValue.assert_not_called()
 
     def drawing_context(self):
         self.sheet_sketch, self.template_sketch = object(), object()
@@ -119,6 +122,7 @@ class DocumentAnnotationTests(unittest.TestCase):
             lambda: setattr(self, "sheet", None),
             lambda: setattr(self, "sheet_view", None),
             lambda: setattr(self, "sheet_sketch", None),
+            lambda: setattr(self, "template_sketch", None),
             lambda: (setattr(self, "sheet_sketch", None),
                      setattr(self.document.SketchManager, "ActiveSketch", None)),
             lambda: setattr(self, "edit_sheet", 1),
@@ -168,9 +172,6 @@ class DocumentAnnotationTests(unittest.TestCase):
                     self.assertEqual(result["mutation"]["attempted"], phase > 1)
                     self.assertEqual(self.extension.SetUserPreferenceInteger.call_count, int(phase > 1))
                     self.assertEqual(self.document.SetSaveFlag.call_count, int(phase == 3))
-        self.app.SetUserPreferenceIntegerValue.assert_not_called()
-        self.app.SetUserPreferenceToggle.assert_not_called()
-        self.app.SetUserPreferenceDoubleValue.assert_not_called()
 
     def test_read_is_document_specific_background_read_under_another_lease(self):
         result = self.operation("document.annotation-options", session="reader")

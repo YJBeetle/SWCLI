@@ -174,7 +174,7 @@ active/background四组上下文中确认：`GetEditSheet=true`，`ActiveDrawing
 区分sheet和format编辑模式。
 
 修复后不简单跳过工程图检查：可变更profile必须是sheet模式、没有活动模型view，
-current sheet/首view/pseudoSketch/ActiveSketch均非空、名字非空、引用模型名为空，
+current sheet/首view/pseudoSketch/ActiveSketch/templateSketch均非空、名字非空、引用模型名为空，
 ActiveSketch与pseudoSketch相同且不是templateSketch。只读不按可变更profile拒绝，
 但所有读/写阶段均保存并核对sheet/view/sketch/template身份、mode、名称和引用模型名。
 format/view/foreign sketch等不支持上下文在setter前失败；不调用EditSheet来修复上下文。

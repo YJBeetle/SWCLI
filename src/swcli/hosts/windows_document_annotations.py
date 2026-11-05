@@ -55,7 +55,7 @@ def _writable_context(app, context):
     return (context["edit_sheet"] is True and context["active_view"] is None
             and context["sheet_view_model"] == ""
             and bool(context["sheet_name"] and context["sheet_view_name"])
-            and all(context[key] is not None for key in ("sheet", "sheet_view", "sheet_sketch", "sketch"))
+            and all(context[key] is not None for key in ("sheet", "sheet_view", "sheet_sketch", "sketch", "template_sketch"))
             and _same(app, context["sketch"], context["sheet_sketch"])
             and not _same(app, context["sketch"], context["template_sketch"]))
 
