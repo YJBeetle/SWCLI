@@ -97,7 +97,7 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   on that endpoint and does not authorize discarding or closing unrelated work.
 - MCP and CLI CAD/status calls do not start SW implicitly. Explicit MCP
   lifecycle tools and CLI daemon commands share the host manager; Wine startup
-  uses the configured host wrapper, not the client Python. Starting/restarting/
+  uses the configured daemon utilities, not the client Python. Starting/restarting/
   stopping a daemon changes the host lifecycle. Obtain the
   necessary user authority and never terminate another user's interactive host.
   Visible Windows tests use `daemon start --visible` or `daemon serve --visible`.

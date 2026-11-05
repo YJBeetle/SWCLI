@@ -71,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="daemon-side current-document session (default: shared default session)",
     )
     parser.add_argument(
-        "--host-launcher", help="absolute host-owned sw-cli wrapper for explicit daemon startup",
+        "--daemon-utils", dest="host_launcher", help="absolute host-owned daemon utilities script (Wine/Python adapter)",
     )
     parser.add_argument(
         "--request-id",
@@ -596,6 +596,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "mcp":
         from .mcp import run as run_mcp
         return run_mcp(args)
+
+    if args.command == "doctor" or (args.command == "daemon" and args.daemon_command in ("serve", "restart")):
+        from .daemon_manager import DaemonManager
+        try:
+            forwarded = DaemonManager(endpoint=args.endpoint, host_launcher=args.host_launcher).forward_host_command(args)
+        except (OSError, ValueError) as exc:
+            if getattr(args, "as_json", False):
+                print(json.dumps({"success": False, "error": {"code": type(exc).__name__, "message": str(exc)}}))
+            else:
+                print(str(exc), file=sys.stderr)
+            return 1
+        if forwarded is not None:
+            return forwarded
 
     if args.command == "daemon":
         return run_daemon_command(args)

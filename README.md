@@ -67,8 +67,8 @@ Install the optional MCP support with Python 3.10+ (`python -m pip install
 ".[mcp]"` from this checkout). Configure the AI client to run `sw-cli mcp serve`
 as a **stdio** server. Initialization, status and CAD calls never start SW
 implicitly. Call `swcli_daemon_start` explicitly when needed; startup of daemon
-and SW may take several minutes. Linux/macOS clients use the host wrapper
-configured by `--host-launcher` or `SWCLI_HOST_LAUNCHER`, rather than starting
+and SW may take several minutes. Linux/macOS clients use the host daemon utilities
+configured by `--daemon-utils` or `SWCLI_DAEMON_UTILS`, rather than starting
 their own Python as a Windows daemon. Remote startup stays host-managed.
 Existing visible SW requires explicit attach. MCP disconnect leaves swclid/SW
 running; `swcli_daemon_stop` is explicit and respects open-document guards.

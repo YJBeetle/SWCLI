@@ -19,8 +19,8 @@ from .daemon.timeouts import validate_timeout
 from .protocol import load_schema
 from .runtime_state import native_inventory, snapshot
 
-LAUNCHER_ENV = "SWCLI_HOST_LAUNCHER"
-DELEGATED_ENV = "SWCLI_HOST_LAUNCHER_ACTIVE"
+LAUNCHER_ENV = "SWCLI_DAEMON_UTILS"
+DELEGATED_ENV = "SWCLI_DAEMON_UTILS_ACTIVE"
 
 
 def failure(code, message, **extra):
@@ -100,7 +100,7 @@ class DaemonManager:
                     return failure("HostLauncherNotReady", "Host launcher returned without a ready daemon/SW; inspect status before another start", outcome_unknown=True)
             return result
         if sys.platform != "win32":
-            return failure("HostLauncherRequired", "Configure SWCLI_HOST_LAUNCHER with the host's absolute sw-cli wrapper; the client Python is not the daemon runtime")
+            return failure("HostLauncherRequired", "Configure SWCLI_DAEMON_UTILS with the host's absolute daemon utilities script; the client Python is not the daemon runtime")
         if delegated:
             return start_daemon(endpoint=self.endpoint, startup_timeout_seconds=startup_timeout_seconds,
                                 visible=visible, attach_existing=attach_existing)
@@ -111,17 +111,53 @@ class DaemonManager:
         return start_daemon(endpoint=self.endpoint, startup_timeout_seconds=startup_timeout_seconds,
                             visible=visible, attach_existing=attach_existing)
 
+    def forward_host_command(self, args):
+        """Delegate host-only CLI commands after Python has parsed all options.
+
+        Stop/status remain native protocol calls. The shell utility sees one
+        explicit action, never guesses the public CLI's command position.
+        """
+        if not self.host_launcher or os.environ.get(DELEGATED_ENV) == "1":
+            return None
+        action = "doctor" if args.command == "doctor" else getattr(args, "daemon_command", None)
+        if action not in ("doctor", "serve", "restart"):
+            return None
+        launcher = Path(self.host_launcher)
+        if not launcher.is_absolute() or not launcher.is_file() or (sys.platform != "win32" and not os.access(launcher, os.X_OK)):
+            raise ValueError("SWCLI_DAEMON_UTILS must identify an existing absolute executable path")
+        parameters = []
+        if action == "serve":
+            parameters = ["--host", args.host, "--port", str(args.port),
+                          "--startup-timeout", str(args.startup_timeout), "--host-platform", args.host_platform]
+            if args.allow_remote:
+                parameters.append("--allow-remote")
+        elif action == "restart":
+            parameters = ["--endpoint", getattr(args, "daemon_endpoint", None) or self.endpoint,
+                          "--startup-timeout", str(args.startup_timeout)]
+        if action != "doctor":
+            if args.visible:
+                parameters.append("--visible")
+            if args.attach_existing:
+                parameters.append("--attach-existing")
+        if getattr(args, "as_json", False):
+            parameters.append("--json")
+        environment = dict(os.environ, **{DELEGATED_ENV: "1", "SWCLI_ENDPOINT": self.endpoint})
+        # serve/doctor belong to the foreground caller. Explicit restart must
+        # leave its newly resident Wine host outside a POSIX client kill group.
+        return subprocess.run([str(launcher), action, *parameters], env=environment,
+                              start_new_session=sys.platform != "win32" and action == "restart").returncode
+
     def _start_external(self, visible, attach_existing, timeout):
         launcher = Path(self.host_launcher)
         if not launcher.is_absolute() or not launcher.is_file():
-            return failure("InvalidHostLauncher", "SWCLI_HOST_LAUNCHER must identify an existing absolute executable path")
+            return failure("InvalidHostLauncher", "SWCLI_DAEMON_UTILS must identify an existing absolute executable path")
         if sys.platform != "win32" and not os.access(launcher, os.X_OK):
             return failure("InvalidHostLauncher", "Host launcher is not executable")
         if sys.platform == "win32":
             from .windows_client_startup import in_client_job
             if in_client_job():
                 return failure("HostLauncherIsolationRequired", "This Windows client is inside a kill job; use its native manager or an independently managed host service")
-        arguments = [str(launcher), "daemon", "start", "--endpoint", self.endpoint,
+        arguments = [str(launcher), "start", "--endpoint", self.endpoint,
                      "--startup-timeout", str(timeout), "--json"]
         if visible:
             arguments.append("--visible")

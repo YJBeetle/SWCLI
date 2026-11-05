@@ -165,7 +165,7 @@ class MCPStdioIntegrationTests(unittest.IsolatedAsyncioTestCase):
     def parameters(self,daemon):
         from mcp import StdioServerParameters
         env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src"))
-        for key in ("SWCLI_SESSION_ID","SWCLI_HOST_LAUNCHER","SWCLI_HOST_LAUNCHER_ACTIVE","SWCLI_PATH_TRANSLATE_CMD"):
+        for key in ("SWCLI_SESSION_ID","SWCLI_DAEMON_UTILS","SWCLI_DAEMON_UTILS_ACTIVE","SWCLI_PATH_TRANSLATE_CMD"):
             env.pop(key,None)
         return StdioServerParameters(command=sys.executable,args=["-m","swcli","--endpoint",f"127.0.0.1:{daemon.server_address[1]}","mcp","serve"],env=env)
 

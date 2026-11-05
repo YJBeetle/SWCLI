@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 
 from swcli import PROTOCOL_VERSION
-from swcli.cli import main
+from swcli.cli import main, build_parser
 from swcli.daemon_manager import DaemonManager
 from swcli.runtime_state import snapshot
 
@@ -88,7 +88,7 @@ class DaemonManagerTests(unittest.TestCase):
         start.assert_not_called()
 
     def test_explicit_launcher_overrides_environment(self):
-        with mock.patch.dict(os.environ, {"SWCLI_HOST_LAUNCHER": "/environment/launcher"}):
+        with mock.patch.dict(os.environ, {"SWCLI_DAEMON_UTILS": "/environment/launcher"}):
             self.assertEqual(DaemonManager().host_launcher, "/environment/launcher")
             self.assertEqual(DaemonManager(host_launcher="/explicit/launcher").host_launcher, "/explicit/launcher")
 
@@ -113,15 +113,15 @@ class DaemonManagerTests(unittest.TestCase):
             with mock.patch.object(manager, "_call", side_effect=[offline(), ready()]), mock.patch("swcli.daemon_manager.sys.platform", "darwin"), mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=0, stdout=json.dumps(result).encode())) as run, mock.patch("swcli.daemon.main.start_daemon") as native:
                 self.assertTrue(manager.start(visible=True, attach_existing=True, startup_timeout_seconds=300)["success"])
             argv = run.call_args.args[0]
-            self.assertEqual(argv, [str(launcher), "daemon", "start", "--endpoint", "127.0.0.1:18495", "--startup-timeout", "300.0", "--json", "--visible", "--attach-existing"])
+            self.assertEqual(argv, [str(launcher), "start", "--endpoint", "127.0.0.1:18495", "--startup-timeout", "300.0", "--json", "--visible", "--attach-existing"])
             self.assertTrue(run.call_args.kwargs["start_new_session"])
-            self.assertEqual(run.call_args.kwargs["env"]["SWCLI_HOST_LAUNCHER_ACTIVE"], "1")
+            self.assertEqual(run.call_args.kwargs["env"]["SWCLI_DAEMON_UTILS_ACTIVE"], "1")
             self.assertFalse(run.call_args.kwargs.get("shell", False))
             native.assert_not_called()
 
     def test_delegated_windows_backend_does_not_recurse_into_host_launcher_or_scheduler(self):
         self.manager.host_launcher = "/must-not-run"
-        with mock.patch.dict(os.environ, {"SWCLI_HOST_LAUNCHER_ACTIVE": "1"}), mock.patch.object(self.manager, "_call", side_effect=offline()), mock.patch("swcli.daemon_manager.sys.platform", "win32"), mock.patch("swcli.daemon.main.start_daemon", return_value={"success": True}) as native, mock.patch("swcli.daemon_manager.subprocess.run") as external:
+        with mock.patch.dict(os.environ, {"SWCLI_DAEMON_UTILS_ACTIVE": "1"}), mock.patch.object(self.manager, "_call", side_effect=offline()), mock.patch("swcli.daemon_manager.sys.platform", "win32"), mock.patch("swcli.daemon.main.start_daemon", return_value={"success": True}) as native, mock.patch("swcli.daemon_manager.subprocess.run") as external:
             self.assertTrue(self.manager.start()["success"])
         native.assert_called_once_with(endpoint="127.0.0.1:18495", startup_timeout_seconds=120.0, visible=False, attach_existing=False)
         external.assert_not_called()
@@ -146,6 +146,36 @@ class DaemonManagerTests(unittest.TestCase):
             self.assertEqual(self.manager.stop(request_id="stop-once"),refused)
         call.assert_called_once_with("daemon.shutdown",timeout=600,request_id="stop-once")
         start.assert_not_called()
+
+    def test_global_options_are_parsed_before_host_only_delegation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            launcher = Path(directory) / "daemon utils"; launcher.touch(); launcher.chmod(0o700)
+            with mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=17)) as run:
+                code = main(["--daemon-utils", str(launcher), "--endpoint", "127.0.0.1:19500", "doctor", "--json"])
+            self.assertEqual(code, 17)
+            self.assertEqual(run.call_args.args[0], [str(launcher), "doctor", "--json"])
+            self.assertEqual(run.call_args.kwargs["env"]["SWCLI_ENDPOINT"], "127.0.0.1:19500")
+            self.assertEqual(run.call_args.kwargs["env"]["SWCLI_DAEMON_UTILS_ACTIVE"], "1")
+
+    def test_utils_do_not_intercept_status_stop_or_typed_operations(self):
+        manager = DaemonManager(host_launcher="/not/executed")
+        for command in (["daemon", "status", "--json"], ["daemon", "stop", "--json"], ["document", "list", "--json"]):
+            with self.subTest(command=command), mock.patch("swcli.daemon_manager.subprocess.run") as run:
+                self.assertIsNone(manager.forward_host_command(build_parser().parse_args(command)))
+                run.assert_not_called()
+
+    def test_serve_and_restart_forward_explicit_actions_without_shell(self):
+        with tempfile.TemporaryDirectory() as directory:
+            launcher = Path(directory)/"utils"; launcher.touch(); launcher.chmod(0o700)
+            manager = DaemonManager(host_launcher=str(launcher))
+            for command in (["daemon", "serve", "--host-platform", "macos-wine", "--port", "19501", "--visible"], ["daemon", "restart", "--attach-existing", "--json"]):
+                with mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=0)) as run:
+                    self.assertEqual(manager.forward_host_command(build_parser().parse_args(command)),0)
+                argv = run.call_args.args[0]
+                self.assertEqual(argv[:2], [str(launcher), command[1]])
+                self.assertFalse(run.call_args.kwargs.get("shell",False))
+                self.assertEqual(run.call_args.kwargs["start_new_session"], command[1]=="restart")
+                self.assertIn("--visible" if command[1]=="serve" else "--attach-existing",argv)
 
     def test_detailed_cli_uses_same_manager_snapshot(self):
         value={"success":True,"result":snapshot(daemon_running=False,reachable=False)}

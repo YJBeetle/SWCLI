@@ -44,8 +44,8 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 使用 Python 3.10+ 安装可选依赖（源码目录执行 `python -m pip install ".[mcp]"`），
 让 AI 客户端通过 **stdio** 启动 `sw-cli mcp serve`。握手和工具发现不会启动 SW；
 状态查询和 CAD 调用也不隐式启动。需要时显式调用 `swcli_daemon_start`，daemon 与 SW
-启动可能需要数分钟。Linux/macOS 通过 `--host-launcher` 或 `SWCLI_HOST_LAUNCHER`
-指定宿主包装脚本，不能把客户端 Python 当作 Windows daemon runtime。远程启动由宿主管理。
+启动可能需要数分钟。Linux/macOS 通过 `--daemon-utils` 或 `SWCLI_DAEMON_UTILS`
+指定宿主 daemon utils，不能把客户端 Python 当作 Windows daemon runtime。远程启动由宿主管理。
 已有可见 SW 仍需显式 attach；关闭 MCP 不会关闭 daemon/SW，显式停止保留原有文档保护。
 
 ```json

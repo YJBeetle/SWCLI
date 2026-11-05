@@ -42,44 +42,53 @@ tool timeout to cover that startup budget plus transport overhead. Do not
 submit another start while one is pending. After a timeout, inspect status;
 the host may have started even if its reply was lost.
 
-### Host launcher selection
+### Daemon utilities selection
 
-The shared manager uses an explicit global `--host-launcher PATH` first, then
-`SWCLI_HOST_LAUNCHER`, then the built-in native Windows launcher. A configured
-launcher must be an existing absolute executable path; it is process
-configuration, never an AI-supplied tool argument. A configured launcher failure
+The shared manager uses an explicit global `--daemon-utils PATH` first, then
+`SWCLI_DAEMON_UTILS`, then the built-in native Windows launcher. A configured
+utility must be an existing absolute executable path; it is process
+configuration, never an AI-supplied tool argument. A configured utility failure
 is reported without falling back to a different runtime. On Linux/macOS,
-missing configuration is an error: the MCP client's Python is not the Wine
+missing utilities configuration is an error: the MCP client's Python is not the Wine
 Windows Python that runs swclid. SWCLI does not search PATH for Wine, prefixes,
 SOLIDWORKS or a different Python.
 
-Use DockerSW's `/usr/local/bin/sw-cli` wrapper **inside its container** or
-MacSW's actual App `Contents/MacOS/sw-cli` wrapper on macOS. The wrapper owns
-Wine, prefix, runtime preparation and Windows Python selection. DockerSW's
-wrapper supplies its own default launcher to native clients. For MacSW, set
-the actual installed App wrapper explicitly, for example:
+The DockerSW and MacSW `sw-cli` entry scripts only set the native client
+environment and forward **all** public arguments unchanged. They provide
+`SWCLI_DAEMON_UTILS` pointing to a separate shell script:
+
+- DockerSW: `/usr/local/bin/swcli-daemon-utils` inside the container.
+- MacSW: the actual App's `Contents/Resources/SWCLI/bin/swcli-daemon-utils`.
+
+The utilities execute the real Windows daemon with the host-selected Wine,
+prefix and Windows Python. They do not open another service, maintain daemon
+state or parse the public CLI. The manager invokes literal `[utils, "start",
+"--endpoint", ..., "--startup-timeout", ..., "--json"]` arguments. Host-only
+CLI `serve`, `restart` and `doctor` are likewise parsed in Python and forwarded
+as explicit utility actions. Status and stop use the existing native TCP client
+without launching Wine. A delegation marker prevents recursive dispatch in the
+Windows backend. POSIX startup runs in a separate OS session so closing MCP
+does not kill the resident host.
+
+For example, with an App installed in `/Applications`:
 
 ```json
 {
   "mcpServers": {
     "swcli": {
       "command": "/Applications/MacSW.app/Contents/MacOS/sw-cli",
-      "args": ["mcp", "serve"],
-      "env": {
-        "SWCLI_HOST_LAUNCHER": "/Applications/MacSW.app/Contents/MacOS/sw-cli"
-      }
+      "args": ["mcp", "serve"]
     }
   }
 }
 ```
 
-Adjust the App path to its actual location. The wrapper/native client must
+Adjust the App path to its actual location. To override its utilities, set
+`SWCLI_DAEMON_UTILS` to an absolute executable script path in the MCP process
+environment, or pass the global `--daemon-utils PATH` option before `mcp serve`.
+It is a path, not a shell command string. The App/container native client must
 contain this SWCLI version and its optional MCP dependencies; installing the
-extra in an unrelated terminal Python does not update an App/container.
-The manager calls the wrapper with literal `daemon start --endpoint ...
---startup-timeout ... --json` arguments, optional `--visible` and
-`--attach-existing`, and a delegation marker to prevent recursion. POSIX
-launches run in a separate OS session so closing MCP does not kill the host.
+extra in an unrelated terminal Python does not update the packaged runtime.
 
 An already-ready daemon is reused without changing visibility. Remote endpoints
 are connection-only for startup: start the daemon on its host. A loopback
