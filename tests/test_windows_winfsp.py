@@ -36,16 +36,6 @@ class WinFspDependencyContractsTests(unittest.TestCase):
         self.assertIn("@(0, 3010) -notcontains $process.ExitCode", source)
         self.assertIn("Get-Service -Name WinFsp.Launcher", source)
 
-    def test_workflow_checks_packages_and_retains_the_installer_log(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        step = workflow.split("      - name: Install rclone, WinFsp, and ImDisk", 1)[1].split("\n      - ", 1)[0]
-        self.assertNotIn("choco install rclone winfsp", step)
-        self.assertIn("scripts/ci/windows/install-media-dependencies.ps1", step)
-        self.assertLess(step.index("install-media-dependencies.ps1"), step.index("install-winfsp.ps1"))
-        self.assertIn("scripts/ci/windows/install-winfsp.ps1", step)
-        self.assertIn("swcli-hosted-media\\winfsp\\winfsp-install.log", workflow)
-        self.assertIn("mount-google-drive.ps1", workflow)
-
 
 @unittest.skipUnless(os.name == "nt" and POWERSHELL, "Windows PowerShell fakes; never installs MSI")
 class WinFspDependencyExecutionTests(unittest.TestCase):

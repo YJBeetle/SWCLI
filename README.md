@@ -911,15 +911,13 @@ on the module path:
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-CI runs the unit suite on Windows 2025 with Python 3.9 and 3.14, and builds and
-checks distributions on Linux without claiming either job proves Wine
-compatibility. Real SOLIDWORKS modeling is
-verified in visible and hidden host modes on a disposable GitHub-hosted Windows
-runner using one fresh official installation; patched Wine integration remains the responsibility of DockerSW
-and MacSW. This does not claim Windows Server is an officially supported
-SOLIDWORKS workstation. See [Windows CI](docs/windows-ci.md) and
-[shared runtime tests](docs/runtime-tests.md) for the common modeling/driving/Toolbox
-scripts and the distinction between portable checks and real host evidence.
+CI runs the unit suite on Windows 2025 with Python 3.9 and 3.14, checks the
+installed CLI, and builds and verifies distributions on Linux. Native API
+calibration and complete SOLIDWORKS verification run on the local Windows VM
+under `C:\Workspace`. Wine integration remains the responsibility of DockerSW
+and MacSW. See [Windows testing](docs/windows-ci.md) and
+[shared runtime tests](docs/runtime-tests.md) for the native test scripts and
+their evidence requirements.
 
 ## License
 

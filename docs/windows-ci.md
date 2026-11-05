@@ -1,25 +1,31 @@
-# Windows CI design
+# Windows testing and CI
 
-SWCLI separates portable checks from tests that require a real native
-SOLIDWORKS installation.
+Development calibration and complete native verification run in the local
+Windows VM with its installed SOLIDWORKS. Source and the working Python
+environment live in `C:\Workspace\SWCLI`; test evidence lives under
+`C:\Workspace\SWCLI-tests\<version>-<commit>-<purpose>`.
+Keep each run's original reports, traces, native models and file hashes.
 
-## Hosted CI
+## Hosted checks
 
-`.github/workflows/ci.yml` is the single hosted workflow. Its first stage runs
-the unit suite on Windows 2025 with Python 3.9 and 3.14, parses every Windows CI
-PowerShell script, verifies the installed CLI and protocol schemas, and builds
-and checks both distributions on Linux. The Linux package job installs the
-actual wheel and verifies the isolated CLI, all request/result Schemas and
-packaged product skill/guide; Windows checks the same resources in the installed
-checkout during the unit stage. These jobs do not activate COM, run Wine or require
-SOLIDWORKS and are safe for pull requests.
+`.github/workflows/ci.yml` runs on pushes and explicit manual dispatch.
+Pull requests do not trigger it. It runs the unit suite on Windows 2025 with
+Python 3.9 and 3.14, checks PowerShell syntax and installed CLI resources,
+and builds and validates wheel/sdist distributions on Linux. The package job
+installs the actual wheel and verifies isolated commands, schemas and guides.
 
-The second stage depends on both unit tests and package validation. It runs the
-native SOLIDWORKS E2E only for trusted `main` pushes or an explicit manual run;
-any first-stage failure prevents the expensive installation and real export
-job from starting. Wine execution remains the responsibility of integration
-projects such as DockerSW and MacSW because their patched runtimes define
-whether SOLIDWORKS is usable under Wine.
+Hosted CI has no SOLIDWORKS installation job, calibration inputs, Google Drive
+access or private credential references. Real CAD validation uses the existing
+shared scripts on the VM. Internal calibration reports remain diagnostic
+evidence. Public CLI acceptance and complete functional verification are
+recorded separately, with the existing native deadlines and cleanup checks.
+
+## Historical hosted installation workflow
+
+The remaining sections document the retired hosted installation workflow and
+its prior investigations. Their workflow switches, secret requirements and
+installation steps are historical. The scripts remain available for local
+environment diagnostics and native verification.
 
 The earlier standalone installation-media probe has been retired after its
 mounting path was incorporated into the E2E job. The unified workflow records
@@ -87,8 +93,19 @@ checks do not imply topology-edit survival or replace distribution publication p
 The hosted installation is performed once. Its wrapper first runs `-VisibleSmoke`
 through the independent shared `verify-visible.py` entrypoint (open/inspect/close/
 stop only), then runs `-Hidden -Suite full` in a separate `hidden/` evidence directory.
-Main pushes and manual CI runs use the same policy, with no tier selector;
-the shared coordinator restarts CLI/SW between functional sets, while the
+SWCLI CI runs on branch pushes and authorized manual dispatch. Opening or
+updating a PR does not trigger a PR workflow. The Google Drive credential is
+used only by the explicitly dispatched hosted native installation job.
+Normal development uses the local Windows VM for native calibration and full
+acceptance. Main pushes perform the same lightweight checks as other pushes.
+
+Automatic runner cleanup stops after reaching 48 GiB of free space with the
+default 8 GiB VFS cache. Larger caches increase the target. The manual
+conservative and aggressive profiles remain available. Modeling command
+events are appended to per-session JSONL journals as they happen. The final
+JSON receipts still contain all events.
+
+The shared coordinator restarts CLI/SW between functional sets, while the
 rejected-cut continuation→Front diameter bridge retains the same host. The
 full hidden run is mandatory: visible-only success did not expose the rejected
 cut's residual native command state. See the
