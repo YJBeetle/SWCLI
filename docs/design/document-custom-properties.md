@@ -64,3 +64,26 @@ background reads under another session's lease, stale-stamp refusal, fresh
 handles on reopen and unchanged fixture hashes. Its receipt is additional to
 the existing full matrix. Wine persistence validation will use a DockerSW
 candidate containing the `0020` MSXML namespace serialization fix.
+
+## Installed Windows CLI proof
+
+[Public Windows gate 41990395318](https://github.com/YJBeetle/SWCLI/actions/runs/41990395318)
+passed at `3bccdefbde23c9bdb0e41767efbfcf9ef2e95868`. Independent review
+confirmed sixteen CLI reads across the two prepared native files, two stale
+stamp refusals, unchanged background document descriptors, fresh reopened IDs
+and unchanged file hashes. Full nineteen-set/twenty-step modeling, forty-eight
+polygon cases, twelve through-all cases, fifteen exports and visible smoke
+passed with clean process boundaries.
+
+| Original evidence | SHA-256 |
+| --- | --- |
+| Native ZIP, artifact 13401035862 | `02bc051a35224b208b0abd51a8d525685fe754833a153dd2e8f3cea8538113cf` |
+| CLI property receipt | `7ce3e7d7f3d2098617ab67090ba8c511eaf943ea9f738ede57f773f9845e0144` |
+| Original package ZIP, artifact 13398545058 | `00c7e31ab84c8ff156444ecc7b04393ea619b06ad25d8a43b28128e191abc897` |
+
+The original wheel's sixty-four package files and seventy RECORD rows were
+verified. The sdist's 234 package, test and CI files match the tested commit.
+Wine validation will use these Windows-prepared fixture files and public
+`document save-as` to new native files, then close/read-only reopen and compare
+the property rows and saved hashes. Explicit local/host fixture and output
+directories preserve the adapter's path namespaces.

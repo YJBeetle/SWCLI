@@ -5,7 +5,7 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from swcli.result_schemas import validate_operation_result
 
@@ -40,7 +40,7 @@ def verify_properties(result):
     return rows
 
 
-def run(gate, fixtures):
+def run(gate, fixtures, *, host_fixtures=None, save_copy=False):
     gate.record.update(state="running", success=False, property_cases=[])
     gate.record["host"] = gate.health()["host"]
     gate.require_empty()
@@ -48,8 +48,12 @@ def run(gate, fixtures):
         path = fixtures / ("properties." + suffix)
         require(path.is_file(), "prepared property fixture is missing")
         before_hash = hashlib.sha256(path.read_bytes()).hexdigest()
-        opened = gate.command("document", "open", str(path), "--read-only")
-        require(opened["api_errors"] == opened["api_warnings"] == 0, "property fixture did not open cleanly")
+        source_host = str(PureWindowsPath(host_fixtures) / path.name) if host_fixtures else str(path)
+        mode = [] if save_copy else ["--read-only"]
+        opened = gate.command("document", "open", source_host, *mode)
+        require(opened["api_errors"] == opened["api_warnings"] == 0
+                and PureWindowsPath(opened["document"]["path"]) == PureWindowsPath(source_host),
+                "property fixture did not open cleanly at the requested path")
         target = opened["document"]["document_id"]
         foreground = gate.create()
         case = {"format": suffix, "source_sha256": before_hash, "open": opened}
@@ -85,15 +89,31 @@ def run(gate, fixtures):
         )
         after = gate.command("document", "inspect", document=target)["document"]
         require(before == after and not after["modified"], "property reads changed document state")
+        reopened_host = source_host
+        saved_hash = before_hash
+        saved_path = path
+        if save_copy:
+            saved_path = gate.directory / ("saved-" + path.name)
+            reopened_host = str(PureWindowsPath(gate.host_directory) / saved_path.name)
+            saved = case["save_copy"] = gate.write(
+                "document", "save-as", reopened_host, document=target
+            )
+            require(saved["save_errors"] == 0 and saved["save_warnings"] is None
+                    and not saved["document"]["modified"] and saved_path.is_file(),
+                    "property fixture save-as failed")
+            saved_hash = hashlib.sha256(saved_path.read_bytes()).hexdigest()
+            case["saved_sha256"] = saved_hash
         gate.close(target)
-        reopened = case["reopen"] = gate.command("document", "open", str(path), "--read-only")
+        reopened = case["reopen"] = gate.command("document", "open", reopened_host, "--read-only")
         fresh = reopened["document"]["document_id"]
-        require(fresh != target and reopened["api_errors"] == reopened["api_warnings"] == 0,
+        require(fresh != target and reopened["api_errors"] == reopened["api_warnings"] == 0
+                and PureWindowsPath(reopened["document"]["path"]) == PureWindowsPath(reopened_host),
                 "property reopen did not acquire a clean fresh handle")
         reopened_read = case["reopened_properties"] = gate.command("document", "properties", document=fresh)
         require(verify_properties(reopened_read) == rows, "reopened native property values changed")
         require(not gate.command("document", "inspect", document=fresh)["document"]["modified"]
-                and hashlib.sha256(path.read_bytes()).hexdigest() == before_hash,
+                and hashlib.sha256(path.read_bytes()).hexdigest() == before_hash
+                and hashlib.sha256(saved_path.read_bytes()).hexdigest() == saved_hash,
                 "read-only property gate changed fixture bytes/state")
         gate.close(fresh)
         gate.close(foreground)
@@ -110,18 +130,23 @@ def main(argv=None):
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--fixture-dir", required=True, type=Path)
     parser.add_argument("--endpoint", default=os.environ.get("SWCLI_ENDPOINT", modeling.DEFAULT_ENDPOINT))
+    parser.add_argument("--host-fixture-dir", type=modeling.host_directory)
+    parser.add_argument("--host-output-dir", type=modeling.host_directory)
+    parser.add_argument("--cli-command", type=modeling.executable)
+    parser.add_argument("--save-copy", action="store_true", help="save to a new native file before reopening")
     args = parser.parse_args(argv)
     args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     gate = modeling.ModelingSmoke(
-        directory=args.output_dir, host_directory=str(args.output_dir),
+        directory=args.output_dir, host_directory=args.host_output_dir or str(args.output_dir),
+        cli=[args.cli_command] if args.cli_command else None,
         endpoint=args.endpoint,
     )
     gate.record_path = args.output_dir / "properties.json"
     with gate.record_path.open("x", encoding="utf-8") as stream:
         json.dump(gate.record, stream)
     try:
-        run(gate, args.fixture_dir)
+        run(gate, args.fixture_dir, host_fixtures=args.host_fixture_dir, save_copy=args.save_copy)
     except BaseException:
         gate.record["state"] = "failed"
         raise
