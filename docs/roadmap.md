@@ -172,8 +172,13 @@ before enabling a validated public write scope, then verify the installed CLI
 in complete Windows CI. Keep the existing millimeter semantics of geometry
 commands while checking unchanged physical geometry and save/reopen persistence.
 
-Annotation text format, attachment arrows, bent leaders and zero display follow
-as separate typed increments with per-field validation and save/reopen checks.
+A18 now has a development implementation for seven annotation scalars: attachment
+arrows, bent leader toggle/length and leading/trailing zero display. A single
+local native calibration covered parts, assemblies and drawings; public installed
+CLI acceptance and changed-value save/reopen for all seven fields remain pending.
+See [the bounded contract and evidence](design/document-annotation-options.md).
+Annotation text format and overall drafting standard remain later increments
+because changing them can propagate to subtype settings.
 [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
 ## Later protocol and integrations

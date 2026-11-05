@@ -8,6 +8,7 @@ from .polygon_geometry import TOLERANCE_MM, validate_polygon
 from typing import Any, Dict
 
 from .protocol import load_schema
+from .document_annotations import ANNOTATION_FIELDS
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
@@ -44,6 +45,24 @@ PROPERTY_EDIT_RESULT = (
      "property": NULLABLE_CUSTOM_PROPERTY, "changed": BOOL, "mutation": METADATA_MUTATION},
     ("session_id", "document", "scope", "name", "before", "property", "changed", "mutation"),
 )
+
+def _annotation_option_schema(spec):
+    if spec["kind"] == "Integer":
+        variants = [_object({"value": {"const": name}, "native_value": {"const": code}},
+                            ("value", "native_value")) for name, code in spec["values"].items()]
+        variants.append(_object({"value": {"const": "other"},
+                                 "native_value": {"type": "integer", "not": {"enum": list(spec["values"].values())}}},
+                                ("value", "native_value")))
+        return {"oneOf": variants}
+    value_type = BOOL if spec["kind"] == "Toggle" else {"type": "number", "exclusiveMinimum": 0}
+    return _object({"value": value_type, "native_value": value_type}, ("value", "native_value"))
+
+
+DOCUMENT_ANNOTATION_OPTIONS = _object(
+    {field: _annotation_option_schema(spec) for field, spec in ANNOTATION_FIELDS.items()},
+    tuple(ANNOTATION_FIELDS),
+)
+
 
 DOCUMENT_LENGTH_UNITS = _object(
     {
@@ -518,6 +537,15 @@ _RESULT_FIELDS = {
     ),
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.annotation-options": (
+        {"options": DOCUMENT_ANNOTATION_OPTIONS},
+        ("session_id", "document", "options"),
+    ),
+    "document.annotation-option-set": (
+        {"field": {"enum": list(ANNOTATION_FIELDS)}, "before": DOCUMENT_ANNOTATION_OPTIONS,
+         "options": DOCUMENT_ANNOTATION_OPTIONS, "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
     "document.units": (
         {"units": DOCUMENT_LENGTH_UNITS},
         ("session_id", "document", "units"),
@@ -2666,6 +2694,26 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name in ("document.annotation-options", "document.annotation-option-set"):
+        for key in ("before", "options"):
+            if key not in result:
+                continue
+            for field, entry in result[key].items():
+                kind = ANNOTATION_FIELDS[field]["kind"]
+                valid = (entry["value"] == entry["native_value"] if kind == "Toggle" else
+                         isclose(entry["value"], entry["native_value"] * 1000.0,
+                                 rel_tol=1e-12, abs_tol=1e-12) if kind == "Double" else True)
+                if not valid:
+                    raise OperationResultInvalid(name + ": inconsistent annotation scalar/native value")
+        if name.endswith("-set") and result["ok"] is True:
+            before, after, field = result["before"], result["options"], result["field"]
+            changed = before[field] != after[field]
+            attempted = result["mutation"]["attempted"]
+            possible = result["mutation"]["may_have_changed"]
+            if (changed != result["changed"] or attempted != changed or possible != changed
+                    or any(before[key] != after[key] for key in ANNOTATION_FIELDS if key != field)
+                    or (changed and result["document"]["modified"] is not True)):
+                raise OperationResultInvalid(name + ": inconsistent annotation edit lifecycle")
     if name == "sketch.polygon" and result["ok"] is True:
         try:
             expected = validate_polygon(result["dimensions"]["vertices_mm"])

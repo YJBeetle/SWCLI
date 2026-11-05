@@ -352,6 +352,30 @@ document and is never automatically retried or rolled back. Save explicitly
 after a verified edit. These display settings keep all existing modeling and
 measurement arguments and results in their documented millimeter units.
 
+The a18 development candidate adds seven typed annotation scalars. Private
+Windows part/assembly/drawing calibration passed; installed public CLI
+acceptance remains pending. This is a subset of Options → Document Properties.
+
+```powershell
+sw-cli document annotation-options --document d-ab12cd --json
+sw-cli document annotation-option-set arrow.edge_vertex dot --if-value closed --document d-ab12cd --lease l-ab12cd34ef56 --json
+sw-cli document annotation-option-set bent_leader.enabled true --if-value false --document d-ab12cd --lease l-ab12cd34ef56 --json
+sw-cli document annotation-option-set bent_leader.length_mm 10 --if-value 6.35 --document d-ab12cd --lease l-ab12cd34ef56 --json
+```
+
+Fields are `arrow.edge_vertex` and `arrow.face_surface` (`closed`/`dot`),
+`arrow.unattached` (`closed`/`none`), `bent_leader.enabled` (`true`/`false`),
+`bent_leader.length_mm` (positive finite millimeters), `zero.leading`
+(`standard`/`show`/`remove`), and `zero.trailing`
+(`show`/`remove`/`remove_only_on_zero`/`same_as_source`). Reads preserve both
+`value` and `native_value`; unknown native enums are returned as `other` with
+their original code. Writes always require `--if-value`, in addition to lease
+and optional stamp guards. An equal value does not invoke a native setter.
+Unrequested scalar options remain unchanged; a changed value marks the document
+for an explicit save. Partial failures report possible mutation and are never
+retried or rolled back. Annotation font and drafting standard writes remain
+outside this increment.
+
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented
 `export_ready` flag. Structure inspection and diagnosis add feature evidence.
