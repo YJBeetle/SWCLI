@@ -168,14 +168,23 @@ class DaemonManagerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             launcher = Path(directory)/"utils"; launcher.touch(); launcher.chmod(0o700)
             manager = DaemonManager(host_launcher=str(launcher))
-            for command in (["daemon", "serve", "--host-platform", "macos-wine", "--port", "19501", "--visible"], ["daemon", "restart", "--attach-existing", "--json"]):
-                with mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=0)) as run:
-                    self.assertEqual(manager.forward_host_command(build_parser().parse_args(command)),0)
-                argv = run.call_args.args[0]
-                self.assertEqual(argv[:2], [str(launcher), command[1]])
-                self.assertFalse(run.call_args.kwargs.get("shell",False))
-                self.assertEqual(run.call_args.kwargs["start_new_session"], command[1]=="restart")
-                self.assertIn("--visible" if command[1]=="serve" else "--attach-existing",argv)
+            # A new POSIX session keeps resident Wine outside the client's kill
+            # group. Windows has no POSIX session; its startup broker is separate.
+            for platform, sessions in (
+                ("win32", {"serve": False, "restart": False}),
+                ("darwin", {"serve": False, "restart": True}),
+                ("linux", {"serve": False, "restart": True}),
+            ):
+                for command in (["daemon", "serve", "--host-platform", "macos-wine", "--port", "19501", "--visible"], ["daemon", "restart", "--attach-existing", "--json"]):
+                    with self.subTest(platform=platform, action=command[1]), \
+                            mock.patch("swcli.daemon_manager.sys.platform", platform), \
+                            mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=0)) as run:
+                        self.assertEqual(manager.forward_host_command(build_parser().parse_args(command)),0)
+                    argv = run.call_args.args[0]
+                    self.assertEqual(argv[:2], [str(launcher), command[1]])
+                    self.assertFalse(run.call_args.kwargs.get("shell",False))
+                    self.assertIs(run.call_args.kwargs["start_new_session"], sessions[command[1]])
+                    self.assertIn("--visible" if command[1]=="serve" else "--attach-existing",argv)
 
     def test_detailed_cli_uses_same_manager_snapshot(self):
         value={"success":True,"result":snapshot(daemon_running=False,reachable=False)}

@@ -45,3 +45,18 @@ checksum-locked offline wheel manifest. The real packaging helper was executed
 against a temporary fixture with those exact wheels; imports succeeded with
 its actual Python 3.11, and the Windows packages contained no MCP SDK. App
 build/install, native Wine activation and MacSW CI are outside this receipt.
+
+## Windows CI assertion follow-up
+
+[Push run 42114428267](https://github.com/YJBeetle/SWCLI/actions/runs/42114428267)
+failed in the same unit assertion on Windows Python 3.9 and 3.14. The test
+incorrectly expected a new POSIX session for every restart, including Windows;
+the implementation correctly uses that flag only on POSIX. The test now covers
+explicit Windows/macOS/Linux serve and restart expectations (six subcases),
+retaining literal argv, visibility/attach forwarding and no-shell assertions.
+No runtime code or native startup policy changed.
+
+The manager suite passed 19 tests and the full local macOS/Python 3.14 suite
+passed 1598 tests with 21 platform skips. No Windows VM was used for this fix;
+Windows CI remains the separate native-platform result. Original failed-job
+log SHA-256: `cfef278944540cc404baeee253c2d898ee3bbf6be53c8921c0524117964be94b`.
