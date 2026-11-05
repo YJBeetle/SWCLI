@@ -176,6 +176,64 @@ class DocumentUnitsTests(unittest.TestCase):
                 self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
                 self.document.SetUnits.assert_called_once_with(3, 1, 8, 3, False)
 
+    def test_readback_cannot_clear_an_existing_dirty_flag(self):
+        self.modified = True
+        reads = 0
+
+        def read():
+            nonlocal reads
+            reads += 1
+            if reads == 2:
+                self.modified = False
+            return self.units
+
+        self.document.GetUnits = mock.Mock(spec=(), side_effect=read)
+        result = self.operation("document.units-set", {"length_unit": "inch"})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.document.SetUnits.assert_called_once_with(3, 1, 8, 3, False)
+        self.document.SetSaveFlag.assert_not_called()
+        self.assertEqual(self.document.GetUnits.call_count, 2)
+
+    def test_readback_cannot_change_the_update_stamp(self):
+        self.modified = True
+        stamp = 7
+        reads = 0
+
+        def read():
+            nonlocal reads, stamp
+            reads += 1
+            if reads == 2:
+                stamp = 99
+            return self.units
+
+        self.document.GetUpdateStamp = lambda: stamp
+        self.document.GetUnits = mock.Mock(spec=(), side_effect=read)
+        result = self.operation("document.units-set", {"length_unit": "inch"})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.document.SetUnits.assert_called_once_with(3, 1, 8, 3, False)
+        self.document.SetSaveFlag.assert_not_called()
+        self.assertEqual(self.document.GetUnits.call_count, 2)
+
+    def test_setter_can_change_stamp_before_a_stable_readback(self):
+        stamp = 7
+
+        def set_units(*values):
+            nonlocal stamp
+            self.apply_units(*values)
+            stamp = 99
+
+        self.document.GetUpdateStamp = lambda: stamp
+        self.document.SetUnits.side_effect = set_units
+        result = self.operation("document.units-set", {"length_unit": "inch"})
+        validate_operation_result("document.units-set", result)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["document"]["update_stamp"], 99)
+        self.assertTrue(result["document"]["modified"])
+        self.document.SetUnits.assert_called_once_with(3, 1, 8, 3, False)
+        self.document.SetSaveFlag.assert_called_once_with()
+
     def test_read_rejects_foreground_or_configuration_drift(self):
         for change in (lambda: setattr(self.app, "ActiveDoc", self.document),
                        lambda: setattr(self.configuration, "Name", "Other")):
