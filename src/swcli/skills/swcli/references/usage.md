@@ -313,7 +313,8 @@ sw-cli document property-delete "Drawing No" --configuration Default --document 
 
 Summary fields `title`, `subject`, `author`, `keywords` and `comment` are editable.
 The saved-by, creation and save statistics and the version history from disk
-are read-only. Date strings retain SOLIDWORKS's native representation.
+are read-only. Date strings retain SOLIDWORKS's native representation. Comment
+line endings use LF in responses and comparisons across save/reopen.
 
 Property rows distinguish stored text or expressions from evaluated values,
 including cached evaluation. A missing name returns an empty list. An existing

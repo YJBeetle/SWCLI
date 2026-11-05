@@ -179,3 +179,18 @@ class DocumentPropertiesTests(unittest.TestCase):
         self.assertEqual(values, {2: "验收作者"})
         self.assertEqual(dirty, [True])
         self.assertIs(self.app.ActiveDoc, self.foreground)
+
+    def test_saved_comment_crlf_matches_lf_without_a_second_native_write(self):
+        invoke = mock.Mock(return_value="第一行\r\nSecond line")
+        self.document._oleobj_ = SimpleNamespace(GetIDsOfNames=lambda name: 40, Invoke=invoke)
+        with mock.patch.dict(sys.modules, {"pythoncom": SimpleNamespace(
+            DISPATCH_PROPERTYGET=2, DISPATCH_PROPERTYPUT=4,
+        )}):
+            result = set_document_summary_windows(
+                app=self.app, document=self.document, field="comment",
+                value="第一行\nSecond line", expected_value="第一行\nSecond line",
+            )
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["value"], "第一行\nSecond line")
+        invoke.assert_called_once_with(40, 0, 2, True, 4)

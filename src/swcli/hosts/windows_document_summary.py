@@ -11,6 +11,11 @@ EDITABLE_SUMMARY_FIELDS = {"title": 0, "subject": 1, "author": 2, "keywords": 3,
 SUMMARY_FIELDS = {**EDITABLE_SUMMARY_FIELDS, "saved_by": 5, "created_at": 8, "saved_at": 9}
 
 
+def _summary_text(field: str, value: str) -> str:
+    # SOLIDWORKS rewrites comment line endings as CRLF on save.
+    return value.replace("\r\n", "\n") if field == "comment" else value
+
+
 def _dispatch(document: Any) -> tuple:
     dispatch = document._oleobj_
     dispid = native_call("document-summary", "GetIDsOfNames(SummaryInfo)",
@@ -26,7 +31,7 @@ def _read(dispatch: Any, dispid: int, field: str) -> str:
                                                 True, SUMMARY_FIELDS[field]))
     if not isinstance(value, str):
         raise RuntimeError(f"native summary field {field} did not return text")
-    return value
+    return _summary_text(field, value)
 
 
 def read_document_summary_windows(*, app: Any, document: Any) -> dict:
@@ -63,8 +68,9 @@ def set_document_summary_windows(
         dispatch, dispid = _dispatch(document)
         before = _read(dispatch, dispid, field)
         result["before_value"] = before
-        if expected_value is not None and before != expected_value:
+        if expected_value is not None and before != _summary_text(field, expected_value):
             raise ValueError(f"summary field {field} no longer matches the expected value")
+        value = _summary_text(field, value)
         changed = before != value
         _verify_metadata_state(app, document, state, foreground, changed=False)
         if changed:
