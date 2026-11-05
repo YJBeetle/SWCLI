@@ -70,15 +70,21 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertNotIn('SaveAs3', block)
         self.assertNotIn('Save3', block)
 
-    def test_hosted_smoke_has_no_native_jobs_or_private_credentials(self):
+    def test_complete_native_ci_requires_explicit_manual_selection(self):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertEqual(
-            re.findall(r"^  ([a-z][a-z-]*):$", workflow.split("jobs:", 1)[1], re.MULTILINE),
-            ["test", "package"],
-        )
-        for forbidden in ("secrets.", "RCLONE_CONFIG", "calibrate_", "solidworks-e2e", "pull_request:"):
-            self.assertNotIn(forbidden, workflow)
-        self.assertIn("workflow_dispatch:", workflow)
+        light, native = workflow.split("  solidworks-e2e:", 1)
+        self.assertIn("if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.native_full }}", native)
+        self.assertIn("default: false", light.split("      native_full:", 1)[1])
+        for forbidden in ("secrets.", "RCLONE_CONFIG", "calibrate_", "pull_request:"):
+            self.assertNotIn(forbidden, light)
+        for name in ("calibrate_fillet:", "calibrate_through_all:", "calibrate_properties:", "calibrate_polygon:"):
+            self.assertNotIn(name, workflow)
+        self.assertIn("-Hidden -Suite full -PropertyFixtureDirectory", native)
+        self.assertIn("-VisibleSmoke", native)
+        self.assertIn("name: swcli-dist", light)
+        self.assertIn("uses: actions/download-artifact@v8", native)
+        self.assertIn("digest-mismatch: error", native)
+        self.assertIn("secrets.RCLONE_CONFIG_B64", native)
 
     def test_windows_hidden_wrapper_keeps_full_native_test_support(self):
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")

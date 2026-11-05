@@ -913,8 +913,9 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 CI runs the unit suite on Windows 2025 with Python 3.9 and 3.14, checks the
 installed CLI, and builds and verifies distributions on Linux. Native API
-calibration and complete SOLIDWORKS verification run on the local Windows VM
-under `C:\Workspace`. Wine integration remains the responsibility of DockerSW
+calibration runs on the local Windows VM under `C:\Workspace`. Complete
+SOLIDWORKS verification runs in CI when manually selecting `native_full=true`.
+Wine integration remains the responsibility of DockerSW
 and MacSW. See [Windows testing](docs/windows-ci.md) and
 [shared runtime tests](docs/runtime-tests.md) for the native test scripts and
 their evidence requirements.
