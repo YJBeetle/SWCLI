@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
+import time
 import tempfile
 import unittest
 from unittest import mock
@@ -110,7 +112,10 @@ class DaemonManagerTests(unittest.TestCase):
             launcher.touch(); launcher.chmod(0o700)
             manager = DaemonManager(host_launcher=str(launcher))
             result = {"success": True, "result": {"started": True}}
-            with mock.patch.object(manager, "_call", side_effect=[offline(), ready()]), mock.patch("swcli.daemon_manager.sys.platform", "darwin"), mock.patch("swcli.daemon_manager.subprocess.run", return_value=mock.Mock(returncode=0, stdout=json.dumps(result).encode())) as run, mock.patch("swcli.daemon.main.start_daemon") as native:
+            def utility(*args, **kwargs):
+                kwargs["stdout"].write(json.dumps(result).encode())
+                return mock.Mock(returncode=0)
+            with mock.patch.object(manager, "_call", side_effect=[offline(), ready()]), mock.patch("swcli.daemon_manager.sys.platform", "darwin"), mock.patch("swcli.daemon_manager.subprocess.run", side_effect=utility) as run, mock.patch("swcli.daemon.main.start_daemon") as native:
                 self.assertTrue(manager.start(visible=True, attach_existing=True, startup_timeout_seconds=300)["success"])
             argv = run.call_args.args[0]
             self.assertEqual(argv, [str(launcher), "start", "--endpoint", "127.0.0.1:18495", "--startup-timeout", "300.0", "--json", "--visible", "--attach-existing"])
@@ -118,6 +123,63 @@ class DaemonManagerTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["env"]["SWCLI_DAEMON_UTILS_ACTIVE"], "1")
             self.assertFalse(run.call_args.kwargs.get("shell", False))
             native.assert_not_called()
+
+    @unittest.skipUnless(os.name == "posix", "POSIX host utility lifecycle")
+    def test_launcher_returns_while_owned_background_process_keeps_stdio_open(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            release = root / "release"
+            alive = root / "alive"
+            finished = root / "finished"
+            child = root / "child.py"
+            child.write_text(
+                "import pathlib,sys,time\n"
+                "release,alive,finished=map(pathlib.Path,sys.argv[1:])\n"
+                "alive.touch()\n"
+                "deadline=time.monotonic()+10\n"
+                "while not release.exists() and time.monotonic()<deadline: time.sleep(.01)\n"
+                "finished.touch()\n"
+            )
+            launcher = root / "daemon utils"
+            launcher.write_text(
+                "#!" + sys.executable + "\n"
+                "import pathlib,subprocess,sys,time\n"
+                "subprocess.Popen([sys.executable," + repr(str(child)) + ","
+                + repr(str(release)) + "," + repr(str(alive)) + "," + repr(str(finished)) + "])\n"
+                "deadline=time.monotonic()+3\n"
+                "while not pathlib.Path(" + repr(str(alive)) + ").exists() and time.monotonic()<deadline: time.sleep(.01)\n"
+                "print('{\"success\":true,\"result\":{\"started\":true}}',flush=True)\n"
+            )
+            launcher.chmod(0o700)
+            manager = DaemonManager(host_launcher=str(launcher))
+            try:
+                with mock.patch.object(manager, "_call", side_effect=[offline(), ready()]):
+                    value = manager.start()
+                self.assertTrue(value["success"], value)
+                self.assertTrue(alive.exists())
+                self.assertFalse(finished.exists(), "startup waited for the resident process's pipe EOF")
+            finally:
+                # Only this synthetic test child observes this private marker.
+                release.touch()
+                deadline = time.monotonic() + 5
+                while alive.exists() and not finished.exists() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue(finished.exists(), "synthetic resident child did not exit")
+
+    def test_oversized_utility_response_is_unknown_and_never_retried(self):
+        with tempfile.TemporaryDirectory() as directory:
+            launcher = Path(directory)/"utils"; launcher.touch(); launcher.chmod(0o700)
+            manager = DaemonManager(host_launcher=str(launcher))
+            def utility(*args, **kwargs):
+                kwargs["stdout"].write(b"x" * 17)
+                return mock.Mock(returncode=0)
+            with mock.patch.object(manager,"_call",side_effect=offline()), \
+                    mock.patch("swcli.daemon_manager.MAX_RESPONSE_BYTES",16), \
+                    mock.patch("swcli.daemon_manager.subprocess.run",side_effect=utility) as run:
+                value = manager.start()
+            self.assertEqual(value["error"]["code"],"InvalidHostLauncherResponse")
+            self.assertTrue(value["outcome_unknown"])
+            run.assert_called_once()
 
     def test_delegated_windows_backend_does_not_recurse_into_host_launcher_or_scheduler(self):
         self.manager.host_launcher = "/must-not-run"

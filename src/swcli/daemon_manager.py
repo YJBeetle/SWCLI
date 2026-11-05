@@ -10,11 +10,12 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import uuid
 
 from jsonschema import Draft202012Validator
 
-from .daemon.client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
+from .daemon.client import DEFAULT_ENDPOINT, MAX_RESPONSE_BYTES, call_daemon, parse_endpoint
 from .daemon.timeouts import validate_timeout
 from .protocol import load_schema
 from .runtime_state import native_inventory, snapshot
@@ -164,13 +165,22 @@ class DaemonManager:
         if attach_existing:
             arguments.append("--attach-existing")
         environment = dict(os.environ, **{DELEGATED_ENV: "1"})
+        # Wine's resident children can inherit the utility's stdio handles.
+        # communicate() on PIPE waits for their EOF even after the utility has
+        # exited and reported readiness. Files let us wait for only the utility
+        # process without terminating or waiting for its resident host.
+        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+            try:
+                completed = subprocess.run(arguments, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                           timeout=timeout + 30, env=environment, start_new_session=sys.platform != "win32")
+            except subprocess.TimeoutExpired:
+                return failure("HostLauncherTimeout", "Host launcher did not return before its startup budget; inspect status before another start", outcome_unknown=True)
+            stdout.seek(0)
+            output = stdout.read(MAX_RESPONSE_BYTES + 1)
+        if len(output) > MAX_RESPONSE_BYTES:
+            return failure("InvalidHostLauncherResponse", "Host launcher lifecycle JSON exceeds the supported size", outcome_unknown=True)
         try:
-            completed = subprocess.run(arguments, stdin=subprocess.DEVNULL, capture_output=True,
-                                       timeout=timeout + 30, env=environment, start_new_session=sys.platform != "win32")
-        except subprocess.TimeoutExpired:
-            return failure("HostLauncherTimeout", "Host launcher did not return before its startup budget; inspect status before another start", outcome_unknown=True)
-        try:
-            payload = json.loads(completed.stdout.decode("utf-8"))
+            payload = json.loads(output.decode("utf-8"))
         except (UnicodeError, ValueError):
             return failure("InvalidHostLauncherResponse", "Host launcher did not return UTF-8 lifecycle JSON; inspect status before another start", outcome_unknown=True)
         if not isinstance(payload, dict) or not isinstance(payload.get("success"), bool):
