@@ -1,6 +1,6 @@
 ---
 name: swcli
-description: Use SWCLI for SOLIDWORKS CAD automation through a running swclid daemon. Applies to inspecting the active model, opening, modeling, rendering or exporting SLDPRT, SLDASM, SLDDRW and CAD STEP/STP files, and checking capabilities for assemblies, motion studies and other SOLIDWORKS features.
+description: Use SWCLI for SOLIDWORKS CAD automation through a running swclid daemon. Applies to reading or editing file summary and document/configuration custom properties, inspecting the active model, opening, modeling, rendering or exporting SLDPRT, SLDASM, SLDDRW and CAD STEP/STP files, and checking capabilities for assemblies, motion studies and other SOLIDWORKS features.
 ---
 
 # SWCLI
@@ -10,8 +10,8 @@ or its documented scope excludes the task, consult the
 [official SOLIDWORKS API workflow](references/solidworks-api.md). A failure
 of a supported operation follows the CLI's diagnostic and recovery path.
 
-Read [the usage guide](references/usage.md) when preparing a modeling/export
-workflow or connecting to an unfamiliar host. The guide travels with this
+Read [the usage guide](references/usage.md) when preparing a metadata, modeling
+or export workflow, or connecting to an unfamiliar host. The guide travels with this
 skill; it does not depend on the developer's machine or repository checkout.
 
 ## Working rules
@@ -48,6 +48,14 @@ skill; it does not depend on the developer's machine or repository checkout.
   is explicit; `sketch.dimension-rectangle` does not anchor the center implicitly.
   Inspect/edit the returned width/height roles, not guessed native dimensions.
   See the usage guide's parameterized-rectangle workflow and discovery limits.
+- For file metadata, discover the needed `document.summary`, `document.properties`
+  and setter operations individually. Read the guide's file-metadata workflow
+  before writing. Document and configuration property scopes are independent;
+  preserve raw expressions and use the observed raw value for `--if-value`.
+  Keep the session, lease and fresh update stamp consistent, verify readback,
+  then save only when the task authorizes persistence. Unit, font and drafting
+  settings under SOLIDWORKS Options > Document Properties need their own
+  advertised operations or the official API workflow.
 - If feature observation/depth editing is advertised, use returned exact feature
   handles, not tree names. Inspection is read-only, not edit eligibility.
   `feature.set-depth` has narrow profile/scope/control guards; equal depth still
