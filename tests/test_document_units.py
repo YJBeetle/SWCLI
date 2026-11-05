@@ -167,6 +167,40 @@ class DocumentUnitsTests(unittest.TestCase):
                 self.assertFalse(result["mutation"]["attempted"])
         self.document.SetUnits.assert_not_called()
 
+    def test_hosted_decimal_zero_denominator_is_preserved_for_changes_and_noop(self):
+        for request, expected in (
+            ({"length_unit": "inch"}, (3, 1, 0, 2, False)),
+            ({"decimal_places": 0}, (0, 1, 0, 0, False)),
+            ({"decimal_places": 8}, (0, 1, 0, 8, False)),
+        ):
+            with self.subTest(request=request):
+                self.units = (0, 1, 0, 2, 0)
+                self.modified = False
+                self.document.SetUnits.reset_mock()
+                self.document.SetSaveFlag.reset_mock()
+                result = self.operation("document.units-set", request)
+                self.assertTrue(result["ok"], result)
+                self.assertTrue(result["changed"])
+                self.document.SetUnits.assert_called_once_with(*expected)
+                self.assertEqual(result["units"]["native_units"]["fraction_value"], 0)
+                self.document.SetUnits.reset_mock()
+                self.document.SetSaveFlag.reset_mock()
+                noop = self.operation("document.units-set", request)
+                self.assertTrue(noop["ok"], noop)
+                self.assertFalse(noop["changed"])
+                self.document.SetUnits.assert_not_called()
+                self.document.SetSaveFlag.assert_not_called()
+
+    def test_native_zero_denominator_normalization_is_a_partial_failure_not_equivalent(self):
+        self.units = (0, 1, 0, 2, 0)
+        self.document.SetUnits.side_effect = lambda *values: self.apply_units(
+            values[0], values[1], 8, values[3], values[4])
+        result = self.operation("document.units-set", {"length_unit": "inch"})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.document.SetUnits.assert_called_once_with(3, 1, 0, 2, False)
+        self.document.SetSaveFlag.assert_not_called()
+
     def test_native_failure_or_readback_mismatch_never_retries_or_rolls_back(self):
         for failure in (RuntimeError("setter failed"), None):
             with self.subTest(failure=failure):
