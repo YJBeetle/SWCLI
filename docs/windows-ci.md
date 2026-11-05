@@ -12,12 +12,14 @@ and checks both distributions on Linux. The Linux package job installs the
 actual wheel and verifies the isolated CLI, all request/result Schemas and
 packaged product skill/guide; Windows checks the same resources in the installed
 checkout during the unit stage. These jobs do not activate COM, run Wine or require
-SOLIDWORKS and are safe for pull requests.
+SOLIDWORKS. Pull requests do not trigger the workflow.
 
-The second stage depends on both unit tests and package validation. It runs the
-native SOLIDWORKS E2E only for trusted `main` pushes or an explicit manual run;
-any first-stage failure prevents the expensive installation and real export
-job from starting. Wine execution remains the responsibility of integration
+Development calibration and complete native functional verification run on the
+local Windows VM with its installed SOLIDWORKS. Hosted pushes run the portable
+tests, installed CLI smoke and package checks, including pushes to main.
+The hosted native E2E remains available only through explicit manual dispatch
+for a separately requested investigation. It depends on both unit tests and
+package validation. Wine execution remains the responsibility of integration
 projects such as DockerSW and MacSW because their patched runtimes define
 whether SOLIDWORKS is usable under Wine.
 
@@ -89,14 +91,9 @@ through the independent shared `verify-visible.py` entrypoint (open/inspect/clos
 stop only), then runs `-Hidden -Suite full` in a separate `hidden/` evidence directory.
 SWCLI CI runs on branch pushes and authorized manual dispatch. Opening or
 updating a PR does not trigger a PR workflow. The Google Drive credential is
-used only by the hosted native installation job, on main pushes or manual
-dispatch.
-
-A main push can reuse a successful manual Windows run for the exact same
-commit in this repository. The lookup verifies the original native ZIP digest,
-run attempt, and complete visible and hidden receipts for the default media
-and runtime overlay. If evidence is unavailable or fails validation, the main
-push runs the full gate. Manual dispatch always runs it.
+used only by the explicitly dispatched hosted native installation job.
+Normal development uses the local Windows VM for native calibration and full
+acceptance. Main pushes perform the same lightweight checks as other pushes.
 
 Automatic runner cleanup stops after reaching 48 GiB of free space with the
 default 8 GiB VFS cache. Larger caches increase the target. The manual

@@ -158,32 +158,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  native-evidence:
-    name: Find existing Windows full acceptance
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    permissions:
-      contents: read
-      actions: read
-    outputs:
-      reused: ${{ steps.lookup.outputs.reused }}
-    steps:
-      - uses: actions/checkout@v7
-      - id: lookup
-        name: Verify successful same-commit native evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/ci/native-evidence.py
-
   solidworks-e2e:
     name: ${{ inputs.calibrate_polygon && 'Calibrate polygon, then existing full CAD gate' || inputs.calibrate_through_all && 'Calibrate through-all, then full CAD gate' || 'Install, patch, start, and export' }}
-    needs: [test, package, native-evidence]
-    if: >-
-      !cancelled() && needs.test.result == 'success' && needs.package.result == 'success' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-        needs.native-evidence.outputs.reused != 'true'))
+    needs: [test, package]
+    if: ${{ success() && github.event_name == 'workflow_dispatch' }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -374,16 +352,6 @@ jobs:
             $propertyArguments.PropertyFixtureDirectory = "$env:SWCLI_SMOKE_ROOT\properties-calibration"
           }
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full @propertyArguments
-
-      - name: Record reusable Windows acceptance identity
-        if: >-
-          success() && github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' &&
-          env.SW_MEDIA_PATH == 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' &&
-          env.SW_ASSETS_PATH == 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack'
-        shell: powershell
-        run: |
-          python -I scripts/ci/native-evidence.py --stamp $env:SWCLI_SMOKE_ROOT
-          if ($LASTEXITCODE -ne 0) { throw "Native acceptance receipt could not be recorded" }
 
       - name: Measure streamed data and remaining disk
         if: always()
