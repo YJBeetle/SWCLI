@@ -7,11 +7,57 @@ from ..document_annotations import ANNOTATION_FIELDS, validate_annotation_value
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
-from .windows_document_units import _verify_edit_state
+from .windows_feature_inspection import _same
 
 
 class DocumentAnnotationConflict(RuntimeError):
     """The selected annotation value no longer matches the caller's observation."""
+
+
+def _edit_context(document):
+    context = {"sketch": _com_value(_com_value(document, "SketchManager"), "ActiveSketch")}
+    if _com_value(document, "GetType") != 3:
+        return context
+
+    sheet = _com_value(document, "GetCurrentSheet")
+    view = _com_value(document, "GetFirstView")
+    if sheet is None or view is None:
+        raise RuntimeError("drawing sheet context is unavailable")
+    context.update(
+        sheet=sheet, sheet_view=view,
+        sheet_sketch=_com_value(view, "GetSketch"),
+        template_sketch=_com_value(sheet, "GetTemplateSketch"),
+        edit_sheet=_com_value(document, "GetEditSheet"),
+        active_view=_com_value(document, "ActiveDrawingView"),
+        sheet_name=_com_value(sheet, "GetName"),
+        sheet_view_name=_com_value(view, "GetName2"),
+        sheet_view_model=_com_value(view, "GetReferencedModelName"),
+    )
+    if (type(context["edit_sheet"]) is not bool
+            or any(type(context[key]) is not str for key in ("sheet_name", "sheet_view_name", "sheet_view_model"))):
+        raise RuntimeError("drawing sheet context is unreadable")
+    return context
+
+
+def _verify_context(app, document, before):
+    after = _edit_context(document)
+    if before.keys() != after.keys():
+        raise RuntimeError("document editing context changed during annotation operation")
+    references = {"sketch", "sheet", "sheet_view", "sheet_sketch", "template_sketch", "active_view"}
+    if any(not _same(app, before[key], after[key]) if key in references else before[key] != after[key]
+           for key in before):
+        raise RuntimeError("document editing context changed during annotation operation")
+
+
+def _writable_context(app, context):
+    if "sheet" not in context:
+        return context["sketch"] is None
+    return (context["edit_sheet"] is True and context["active_view"] is None
+            and context["sheet_view_model"] == ""
+            and bool(context["sheet_name"] and context["sheet_view_name"])
+            and all(context[key] is not None for key in ("sheet", "sheet_view", "sheet_sketch", "sketch"))
+            and _same(app, context["sketch"], context["sheet_sketch"])
+            and not _same(app, context["sketch"], context["template_sketch"]))
 
 
 def _read_options(document: Any) -> dict:
@@ -48,9 +94,9 @@ def read_document_annotation_options_windows(*, app: Any, document: Any) -> dict
     try:
         state = _state(document)
         foreground = _com_value(app, "ActiveDoc")
-        edit = _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
+        edit = _edit_context(document)
         options = _read_options(document)
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         _verify_metadata_state(app, document, state, foreground, changed=False)
         result.update(ok=True, options=options)
     except Exception as exc:
@@ -69,18 +115,18 @@ def set_document_annotation_option_windows(
         _require_writable(document)
         state = _state(document)
         foreground = _com_value(app, "ActiveDoc")
-        edit = _com_value(_com_value(document, "SketchManager"), "ActiveSketch")
+        edit = _edit_context(document)
         before = _read_options(document)
         result.update(field=field, before=before)
         if not _matches(field, before[field]["value"], expected_value):
             raise DocumentAnnotationConflict("document annotation value no longer matches the expected value")
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         _verify_metadata_state(app, document, state, foreground, changed=False)
         if _matches(field, before[field]["value"], value):
             result.update(ok=True, options=before, changed=False)
             return result
-        if edit is not None:
-            raise ValueError("annotation editing requires no active sketch")
+        if not _writable_context(app, edit):
+            raise ValueError("annotation editing requires a normal drawing sheet or no active model sketch")
         spec = ANNOTATION_FIELDS[field]
         native = (spec["values"][value] if spec["kind"] == "Integer" else
                   value / 1000.0 if spec["kind"] == "Double" else value)
@@ -97,22 +143,22 @@ def set_document_annotation_option_windows(
         # getters are observations and must preserve the post-setter state.
         post_setter_state = _state(document)
         after = _read_options(document)
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         _verify_metadata_state(app, document, post_setter_state, foreground, changed=False)
         if not _matches(field, after[field]["value"], value):
             raise RuntimeError("native document annotation setter did not round-trip the requested value")
         if any(after[key] != before[key] for key in ANNOTATION_FIELDS if key != field):
             raise RuntimeError("native document annotation setter changed an unrequested field")
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         _verify_metadata_state(app, document, state, foreground, changed=True)
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         # Mark dirty at most once. The final read cannot clear it or advance the
         # stamp and then be silently repaired by another SetSaveFlag call.
         post_write_state = _state(document)
         final = _read_options(document)
         if final != after:
             raise RuntimeError("annotation options changed while marking the document for saving")
-        _verify_edit_state(app, document, edit)
+        _verify_context(app, document, edit)
         _verify_metadata_state(app, document, post_write_state, foreground, changed=False)
         result.update(ok=True, options=after, changed=True)
     except Exception as exc:

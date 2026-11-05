@@ -70,6 +70,104 @@ class DocumentAnnotationTests(unittest.TestCase):
             getattr(self.extension, "SetUserPreference" + kind).assert_not_called()
         self.document.SetSaveFlag.assert_not_called()
         self.app.ActivateDoc3.assert_not_called()
+
+    def drawing_context(self):
+        self.sheet_sketch, self.template_sketch = object(), object()
+        self.sheet_name, self.edit_sheet, self.active_view, self.view_model = "Sheet1", True, None, ""
+        self.sheet = SimpleNamespace(GetName=lambda: self.sheet_name,
+                                     GetTemplateSketch=lambda: self.template_sketch)
+        self.sheet_view = SimpleNamespace(GetName2=lambda: "Sheet1", GetSketch=lambda: self.sheet_sketch,
+                                          GetReferencedModelName=lambda: self.view_model)
+        self.document.GetType = lambda: 3
+        self.document.GetActiveConfiguration = lambda: None
+        self.document.SketchManager.ActiveSketch = self.sheet_sketch
+        self.document.GetCurrentSheet = lambda: self.sheet
+        self.document.GetFirstView = lambda: self.sheet_view
+        self.document.GetEditSheet = lambda: self.edit_sheet
+        self.document.ActiveDrawingView = None
+        # ActiveDrawingView is a get-only COM property, represented directly.
+        self.documents = DocumentRegistry(self.app)
+        self.entry = self.documents.register(self.document)
+        foreground = self.documents.register(self.foreground)
+        self.documents.set_current(foreground, session_id="reader")
+        self.lease = self.documents.acquire_lease(self.entry, session_id="writer", ttl_seconds=60)
+
+    def test_normal_drawing_sheet_sketch_allows_read_write_and_noop(self):
+        self.drawing_context()
+        observed = self.operation("document.annotation-options")
+        self.assertTrue(observed["ok"], observed)
+        changed = self.edit("zero.leading", "show", "standard")
+        self.assertTrue(changed["ok"], changed)
+        self.assertTrue(changed["document"]["modified"])
+        self.extension.SetUserPreferenceInteger.assert_called_once_with(265, 100, 2)
+        self.document.SetSaveFlag.assert_called_once()
+        self.extension.SetUserPreferenceInteger.reset_mock()
+        self.document.SetSaveFlag.reset_mock()
+        same = self.edit("zero.leading", "show", "show")
+        self.assertTrue(same["ok"], same)
+        self.assertFalse(same["changed"])
+        self.assert_no_setters()
+
+    def test_drawing_format_view_foreign_or_missing_sketch_refuse_before_mutation(self):
+        defects = (
+            lambda: setattr(self, "edit_sheet", False),
+            lambda: setattr(self.document, "ActiveDrawingView", object()),
+            lambda: setattr(self.document.SketchManager, "ActiveSketch", object()),
+            lambda: setattr(self.document.SketchManager, "ActiveSketch", None),
+            lambda: setattr(self.document.SketchManager, "ActiveSketch", self.template_sketch),
+            lambda: setattr(self, "view_model", "part.SLDPRT"),
+            lambda: setattr(self, "sheet", None),
+            lambda: setattr(self, "sheet_view", None),
+            lambda: setattr(self, "sheet_sketch", None),
+            lambda: (setattr(self, "sheet_sketch", None),
+                     setattr(self.document.SketchManager, "ActiveSketch", None)),
+            lambda: setattr(self, "edit_sheet", 1),
+            lambda: setattr(self, "view_model", None),
+            lambda: setattr(self, "sheet_name", None),
+            lambda: setattr(self, "sheet_name", ""),
+        )
+        for defect in defects:
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.drawing_context()
+                defect()
+                result = self.edit("zero.leading", "show", "standard")
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+                self.assert_no_setters()
+
+    def test_drawing_read_keeps_format_editing_context_without_mutating_it(self):
+        self.drawing_context()
+        self.edit_sheet = False
+        self.document.SketchManager.ActiveSketch = self.template_sketch
+        result = self.operation("document.annotation-options")
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(self.edit_sheet)
+        self.assertIs(self.document.SketchManager.ActiveSketch, self.template_sketch)
+        self.assert_no_setters()
+
+    def test_drawing_context_drift_during_each_read_phase_is_not_repaired(self):
+        for phase in (1, 2, 3):
+            for defect in (lambda: setattr(self, "edit_sheet", False),
+                           lambda: setattr(self.document, "ActiveDrawingView", object()),
+                           lambda: setattr(self, "sheet_name", "Sheet2"),
+                           lambda: setattr(self, "view_model", "part.SLDPRT")):
+                with self.subTest(phase=phase, defect=defect):
+                    self.setUp()
+                    self.drawing_context()
+                    reads = 0
+                    def read_double(preference, option):
+                        nonlocal reads
+                        reads += 1
+                        if reads == phase:
+                            defect()
+                        return self.native[preference]
+                    self.extension.GetUserPreferenceDouble.side_effect = read_double
+                    result = self.edit("zero.leading", "show", "standard")
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(result["mutation"]["attempted"], phase > 1)
+                    self.assertEqual(self.extension.SetUserPreferenceInteger.call_count, int(phase > 1))
+                    self.assertEqual(self.document.SetSaveFlag.call_count, int(phase == 3))
         self.app.SetUserPreferenceIntegerValue.assert_not_called()
         self.app.SetUserPreferenceToggle.assert_not_called()
         self.app.SetUserPreferenceDoubleValue.assert_not_called()

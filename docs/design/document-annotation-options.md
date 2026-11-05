@@ -33,7 +33,8 @@ preference option 使用的 6/7/8 不进入写入域。箭头的可读枚举表�
 已校准的原生 setter 不改变 update stamp，故 stamp 不能代替字段旧值比较。
 
 先读取七字段、文档类型/stamp/dirty/configuration、foreground 和 active sketch 身份。
-写入仅限可写文档，存在活动草图时不更改字段；同值请求在状态检查后成功返回
+写入仅限可写文档；零件/装配存在活动草图时不更改字段，工程图只允许下述
+已识别的普通sheet上下文；同值请求在状态检查后成功返回
 `changed=false`，不调用 setter/SetSaveFlag。单次更改前将
 `mutation.attempted` 与 `may_have_changed` 置 true；原生失败不重试、不回滚。
 成功后立即完整读回七字段，验证请求值及未请求字段保持，再检查原生上下文。
@@ -152,7 +153,34 @@ mutation 两标记均 false，没有调用该 setter。整体状态仍为 failed
 任何 CAD 请求，也不声称新 verifier 已在该轮实跑。
 `/private/tmp/a18-public-cli-native-14e187c-d84a/strict-trace-audit.json`
 明确 overall_gate_success=false、full_acceptance_eligible=false。
-绘图默认sheet草图与真正编辑状态的区分仍在诊断，未放宽或跳过原检查。
+首失败后保留原检查并开展绘图上下文诊断，见下节。
+
+### 绘图上下文诊断与针对性修复
+
+一次独立只读诊断 `e76f` 在新建GBdrawing、原baseline只读重开两类样件的
+active/background四组上下文中确认：`GetEditSheet=true`，`ActiveDrawingView=NULL`，
+`ActiveSketch` 与 `GetActiveSketch2`、首个sheet pseudo-view的`GetSketch`原生身份一致，
+与`ISheet.GetTemplateSketch`身份不同，首view的引用模型名为空。68次读取/身份比较
+前后均保持文档状态、sheet、foreground和selection；没有注释偏好setter或编辑模式调用。
+自有宿主正常退出，cleanup=[]，前后SW进程为空，原baseline hash不变。
+
+- 原件：`/private/tmp/a18-drawing-context-e76f/evidence`
+- report SHA-256：`a3b99b8d729c2f74dac9b272bdee022146c9b32f33d0a84c0b6a74727aa16921`
+- trace SHA-256：`96a8756d72a216b69163a26b02de21c23a6f1c7d82e50b1f0b1b73dd646fb93c`
+
+官方[GetFirstView](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDrawingDoc~GetFirstView.html)
+说明首view代表图纸自身；[ActiveDrawingView](https://help.solidworks.com/2017/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IDrawingDoc~ActiveDrawingView.html)
+在图纸激活时为空，[GetEditSheet](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDrawingDoc~GetEditSheet.html)
+区分sheet和format编辑模式。
+
+修复后不简单跳过工程图检查：可变更profile必须是sheet模式、没有活动模型view，
+current sheet/首view/pseudoSketch/ActiveSketch均非空、名字非空、引用模型名为空，
+ActiveSketch与pseudoSketch相同且不是templateSketch。只读不按可变更profile拒绝，
+但所有读/写阶段均保存并核对sheet/view/sketch/template身份、mode、名称和引用模型名。
+format/view/foreign sketch等不支持上下文在setter前失败；不调用EditSheet来修复上下文。
+便携回归验证正常图纸读/写/同值、不支持或不完整上下文零写入、只读保持format模式，
+以及三轮偏好读取发生mode/view/name/refmodel漂移时失败且不二次标脏。
+该诊断不是写入证明，修复后的三类公共专项仍须独立通过。
 
 ## 交付边界
 
