@@ -363,9 +363,9 @@ Use `document save` or `document save-as` explicitly to persist verified edits.
 When persistence matters, verify the saved copy after read-only reopen, using
 fresh document handles and the intended configuration scope.
 
-The a17 development candidate adds document length display options. Private
-native and exact-adapter calibration passed for parts and assemblies. Installed
-public daemon/CLI acceptance is still pending.
+The a17 candidate adds document length display options. Private native and
+exact-adapter calibration, plus local installed public CLI fixture cases,
+passed for parts and assemblies. Complete installed CI acceptance is pending.
 
 ```powershell
 sw-cli document units --document d-ab12cd --json
