@@ -1,27 +1,31 @@
-# Windows CI design
+# Windows testing and CI
 
-SWCLI separates portable checks from tests that require a real native
-SOLIDWORKS installation.
+Development calibration and complete native verification run in the local
+Windows VM with its installed SOLIDWORKS. Source and the working Python
+environment live in `C:\Workspace\SWCLI`; test evidence lives under
+`C:\Workspace\SWCLI-tests\<version>-<commit>-<purpose>`.
+Keep each run's original reports, traces, native models and file hashes.
 
-## Hosted CI
+## Hosted checks
 
-`.github/workflows/ci.yml` is the single hosted workflow. Its first stage runs
-the unit suite on Windows 2025 with Python 3.9 and 3.14, parses every Windows CI
-PowerShell script, verifies the installed CLI and protocol schemas, and builds
-and checks both distributions on Linux. The Linux package job installs the
-actual wheel and verifies the isolated CLI, all request/result Schemas and
-packaged product skill/guide; Windows checks the same resources in the installed
-checkout during the unit stage. These jobs do not activate COM, run Wine or require
-SOLIDWORKS. Pull requests do not trigger the workflow.
+`.github/workflows/ci.yml` runs on pushes and explicit manual dispatch.
+Pull requests do not trigger it. It runs the unit suite on Windows 2025 with
+Python 3.9 and 3.14, checks PowerShell syntax and installed CLI resources,
+and builds and validates wheel/sdist distributions on Linux. The package job
+installs the actual wheel and verifies isolated commands, schemas and guides.
 
-Development calibration and complete native functional verification run on the
-local Windows VM with its installed SOLIDWORKS. Hosted pushes run the portable
-tests, installed CLI smoke and package checks, including pushes to main.
-The hosted native E2E remains available only through explicit manual dispatch
-for a separately requested investigation. It depends on both unit tests and
-package validation. Wine execution remains the responsibility of integration
-projects such as DockerSW and MacSW because their patched runtimes define
-whether SOLIDWORKS is usable under Wine.
+Hosted CI has no SOLIDWORKS installation job, calibration inputs, Google Drive
+access or private credential references. Real CAD validation uses the existing
+shared scripts on the VM. Internal calibration reports remain diagnostic
+evidence. Public CLI acceptance and complete functional verification are
+recorded separately, with the existing native deadlines and cleanup checks.
+
+## Historical hosted installation workflow
+
+The remaining sections document the retired hosted installation workflow and
+its prior investigations. Their workflow switches, secret requirements and
+installation steps are historical. The scripts remain available for local
+environment diagnostics and native verification.
 
 The earlier standalone installation-media probe has been retired after its
 mounting path was incorporated into the E2E job. The unified workflow records

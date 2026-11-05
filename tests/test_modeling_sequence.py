@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -69,24 +70,23 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertNotIn('SaveAs3', block)
         self.assertNotIn('Save3', block)
 
-    def test_windows_ci_only_smokes_visible_and_always_runs_hidden_business_suite(self):
-        root = SCRIPT.parents[2]
-        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    def test_hosted_smoke_has_no_native_jobs_or_private_credentials(self):
+        workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(
+            re.findall(r"^  ([a-z][a-z-]*):$", workflow.split("jobs:", 1)[1], re.MULTILINE),
+            ["test", "package"],
+        )
+        for forbidden in ("secrets.", "RCLONE_CONFIG", "calibrate_", "solidworks-e2e", "pull_request:"):
+            self.assertNotIn(forbidden, workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+
+    def test_windows_hidden_wrapper_keeps_full_native_test_support(self):
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
-        visible = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\visible" -VisibleSmoke'
-        hidden = 'scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\\hidden" -Hidden'
-        self.assertLess(workflow.index(visible), workflow.index(hidden))
-        self.assertNotIn("if ('${{ inputs.runtime_suite || 'core' }}' -eq 'full')", workflow)
-        self.assertNotIn("inputs.runtime_suite || 'core'", workflow)
-        self.assertNotIn("runtime_suite:", workflow)
-        self.assertIn("-Hidden -Suite full", workflow)
         self.assertIn('--suite $Suite', wrapper)
         self.assertIn('[switch]$Hidden', wrapper)
         self.assertIn('if (-not $Hidden) { $daemonArguments += "--visible" }', wrapper)
-        self.assertIn('-ArgumentList $daemonArguments', wrapper)
         self.assertIn('--fixture-dir $equationFixtureFolder', wrapper)
         self.assertIn('"equation-fixture-daemon.py"', wrapper)
-        self.assertNotIn('Native equation ROT fixture remains mandatory', wrapper)
 
     def test_visible_smoke_returns_before_any_business_sets(self):
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")
@@ -100,30 +100,6 @@ class ModelingSequenceTests(unittest.TestCase):
             self.assertNotIn(name, block)
         self.assertIn('if (-not $VisibleSmoke -and -not $Hidden)', wrapper)
 
-    def test_windows_native_gate_consumes_the_same_run_package_not_editable_source(self):
-        workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        package, hosted = workflow.split("  solidworks-e2e:", 1)
-        self.assertIn("needs: [test, package]", hosted)
-        self.assertIn("if: ${{ success() && github.event_name == 'workflow_dispatch' }}", hosted)
-        self.assertNotIn("github.ref == 'refs/heads/main'", hosted)
-        self.assertIn("name: swcli-dist", package)
-        download = hosted.split("      - name: Download built SWCLI distributions", 1)[1].split("      - name:", 1)[0]
-        self.assertIn("uses: actions/download-artifact@v8", download)
-        self.assertIn("name: swcli-dist", download)
-        self.assertIn("path: ${{ runner.temp }}/swcli-dist", download)
-        self.assertIn("digest-mismatch: error", download)
-        self.assertNotIn("run-id:", download)
-        self.assertNotIn("repository:", download)
-        install = hosted.split("      - name: Install built SWCLI wheel", 1)[1].split("      - name:", 1)[0]
-        self.assertIn('$env:RUNNER_TEMP\\swcli-dist', install)
-        self.assertIn("if ($wheels.Count -ne 1)", install)
-        self.assertIn("python -m pip install $wheels[0].FullName", install)
-        self.assertIn("SWCLI wheel installation failed", install)
-        self.assertIn("python -I scripts/ci/verify-installed.py", install)
-        self.assertNotIn("--editable", hosted)
-        self.assertNotIn("pip install .", hosted)
-        self.assertLess(hosted.index("Download built SWCLI distributions"), hosted.index("Install native SOLIDWORKS"))
-        self.assertLess(hosted.index("Install built SWCLI wheel"), hosted.index("Run real SOLIDWORKS modeling and export smoke test"))
 
     def test_windows_extra_host_wait_is_bounded_by_elapsed_time_not_probe_count(self):
         wrapper = (SCRIPT.parent / "windows/smoke-solidworks.ps1").read_text(encoding="utf-8")

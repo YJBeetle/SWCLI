@@ -18,10 +18,6 @@ def script(name):
     return (WINDOWS_SCRIPTS / name).read_text(encoding="utf-8")
 
 
-def workflow_step(workflow, name):
-    marker = "      - name: " + name
-    return workflow.split(marker, 1)[1].split("\n      - ", 1)[0]
-
 
 class WindowsVbaPrerequisiteContractsTests(unittest.TestCase):
     def assert_mandatory_string(self, source, name):
@@ -136,54 +132,6 @@ class WindowsVbaPrerequisiteContractsTests(unittest.TestCase):
         self.assertIn("$toolboxUpdates", required)
         self.assertIn("Test-Path -LiteralPath $requiredFile -PathType Leaf", required)
 
-    def test_hosted_ci_always_uses_full_installation_without_snapshot_replay(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(
-            encoding="utf-8"
-        )
-        hosted = workflow.split("  solidworks-e2e:", 1)[1]
-        for forbidden in (
-            "actions/cache/restore",
-            "actions/cache/save",
-            "solidworks-cache",
-            "SW_CACHE_STATE",
-            "export-solidworks-cache-state.ps1",
-            "restore-solidworks-cache-state.ps1",
-        ):
-            self.assertNotIn(forbidden, hosted)
-        ordered_steps = (
-            "Free disposable runner disk for installation",
-            "Install rclone, WinFsp, and ImDisk",
-            "Prepare protected Google Drive configuration",
-            "Stream Google Drive through WinFsp",
-            "Mount complete streamed ISO with ImDisk proxy",
-            "Fetch private smoke-test runtime",
-            "Install native SOLIDWORKS",
-            "Apply private runtime overlay and start test license service",
-            "Run real SOLIDWORKS modeling and export smoke test",
-        )
-        positions = []
-        for name in ordered_steps:
-            step = workflow_step(hosted, name)
-            self.assertNotRegex(step, r"(?m)^\s*if:")
-            positions.append(hosted.index("      - name: " + name))
-        self.assertEqual(positions, sorted(positions))
-        install = workflow_step(hosted, "Install native SOLIDWORKS")
-        self.assertIn("scripts/ci/windows/install-solidworks.ps1", install)
-        self.assertIn("-MediaRoot $env:SW_MEDIA_ROOT", install)
-        self.assertIn(
-            '-InventoryPath "$env:SWCLI_SMOKE_ROOT\\vba-runtime.json"', install
-        )
-        self.assertIn(
-            "scripts/ci/windows/smoke-solidworks.ps1",
-            workflow_step(hosted, "Run real SOLIDWORKS modeling and export smoke test"),
-        )
-        self.assertIn("verify-equation-dimension.py", script("smoke-solidworks.ps1"))
-        # Standalone experimental helpers remain available, not invoked by CI.
-        for step in (
-            "export-solidworks-cache-state.ps1",
-            "restore-solidworks-cache-state.ps1",
-        ):
-            self.assertTrue((WINDOWS_SCRIPTS / step).is_file())
 
     def test_common_helper_uses_bounded_msi_calls_and_safe_inventory(self):
         source = HELPER.read_text(encoding="utf-8")

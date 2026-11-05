@@ -8,7 +8,7 @@ calls. Evidence records `structure_inspected=false`; it proves neither feature
 structure preservation nor save/reopen acceptance. Existing copy diagnostics,
 the default core/full plans and all acceptance assertions remain unchanged.
 
-SWCLI owns the CAD test operations and assertions. Its Windows CI prepares a
+SWCLI owns the CAD test operations and assertions. Local Windows VM verification uses the installed
 native SOLIDWORKS host; DockerSW prepares Linux/Wine; MacSW is responsible for
 macOS/Wine provisioning. The two integration projects call the same scripts,
 not copies of the modeling assertions. These are CI tools delivered in the
@@ -49,7 +49,7 @@ separate diagnostic proof and cannot replace these public cases.
 
 Windows always runs a lightweight visible startup/open/inspect/close/stop smoke
 followed by hidden business tests, using separate instances and evidence.
-Main pushes and manual CI runs select hidden `full`, with no coverage-tier input,
+Complete local Windows verification selects hidden `full`,
 without repeating the CAD suite visibly. Each functional set owns a
 fresh session, with no restart inside a set. MacSW retains its own host-mode
 policy; this does not authorize MacSW signing. DockerSW uses the same independent
@@ -244,9 +244,8 @@ an exclusively owned, connected host with `visible=true`, reads one installed
 part read-only, checks unchanged host identity and an empty catalog, then stops
 its own daemon/SW. It never runs CAD, dimension, export or equation cases.
 Business runs require `-Hidden`; visible success is not full interactive CAD proof.
-Its native job downloads
-the same run's `swcli-dist` artifact, requires exactly one wheel, installs it
-normally and verifies installed resources before either mode. It does not use
+Local verification installs the wheel built from the tested revision and
+verifies installed resources before either mode. It does not use
 an editable checkout as the native runtime; the checkout only supplies the CI
 scripts and fixtures. Each hidden functional set retains an unchanged native
 PID; the continuation-to-Front-diameter bridge retains that same host across
@@ -259,7 +258,7 @@ instance. Production protocol operations, schemas and installed sources are
 unchanged; no raw-COM endpoint is added. The subsequent equation protection
 assertions still use the public installed daemon operations. The old ROT helper
 remains available for independent fixture diagnostics, not the CI path.
-The Windows CI installer explicitly selects the official Toolbox program,
+The retained Windows installation helper explicitly selects the official Toolbox program,
 data and English-resource feature chains alongside the core features. It requires
 the installation medium's `Toolbox/ToolboxUpdates.zip`, keeps `INSTALLLEVEL=100`
 and does not select all add-ins. MSI success alone still does not prove Toolbox
