@@ -1,4 +1,4 @@
-"""Optional stdio MCP adapter over the existing swclid client; no COM ownership."""
+"""Optional MCP stdio frontend; all CAD work uses the existing swclid protocol."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from functools import partial
 import json
 import os
 import sys
-import threading
 import uuid
 from typing import Any, Dict, Optional
 
@@ -17,53 +16,50 @@ from jsonschema import Draft202012Validator
 from . import __version__
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
 from .daemon.timeouts import validate_timeout
+from .daemon_manager import DaemonManager
 from .protocol import load_schema
 
+STARTUP_MESSAGE = (
+    "Starting swclid and SOLIDWORKS can take tens of seconds to several minutes. "
+    "This call waits for readiness. Do not start again while it is pending; "
+    "after a timeout, inspect status before deciding what to do."
+)
 
-def tool_definitions(*, auto_start: bool = True) -> list[Dict[str, Any]]:
-    """Small stable tool list; operation contracts come from the running daemon."""
+
+def tool_definitions() -> list[Dict[str, Any]]:
     fields = load_schema("request")["properties"]
-    execute_fields = {
-        name: deepcopy(fields[name]) for name in (
-            "operation", "parameters", "session_id", "document_id",
-            "expected_update_stamp", "lease_id", "request_id",
-        )
-    }
-    descriptions = (
-        ("swcli_status", "Read swclid health and host identity. First call lazily starts a local daemon unless connect-only; never automatically attaches a user instance.", {}),
-        ("swcli_capabilities", "Discover running daemon operations; pass operation for its exact input/result schemas and x-swcli-context. Start with the small summary.", {
+    execute = {name: deepcopy(fields[name]) for name in (
+        "operation", "parameters", "session_id", "document_id", "expected_update_stamp", "lease_id", "request_id",
+    )}
+    definitions = (
+        ("swcli_status", "Observe daemon availability, SW ownership, user/other instances and window visibility without starting anything. Unknown and startup-cached observations are explicit.", {}),
+        ("swcli_daemon_start", STARTUP_MESSAGE + " Explicitly start or reuse the selected local host. The host launcher owns Wine/Python selection. visible affects only a newly owned SW; attach_existing explicitly shares a user SW and preserves its window.", {
+            "visible": {"type": "boolean", "default": False},
+            "attach_existing": {"type": "boolean", "default": False},
+            "startup_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 600, "default": 120},
+        }),
+        ("swcli_daemon_stop", "Explicit global daemon shutdown affects every client sharing this endpoint. The existing worker refuses to exit an owned SW while any document is open; save/close explicitly first. Attached user SW is preserved. Does not stop this MCP connection or auto-restart anything.", {
+            "request_id": deepcopy(fields["request_id"]),
+        }),
+        ("swcli_capabilities", "Discover running daemon operations; pass operation for its exact request/result schemas and x-swcli-context. Does not start SW; query status and explicitly start first if needed.", {
             "operation": {"type": "string", "minLength": 1},
         }),
-        ("swcli_execute", "Execute one advertised SWCLI operation with its exact parameters and document/session/lease/CAS context. Read its schema first. Writes, saving and closing require task authority. Paths belong to the host. No retries or rollback; inspect on failure. Daemon lifecycle uses the CLI.", execute_fields),
+        ("swcli_execute", "Execute one advertised SWCLI operation with exact parameters and session/document/lease/CAS context. Read its schema first. Does not start or recover SW. Writes/save/close require task authority. Host paths, native errors and partial-state rules are preserved. Use the explicit daemon tools for lifecycle.", execute),
     )
-    return [
-        {
-            "name": name,
-            "description": description,
-            "inputSchema": {
-                "type": "object", "additionalProperties": False,
-                "properties": properties,
-                "required": ["operation", "parameters"] if name == "swcli_execute" else [],
-            },
-            "annotations": {
-                "readOnlyHint": name != "swcli_execute" and not auto_start,
-                "destructiveHint": name == "swcli_execute",
-                "idempotentHint": name != "swcli_execute",
-                "openWorldHint": True,
-            },
-        }
-        for name, description, properties in descriptions
-    ]
+    return [{
+        "name": name, "description": description,
+        "inputSchema": {"type": "object", "additionalProperties": False, "properties": properties,
+                        "required": ["operation", "parameters"] if name == "swcli_execute" else []},
+        "annotations": {"readOnlyHint": name in ("swcli_status", "swcli_capabilities"),
+                        "destructiveHint": name in ("swcli_execute", "swcli_daemon_stop"),
+                        "idempotentHint": name in ("swcli_status", "swcli_capabilities"), "openWorldHint": True},
+    } for name, description, properties in definitions]
 
 
 class DaemonBridge:
-    """Forward one request once, keeping native errors and request identity."""
-
-    def __init__(
-        self, *, endpoint: Optional[str] = None, session_id: Optional[str] = None,
-        timeout_seconds: float = 600.0, connect_timeout_seconds: float = 3.0,
-        auto_start: bool = True, startup_timeout_seconds: float = 120.0,
-    ):
+    def __init__(self, *, endpoint: Optional[str] = None, session_id: Optional[str] = None,
+                 timeout_seconds: float = 600.0, connect_timeout_seconds: float = 3.0,
+                 host_launcher: Optional[str] = None):
         self.endpoint = endpoint or os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
         parse_endpoint(self.endpoint)
         self.timeout_seconds = validate_timeout(timeout_seconds, name="request timeout", margin=10)
@@ -71,34 +67,8 @@ class DaemonBridge:
         self.session_id = session_id or os.environ.get("SWCLI_SESSION_ID") or f"mcp-{uuid.uuid4()}"
         self.schemas = {tool["name"]: tool["inputSchema"] for tool in tool_definitions()}
         self.response_validator = Draft202012Validator(load_schema("response"))
-        self.auto_start = auto_start
-        self.startup_timeout_seconds = validate_timeout(startup_timeout_seconds, name="startup timeout", margin=15)
-        self._prepare_lock = threading.Lock()
-        self._prepared = False
-        self._prepare_error = None
-
-    def _ensure_daemon(self):
-        # One lazy preflight per MCP process. Never restart an unhealthy or lost
-        # daemon after an established session, and never start a remote host.
-        if not self.auto_start:
-            return
-        with self._prepare_lock:
-            if self._prepare_error is not None:
-                raise RuntimeError(self._prepare_error)
-            if self._prepared:
-                return
-            try:
-                from .client_startup import ensure_local_daemon
-                ensure_local_daemon(
-                    endpoint=self.endpoint,
-                    connect_timeout_seconds=self.connect_timeout_seconds,
-                    startup_timeout_seconds=self.startup_timeout_seconds,
-                )
-                self._prepared = True
-            except Exception as exc:
-                # Repeated tool calls must not repeatedly launch native hosts.
-                self._prepare_error = str(exc)
-                raise
+        self.manager = DaemonManager(endpoint=self.endpoint, host_launcher=host_launcher,
+                                     connect_timeout_seconds=self.connect_timeout_seconds)
 
     def call(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         request_id = str(uuid.uuid4())
@@ -110,104 +80,96 @@ class DaemonBridge:
             arguments = deepcopy(arguments)
             request_id = arguments.pop("request_id", request_id)
             if name == "swcli_status":
-                operation, parameters = "daemon.health", {}
-            elif name == "swcli_capabilities":
-                operation, parameters = "daemon.capabilities", {"include_schemas": False, **arguments}
+                result = self.manager.status()
+            elif name == "swcli_daemon_start":
+                submitted = True
+                result = self.manager.start(**arguments)
+            elif name == "swcli_daemon_stop":
+                submitted = True
+                result = self.manager.stop(request_id=request_id, timeout_seconds=self.timeout_seconds)
             else:
-                operation = arguments.pop("operation")
-                parameters = arguments.pop("parameters")
-                if operation == "daemon.shutdown":
-                    raise ValueError("daemon lifecycle requires an explicit sw-cli daemon command")
-            # Reuse DockerSW's optional native-path mapping, exactly as the CLI does.
-            from .cli import translate_parameter_paths
-            translate_parameter_paths(parameters)
-            self._ensure_daemon()
-            submitted = True
-            response = call_daemon(
-                operation, parameters, endpoint=self.endpoint,
-                timeout_seconds=self.timeout_seconds if name == "swcli_execute" else 10.0,
-                connect_timeout_seconds=self.connect_timeout_seconds,
-                request_id=request_id,
-                session_id=arguments.get("session_id", self.session_id) if name == "swcli_execute" else self.session_id,
-                **{key: arguments[key] for key in ("document_id", "expected_update_stamp", "lease_id") if key in arguments},
-            )
-            self.response_validator.validate(response)
-            return response
+                if name == "swcli_capabilities":
+                    operation, parameters = "daemon.capabilities", {"include_schemas": False, **arguments}
+                else:
+                    operation, parameters = arguments.pop("operation"), arguments.pop("parameters")
+                    if operation == "daemon.shutdown":
+                        raise ValueError("use swcli_daemon_stop for explicit global shutdown")
+                from .cli import translate_parameter_paths
+                translate_parameter_paths(parameters)
+                submitted = True
+                result = call_daemon(
+                    operation, parameters, endpoint=self.endpoint,
+                    timeout_seconds=self.timeout_seconds if name == "swcli_execute" else 10,
+                    connect_timeout_seconds=self.connect_timeout_seconds, request_id=request_id,
+                    session_id=arguments.get("session_id", self.session_id) if name == "swcli_execute" else self.session_id,
+                    **{key: arguments[key] for key in ("document_id", "expected_update_stamp", "lease_id") if key in arguments},
+                )
+                self.response_validator.validate(result)
+            result.setdefault("request_id", request_id)
+            return result
         except Exception as exc:
-            # A read timeout/disconnect cannot establish whether a mutation occurred.
-            # No retry or new native call is made by this adapter.
-            return {
-                "success": False, "request_id": request_id,
-                "error": {"code": type(exc).__name__, "message": str(exc)},
-                "outcome_unknown": submitted and getattr(exc, "_swcli_transport_phase", None) != "connect",
-            }
+            return {"success": False, "request_id": request_id,
+                    "error": {"code": type(exc).__name__, "message": str(exc)},
+                    "outcome_unknown": submitted and getattr(exc, "_swcli_transport_phase", None) != "connect"}
 
 
 def create_server(bridge: DaemonBridge):
-    """Load the optional official SDK only when the MCP server is requested."""
     from mcp import types
     from mcp.server.lowlevel import Server
     import anyio
-
-    server = Server(
-        "swcli", version=__version__,
-        instructions=(
-            "Lazily starts or reuses local swclid; remote endpoints are connection-only. First call swcli_status and "
-            "swcli_capabilities; request one operation schema before swcli_execute. "
-            "Use explicit documents, fresh stamps and leases for writes. Tool structuredContent "
-            "is the full swclid response: check success, then result or error. "
-            "MCP disconnect/cancellation does not stop SOLIDWORKS or undo work. "
-            "Never blindly retry a timeout; retain request_id and inspect native state."
-        ),
-    )
+    server = Server("swcli", version=__version__, instructions=(
+        "No lazy startup. First swcli_status; if necessary explicitly call swcli_daemon_start. "
+        + STARTUP_MESSAGE + " Then query swcli_capabilities for one operation schema and call swcli_execute. "
+        "Use explicit document IDs, leases and fresh stamps for writes. Check success and result/error in "
+        "structuredContent; visibility_current=false is a startup report, not a live window observation. "
+        "Stopping affects the shared endpoint; never discard open documents to stop it. "
+        "MCP disconnect does not stop SW; swcli_daemon_stop is explicit and keeps MCP alive."
+    ))
 
     @server.list_tools()
     async def list_tools():
-        return [types.Tool(**tool) for tool in tool_definitions(auto_start=bridge.auto_start)]
+        return [types.Tool(**tool) for tool in tool_definitions()]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: Dict[str, Any]):
-        # Keep stdin/ping responsive while the existing daemon serializes STA work.
-        # anyio does not abandon the thread on cancellation by default.
+        meta = server.request_context.meta
+        token = getattr(meta, "progressToken", None) if meta is not None else None
+        if name == "swcli_daemon_start" and token is not None:
+            await server.request_context.session.send_progress_notification(token, 0, 1, STARTUP_MESSAGE)
         payload = await anyio.to_thread.run_sync(partial(bridge.call, name, arguments))
-        return types.CallToolResult(
-            content=[types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
-            structuredContent=payload, isError=not payload.get("success", False),
-        )
-
+        if name == "swcli_daemon_start" and token is not None:
+            message = "Daemon/SW startup finished; inspect the returned readiness." if payload.get("success") else "Startup failed; inspect the error and status before another start."
+            await server.request_context.session.send_progress_notification(token, 1, 1, message)
+        return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
+                                    structuredContent=payload, isError=not payload.get("success", False))
     return server
 
 
-def configure_parser(subcommands) -> None:
-    parser = subcommands.add_parser("mcp", help="connect MCP clients to existing swclid (optional extra)")
+def configure_parser(subcommands):
+    parser = subcommands.add_parser("mcp", help="serve the optional MCP frontend for SWCLI")
     commands = parser.add_subparsers(dest="mcp_command", required=True)
-    serve = commands.add_parser("serve", help="serve MCP over stdio; lazily start/reuse local swclid")
-    serve.add_argument("--connect-only", action="store_true", help="only use an existing daemon")
-    serve.add_argument("--startup-timeout", type=float, default=120.0, help="local daemon startup timeout in seconds")
+    commands.add_parser("serve", help="serve MCP stdio; daemon start/stop are explicit tools")
 
 
-async def serve(bridge: DaemonBridge) -> None:
+async def serve(bridge):
     from mcp.server.stdio import stdio_server
-
     server = create_server(bridge)
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
-def run(args) -> int:
+def run(args):
     if sys.version_info < (3, 10):
-        print("SWCLI MCP requires Python 3.10+ and the swcli[mcp] extra; the CLI still supports Python 3.9.", file=sys.stderr)
+        print("SWCLI MCP requires Python 3.10+ and swcli[mcp]; base CLI supports Python 3.9.", file=sys.stderr)
         return 2
     try:
-        bridge = DaemonBridge(
-            endpoint=args.endpoint, session_id=args.session,
-            timeout_seconds=args.request_timeout, connect_timeout_seconds=args.connect_timeout,
-            auto_start=not args.connect_only, startup_timeout_seconds=args.startup_timeout,
-        )
+        bridge = DaemonBridge(endpoint=args.endpoint, session_id=args.session,
+                              timeout_seconds=args.request_timeout, connect_timeout_seconds=args.connect_timeout,
+                              host_launcher=args.host_launcher)
         asyncio.run(serve(bridge))
     except ModuleNotFoundError as exc:
         if exc.name == "mcp" or (exc.name or "").startswith("mcp."):
-            print('Install MCP support in this Python environment: python -m pip install "swcli[mcp]" (or ".[mcp]" from a checkout).', file=sys.stderr)
+            print('Install python -m pip install "swcli[mcp]" (or ".[mcp]" from source).', file=sys.stderr)
             return 2
         raise
     except KeyboardInterrupt:

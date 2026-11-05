@@ -14,15 +14,17 @@ Read [the usage guide](references/usage.md) when preparing a metadata, modeling
 or export workflow, or connecting to an unfamiliar host. The guide travels with this
 skill; it does not depend on the developer's machine or repository checkout.
 
-For MCP client configuration, lazy startup, independent sessions and protocol
+For MCP client configuration, explicit lifecycle, host launchers, sessions and protocol
 response fields, read [the MCP guide](references/mcp.md). `sw-cli mcp serve`
 uses stdio and reuses the existing daemon; it is not an HTTP listener.
 
 ## Working rules
 
-- With MCP, first call `swcli_status`, then `swcli_capabilities`; request the
+- With MCP, first call `swcli_status`; explicitly use `swcli_daemon_start` if a
+  host is needed, then `swcli_capabilities`. Daemon and SW startup takes time;
+  wait for readiness and inspect status after a timeout before another start. Request the
   selected operation schema before `swcli_execute`. With the CLI, first run
-  `sw-cli version --json`, `sw-cli daemon status --json` and
+  `sw-cli version --json`, `sw-cli daemon status --details --json` and
   `sw-cli capabilities --json`. Read the capability summary, then
   request `capabilities --operation NAME --json` for the needed request/result
   schemas and context, instead of loading all schemas with `--full`.
@@ -89,8 +91,10 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does
   not upload local files, and `--allow-remote` does not provide authentication.
-- MCP may start a local host on first tool use; use connection-only mode for
-  observation that must not start SW. Starting/restarting/stopping a daemon changes the host lifecycle. Obtain the
+- MCP and CLI CAD/status calls do not start SW implicitly. Explicit MCP
+  lifecycle tools and CLI daemon commands share the host manager; Wine startup
+  uses the configured host wrapper, not the client Python. Starting/restarting/
+  stopping a daemon changes the host lifecycle. Obtain the
   necessary user authority and never terminate another user's interactive host.
   Visible Windows tests use `daemon start --visible` or `daemon serve --visible`.
 

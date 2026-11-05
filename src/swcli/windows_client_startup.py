@@ -48,7 +48,7 @@ def register_start_task(service, *, name, user_sid, arguments, session_id):
     return folder, running
 
 
-def start_resident_daemon(*, endpoint, startup_timeout_seconds):
+def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, attach_existing=False):
     import os
     import pythoncom
     import win32api
@@ -63,6 +63,10 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds):
     log.parent.mkdir(parents=True, exist_ok=True)
     arguments = [str(Path(__file__).with_name("client_bootstrap.py")), "--endpoint", endpoint,
                  "--startup-timeout", str(startup_timeout_seconds), "--log", str(log)]
+    if visible:
+        arguments.append("--visible")
+    if attach_existing:
+        arguments.append("--attach-existing")
     token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32con.TOKEN_QUERY)
     try:
         sid = win32security.ConvertSidToStringSid(win32security.GetTokenInformation(token, win32security.TokenUser)[0])

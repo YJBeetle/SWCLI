@@ -72,6 +72,7 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     status = commands.add_parser("status", help="query a running service")
     status.add_argument("--endpoint", dest="daemon_endpoint")
     status.add_argument("--json", action="store_true", dest="as_json")
+    status.add_argument("--details", action="store_true", help="observe daemon, SW ownership and current windows without starting anything")
 
     stop = commands.add_parser("stop", help="stop a running service")
     stop.add_argument("--endpoint", dest="daemon_endpoint")
@@ -590,12 +591,17 @@ def run(args: argparse.Namespace) -> int:
         or os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
     )
     if command == "start":
-        response = start_daemon(
-            endpoint=endpoint,
+        from ..daemon_manager import DaemonManager
+        response = DaemonManager(
+            endpoint=endpoint, host_launcher=getattr(args, "host_launcher", None),
+        ).start(
             visible=args.visible,
             startup_timeout_seconds=args.startup_timeout,
             attach_existing=args.attach_existing,
         )
+    elif command == "status" and getattr(args, "details", False):
+        from ..daemon_manager import DaemonManager
+        response = DaemonManager(endpoint=endpoint).status()
     elif command == "restart":
         response = restart_daemon(
             endpoint=endpoint,

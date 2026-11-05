@@ -30,61 +30,105 @@ starts the adapter and manages its stdin/stdout. Do not pipe interactive logs
 or shell banners into it. SWCLI protocol output stays on stdout; diagnostics
 use stderr.
 
-The adapter does not start SOLIDWORKS during MCP initialization or `tools/list`.
-At the first valid tool call, it probes a local daemon and explicitly starts
-one if the endpoint is unreachable before a connection was established.
-Local startup uses the same Windows runtime and authority as
-`sw-cli daemon start`; the default is a hidden daemon-owned SOLIDWORKS instance.
-It does not install SOLIDWORKS or discover a Wine runtime from a macOS/Linux
-client. DockerSW normally already runs swclid; start its daemon through the
-host's existing lifecycle command when needed.
+Initialization, tool discovery, status, capability queries and CAD calls never
+start SOLIDWORKS implicitly. Call `swcli_status`, explicitly call
+`swcli_daemon_start` if the task needs a host, then discover and execute CAD
+operations. There is no lazy startup or `--auto-start` option.
 
-For an existing daemon or a tunneled endpoint, use connection-only mode:
+Starting **both swclid and SOLIDWORKS** can take tens of seconds to several
+minutes. The start tool waits for readiness (default 120 seconds, configurable
+up to 600) and provides progress when the client requests it. Set the client's
+tool timeout to cover that startup budget plus transport overhead. Do not
+submit another start while one is pending. After a timeout, inspect status;
+the host may have started even if its reply was lost.
+
+### Host launcher selection
+
+The shared manager uses an explicit global `--host-launcher PATH` first, then
+`SWCLI_HOST_LAUNCHER`, then the built-in native Windows launcher. A configured
+launcher must be an existing absolute executable path; it is process
+configuration, never an AI-supplied tool argument. A configured launcher failure
+is reported without falling back to a different runtime. On Linux/macOS,
+missing configuration is an error: the MCP client's Python is not the Wine
+Windows Python that runs swclid. SWCLI does not search PATH for Wine, prefixes,
+SOLIDWORKS or a different Python.
+
+Use DockerSW's `/usr/local/bin/sw-cli` wrapper **inside its container** or
+MacSW's actual App `Contents/MacOS/sw-cli` wrapper on macOS. The wrapper owns
+Wine, prefix, runtime preparation and Windows Python selection. DockerSW's
+wrapper supplies its own default launcher to native clients. For MacSW, set
+the actual installed App wrapper explicitly, for example:
 
 ```json
 {
   "mcpServers": {
     "swcli": {
-      "command": "sw-cli",
-      "args": ["--endpoint", "127.0.0.1:18495", "mcp", "serve", "--connect-only"]
+      "command": "/Applications/MacSW.app/Contents/MacOS/sw-cli",
+      "args": ["mcp", "serve"],
+      "env": {
+        "SWCLI_HOST_LAUNCHER": "/Applications/MacSW.app/Contents/MacOS/sw-cli"
+      }
     }
   }
 }
 ```
 
-Non-local endpoints are always connection-only. Endpoint configuration does
-not provide authentication, encryption or file transfer; retain the existing
-trusted boundary/tunnel and execution-host path rules. DockerSW's configured
-path helper is reused; arbitrary remote files are not uploaded.
+Adjust the App path to its actual location. The wrapper/native client must
+contain this SWCLI version and its optional MCP dependencies; installing the
+extra in an unrelated terminal Python does not update an App/container.
+The manager calls the wrapper with literal `daemon start --endpoint ...
+--startup-timeout ... --json` arguments, optional `--visible` and
+`--attach-existing`, and a delegation marker to prevent recursion. POSIX
+launches run in a separate OS session so closing MCP does not kill the host.
 
-If a user already has a visible SOLIDWORKS instance, default startup currently
-refuses to create another host. To explicitly share that instance, first run
-`sw-cli daemon start --attach-existing --json` on its host, then connect MCP.
-Attach preserves the visible host and does not take ownership. A repeated
-`daemon start` at a running endpoint reuses it without changing visibility.
-Independent visible/hidden process startup has not passed both-host acceptance;
-do not bypass this guard with direct COM or a different endpoint.
+An already-ready daemon is reused without changing visibility. Remote endpoints
+are connection-only for startup: start the daemon on its host. A loopback
+address may be a tunnel; configure the intended local launcher only when it
+really manages that endpoint. Endpoint configuration does not add authentication,
+encryption or file transfer. Keep the trusted boundary/tunnel and host path rules.
 
-Windows MCP clients may put subprocesses in a kill-on-close Job Object. For
-that environment, lazy startup uses a demand-only current-user Windows task,
-without elevation, passwords or boot/logon triggers, and removes its definition
-after startup. If that startup path is unavailable, report the error; start the
-daemon from the host terminal and use `--connect-only` instead of repeatedly
-trying new hosts.
+If the user has a visible SOLIDWORKS instance, default startup currently refuses
+to create another host. `attach_existing:true` explicitly shares that instance
+and preserves its window and ownership. Independent visible/hidden startup has
+not passed both-host acceptance; do not bypass this guard with direct COM or
+a different endpoint.
 
-MCP EOF/disconnect/cancellation **does not stop swclid or SOLIDWORKS**. A new
-MCP connection can reuse the host. Stop/restart remains an explicit, authorized
-`sw-cli daemon` action. After an initial startup failure or a lost native
-session, inspect the error and host state, recover explicitly, and reconnect;
-the adapter does not repeatedly start hosts or retry failed native operations.
+Native Windows MCP clients may put subprocesses in a kill-on-close Job Object.
+The built-in launcher uses a demand-only, non-elevated current-user interactive
+task to keep a requested resident daemon outside that job, removing its task
+definition after startup. No password, boot/logon trigger or service is added.
+If this path is unavailable, report the error and start explicitly from the
+host terminal instead of repeatedly creating hosts.
+
+MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` is
+explicit, affects all clients on the endpoint, and keeps MCP connected. It
+uses the existing shutdown guard: an owned host with any open document refuses
+shutdown; save/close only as authorized. An attached user's SW is preserved.
+No native-operation retry, implicit restart or rollback is added.
+
+### Runtime observations
+
+`swcli_status` and `sw-cli daemon status --details --json` use the same read-only
+snapshot. It reports daemon running/reachable/state, SW running, known ownership,
+SW PID and window visibility, other processes, observation scope and probe errors.
+`user_sw_running:null` means process origin cannot be established; a visible
+unmanaged process is not automatically claimed as user-owned. Missing process
+or window access stays unknown, not an empty list or hidden=false observation.
+`visibility_current:false` labels startup-cached information. Remote process
+observations come from the daemon host, never the client's PID namespace.
+Older daemons fall back to health with that limitation stated. Basic
+`daemon status --json` keeps its existing health response. This observes SW
+windows; a tray controller is a separate planned feature.
 
 ## Discover, execute and check results
 
-The three stable MCP tools are:
+The five stable MCP tools are:
 
 | Tool | Arguments and result |
 | --- | --- |
-| `swcli_status` | `{}`; returns current daemon health and native host identity. |
+| `swcli_status` | `{}`; read-only runtime snapshot, including unknown/stale fields. |
+| `swcli_daemon_start` | Optional `visible`, `attach_existing`, `startup_timeout_seconds`; explicit start or reuse of the configured local host. |
+| `swcli_daemon_stop` | Optional stable `request_id`; explicit shared-endpoint shutdown with existing document/ownership guards. |
 | `swcli_capabilities` | `{}` for the small live operation/export summary; `{"operation":"document.properties"}` for that operation's exact input/result schemas and `x-swcli-context`. |
 | `swcli_execute` | `operation`, `parameters`, plus the existing optional `session_id`, `document_id`, `expected_update_stamp`, `lease_id`, `request_id` context. |
 
@@ -103,10 +147,12 @@ obtaining the actual document ID:
 `parameters` must match the selected operation schema. Context fields stay
 outside `parameters`. Zero is a valid update stamp. IDs shown here are examples;
 use fresh IDs returned by the daemon. There is no arbitrary COM/Python tool.
-`daemon.shutdown` is reserved for the explicit CLI lifecycle command.
+`daemon.shutdown` is reserved for the explicit lifecycle tool or CLI command.
 
-MCP returns the **complete SWCLI protocol response** in `structuredContent`,
-and the same JSON in a text content block. Check `isError` and
+Forwarded CAD tools return the **complete SWCLI protocol response** in `structuredContent`,
+and the same JSON in a text content block. Manager lifecycle/status tools use
+the same `success` and `result`/`error` fields with a request ID, without claiming
+a daemon protocol envelope when no daemon is available. Check `isError` and
 `structuredContent.success`; the operation payload is under `.result`, and
 native refusal details are under `.error`. This differs from the CLI's flattened
 `.ok` envelope. Invalid MCP arguments are rejected before forwarding.

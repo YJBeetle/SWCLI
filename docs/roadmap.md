@@ -187,8 +187,9 @@ unsaved documents and attached user-host ownership.
 - Stable entity references with topology/revision validation and explicit stale
   reference behavior, not guessed feature names or face indices.
 - Batches/transactions with documented partial-result and recovery semantics.
-- A thin stdio MCP adapter now reuses the same daemon protocol, with lazy local
-  startup and live schema discovery. A typed Python SDK remains future work;
+- A thin stdio MCP adapter reuses the same daemon protocol, with explicit
+  lifecycle tools, host launcher selection, read-only runtime observations and
+  live schema discovery. A typed Python SDK remains future work;
   neither route adds a second public COM/raw-Python execution surface.
 - Authenticated encrypted remote transport, workspace/file transfer and
   artifact IDs/downloads before treating server paths as a remote product API.

@@ -874,6 +874,11 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                 )
             elif request["operation"] == "daemon.health":
                 response = _success_response(request_id, self.server.manager.health())
+            elif request["operation"] == "daemon.runtime-status":
+                from ..runtime_state import native_inventory, snapshot
+                result = snapshot(self.server.manager.health(), inventory=native_inventory())
+                validate_operation_result("daemon.runtime-status", result)
+                response = _success_response(request_id, result)
             elif request["operation"] == "daemon.capabilities":
                 response = _success_response(
                     request_id, self.server.manager.capabilities(**request["parameters"])

@@ -110,6 +110,7 @@ _PROPERTY_TARGET = {"name": _PROPERTY_NAME, "configuration": _PROPERTY_NAME}
 
 OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.health": _operation("daemon.health"),
+    "daemon.runtime-status": _operation("daemon.runtime-status"),
     "daemon.capabilities": _operation(
         "daemon.capabilities",
         {"include_schemas": _boolean(), "operation": _string(minLength=1)},

@@ -10,6 +10,8 @@ def main():
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--startup-timeout", required=True)
     parser.add_argument("--log", required=True)
+    parser.add_argument("--visible", action="store_true")
+    parser.add_argument("--attach-existing", action="store_true")
     args = parser.parse_args()
     # The Task Scheduler action has no dependency on an inherited PYTHONPATH.
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -21,8 +23,13 @@ def main():
         previous = sys.stdout, sys.stderr
         sys.stdout = sys.stderr = log
         try:
-            return cli_main(["daemon", "serve", "--host", host, "--port", str(port),
-                             "--startup-timeout", args.startup_timeout])
+            arguments = ["daemon", "serve", "--host", host, "--port", str(port),
+                         "--startup-timeout", args.startup_timeout]
+            if args.visible:
+                arguments.append("--visible")
+            if args.attach_existing:
+                arguments.append("--attach-existing")
+            return cli_main(arguments)
         finally:
             sys.stdout, sys.stderr = previous
 

@@ -1,0 +1,113 @@
+{
+  "kind": "local-development-explicit-mcp-lifecycle",
+  "full_acceptance_eligible": false,
+  "startup_policy": "explicit",
+  "server_version": "0.1.0a16",
+  "sdk": "mcp 1.30.0",
+  "native_host": {
+    "revision": "33.5.0",
+    "solidworks_revision": "33.5.0",
+    "language": "chinese-simplified",
+    "process_id": 6756,
+    "visible": false,
+    "startup_wait_seconds": 5.435938042006455,
+    "owned_by_daemon": true,
+    "shared_interactive": false,
+    "platform": "windows"
+  },
+  "before_pids": [],
+  "pids_after_discovery": [],
+  "pids_before_explicit_start": [],
+  "runtime_observation": {
+    "daemon_running": true,
+    "daemon_reachable": true,
+    "daemon_state": "ready",
+    "host_connected": true,
+    "sw_running": true,
+    "user_sw_running": false,
+    "daemon_sw_pid": 6756,
+    "daemon_sw_owned": true,
+    "daemon_sw_visible": false,
+    "visibility_source": "top-level-windows",
+    "visibility_current": true,
+    "other_sw_running": false,
+    "sw_processes": [
+      {
+        "process_id": 6756,
+        "visible": false
+      }
+    ],
+    "pid_namespace": "windows",
+    "process_scope": "daemon-host",
+    "health": {
+      "server_version": "0.1.0a16",
+      "protocol_versions": [
+        "swcli/v1"
+      ],
+      "worker_alive": true,
+      "host_connected": true,
+      "recovery_required": false,
+      "recovery_error": null,
+      "host": {
+        "revision": "33.5.0",
+        "solidworks_revision": "33.5.0",
+        "language": "chinese-simplified",
+        "process_id": 6756,
+        "visible": false,
+        "startup_wait_seconds": 5.435938042006455,
+        "owned_by_daemon": true,
+        "shared_interactive": false,
+        "platform": "windows"
+      }
+    },
+    "probe_errors": []
+  },
+  "open_document_stop_refusal": {
+    "code": "ActiveDocument",
+    "message": "refusing to stop swclid while a document is open"
+  },
+  "reuse_kept_same_hidden_host": true,
+  "disconnect_retained_same_host": true,
+  "cli_and_mcp_same_host": true,
+  "mcp_alive_after_stop": true,
+  "after_pids": [],
+  "candidate_wheel": {
+    "version": "0.1.0a16",
+    "published": false,
+    "sha256": "d4b322cba862801724162e3a155ca0f511236ef844c8aaad1a030855f183e293",
+    "source_files_matched": 72
+  },
+  "portable_tests": {
+    "total": 1595,
+    "skipped": 21,
+    "passed": 1574,
+    "log_sha256": "14c10e8b34a18db4de1103f7230e038cadc499cb137afb150230ea7f3f69af59"
+  },
+  "evidence_directory": "C:\\Workspace\\SWCLI-mcp-20261106\\explicit-manager",
+  "raw_files": [
+    {
+      "path": "mcp-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mcp-stop-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-mcp-smoke.json",
+      "sha256": "2c4863e8245d3465168fb60a7493c643eb4ee85e20479f0b97a1534ec8ea678b"
+    },
+    {
+      "path": "resident-daemon.log",
+      "sha256": "846e0de2c30f825af0da8e3c191ca6c346347813094a579c1b9c468a33d55689"
+    }
+  ],
+  "scope": {
+    "windows_native_explicit_lifecycle": true,
+    "wine_native_explicit_lifecycle": false,
+    "tray_implemented": false,
+    "independent_second_hidden_host_enabled": false,
+    "ci_run": null,
+    "release_created": false
+  }
+}

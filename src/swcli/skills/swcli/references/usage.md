@@ -6,8 +6,8 @@ capabilities to resolve version differences; pre-release interfaces can change.
 
 ## MCP clients
 
-Use [the MCP guide](mcp.md) for stdio configuration, lazy local daemon startup,
-connection-only remote use, multi-client sessions and lifecycle. MCP tool
+Use [the MCP guide](mcp.md) for stdio configuration, explicit daemon start/stop,
+host launcher selection, read-only status, remote use and multi-client sessions. MCP tool
 responses contain the complete protocol envelope; the CLI field paths below
 apply only to CLI output. Both routes share the same live operation schemas,
 COM worker, native limits, lease/CAS checks and execution-host paths.

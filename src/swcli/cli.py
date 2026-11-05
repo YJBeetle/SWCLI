@@ -71,6 +71,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="daemon-side current-document session (default: shared default session)",
     )
     parser.add_argument(
+        "--host-launcher", help="absolute host-owned sw-cli wrapper for explicit daemon startup",
+    )
+    parser.add_argument(
         "--request-id",
         help="stable idempotency key for one typed request (default: random UUID)",
     )
