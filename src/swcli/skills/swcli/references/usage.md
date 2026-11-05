@@ -298,7 +298,15 @@ display chain is not proof of absent dimensions. Do not create replacements or
 guess names. Reads may observe a leased background document, but discovered
 handles do not grant modification authority or bypass lease/stamp guards.
 
+## Read and edit file metadata
+
 The metadata commands operate on the selected open SOLIDWORKS document.
+Discover each needed operation through `capabilities --operation NAME --json`;
+an installed client having a command does not prove the connected daemon
+implements it. File summary, custom properties and configuration properties
+cover the file Properties dialog. Settings under Options > Document Properties,
+such as units, fonts and drafting standards, require separate capability
+discovery. For an unsupported task, use the [official API workflow](solidworks-api.md).
 
 ```powershell
 sw-cli document summary --document d-ab12cd --json
@@ -323,11 +331,37 @@ document scope. A named configuration uses the exact spelling and stays
 separate from the document scope. `property-summary` lists the matching rows
 per configuration. Edit each intended configuration explicitly.
 
-Adds refuse existing names and default to text. Sets preserve the native type.
+Adds refuse existing names and default to text. When the advertised contract
+permits it, `property-add --type` accepts `text`, `integer`, `double`, `yes-no`
+or `date`. Supply the intended native raw value and verify its returned type
+and value. Sets preserve the existing native type. Set/delete refuse linked
+properties. A cached evaluated value can differ from its raw expression;
+compare `--if-value` against `raw_value`, and keep the expression when that is
+the user's intended value. An inactive configuration read can return cached
+evaluation without activating or rebuilding that configuration.
+
+For a cooperating writer, acquire the lease in the same session used for the
+edit. The following is one conditional update, using placeholders for the
+returned document ID, lease token and most recently observed update stamp.
+
+```powershell
+sw-cli --session metadata document properties --name "Drawing No" --configuration Default --document DOCUMENT_ID --json
+sw-cli --session metadata document lease acquire --document DOCUMENT_ID --ttl-seconds 600 --json
+sw-cli --session metadata document inspect --document DOCUMENT_ID --json
+sw-cli --session metadata document property-set "Drawing No" "A-105" --configuration Default --if-value "A-104" --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp STAMP --json
+```
+
+Replace `STAMP` with the returned integer, including zero when observed.
+After a successful write, use its returned document state or a fresh inspection
+for a subsequent write's stamp. A conflict calls for re-reading the intended
+property and reconsidering the edit. Release the lease when the work is done.
 Writes use document lease and stamp guards, and `--if-value` compares the
 previous raw value before editing. A failed write with
-`mutation.may_have_changed` may have altered the open document. Use
-`document save` or `document save-as` explicitly to persist verified edits.
+`mutation.may_have_changed` may have altered the open document. Inspect the
+resulting property and document before deciding on another mutation.
+Use `document save` or `document save-as` explicitly to persist verified edits.
+When persistence matters, verify the saved copy after read-only reopen, using
+fresh document handles and the intended configuration scope.
 
 The a17 development candidate adds document length display options. Private
 native and exact-adapter calibration passed for parts and assemblies. Installed
