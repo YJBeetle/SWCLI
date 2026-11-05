@@ -116,3 +116,47 @@ and SHA-only candidate images without alias promotion.
 These results establish the prepared part/assembly read and save/reopen cases;
 configuration-scoped reads, drawing fixtures and public property writes remain
 future work. Final version freezing does not itself establish release acceptance.
+
+## a16 Windows public metadata acceptance
+
+[Windows run 42075071140](https://github.com/YJBeetle/SWCLI/actions/runs/42075071140)
+completed successfully at `499f9395d22a9a034b8633497eb4a4a9bf10ad1b`,
+version `0.1.0a16.dev0`. Independent review of the original native and package
+artifacts verified both ZIP digests against GitHub.
+
+The public gate opened separate part and assembly fixtures. Across them it
+verified ten summary-field writes, six property additions, two updates and two
+deletions. It checked document/configuration isolation, named and aggregate
+reads, Chinese text, empty values, multiline comments, two stale-stamp
+refusals, two read-only setter refusals, background/current preservation,
+unchanged original files, saved-copy hashes and fresh handles on read-only
+reopen. Native write samples covered text properties. Numeric and boolean
+fixture values were read, while other property-type creation paths retain
+portable coverage and require additional native samples.
+
+The independent existing full gate passed all nineteen sets and twenty steps,
+forty-eight polygons, four depth writes and four equal-depth calls, twelve
+through-all cuts, fifteen validated exports and visible smoke, with clean
+process boundaries and owned-host cleanup.
+
+| Original evidence | SHA-256 |
+| --- | --- |
+| Native ZIP, artifact 13440578532 | `8cc7b6e7ff369719aa183f968777c46cdf6e8bf14917bcfbad59c305ca5f778c` |
+| Public metadata receipt | `98756a6c9e14a392347b4db4a1f2b4c325429a72f747cc2502c3f550eddf6753` |
+| Full summary | `87b10fa90efef3a2a82aa34efde69bff5111d8a9ec01461c8d67e1e79a4ac4bf` |
+| Polygon receipt | `b1165d60c56390d8fe0220cbab3c3d7ea553f4fee4f9856bbc9476ecbb34b059` |
+| Original package ZIP, artifact 13438500399 | `95d6971f600080c3e513ec4bcaf29640c651914d3ad3bfe55e208233a126a2b5` |
+| Original wheel | `5be9fd8313144666099e464e8d7b503f0ae30892535261dc2e783a73b0710ff9` |
+| Original sdist | `8e8c82852f6eff678fa1c8dc64d497e3a976515552a8d510b5574d7ecda5d7c5` |
+
+The original wheel's 65 source/resource files and 71 RECORD entries matched
+the tested commit. The sdist matched 297 tracked files. Twine, sdist checks,
+a fresh isolated original-wheel installation, installed schemas/guides and
+pip dependency checks passed. These are development-version results. The exact
+`0.1.0a16` package and current evidence-journal/lease harness still require
+their own final Windows acceptance.
+
+The property gate now fails when its final receipt cannot be written, while
+preserving an earlier native failure and running cleanup only once.
+Development API calibration runs on the Windows VM. Complete Windows and Wine
+functional acceptance remains in the respective CI workflows.
