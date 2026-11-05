@@ -87,8 +87,24 @@ checks do not imply topology-edit survival or replace distribution publication p
 The hosted installation is performed once. Its wrapper first runs `-VisibleSmoke`
 through the independent shared `verify-visible.py` entrypoint (open/inspect/close/
 stop only), then runs `-Hidden -Suite full` in a separate `hidden/` evidence directory.
-Main pushes and manual CI runs use the same policy, with no tier selector;
-the shared coordinator restarts CLI/SW between functional sets, while the
+SWCLI CI runs on branch pushes and authorized manual dispatch. Opening or
+updating a PR does not trigger a PR workflow. The Google Drive credential is
+used only by the hosted native installation job, on main pushes or manual
+dispatch.
+
+A main push can reuse a successful manual Windows run for the exact same
+commit in this repository. The lookup verifies the original native ZIP digest,
+run attempt, and complete visible and hidden receipts for the default media
+and runtime overlay. If evidence is unavailable or fails validation, the main
+push runs the full gate. Manual dispatch always runs it.
+
+Automatic runner cleanup stops after reaching 48 GiB of free space with the
+default 8 GiB VFS cache. Larger caches increase the target. The manual
+conservative and aggressive profiles remain available. Modeling command
+events are appended to per-session JSONL journals as they happen. The final
+JSON receipts still contain all events.
+
+The shared coordinator restarts CLI/SW between functional sets, while the
 rejected-cut continuation→Front diameter bridge retains the same host. The
 full hidden run is mandatory: visible-only success did not expose the rejected
 cut's residual native command state. See the

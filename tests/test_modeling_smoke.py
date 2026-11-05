@@ -83,6 +83,7 @@ class FakeCLI:
         self.edge_reads = 0
         self.now = 0
         self.operation_seconds = 0
+        self.report_lease_expiry = False
         self.drawing_directory = directory
 
     def descriptor(self, document, session):
@@ -277,6 +278,8 @@ class FakeCLI:
             elif args.lease_command == "renew":
                 document["lease"]["expires_at"] = self.now + args.ttl_seconds
             result = {"ok": True, "lease": copy.deepcopy(document["lease"])}
+            if self.report_lease_expiry:
+                result["lease"]["expires_in_seconds"] = document["lease"]["expires_at"] - self.now
             if args.lease_command == "release":
                 document["lease"] = None
             return result
@@ -1993,6 +1996,33 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertEqual(renew.lease_command, "renew")
         self.assertEqual(close.document_command, "close")
         self.assertEqual(close.lease_id, renew.lease_id)
+
+    def test_short_writes_reuse_fresh_lease_but_long_and_near_expiry_renew(self):
+        self.fake.report_lease_expiry = True
+        with (mock.patch.object(gate.time, "monotonic", side_effect=lambda: self.fake.now),
+              mock.patch.object(gate.subprocess, "run", side_effect=self.fake.run)):
+            smoke, document = self.smoke_with_document()
+            smoke.write("document", "save-as", "C:\\proof\\first.SLDPRT", document=document)
+            self.assertEqual(self.fake.calls[-2].lease_command, "acquire")
+            smoke.write("document", "save-as", "C:\\proof\\second.SLDPRT", document=document,
+                        timeout_seconds=600)
+            self.assertEqual(self.fake.calls[-2].lease_command, "renew")
+            self.fake.now += gate.LEASE_TTL_SECONDS - 5
+            smoke.write("document", "save-as", "C:\\proof\\third.SLDPRT", document=document)
+            self.assertEqual(self.fake.calls[-2].lease_command, "renew")
+
+    def test_command_journal_keeps_success_and_failure_before_summary_checkpoint(self):
+        smoke, document = self.smoke_with_document()
+        with mock.patch.object(gate.subprocess, "run", side_effect=RuntimeError("transport failed")):
+            with self.assertRaisesRegex(RuntimeError, "transport failed"):
+                smoke.command("document", "inspect", document=document)
+        self.assertEqual(json.loads(smoke.record_path.read_text(encoding="utf-8")), {})
+        journal, = smoke.directory.glob("modeling-events-*.jsonl")
+        events = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([(e["event_index"], e["state"]) for e in events],
+                         [(0, "running"), (0, "completed"), (1, "running"), (1, "completed"),
+                          (2, "running"), (2, "failed")])
+        self.assertEqual(events[-1]["error"]["message"], "transport failed")
 
     def test_expired_lease_fails_without_reacquiring_or_attempting_write(self):
         smoke, document = self.smoke_with_document()

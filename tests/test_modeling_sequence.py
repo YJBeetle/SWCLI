@@ -103,7 +103,7 @@ class ModelingSequenceTests(unittest.TestCase):
     def test_windows_native_gate_consumes_the_same_run_package_not_editable_source(self):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         package, hosted = workflow.split("  solidworks-e2e:", 1)
-        self.assertIn("needs: [test, package]", hosted)
+        self.assertIn("needs: [test, package, native-evidence]", hosted)
         self.assertIn("name: swcli-dist", package)
         download = hosted.split("      - name: Download built SWCLI distributions", 1)[1].split("      - name:", 1)[0]
         self.assertIn("uses: actions/download-artifact@v8", download)

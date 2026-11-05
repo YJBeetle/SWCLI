@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 
 from swcli.daemon.client import DEFAULT_ENDPOINT
@@ -93,6 +94,8 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
         self.session = "modeling-smoke-" + uuid.uuid4().hex[:12]
         self.owned = {}
         self.leases = {}
+        self.lease_deadlines = {}
+        self.journal_started = False
         self.cleaning_up = False
         self.checkpoint_error = None
         self.record_path = directory / "modeling.json"
@@ -116,9 +119,21 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
         if case_set in ("drawing-copy-first", "drawing-copy-reopen", "drawing-reopen-no-inspect"):
             self.record.update(diagnostic_case=case_set, full_acceptance_eligible=False)
 
-    def checkpoint(self, stage):
+    def checkpoint(self, stage, *, event=None):
         try:
-            self.write_checkpoint(stage)
+            if event is None:
+                self.write_checkpoint(stage)
+            else:
+                self.record["stage"] = stage
+                journal = self.record_path.with_name(
+                    f"{self.record_path.stem}-events-{self.session}.jsonl"
+                )
+                mode = "a" if self.journal_started else "x"
+                with journal.open(mode, encoding="utf-8") as stream:
+                    stream.write(json.dumps({"event_index": len(self.record["events"]) - 1,
+                                             "stage": stage, **event}, ensure_ascii=False,
+                                            allow_nan=False, separators=(",", ":")) + "\n")
+                self.journal_started = True
         except Exception as exc:
             self.checkpoint_error = self.checkpoint_error or exc
             print(
@@ -193,7 +208,8 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
         self.record["events"].append(event)
         stage = ".".join(map(str, arguments[:2]))
         print(f"Modeling gate: {stage}", flush=True)
-        self.checkpoint(stage + ".started")
+        self.checkpoint(stage + ".started", event=event)
+        started = time.monotonic()
         try:
             completed = subprocess.run(
                 command,
@@ -242,14 +258,18 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
                 elif arguments[:2] == ("document", "close"):
                     self.owned.pop(document, None)
                     self.leases.pop(document, None)
+                    self.lease_deadlines.pop(document, None)
                 elif arguments[:3] == ("document", "lease", "acquire"):
                     self.leases[document] = result["lease"]["lease_id"]
+                    self.remember_lease_deadline(document, result["lease"], started)
                 elif arguments[:3] == ("document", "lease", "release"):
                     self.leases = {
                         key: value
                         for key, value in self.leases.items()
                         if value != arguments[3]
                     }
+                    self.lease_deadlines = {key: deadline for key, deadline in self.lease_deadlines.items()
+                                            if key in self.leases}
         except Exception as exc:
             event["state"] = "failed"
             event["error"] = {"type": type(exc).__name__, "message": str(exc)}
@@ -261,14 +281,14 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
             # Keep the original native/transport error if recording also fails.
             if event["state"] == "failed":
                 try:
-                    self.checkpoint(stage + ".failed")
+                    self.checkpoint(stage + ".failed", event=event)
                 except Exception as exc:
                     print(
                         f"Failure checkpoint could not be written: {exc}",
                         file=sys.stderr,
                     )
         event["state"] = "completed"
-        self.checkpoint(stage + ".completed")
+        self.checkpoint(stage + ".completed", event=event)
         # Keep the full CLI presentation in evidence. Result schemas describe
         # the daemon business result, not the CLI's two envelope metadata keys.
         # Do not strip any other property: unknown result fields must still fail.
@@ -277,10 +297,19 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
             if key not in ("request_id", "replayed")
         }
 
+    def remember_lease_deadline(self, document, lease, started):
+        seconds = lease.get("expires_in_seconds")
+        if type(seconds) in (float, int) and math.isfinite(seconds) and seconds > 0:
+            # Start before the request so transport latency cannot overestimate the remaining TTL.
+            self.lease_deadlines[document] = started + min(seconds, LEASE_TTL_SECONDS)
+        else:
+            self.lease_deadlines.pop(document, None)
+
     def renew(self, document):
         lease = self.leases.get(document)
         if lease:
-            self.command(
+            started = time.monotonic()
+            result = self.command(
                 "document",
                 "lease",
                 "renew",
@@ -289,14 +318,19 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
                 LEASE_TTL_SECONDS,
                 session=self.owned[document],
             )
+            self.remember_lease_deadline(document, result["lease"], started)
         return lease
 
     def write(self, *arguments, document, expected_error=None, allowed_error=None,
               timeout_seconds=None):
+        seconds = self.request_timeout_seconds if timeout_seconds is None else request_timeout(timeout_seconds)
+        lease = self.leases.get(document)
+        if lease and self.lease_deadlines.get(document, 0) <= time.monotonic() + seconds + CLI_TIMEOUT_GRACE_SECONDS:
+            lease = self.renew(document)
         return self.command(
             *arguments,
             document=document,
-            lease=self.renew(document),
+            lease=lease,
             expected_error=expected_error,
             allowed_error=allowed_error,
             timeout_seconds=timeout_seconds,

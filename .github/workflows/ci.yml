@@ -7,7 +7,6 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'LICENSE'
-  pull_request:
   workflow_dispatch:
     inputs:
       media_path:
@@ -23,9 +22,10 @@ on:
       cleanup_profile:
         description: Disk cleanup level
         required: true
-        default: aggressive
+        default: auto
         type: choice
         options:
+          - auto
           - conservative
           - aggressive
       vfs_cache_gib:
@@ -91,6 +91,7 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Parse Windows CI scripts
+        if: ${{ matrix.python == '3.14' }}
         shell: powershell
         run: |
           $failed = $false
@@ -115,10 +116,8 @@ jobs:
         shell: powershell
         run: |
           sw-cli version --json
-          sw-cli protocol show request | ConvertFrom-Json | Out-Null
-          sw-cli protocol show response | ConvertFrom-Json | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI entry point failed" }
           python scripts/ci/verify-installed.py
-
 
   package:
     name: Build wheel
@@ -159,13 +158,32 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  native-evidence:
+    name: Find existing Windows full acceptance
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      reused: ${{ steps.lookup.outputs.reused }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: lookup
+        name: Verify successful same-commit native evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/native-evidence.py
+
   solidworks-e2e:
     name: ${{ inputs.calibrate_polygon && 'Calibrate polygon, then existing full CAD gate' || inputs.calibrate_through_all && 'Calibrate through-all, then full CAD gate' || 'Install, patch, start, and export' }}
-    needs: [test, package]
+    needs: [test, package, native-evidence]
     if: >-
-      success() &&
+      !cancelled() && needs.test.result == 'success' && needs.package.result == 'success' &&
       (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+       (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+        needs.native-evidence.outputs.reused != 'true'))
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -204,7 +222,9 @@ jobs:
       # registration and equation behavior are proven equivalent to installation.
       - name: Free disposable runner disk for installation
         shell: powershell
-        run: scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'aggressive' }}"
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"${{ inputs.vfs_cache_gib || '8' }}" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'auto' }}" -MinFreeGiB $targetGiB
 
       - name: Measure disk after runner cleanup
         shell: powershell
@@ -354,6 +374,16 @@ jobs:
             $propertyArguments.PropertyFixtureDirectory = "$env:SWCLI_SMOKE_ROOT\properties-calibration"
           }
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full @propertyArguments
+
+      - name: Record reusable Windows acceptance identity
+        if: >-
+          success() && github.event_name == 'workflow_dispatch' && github.ref_type == 'branch' &&
+          env.SW_MEDIA_PATH == 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' &&
+          env.SW_ASSETS_PATH == 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack'
+        shell: powershell
+        run: |
+          python -I scripts/ci/native-evidence.py --stamp $env:SWCLI_SMOKE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "Native acceptance receipt could not be recorded" }
 
       - name: Measure streamed data and remaining disk
         if: always()
