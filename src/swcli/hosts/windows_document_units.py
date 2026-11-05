@@ -105,10 +105,12 @@ def set_document_units_windows(
                         desired["fraction_value"], desired["significant_digits"],
                         bool(desired["round_to_fraction"]),
                     ))
+        post_setter_state = _state(document)
         after = _read_units(document)
         if after["native_units"] != desired:
             raise RuntimeError("native document length units did not round-trip the requested values")
         _verify_edit_state(app, document, edit)
+        _verify_metadata_state(app, document, post_setter_state, foreground, changed=False)
         _verify_metadata_state(app, document, state, foreground, changed=True)
         _verify_edit_state(app, document, edit)
         result.update(ok=True, units=after, changed=True)

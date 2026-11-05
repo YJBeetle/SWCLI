@@ -3,8 +3,9 @@
 A17 begins document options with a bounded document length display profile.
 The intended operations are read-only `document.units` and lease/CAS-protected
 `document.units-set`. Three independent local Windows native calibration
-groups passed for parts and assemblies. Public installed daemon/CLI acceptance
-is still pending.
+groups passed for parts and assemblies. Installed public CLI fixture cases completed locally; the outer teardown
+record and independent process-exit followup are described below. Complete
+Windows CI acceptance remains pending.
 
 ## Native API and scope
 
@@ -79,3 +80,38 @@ A17 introduces the first document-option slice. A18 is planned to continue
 annotation arrows, bent leaders, zero display and separately calibrated font
 and drafting-standard operations. The complete document-properties page remains
 a sequence of explicitly validated fields.
+
+## Installed public CLI development sample
+
+The local package at source commit
+`b48c5f2e27e0317880b44e86ae9e4fde640b712e` included skills update
+`353a720975d50d4df16d1da0e3a3f167de9e16d8` through a real merge.
+The packaged skill, usage guide and official API navigation matched source
+bytes. A fresh isolated Windows environment installed the resulting wheel
+normally and passed installed resource and dependency checks.
+
+The two part/assembly public CLI cases completed successfully on owned hidden
+host 4440. Native request-correlated traces independently show six SetUnits
+calls, two SetSaveFlag calls, and no native setters for no-op or refused writes.
+The cases verified six old-value refusals, two lease refusals, two stamp
+refusals, two read-only refusals, precision 0/4/8, saved-copy hashes, unchanged
+source bytes and fresh read-only reopened handles/settings. Geometry was
+covered by the earlier private calibration, not by these public cases.
+
+The first local outer wrapper checked the SW process immediately after daemon
+exit and recorded a teardown failure. Its original failure report is preserved.
+The public fixture receipt succeeded, daemon exit code was zero, and an
+independent followup confirmed no remaining SW process. No successful mutations
+were repeated. Future local wrapper runs use the same bounded exit grace as
+the existing CI adapters. This sample does not replace complete CI acceptance.
+
+| Development evidence | SHA-256 |
+| --- | --- |
+| Local wheel | `8281f0a9cca25fea65b1cf1c14109666c4007d6ecc79def7d9f0fcae9b26c399` |
+| Public fixture receipt | `9fad0857d0da7a7834da97938687a7c490e2437dcef3e2a73391396197ad9578` |
+| Native daemon trace | `e6258425cefc823d42439eaac7d068623df69c031034836803b69bab057ae858` |
+| Original outer failure record | `98cc917b2dd15fed3c2a5e8492fd991ff0c7d4c5e266f88c6ff4a62f1f10f1be` |
+
+Portable coverage passed the 1570-test core suite (21 skips) and the six new
+public-gate regression tests. Exact `0.1.0a17` is frozen for one final installed
+Windows full run and original CI package verification. It has not been released.
