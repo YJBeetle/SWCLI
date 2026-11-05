@@ -197,7 +197,7 @@ def targets_for(options):
         elif spec["kind"] == "Double":
             targets[field] = 10.0 if not math.isclose(value, 10.0, rel_tol=0, abs_tol=1e-12) else 6.35
         else:
-            require(value in spec["writable"], "annotation fixture has an unsupported initial enum profile")
+            require(value in spec["values"], "annotation fixture has an unrecognized initial enum profile: " + field)
             targets[field] = next(candidate for candidate in spec["writable"] if candidate != value)
     require(all(targets[field] != options[field]["value"] for field in ANNOTATION_FIELDS),
             "all seven annotation values must differ from their original values")
@@ -331,7 +331,9 @@ def run(gate, fixtures, trace, *, host_fixtures=None):
         observed = case["primary_reopened_options"] = read_options(gate, fresh, trace)
         require(observed["options"] == current["options"], "changed annotation values did not persist after reopen")
         case["read_only_refusal"] = refuse(
-            gate, trace, fresh, observed, first_field, initial["options"][first_field]["value"], error="ValueError")
+            gate, trace, fresh, observed, first_field,
+            next(value for value in ANNOTATION_FIELDS[first_field]["writable"]
+                 if value != observed["options"][first_field]["value"]), error="ValueError")
         final = read_options(gate, fresh, trace)
         require(final["options"] == observed["options"] and final["document"] == observed["document"],
                 "read-only annotation refusal changed values or document state")
@@ -347,8 +349,14 @@ def run(gate, fixtures, trace, *, host_fixtures=None):
         require(reverse["options"] == current["options"], "writable reopen lost the changed annotation options")
         gate.command("document", "lease", "acquire", "--ttl-seconds", 600, document=reverse_document)
         case["reverse_writes"] = []
+        case["reverse_values"] = {}
         for field in ARROW_FIELDS:
-            row = set_option(gate, reverse_document, reverse, field, initial["options"][field]["value"], trace)
+            original = initial["options"][field]["value"]
+            writable = ANNOTATION_FIELDS[field]["writable"]
+            value = (original if original in writable else
+                     next(candidate for candidate in writable if candidate != reverse["options"][field]["value"]))
+            case["reverse_values"][field] = value
+            row = set_option(gate, reverse_document, reverse, field, value, trace)
             case["reverse_writes"].append(row)
             reverse = row["result"]
         reversed_copy = case["reverse_save"] = save_copy(

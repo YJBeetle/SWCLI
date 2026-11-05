@@ -203,6 +203,19 @@ class DocumentAnnotationTests(unittest.TestCase):
         self.assertEqual(result["options"]["arrow.edge_vertex"], {"value": "other", "native_value": 290})
         self.assert_no_setters()
 
+    def test_known_read_only_open_arrow_can_be_a_cas_prevalue_without_enabling_its_setter(self):
+        self.native[38] = 0
+        observed = self.operation("document.annotation-options")
+        self.assertEqual(observed["options"]["arrow.edge_vertex"], {"value": "open", "native_value": 0})
+        result = self.edit("arrow.edge_vertex", "closed", "open")
+        self.assertTrue(result["ok"], result)
+        self.extension.SetUserPreferenceInteger.assert_called_once_with(38, 0, 1)
+        with self.assertRaises(ValueError):
+            validate_operation_request("document.annotation-option-set", {
+                "field": "arrow.edge_vertex", "value": "open", "expected_value": "closed",
+            })
+        self.extension.SetUserPreferenceInteger.assert_called_once_with(38, 0, 1)
+
     def test_each_typed_field_uses_its_own_document_preference_and_preserves_other_fields(self):
         targets = [
             ("arrow.edge_vertex", "dot", "closed", "Integer", 38, 0, 3),

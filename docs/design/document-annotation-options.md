@@ -114,6 +114,8 @@ C:\Workspace\SWCLI\.venv\Scripts\python.exe -I C:\Workspace\SWCLI\scripts\ci\ver
    检查七个改变值和 readonly 拒绝，零件 V/S/质心保持。
 5. 再次可写重开第一份副本，仅反向修改三箭头，另存 `reverse-annotations.*`，
    再以新只读 ID 重开核反向值及其余四字段保持。
+   初始箭头样式若在写白名单外但可识别，只作为 CAS 前值；首次写入和第二份副本
+   均选择白名单内的两个不同样式，不尝试写回只读初值，显式记录 `reverse_values`。
 6. 核三类原始文件和两份副本 hash/size、同宿主、空文档/cleanup；不保存回原输入。
 
 每个读/写/拒绝的 CLI request_id 与 daemon stderr 的 native-call begin/end/error 关联。
@@ -214,3 +216,23 @@ EditTemplate（void返回不当作bool），通过GetEditSheet=false确认format
 
 精确`0.1.0a18`冻结仅版本字串与本文/发布说明变化，核心适配器保持a3d70b1字节。
 最终完整Windows CI及其原始安装包仍待验，不以开发版专项替代。
+
+## 首次最终CI的模板枚举差异
+
+[42120377076](https://github.com/YJBeetle/SWCLI/actions/runs/42120377076)
+在精确版本`46de584 / 0.1.0a18`的注释门禁中失败：part与assembly各自完成两轮
+保存重开，工程图默认edge/unattached为可读的`open`（原生0），face为dot，
+引线长6.25毫米。原门禁把“初始值可写”误当作开始条件，因此在drawing的首次setter
+之前拒绝，writes=[]。两组成功不等于整条通过，后续完整19/20矩阵未执行。
+
+原native artifact `13460246191`，ZIP SHA-256
+`9e46ae3b06543ae4c06d2d48eb2a9edd6b4d4d518049f730e129bffc86001ea3`，
+回执SHA-256 `d931e2fed68c27890eb5d56a6391ef13b01e66091cca13e6adbe8b45f5103b43`。
+原件与日志保留`/private/tmp/a18-failure-42120377076`，cleanup=[]；99条原生证明
+包含前两类的20次setter/4次SetSaveFlag，drawing没有annotation-option-set请求。
+
+修复只调整门禁选值，不改产品或写白名单、不规范化模板：可识别枚举可以作为
+`--if-value`前值；两轮目标仍限定writable中的不同值。已知但不可写的open不会作为
+目标，包括readonly拒绝探针也使用可写目标，避免请求先被schema拒绝而未测到readonly。
+未知`other`初值仍在首次setter前失败。实际hosted open→白名单两态的完整证明
+仍待修正版最终CI，原失败不重跑、不伪装成功。

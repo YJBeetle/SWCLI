@@ -44,6 +44,7 @@ class AnnotationsCLI(FakeCLI):
         self.setter_attempts = 0
         self.last_native_calls = []
         self.trace_requests = 0
+        self.initial_options_by_type = {}
 
     def run(self, command, **keywords):
         self.last_native_calls = []
@@ -149,7 +150,9 @@ class AnnotationsCLI(FakeCLI):
             result["result"]["host"].update(owned_by_daemon=True, visible=False, shared_interactive=False)
         if args.command == "document" and args.document_command in ("create", "open"):
             document = self.documents[result["document"]["document_id"]]
-            document.setdefault("annotations", initial_options())
+            if "annotations" not in document:
+                document["annotations"] = initial_options()
+                document["annotations"].update(deepcopy(self.initial_options_by_type.get(result["document"]["type"], {})))
             if (args.document_command == "open" and args.read_only
                     and self.annotation_defect == "reopen-lost-value"):
                 document["annotations"]["bent_leader.enabled"] = option("bent_leader.enabled", False)
@@ -221,6 +224,41 @@ class DocumentAnnotationsSmokeTests(unittest.TestCase):
         self.assertEqual(self.fake.setter_attempts, 1)
         self.assertEqual(self.fake.native_sets, 0)
         self.assertEqual((self.record()["state"], self.record()["success"]), ("failed", False))
+        self.assertEqual(self.fake.documents, {})
+
+    def test_hosted_open_arrow_initial_values_use_only_supported_write_targets(self):
+        self.fake.initial_options_by_type[3] = {
+            "arrow.edge_vertex": option("arrow.edge_vertex", "open"),
+            "arrow.unattached": option("arrow.unattached", "open"),
+            "bent_leader.length_mm": option("bent_leader.length_mm", 6.25),
+        }
+        self.run_gate()
+        record = self.record()
+        self.assertTrue(record["success"])
+        self.assertEqual(self.fake.native_sets, 30)
+        drawing = record["annotation_cases"][-1]
+        self.assertEqual(drawing["initial"]["options"]["arrow.edge_vertex"]["value"], "open")
+        self.assertEqual(drawing["changed_values"]["arrow.edge_vertex"], "closed")
+        self.assertEqual(drawing["reverse_values"], {
+            "arrow.edge_vertex": "dot", "arrow.face_surface": "dot", "arrow.unattached": "none",
+        })
+        for case in record["annotation_cases"]:
+            for row in case["writes"] + case["reverse_writes"]:
+                result = row["result"]
+                field = result["field"]
+                if field in gate.ARROW_FIELDS:
+                    self.assertIn(result["options"][field]["value"], ANNOTATION_FIELDS[field]["writable"])
+        setters = [call for call in self.fake.calls if call.command == "document"
+                   and call.document_command == "annotation-option-set"]
+        self.assertFalse(any(call.value == "open" for call in setters))
+        self.assertTrue(any(call.expected_value == "open" for call in setters))
+
+    def test_unknown_initial_arrow_profile_fails_before_any_preference_setter(self):
+        self.fake.initial_options_by_type[1] = {"arrow.edge_vertex": {"value": "other", "native_value": 290}}
+        with self.assertRaisesRegex(RuntimeError, "unrecognized initial enum profile: arrow.edge_vertex"):
+            self.run_gate()
+        self.assertEqual(self.fake.setter_attempts, 0)
+        self.assertEqual(self.record()["state"], "failed")
         self.assertEqual(self.fake.documents, {})
 
     def test_persistence_source_dirty_state_trace_and_size_defects_fail(self):
