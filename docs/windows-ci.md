@@ -1,31 +1,38 @@
 # Windows testing and CI
 
-Development calibration and complete native verification run in the local
-Windows VM with its installed SOLIDWORKS. Source and the working Python
-environment live in `C:\Workspace\SWCLI`; test evidence lives under
+Development API calibration runs in the local Windows VM with its installed
+SOLIDWORKS. Source and the working Python environment live in
+`C:\Workspace\SWCLI`; local diagnostic evidence lives under
 `C:\Workspace\SWCLI-tests\<version>-<commit>-<purpose>`.
-Keep each run's original reports, traces, native models and file hashes.
 
-## Hosted checks
+## Hosted checks and full acceptance
 
 `.github/workflows/ci.yml` runs on pushes and explicit manual dispatch.
-Pull requests do not trigger it. It runs the unit suite on Windows 2025 with
-Python 3.9 and 3.14, checks PowerShell syntax and installed CLI resources,
-and builds and validates wheel/sdist distributions on Linux. The package job
-installs the actual wheel and verifies isolated commands, schemas and guides.
+Pull requests do not trigger it. Normal runs execute the unit suite on
+Windows 2025 with Python 3.9 and 3.14, check PowerShell syntax and installed CLI
+resources, and build, install and validate wheel/sdist distributions on Linux.
 
-Hosted CI has no SOLIDWORKS installation job, calibration inputs, Google Drive
-access or private credential references. Real CAD validation uses the existing
-shared scripts on the VM. Internal calibration reports remain diagnostic
-evidence. Public CLI acceptance and complete functional verification are
-recorded separately, with the existing native deadlines and cleanup checks.
+Select `native_full=true` on manual dispatch to run complete SOLIDWORKS
+functional verification in CI. This job installs the built wheel on a fresh
+host, runs visible smoke and the hidden full plan, verifies public document
+metadata using prepared fixtures, and uploads original evidence. Only this
+explicitly selected job accesses the Google Drive credential.
 
-## Historical hosted installation workflow
+The former four development-calibration workflow inputs are removed.
+Their diagnostic scripts remain available for local Windows VM use.
+The full CI gate still prepares property sample files through the existing
+fixture helper before testing public CLI operations. Fixture preparation
+reports are retained separately from public acceptance results.
 
-The remaining sections document the retired hosted installation workflow and
-its prior investigations. Their workflow switches, secret requirements and
-installation steps are historical. The scripts remain available for local
-environment diagnostics and native verification.
+DockerSW likewise retains full Wine/SOLIDWORKS CI acceptance before image
+promotion. Development API calibration and complete CI acceptance have separate
+purposes and evidence.
+
+## Hosted installation details
+
+The following sections retain installation design and earlier investigation
+records. References to the former `calibrate_*` workflow inputs describe the
+historical development-calibration interface, which now runs locally.
 
 The earlier standalone installation-media probe has been retired after its
 mounting path was incorporated into the E2E job. The unified workflow records
