@@ -1,11 +1,11 @@
 ---
 name: swcli
-description: Use SWCLI for SOLIDWORKS CAD automation through a running swclid daemon. Applies to reading or editing file summary and document/configuration custom properties, inspecting the active model, opening, modeling, rendering or exporting SLDPRT, SLDASM, SLDDRW and CAD STEP/STP files, and checking capabilities for assemblies, motion studies and other SOLIDWORKS features.
+description: Use SWCLI for SOLIDWORKS CAD automation through the CLI or MCP backed by swclid. Applies to reading or editing file summary and document/configuration custom properties, inspecting the active model, opening, modeling, rendering or exporting SLDPRT, SLDASM, SLDDRW and CAD STEP/STP files, and checking capabilities for assemblies, motion studies and other SOLIDWORKS features.
 ---
 
 # SWCLI
 
-Use the typed CLI for operations it advertises. If the operation is missing
+Use the typed CLI or MCP for operations the running daemon advertises. If the operation is missing
 or its documented scope excludes the task, consult the
 [official SOLIDWORKS API workflow](references/solidworks-api.md). A failure
 of a supported operation follows the CLI's diagnostic and recovery path.
@@ -14,9 +14,15 @@ Read [the usage guide](references/usage.md) when preparing a metadata, modeling
 or export workflow, or connecting to an unfamiliar host. The guide travels with this
 skill; it does not depend on the developer's machine or repository checkout.
 
+For MCP client configuration, lazy startup, independent sessions and protocol
+response fields, read [the MCP guide](references/mcp.md). `sw-cli mcp serve`
+uses stdio and reuses the existing daemon; it is not an HTTP listener.
+
 ## Working rules
 
-- First run `sw-cli version --json`, `sw-cli daemon status --json` and
+- With MCP, first call `swcli_status`, then `swcli_capabilities`; request the
+  selected operation schema before `swcli_execute`. With the CLI, first run
+  `sw-cli version --json`, `sw-cli daemon status --json` and
   `sw-cli capabilities --json`. Read the capability summary, then
   request `capabilities --operation NAME --json` for the needed request/result
   schemas and context, instead of loading all schemas with `--full`.
@@ -83,7 +89,8 @@ skill; it does not depend on the developer's machine or repository checkout.
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does
   not upload local files, and `--allow-remote` does not provide authentication.
-- Starting/restarting/stopping a daemon changes the host lifecycle. Obtain the
+- MCP may start a local host on first tool use; use connection-only mode for
+  observation that must not start SW. Starting/restarting/stopping a daemon changes the host lifecycle. Obtain the
   necessary user authority and never terminate another user's interactive host.
   Visible Windows tests use `daemon start --visible` or `daemon serve --visible`.
 

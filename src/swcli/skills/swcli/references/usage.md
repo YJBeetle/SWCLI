@@ -4,6 +4,14 @@ This guide is for AI systems **using** SWCLI, rather than maintaining its source
 It is distributed with the skill and Python package. Use the running daemon's
 capabilities to resolve version differences; pre-release interfaces can change.
 
+## MCP clients
+
+Use [the MCP guide](mcp.md) for stdio configuration, lazy local daemon startup,
+connection-only remote use, multi-client sessions and lifecycle. MCP tool
+responses contain the complete protocol envelope; the CLI field paths below
+apply only to CLI output. Both routes share the same live operation schemas,
+COM worker, native limits, lease/CAS checks and execution-host paths.
+
 ## Connect and discover
 
 ```bash

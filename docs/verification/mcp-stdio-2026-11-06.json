@@ -1,0 +1,131 @@
+{
+  "kind": "local-development-mcp-lifecycle",
+  "full_acceptance_eligible": false,
+  "server_version": "0.1.0a16",
+  "sdk": "mcp 1.30.0",
+  "native_host": {
+    "revision": "33.5.0",
+    "solidworks_revision": "33.5.0",
+    "language": "chinese-simplified",
+    "process_id": 3120,
+    "visible": false,
+    "startup_wait_seconds": 7.961244959005853,
+    "owned_by_daemon": true,
+    "shared_interactive": false,
+    "platform": "windows"
+  },
+  "discovery_did_not_start_host": true,
+  "disconnect_retained_same_host": true,
+  "explicit_shutdown_exited_host": true,
+  "raw_evidence_sha256": "7934532467f5dba85fc4aa3a3c288a31e51f39c4e807766f9fc4edf5116e65de",
+  "candidate_wheel_sha256": "f5f0df12d9ad67e6739050cef75bf987531f2f2206bab2bf623abb6254939de5",
+  "evidence_directory": "C:\\Workspace\\SWCLI-mcp-20261106",
+  "memory_snapshot": [
+    {
+      "kind": "test-or-adapter",
+      "pid": 8512,
+      "parent_pid": 10020,
+      "name": "python.exe",
+      "working_set_bytes": 11264000,
+      "private_bytes": 8859648,
+      "virtual_bytes": 13031440384
+    },
+    {
+      "kind": "test-or-adapter",
+      "pid": 9512,
+      "parent_pid": 8512,
+      "name": "python.exe",
+      "working_set_bytes": 81371136,
+      "private_bytes": 65028096,
+      "virtual_bytes": 13247193088
+    },
+    {
+      "kind": "daemon",
+      "pid": 9864,
+      "parent_pid": 1704,
+      "name": "python.exe",
+      "working_set_bytes": 11276288,
+      "private_bytes": 8863744,
+      "virtual_bytes": 13031440384
+    },
+    {
+      "kind": "daemon",
+      "pid": 1004,
+      "parent_pid": 9864,
+      "name": "python.exe",
+      "working_set_bytes": 53112832,
+      "private_bytes": 39923712,
+      "virtual_bytes": 13173907456
+    },
+    {
+      "kind": "solidworks",
+      "pid": 3120,
+      "parent_pid": 8,
+      "name": "SLDWORKS.exe",
+      "working_set_bytes": 487280640,
+      "private_bytes": 273920000,
+      "virtual_bytes": 84415307776
+    },
+    {
+      "kind": "test-or-adapter",
+      "pid": 4484,
+      "parent_pid": 9512,
+      "name": "python.exe",
+      "working_set_bytes": 11292672,
+      "private_bytes": 8908800,
+      "virtual_bytes": 13032517632
+    },
+    {
+      "kind": "test-or-adapter",
+      "pid": 5828,
+      "parent_pid": 4484,
+      "name": "python.exe",
+      "working_set_bytes": 29880320,
+      "private_bytes": 21032960,
+      "virtual_bytes": 13136719872
+    }
+  ],
+  "memory_limit": "Snapshot filters SW and Python command lines under the test venv; it does not fully capture the COM worker and must not be claimed as total RAM.",
+  "original_files": [
+    {
+      "path": "job-fixed/native-mcp-smoke.json",
+      "sha256": "acf85c78e192a39bb51622319e42773aa3d079fd579e47d56f7128e789faf197",
+      "size": 4414
+    },
+    {
+      "path": "job-fixed2/native-mcp-smoke.json",
+      "sha256": "5b0bf98dd95d01d27512485dbe624338f7ff2003b112554c52232329a0692bde",
+      "size": 4586
+    },
+    {
+      "path": "job-fixed3/mcp-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "job-fixed3/native-mcp-smoke.json",
+      "sha256": "7934532467f5dba85fc4aa3a3c288a31e51f39c4e807766f9fc4edf5116e65de",
+      "size": 10968
+    },
+    {
+      "path": "mcp-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "native-mcp-smoke.json",
+      "sha256": "f6d9b48fb48887281980dd6bd900dfa75eb086e93d38c3cd98b53581966f7ae1",
+      "size": 9956
+    },
+    {
+      "path": "task-parameter-diagnostic.json",
+      "sha256": "05d7a7d19a37667e55cc6aef406fb89599ea5bf8304eeb094198ecd6ba16a347",
+      "size": 1211
+    },
+    {
+      "path": "task-parameter-fixed-diagnostic.json",
+      "sha256": "db6513c575d3a456e3b47b6792aae05053d3165b2e61bb57d05f1cbd23245c03",
+      "size": 123
+    }
+  ]
+}

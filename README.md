@@ -41,8 +41,8 @@ export, and a reusable native part-modeling loop. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketch editing,
-feature editing, stable entity references, transactions, SDK, and MCP remain future
-work. The daemon now publishes the JSON Schema used to validate each supported
+feature editing, stable entity references, transactions, and a typed SDK remain future
+work. A stdio MCP adapter reuses the same daemon and operation schemas. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. Since `v0.1.0a4`, it also advertises
 `operation_result_schemas` and validates worker results before returning them.
 The a4 release added unsaved part creation, verified rectangle/circle sketches,
@@ -60,6 +60,26 @@ visible/hidden and DockerSW Wine gates passed, including native save/reopen and
 the six existing exports before image promotion. See the
 [feature-depth plan](docs/design/feature-depth-editing.md) and
 [runtime verification](docs/verification/a7-depth-runtime-2026-10-10.md).
+
+## MCP for AI clients
+
+Install the optional MCP support with Python 3.10+ (`python -m pip install
+".[mcp]"` from this checkout). Configure the AI client to run `sw-cli mcp serve`
+as a **stdio** server. Initialization and tool discovery are lightweight; the
+first valid tool call starts or reuses a local daemon. Remote endpoints only
+connect; `--connect-only` also disables local startup. Existing visible SW
+instances still require explicit attach. Disconnecting MCP leaves swclid and
+its SW instance running.
+
+```json
+{"mcpServers":{"swcli":{"command":"sw-cli","args":["mcp","serve"]}}}
+```
+
+`swcli_status`, `swcli_capabilities` and `swcli_execute` reuse the existing
+protocol, sessions, leases, CAS and native error handling. See the packaged
+[MCP agent guide](src/swcli/skills/swcli/references/mcp.md) for exact arguments,
+response envelopes and lifecycle. The base CLI keeps Python 3.9 compatibility;
+this is not an HTTP listener or a new raw-COM execution surface.
 
 ## Installation
 

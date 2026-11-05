@@ -1,0 +1,68 @@
+{
+  "kind": "local-development-diagnostic",
+  "full_acceptance_eligible": false,
+  "independent_hidden_instance_default_enabled": false,
+  "evidence_directory_windows": "C:\\Workspace\\SWCLI-tests",
+  "files": [
+    {
+      "path": "windows/multi-instance-win-20261106/report.json",
+      "size": 1290,
+      "sha256": "e75fba9b4e49e3b477a677f7099442b626c80368ea62e9685c45184e1a0157b5"
+    },
+    {
+      "path": "windows/multi-instance-win-20261106/trace.jsonl",
+      "size": 596,
+      "sha256": "ce3a92d6bdc0eed998e3f5549ed604949b6fbd6b42d6794dc3cc996ca795cce6"
+    },
+    {
+      "path": "windows/multi-instance-win-20261106-fixed/report.json",
+      "size": 3015,
+      "sha256": "415e03a6ab004a5e08f80c1c30a87ef9c96ff4c6491b5b0e67bb174559a8ec5c"
+    },
+    {
+      "path": "windows/multi-instance-win-20261106-fixed/trace.jsonl",
+      "size": 1563,
+      "sha256": "e9bcdb812d7a91a9b8a80729ae946a0150831390024baae13bf2bba1de586e98"
+    },
+    {
+      "path": "windows/multi-instance-win-rot-20261106/report.json",
+      "size": 1884,
+      "sha256": "007a8a624290b1200548e5249fbcae0df4dbab546970c484ca8bfa442dba8f04"
+    },
+    {
+      "path": "windows/multi-instance-win-rot-20261106/trace.jsonl",
+      "size": 981,
+      "sha256": "a74f6b89c845563e02afba3e9f44912649d371fde22b38cae0918d46bdad6c15"
+    },
+    {
+      "path": "windows/multi-instance-win-rot-visible-20261106/report.json",
+      "size": 5424,
+      "sha256": "59627b88b5a14aea98c026431413ac7f1f51827d7d5adfcb8fb87b091da1a714"
+    },
+    {
+      "path": "windows/multi-instance-win-rot-visible-20261106/trace.jsonl",
+      "size": 2973,
+      "sha256": "6563a60cc4d2095a31597c24925c5f60df7ab4c1257669a5b67fe17b5efbe637"
+    },
+    {
+      "path": "wine/probe.log",
+      "size": 82,
+      "sha256": "473667bb3cbd35ad973676d103d6cbbe49900085ccb2264a69adffa91274eb95"
+    },
+    {
+      "path": "wine/report.json",
+      "size": 2736,
+      "sha256": "af9e4aa1bb0ea6b187fe0aeee62c2e18625dfd812cbf9c27984b268d70294cbb"
+    },
+    {
+      "path": "wine/trace.jsonl",
+      "size": 1341,
+      "sha256": "fbd22e42d8828903c2e8efc783e7410390091abb409eacedbe816cc63f812c50"
+    },
+    {
+      "path": "wine/windows-and-rot.jsonl",
+      "size": 864,
+      "sha256": "5664915ce87c46e7f49a77444072ad3a2e9df96745466db837f2ab3ea7289547"
+    }
+  ]
+}

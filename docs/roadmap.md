@@ -171,13 +171,25 @@ with annotation text format, attachment arrows, bent leaders and zero display.
 Use the typed document preference APIs, with explicit per-field validation and
 save/reopen checks. [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
+## Resident host visibility (planned)
+
+Add an optional Windows tray status/controller after the MCP lifecycle is
+verified. Proposed `--tray auto|on|off` is independent of SW `--visible` and
+does not yet exist as a public option. Explicit values take precedence;
+Omitting the option means `auto`, which maps native Windows to `on` and Wine
+host platforms (including DockerSW/MacSW) to `off`. CI or service deployments
+can explicitly pass `off`; MacSW should pass `off` and own its UI. Locking a Windows desktop does not change this mode.
+Closing the tray must not stop the daemon or SW. Stop/exit actions must respect
+unsaved documents and attached user-host ownership.
+
 ## Later protocol and integrations
 
 - Stable entity references with topology/revision validation and explicit stale
   reference behavior, not guessed feature names or face indices.
 - Batches/transactions with documented partial-result and recovery semantics.
-- Typed Python SDK and a thin MCP adapter over the same daemon protocol; no
-  second public COM/raw-Python execution surface.
+- A thin stdio MCP adapter now reuses the same daemon protocol, with lazy local
+  startup and live schema discovery. A typed Python SDK remains future work;
+  neither route adds a second public COM/raw-Python execution surface.
 - Authenticated encrypted remote transport, workspace/file transfer and
   artifact IDs/downloads before treating server paths as a remote product API.
 - Extend the implemented minimal assembly/drawing creation toward editing,

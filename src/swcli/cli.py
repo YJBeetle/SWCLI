@@ -76,6 +76,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
+    from .mcp import configure_parser as configure_mcp_parser
+    configure_mcp_parser(subcommands)
+
     version_parser = subcommands.add_parser("version", help="show client versions")
     version_parser.add_argument("--json", action="store_true", dest="as_json")
 
@@ -586,6 +589,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "protocol" and args.protocol_command == "show":
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "mcp":
+        from .mcp import run as run_mcp
+        return run_mcp(args)
 
     if args.command == "daemon":
         return run_daemon_command(args)
