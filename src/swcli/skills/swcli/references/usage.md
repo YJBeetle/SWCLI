@@ -298,6 +298,21 @@ display chain is not proof of absent dimensions. Do not create replacements or
 guess names. Reads may observe a leased background document, but discovered
 handles do not grant modification authority or bypass lease/stamp guards.
 
+The a15 candidate reads document-level custom properties through the selected
+open document.
+
+```powershell
+sw-cli document properties --document d-ab12cd --json
+sw-cli document properties --document d-ab12cd --name "Drawing No" --json
+```
+
+Each row contains the native type, stored text or expression, evaluated value,
+and cache or resolution status. A missing named property returns
+`"properties": []`. An existing empty property returns one row with empty
+value strings. These reads use document scope and permit SOLIDWORKS to return
+cached evaluation. Use `--if-update-stamp` when targeting an observed document
+state.
+
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented
 `export_ready` flag. Structure inspection and diagnosis add feature evidence.

@@ -173,6 +173,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         },
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "document.properties": _operation(
+        "document.properties",
+        {"name": _string(minLength=1, pattern=r"\S")},
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "document.close": _operation(
         "document.close",
         {"discard": _boolean()},

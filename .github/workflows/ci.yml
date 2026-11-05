@@ -47,6 +47,11 @@ on:
         required: false
         default: false
         type: boolean
+      calibrate_properties:
+        description: Run owned document custom property read calibration before the full CAD gate
+        required: false
+        default: false
+        type: boolean
       calibrate_polygon:
         description: Run internal simple-polygon calibration before the existing full CAD gate
         required: false
@@ -328,6 +333,17 @@ jobs:
             --output-dir "$env:SWCLI_SMOKE_ROOT\polygon-calibration" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "internal polygon calibration failed; see report/trace evidence" }
+
+      - name: Calibrate document custom property reads
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.calibrate_properties }}
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-properties-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\properties-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "custom property calibration failed; see report/trace evidence" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell

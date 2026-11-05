@@ -210,6 +210,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     inspect_parser.add_argument("--max-features", type=int, default=500)
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
+    properties_parser = document_commands.add_parser(
+        "properties", help="read document-level custom properties"
+    )
+    add_document_selector(properties_parser)
+    properties_parser.add_argument("--name", help="look up one property by name")
+    properties_parser.add_argument("--json", action="store_true", dest="as_json")
     measure_parser = document_commands.add_parser(
         "measure", help="measure all solid bodies in the selected part"
     )
@@ -1202,6 +1208,15 @@ def _typed_operation(
             return (
                 "document.inspect",
                 {"detail": args.detail, "max_features": args.max_features},
+                args.as_json,
+                args.document_id,
+                args.expected_update_stamp,
+                None,
+            )
+        if command == "properties":
+            return (
+                "document.properties",
+                {"name": args.name} if args.name is not None else {},
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,

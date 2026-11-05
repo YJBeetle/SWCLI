@@ -23,6 +23,7 @@ from ..hosts.windows_documents import (
     render_active_windows_document,
     save_active_windows_document,
 )
+from ..hosts.windows_custom_properties import read_document_properties_windows
 from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
@@ -369,6 +370,20 @@ def document_inspect(
         )
         if context.documents is not None and context.entry is not None
         else result
+    )
+
+
+@_register_handler
+def document_properties(
+    context: OperationContext, values: Dict[str, Any]
+) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_properties_windows(
+        app=context.app, document=context.entry.document, name=values.get("name")
+    )
+    return _with_document(
+        result, context.documents, context.entry, session_id=context.session_id
     )
 
 

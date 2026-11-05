@@ -156,11 +156,13 @@ than accumulating a general-purpose framework to meet one example.
 
 ## Document custom properties
 
-Planned as a separate CLI increment for metadata such as `Chinese Name`,
-`English Name` and `Drawing No`. Start with read-only listing and lookup of
-document-level properties. Return the property type, stored expression and
-evaluated value separately, with resolution status when available. Distinguish
-a missing property from a present property with an empty value.
+The a15 candidate prioritizes document metadata such as `Chinese Name`,
+`English Name` and `Drawing No`. Its first increment is read-only listing and
+lookup through `document properties [--name NAME]`. The CLI reports the
+property type, stored expression, evaluated value and native resolution status
+separately. A missing property returns an empty list. A property with an empty
+value returns a row with empty strings. Windows and Wine native acceptance is
+pending. Assembly mates follow the document work.
 
 Add configuration-specific access with an explicit configuration name and
 report cached results as such. Verify that reads preserve the active

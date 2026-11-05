@@ -474,6 +474,27 @@ _RESULT_FIELDS = {
         {"needs_rebuild": INTEGER, "structure": STRUCTURE},
         ("document", "needs_rebuild"),
     ),
+    "document.properties": (
+        {
+            "scope": {"const": "document"},
+            "requested_name": NULLABLE_STRING,
+            "properties": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": _object(
+                    {
+                        "name": STRING, "type": STRING, "type_code": INTEGER,
+                        "raw_value": STRING, "evaluated_value": STRING,
+                        "resolution": {"enum": ["cached", "resolved"]},
+                        "was_resolved": BOOL, "linked": BOOL,
+                    },
+                    ("name", "type", "type_code", "raw_value", "evaluated_value",
+                     "resolution", "was_resolved", "linked"),
+                ),
+            },
+        },
+        ("session_id", "document", "scope", "requested_name", "properties"),
+    ),
     "document.close": (
         {"discard": BOOL, "closed": BOOL},
         ("document", "discard", "closed"),
