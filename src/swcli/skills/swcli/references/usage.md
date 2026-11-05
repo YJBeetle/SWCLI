@@ -329,6 +329,29 @@ previous raw value before editing. A failed write with
 `mutation.may_have_changed` may have altered the open document. Use
 `document save` or `document save-as` explicitly to persist verified edits.
 
+The a17 development candidate adds document length display options. Private
+native and exact-adapter calibration passed for parts and assemblies. Installed
+public daemon/CLI acceptance is still pending.
+
+```powershell
+sw-cli document units --document d-ab12cd --json
+sw-cli document units-set --length-unit inch --decimal-places 4 --if-length-unit mm --if-decimal-places 2 --document d-ab12cd --lease l-ab12cd34ef56 --if-update-stamp 7 --json
+```
+
+`units` preserves all five native GetUnits fields, including the unit and
+fraction codes. The typed length names in this increment are `mm` and `inch`;
+other native length units remain visible as `other` with their exact code.
+`units-set` requires a length unit, decimal places, or both, and uses the existing
+session, document lease and update-stamp guards. Unrequested native format
+fields remain unchanged. Native SetUnits does not advance the tested document's
+update stamp. Use `--if-length-unit` and `--if-decimal-places` with the observed
+values to detect a prior display-option edit, in addition to the document lease
+and optional update-stamp check. Fractional display profiles require separate
+native proof before editing. A failed native setter may have changed the open
+document and is never automatically retried or rolled back. Save explicitly
+after a verified edit. These display settings keep all existing modeling and
+measurement arguments and results in their documented millimeter units.
+
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented
 `export_ready` flag. Structure inspection and diagnosis add feature evidence.

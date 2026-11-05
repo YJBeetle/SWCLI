@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
+from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -201,6 +202,16 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.property-delete",
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
+    "document.units-set": _operation(
+        "document.units-set",
+        {"length_unit": _string(enum=list(LENGTH_UNITS)),
+         "decimal_places": _integer(minimum=DECIMAL_PLACES_MIN, maximum=DECIMAL_PLACES_MAX),
+         "expected_length_unit": _string(enum=list(LENGTH_UNITS)),
+         "expected_decimal_places": _integer(minimum=DECIMAL_PLACES_MIN, maximum=DECIMAL_PLACES_MAX)},
+        parameter_conditions=[{"anyOf": [{"required": ["length_unit"]}, {"required": ["decimal_places"]}]}],
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.summary": _operation("document.summary", **_DOCUMENT_READ_CONTEXT),
     "document.summary-set": _operation(
@@ -563,6 +574,8 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.units-set" and not {"length_unit", "decimal_places"}.intersection(parameters):
+        raise ValueError("document.units-set requires length_unit or decimal_places")
     if operation == "sketch.polygon":
         validate_polygon(parameters["vertices_mm"])
     if operation == "document.create":

@@ -166,10 +166,15 @@ property adds, sets and deletes. Windows CI exercises public CLI operations,
 scope isolation, guarded writes and save/reopen of separate native copies.
 Creation time, save time, saved-by and saved version history are read-only.
 
-After metadata acceptance, add read/write access to document options, starting
-with annotation text format, attachment arrows, bent leaders and zero display.
-Use the typed document preference APIs, with explicit per-field validation and
-save/reopen checks. [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
+After metadata acceptance, A17 starts document options with length display
+units and decimal places. Develop and calibrate against the local Windows VM
+before enabling a validated public write scope, then verify the installed CLI
+in complete Windows CI. Keep the existing millimeter semantics of geometry
+commands while checking unchanged physical geometry and save/reopen persistence.
+
+Annotation text format, attachment arrows, bent leaders and zero display follow
+as separate typed increments with per-field validation and save/reopen checks.
+[SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
 ## Later protocol and integrations
 

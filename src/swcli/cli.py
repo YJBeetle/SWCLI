@@ -19,6 +19,7 @@ from .protocol import SCHEMA_NAMES, load_schema
 from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
+from .hosts.windows_document_units import LENGTH_UNITS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -236,6 +237,17 @@ def build_parser() -> argparse.ArgumentParser:
         else:
             editor.add_argument("--if-value", dest="expected_value", help="require this raw value")
         editor.add_argument("--json", action="store_true", dest="as_json")
+    units_parser = document_commands.add_parser("units", help="read document length display units")
+    add_document_selector(units_parser)
+    units_parser.add_argument("--json", action="store_true", dest="as_json")
+    units_editor = document_commands.add_parser("units-set", help="set document length display units and decimal places")
+    add_document_selector(units_editor)
+    add_lease_token(units_editor)
+    units_editor.add_argument("--length-unit", choices=tuple(LENGTH_UNITS))
+    units_editor.add_argument("--decimal-places", type=int)
+    units_editor.add_argument("--if-length-unit", dest="expected_length_unit", choices=tuple(LENGTH_UNITS))
+    units_editor.add_argument("--if-decimal-places", dest="expected_decimal_places", type=int)
+    units_editor.add_argument("--json", action="store_true", dest="as_json")
     summary_parser = document_commands.add_parser("summary", help="read native file summary information")
     add_document_selector(summary_parser)
     summary_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1253,6 +1265,14 @@ def _typed_operation(
                 args.expected_update_stamp,
                 None,
             )
+        if command == "units":
+            return ("document.units", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "units-set":
+            values = {key: value for key in ("length_unit", "decimal_places", "expected_length_unit", "expected_decimal_places")
+                      if (value := getattr(args, key)) is not None}
+            return ("document.units-set", values, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "summary":
             return ("document.summary", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

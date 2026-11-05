@@ -45,6 +45,19 @@ PROPERTY_EDIT_RESULT = (
     ("session_id", "document", "scope", "name", "before", "property", "changed", "mutation"),
 )
 
+DOCUMENT_LENGTH_UNITS = _object(
+    {
+        "length_unit": {"enum": ["mm", "inch", "other"]},
+        "decimal_places": INTEGER,
+        "native_units": _object(
+            {"length_unit": INTEGER, "fraction_base": INTEGER, "fraction_value": INTEGER,
+             "significant_digits": INTEGER, "round_to_fraction": INTEGER},
+            ("length_unit", "fraction_base", "fraction_value", "significant_digits", "round_to_fraction"),
+        ),
+    },
+    ("length_unit", "decimal_places", "native_units"),
+)
+
 DOCUMENT = _object(
     {
         "title": STRING,
@@ -505,6 +518,15 @@ _RESULT_FIELDS = {
     ),
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.units": (
+        {"units": DOCUMENT_LENGTH_UNITS},
+        ("session_id", "document", "units"),
+    ),
+    "document.units-set": (
+        {"before": DOCUMENT_LENGTH_UNITS, "units": DOCUMENT_LENGTH_UNITS,
+         "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "before", "units", "changed", "mutation"),
+    ),
     "document.summary": (
         {"fields": _object(dict.fromkeys(SUMMARY_FIELDS, STRING), tuple(SUMMARY_FIELDS)),
          "saved_version_history": STRING_LIST},
