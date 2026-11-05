@@ -293,6 +293,10 @@ try {
             --output-dir (Join-Path $Workspace "properties") `
             --fixture-dir $PropertyFixtureDirectory --save-copy --edit-metadata
         if ($LASTEXITCODE -ne 0) { throw "public custom property CLI gate failed" }
+        & python -I (Join-Path $PSScriptRoot "../verify-document-units.py") `
+            --output-dir (Join-Path $Workspace "document-units") `
+            --fixture-dir $PropertyFixtureDirectory
+        if ($LASTEXITCODE -ne 0) { throw "public document units CLI gate failed" }
     }
 
     # Shared scripts own CAD coverage and fresh CLI/SW session boundaries.
