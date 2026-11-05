@@ -57,3 +57,42 @@ class PropertiesSmokeTests(unittest.TestCase):
                     gate.main(["--output-dir", directory, "--fixture-dir", directory])
             run.assert_not_called()
             self.assertEqual(path.read_text(), "original evidence")
+
+    def test_final_checkpoint_failure_cannot_report_success(self):
+        def completed(smoke, *args, **kwargs):
+            smoke.record.update(state="completed", success=True)
+
+        cleanup_method = gate.modeling.ModelingSmoke.cleanup
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch.object(gate, "run", side_effect=completed) as run,
+                mock.patch.object(gate.modeling.ModelingSmoke, "cleanup", autospec=True,
+                                  side_effect=cleanup_method) as cleanup,
+                mock.patch.object(gate.modeling.ModelingSmoke, "write_checkpoint",
+                                  side_effect=OSError("final evidence failed")) as checkpoint,
+            ):
+                with self.assertRaisesRegex(OSError, "final evidence failed"):
+                    gate.main(["--output-dir", directory, "--fixture-dir", directory])
+            run.assert_called_once()
+            cleanup.assert_called_once()
+            checkpoint.assert_called_once_with("properties-final")
+            record = json.loads((Path(directory) / "properties.json").read_text())
+            self.assertFalse(record["success"])
+
+    def test_final_checkpoint_failure_preserves_first_native_error(self):
+        native_error = RuntimeError("first native failure")
+        cleanup_method = gate.modeling.ModelingSmoke.cleanup
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch.object(gate, "run", side_effect=native_error) as run,
+                mock.patch.object(gate.modeling.ModelingSmoke, "cleanup", autospec=True,
+                                  side_effect=cleanup_method) as cleanup,
+                mock.patch.object(gate.modeling.ModelingSmoke, "write_checkpoint",
+                                  side_effect=OSError("final evidence failed")) as checkpoint,
+            ):
+                with self.assertRaises(RuntimeError) as raised:
+                    gate.main(["--output-dir", directory, "--fixture-dir", directory])
+            self.assertIs(raised.exception, native_error)
+            run.assert_called_once()
+            cleanup.assert_called_once()
+            checkpoint.assert_called_once_with("properties-final")

@@ -222,6 +222,8 @@ def main(argv=None):
     finally:
         gate.cleanup()
         gate.checkpoint("properties-final")
+    if gate.checkpoint_error is not None:
+        raise gate.checkpoint_error
     require(not gate.record["cleanup_errors"], "property gate cleanup failed")
 
 
