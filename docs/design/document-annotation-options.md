@@ -186,3 +186,31 @@ format/view/foreign sketch等不支持上下文在setter前失败；不调用Edi
 
 A18 完成后暂停，不自动推进下一版本。main/MCP 的最终合并由另一位
 agent 负责，本候选不执行该合并；DockerSW 的跟进也不在本轮范围内。
+
+## 修正后本地安装版公共专项
+
+精确开发提交 `a3d70b18bb98e426442744ce40841a65d281e094`，
+实际daemon/CLI均为`0.1.0a18.dev0`，在独立安装环境中执行一次完整三类门禁。
+SLDPRT、SLDASM、SLDDRW均success，七字段异值与三箭头反向的两份副本均保存只读重开。
+147条request_id原生证明包含30次偏好setter、6次SetSaveFlag，21次clean同值请求为零setter；
+lease/stamp/字段旧值/readonly拒绝、fresh IDs、原件和副本hash、零件V/S/质心、后台上下文、
+同一owned hidden宿主5992及清理均有原始回执。业务门禁168.845秒，外层196.49秒，
+daemon正常退出0，cleanup=[]，前后SW进程为空。
+
+- 原件：`/private/tmp/a18-public-cli-native-a3d70b1-g52c/evidence`
+- public receipt SHA-256：`158afe7cecaa4e5e66898561bdb892c3e14587d31002d4a44b43578c39ef4efa`
+- outer proof SHA-256：`8b40289c61d10803977631f7e18a3669c7713425bb2544bfa990f87815814da6`
+- native trace/prefix SHA-256：`652c7e1d3894549f9249792514faa950ed97be7868464d510f486ed38f2122a2`
+
+独立format-mode负例使用另一自有隐藏宿主8152：新建GBdrawing后只调用一次
+EditTemplate（void返回不当作bool），通过GetEditSheet=false确认format模式。
+受保护adapter的异值请求以明确上下文错误拒绝，before七字段齐全，mutation两flag false；
+偏好setter和SetSaveFlag均0，读回和mode保持，未调用EditSheet切回或Save，关闭自建文档。
+该报告保持`full_acceptance_eligible=false`，不冒充公共CLI或完整CI验收。
+
+- 原件：`/private/tmp/a18-format-negative-a3d70b1-h28e/evidence`
+- report SHA-256：`6f26f86b158043746a7e79d91b4d2956e3c4c1bc09a5aefc2a1668b305ddc85b`
+- native trace SHA-256：`f3687f9c8a82ede0c2c9341c1325b8dcddf7f585a4151790ebce482d43396070`
+
+精确`0.1.0a18`冻结仅版本字串与本文/发布说明变化，核心适配器保持a3d70b1字节。
+最终完整Windows CI及其原始安装包仍待验，不以开发版专项替代。
