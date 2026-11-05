@@ -81,11 +81,12 @@ def run(gate, fixtures, *, host_fixtures=None):
         initial = case["initial"] = read_units(gate, document, session=gate.session + "-reader")
         gate.background(initial, document)
         native = initial["units"]["native_units"]
-        require(initial["document"] == baseline and native["fraction_base"] == 1
-                and native["fraction_value"] == 8 and native["round_to_fraction"] == 0
+        require(initial["document"] == baseline, "document unit reads changed document state")
+        require(native["fraction_base"] == 1
+                and native["fraction_value"] in (0, 8) and native["round_to_fraction"] == 0
                 and initial["units"]["length_unit"] in LENGTH_CODES
                 and 0 <= initial["units"]["decimal_places"] <= 8,
-                "document unit reads changed state or the fixture has an unsupported native profile")
+                "document unit fixture has an unsupported native profile")
         case["lease_refusal"] = gate.command(
             "document", "units-set", "--length-unit", "inch", document=document,
             session=gate.session + "-contender", expected_error="DocumentLeaseConflict",

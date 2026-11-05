@@ -96,7 +96,7 @@ def set_document_units_windows(
             return result
         if (edit is not None or before["length_unit"] not in LENGTH_UNITS
                 or native["fraction_base"] != DECIMAL_FRACTION_BASE
-                or native["fraction_value"] != 8 or native["round_to_fraction"] != 0):
+                or native["fraction_value"] not in (0, 8) or native["round_to_fraction"] != 0):
             raise ValueError("the current document length format is outside the supported decimal profile")
         result["mutation"] = {"attempted": True, "may_have_changed": True}
         native_call("document-units", "IModelDoc2.SetUnits",

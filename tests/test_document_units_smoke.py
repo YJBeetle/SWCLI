@@ -31,6 +31,7 @@ class UnitsCLI(FakeCLI):
         self.units_defect = None
         self.setter_attempts = 0
         self.native_sets = 0
+        self.initial_fraction_value = 8
 
     def dispatch(self, args):
         if args.command == "document" and args.document_command in ("units", "units-set"):
@@ -53,6 +54,7 @@ class UnitsCLI(FakeCLI):
                 return self.failure("DocumentUnitsConflict", mutation=mutation)
             updated = native_units(args.length_unit or units["length_unit"],
                                    units["decimal_places"] if args.decimal_places is None else args.decimal_places)
+            updated["native_units"]["fraction_value"] = units["native_units"]["fraction_value"]
             changed = units != updated
             if changed:
                 self.setter_attempts += 1
@@ -72,7 +74,9 @@ class UnitsCLI(FakeCLI):
             result["result"]["host"].update(owned_by_daemon=True, visible=False, shared_interactive=False)
         if args.command == "document" and args.document_command in ("create", "open"):
             document = self.documents[result["document"]["document_id"]]
-            document.setdefault("units", native_units())
+            if "units" not in document:
+                document["units"] = native_units()
+                document["units"]["native_units"]["fraction_value"] = self.initial_fraction_value
             if args.document_command == "open" and args.read_only and self.units_defect == "reopen-lost-precision":
                 document["units"] = native_units()
         if args.command == "document" and args.document_command == "save-as":
@@ -122,6 +126,26 @@ class DocumentUnitsSmokeTests(unittest.TestCase):
         self.assertEqual(source_saves, [])
         self.assertEqual(record["host"], record["host_after"])
         self.assertIn("not measured", record["geometry_coverage"])
+
+    def test_hosted_zero_denominator_persists_unchanged_through_public_gate(self):
+        self.fake.initial_fraction_value = 0
+        self.run_gate()
+        record = self.record()
+        self.assertTrue(record["success"])
+        self.assertEqual(self.fake.native_sets, 6)
+        for case in record["unit_cases"]:
+            profiles = [case["initial"], *case["writes"], case["same_value"], case["reopened_units"]]
+            self.assertTrue(all(row["units"]["native_units"]["fraction_value"] == 0 for row in profiles))
+            self.assertFalse(case["same_value"]["changed"])
+
+    def test_unproved_profiles_stop_before_setter_and_keep_failed_receipt(self):
+        self.fake.initial_fraction_value = 16
+        with self.assertRaisesRegex(RuntimeError, "unsupported native profile"):
+            self.run_gate()
+        self.assertEqual(self.fake.setter_attempts, 0)
+        self.assertEqual(self.record()["state"], "failed")
+        self.assertFalse(self.record()["success"])
+        self.assertEqual(self.fake.documents, {})
 
     def test_missing_persistence_and_source_or_same_value_mutation_are_failures(self):
         for defect in ("reopen-lost-precision", "source-changed", "same-value-dirty"):

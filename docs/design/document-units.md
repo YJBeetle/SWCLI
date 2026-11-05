@@ -22,14 +22,36 @@ complete five-field readback.
 
 The initial candidate targets millimeter/inch length display and decimal
 places 0 through 8 in the calibrated decimal profile. Default part and
-assembly settings read `[0,1,8,2,0]`; the unused fraction denominator 8 is
-preserved. Fractional and unknown formatting profiles remain read-only. The protocol's
+assembly settings in local calibration read `[0,1,8,2,0]`; hosted Windows
+also returned the decimal profile `[0,1,0,2,0]`. The inactive fraction
+denominator 0 or 8 is preserved exactly. Fractional and unknown formatting profiles remain read-only. The protocol's
 existing geometry lengths continue to use millimeters.
 
 Whole unit systems (MMGS/MKS/IPS), mass and angle units, fractional formatting,
 annotation fonts and other drawing options require separate increments.
 Application-level `ISldWorks.SetUserPreference*Value` changes system defaults
 and is outside this document operation.
+
+### First complete CI failure and targeted correction
+
+[42097141007](https://github.com/YJBeetle/SWCLI/actions/runs/42097141007)
+failed before its first units setter: the initial read returned `[0,1,0,2,0]`
+with an unchanged descriptor, but the original gate required denominator 8.
+The same overly narrow check existed in the writer. The official GetUnits
+contract defines FractionValue for fractional units, while this profile is
+decimal. The correction accepts only the two observed inactive values 0/8,
+preserves them without normalization, and retains decimal-only, round-off,
+state, lease, CAS, exact readback and save/reopen checks.
+
+Original native artifact `13450138961` has ZIP SHA-256
+`ab6f424c3a2c6243d091d8c1f3b767931ede48d3fd16be7335615bf547196533`.
+The failed receipt and original logs are retained under
+`/private/tmp/a17-failure-42097141007`; `cleanup_errors=[]` and no units-set
+request occurred. The rest of the full matrix did not run and is not claimed
+as passed. Portable tests cover the zero-value profile end to end; actual
+native writes and persistence for that profile still require the corrected
+complete CI run. The local Windows VM remains reserved for MCP until the
+user authorizes its use again.
 
 ## Required behavior
 
