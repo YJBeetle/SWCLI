@@ -121,10 +121,40 @@ C:\Workspace\SWCLI\.venv\Scripts\python.exe -I C:\Workspace\SWCLI\scripts\ci\ver
 lease/stamp/readonly前置拒绝零次，并核三轮读取与单 setter/SetSaveFlag 的实际先后顺序。
 缺失、重复或不完整 trace 即失败，
 不只依据 mutation 回执声称零写入。
+原生调用必须位于唯一的 operation begin/terminal 之间，按单调 sequence
+逐一 begin→terminal，并始终来自同一 worker_pid；不能用 Counter 配对替代实际时序。
 最终记录 stderr 的已消费前缀长度和 SHA-256，后续正常 daemon 退出追加日志不冒充旧前缀。
 
 便携 FakeCLI 测试验证三类流程、30次实际改变、21次 clean 同值，以及丢持久化、
 源文件改动、伪同值 setter、CAS误触setter、读脏状态、缺失/残缺trace、保存size错配、
 首失败单次尝试、旧证据不覆盖和最终checkpoint首错保留。
-这些通过仅证明门禁控制代码；**尚无这份 A18 公共门禁的实际原生回执**，
-未运行 VM/CI，c197 的有限持久化范围保持前述限制。
+这些便携测试只证明门禁控制代码，不替代真实原生回执。
+以下记录首次专项的实际结果；完整三类门禁与 CI 仍待通过，
+c197 的有限持久化范围保持前述限制。
+
+## 首次安装版公共专项（整体失败，原证据保留）
+
+精确开发提交 `14e187c709186952d99b11d208c1dff2176337fd` 在独立安装环境、
+自有隐藏宿主上执行一次三类公共门禁。零件和装配完成七字段异值保存重开和
+三箭头反向保存重开：实际 trace 共20次 setter、4次 SetSaveFlag、14次同值零 setter。
+工程图首次实际改变前被 `annotation editing requires no active sketch` 拒绝，
+mutation 两标记均 false，没有调用该 setter。整体状态仍为 failed，不据前两类成功
+声明三类验收完成，也未原样重跑。
+
+- 原件：`/private/tmp/a18-public-cli-native-14e187c-d84a/evidence`
+- 公共回执 SHA-256：`7b68bfb3ff27de7cbaf6eb3a58b44c7ec2810ac4f9b63a3bb6d6714cb4555f44`
+- 原生 stderr/prefix SHA-256：`acbdf3225784699dc56ea872dd6d81959919f624a41e7178db48dc2987c15da2`
+- 首失败 request_id：`d5330db2-1b4d-42de-8065-37cf5f02cc40`
+- 外层耗时154.05秒、daemon正常退出0、cleanup=[]，前后SW进程为空。
+
+此轮运行的是14e187c版本的 verifier。随后修补的 trace 时序校验器在 Mac 上
+对原回执的103条调用证明和同一6374033字节原日志离线逐条复核通过；没有重放
+任何 CAD 请求，也不声称新 verifier 已在该轮实跑。
+`/private/tmp/a18-public-cli-native-14e187c-d84a/strict-trace-audit.json`
+明确 overall_gate_success=false、full_acceptance_eligible=false。
+绘图默认sheet草图与真正编辑状态的区分仍在诊断，未放宽或跳过原检查。
+
+## 交付边界
+
+A18 完成后暂停，不自动推进下一版本。main/MCP 的最终合并由另一位
+agent 负责，本候选不执行该合并；DockerSW 的跟进也不在本轮范围内。

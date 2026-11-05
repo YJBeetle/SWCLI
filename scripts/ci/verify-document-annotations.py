@@ -72,6 +72,23 @@ class NativeTrace:
         require(begins == terminals and begins[(0, operation)] == 1
                 and all(count == 1 for count in begins.values()),
                 "native annotation call boundaries are missing or repeated")
+        require(records[0].get("sequence") == records[-1].get("sequence") == 0
+                and records[0].get("call") == records[-1].get("call") == operation
+                and records[0].get("phase") == "begin"
+                and records[-1].get("phase") in ("end", "error"),
+                "annotation operation trace does not enclose its native calls")
+        worker_pid = records[0].get("worker_pid")
+        require(type(worker_pid) is int and worker_pid > 0
+                and all(record.get("worker_pid") == worker_pid for record in records),
+                "annotation request trace changed its owning worker")
+        calls = records[1:-1]
+        require(len(calls) % 2 == 0, "annotation native trace has an incomplete call pair")
+        for sequence, (begin, terminal) in enumerate(zip(calls[::2], calls[1::2]), 1):
+            require(type(begin.get("sequence")) is int
+                    and begin["sequence"] == terminal.get("sequence") == sequence
+                    and begin.get("phase") == "begin" and terminal.get("phase") in ("end", "error")
+                    and begin.get("call") == terminal.get("call"),
+                    "annotation native trace call ordering is invalid")
         native_setters = [r for r in records if r["phase"] == "begin"
                           and r["call"].startswith("IModelDocExtension.SetUserPreference")]
         dirty_calls = [r for r in records if r["phase"] == "begin" and r["call"] == "IModelDoc2.SetSaveFlag"]

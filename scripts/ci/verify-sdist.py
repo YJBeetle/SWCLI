@@ -7,6 +7,9 @@ from pathlib import PurePosixPath
 
 REQUIRED = {
     "scripts/ci/verify-runtime-sets.py",
+    "scripts/ci/verify-document-units.py",
+    "scripts/ci/verify-document-annotations.py",
+    "scripts/ci/prepare-annotation-fixtures.py",
     "scripts/ci/verify-visible.py",
     "scripts/ci/gate_support/runtime_plan.py",
     "scripts/ci/gate_support/drawing_template.py",
@@ -52,6 +55,7 @@ REQUIRED = {
     "docs/roadmap.md",
     "docs/windows-ci.md",
     "docs/runtime-tests.md",
+    "docs/design/document-annotation-options.md",
     "examples/model-plate.ps1",
     "scripts/ci/verify-installed.py",
     "scripts/ci/verify-invalid-requests.py",

@@ -6,11 +6,13 @@ param(
     [switch]$VisibleSmoke,
     [ValidateSet("core", "full")]
     [string]$Suite = "full",
-    [string]$PropertyFixtureDirectory
+    [string]$PropertyFixtureDirectory,
+    [string]$AnnotationFixtureDirectory
 )
 
 $ErrorActionPreference = "Stop"
 if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
+if ($AnnotationFixtureDirectory -and -not $Hidden) { throw "Annotation verification requires the initial hidden host" }
 if (-not $VisibleSmoke -and -not $Hidden) { throw "Business suites require -Hidden; use -VisibleSmoke for the lightweight visible check" }
 New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
 $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
@@ -200,13 +202,25 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120")
 if (-not $Hidden) { $daemonArguments += "--visible" }
-$daemon = Start-Process `
-    -FilePath $python `
-    -ArgumentList $daemonArguments `
-    -RedirectStandardOutput $daemonStdout `
-    -RedirectStandardError $daemonStderr `
-    -NoNewWindow `
-    -PassThru
+$previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
+try {
+    if ($AnnotationFixtureDirectory) {
+        $env:SWCLI_TRACE_NATIVE_CALLS = "1"
+    }
+    else {
+        Remove-Item Env:SWCLI_TRACE_NATIVE_CALLS -ErrorAction SilentlyContinue
+    }
+    $daemon = Start-Process `
+        -FilePath $python `
+        -ArgumentList $daemonArguments `
+        -RedirectStandardOutput $daemonStdout `
+        -RedirectStandardError $daemonStderr `
+        -NoNewWindow `
+        -PassThru
+}
+finally {
+    [Environment]::SetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", $previousNativeTrace, "Process")
+}
 # Pin the OS handle while it is alive; preflight exits long before we check it.
 $null = $daemon.Handle
 [IO.File]::WriteAllText(
@@ -297,6 +311,13 @@ try {
             --output-dir (Join-Path $Workspace "document-units") `
             --fixture-dir $PropertyFixtureDirectory
         if ($LASTEXITCODE -ne 0) { throw "public document units CLI gate failed" }
+    }
+
+    if ($AnnotationFixtureDirectory) {
+        & python -I (Join-Path $PSScriptRoot "../verify-document-annotations.py") `
+            --output-dir (Join-Path $Workspace "document-annotations") `
+            --fixture-dir $AnnotationFixtureDirectory --native-trace $daemonStderr
+        if ($LASTEXITCODE -ne 0) { throw "public document annotation CLI gate failed" }
     }
 
     # Shared scripts own CAD coverage and fresh CLI/SW session boundaries.

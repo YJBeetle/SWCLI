@@ -72,6 +72,18 @@ class AnnotationsCLI(FakeCLI):
                 records = []
             if self.annotation_defect == "missing-trace-end":
                 records = records[:-1]
+            if self.annotation_defect == "operation-end-before-native":
+                records.insert(1, records.pop())
+            if self.annotation_defect == "native-end-before-begin" and len(records) > 2:
+                records[1], records[2] = records[2], records[1]
+            if self.annotation_defect == "nonmonotonic-native-sequence":
+                for record in records:
+                    if record["sequence"] in (1, 2):
+                        record["sequence"] = 3 - record["sequence"]
+            for record in records:
+                record["worker_pid"] = 4242
+            if self.annotation_defect == "request-worker-changed" and len(records) > 2:
+                records[1]["worker_pid"] = 4343
             with self.trace.open("a", encoding="utf-8") as stream:
                 for record in records:
                     stream.write(json.dumps(record) + "\n")
@@ -224,6 +236,10 @@ class DocumentAnnotationsSmokeTests(unittest.TestCase):
             "misordered-native-readback": "annotation native preference read/write ordering is incomplete",
             "saved-size-mismatch": "edited annotation copy did not save cleanly",
             "read-dirties-document": "annotation read changed background document state",
+            "operation-end-before-native": "annotation operation trace does not enclose its native calls",
+            "native-end-before-begin": "annotation native trace call ordering is invalid",
+            "nonmonotonic-native-sequence": "annotation native trace call ordering is invalid",
+            "request-worker-changed": "annotation request trace changed its owning worker",
         }
         for defect, message in defects.items():
             with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:

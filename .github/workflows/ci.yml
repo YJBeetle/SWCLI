@@ -294,11 +294,23 @@ jobs:
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
+      - name: Prepare annotation fixtures for public CLI verification
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Annotation drawing template discovery failed" }
+          python -I scripts/ci/prepare-annotation-fixtures.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\annotation-fixtures" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
+
       - name: Run real SOLIDWORKS modeling and export smoke test
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
-          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration"
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
 
       - name: Measure streamed data and remaining disk
         if: always()
