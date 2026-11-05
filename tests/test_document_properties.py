@@ -1,5 +1,6 @@
 """The read path preserves native values, document selection and write guards."""
 
+import sys
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -8,6 +9,7 @@ from swcli.cli import _typed_operation, build_parser
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon.operations import DocumentUpdateConflict, execute_operation
 from swcli.hosts import windows_custom_properties as adapter
+from swcli.hosts.windows_document_summary import set_document_summary_windows
 from swcli.result_schemas import validate_operation_result
 
 
@@ -27,6 +29,8 @@ class DocumentPropertiesTests(unittest.TestCase):
             GetActiveConfiguration=lambda: self.configuration,
             GetTitle=lambda: "Part",
             GetPathName=lambda: "",
+            IsOpenedReadOnly=lambda: False,
+            IsOpenedViewOnly=lambda: False,
             Extension=SimpleNamespace(CustomPropertyManager=self.manager_for),
         )
         self.foreground = SimpleNamespace(
@@ -114,3 +118,64 @@ class DocumentPropertiesTests(unittest.TestCase):
         self.assertEqual(_typed_operation(args), (
             "document.properties", {"name": "Drawing No"}, True, self.entry.document_id, 7, None,
         ))
+
+    def test_inactive_configuration_reads_its_own_cached_property(self):
+        self.document.GetConfigurationByName = lambda name: SimpleNamespace(Name="Other")
+        with mock.patch.object(adapter, "_get_value", return_value=(0, "scoped", "scoped", False, False)):
+            result = self.run_properties({"configuration": "Other", "name": "Drawing No"})
+        validate_operation_result("document.properties", result)
+        self.assertEqual((result["scope"], result["configuration"]), ("configuration", "Other"))
+        self.assertEqual(result["properties"][0]["raw_value"], "scoped")
+        self.manager_for.assert_called_once_with("Other")
+        self.assertEqual(self.configuration.Name, "Default")
+        self.app.ActivateDoc3.assert_not_called()
+
+    def test_missing_configuration_refuses_before_native_manager_selection(self):
+        self.document.GetConfigurationByName = lambda name: None
+        self.assertFalse(self.run_properties({"configuration": "Missing"})["ok"])
+        self.manager_for.assert_not_called()
+
+    def test_native_write_failure_reports_possible_change_without_retry(self):
+        self.manager.Set2 = mock.Mock(return_value=2)
+        with mock.patch.object(adapter, "_get_value", return_value=(2, "old", "old", True, False)):
+            result = adapter.edit_document_property_windows(
+                app=self.app, document=self.document, action="document.property-set",
+                values={"name": "Drawing No", "value": "new", "expected_value": "old"},
+            )
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.manager.Set2.assert_called_once_with("Drawing No", "new")
+
+    def test_property_value_conflict_refuses_before_native_write(self):
+        self.manager.Set2 = mock.Mock()
+        with mock.patch.object(adapter, "_get_value", return_value=(2, "newer", "newer", True, False)):
+            result = adapter.edit_document_property_windows(
+                app=self.app, document=self.document, action="document.property-set",
+                values={"name": "Drawing No", "value": "new", "expected_value": "old"},
+            )
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["mutation"]["attempted"])
+        self.manager.Set2.assert_not_called()
+
+    def test_indexed_summary_put_verifies_unicode_before_marking_dirty(self):
+        values = {2: "Old author"}
+        dirty = []
+
+        def invoke(dispid, locale, flags, wants_result, index, *args):
+            if flags == 4 and not wants_result:
+                values[index] = args[0]
+                return None
+            return values[index]
+
+        self.document._oleobj_ = SimpleNamespace(GetIDsOfNames=lambda name: 40, Invoke=invoke)
+        self.document.SetSaveFlag = lambda: dirty.append(True)
+        self.document.GetSaveFlag = lambda: bool(dirty)
+        with mock.patch.dict(sys.modules, {"pythoncom": SimpleNamespace(
+            DISPATCH_PROPERTYGET=2, DISPATCH_PROPERTYPUT=4,
+        )}):
+            result = set_document_summary_windows(app=self.app, document=self.document,
+                                                  field="author", value="验收作者", expected_value="Old author")
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(values, {2: "验收作者"})
+        self.assertEqual(dirty, [True])
+        self.assertIs(self.app.ActiveDoc, self.foreground)

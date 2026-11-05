@@ -291,7 +291,7 @@ try {
     if ($PropertyFixtureDirectory) {
         & python -I (Join-Path $PSScriptRoot "../verify-properties.py") `
             --output-dir (Join-Path $Workspace "properties") `
-            --fixture-dir $PropertyFixtureDirectory
+            --fixture-dir $PropertyFixtureDirectory --save-copy --edit-metadata
         if ($LASTEXITCODE -ne 0) { throw "public custom property CLI gate failed" }
     }
 

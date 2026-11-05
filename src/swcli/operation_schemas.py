@@ -10,6 +10,8 @@ from typing import Any, Dict, Optional
 
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
+from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
+from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
 from .polygon_geometry import validate_polygon
@@ -102,6 +104,10 @@ _DOCUMENT_WRITE_CONTEXT = {
 }
 
 
+_PROPERTY_NAME = _string(minLength=1, pattern=r"\S")
+_PROPERTY_TARGET = {"name": _PROPERTY_NAME, "configuration": _PROPERTY_NAME}
+
+
 OPERATION_CATALOG: Dict[str, OperationSpec] = {
     "daemon.health": _operation("daemon.health"),
     "daemon.capabilities": _operation(
@@ -175,8 +181,33 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     ),
     "document.properties": _operation(
         "document.properties",
-        {"name": _string(minLength=1, pattern=r"\S")},
+        {"name": _PROPERTY_NAME, "configuration": _PROPERTY_NAME},
         **_DOCUMENT_READ_CONTEXT,
+    ),
+    "document.property-summary": _operation(
+        "document.property-summary", {"name": _PROPERTY_NAME}, **_DOCUMENT_READ_CONTEXT,
+    ),
+    "document.property-add": _operation(
+        "document.property-add",
+        {**_PROPERTY_TARGET, "type": _string(enum=list(WRITABLE_PROPERTY_TYPES)), "value": _string()},
+        required=("name", "value"), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.property-set": _operation(
+        "document.property-set",
+        {**_PROPERTY_TARGET, "value": _string(), "expected_value": _string()},
+        required=("name", "value"), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.property-delete": _operation(
+        "document.property-delete",
+        {**_PROPERTY_TARGET, "expected_value": _string()},
+        required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.summary": _operation("document.summary", **_DOCUMENT_READ_CONTEXT),
+    "document.summary-set": _operation(
+        "document.summary-set",
+        {"field": _string(enum=list(EDITABLE_SUMMARY_FIELDS)), "value": _string(),
+         "expected_value": _string()},
+        required=("field", "value"), **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.close": _operation(
         "document.close",

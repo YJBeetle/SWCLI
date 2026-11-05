@@ -8,6 +8,7 @@ from .polygon_geometry import TOLERANCE_MM, validate_polygon
 from typing import Any, Dict
 
 from .protocol import load_schema
+from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
 )
@@ -28,6 +29,22 @@ INTEGER = {"type": "integer"}
 NUMBER = {"type": "number"}
 NULLABLE_STRING = {"type": ["string", "null"]}
 STRING_LIST = {"type": "array", "items": STRING}
+CUSTOM_PROPERTY = _object(
+    {"name": STRING, "type": STRING, "type_code": INTEGER, "raw_value": STRING,
+     "evaluated_value": STRING, "resolution": {"enum": ["cached", "resolved"]},
+     "was_resolved": BOOL, "linked": BOOL},
+    ("name", "type", "type_code", "raw_value", "evaluated_value", "resolution", "was_resolved", "linked"),
+)
+PROPERTY_SCOPE = {"scope": {"enum": ["document", "configuration"]}, "configuration": STRING}
+METADATA_MUTATION = _object({"attempted": BOOL, "may_have_changed": BOOL},
+                            ("attempted", "may_have_changed"))
+NULLABLE_CUSTOM_PROPERTY = {"anyOf": [CUSTOM_PROPERTY, {"type": "null"}]}
+PROPERTY_EDIT_RESULT = (
+    {**PROPERTY_SCOPE, "name": STRING, "before": NULLABLE_CUSTOM_PROPERTY,
+     "property": NULLABLE_CUSTOM_PROPERTY, "changed": BOOL, "mutation": METADATA_MUTATION},
+    ("session_id", "document", "scope", "name", "before", "property", "changed", "mutation"),
+)
+
 DOCUMENT = _object(
     {
         "title": STRING,
@@ -475,25 +492,28 @@ _RESULT_FIELDS = {
         ("document", "needs_rebuild"),
     ),
     "document.properties": (
-        {
-            "scope": {"const": "document"},
-            "requested_name": NULLABLE_STRING,
-            "properties": {
-                "type": "array",
-                "maxItems": 1000,
-                "items": _object(
-                    {
-                        "name": STRING, "type": STRING, "type_code": INTEGER,
-                        "raw_value": STRING, "evaluated_value": STRING,
-                        "resolution": {"enum": ["cached", "resolved"]},
-                        "was_resolved": BOOL, "linked": BOOL,
-                    },
-                    ("name", "type", "type_code", "raw_value", "evaluated_value",
-                     "resolution", "was_resolved", "linked"),
-                ),
-            },
-        },
+        {**PROPERTY_SCOPE, "requested_name": NULLABLE_STRING,
+         "properties": {"type": "array", "maxItems": 1000, "items": CUSTOM_PROPERTY}},
         ("session_id", "document", "scope", "requested_name", "properties"),
+    ),
+    "document.property-add": PROPERTY_EDIT_RESULT,
+    "document.property-summary": (
+        {"requested_name": NULLABLE_STRING, "configurations": {"type": "array", "maxItems": 1000,
+          "items": _object({"configuration": STRING, "properties": {"type": "array", "items": CUSTOM_PROPERTY}},
+                           ("configuration", "properties"))}},
+        ("session_id", "document", "requested_name", "configurations"),
+    ),
+    "document.property-set": PROPERTY_EDIT_RESULT,
+    "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.summary": (
+        {"fields": _object(dict.fromkeys(SUMMARY_FIELDS, STRING), tuple(SUMMARY_FIELDS)),
+         "saved_version_history": STRING_LIST},
+        ("session_id", "document", "fields", "saved_version_history"),
+    ),
+    "document.summary-set": (
+        {"field": {"enum": list(EDITABLE_SUMMARY_FIELDS)}, "value": STRING,
+         "before_value": STRING, "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "field", "value", "before_value", "changed", "mutation"),
     ),
     "document.close": (
         {"discard": BOOL, "closed": BOOL},

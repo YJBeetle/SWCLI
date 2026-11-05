@@ -298,20 +298,35 @@ display chain is not proof of absent dimensions. Do not create replacements or
 guess names. Reads may observe a leased background document, but discovered
 handles do not grant modification authority or bypass lease/stamp guards.
 
-The a15 candidate reads document-level custom properties through the selected
-open document.
+The metadata commands operate on the selected open SOLIDWORKS document.
 
 ```powershell
-sw-cli document properties --document d-ab12cd --json
+sw-cli document summary --document d-ab12cd --json
+sw-cli document summary-set author "Drawing Office" --document d-ab12cd --if-value "Old author" --json
 sw-cli document properties --document d-ab12cd --name "Drawing No" --json
+sw-cli document properties --document d-ab12cd --configuration Default --json
+sw-cli document property-summary --document d-ab12cd --name "Drawing No" --json
+sw-cli document property-add "Drawing No" "A-104" --configuration Default --document d-ab12cd --json
+sw-cli document property-set "Drawing No" "A-105" --configuration Default --document d-ab12cd --if-value "A-104" --json
+sw-cli document property-delete "Drawing No" --configuration Default --document d-ab12cd --if-value "A-105" --json
 ```
 
-Each row contains the native type, stored text or expression, evaluated value,
-and cache or resolution status. A missing named property returns
-`"properties": []`. An existing empty property returns one row with empty
-value strings. These reads use document scope and permit SOLIDWORKS to return
-cached evaluation. Use `--if-update-stamp` when targeting an observed document
-state.
+Summary fields `title`, `subject`, `author`, `keywords` and `comment` are editable.
+The saved-by, creation and save statistics and the version history from disk
+are read-only. Date strings retain SOLIDWORKS's native representation.
+
+Property rows distinguish stored text or expressions from evaluated values,
+including cached evaluation. A missing name returns an empty list. An existing
+empty property returns a row with empty strings. Omit `--configuration` for
+document scope. A named configuration uses the exact spelling and stays
+separate from the document scope. `property-summary` lists the matching rows
+per configuration. Edit each intended configuration explicitly.
+
+Adds refuse existing names and default to text. Sets preserve the native type.
+Writes use document lease and stamp guards, and `--if-value` compares the
+previous raw value before editing. A failed write with
+`mutation.may_have_changed` may have altered the open document. Use
+`document save` or `document save-as` explicitly to persist verified edits.
 
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented

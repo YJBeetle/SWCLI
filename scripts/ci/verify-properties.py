@@ -23,15 +23,19 @@ EXPECTED = {
     "Quantity": (3, "42"),
     "Approved": (11, "Yes"),
 }
+SUMMARY_VALUES = {"title": "验收标题", "subject": "Round trip", "author": "验收作者",
+                  "keywords": "CAD, metadata", "comment": "第一行\nSecond line"}
+ROUNDTRIP_NAME = "Metadata Roundtrip"
+DELETED_NAME = "Metadata Delete Fixture"
 
 
-def verify_properties(result):
+def verify_properties(result, expected=EXPECTED):
     validate_operation_result("document.properties", result)
     require(result["ok"] and result["scope"] == "document", "property read failed")
     rows = {row["name"]: row for row in result["properties"]}
-    require(len(result["properties"]) == len(rows) == len(EXPECTED)
-            and set(rows) == set(EXPECTED), "property list lost rows or leaked configuration metadata")
-    for name, (code, raw) in EXPECTED.items():
+    require(len(result["properties"]) == len(rows) == len(expected)
+            and set(rows) == set(expected), "property list lost rows or leaked configuration metadata")
+    for name, (code, raw) in expected.items():
         row = rows[name]
         require(row["type_code"] == code and row["raw_value"] == raw
                 and row["evaluated_value"] == raw and row["resolution"] == "resolved"
@@ -40,7 +44,60 @@ def verify_properties(result):
     return rows
 
 
-def run(gate, fixtures, *, host_fixtures=None, save_copy=False):
+def check_metadata(gate, document, configuration):
+    summary = gate.command("document", "summary", document=document)
+    validate_operation_result("document.summary", summary)
+    require(summary["saved_version_history"], "saved fixture version history is missing")
+    require(all(summary["fields"][key] == value for key, value in SUMMARY_VALUES.items()),
+            "summary values did not persist")
+    scoped = gate.command("document", "properties", "--configuration", configuration, document=document)
+    validate_operation_result("document.properties", scoped)
+    require(scoped["scope"] == "configuration" and scoped["configuration"] == configuration,
+            "configuration scope differs from the selected configuration")
+    require({row["name"]: row["raw_value"] for row in scoped["properties"]}
+            == {"Drawing No": "configuration-only", ROUNDTRIP_NAME: "configuration value"},
+            "configuration property edit leaked or failed to persist")
+    aggregate = gate.command("document", "property-summary", "--name", ROUNDTRIP_NAME, document=document)
+    validate_operation_result("document.property-summary", aggregate)
+    matching = [row["properties"] for row in aggregate["configurations"] if row["configuration"] == configuration]
+    require(matching == [[row for row in scoped["properties"] if row["name"] == ROUNDTRIP_NAME]],
+            "configuration summary did not match the exact scoped read")
+    return summary, scoped
+
+
+def exercise_metadata(gate, document, case):
+    structure = gate.command("document", "inspect", "--detail", "structure", document=document)
+    configuration = structure["structure"]["configurations"]["active"]
+    case["configuration"] = configuration
+    original = gate.command("document", "summary", document=document)
+    validate_operation_result("document.summary", original)
+    gate.background(original, document)
+    require(original["document"]["modified"] is False, "summary read dirtied the fixture")
+    for field, value in SUMMARY_VALUES.items():
+        edited = gate.write("document", "summary-set", field, value,
+                            "--if-value", original["fields"][field], document=document)
+        validate_operation_result("document.summary-set", edited)
+        gate.background(edited, document)
+        require(edited["value"] == value and edited["document"]["modified"],
+                "summary write did not round-trip or mark document dirty")
+    gate.write("document", "property-add", ROUNDTRIP_NAME, "original", document=document)
+    updated = gate.write("document", "property-set", ROUNDTRIP_NAME, "文档值", "--if-value", "original",
+                         document=document)
+    validate_operation_result("document.property-set", updated)
+    require(updated["property"]["raw_value"] == "文档值", "document property update was not verified")
+    scoped = ("--configuration", configuration)
+    gate.write("document", "property-add", ROUNDTRIP_NAME, "configuration value", *scoped, document=document)
+    gate.write("document", "property-add", DELETED_NAME, "temporary", *scoped, document=document)
+    removed = gate.write("document", "property-delete", DELETED_NAME, *scoped,
+                         "--if-value", "temporary", document=document)
+    validate_operation_result("document.property-delete", removed)
+    require(removed["property"] is None and removed["changed"], "configuration property was not deleted")
+    case["edited_summary"], case["edited_configuration_properties"] = check_metadata(gate, document, configuration)
+    return {**EXPECTED, ROUNDTRIP_NAME: (30, "文档值")}
+
+
+def run(gate, fixtures, *, host_fixtures=None, save_copy=False, edit_metadata=False):
+    require(not edit_metadata or save_copy, "metadata writes require saving to a separate file")
     gate.record.update(state="running", success=False, property_cases=[])
     gate.record["host"] = gate.health()["host"]
     gate.require_empty()
@@ -89,6 +146,9 @@ def run(gate, fixtures, *, host_fixtures=None, save_copy=False):
         )
         after = gate.command("document", "inspect", document=target)["document"]
         require(before == after and not after["modified"], "property reads changed document state")
+        expected = exercise_metadata(gate, target, case) if edit_metadata else EXPECTED
+        if edit_metadata:
+            rows = verify_properties(gate.command("document", "properties", document=target), expected)
         reopened_host = source_host
         saved_hash = before_hash
         saved_path = path
@@ -110,7 +170,14 @@ def run(gate, fixtures, *, host_fixtures=None, save_copy=False):
                 and PureWindowsPath(reopened["document"]["path"]) == PureWindowsPath(reopened_host),
                 "property reopen did not acquire a clean fresh handle")
         reopened_read = case["reopened_properties"] = gate.command("document", "properties", document=fresh)
-        require(verify_properties(reopened_read) == rows, "reopened native property values changed")
+        require(verify_properties(reopened_read, expected) == rows, "reopened native property values changed")
+        if edit_metadata:
+            case["reopened_summary"], case["reopened_configuration_properties"] = check_metadata(
+                gate, fresh, case["configuration"],
+            )
+            refused = gate.write("document", "summary-set", "author", "Read-only refusal", document=fresh,
+                                 expected_error="ValueError")
+            require(not refused["mutation"]["attempted"], "read-only edit reached the native setter")
         require(not gate.command("document", "inspect", document=fresh)["document"]["modified"]
                 and hashlib.sha256(path.read_bytes()).hexdigest() == before_hash
                 and hashlib.sha256(saved_path.read_bytes()).hexdigest() == saved_hash,
@@ -134,6 +201,7 @@ def main(argv=None):
     parser.add_argument("--host-output-dir", type=modeling.host_directory)
     parser.add_argument("--cli-command", type=modeling.executable)
     parser.add_argument("--save-copy", action="store_true", help="save to a new native file before reopening")
+    parser.add_argument("--edit-metadata", action="store_true", help="exercise summary and scoped property writes")
     args = parser.parse_args(argv)
     args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -146,7 +214,8 @@ def main(argv=None):
     with gate.record_path.open("x", encoding="utf-8") as stream:
         json.dump(gate.record, stream)
     try:
-        run(gate, args.fixture_dir, host_fixtures=args.host_fixture_dir, save_copy=args.save_copy)
+        run(gate, args.fixture_dir, host_fixtures=args.host_fixture_dir, save_copy=args.save_copy,
+            edit_metadata=args.edit_metadata)
     except BaseException:
         gate.record["state"] = "failed"
         raise

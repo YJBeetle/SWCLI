@@ -154,21 +154,22 @@ than accumulating a general-purpose framework to meet one example.
    environment, a bounded mechanism and independent checks on computed
    results before widening the supported study types.
 
-## Document custom properties
+## File metadata and document options
 
-The a15 candidate prioritizes document metadata such as `Chinese Name`,
-`English Name` and `Drawing No`. Its first increment is read-only listing and
-lookup through `document properties [--name NAME]`. The CLI reports the
-property type, stored expression, evaluated value and native resolution status
-separately. A missing property returns an empty list. A property with an empty
-value returns a row with empty strings. Windows and Wine native acceptance is
-pending. Assembly mates follow the document work.
+The a15 prerelease reads document-level custom properties. Windows and Wine
+accepted part and assembly fixtures with separate document and configuration
+values, including empty and missing values.
 
-Add configuration-specific access with an explicit configuration name and
-report cached results as such. Verify that reads preserve the active
-configuration and document state. For writes, start with explicit text
-property creation and updates, use the existing document, lease and stamp
-guards, and require readback plus an explicit save/reopen check for persistence.
+The next metadata increment adds file summary reads and edits, explicit
+configuration property reads, a cross-configuration summary, and custom
+property adds, sets and deletes. Windows CI exercises public CLI operations,
+scope isolation, guarded writes and save/reopen of separate native copies.
+Creation time, save time, saved-by and saved version history are read-only.
+
+After metadata acceptance, add read/write access to document options, starting
+with annotation text format, attachment arrows, bent leaders and zero display.
+Use the typed document preference APIs, with explicit per-field validation and
+save/reopen checks. [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
 ## Later protocol and integrations
 

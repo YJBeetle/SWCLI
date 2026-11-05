@@ -23,7 +23,10 @@ from ..hosts.windows_documents import (
     render_active_windows_document,
     save_active_windows_document,
 )
-from ..hosts.windows_custom_properties import read_document_properties_windows
+from ..hosts.windows_custom_properties import (
+    read_document_properties_windows, read_property_summary_windows, edit_document_property_windows,
+)
+from ..hosts.windows_document_summary import read_document_summary_windows, set_document_summary_windows
 from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
@@ -380,11 +383,63 @@ def document_properties(
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = read_document_properties_windows(
-        app=context.app, document=context.entry.document, name=values.get("name")
+        app=context.app, document=context.entry.document, name=values.get("name"),
+        configuration=values.get("configuration"),
     )
     return _with_document(
         result, context.documents, context.entry, session_id=context.session_id
     )
+
+
+@_register_handler
+def document_property_summary(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_property_summary_windows(app=context.app, document=context.entry.document, name=values.get("name"))
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+def _edit_document_property(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = edit_document_property_windows(
+        app=context.app, document=context.entry.document, action=context.operation, values=values,
+    )
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_property_add(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    return _edit_document_property(context, values)
+
+
+@_register_handler
+def document_property_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    return _edit_document_property(context, values)
+
+
+@_register_handler
+def document_property_delete(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    return _edit_document_property(context, values)
+
+
+@_register_handler
+def document_summary(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_summary_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_summary_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_summary_windows(
+        app=context.app, document=context.entry.document, field=values["field"],
+        value=values["value"], expected_value=values.get("expected_value"),
+    )
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 
 
 @_register_handler

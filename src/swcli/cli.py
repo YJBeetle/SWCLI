@@ -17,6 +17,8 @@ from .hosts import (
 )
 from .protocol import SCHEMA_NAMES, load_schema
 from .hosts.windows_sketches import STANDARD_PLANES
+from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
+from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -211,11 +213,39 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--max-features", type=int, default=500)
     inspect_parser.add_argument("--json", action="store_true", dest="as_json")
     properties_parser = document_commands.add_parser(
-        "properties", help="read document-level custom properties"
+        "properties", help="read document or configuration custom properties"
     )
     add_document_selector(properties_parser)
     properties_parser.add_argument("--name", help="look up one property by name")
+    properties_parser.add_argument("--configuration", help="exact configuration name")
     properties_parser.add_argument("--json", action="store_true", dest="as_json")
+    property_summary = document_commands.add_parser("property-summary", help="read custom properties across configurations")
+    add_document_selector(property_summary)
+    property_summary.add_argument("--name", help="look up one property across configurations")
+    property_summary.add_argument("--json", action="store_true", dest="as_json")
+    for action in ("add", "set", "delete"):
+        editor = document_commands.add_parser(f"property-{action}", help=f"{action} a custom property")
+        add_document_selector(editor)
+        add_lease_token(editor)
+        editor.add_argument("name")
+        editor.add_argument("--configuration", help="exact configuration name")
+        if action != "delete":
+            editor.add_argument("value", help="native raw value or expression")
+        if action == "add":
+            editor.add_argument("--type", choices=tuple(WRITABLE_PROPERTY_TYPES), default="text")
+        else:
+            editor.add_argument("--if-value", dest="expected_value", help="require this raw value")
+        editor.add_argument("--json", action="store_true", dest="as_json")
+    summary_parser = document_commands.add_parser("summary", help="read native file summary information")
+    add_document_selector(summary_parser)
+    summary_parser.add_argument("--json", action="store_true", dest="as_json")
+    summary_editor = document_commands.add_parser("summary-set", help="edit one file summary field")
+    add_document_selector(summary_editor)
+    add_lease_token(summary_editor)
+    summary_editor.add_argument("field", choices=tuple(EDITABLE_SUMMARY_FIELDS))
+    summary_editor.add_argument("value")
+    summary_editor.add_argument("--if-value", dest="expected_value", help="require this previous value")
+    summary_editor.add_argument("--json", action="store_true", dest="as_json")
     measure_parser = document_commands.add_parser(
         "measure", help="measure all solid bodies in the selected part"
     )
@@ -1216,12 +1246,24 @@ def _typed_operation(
         if command == "properties":
             return (
                 "document.properties",
-                {"name": args.name} if args.name is not None else {},
+                {key: value for key, value in (("name", args.name), ("configuration", args.configuration))
+                 if value is not None},
                 args.as_json,
                 args.document_id,
                 args.expected_update_stamp,
                 None,
             )
+        if command == "summary":
+            return ("document.summary", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "property-summary":
+            return ("document.property-summary", {"name": args.name} if args.name is not None else {},
+                    args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command in ("property-add", "property-set", "property-delete", "summary-set"):
+            values = {key: value for key in ("name", "configuration", "type", "field", "value", "expected_value")
+                      if (value := getattr(args, key, None)) is not None}
+            return (f"document.{command}", values, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "close":
             return (
                 "document.close",
