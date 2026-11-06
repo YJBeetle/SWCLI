@@ -32,5 +32,9 @@
 - 实现提交：`216ebec0f6e80231f566dce0c351d7ff140e29c9`，已推送。
 - 初次必要 dispatch：[42260403395](https://github.com/YJBeetle/SWCLI/actions/runs/42260403395)，head=上述提交；参数 line_font_calibration=true / native_full=false，其余默认。
 - 在 Windows portable jobs 仍进行、原生校准尚未开始时主动取消：检查发现共享 concurrency group 可能挤掉其他线程待运行作业。修为本范围独立并发组后才允许新校准；不是因排队重复 dispatch。未动其他线程 run。
-- 后续修复 head / run / 结果待补充；当前没有公开写入原生验收结论。
-
+- 并发隔离修复提交：`6f531a595a50bbadeeab2c0f005d89c0246c7ee5`，已推送；接线测试 12 项（1 skip）与摘要策略测试 22 项通过，日志 `artifacts/line-font/workflow-checks.log`。
+- 修复后必要 dispatch：[42260712677](https://github.com/YJBeetle/SWCLI/actions/runs/42260712677)，head=`6f531a595a50bbadeeab2c0f005d89c0246c7ee5`；line_font_calibration=true / native_full=false；media_path、assets_path、cleanup_profile、vfs_cache_gib 均 workflow 默认。独立并发组 `swcli-hosted-windows-line-font-calibration`，不会替换其他分支 pending 作业。
+- 当前 run 进行中：Build wheel 已通过，Windows 3.9 / 3.14 便携 jobs 正运行；尚无原生校准完成证据。不因等待再次 dispatch。
+- 后续只需跟踪此 run：若失败先下载 `swcli-windows-hosted-42260712677-*` 原产物，查看 line-font-calibration/report.json、trace.jsonl、process.log 与第一真实失败；如果未到原生阶段则读取失败 portable job。必要相关修复后才新验证。
+- 未完成边界：Windows 原生内部校准结果待回收；即使内部校准通过，公开 CLI 写入端到端验收仍缺，本分支公开 setter 保持 fail closed。不得将该 run 当成完整原生基础门禁或公开验收。
+- 交接记录后续文档提交不改变上述待校准代码 head；主对话可统一读取并处理集成。
