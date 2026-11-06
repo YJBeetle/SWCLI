@@ -100,6 +100,13 @@ jobs:
         id: unit_tests
         run: python -m unittest discover -s tests -v
 
+      - name: Verify typed Python SDK
+        id: sdk_types
+        if: ${{ matrix.python == '3.14' }}
+        run: |
+          python -m pip install "mypy>=1.15,<2"
+          python scripts/ci/verify-sdk-types.py
+
       - name: Parse Windows CI scripts
         id: script_parser
         if: ${{ matrix.python == '3.14' }}
@@ -144,6 +151,7 @@ jobs:
             --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
             --stage "install=${{ steps.portable_install.outcome }}" `
             --stage "unit-tests=${{ steps.unit_tests.outcome }}" `
+            --stage "sdk-types=${{ steps.sdk_types.outcome }}" `
             --stage "script-parser=${{ steps.script_parser.outcome }}" `
             --stage "installed-resources=${{ steps.portable_resources.outcome }}"
 

@@ -6,6 +6,17 @@ import tarfile
 from pathlib import PurePosixPath
 
 REQUIRED = {
+    "src/swcli/py.typed",
+    "src/swcli/sdk/__init__.py",
+    "src/swcli/sdk/client.py",
+    "src/swcli/sdk/runtime.py",
+    "src/swcli/sdk/models.py",
+    "src/swcli/sdk/_generated.py",
+    "src/swcli/skills/swcli/references/sdk.md",
+    "scripts/dev/generate-sdk.py",
+    "scripts/ci/verify-sdk-types.py",
+    "tests/typing_sdk/accepted.py",
+    "tests/typing_sdk/rejected.py",
     "scripts/ci/verify-runtime-sets.py",
     "scripts/ci/verify-document-units.py",
     "scripts/ci/verify-document-annotations.py",

@@ -39,6 +39,11 @@ def main():
     icon = files("swcli").joinpath("assets").joinpath("swcli.ico").read_bytes()
     if not icon.startswith(b"\x00\x00\x01\x00"):
         raise RuntimeError("installed Windows notification icon is missing or invalid")
+    if not files("swcli").joinpath("py.typed").is_file():
+        raise RuntimeError("installed SDK typing marker is missing")
+    from swcli.sdk import Client
+    if not callable(Client(endpoint="127.0.0.1:18495", session_id="installed-sdk-check").document.open):
+        raise RuntimeError("installed SDK operations are missing")
     installed = distribution("swcli")
     installed_version = installed.version
     verify_console_version(console_entrypoint(installed), installed_version)
