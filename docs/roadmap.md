@@ -229,7 +229,7 @@ attach behavior remain until that work is deliberately resumed.
   original exported bytes as embedded resources, with an 8 MiB raw-byte limit
   and size/hash/delivery status. Portable capture tests and official SDK
   stdio/TCP delivery tests pass; this is not a new native Windows full-run claim.
-- [x] Secure remote connections and workspace file transfer (development):
+- [x] Secure remote connections and workspace file transfer (0.2.3):
   certificate-verified TLS/token-file authentication, rooted 1 MiB chunked
   upload/download, size/SHA256 verification and atomic publication; default
   per-file maximum 1 GiB. CLI and opt-in MCP tools keep client and host roots

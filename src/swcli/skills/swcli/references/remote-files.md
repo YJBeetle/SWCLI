@@ -1,6 +1,6 @@
 # Secure connections and workspace files
 
-These features are in the development version. Start the daemon explicitly on
+Available in SWCLI 0.2.3 or newer. Start the daemon explicitly on
 its SOLIDWORKS host; connecting, transferring files and disconnecting never
 start or stop SW. CAD and document ownership/session/lease/CAS rules still apply.
 
