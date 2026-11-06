@@ -18,3 +18,6 @@ custom icon registered successfully. No new SW or document edit was needed.
   metadata-only mode and older-daemon fallback preserve the original operation.
   The raw-byte limit is 8 MiB; size/hash and delivery status are explicit.
   CAD success is retained when an attachment cannot be delivered.
+
+- Runtime status runs its Windows `tasklist` probe without a console window,
+  preserving its captured output, timeout and inventory error handling.

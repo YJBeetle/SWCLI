@@ -15,6 +15,7 @@ class HostInventoryTests(unittest.TestCase):
                 patch.object(host_processes.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=output)) as run:
             self.assertEqual(host_processes.solidworks_process_ids(), [456, 789])
         self.assertEqual(run.call_args.args[0], ["ps", "-axo", "pid=,comm="])
+        self.assertNotIn("creationflags", run.call_args.kwargs)
 
     def test_windows_csv_and_case_insensitive_image_name(self):
         output = '"System Idle Process","0","Services"\n"SLDWORKS.exe","1880","Console"\n"python.exe","25","Console"\n'
@@ -22,6 +23,9 @@ class HostInventoryTests(unittest.TestCase):
                 patch.object(host_processes.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=output)) as run:
             self.assertEqual(host_processes.solidworks_process_ids(), [1880])
         self.assertEqual(run.call_args.args[0], ["tasklist", "/FO", "CSV", "/NH"])
+        self.assertEqual(run.call_args.kwargs["creationflags"], 0x08000000)
+        self.assertEqual(run.call_args.kwargs["timeout"], 10)
+        self.assertTrue(run.call_args.kwargs["capture_output"])
 
     def test_unavailable_or_malformed_inventory_fails_closed(self):
         for code, output in ((1, "denied"), (0, ""), (0, "broken"), (0, "wrong-pid SLDWORKS.exe")):

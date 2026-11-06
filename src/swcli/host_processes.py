@@ -12,7 +12,8 @@ import sys
 def solidworks_process_ids(*, timeout=10):
     windows = sys.platform == "win32"
     command = ["tasklist", "/FO", "CSV", "/NH"] if windows else ["ps", "-axo", "pid=,comm="]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    options = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)} if windows else {}
+    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, **options)
     if result.returncode != 0 or not result.stdout.strip():
         raise RuntimeError("Native process inventory is unavailable")
     ids = []
