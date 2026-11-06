@@ -69,3 +69,5 @@ Native original ZIP SHA256: `54a228101376c5ec081100045460b8a474aedee3b5490f3fedf
 Acceptance is limited to the explicit environment and exact tuples above. It is not general desktop/Wine/assembly/continuous-range support or overall series/release acceptance. Final review/integration remains coordinator-owned; the series must meet its complete frozen scope before a release.
 
 The coordinator identified a missing actual Windows/Wine probe after the old public run. The original run remains evidence for its old head; the added fail-closed platform probe requires a new matching-head public gate before integration. See the current status at the top of `WORK_HANDOFF.md`.
+
+The probe correction is code head `f22b7a1d7a2963a62d432879a53233a999995ceb`; [public gate 42302254750](https://github.com/YJBeetle/SWCLI/actions/runs/42302254750) was dispatched for that exact head and is pending. The native job remains conditional on successful portable and package prerequisites. The old `2bc0504` success is not acceptance of the correction.
