@@ -109,6 +109,82 @@
             "items": {"type": "string"},
             "uniqueItems": true
           },
+          "x-swcli-font-write-profiles": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "notes"
+            ],
+            "properties": {
+              "notes": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "runtime",
+                  "solidworks_revision",
+                  "document_types",
+                  "fields",
+                  "native_evidence_head",
+                  "native_evidence_run",
+                  "native_artifact_sha256"
+                ],
+                "properties": {
+                  "runtime": {
+                    "type": "string",
+                    "const": "native-windows"
+                  },
+                  "solidworks_revision": {
+                    "type": "string",
+                    "const": "33.5.0"
+                  },
+                  "document_types": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    }
+                  },
+                  "fields": {
+                    "type": "array",
+                    "minItems": 7,
+                    "maxItems": 7,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "typeface",
+                        "height_mm",
+                        "height_points",
+                        "bold",
+                        "italic",
+                        "underline",
+                        "strikeout"
+                      ]
+                    }
+                  },
+                  "native_evidence_head": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "native_evidence_run": {
+                    "type": "string",
+                    "pattern": "^https://github\\.com/YJBeetle/SWCLI/actions/runs/[0-9]+$"
+                  },
+                  "native_artifact_sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          },
           "x-swcli-context": {
             "type": "object",
             "additionalProperties": false,

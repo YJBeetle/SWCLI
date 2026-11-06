@@ -12,7 +12,7 @@ from .cut_termination import cut_termination_fields, cut_termination_conditions,
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
-from .document_font_scopes import (WRITABLE_FONT_SCOPES, font_scopes_schema, font_value_schema, validate_font_edit)
+from .document_font_scopes import (WRITABLE_FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, font_scopes_schema, font_value_schema, validate_font_edit)
 from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
@@ -517,6 +517,8 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
 from .workspace import definitions as workspace_definitions
 for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
+
+OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)

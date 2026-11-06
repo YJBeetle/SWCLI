@@ -2,7 +2,10 @@
 
 本分支基线为 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
 状态：便携契约与保护测试通过；原生校准、对象继承及公开验收尚未完成。
-`document.font-scope-set` 当前始终 fail closed，不由环境变量或 JSON 参数打开。
+用户已批准精确范围：`document.font-scope-set` 只对原生 Windows、SOLIDWORKS `33.5.0`、
+PRT/ASM/DRW 的 `notes` 七字段开放；Wine、其他版本、dimensions/tables 继续 fail closed。
+内部原生证据 run `42266956658` 已独立核验；公开 CLI/Notes 对象继承门禁仍待本轮验证。
+不由环境变量或 JSON 参数打开额外范围。
 内部校准使用独立的 Python 入口，保留相同 dispatcher 的文档身份、lease、stamp 与完整值 CAS。
 
 ## 有界范围与官方 API
@@ -52,12 +55,12 @@ readonly/viewonly、模型草图、工程图格式/视图编辑上下文及身�
 
 官方 [Dimensions 属性](https://help.solidworks.com/2022/english/SolidWorks/sldworks/HIDD_OPTIONS_DIMS_New.htm?id=6.7.3.3)
 说明改变总尺寸字体会更新各尺寸类型的文档级字体，不能推断子类型独立。
-本实现只观察上述四范围，尚未枚举所有尺寸子类型，因此公开写入继续关闭。
+本实现只观察上述四范围，尚未枚举所有尺寸子类型，因此 dimensions 公开写入继续关闭。
 
 官方 [IAnnotation.SetTextFormat](https://help.solidworks.com/2026/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IAnnotation~SetTextFormat.html)
 说明简单 Notes 与显示尺寸可选择文档默认或局部格式；含富文本的 Notes 还有特殊规则。
 [ITableAnnotation.SetTextFormat](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ITableAnnotation~SetTextFormat.html?format=P&value=)
-同样有 UseDoc 选择，表格模板设置另有开关。当前操作不强制改变已有对象的继承标志、
+同样有 UseDoc 选择，表格模板设置另有开关。当前 Notes 操作不强制改变已有对象的继承标志、
 局部格式、模板设置、富文本内容，也不宣称已有对象的视觉效果已验证。
 
 ## 入口
@@ -65,7 +68,8 @@ readonly/viewonly、模型草图、工程图格式/视图编辑上下文及身�
 - `swcli document font-scopes --document d-xxxxxx --json`
 - `swcli document font-scope-set notes bold true --if-fonts '<四范围完整 JSON>' --document d-xxxxxx --if-update-stamp 7 --lease '<lease>' --json`
 
-第二条当前返回 `DocumentFontScopeNotCalibrated` 与未尝试 mutation 的回执。
+第二条仅在上述精确原生 Notes profile 可写；未匹配时返回 `DocumentFontScopeNotCalibrated`
+与未尝试 mutation 的回执。当前通过内部校准，公开门禁尚待运行。
 Python SDK 对应 `client.document.font_scopes(...)` / `font_scope_set(...)`，MCP 沿用类型化 operation 调用。
 不开放任意 COM 字典、任意 preference ID、任意成员名或公共校准开关。
 
@@ -88,7 +92,7 @@ PR 不触发。专属 concurrency 使用 `swcli-font-scopes-${{ github.ref }}`�
 ## Notes 公开验收准备
 
 新增可选的 `font_scopes_profile=public-notes`，默认 `internal`。
-该 profile 的产品写入仍受 fail-closed 边界约束；当前尚未派发或宣称通过。
+该 profile 只验证上述已批准 Notes 范围；尚未宣称公开门禁通过。
 为严格核对继承，只准备 Notes：自建一条 UseDoc、一条局部 20pt Note；
 源夹具保存只读重开后固定局部完整 17 字段/原生字体及 flag。
 公开 CLI 对 Notes 默认字体做单字段变化、完整 CAS、同值与冲突/readonly 拒绝、

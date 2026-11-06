@@ -1,6 +1,6 @@
 # 默认字体范围原生验证记录
 
-状态：**尚未验收、尚非 merge-ready，公开写入保持 fail closed**。
+状态：**尚未验收、尚非 merge-ready，仅用户明确批准的精确 Notes 原生 profile 开放，其他写入保持 fail closed**。
 
 ## 首轮：42262037827
 
@@ -49,4 +49,4 @@
 - PRT 写前/改变后/两种重开都采用经用户批准的同一既有几何 helper；没有对 ASM/DRW 外推物理几何结论。
 - 组耗时 55.480 秒，cleanup 无错，600/1800 预算不变。审计 JSON、原 ZIP、解包文件与元数据均保存于本工作树 `artifacts/font-scopes/`。
 - 内部校准不含既有 Notes 的 UseDoc/局部覆盖或公开 CLI 链路，因此**不能作为公开验收**。
-- 已准备 public-notes 门禁及明确受限的 Notes 范围补丁；自动审批要求对新公开写入能力直接具名授权，补丁尚未应用。
+- 已准备 public-notes 门禁及明确受限的 Notes 范围补丁；自动审批要求对新公开写入能力直接具名授权，用户随后直接批准了原生 Windows 33.5.0/PRT ASM DRW/Notes 七字段及一次公开门禁，才应用该补丁。原生校准实现与公开复用实现已核对 AST 等同，公开 gate 仍待新 head 的结果。

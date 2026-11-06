@@ -43,7 +43,7 @@ def note_enum(pythoncom, path):
 def snapshot(annotation, call):
     use_doc = call('IAnnotation.GetUseDocTextFormat', lambda: annotation.GetUseDocTextFormat(0))
     require(type(use_doc) is bool, 'Notes inheritance flag is unreadable')
-    count = call('IAnnotation.GetTextFormatCount', lambda: annotation.GetTextFormatCount())
+    count = call('IAnnotation.GetTextFormatCount', lambda: _com_value(annotation, 'GetTextFormatCount'))
     require(type(count) is int and count == 1, 'generated plain Note must have one text format')
     obj = call('IAnnotation.GetTextFormat', lambda: annotation.GetTextFormat(0))
     require(obj is not None, 'generated Note text format is missing')
@@ -56,28 +56,28 @@ def notes(document, constants, call):
     found = {}
     views = []
     if _com_value(document, 'GetType') == 3:
-        view = call('IModelDoc2.GetFirstView', lambda: document.GetFirstView())
+        view = call('IModelDoc2.GetFirstView', lambda: _com_value(document, 'GetFirstView'))
         while view is not None:
             require(len(views) < 100, 'drawing view enumeration exceeded bounded fixture limit')
             views.append(view)
-            view = call('IView.GetNextView', lambda: view.GetNextView())
-        heads = [call('IView.GetFirstAnnotation3', lambda view=view: view.GetFirstAnnotation3()) for view in views]
+            view = call('IView.GetNextView', lambda: _com_value(view, 'GetNextView'))
+        heads = [call('IView.GetFirstAnnotation3', lambda view=view: _com_value(view, 'GetFirstAnnotation3')) for view in views]
     else:
-        heads = [call('IModelDoc2.GetFirstAnnotation2', lambda: document.GetFirstAnnotation2())]
+        heads = [call('IModelDoc2.GetFirstAnnotation2', lambda: _com_value(document, 'GetFirstAnnotation2'))]
     total = 0
     for annotation in heads:
         while annotation is not None:
             total += 1
             require(total <= 1000, 'annotation enumeration exceeded bounded fixture limit')
-            kind = call('IAnnotation.GetType', lambda: annotation.GetType())
+            kind = call('IAnnotation.GetType', lambda: _com_value(annotation, 'GetType'))
             if kind == constants['swNote']:
-                note = call('IAnnotation.GetSpecificAnnotation', lambda: annotation.GetSpecificAnnotation())
-                text = call('INote.GetText', lambda: note.GetText())
+                note = call('IAnnotation.GetSpecificAnnotation', lambda: _com_value(annotation, 'GetSpecificAnnotation'))
+                text = call('INote.GetText', lambda: _com_value(note, 'GetText'))
                 for label, expected in LABELS.items():
                     if text == expected:
                         require(label not in found, 'duplicate generated Note label')
                         found[label] = snapshot(annotation, call)
-            annotation = call('IAnnotation.GetNext3', lambda: annotation.GetNext3())
+            annotation = call('IAnnotation.GetNext3', lambda: _com_value(annotation, 'GetNext3'))
     require(found.keys() == LABELS.keys(), 'both generated inheritance/local Notes are required')
     return found
 
@@ -111,7 +111,7 @@ def seed(app, output, constants, plane, reverse, call, case, report, live, *, pr
     for label, text in LABELS.items():
         note = call('IModelDoc2.InsertNote', lambda: document.InsertNote(text))
         require(note is not None, 'generated Note insertion failed')
-        annotation = call('INote.GetAnnotation', lambda: note.GetAnnotation())
+        annotation = call('INote.GetAnnotation', lambda: _com_value(note, 'GetAnnotation'))
         require(annotation is not None, 'generated Note has no annotation')
         if label == 'inherited':
             require(call('IAnnotation.SetTextFormat.UseDoc', lambda: annotation.SetTextFormat(0, True, None)) is True,

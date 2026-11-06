@@ -253,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
     font_scopes = document_commands.add_parser("font-scopes", help="read complete document default fonts for four scopes")
     add_document_selector(font_scopes)
     font_scopes.add_argument("--json", action="store_true", dest="as_json")
-    font_editor = document_commands.add_parser("font-scope-set", help="guarded scoped font write (closed pending native acceptance)")
+    font_editor = document_commands.add_parser("font-scope-set", help="edit audited native Windows 33.5.0 Notes defaults; other scopes remain closed")
     add_document_selector(font_editor)
     add_lease_token(font_editor)
     font_editor.add_argument("scope", choices=WRITABLE_FONT_SCOPES)
@@ -888,6 +888,7 @@ def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Opt
             not isinstance(operation_schema, dict)
             or not operation_schema_fields.issubset(operation_schema)
             or set(operation_schema) - operation_schema_fields - {"allOf"}
+                - ({"x-swcli-font-write-profiles"} if operation == "document.font-scope-set" else set())
         ):
             return f"operation schema fields are invalid for {operation}"
         if (

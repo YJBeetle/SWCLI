@@ -1,13 +1,15 @@
-"""Four scoped defaults, strict CAS, and internal-only native write calibration.
+"""Four scoped defaults, strict CAS, and a finite native Notes write profile.
 
-Public setters always fail closed until subtype/inheritance/public-gate evidence
-is reviewed. No environment variable or protocol parameter enables writing.
+Only the audited native Notes profile is writable. Other runtimes, revisions
+and scopes fail closed. No environment or protocol calibration toggle exists.
 """
 
+import ctypes
+import sys
 from functools import lru_cache
 from pathlib import Path
 
-from ..document_font_scopes import FONT_SCOPES, validate_font_scopes, validate_font_edit
+from ..document_font_scopes import FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, validate_font_scopes, validate_font_edit
 from ..font_snapshot import (FONT_MEMBERS, font_snapshot, font_requested_value_matches,
                              font_native_normalizations)
 from .native_trace import native_call
@@ -21,7 +23,7 @@ class DocumentFontScopeConflict(RuntimeError):
 
 
 class DocumentFontScopeNotCalibrated(RuntimeError):
-    """Public writing is closed pending native and inheritance evidence."""
+    """The selected scope/runtime/revision is outside the audited native profile."""
 
 
 def read_font_constants(pythoncom, path):
@@ -101,23 +103,50 @@ def read_document_font_scopes_windows(*, app, document):
     return result
 
 
+def _native_windows_runtime():
+    # Same Wine export probe used by windows_tray; unknown loading fails closed.
+    if sys.platform != "win32":
+        return False
+    try:
+        return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+    except (AttributeError, OSError):
+        return False
+
+
+def _profile_supported(app, document, scope, field):
+    profile = NATIVE_FONT_WRITE_PROFILES.get(scope)
+    if profile is None or field not in profile["fields"] or not _native_windows_runtime():
+        return False
+    try:
+        revision = _com_value(app, "RevisionNumber")
+        kind = _com_value(document, "GetType")
+    except Exception:
+        return False
+    return (type(revision) is str and revision == profile["solidworks_revision"]
+            and type(kind) is int and kind in profile["document_types"])
+
+
 def set_document_font_scope_windows(*, app, document, scope, field, value, expected_fonts):
-    """Public fail-closed boundary. Internal worker uses a separate function."""
+    """Write only the finite, audited native profile; preserve all normal guards."""
     result = {"ok": False, "action": "document.font-scope-set",
               "mutation": {"attempted": False, "may_have_changed": False}}
     try:
         validate_font_edit(scope, field, value, expected_fonts)
         _require_writable(document)
-        raise DocumentFontScopeNotCalibrated("scoped font writes require native persistence and inheritance acceptance")
+        if not _profile_supported(app, document, scope, field):
+            raise DocumentFontScopeNotCalibrated(
+                "font scope/field is not calibrated for this runtime, SOLIDWORKS revision and document type")
+        return _apply_document_font_scope(app=app, document=document, scope=scope, field=field,
+                                         value=value, expected_fonts=expected_fonts)
     except Exception as exc:
         result["error"] = _error(exc)
     return result
 
 
-def _calibrate_set_document_font_scope(*, app, document, scope, field, value, expected_fonts):
-    """Internal experiment only; caller MUST use the normal guarded dispatcher.
+def _apply_document_font_scope(*, app, document, scope, field, value, expected_fonts):
+    """Guarded implementation; caller MUST use the normal guarded dispatcher.
 
-    Never exported as a protocol switch. Property assignment may mutate a live
+    The public caller additionally checks its finite profile. Assignment may mutate a live
     object, so the partial-mutation receipt starts before the first assignment.
     """
     result = {"ok": False, "action": "document.font-scope-set",
@@ -178,3 +207,9 @@ def _calibrate_set_document_font_scope(*, app, document, scope, field, value, ex
     except Exception as exc:
         result["error"] = _error(exc)
     return result
+
+
+def _calibrate_set_document_font_scope(*, app, document, scope, field, value, expected_fonts):
+    """Private candidate probe; protocol cannot select this path or bypass CAS."""
+    return _apply_document_font_scope(app=app, document=document, scope=scope, field=field,
+                                     value=value, expected_fonts=expected_fonts)

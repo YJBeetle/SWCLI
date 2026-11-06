@@ -135,6 +135,55 @@ class FontScopeTests(unittest.TestCase):
         self.assertEqual(set(spec.parameters["required"]), {"scope", "field", "value", "expected_fonts"})
         self.assertEqual(spec.parameters["x-swcli-context"], dict(document_id="required", expected_update_stamp="required", lease_id="required"))
 
+    def test_native_runtime_probe_closes_wine_and_unknown_loader_failures(self):
+        with patch.object(adapter.sys, "platform", "win32"):
+            with patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace()):
+                self.assertTrue(adapter._native_windows_runtime())
+            with patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace(wine_get_version=object())):
+                self.assertFalse(adapter._native_windows_runtime())
+            with patch.object(adapter.ctypes, "WinDLL", create=True, side_effect=OSError("unknown runtime")):
+                self.assertFalse(adapter._native_windows_runtime())
+
+    def test_public_notes_profile_uses_the_guarded_native_implementation(self):
+        self.app.RevisionNumber = lambda: "33.5.0"
+        with patch.object(adapter, "_native_windows_runtime", return_value=True):
+            result = self.edit()
+        self.assertTrue(result["ok"], result)
+        validate_operation_result("document.font-scope-set", result)
+        self.extension.SetUserPreferenceTextFormat.assert_called_once()
+        profiles = OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"]
+        self.assertEqual(set(profiles), {"notes"})
+        self.assertEqual(profiles["notes"]["solidworks_revision"], "33.5.0")
+        self.assertEqual(profiles["notes"]["document_types"], [1, 2, 3])
+
+    def test_unproved_scopes_revisions_and_runtimes_remain_closed(self):
+        for scope, revision, native in (("dimensions", "33.5.0", True), ("tables", "33.5.0", True),
+                                        ("notes", "33.4.0", True), ("notes", "34.0.0", True),
+                                        ("notes", "33.5.0", False)):
+            self.app.RevisionNumber = lambda: revision
+            with patch.object(adapter, "_native_windows_runtime", return_value=native):
+                result = self.edit(scope=scope)
+            self.assertEqual(result["error"]["type"], "DocumentFontScopeNotCalibrated")
+            self.assertEqual(result["mutation"], dict(attempted=False, may_have_changed=False))
+        self.extension.GetUserPreferenceTextFormat.assert_not_called()
+        self.assert_no_mutation()
+
+    def test_capability_profile_schema_rejects_wider_scope_revision_or_unknown_fields(self):
+        from jsonschema import Draft202012Validator, ValidationError
+        from swcli.protocol import load_schema
+        schema = load_schema('capabilities')['properties']['operation_schemas']['additionalProperties']
+        validator = Draft202012Validator(schema)
+        original = deepcopy(OPERATION_CATALOG['document.font-scope-set'].parameters)
+        validator.validate(original)
+        for mutate in (lambda profile: profile.update(tables=deepcopy(profile['notes'])),
+                       lambda profile: profile['notes'].update(solidworks_revision='34.0.0'),
+                       lambda profile: profile['notes'].update(arbitrary_com='SetAnything'),
+                       lambda profile: profile['notes'].update(fields=['DeleteAllObjects'])):
+            candidate = deepcopy(original)
+            mutate(candidate['x-swcli-font-write-profiles'])
+            with self.assertRaises(ValidationError):
+                validator.validate(candidate)
+
     def test_internal_setters_target_each_scope_and_keep_other_native_snapshots(self):
         for scope in ("dimensions", "notes", "tables"):
             with self.subTest(scope=scope):

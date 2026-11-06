@@ -5,7 +5,7 @@
 - 基线：`3bda2c00489dde6a3d1e4521c548f751b1d1c197`
 - 范围：文档默认字体的 dimensions、notes、tables；annotations 仅完整交叉范围观察，避免重复通用注释字体功能。
 - 没有合并其他未验收分支，没有修改 DockerSW/MacSW、main、镜像或本地 Windows VM。
-- 当前发布/公开验收：**未完成**；公开 setter fail closed；**尚非 merge-ready**。
+- 当前发布/公开验收：**未完成**；仅用户已批准的原生 Windows 33.5.0 Notes/三类文档/七字段开放，其他范围关闭；**尚非 merge-ready**。
 
 ## 操作、CLI 与 schema
 
@@ -19,7 +19,7 @@ backwards, upside_down, vertical, width_factor, char_spacing_factor, escapement,
 line_length, oblique_angle`。`height_mm` 转米；`height_points` 正整数；模式由原生只读方法观察。
 失败结果包含 `mutation.attempted/may_have_changed`。成功写入结果的 `before/fonts/changed/mutation`
 及其他范围、非目标字段、脏标志必须语义一致；内部校准仍走正常 dispatcher 的 lease/stamp 保护。
-公开 setter 不存在环境变量或协议校准旁路，当前返回 `DocumentFontScopeNotCalibrated`。
+公开 setter 没有环境/协议校准旁路；只接受上述精确 Notes 原生 profile，其他返回 `DocumentFontScopeNotCalibrated`。
 Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 
 ## 共享文件改动（供主集成处理冲突）
@@ -29,6 +29,7 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - `src/swcli/daemon/operations.py`：两个 handler，无临时激活。
 - `src/swcli/cli.py`、`src/swcli/sdk/models.py`、`src/swcli/sdk/_generated.py`。
 - `src/swcli/skills/swcli/references/usage.md`：明确开发状态与公开拒绝。
+- `src/swcli/schemas/v1/capabilities.schema.json`：精确 Notes profile metadata 的封闭结构；CLI 只对 font-scope-set 接受这一关键字，拒绝未知范围/版本/字段扩展。
 - `.github/workflows/ci.yml`：默认 false 的 `calibrate_font_scopes`；仅当前分支 workflow_dispatch 调用专属 reusable；该路径跳过通用 portable/package/full-native，常规路径保持原门禁。
 - `tests/test_modeling_sequence.py`：给新授权开关精确白名单，仍禁止便携区机密和其他旧校准开关，保留所有几何/状态断言。
 - `.gitignore`：只忽略本工作树持久证据目录 `/artifacts/font-scopes/`。
@@ -89,8 +90,8 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - PRT 同一打开实例写前/改变后/两种模式重开均通过用户批准的既有几何标准；ASM/DRW 未外推物理几何。
 - 内部组 55.480 秒、无 cleanup error，600/1800 固定预算。JSON 审计和所有原文件存于 `artifacts/font-scopes/run-42266956658-*`。
 - **这仅是内部校准通过，尚非公开 CLI 或 Notes 对象继承验收。**
-- 准备只开放原生 Windows 33.5.0 的 Notes、三文档类型、七字段；尺寸/表格写入及 Wine/其他版本仍关闭。自动审批要求该公开写能力直接具名授权，当前产品源码仍关闭。
-- 可审阅补丁 `artifacts/font-scopes/notes-public-enable.patch`（193 行），已做 AST/git-apply 检查但未应用，等待用户对精确范围及一次 public-notes 门禁的确认。
+- 准备只开放原生 Windows 33.5.0 的 Notes、三文档类型、七字段；尺寸/表格写入及 Wine/其他版本仍关闭。自动审批要求该公开写能力直接具名授权，用户随后已直接答复“批准该精确 Notes 范围和一次公开门禁”，据此才应用补丁。
+- 可审阅补丁 `artifacts/font-scopes/notes-public-enable.patch`（193 行），已做 AST/git-apply 检查，并在用户明确批准后应用。原生校准的 guarded implementation 与公开 Notes 复用实现经去文档/函数名后的 AST 比较完全相同；证据见 `notes-public-enable-provenance.json`。
 
 ## 公开门禁准备（独立后续提交，未开放写入）
 
@@ -98,11 +99,11 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 已新增 `scripts/ci/verify-font-scopes-public.py` 与独立 owned-hidden-daemon wrapper，尚未接入 CI 或执行原生公开门禁。
 - 公开门禁只调用安装后的 CLI，逐请求检查完整字体 getter/property/setter 顺序、600 秒预算、全量 CAS、lease/stamp/readonly 拒绝、同值无 mutation、背景身份、两种字号模式保存重开、源文件哈希和几何。
 - 公开门禁及 SDK/MCP 契约便携测试 11 项通过（提交 `eeb5995af3f730f88c338054aedf9d5410421307`）；这些不是公开原生验收。
-- 必须先独立核对当前内部运行 artifact/head/digest/trace/save-reopen，才考虑精确范围开放，再对新 head 跑必要公开门禁。当前没有开放公开写入。
+- 必须先独立核对当前内部运行 artifact/head/digest/trace/save-reopen，才考虑精确范围开放，再对新 head 跑必要公开门禁。目前仅用户直接批准的精确 Notes profile 开放，公共 gate 结果未完成。
 - 后续已准备明确 `public-notes` profile（默认仍 `internal`）：自建 UseDoc/20pt-local 两条 Notes 的 PRT/ASM/DRW 夹具 → 安装后 CLI/daemon → 新 owned host 只读观察已保存输出。各组均 600/1800，源/输出哈希、局部完整字体及继承标志必须保持。
-- `scripts/ci/verify-font-scopes-inheritance.py` 及五项便携测试已准备；模型用 GetFirstAnnotation2，工程图用 IView.GetFirstAnnotation3，符合官方 API 的不同枚举路径，不凭相同值推断继承。
+- `scripts/ci/verify-font-scopes-inheritance.py` 及六项便携测试已准备；模型用 GetFirstAnnotation2，工程图用 IView.GetFirstAnnotation3，符合官方 API 的不同枚举路径，不凭相同值推断继承。
 - 公开 profile 准备不是产品范围开放；只有后续独立核过内部原证据，才考虑 Notes 的精确范围；尺寸总字体子类型、表格模板/单元格继承仍保留未验收边界。
-- 当前字体专项合计 46 项通过；未重复无关完整套件。
+- 当前字体专项合计 51 项通过；未重复无关完整套件。
 
 ## 未完成边界与依赖
 
@@ -114,3 +115,14 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 6. 依赖 main 基线已有文档注册、lease、stamp、背景/readonly/工程图上下文与夹具帮助函数；不依赖任何未合并分支。
 
 官方来源和具体语义见 `docs/design/document-font-scopes.md`。主对话统一决定集成与后续公开门禁；本分支不自行合 main 或发布。
+
+
+## Notes 公开 head 提交前最终检查
+
+- 用户已直接批准精确 Notes 原生范围和一次 public-notes 门禁；先前自动审批阻塞已解决。
+- 全量便携：1,870 项，32 跳过，48.830 秒；`artifacts/font-scopes/portable-notes-public-final.log`。
+- 字体专项：51 项；capability discovery 9 项、CLI 36 项通过；SDK 生成与 actionlint 通过。
+- 额外检查：native C4 guarded setter 与公开复用实现的 AST（去函数名和文档串）完全相同；Wine、未知 loader、其他版本、dimensions/tables 的拒绝在分配任何字体对象前完成。
+- 修复完整回归暴露的 capabilities 封闭 schema 接线，未把 metadata 改成任意 x-* 或 COM 字典。
+- 继承探针采用既有 `_com_value` 兼容无参 COM method/property 两种绑定，未改变几何/状态/继承断言。
+- 下一步仅针对新 head 执行一次 `calibrate_font_scopes=true,font_scopes_profile=public-notes,native_full=false`。当前仍非 merge-ready。

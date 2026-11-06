@@ -80,7 +80,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         case["geometry_before"] = fixtures.part_geometry(document, call)
         same_geometry(case["fixture"]["geometry_reopened"], case["geometry_before"])
     current = case["initial"] = read()
-    parameters = dict(scope="notes", field="bold", value=not current["fonts"]["notes"]["bold"], expected_fonts=current["fonts"])
+    parameters = dict(scope="tables", field="bold", value=not current["fonts"]["tables"]["bold"], expected_fonts=current["fonts"])
     refused = case["public_write_refusal"] = operation("document.font-scope-set", parameters,
         stamp=current["document"]["update_stamp"], lease_id=lease["lease_id"])
     require(not refused["ok"] and refused["error"]["type"] == "DocumentFontScopeNotCalibrated"

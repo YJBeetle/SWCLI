@@ -1,6 +1,6 @@
 """Closed catalog of document font defaults; no caller-supplied COM names."""
 
-from .font_snapshot import FONT_MEMBERS, validate_font_snapshot, validate_font_value
+from .font_snapshot import FONT_MEMBERS, FONT_WRITABLE_FIELDS, validate_font_snapshot, validate_font_value
 
 FONT_SCOPES = {
     "dimensions": ("swDetailingDimensionTextFormat", "swDetailingDimension"),
@@ -9,6 +9,17 @@ FONT_SCOPES = {
     "annotations": ("swDetailingAnnotationTextFormat", "swDetailingNoOptionSpecified"),
 }
 WRITABLE_FONT_SCOPES = ("dimensions", "notes", "tables")
+
+# Internal native evidence is audited independently from public CLI acceptance.
+NATIVE_FONT_WRITE_PROFILES = {
+    "notes": {
+        "runtime": "native-windows", "solidworks_revision": "33.5.0",
+        "document_types": [1, 2, 3], "fields": list(FONT_WRITABLE_FIELDS),
+        "native_evidence_head": "3f5434c593da2ae2c00c4a3b2ecd7e7a313af626",
+        "native_evidence_run": "https://github.com/YJBeetle/SWCLI/actions/runs/42266956658",
+        "native_artifact_sha256": "615b979b4adb667cade7bf3448a7c3c898392d1638b862904debba8bfca37eca",
+    },
+}
 
 
 def validate_font_scopes(snapshot):

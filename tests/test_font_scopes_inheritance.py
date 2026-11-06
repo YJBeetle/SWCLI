@@ -54,6 +54,19 @@ class FontScopesInheritanceTests(unittest.TestCase):
             if kind == 3:
                 self.assertNotIn('IModelDoc2.GetFirstAnnotation2', calls)
 
+    def test_parameterless_com_members_may_be_exposed_as_properties(self):
+        local = self.annotation(observer.LABELS['local'], self.native, False)
+        inherited = self.annotation(observer.LABELS['inherited'], self.native, True, local)
+        for annotation, label, next_value in ((inherited, 'inherited', local), (local, 'local', None)):
+            annotation.GetType = 456
+            annotation.GetSpecificAnnotation = SimpleNamespace(GetText=observer.LABELS[label])
+            annotation.GetTextFormatCount = 1
+            annotation.GetNext3 = next_value
+        document = self.document()
+        document.GetFirstAnnotation2 = inherited
+        result = observer.notes(document, {'swNote': 456}, lambda name, function: function())
+        self.assertEqual(set(result), {'local', 'inherited'})
+
     def test_inherited_note_requires_flag_styles_and_active_unit_height(self):
         value = dict(use_document_font=True, font=deepcopy(self.font))
         observer.check_inherited(value, self.font)

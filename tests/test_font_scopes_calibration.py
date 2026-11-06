@@ -160,7 +160,9 @@ class FontScopeCalibrationTests(unittest.TestCase):
 
     def test_calibration_has_no_general_write_enable_switch(self):
         text = (ROOT / "src/swcli/hosts/windows_document_font_scopes.py").read_text()
-        public = text.split("def set_document_font_scope_windows(", 1)[1].split("def _calibrate_set_document_font_scope(", 1)[0]
+        import inspect
+        from swcli.hosts import windows_document_font_scopes as adapter
+        public = inspect.getsource(adapter.set_document_font_scope_windows)
         self.assertIn("raise DocumentFontScopeNotCalibrated", public)
         self.assertNotIn("os.environ", public)
         self.assertNotIn("SetUserPreferenceTextFormat", public)
