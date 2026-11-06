@@ -70,3 +70,17 @@ R4 原生整组1800秒超时：30 setter True，29完整保存/只读重开；�
 run 42260761081 / attempt 1 已 completed/cancelled，未分配 runner（runner_name空）、steps=[]，artifacts=[]，**零原生执行证据**。GitHub check annotation 原文：`Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists`。不能归为标准 setter 失败、原生超时或校准通过。原始 run/job/check/annotations/artifacts JSON 及 SHA256 已存 `evidence/docprops-performance/run-42260761081-*`。
 
 这证明全仓共享 concurrency 的单个 pending 槽会让独立线程互相取代。只修本路 job group 为 `swcli-docprops-performance-windows-${{ github.ref }}`，保留 cancel-in-progress=false；原完整 native job 的 group 不变。不同 hosted runner 不共享本地 owned host/runtime，实际并发仍受 GitHub 配额约束；不操作其他 run。接线回归/actionlint 再通过后才对新 head 发起新验证，不重试旧 head、不复跑原生 API。
+
+### 相关修复后的新 head / 新验证
+
+- `1c57948b7a22fb930bce5f5f3c0ef6b303a66034`：隔离本路 concurrency，附首 run 原件，已提交推送。
+- 修复后的 CI portable 接线10 tests全过（0.031s），actionlint exit0；原 calibration/driver/生产源码未再改动，不需要重复 unrelated full CI。
+- [run 42261401694](https://github.com/YJBeetle/SWCLI/actions/runs/42261401694)，attempt1，绑定 `1c57948b7a22fb930bce5f5f3c0ef6b303a66034`；2026-11-07 01:24:46 Asia/Shanghai 发起此 head 唯一一次 dispatch。
+- 参数仍 `docprops_calibration=true`、`docprops_expected_head=1c57948b7a22fb930bce5f5f3c0ef6b303a66034`、`native_full=false`。完整回执 `evidence/docprops-performance/dispatch-r2.json`。这是相关队列修复后的新验证，不是重试旧 head 或原生 API。
+- 等待当前 run；没有重新启动/使用本地 VM，没有对其他分支操作。
+
+## 安装等待期间的离线核验准备
+
+新增独立 `scripts/dev/audit-document-properties-calibration.py`（不在正在运行的1c57948原生源码中）：对下载原件 manifest/source/head/run/hash 做完整核对；报告计数必须与 trace 的36次 setter 和216次固定profile读取交叉一致；分开汇总 wrapper/begin trace/checkpoint/function body。缺失/篡改/额外原件、source/head漂移、不完整trace或29轮回读不能升格成功。新增5项 portable synthetic fault tests通过（含 Windows Git LF/CRLF 的明确预期源码字节哈希比对；原件字节不作归一化），原件 `offline-audit-tests.log`。这不改原生实现/白名单，不重新触发正在运行的校准。
+
+最新主统筹要求已接收：内部校准后继续对应公开CLI/daemon/SDK/MCP契约验收；只有独立核原artifact/head/digest/trace/save-reopen且公开验证完成的精确范围才可merge-ready。本路当前仍在安装准备，不宣称完成；不得因本路只是性能优化而把空白名单/内部诊断当公共验收。
