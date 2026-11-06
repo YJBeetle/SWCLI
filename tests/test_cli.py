@@ -928,7 +928,7 @@ class CliTests(unittest.TestCase):
                 payload = json.loads(output.getvalue())
                 self.assertEqual(exit_code, 1)
                 self.assertEqual(payload["error"]["type"], "DaemonUnavailable")
-                self.assertIn("sw-cli daemon start", payload["error"]["message"])
+                self.assertIn("swcli daemon start", payload["error"]["message"])
                 self.assertIn("--attach-existing", payload["error"]["message"])
                 call_daemon.assert_called_once()
 

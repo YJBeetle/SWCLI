@@ -123,7 +123,7 @@ jobs:
       - name: Verify installed commands and schemas
         shell: powershell
         run: |
-          sw-cli version --json
+          swcli version --json
           if ($LASTEXITCODE -ne 0) { throw "SWCLI entry point failed" }
           python scripts/ci/verify-installed.py
 

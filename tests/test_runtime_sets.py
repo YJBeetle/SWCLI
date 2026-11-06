@@ -239,7 +239,7 @@ class RuntimeSetsTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_source_only_adapter_uses_explicit_paths_not_ambient_pythonpath(self):
-        self.args.cli_command = "/adapter/sw-cli"
+        self.args.cli_command = "/adapter/swcli"
         self.args.python_path = [ROOT / "src"]
         runner = gate.Runner(self.args)
         step = runner.plan[0].steps[0]
@@ -264,8 +264,8 @@ class RuntimeSetsTests(unittest.TestCase):
         self.assertIn("No module named 'swcli'", missing.stderr)
 
     def test_explicit_paths_require_adapter_and_existing_absolute_directories(self):
-        for paths, cli in (([ROOT / "src"], None), ([Path("relative")], "/adapter/sw-cli"),
-                           ([Path(self.temp.name) / "missing"], "/adapter/sw-cli")):
+        for paths, cli in (([ROOT / "src"], None), ([Path("relative")], "/adapter/swcli"),
+                           ([Path(self.temp.name) / "missing"], "/adapter/swcli")):
             self.args.python_path, self.args.cli_command = paths, cli
             with self.subTest(paths=paths, cli=cli), self.assertRaises(RuntimeError):
                 gate.Runner(self.args)

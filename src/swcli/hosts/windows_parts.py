@@ -273,7 +273,7 @@ def create_box_part_windows_with_handle(
             except Exception as exc:
                 result["error"] = {
                     "type": "HostNotRunning",
-                    "message": "SOLIDWORKS is not running; use 'sw-cli daemon start' first",
+                    "message": "SOLIDWORKS is not running; use 'swcli daemon start' first",
                     "cause": _error(exc),
                 }
                 return result, None

@@ -226,7 +226,7 @@ def acquire_resident_app(
     if not attach_existing:
         raise ExistingHostRequiresAttach(
             "SOLIDWORKS is already running; close it or restart with "
-            "'sw-cli daemon start --attach-existing'"
+            "'swcli daemon start --attach-existing'"
         )
     return app, False
 

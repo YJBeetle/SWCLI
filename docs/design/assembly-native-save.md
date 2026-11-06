@@ -85,7 +85,7 @@ official fixture is staged at `C:\samples\ReferenceDrawing.SLDDRW`:
 ```bash
 python scripts/ci/verify-modeling.py \
   --output-dir /ci-evidence --host-output-dir 'Z:\ci-evidence' \
-  --cli-command /usr/local/bin/sw-cli \
+  --cli-command /usr/local/bin/swcli \
   --sample-drawing 'C:\samples\ReferenceDrawing.SLDDRW' \
   --sample-drawing-local '/opt/wineprefix/drive_c/samples/ReferenceDrawing.SLDDRW'
 ```

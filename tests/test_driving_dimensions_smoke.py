@@ -1216,7 +1216,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
         )
 
     def test_wrapper_is_one_exact_executable_without_shell(self):
-        wrapper = "/tmp/a path with spaces/sw-cli"
+        wrapper = "/tmp/a path with spaces/swcli"
         self.smoke.cli = [wrapper]
         with mock.patch.object(
             driving_smoke.subprocess,
@@ -1320,7 +1320,7 @@ class DrivingDimensionsSmokeTests(unittest.TestCase):
                 driving_smoke.cli_executable(str(executable)), str(executable.resolve())
             )
             for invalid in (
-                "sw-cli",
+                "swcli",
                 directory,
                 str(executable) + " --flag",
                 str(Path(directory) / "missing"),

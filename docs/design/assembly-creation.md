@@ -10,11 +10,11 @@
 再创建装配体。新建文档返回短 `document_id` 并仅更新调用 session 的 current。
 
 ```powershell
-sw-cli document open 'C:\Workspace\box.SLDPRT' --read-only --json
-$assembly = sw-cli document create --type assembly --json | ConvertFrom-Json
-sw-cli assembly add-component 'C:\Workspace\box.SLDPRT' `
+swcli document open 'C:\Workspace\box.SLDPRT' --read-only --json
+$assembly = swcli document create --type assembly --json | ConvertFrom-Json
+swcli assembly add-component 'C:\Workspace\box.SLDPRT' `
   --document $assembly.document.document_id --json
-sw-cli document save-as 'C:\Workspace\box-assembly.SLDASM' `
+swcli document save-as 'C:\Workspace\box-assembly.SLDASM' `
   --document $assembly.document.document_id --json
 ```
 

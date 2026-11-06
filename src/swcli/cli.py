@@ -45,7 +45,7 @@ def _polygon_vertices(text):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="sw-cli",
+        prog="swcli",
         description="Cross-platform SOLIDWORKS automation client",
     )
     parser.add_argument(
@@ -648,8 +648,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 error_type = "DaemonUnavailable"
                 error_message = (
                     f"SWCLI daemon is unavailable at {args.endpoint}; start it explicitly "
-                    "with 'sw-cli daemon start', or use "
-                    "'sw-cli daemon start --attach-existing' when SOLIDWORKS is already running"
+                    "with 'swcli daemon start', or use "
+                    "'swcli daemon start --attach-existing' when SOLIDWORKS is already running"
                 )
             payload = {
                 "ok": False,

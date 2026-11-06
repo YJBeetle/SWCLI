@@ -5,6 +5,9 @@ description: Use SWCLI for SOLIDWORKS CAD automation through the CLI or MCP back
 
 # SWCLI
 
+The client command is `swcli`. The resident daemon is called `swclid` and is
+managed through `swcli daemon`; it is not a separate installed command.
+
 Use the typed CLI or MCP for operations the running daemon advertises. If the operation is missing
 or its documented scope excludes the task, consult the
 [official SOLIDWORKS API workflow](references/solidworks-api.md). A failure
@@ -15,7 +18,7 @@ or export workflow, or connecting to an unfamiliar host. The guide travels with 
 skill; it does not depend on the developer's machine or repository checkout.
 
 For MCP client configuration, explicit lifecycle, host launchers, sessions and protocol
-response fields, read [the MCP guide](references/mcp.md). `sw-cli mcp serve`
+response fields, read [the MCP guide](references/mcp.md). `swcli mcp serve`
 uses stdio and reuses the existing daemon; it is not an HTTP listener.
 
 ## Working rules
@@ -24,8 +27,8 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   host is needed, then `swcli_capabilities`. Daemon and SW startup takes time;
   wait for readiness and inspect status after a timeout before another start. Request the
   selected operation schema before `swcli_execute`. With the CLI, first run
-  `sw-cli version --json`, `sw-cli daemon status --details --json` and
-  `sw-cli capabilities --json`. Read the capability summary, then
+  `swcli version --json`, `swcli daemon status --details --json` and
+  `swcli capabilities --json`. Read the capability summary, then
   request `capabilities --operation NAME --json` for the needed request/result
   schemas and context, instead of loading all schemas with `--full`.
   Older clients may have only the full default view: check local `--help`.

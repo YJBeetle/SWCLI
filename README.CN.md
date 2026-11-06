@@ -21,9 +21,9 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 ## 命名
 
 - 项目：**SWCLI**
-- 命令：`sw-cli`
+- 命令：`swcli`
 - Python 包：`swcli`
-- 常驻服务：`swclid`，通过 `sw-cli daemon` 管理
+- 常驻服务：`swclid`，通过 `swcli daemon` 管理
 - 协议：**SWCLI Protocol**
 
 ## 当前状态
@@ -42,14 +42,14 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 ## AI 的 MCP 接入
 
 使用 Python 3.10+ 安装可选依赖（源码目录执行 `python -m pip install ".[mcp]"`），
-让 AI 客户端通过 **stdio** 启动 `sw-cli mcp serve`。握手和工具发现不会启动 SW；
+让 AI 客户端通过 **stdio** 启动 `swcli mcp serve`。握手和工具发现不会启动 SW；
 状态查询和 CAD 调用也不隐式启动。需要时显式调用 `swcli_daemon_start`，daemon 与 SW
 启动可能需要数分钟。Linux/macOS 通过 `--daemon-utils` 或 `SWCLI_DAEMON_UTILS`
 指定宿主 daemon utils，不能把客户端 Python 当作 Windows daemon runtime。远程启动由宿主管理。
 已有可见 SW 仍需显式 attach；关闭 MCP 不会关闭 daemon/SW，显式停止保留原有文档保护。
 
 ```json
-{"mcpServers":{"swcli":{"command":"sw-cli","args":["mcp","serve"]}}}
+{"mcpServers":{"swcli":{"command":"swcli","args":["mcp","serve"]}}}
 ```
 
 五个工具 `swcli_status`、`swcli_daemon_start`、`swcli_daemon_stop`、
@@ -96,7 +96,7 @@ python -m pip install --upgrade "swcli @ https://github.com/YJBeetle/SWCLI/relea
 会在重启后失效。跨平台客户端安装命令、确切验证证据及限制见
 [a9 发行说明](docs/releases/v0.1.0a9.md)。
 
-安装会在 Python scripts 目录中生成 `sw-cli.exe`。如果新终端找不到 `sw-cli`，请把该目录加入用户 `PATH`，然后重新打开终端：
+安装会在 Python scripts 目录中生成 `swcli.exe`。如果新终端找不到 `swcli`，请把该目录加入用户 `PATH`，然后重新打开终端：
 
 ```powershell
 $scripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
@@ -109,12 +109,12 @@ if (($userPath -split ";") -notcontains $scripts) {
 验证软件包安装和宿主探测：
 
 ```powershell
-sw-cli version --json
-sw-cli doctor --json
-sw-cli daemon status --json
+swcli version --json
+swcli doctor --json
+swcli daemon status --json
 ```
 
-`daemon status` 可能提示服务尚未运行，这不代表安装失败。执行 `document` 或 `part` 前须显式运行 `sw-cli daemon start`（默认隐藏）或 `sw-cli daemon start --visible`。启动命令会等待 SOLIDWORKS 就绪。若 SOLIDWORKS 已经运行，请改用 `sw-cli daemon start --attach-existing`。
+`daemon status` 可能提示服务尚未运行，这不代表安装失败。执行 `document` 或 `part` 前须显式运行 `swcli daemon start`（默认隐藏）或 `swcli daemon start --visible`。启动命令会等待 SOLIDWORKS 就绪。若 SOLIDWORKS 已经运行，请改用 `swcli daemon start --attach-existing`。
 
 当 scripts 目录尚未加入 `PATH` 时，也可使用等价形式 `python -m swcli`：
 
@@ -127,11 +127,11 @@ python -m swcli version --json
 DockerSW 镜像会安装并固定经过测试的 SWCLI 版本，请勿在容器内重复安装。可用以下命令验证内置客户端：
 
 ```bash
-sw-cli version --json
-sw-cli doctor --json
+swcli version --json
+swcli doctor --json
 ```
 
-在 DockerSW 中，`sw-cli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
+在 DockerSW 中，`swcli` 客户端由 Linux Python 运行，daemon/COM worker 则由 Wine 下的 Windows Python 运行。DockerSW 负责这套分离运行时、Wine 配置、SOLIDWORKS 注册和进程生命周期。
 
 ### 精确面/边观测
 
@@ -162,32 +162,32 @@ Wine 宿主通常由 DockerSW 或其他宿主集成项目安装。只安装可�
 安装后，可按以下流程只读处理源文件：
 
 ```bash
-sw-cli version --json
-sw-cli protocol show request
-sw-cli doctor --json
-sw-cli daemon start --visible --json
-sw-cli document open model.SLDPRT --read-only --json
-sw-cli document inspect --json
-sw-cli document inspect --detail structure --json
-sw-cli document diagnose --json
-sw-cli document render view.bmp --view isometric \
+swcli version --json
+swcli protocol show request
+swcli doctor --json
+swcli daemon start --visible --json
+swcli document open model.SLDPRT --read-only --json
+swcli document inspect --json
+swcli document inspect --detail structure --json
+swcli document diagnose --json
+swcli document render view.bmp --view isometric \
   --width 1024 --height 768 --json
-sw-cli document export model.step --strict --json
-sw-cli document close --json
+swcli document export model.step --strict --json
+swcli document close --json
 ```
 
 在另一套流程中创建并验证新零件：
 
 ```bash
-sw-cli daemon start --json
-sw-cli part create-box box.SLDPRT \
+swcli daemon start --json
+swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
-sw-cli document inspect --detail structure --json
-sw-cli document diagnose --json
-sw-cli document close --json
+swcli document inspect --detail structure --json
+swcli document diagnose --json
+swcli document close --json
 ```
 
-修改类操作（例如 `save` 和 `rebuild`）可通过 `sw-cli document --help` 查看。
+修改类操作（例如 `save` 和 `rebuild`）可通过 `swcli document --help` 查看。
 
 在 Windows 上，`doctor` 会报告 Python 架构、已注册的 SOLIDWORKS 版本和可执行文件、已安装版本、pywin32 可用性、活动 `SldWorks.Application` COM 对象信息以及 `swclid` 健康状态。它不会启动、停止或以其他方式修改 SOLIDWORKS 或 daemon。
 
@@ -196,24 +196,24 @@ sw-cli document close --json
 开发或查看日志时，可在前台运行常驻服务：
 
 ```powershell
-sw-cli daemon serve
+swcli daemon serve
 ```
 
-服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`sw-cli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`sw-cli daemon status` 会报告 worker 与宿主状态，包括明确的 `host_connected` 字段；`sw-cli daemon stop` 请求优雅关闭，即使 SOLIDWORKS 已经退出也会成功。worker 空闲时每秒在所属 COM apartment 内探测一次轻量属性：明确的断连 HRESULT 会立即生效，暂时性的 COM call rejection 会重试，未知异常则必须连续发生 3 次才判定宿主断开。SOLIDWORKS 被外部关闭后，daemon 会清除过期宿主、报告 `HostDisconnected` 并拒绝类型化操作，不会静默启动另一个会话。恢复必须显式执行：
+服务默认监听 `127.0.0.1:18495`。Supervisor 接收带版本的本地 JSON 请求，由一个派生的 COM worker 独占 `SldWorks.Application` 实例，并在单个 COM apartment 中串行执行操作。`swcli daemon start` 会在后台启动同一套 `serve` 实现，并且可安全重复调用。`swcli daemon status` 会报告 worker 与宿主状态，包括明确的 `host_connected` 字段；`swcli daemon stop` 请求优雅关闭，即使 SOLIDWORKS 已经退出也会成功。worker 空闲时每秒在所属 COM apartment 内探测一次轻量属性：明确的断连 HRESULT 会立即生效，暂时性的 COM call rejection 会重试，未知异常则必须连续发生 3 次才判定宿主断开。SOLIDWORKS 被外部关闭后，daemon 会清除过期宿主、报告 `HostDisconnected` 并拒绝类型化操作，不会静默启动另一个会话。恢复必须显式执行：
 
 ```powershell
-sw-cli daemon restart
+swcli daemon restart
 ```
 
 操作超时后会终止 worker 及 daemon 所有的 SOLIDWORKS 进程树，后续请求可以再启动干净的独占宿主；该超时恢复策略与宿主被外部关闭是两个独立情形。
 
-daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`sw-cli daemon start` 会返回 `ExistingHostRequiresAttach`，不会静默共享该实例。此时可以关闭已有实例，或者明确选择交互式共享会话：
+daemon 默认要求独占 SOLIDWORKS。如果用户已经启动 SOLIDWORKS，`swcli daemon start` 会返回 `ExistingHostRequiresAttach`，不会静默共享该实例。此时可以关闭已有实例，或者明确选择交互式共享会话：
 
 ```powershell
-sw-cli daemon start --attach-existing
+swcli daemon start --attach-existing
 ```
 
-显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。自 a8 起，`daemon stop` 可在用户文档仍打开时正常脱离；独占宿主仍须先关闭文档才能停止。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `sw-cli daemon restart --attach-existing`。
+显式附着会保留现有实例的可见性，并报告 `owned_by_daemon: false` 和 `shared_interactive: true`；daemon 停止或超时恢复时都不会关闭或强制终止它。自 a8 起，`daemon stop` 可在用户文档仍打开时正常脱离；独占宿主仍须先关闭文档才能停止。由于 COM 调用超时后共享实例的状态未知，swclid 会以 `SharedHostRecoveryRequired` 拒绝后续类型化操作，直到用户检查 SOLIDWORKS 并重启 daemon。类型化命令不会隐式启动或附着宿主。`--attach-existing` 要求已有活动 COM 宿主；不存在时返回 `ExistingHostNotFound`，绝不会退化为创建 daemon-owned 实例。附着的宿主退出后，应先由用户启动 SOLIDWORKS，再执行 `swcli daemon restart --attach-existing`。
 
 TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报错，同时不压缩 CAD 操作的执行预算。可用 `--connect-timeout` 覆盖该值；`--request-timeout` 只控制连接建立后的 CAD 操作。
 
@@ -222,19 +222,19 @@ TCP 建连使用独立的 3 秒超时，使 daemon 不存在时能够及时报�
 每个类型化 CLI 请求默认使用随机请求 ID。可能重试状态不确定请求的自动化可以明确提供稳定键：
 
 ```bash
-sw-cli --request-id export-build-42 document export output.STEP --strict --json
+swcli --request-id export-build-42 document export output.STEP --strict --json
 ```
 
 在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应，包括失败和超时。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回首次终局结果并报告 `replayed: true`；失败后若要再次执行，必须使用新的 request ID。除非显式传入 `--request-id`，CLI 每次调用都会生成新的 UUID。如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
 
-所有类型化的 `sw-cli document`、`sw-cli sketch`、`sw-cli feature` 和 `sw-cli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
+所有类型化的 `swcli document`、`swcli sketch`、`swcli feature` 和 `swcli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
 
 可以查询已经运行的 daemon 所声明的版本化能力，而不会隐式启动 SOLIDWORKS：
 
 ```bash
-sw-cli capabilities --json
-sw-cli capabilities --operation document.export --json
-sw-cli capabilities --full --json
+swcli capabilities --json
+swcli capabilities --operation document.export --json
+swcli capabilities --full --json
 ```
 
 成功时，JSON 输出直接符合公开的 capabilities schema。a9 预发行版默认只返回简短摘要：协议与服务版本、操作名称、按文档类型列出的适配器 `export_formats`、重放策略和宿主／恢复状态。`--operation NAME` 只返回指定操作的请求／结果 Schema 与上下文；`--full` 返回完整目录。这些开关需要匹配的 a9 客户端和 daemon，已发布 a8 wheel 尚不包含。`daemon status` 仅返回运行状态，不再携带操作目录。导出扩展名表示适配器支持范围，不证明宿主已安装相应原生转换器。服务端使用同一份操作目录校验请求。daemon 未运行或版本过旧时会明确报错，不会自动启动或静默接受不兼容结构。
@@ -246,10 +246,10 @@ sw-cli capabilities --full --json
 `v0.1.0a4` 新增 `document create`，通过真实 `.PRTDOT` 模板创建**未保存的零件**，不生成几何、不重建、不隐式保存。daemon 登记 `NewDocument` 返回的准确对象，为尚无文件路径的文档分配短期 ID，并设为本 session 的 `current`。a8 发行版支持 `--type part`（默认值）；当前源码还支持通过真实 `.ASMDOT` 模板执行 `--type assembly`。模板解析与 `part create-box` 一致：显式路径、配置的默认模板、已安装模板搜索；模板不可用时返回错误，不弹出模板选择对话框。
 
 ```powershell
-sw-cli document create --type part --json
-# 或：sw-cli document create --template C:\Templates\Part.PRTDOT --json
-sw-cli document inspect --detail structure --json
-sw-cli document close --discard
+swcli document create --type part --json
+# 或：swcli document create --template C:\Templates\Part.PRTDOT --json
+swcli document inspect --detail structure --json
+swcli document close --discard
 ```
 
 通用草图编辑仍待实现；`document save-as` 可为新零件指定文件名，现有 `document save` 则原位保存已有文件名的文档。新建后若后续检查失败，不会自动回滚或悄悄关档；已取得且可读取的文档对象仍会登记，便于明确检查和清理。
@@ -259,10 +259,10 @@ sw-cli document close --discard
 省略 `--document` 时，命令操作 session 的 `current`；`--document ID` 仅为本次命令指定确切文档，`--document active` 仅为本次命令选择 SOLIDWORKS 前台文档，两者都不会改变 `current`。并发客户端可以通过 `--session NAME` 或 `SWCLI_SESSION_ID` 隔离各自的当前文档；不指定时使用共享的 `default` session，方便编写线性脚本：
 
 ```powershell
-sw-cli document open model.SLDPRT
-sw-cli document rebuild
-sw-cli document export output.STEP --strict
-sw-cli document close
+swcli document open model.SLDPRT
+swcli document rebuild
+swcli document export output.STEP --strict
+swcli document close
 ```
 
 `document inspect` 报告所选文档的类型、路径、标题、修改状态、SOLIDWORKS `GetUpdateStamp` 值及重建状态。该更新戳会跟踪模型状态和几何变化，但不是覆盖外观或命名修改的完整 revision。JSON 输出始终采用 UTF-8，使远程 runner 也能可靠读取路径和模型名称。
@@ -270,17 +270,17 @@ sw-cli document close
 调用方读取文档后再执行操作时，可以给任意选中文档的命令添加 `--if-update-stamp N`。daemon 会在进入 COM 操作前立即比较原生更新戳；如果文档已经变化，则返回 `DocumentUpdateConflict`，且不执行该操作。省略此选项时保持原有的宽容行为：
 
 ```powershell
-sw-cli document inspect --json
-sw-cli document rebuild --if-update-stamp 106 --json
+swcli document inspect --json
+swcli document rebuild --if-update-stamp 106 --json
 ```
 
 需要执行较长多步流程的客户端可以获取短期文档 lease。lease 有效期间，建模、关闭、保存、另存为、重建、渲染和导出操作必须携带它的 token；其他 session 仍可执行检查和诊断。默认 TTL 为 60 秒，可设置为 1 至 3600 秒：
 
 ```powershell
-$lease = sw-cli --session agent-a document lease acquire --ttl-seconds 120 --json |
+$lease = swcli --session agent-a document lease acquire --ttl-seconds 120 --json |
     ConvertFrom-Json
-sw-cli --session agent-a document rebuild --lease $lease.lease.lease_id
-sw-cli --session agent-a document lease release $lease.lease.lease_id
+swcli --session agent-a document rebuild --lease $lease.lease.lease_id
+swcli --session agent-a document lease release $lease.lease.lease_id
 ```
 
 `lease status` 返回持有状态和剩余时间，`lease renew` 用于延长本 session 持有的 lease。lease 到期后自动失效，文档关闭时也会被清理；它用于客户端协作，不是身份认证机制。
@@ -313,10 +313,10 @@ lease 的边界有意保持狭窄：
 ## 草图操作（自 v0.1.0a4 起）
 
 ```powershell
-sw-cli document create --json
-sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json
-sw-cli document inspect --detail structure --json
-sw-cli document close --discard
+swcli document create --json
+swcli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json
+swcli document inspect --detail structure --json
+swcli document close --discard
 ```
 
 `sketch rectangle` 在零件的 `front`、`top` 或 `right` 原点基准面上新建二维草图，不依赖本地化的基准面名称。宽、高及可选的 `--center-x-mm` / `--center-y-mm`（默认零）均使用**草图局部坐标中的毫米**。响应包含原生 `model_to_sketch_transform`（平移分量单位为米）、经过验证的四条轮廓边界、原生约束状态及 `s-ab12cd` 形式的短草图 ID。ID 绑定本次文档与 worker 内的准确草图特征对象，关档或 worker 重启后失效，不是跨保存、重开或拓扑变化的持久引用。
@@ -327,7 +327,7 @@ sw-cli document close --discard
 
 `sketch circle --plane front --radius-mm 8` 使用与矩形相同的文档守卫和关闭编辑生命周期，新建完整圆草图。可选的 `--center-x-mm`、`--center-y-mm` 默认为草图局部坐标中的零；`radius` 是半径，不是直径。验证会读取最终原生圆弧的完整圆标志、半径与圆心，拒绝局部圆弧或多余轮廓，并返回可供拉伸的文档内草图 ID。它不添加驱动尺寸，也不保证完全定义。
 
-`sw-cli sketch inspect SKETCH_ID --json` 可在创建后重新读取登记的二维草图，也可观察
+`swcli sketch inspect SKETCH_ID --json` 可在创建后重新读取登记的二维草图，也可观察
 已经被拉伸或切除吸收的草图。返回当前原生约束状态枚举值 `swConstrainedStatus_e`、
 编辑/吸收状态和所属特征，直线端点、圆弧/完整圆的圆心半径采用草图局部毫米坐标，
 构造线同样返回并标记。原生坐标变换中的平移分量仍为米。
@@ -339,7 +339,7 @@ sw-cli document close --discard
 不能用名称或序号代替；关闭重开后原 ID 失效。
 
 自 `v0.1.0a5` 起，
-`sw-cli sketch list --document DOCUMENT_ID --json` 可以发现打开或重开的零件内仍存活的
+`swcli sketch list --document DOCUMENT_ID --json` 可以发现打开或重开的零件内仍存活的
 二维草图，包括被特征吸收的草图，返回新的文档/worker 内短句柄及原生约束、归属元数据。
 重复列举同一个存活原生草图会复用其 ID；不会复活过期 ID，也不按名称猜对象。
 用返回的 ID 调用 `sketch inspect`。列举只读，支持文档/更新戳上下文但不接受 lease，
@@ -351,12 +351,12 @@ sw-cli document close --discard
 调用前请核对当前 daemon 的 capabilities；旧版 a4 宿主尚无这些命令：
 
 ```powershell
-sw-cli document create --json
-$circle = sw-cli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
-$diameter = sw-cli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
-sw-cli dimension inspect $diameter.dimension.dimension_id --json
-sw-cli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
-sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
+swcli document create --json
+$circle = swcli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
+$diameter = swcli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
+swcli dimension inspect $diameter.dimension.dimension_id --json
+swcli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
+swcli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
 ```
 
 创建要求尚未被特征吸收、没有已有尺寸的单个完整圆。返回的 `m-xxxxxx` 是文档/worker 内准确原生直径及其所属草图的短期句柄，关闭重开即失效。inspect 只读；set **仅修改当前配置**，支持草图被特征吸收后继续修改。它拒绝从动、只读、方程或设计表控制的尺寸及已有草图编辑状态，不强行接管这些参数。
@@ -366,8 +366,8 @@ sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
 保存重开的零件可先用 `sketch list` 获取新草图 ID，再只读恢复该单圆草图可观察的直径：
 
 ```powershell
-$found = sw-cli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
-sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
+$found = swcli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
+swcli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
 ```
 
 发现支持被特征吸收的草图，重复观察同一个存活原生尺寸会复用其 ID，保持前台、session current、配置、编辑状态和更新戳不变，不创建尺寸也不开启尺寸显示。显示链为空意味着无法观察，不意味着文件没有尺寸；有歧义、遍历不完整或原生状态不一致时会失败，不发布句柄。当前仅支持当前配置中单个完整圆的直径，不覆盖任意尺寸或持久 ID。获得句柄不代表获得修改、保存源文件的授权，`dimension set` 仍遵守参数归属和写操作守卫。
@@ -379,15 +379,15 @@ Windows 已安装 wheel、全新托管可见/隐藏双模式验证，以及独�
 这些命令需要匹配且通过 capabilities 发布 a6 操作的 daemon；a5 wheel 不包含它们。正式版本已通过 Windows 可见/隐藏双模式及 DockerSW 隐藏 Wine 门禁。各宿主的证据与限制见 [a6 发行说明](docs/releases/v0.1.0a6.md)。
 
 ```powershell
-sw-cli document create --json
-$rectangle = sw-cli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
-sw-cli sketch fix-center $rectangle.sketch.sketch_id --json
-$size = sw-cli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
-sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
-sw-cli dimension inspect $size.dimensions.width.dimension_id --json
-sw-cli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
-sw-cli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
-sw-cli document measure --json
+swcli document create --json
+$rectangle = swcli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
+swcli sketch fix-center $rectangle.sketch.sketch_id --json
+$size = swcli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
+swcli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
+swcli dimension inspect $size.dimensions.width.dimension_id --json
+swcli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
+swcli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
+swcli document measure --json
 ```
 
 定位是显式选择：`fix-center` 只固定受支持、尚未被吸收的中心矩形的准确原生中心；宽高创建**不会隐式调用它**。准确已有固定关系会成为经过验证的无操作；额外、被抑制或原点关系会被拒绝，不会被删除。中心坐标为 (0,0) 本身不证明已有原点约束。宽高验证通过不代表通用约束求解或机械设计审批。
@@ -397,9 +397,9 @@ sw-cli document measure --json
 在获准保存原生零件并关闭重开后，先用 `sketch list` 取得新草图，再发现宽高：
 
 ```powershell
-$found = sw-cli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
-sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
-sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
+$found = swcli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
+swcli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
+swcli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
 ```
 
 请把占位符换成返回的 ID。发现要求唯一可观察的准确原生宽高对，与独立几何及保持不变的配置、编辑状态、更新戳一致。它保持前台和 session current，不选择、激活或改变显示；对同一存活对象重复发现会复用 ID。显示链为空表示无法观察，不证明没有尺寸；不完整或歧义观察不会发布 ID，已关闭文档的旧 ID 始终失效。发现句柄不代表获得修改或保存源文件的授权。确切正式版本证据见 [a6 验证记录](docs/verification/a6-2026-10-10.md)。
@@ -407,14 +407,14 @@ sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimensi
 ## 特征操作（自 v0.1.0a4 起）
 
 ```powershell
-sw-cli document create --json
-$rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
-sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
-sw-cli document inspect --detail structure --json
-sw-cli document save-as new-part.SLDPRT --json
-sw-cli document close --json
-sw-cli document open new-part.SLDPRT --read-only --json
-sw-cli document diagnose --json
+swcli document create --json
+$rectangle = swcli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
+swcli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
+swcli document inspect --detail structure --json
+swcli document save-as new-part.SLDPRT --json
+swcli document close --json
+swcli document open new-part.SLDPRT --read-only --json
+swcli document diagnose --json
 ```
 
 `feature extrude SKETCH_ID` 从所选零件内登记的、尚未被吸收的二维草图创建单方向定深实体拉伸，深度使用毫米；`--reverse` 反转草图法线方向，`--no-merge` 保留独立实体。它解析准确的原生草图，拒绝缺失、删除、已吸收的草图及已有草图编辑状态，然后重建并诊断模型。响应验证原生深度、方向、合并与终止条件，并报告实体证据，不只是回显输入；它不会验证全部设计尺寸，也不保存原生文档。选择清理和前台恢复遵循文档守卫；失败不代表已创建特征会自动回滚。
@@ -424,8 +424,8 @@ sw-cli document diagnose --json
 当匹配的客户端与 daemon 广告这些操作时：
 
 ```powershell
-$features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
-sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
+$features = swcli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
+swcli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
 ```
 
 把 `DOCUMENT_ID` 换成所选零件的 ID。列举仅涵盖受支持的实体拉伸和切除，不是整棵特征树；
@@ -438,8 +438,8 @@ sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID -
 创建结果可直接检查，不需要按名称反查：
 
 ```powershell
-$boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
-sw-cli feature inspect $boss.feature.feature_id --json
+$boss = swcli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
+swcli feature inspect $boss.feature.feature_id --json
 ```
 
 使用与创建相同的目标文档、会话及所需写租约。创建之后重建或验证失败时仍可能返回
@@ -448,7 +448,7 @@ sw-cli feature inspect $boss.feature.feature_id --json
 ### 受保护的特征深度修改（自 a7 起）
 
 ```powershell
-sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
+swcli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
   --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp UPDATE_STAMP --json
 ```
 
@@ -472,7 +472,7 @@ SWCLI 的 JSON stdout 使用 UTF-8。Windows PowerShell 5.1 中，将 CLI JSON �
 
 ```powershell
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-sw-cli document inspect --json | ConvertFrom-Json
+swcli document inspect --json | ConvertFrom-Json
 ```
 
 案例会在每次 CLI 调用期间设置 UTF-8，并在成功或失败后恢复调用者原编码。PowerShell 7 通常已默认使用 UTF-8。
@@ -483,7 +483,7 @@ sw-cli document inspect --json | ConvertFrom-Json
 及匹配的 client，输出目录必须是已存在的新本地目录，不允许覆盖已有产物：
 
 ```powershell
-sw-cli daemon start --visible --json
+swcli daemon start --visible --json
 .\examples\model-plate.ps1 -OutputDirectory C:\Models\NewPlate
 ```
 
@@ -496,9 +496,9 @@ sw-cli daemon start --visible --json
 a12 开发版新增 `feature cut-extrude SKETCH_ID --through-all`：仅接受单实体、无其他体的零件，以及未吸收的完整圆或轴对齐矩形草图。它与 `--depth-mm` 必须二选一，沿用默认法线/`--reverse` 方向；已有选区会在创建前被拒绝。协议使用 `end_condition: "through-all"`，禁止同时提供任何 `depth_mm`。成功需确认原生贯穿、单向、非薄壁/拔模、草图平面起始、整实体作用范围、完整健康诊断、重建完成和实际材料减少。贯穿回执的 `depth_mm`、`geometry_verification.actual_depth_mm` 及深度公差为 `null`，不把原生占位长度当成行程；`feature set-depth` 仍拒绝贯穿特征。已发布 a11 不包含此能力，开发版的安装后 Windows/Wine 验收与发布另行记录。
 
 ```powershell
-$hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
-sw-cli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
-sw-cli document measure --json
+$hole = swcli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
+swcli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
+swcli document measure --json
 ```
 
 应在实体与轮廓/深度相交的零件中运行，而不是空文档；文档选择、lease 与更新戳守卫均适用。
@@ -538,7 +538,7 @@ SWCLI 采用 [MIT License](LICENSE) 开源。
 
 ### a13 开发中的闭合多边形
 
-`sw-cli sketch polygon --plane front --vertices-mm '[[0,0],[20,0],[0,15]]' --json`
+`swcli sketch polygon --plane front --vertices-mm '[[0,0],[20,0],[0,15]]' --json`
 接受 3–64 个草图局部毫米坐标，按输入顺序隐式闭合，支持顺逆时针及凹轮廓。
 重复首尾、共线冗余点、自交/接触、过短边及非有限数值会在 CAD 调用前拒绝。
 不自动修复、不含孔/弧、不新增驱动尺寸；返回精确草图句柄，可用于现有定深拉伸/切除。

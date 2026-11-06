@@ -53,10 +53,10 @@ another session from reading; unchanged state still has to be proved.
 ## Commands
 
 ```sh
-sw-cli entity list --document DOCUMENT_ID --max-faces 64 --json
-sw-cli entity inspect ENTITY_ID --document DOCUMENT_ID --json
-sw-cli entity list --kind edge --document DOCUMENT_ID --max-edges 64 --json
-sw-cli entity inspect EDGE_ID --kind edge --document DOCUMENT_ID --json
+swcli entity list --document DOCUMENT_ID --max-faces 64 --json
+swcli entity inspect ENTITY_ID --document DOCUMENT_ID --json
+swcli entity list --kind edge --document DOCUMENT_ID --max-edges 64 --json
+swcli entity inspect EDGE_ID --kind edge --document DOCUMENT_ID --json
 ```
 
 `list` returns `.entities` with short `e-xxxxxx` IDs, `body_count: 1` and exactly

@@ -534,7 +534,7 @@ def main(argv=None):
     parser.add_argument(
         "--cli-command",
         type=cli_executable,
-        help="one absolute local executable path, e.g. /usr/local/bin/sw-cli; default: isolated installed Python",
+        help="one absolute local executable path, e.g. /usr/local/bin/swcli; default: isolated installed Python",
     )
     parser.add_argument(
         "--endpoint", default=os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)

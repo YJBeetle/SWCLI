@@ -154,7 +154,7 @@ it also applies to native Windows:
    Schemas and product skill; its platform marker installs pywin32 on Windows
    automatically. The checkout supplies scripts/fixtures, not an editable native
    runtime;
-7. start the resident daemon with `sw-cli daemon serve`, capture desktop/window
+7. start the resident daemon with `swcli daemon serve`, capture desktop/window
    diagnostics around first startup, then use typed CLI requests against its
    single COM worker for a real model, structural inspection, diagnosis,
    deterministic render, and verified STEP export;

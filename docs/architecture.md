@@ -5,7 +5,7 @@
 SWCLI currently owns the automation control plane:
 
 - versioned protocol and JSON Schemas;
-- the `sw-cli` client;
+- the `swcli` client;
 - the resident `swclid` service;
 - typed modeling, inspection, validation, rendering, and export operations;
 - the native Windows COM adapter used directly and under Wine;
@@ -28,7 +28,7 @@ DockerSW owns the execution environment:
 The target runtime separates supervision from COM execution:
 
 ```text
-sw-cli (future: SDK / MCP)
+swcli (future: SDK / MCP)
         |
         v
 supervisor and protocol gateway
@@ -349,7 +349,7 @@ and independent MacSW limitations.
 
 ## Compatibility policy
 
-Protocol and host implementation versions are independent. `sw-cli
+Protocol and host implementation versions are independent. `swcli
 capabilities` exposes the running daemon's server version, supported protocol
 versions, operations, adapter export extensions, request replay policy,
 worker/recovery state, and host details without starting
@@ -420,7 +420,7 @@ than assuming a fixed installation directory or SOLIDWORKS release:
    attach only when the caller explicitly selected `--attach-existing`.
 
 Starting, stopping, and replacing a SOLIDWORKS process belong to the resident
-daemon lifecycle. The top-level `sw-cli doctor` command only inspects host and
+daemon lifecycle. The top-level `swcli doctor` command only inspects host and
 daemon state.
 
 Host startup is not complete merely because the COM object can be attached.
@@ -432,10 +432,10 @@ phase before waiting for readiness, so timeout cleanup can terminate an owned
 SOLIDWORKS process by PID even when DCOM did not place it below the Python
 process tree. An explicitly attached host is never selected for that cleanup.
 
-`sw-cli daemon serve` owns the SOLIDWORKS instance and waits for
-`StartupProcessCompleted`; `sw-cli daemon start` launches that same service in
-the background, while `sw-cli daemon stop` requests an orderly daemon and COM
-worker shutdown. `sw-cli daemon restart` first validates the local platform,
+`swcli daemon serve` owns the SOLIDWORKS instance and waits for
+`StartupProcessCompleted`; `swcli daemon start` launches that same service in
+the background, while `swcli daemon stop` requests an orderly daemon and COM
+worker shutdown. `swcli daemon restart` first validates the local platform,
 endpoint and startup wait, then stops a reachable daemon, waits
 for its local endpoint to close, and then applies the requested owned or
 explicit-attach startup policy. Native Windows and portable typed commands

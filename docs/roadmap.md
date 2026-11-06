@@ -224,7 +224,7 @@ Before the planned `0.2.0a1` release:
 2. Complete the breaking command rename to `swcli` in SWCLI, DockerSW and MacSW,
    including launchers, installation paths, MCP configuration, current usage
    docs and tests. The service remains named `swclid`; environment variables
-   retain `SWCLI_*`. No `sw-cli` compatibility executable/alias is provided.
+   retain `SWCLI_*`.
    Recheck the merged a18 code for legacy active command references.
 3. Only then freeze the version on the combined commit and perform final
    acceptance of that source and its original CI packages under the existing

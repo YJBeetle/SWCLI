@@ -27,9 +27,9 @@ export workflows.
 ## Naming
 
 - Project: **SWCLI**
-- Command: `sw-cli`
+- Command: `swcli`
 - Python package: `swcli`
-- Resident service: `swclid`, managed through `sw-cli daemon`
+- Resident service: `swclid`, managed through `swcli daemon`
 - Protocol: **SWCLI Protocol**
 
 ## Current status
@@ -64,7 +64,7 @@ the six existing exports before image promotion. See the
 ## MCP for AI clients
 
 Install the optional MCP support with Python 3.10+ (`python -m pip install
-".[mcp]"` from this checkout). Configure the AI client to run `sw-cli mcp serve`
+".[mcp]"` from this checkout). Configure the AI client to run `swcli mcp serve`
 as a **stdio** server. Initialization, status and CAD calls never start SW
 implicitly. Call `swcli_daemon_start` explicitly when needed; startup of daemon
 and SW may take several minutes. Linux/macOS clients use the host daemon utilities
@@ -74,7 +74,7 @@ Existing visible SW requires explicit attach. MCP disconnect leaves swclid/SW
 running; `swcli_daemon_stop` is explicit and respects open-document guards.
 
 ```json
-{"mcpServers":{"swcli":{"command":"sw-cli","args":["mcp","serve"]}}}
+{"mcpServers":{"swcli":{"command":"swcli","args":["mcp","serve"]}}}
 ```
 
 `swcli_status`, `swcli_daemon_start`, `swcli_daemon_stop`,
@@ -130,8 +130,8 @@ Temporary document/sketch/dimension/feature handles and leases expire on restart
 See the [a9 release notes](docs/releases/v0.1.0a9.md) for portable-client
 installation, exact verification evidence and known limits.
 
-The installation creates `sw-cli.exe` in Python's scripts directory. If a new
-terminal cannot find `sw-cli`, add that directory to the user `PATH`, then
+The installation creates `swcli.exe` in Python's scripts directory. If a new
+terminal cannot find `swcli`, add that directory to the user `PATH`, then
 reopen the terminal:
 
 ```powershell
@@ -145,17 +145,17 @@ if (($userPath -split ";") -notcontains $scripts) {
 Verify both package installation and host discovery:
 
 ```powershell
-sw-cli version --json
-sw-cli doctor --json
-sw-cli daemon status --json
+swcli version --json
+swcli doctor --json
+swcli daemon status --json
 ```
 
 `daemon status` may report that no service is running; that is not an
 installation failure. Before using `document` or `part`, start the daemon
-explicitly with `sw-cli daemon start` (hidden by default) or
-`sw-cli daemon start --visible`. These commands wait for SOLIDWORKS to become
+explicitly with `swcli daemon start` (hidden by default) or
+`swcli daemon start --visible`. These commands wait for SOLIDWORKS to become
 ready. If SOLIDWORKS is already running, use
-`sw-cli daemon start --attach-existing` instead.
+`swcli daemon start --attach-existing` instead.
 
 `python -m swcli` is an equivalent fallback when the scripts directory is not
 yet on `PATH`:
@@ -170,11 +170,11 @@ DockerSW images install and pin a tested SWCLI revision. Do not install a second
 copy inside the container. Verify the bundled client with:
 
 ```bash
-sw-cli version --json
-sw-cli doctor --json
+swcli version --json
+swcli doctor --json
 ```
 
-DockerSW runs the `sw-cli` client with Linux Python and the daemon/COM worker
+DockerSW runs the `swcli` client with Linux Python and the daemon/COM worker
 with Windows Python under Wine. DockerSW owns that split runtime, Wine setup,
 SOLIDWORKS registration, and process lifecycle.
 
@@ -217,32 +217,32 @@ Wine, Windows Python, pywin32, SOLIDWORKS, or COM registration.
 The following is one read-only-source workflow after installation:
 
 ```bash
-sw-cli version --json
-sw-cli protocol show request
-sw-cli doctor --json
-sw-cli daemon start --visible --json
-sw-cli document open model.SLDPRT --read-only --json
-sw-cli document inspect --json
-sw-cli document inspect --detail structure --json
-sw-cli document diagnose --json
-sw-cli document render view.bmp --view isometric \
+swcli version --json
+swcli protocol show request
+swcli doctor --json
+swcli daemon start --visible --json
+swcli document open model.SLDPRT --read-only --json
+swcli document inspect --json
+swcli document inspect --detail structure --json
+swcli document diagnose --json
+swcli document render view.bmp --view isometric \
   --width 1024 --height 768 --json
-sw-cli document export model.step --strict --json
-sw-cli document close --json
+swcli document export model.step --strict --json
+swcli document close --json
 ```
 
 Create and verify a new part in a separate workflow:
 
 ```bash
-sw-cli daemon start --json
-sw-cli part create-box box.SLDPRT \
+swcli daemon start --json
+swcli part create-box box.SLDPRT \
   --width-mm 100 --height-mm 50 --depth-mm 20 --json
-sw-cli document inspect --detail structure --json
-sw-cli document diagnose --json
-sw-cli document close --json
+swcli document inspect --detail structure --json
+swcli document diagnose --json
+swcli document close --json
 ```
 
-Use `sw-cli document --help` for modifying operations such as `save` and
+Use `swcli document --help` for modifying operations such as `save` and
 `rebuild`.
 
 On Windows, `doctor` reports the Python architecture, registered
@@ -256,15 +256,15 @@ Run the resident service in the foreground when developing or inspecting its
 logs:
 
 ```powershell
-sw-cli daemon serve
+swcli daemon serve
 ```
 
 The service binds to `127.0.0.1:18495` by default. Its supervisor accepts
 versioned local JSON requests while one spawned COM worker owns the
 `SldWorks.Application` instance and executes operations serially on a single
-COM apartment. `sw-cli daemon start` launches the same `serve` implementation
-in the background and is idempotent. `sw-cli daemon status` reports the worker
-and host state, including the explicit `host_connected` flag; `sw-cli daemon
+COM apartment. `swcli daemon start` launches the same `serve` implementation
+in the background and is idempotent. `swcli daemon status` reports the worker
+and host state, including the explicit `host_connected` flag; `swcli daemon
 stop` requests a graceful shutdown and also succeeds when SOLIDWORKS has already
 exited. While idle, the worker probes a lightweight COM property once per
 second on its owning apartment. Explicit disconnect HRESULTs are acted on
@@ -275,19 +275,19 @@ If SOLIDWORKS exits externally, the daemon clears the stale host, reports
 a different session. Recover explicitly with:
 
 ```powershell
-sw-cli daemon restart
+swcli daemon restart
 ```
 
 A timed-out operation terminates the worker and any daemon-owned SOLIDWORKS
 process tree; the following request may start a clean owned host. This timeout
 recovery policy is separate from unexpected external host exit.
 Exclusive ownership is the default. If a user-started SOLIDWORKS instance
-already exists, `sw-cli daemon start` fails with
+already exists, `swcli daemon start` fails with
 `ExistingHostRequiresAttach` instead of silently sharing it. Close that
 instance, or explicitly opt into an interactive shared session:
 
 ```powershell
-sw-cli daemon start --attach-existing
+swcli daemon start --attach-existing
 ```
 
 An explicitly attached instance preserves its visibility and is reported as
@@ -301,7 +301,7 @@ daemon. Typed commands never start or attach to a host implicitly.
 `--attach-existing` requires an active COM host and fails with
 `ExistingHostNotFound` when none exists; it never falls back
 to creating a daemon-owned instance. After an attached host exits, start
-SOLIDWORKS yourself and run `sw-cli daemon restart --attach-existing`.
+SOLIDWORKS yourself and run `swcli daemon restart --attach-existing`.
 
 TCP connection establishment has a separate three-second timeout so an absent
 daemon can be reported promptly without reducing the operation budget.
@@ -317,7 +317,7 @@ Every typed CLI request gets a random request ID. Automation that may retry an
 uncertain request can provide a stable key explicitly:
 
 ```bash
-sw-cli --request-id export-build-42 document export output.STEP --strict --json
+swcli --request-id export-build-42 document export output.STEP --strict --json
 ```
 
 Within one running daemon, swclid caches the most recent completed responses,
@@ -333,7 +333,7 @@ and scope. The cache is bounded and is lost when the daemon restarts, so it
 protects immediate transport retries rather than providing durable exactly-once
 execution across daemon failures.
 
-All typed `sw-cli` document, sketch, feature and part commands use this service. The
+All typed `swcli` document, sketch, feature and part commands use this service. The
 default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
 error and never falls back to a second direct-COM execution mode. No endpoint,
@@ -348,9 +348,9 @@ Query the versioned capabilities of an already running daemon without starting
 SOLIDWORKS implicitly:
 
 ```bash
-sw-cli capabilities --json
-sw-cli capabilities --operation document.export --json
-sw-cli capabilities --full --json
+swcli capabilities --json
+swcli capabilities --operation document.export --json
+swcli capabilities --full --json
 ```
 
 On success, the JSON output directly conforms to the published capabilities
@@ -398,10 +398,10 @@ the same as `part create-box`: explicit path, configured default, then installed
 template discovery; a missing template fails without opening a selection dialog.
 
 ```powershell
-sw-cli document create --type part --json
-# Alternatively: sw-cli document create --template C:\Templates\Part.PRTDOT --json
-sw-cli document inspect --detail structure --json
-sw-cli document close --discard
+swcli document create --type part --json
+# Alternatively: swcli document create --template C:\Templates\Part.PRTDOT --json
+swcli document inspect --detail structure --json
+swcli document close --discard
 ```
 
 General sketch editing remains forthcoming; `document save-as` names a new
@@ -425,10 +425,10 @@ state between concurrent clients. The unnamed default session keeps linear
 shell scripts concise:
 
 ```powershell
-sw-cli document open model.SLDPRT
-sw-cli document rebuild
-sw-cli document export output.STEP --strict
-sw-cli document close
+swcli document open model.SLDPRT
+swcli document rebuild
+swcli document export output.STEP --strict
+swcli document close
 ```
 
 `document inspect` reports the selected document's type, path, title, modified
@@ -444,8 +444,8 @@ native stamp immediately before the operation and returns
 changed. Omitting the option preserves the normal permissive behavior:
 
 ```powershell
-sw-cli document inspect --json
-sw-cli document rebuild --if-update-stamp 106 --json
+swcli document inspect --json
+swcli document rebuild --if-update-stamp 106 --json
 ```
 
 Longer multi-step clients can acquire a short-lived document lease. While the
@@ -454,10 +454,10 @@ do not carry its token. Inspection and diagnosis remain available to other
 sessions. The default TTL is 60 seconds and may be set from 1 to 3600 seconds:
 
 ```powershell
-$lease = sw-cli --session agent-a document lease acquire --ttl-seconds 120 --json |
+$lease = swcli --session agent-a document lease acquire --ttl-seconds 120 --json |
     ConvertFrom-Json
-sw-cli --session agent-a document rebuild --lease $lease.lease.lease_id
-sw-cli --session agent-a document lease release $lease.lease.lease_id
+swcli --session agent-a document rebuild --lease $lease.lease.lease_id
+swcli --session agent-a document lease release $lease.lease.lease_id
 ```
 
 `lease status` reports ownership and remaining time; `lease renew` extends an
@@ -560,10 +560,10 @@ mesh fallback is provided.
 ## Sketch operations (since v0.1.0a4)
 
 ```powershell
-sw-cli document create --json
-sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json
-sw-cli document inspect --detail structure --json
-sw-cli document close --discard
+swcli document create --json
+swcli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json
+swcli document inspect --detail structure --json
+swcli document close --discard
 ```
 
 `sketch rectangle` creates a fresh 2D sketch on the `front`, `top` or `right`
@@ -626,7 +626,7 @@ foreground unchanged. It only accepts live IDs registered by this worker, not
 names, segment indices, or expired IDs from a reopened file.
 
 Since `v0.1.0a5`,
-`sw-cli sketch list --document DOCUMENT_ID --json` discovers live 2D profiles,
+`swcli sketch list --document DOCUMENT_ID --json` discovers live 2D profiles,
 including absorbed sketches, after opening or reopening a part. It returns
 fresh document/worker-local IDs and native constraint/owner metadata. Repeated
 listing reuses the ID of the same live native sketch; it never resurrects an
@@ -642,12 +642,12 @@ Check the running daemon's capabilities before using these commands; older
 a4 hosts do not provide them:
 
 ```powershell
-sw-cli document create --json
-$circle = sw-cli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
-$diameter = sw-cli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
-sw-cli dimension inspect $diameter.dimension.dimension_id --json
-sw-cli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
-sw-cli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
+swcli document create --json
+$circle = swcli sketch circle --plane front --radius-mm 5 --json | ConvertFrom-Json
+$diameter = swcli sketch dimension-diameter $circle.sketch.sketch_id --diameter-mm 16 --json | ConvertFrom-Json
+swcli dimension inspect $diameter.dimension.dimension_id --json
+swcli feature extrude $circle.sketch.sketch_id --depth-mm 10 --json
+swcli dimension set $diameter.dimension.dimension_id --value-mm 20 --json
 ```
 
 Creation requires one unabsorbed complete circle without existing dimensions.
@@ -666,8 +666,8 @@ For a saved/reopened part, discover a fresh sketch ID with `sketch list`, then
 recover its observable single-circle diameter without editing:
 
 ```powershell
-$found = sw-cli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
-sw-cli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
+$found = swcli dimension discover-diameter SKETCH_ID --document DOCUMENT_ID --json | ConvertFrom-Json
+swcli dimension inspect $found.dimension.dimension_id --document DOCUMENT_ID --json
 ```
 
 This read-only discovery works with absorbed profiles and reuses the same live
@@ -694,15 +694,15 @@ hidden Wine gates passed. Host-specific evidence and limitations are tracked in
 the [a6 release notes](docs/releases/v0.1.0a6.md).
 
 ```powershell
-sw-cli document create --json
-$rectangle = sw-cli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
-sw-cli sketch fix-center $rectangle.sketch.sketch_id --json
-$size = sw-cli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
-sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
-sw-cli dimension inspect $size.dimensions.width.dimension_id --json
-sw-cli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
-sw-cli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
-sw-cli document measure --json
+swcli document create --json
+$rectangle = swcli sketch rectangle --plane front --width-mm 40 --height-mm 30 --center-x-mm 3 --center-y-mm 4 --json | ConvertFrom-Json
+swcli sketch fix-center $rectangle.sketch.sketch_id --json
+$size = swcli sketch dimension-rectangle $rectangle.sketch.sketch_id --width-mm 40 --height-mm 30 --json | ConvertFrom-Json
+swcli feature extrude $rectangle.sketch.sketch_id --depth-mm 10 --json
+swcli dimension inspect $size.dimensions.width.dimension_id --json
+swcli dimension set $size.dimensions.width.dimension_id --value-mm 50 --json
+swcli dimension set $size.dimensions.height.dimension_id --value-mm 35 --json
+swcli document measure --json
 ```
 
 Positioning is explicit: `fix-center` fixes the verified current native center
@@ -722,9 +722,9 @@ partial native dimensions without a public pair; it is not a rollback guarantee.
 After authorized native save/close/reopen, use `sketch list` for a fresh profile:
 
 ```powershell
-$found = sw-cli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
-sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
-sw-cli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
+$found = swcli dimension discover-rectangle --document DOCUMENT_ID SKETCH_ID --json | ConvertFrom-Json
+swcli dimension inspect --document DOCUMENT_ID $found.dimensions.width.dimension_id --json
+swcli dimension inspect --document DOCUMENT_ID $found.dimensions.height.dimension_id --json
 ```
 
 Replace the placeholders with returned IDs. Discovery requires one observable,
@@ -740,14 +740,14 @@ Exact formal-version evidence is in the
 ## Feature operations (since v0.1.0a4)
 
 ```powershell
-sw-cli document create --json
-$rectangle = sw-cli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
-sw-cli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
-sw-cli document inspect --detail structure --json
-sw-cli document save-as new-part.SLDPRT --json
-sw-cli document close --json
-sw-cli document open new-part.SLDPRT --read-only --json
-sw-cli document diagnose --json
+swcli document create --json
+$rectangle = swcli sketch rectangle --plane front --width-mm 100 --height-mm 50 --json | ConvertFrom-Json
+swcli feature extrude $rectangle.sketch.sketch_id --depth-mm 20 --json
+swcli document inspect --detail structure --json
+swcli document save-as new-part.SLDPRT --json
+swcli document close --json
+swcli document open new-part.SLDPRT --read-only --json
+swcli document diagnose --json
 ```
 
 `feature extrude SKETCH_ID` creates a one-direction blind solid extrusion from
@@ -766,8 +766,8 @@ back on failure.
 With a matching client/daemon advertising these operations:
 
 ```powershell
-$features = sw-cli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
-sw-cli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
+$features = swcli feature list --document DOCUMENT_ID --json | ConvertFrom-Json
+swcli feature inspect $features.features[0].feature_id --document DOCUMENT_ID --json
 ```
 
 Replace `DOCUMENT_ID` with the selected part's ID. Listing covers supported
@@ -783,8 +783,8 @@ Native cut `reverse_direction` is not creation's normalized `--reverse`.
 Creation results can be inspected directly without a name lookup:
 
 ```powershell
-$boss = sw-cli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
-sw-cli feature inspect $boss.feature.feature_id --json
+$boss = swcli feature extrude SKETCH_ID --depth-mm 20 --json | ConvertFrom-Json
+swcli feature inspect $boss.feature.feature_id --json
 ```
 
 Use the same selected document/session and required write lease as for creation.
@@ -794,7 +794,7 @@ this identifies a partial mutation, not a successful model or an automatic rollb
 ### Guarded feature depth editing (since a7)
 
 ```powershell
-sw-cli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
+swcli --request-timeout 600 feature set-depth FEATURE_ID --depth-mm 25 `
   --document DOCUMENT_ID --lease LEASE_ID --if-update-stamp UPDATE_STAMP --json
 ```
 
@@ -825,7 +825,7 @@ For a readable end-to-end Windows example, see
 and matching client, run it against a new, existing local output directory:
 
 ```powershell
-sw-cli daemon start --visible --json
+swcli daemon start --visible --json
 .\examples\model-plate.ps1 -OutputDirectory C:\Models\NewPlate
 ```
 
@@ -843,7 +843,7 @@ decoder before piping CLI JSON into `ConvertFrom-Json`:
 
 ```powershell
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-sw-cli document inspect --json | ConvertFrom-Json
+swcli document inspect --json | ConvertFrom-Json
 ```
 
 The example scopes that setting to each CLI call and restores the caller's
@@ -862,9 +862,9 @@ initial verification contract. It reports before/after geometry, not automatic
 rollback or a proof of the intended hole shape. A failed cut may already exist.
 
 ```powershell
-$hole = sw-cli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
-sw-cli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
-sw-cli document measure --json
+$hole = swcli sketch circle --plane front --radius-mm 4 --json | ConvertFrom-Json
+swcli feature cut-extrude $hole.sketch.sketch_id --depth-mm 20 --json
+swcli document measure --json
 ```
 
 Run this against a part whose solid intersects that profile/depth, not an empty

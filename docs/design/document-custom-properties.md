@@ -5,8 +5,8 @@ catalog, daemon and CLI. It targets an open document by its exact handle or
 session selection.
 
 ```powershell
-sw-cli document properties --document d-ab12cd --json
-sw-cli document properties --document d-ab12cd --name "Drawing No" --json
+swcli document properties --document d-ab12cd --json
+swcli document properties --document d-ab12cd --name "Drawing No" --json
 ```
 
 The result has document scope and a list of properties. Each row preserves the

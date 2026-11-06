@@ -108,7 +108,7 @@ def require_remote_bind_opt_in(host: str, *, allow_remote: bool) -> None:
         pass
     if not allow_remote:
         raise SystemExit(
-            "sw-cli daemon serve: refusing unauthenticated non-loopback bind; "
+            "swcli daemon serve: refusing unauthenticated non-loopback bind; "
             "pass --allow-remote only behind a trusted network boundary or tunnel"
         )
 
@@ -499,7 +499,7 @@ def run(args: argparse.Namespace) -> int:
             )
             return 1
         if not 1 <= args.port <= 65535:
-            raise SystemExit("sw-cli daemon serve: port must be between 1 and 65535")
+            raise SystemExit("swcli daemon serve: port must be between 1 and 65535")
         require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote)
         server = SwclidServer((args.host, args.port))
         manager = None
@@ -637,11 +637,11 @@ def run(args: argparse.Namespace) -> int:
     if args.as_json:
         print(json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True))
     elif response.get("success"):
-        print(f"sw-cli daemon {command}: ok")
+        print(f"swcli daemon {command}: ok")
     else:
         error = response.get("error") or {}
         print(
-            f"sw-cli daemon {command}: {error.get('code', 'failed')}: "
+            f"swcli daemon {command}: {error.get('code', 'failed')}: "
             f"{error.get('message', 'unknown error')}",
             file=sys.stderr,
         )

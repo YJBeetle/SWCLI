@@ -20,7 +20,7 @@ function Invoke-ModelCli([string[]]$Arguments) {
     $previousEncoding = [Console]::OutputEncoding
     try {
         [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-        $text = & sw-cli --session $session @Arguments --json
+        $text = & swcli --session $session @Arguments --json
         $exitCode = $LASTEXITCODE
     }
     finally { [Console]::OutputEncoding = $previousEncoding }

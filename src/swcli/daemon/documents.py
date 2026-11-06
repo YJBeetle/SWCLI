@@ -591,7 +591,7 @@ class DocumentRegistry:
             if document_id is None:
                 raise NoCurrentDocument(
                     f"session '{session_id}' has no current document; open, create, "
-                    "or select one with 'sw-cli document use DOCUMENT_ID'"
+                    "or select one with 'swcli document use DOCUMENT_ID'"
                 )
         entry = self._entries.get(document_id)
         if entry is None:

@@ -12,7 +12,7 @@ SWCLI owns the CAD test operations and assertions. Its explicitly selected full 
 native SOLIDWORKS host; DockerSW prepares Linux/Wine; MacSW is responsible for
 macOS/Wine provisioning. The two integration projects call the same scripts,
 not copies of the modeling assertions. These are CI tools delivered in the
-source checkout/sdist, not installed `sw-cli` subcommands or a mock backend.
+source checkout/sdist, not installed `swcli` subcommands or a mock backend.
 
 ## Entry points
 
@@ -317,7 +317,7 @@ daemon-visible Windows directory via `--host-output-dir`. For example:
 python3 scripts/ci/verify-modeling.py \
   --output-dir /ci-proof/modeling \
   --host-output-dir 'C:\ci-proof\modeling' \
-  --cli-command /usr/local/bin/sw-cli \
+  --cli-command /usr/local/bin/swcli \
   --endpoint 127.0.0.1:18495
 ```
 
@@ -390,7 +390,7 @@ may supply a paired `--data-dir LOCAL --host-data-dir WINDOWS_OR_UNC` explicitly
 ```sh
 python scripts/ci/verify-toolbox.py --output-dir /ci-smoke/toolbox \
   --wine-prefix /root/.wine --require-toolbox \
-  --cli-command /usr/local/bin/sw-cli --request-timeout 120
+  --cli-command /usr/local/bin/swcli --request-timeout 120
 ```
 
 `--require-toolbox` makes an unconfigured library a failure. Without it, only an

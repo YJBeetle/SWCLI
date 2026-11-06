@@ -10,7 +10,7 @@ MCP requires Python 3.10 or newer. Install the matching SWCLI version with its
 optional `mcp` extra (`python -m pip install "swcli[mcp]"` for a published
 version, or `python -m pip install ".[mcp]"` from its source checkout).
 The base CLI still supports Python 3.9. Use an absolute path to the installed
-`sw-cli` when the AI client's PATH differs from your terminal.
+`swcli` when the AI client's PATH differs from your terminal.
 
 A client supporting the common `mcpServers` JSON format can use:
 
@@ -18,7 +18,7 @@ A client supporting the common `mcpServers` JSON format can use:
 {
   "mcpServers": {
     "swcli": {
-      "command": "sw-cli",
+      "command": "swcli",
       "args": ["mcp", "serve"]
     }
   }
@@ -53,7 +53,7 @@ missing utilities configuration is an error: the MCP client's Python is not the 
 Windows Python that runs swclid. SWCLI does not search PATH for Wine, prefixes,
 SOLIDWORKS or a different Python.
 
-The DockerSW and MacSW `sw-cli` entry scripts only set the native client
+The DockerSW and MacSW `swcli` entry scripts only set the native client
 environment and forward **all** public arguments unchanged. They provide
 `SWCLI_DAEMON_UTILS` pointing to a separate shell script:
 
@@ -76,7 +76,7 @@ For example, with an App installed in `/Applications`:
 {
   "mcpServers": {
     "swcli": {
-      "command": "/Applications/MacSW.app/Contents/MacOS/sw-cli",
+      "command": "/Applications/MacSW.app/Contents/MacOS/swcli",
       "args": ["mcp", "serve"]
     }
   }
@@ -112,7 +112,7 @@ host terminal instead of repeatedly creating hosts.
 At task completion, the agent can choose to keep the host ready or explicitly
 stop it, based on the user's stated preferences, resource needs and expected
 follow-up work. There is no rule requiring the agent to leave it running.
-MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` and `sw-cli daemon stop` send the same
+MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` and `swcli daemon stop` send the same
 `daemon.shutdown` request and use the same protections. The tool returns its
 structured result while keeping the MCP connection open; the CLI returns
 text/JSON plus an exit code and finishes. Shutdown is explicit, affects all clients on the endpoint, and keeps MCP connected. It
@@ -122,7 +122,7 @@ No native-operation retry, implicit restart or rollback is added.
 
 ### Runtime observations
 
-`swcli_status` and `sw-cli daemon status --details --json` use the same read-only
+`swcli_status` and `swcli daemon status --details --json` use the same read-only
 snapshot. It reports daemon running/reachable/state, SW running, known ownership,
 SW PID and window visibility, other processes, observation scope and probe errors.
 `user_sw_running:null` means process origin cannot be established; a visible

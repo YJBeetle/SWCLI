@@ -114,7 +114,7 @@ function Invoke-SwCliJson {
         if ($elapsedSeconds -ge 135) {
             Save-DesktopDiagnostic -Name ("desktop-{0}-timeout" -f $Name)
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "sw-cli $Name did not exit within 135 seconds"
+            throw "swcli $Name did not exit within 135 seconds"
         }
         Start-Sleep -Seconds 1
         $process.Refresh()
@@ -126,14 +126,14 @@ function Invoke-SwCliJson {
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf) -or
         (Get-Item -LiteralPath $outputPath).Length -eq 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
-        throw "sw-cli $Name exited without a JSON result (exit code $($process.ExitCode))`n$stderr"
+        throw "swcli $Name exited without a JSON result (exit code $($process.ExitCode))`n$stderr"
     }
     try {
         $payload = Get-Content $outputPath -Raw -Encoding utf8 | ConvertFrom-Json
     }
     catch {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
-        throw "sw-cli $Name returned invalid JSON (exit code $($process.ExitCode))`n$stderr"
+        throw "swcli $Name returned invalid JSON (exit code $($process.ExitCode))`n$stderr"
     }
     if (-not $AllowFailure -and
         $payload.PSObject.Properties.Name -contains "ok" -and
@@ -156,13 +156,13 @@ function Invoke-SwCliJson {
         else {
             ""
         }
-        throw "sw-cli $Name returned ok=false: ${errorType}: ${errorMessage}${requestId}"
+        throw "swcli $Name returned ok=false: ${errorType}: ${errorMessage}${requestId}"
     }
     if (-not $AllowFailure -and
         $null -ne $process.ExitCode -and
         $process.ExitCode -ne 0) {
         $stderr = Get-Content $stderrPath -Raw -ErrorAction SilentlyContinue
-        throw "sw-cli $Name failed with exit code $($process.ExitCode)`n$stderr"
+        throw "swcli $Name failed with exit code $($process.ExitCode)`n$stderr"
     }
     return $payload
 }
