@@ -115,6 +115,20 @@ class DimensionPublicTests(unittest.TestCase):
         Draft202012Validator(load_schema("request")["properties"]["lease_id"]).validate(token)
         self.assertEqual(gate.command.call_args.kwargs["expected_error"], "DocumentLeaseConflict")
 
+    def test_public_trace_accepts_nested_com_calls_and_rejects_crossed_boundaries(self):
+        def nested_units(rows, *, crossed=False):
+            outer, terminal = rows[0], rows[-1]
+            template = rows[1]
+            outer_units = dict(template, sequence=1, stage="document-units", call="IModelDoc2.GetUnits")
+            inner_units = dict(template, sequence=2, stage="read", call="GetUnits")
+            terminals = [outer_units, inner_units] if crossed else [inner_units, outer_units]
+            rows[:] = [outer, outer_units, inner_units, *(dict(row, phase="end") for row in terminals),
+                       *(dict(row, sequence=row["sequence"] + 2) for row in rows[1:-1]), terminal]
+
+        self.assertEqual(self.proof(nested_units)["native_format_getters"], 12)
+        with self.assertRaisesRegex(RuntimeError, "native call ordering invalid"):
+            self.proof(lambda rows: nested_units(rows, crossed=True))
+
     def test_public_trace_rejects_wrong_setter_kind_or_order(self):
         def wrong_kind(rows):
             for row in rows:

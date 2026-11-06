@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：公开首轮42282493201原件已保全并定位超时包装None首因（尺寸setter为零）；最小修复3153b24已推送，43项定向测试通过。一次相关公开42301046570/head3153b24唯一快照in_progress，正常运行；仍不merge-ready。公开缺口继续留在当前系列任务内，按收口指令记录后结束本轮，无持续监看。
+公开运行42301046570已失败并保全原件。首个setter返回成功且读回一致，验收器误拒合法的嵌套GetUnits trace。最小修复已通过44项定向测试与六条真实请求的离线复验，公开完整验收仍待完成。
 
 ## 分支与范围
 
@@ -134,3 +134,10 @@
 - 同head自动便携CI https://github.com/YJBeetle/SWCLI/actions/runs/42301024325 ，唯一快照in_progress；先前7962b58的Windows便携CI42282468280已success。当前43项定向通过，本修复不涉及产品runtime/schema。
 - 总状态 ../evidence/calibration-state.json；首轮原始artifact/digest/trace/fixture/生命周期审计 ../evidence/public-42282493201/。后续完成时仍需核新运行原件、精确head/digest及完整公开链后才能给可合范围。
 - 按用户收口规则，正常运行记录后结束，无sleep/watch/automation、无CAD失败重试/回滚/组内host重启、无代理或新功能计划。当前系列公开缺口不后置出任务，也不宣称已完成发版门槛；由统筹后续分次快照继续。
+
+## 嵌套 trace 首因与修复
+
+- 42301046570在精确head 3153b2415cb0713f57f15e4fb2acff1d7a5c32ba完成并失败。artifact13544114350，SHA256 `c97921abdad7a83359720c0ea40b9e53a1b1f3c7e8346121d8f2df2b517a5fd7`，与GitHub digest/head一致。原件、trace及日志见 ../evidence/public-42301046570/。
+- 公开part三类拒绝均通过，首个dual_display setter真实执行一次，回执及读回成功。验收器以相邻两行配对，错误拒绝合法嵌套的IModelDoc2.GetUnits和GetUnits边界。组在首错停止，清理报告无错误，生命周期对照通过。
+- 最小修复使用栈配对并校验开始序号连续、结束匹配最近开始的序号/阶段/方法。保留原setter种类/次数、读写顺序、worker及几何和状态断言。44项定向测试通过，含合法嵌套与交叉终止拒绝。离线复验原件六条请求全部通过，实际setter一次、12次格式读取、一次SetSaveFlag。独立核验原始trace前缀和三份夹具SHA。
+- 3153b24便携Windows CI 42301024325 已通过。离线复验仅覆盖已记录的六条请求。完整公开验收需要在修复后走到三类保存重开和清理结束。

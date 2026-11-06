@@ -60,11 +60,22 @@ class DimensionTrace(annotations.NativeTrace):
         if hasattr(self, "worker_pid"):
             require(self.worker_pid == rows[0]["worker_pid"], "public group replaced its owning worker")
         self.worker_pid = rows[0]["worker_pid"]
-        calls = rows[1:-1]
-        require(len(calls) % 2 == 0, "native call boundaries incomplete")
-        for sequence, (begin, end) in enumerate(zip(calls[::2], calls[1::2]), 1):
-            require(begin["sequence"] == end["sequence"] == sequence and begin["phase"] == "begin"
-                    and end["phase"] in ("end", "error") and begin["call"] == end["call"], "native call ordering invalid")
+        # Sequence numbers are allocated at begin. A traced adapter call
+        # can contain another traced COM call, whose terminal arrives first.
+        stack = []
+        next_sequence = 1
+        for row in rows[1:-1]:
+            boundary = (row["sequence"], row["stage"], row["call"])
+            if row["phase"] == "begin":
+                require(type(row["sequence"]) is int and row["sequence"] == next_sequence,
+                        "native call ordering invalid")
+                stack.append(boundary)
+                next_sequence += 1
+            else:
+                require(row["phase"] in ("end", "error") and stack and stack[-1] == boundary,
+                        "native call ordering invalid")
+                stack.pop()
+        require(not stack, "native call boundaries incomplete")
         changes = [r for r in rows if r["phase"] == "begin" and r["call"].startswith("IModelDocExtension.SetUserPreference")]
         dirty = [r for r in rows if r["phase"] == "begin" and r["call"] == "IModelDoc2.SetSaveFlag"]
         cycle = ["IModelDocExtension.GetUserPreferenceToggle", "IModelDocExtension.GetUserPreferenceInteger", "IModelDocExtension.GetUserPreferenceToggle"]
