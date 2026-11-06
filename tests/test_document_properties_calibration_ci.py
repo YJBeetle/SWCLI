@@ -179,7 +179,7 @@ class DedicatedWorkflow(unittest.TestCase):
             block = workflow.split('  ' + name + ':\n', 1)[1].split('\n  ', 1)[0]
             self.assertIn("github.ref != '" + ci.BRANCH_REF + "' && !inputs.docprops_calibration", block)
 
-    def test_owned_harness_remains_exclusive_and_whitelist_closed(self):
+    def test_owned_harness_remains_exclusive_and_scope_is_finite(self):
         harness = (ROOT / 'scripts/ci/verify-through-all-calibration.py').read_text()
         self.assertIn('checked(owned, "calibration must never attach to an existing host")', harness)
         self.assertIn('"ExitApp", lambda: _com_value(app, "ExitApp"), owned', harness)
@@ -187,4 +187,5 @@ class DedicatedWorkflow(unittest.TestCase):
         self.assertNotIn('GetActiveObject', wrapper)
         self.assertNotIn('DispatchEx', wrapper)
         self.assertNotIn('taskkill', wrapper)
-        self.assertIn("CALIBRATED_DRAFTING_TRANSITIONS = ()", (ROOT / 'src/swcli/document_drafting_standard.py').read_text())
+        from swcli.document_drafting_standard import CALIBRATED_DRAFTING_TRANSITIONS
+        self.assertEqual(len(CALIBRATED_DRAFTING_TRANSITIONS), 36)

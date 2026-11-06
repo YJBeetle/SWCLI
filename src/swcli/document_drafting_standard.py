@@ -12,11 +12,49 @@ DRAFTING_STANDARDS = {
 }
 NAMED_DRAFTING_STANDARDS = tuple(name for name in DRAFTING_STANDARDS if name != "custom")
 DRAFTING_DEFAULTS_PROFILE = "drafting-defaults-v1"
-# Each future entry must be (document_type, source_native, target_native, profile).
-# Public operations are wired; no changed transition is enabled before native calibration.
-CALIBRATED_DRAFTING_TRANSITIONS = ()
-# Native Windows only; exact RevisionNumber strings need independent evidence.
-CALIBRATED_DRAFTING_WINDOWS_REVISIONS = ()
+# Exact native Windows evidence: docs/calibration/docprops-performance-windows.json.
+# Entries are (document_type, source_native, target_native, fixed_profile).
+# Public CLI/daemon/SDK/MCP acceptance is tracked separately from calibration.
+CALIBRATED_DRAFTING_TRANSITIONS = (
+    (1, 7, 1, 'drafting-defaults-v1'),
+    (1, 1, 7, 'drafting-defaults-v1'),
+    (1, 7, 2, 'drafting-defaults-v1'),
+    (1, 2, 7, 'drafting-defaults-v1'),
+    (1, 7, 3, 'drafting-defaults-v1'),
+    (1, 3, 7, 'drafting-defaults-v1'),
+    (1, 7, 4, 'drafting-defaults-v1'),
+    (1, 4, 7, 'drafting-defaults-v1'),
+    (1, 7, 5, 'drafting-defaults-v1'),
+    (1, 5, 7, 'drafting-defaults-v1'),
+    (1, 7, 6, 'drafting-defaults-v1'),
+    (1, 6, 7, 'drafting-defaults-v1'),
+    (2, 7, 1, 'drafting-defaults-v1'),
+    (2, 1, 7, 'drafting-defaults-v1'),
+    (2, 7, 2, 'drafting-defaults-v1'),
+    (2, 2, 7, 'drafting-defaults-v1'),
+    (2, 7, 3, 'drafting-defaults-v1'),
+    (2, 3, 7, 'drafting-defaults-v1'),
+    (2, 7, 4, 'drafting-defaults-v1'),
+    (2, 4, 7, 'drafting-defaults-v1'),
+    (2, 7, 5, 'drafting-defaults-v1'),
+    (2, 5, 7, 'drafting-defaults-v1'),
+    (2, 7, 6, 'drafting-defaults-v1'),
+    (2, 6, 7, 'drafting-defaults-v1'),
+    (3, 7, 1, 'drafting-defaults-v1'),
+    (3, 1, 7, 'drafting-defaults-v1'),
+    (3, 7, 2, 'drafting-defaults-v1'),
+    (3, 2, 7, 'drafting-defaults-v1'),
+    (3, 7, 3, 'drafting-defaults-v1'),
+    (3, 3, 7, 'drafting-defaults-v1'),
+    (3, 7, 4, 'drafting-defaults-v1'),
+    (3, 4, 7, 'drafting-defaults-v1'),
+    (3, 7, 5, 'drafting-defaults-v1'),
+    (3, 5, 7, 'drafting-defaults-v1'),
+    (3, 7, 6, 'drafting-defaults-v1'),
+    (3, 6, 7, 'drafting-defaults-v1'),
+)
+# Exact native RevisionNumber from the successful Windows run; Wine stays closed.
+CALIBRATED_DRAFTING_WINDOWS_REVISIONS = ('33.5.0',)
 # Exact swUserPreferenceOption_e values from read-r1's installed official TLB.
 # The four preference/option API pairings are documented in the official DP pages.
 BASE_STANDARD_OPTIONS = {

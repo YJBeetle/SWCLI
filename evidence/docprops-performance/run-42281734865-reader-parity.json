@@ -1,0 +1,18 @@
+{
+  "native_source_head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+  "production_module_byte_identical": true,
+  "windows_checkout_sha256": "0dd74fa0b7a37b705e53cf655a0234c7f49e56ac739cdd82edf441a641f2e6ff",
+  "local_lf_sha256": "5cd1858ff9e9636f8d7e157b237e689ed77ed69aae56f0d20d117e5025303b49",
+  "functions": {
+    "_read_standard": "3129bfdd90ed50eabbe75b45eda2aa17578c648adaf76f2b8ecee92ae4e86c6e",
+    "_coverage": "9dd72055b3d7b776c97cb7c221b9b952ba93dcd801a57653a60b54d18588abd1",
+    "_read_observed_defaults": "85d86db3cc1ee001e807c0c8e6f95070ecfc8aeed20368057d56b12c22f2fafd",
+    "_snapshot_key": "232915da34a0bdd40939e19861276dba4839ad0d79667182e0802c17f930b89f",
+    "_keys": "f6ecae70906c0a440d423bfdffb1b005104717f5792ec529022907ac89d5fb06",
+    "_validate_snapshot": "42641d18c9ed18b0347c1131a8fd19f37788b32f26fa5cb29c7ae30da3483180",
+    "_read_snapshot": "34cdd31f7543239627000f8b04f80c004fed8037b3a5084dacd722aee67d46c9",
+    "read_document_drafting_standard_windows": "2a996d1c9781a461417ddb6b214e6c72e0e4dae59d937561b4ff9c15695fc628"
+  },
+  "scope": "fixed reader and validator bodies used by the internal proof and upcoming public gate; changed whitelist data is separately committed",
+  "public_acceptance_verified": false
+}

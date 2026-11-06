@@ -190,3 +190,40 @@ class LiveTransportContractComposition(unittest.TestCase):
     def test_transport_read_may_not_adopt_changed_document_state(self):
         with self.assertRaisesRegex(RuntimeError, 'snapshot/state'):
             self.probe(mcp_drift=True)
+
+
+class CommittedNativeScope(unittest.TestCase):
+    def test_committed_scope_matches_actual_audit_and_exact_native_revision(self):
+        from swcli.document_drafting_standard import CALIBRATED_DRAFTING_TRANSITIONS, CALIBRATED_DRAFTING_WINDOWS_REVISIONS
+        proof = public.verified_proof()
+        audit = public.read_json(ROOT / proof['audit_path'])
+        self.assertTrue(audit['all_original_hashes_verified'])
+        self.assertTrue(audit['native_group_complete'])
+        self.assertIsNone(audit['first_failure'])
+        self.assertEqual(str(proof['run_id']), audit['run_id'])
+        self.assertEqual(proof['source_head'], audit['source_head'])
+        self.assertEqual(proof['source_hashes'], audit['source_hashes'])
+        self.assertEqual(proof['manifest_sha256'], audit['manifest_sha256'])
+        self.assertEqual(proof['auditor_sha256'], audit['auditor_sha256'])
+        self.assertEqual(tuple(CALIBRATED_DRAFTING_WINDOWS_REVISIONS), (proof['host_revision'],))
+        self.assertEqual(set(CALIBRATED_DRAFTING_TRANSITIONS), public.finite_transitions())
+        self.assertFalse(proof['full_acceptance_eligible'])
+        self.assertFalse(proof['public_acceptance_verified'])
+        artifacts = public.read_json(ROOT / f"evidence/docprops-performance/run-{proof['run_id']}-artifacts.json")['artifacts']
+        artifact = next(row for row in artifacts if row['id'] == proof['artifact_id'])
+        self.assertEqual(artifact['digest'], 'sha256:' + proof['artifact_sha256'])
+        self.assertEqual(artifact['workflow_run']['head_sha'], proof['source_head'])
+
+    def test_changed_write_outside_native_scope_remains_zero_setters(self):
+        import test_document_drafting_standard as portable
+        from swcli.hosts import windows_document_drafting_standard as adapter
+        fixture = portable.DocumentDraftingStandardTests(); fixture.setUp()
+        # ANSI->ISO was not calibrated, even on an otherwise eligible host.
+        fixture.native['Integer', 13, 0] = 1
+        with patch.object(adapter, '_require_calibrated_native_host') as host:
+            result = adapter.set_document_drafting_standard_windows(app=fixture.app, document=fixture.document,
+                value='iso', expected_snapshot=fixture.expected())
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['mutation'], {'attempted': False, 'may_have_changed': False})
+        host.assert_not_called()
+        fixture.assert_no_mutation()

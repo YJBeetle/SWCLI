@@ -117,10 +117,9 @@ class DocumentDraftingStandardTests(unittest.TestCase):
         self.document.SketchManager.ActiveSketch=sketch
         return template
 
-    def test_no_callable_parameter_registered_operations_and_empty_transition_gate(self):
+    def test_no_callable_parameter_registered_operations_and_forced_uncalibrated_gate(self):
         for function in (adapter.read_document_drafting_standard_windows,adapter.set_document_drafting_standard_windows):
             self.assertNotIn('snapshot_reader',inspect.signature(function).parameters)
-        self.assertEqual(CALIBRATED_DRAFTING_TRANSITIONS,())
         self.assertIn('document.drafting-standard',OPERATION_CATALOG)
         self.assertIn('document.drafting-standard-set',OPERATION_CATALOG)
         self.assertTrue(OPERATION_CATALOG['document.drafting-standard'].selected_document)

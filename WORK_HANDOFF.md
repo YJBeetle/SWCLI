@@ -1,15 +1,15 @@
 # 文档属性校准性能：当前接管与验收边界
 
-## 当前汇总（2026-11-07，按最新收口交接）
+## 当前汇总（2026-11-07，R5内部成功已保存/自验）
 
-- 工作分支实现已推送到 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`；本路**尚未 merge-ready**，不合main/发布。
-- 当前唯一进行中：[R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，固定head `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`。最后一次快照in_progress，正执行 `Free disposable runner disk for installation`，尚无原生结果；已停止持续轮询。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
-- R4 ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0` 与GitHub digest一致；唯一原件 template-selection.json SHA256 `8b23779be484396816795ea190c658e3105ffe8b17cab72c51afec3eda9b80a9`。详情 `evidence/docprops-performance/run-42274393189-audit.json`。
-- 相关修复已提交并触发一次R5：同一owned host先执行**独立fixture准备组1800秒**，记录已知named→GB最多每类一次或GB零setter、完整profile/保存/RO/hash/part几何；成功后复制这些本run生成文件，再执行**原单组36转换/216 profiles，仍1800秒**。两组worker分别授权、600原生上限不变；准备失败不启动主组，零失败重试/rollback/组内host重启。额外准备不计入36能力。
-- 准备/审计相关148项纳入完整回归；完整portable 2157项 / 75.483秒 / skipped32 通过，workflow actionlint exit0。此前2131完整portable（skip32）、host范围标准28、公开准备10、SDK strict types/25负向消费者已通过，均非原生/公开验收。
-- 公开状态：入口/workflow已准备且默认关闭；真实成功proof仍缺，转换与native-Windows revision名单均空。未触发公开CI。须原生全部成功并独立核验后才开放精准范围并跑公开CLI/daemon+SDK/MCP gate。
-- 共享src新增仅标准changed写的关闭host/revision门禁；无request/result/SDK/MCP字段变动。8个固定reader函数与ea45651 AST相同。本轮准备仅diag/driver/CI/auditor及测试，不改生产reader。
-- 待审批/自动审批拒绝：无。VM/DockerSW/MacSW及其他worktree未操作。
+- 既有实现tip `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`，其后交接tip `26cef42deb8425aa7cd829e446ad2cf82affb0da`。本轮在既定范围登记真实校准数据并继续必要公开gate；未merge main、未发版，最终review由统筹本人执行，无审查子代理。
+- [R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865) 已success，exact head为上述实现tip；artifact `13538635862`，ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d` 与GitHub digest一致。
+- 原件76文件持久保留：`evidence/docprops-performance/run-42281734865-original.zip`、`run-42281734865-original/`；4项当时源码snapshot为 `run-42281734865-source/`。原件未改；完整metadata/audit已保存。独立首层自验：native_group_complete=true，first_failure=null，全部manifest文件hash/size及4源码Windows CRLF hash一致，owned清理成功。
+- 实际内部覆盖：独立准备组2 setter/15 profile，56.346s；随后原单组36 setter全部strict True、216固定profile、36保存RO完整，632.444s。两组同owned PID6592、revision `33.5.0`；主组hard1800/native600未改变，无retry/rollback/host重启。这是实测完成时间，不是跨机器加速倍数。
+- 仅登记 part/assembly/drawing × GB7↔ANSI1/ISO2/DIN3/JIS4/BSI5/GOST6 共36 tuple、`drafting-defaults-v1` 与原生Windows revision `33.5.0`；custom/unknown、任意named→named、Wine、未来revision不开放。成功proof `docs/calibration/docprops-performance-windows.json`，明确public_acceptance_verified=false/full_acceptance_eligible=false。
+- 公开依赖与真实artifact baseline复制预检通过；public gate尚未执行，不能标记merge-ready或标准公开验收完成。完整portable 2159项 / 68.168s / skipped32通过，SDK生成/strict6文件/25负向消费者通过；随后仅对此相关提交触发一次公开gate；正常运行只记录链接/状态后结束等待，后续由统筹分次快照。
+- 无新公开operation/CLI/request-result schema/SDK/MCP字段；生产adapter完整源码与R5逐字节一致，指纹 `run-42281734865-reader-parity.json`。本轮生产改动仅有限校准数据；协议/lease/stamp/fullCAS/保护/partial receipt不改。
+- 待审批/自动审批拒绝：无。无本地VM、DockerSW/MacSW或其他worktree操作，无新增功能/计划，不rebase统筹当前main，不重复dispatch、不持续轮询、不创建单任务automation。
 
 
 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI`
@@ -198,3 +198,17 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 - 已有失败原件：R4 artifact `13532064982`，ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0`，GitHub digest核对一致；明确首因无GB part模板、0host/0setter。R2/R3原件和独立审计此前已保存。
 - 无新增公开operation/CLI/request-result schema/SDK/MCP字段。共享变动包括 `.github/workflows/ci.yml`、`scripts/ci/windows/cleanup-hosted-solidworks.ps1`、calibrator/driver、`src/swcli/document_drafting_standard.py`、`src/swcli/hosts/windows_document_drafting_standard.py`；生产src仅关闭门禁且固定reader AST未变，详见前述指纹。CI基础设施65min容纳独立准备1800+原36组1800，各组native600不变。
 - 统筹下次只需读该run完成/失败快照；原件可用后下载并核GitHub digest/source/head/attempt/manifest，再按独立auditor核首因与覆盖。当前没有需要用户审批的动作或未解决自动审批拒绝。
+
+
+### R5最终内部成功与原始证据自验
+
+统筹通知完成后仅一次读取该run最终metadata，再下载原artifact。run `42281734865` / attempt1 / `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`，workflow success；artifact `13538635862` / `swcli-docprops-performance-42281734865-1` / 3161983 bytes。ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d` 与GitHub digest一致。原始manifest SHA256 `08abd8b8f8e690b9856121215ea1f4fd049058c2426edc806e6b7026d43b33b9`；76原文件全部hash/size逐项验证，未规范化原件。4源码显式git-CRLF hash匹配当时head snapshot。
+
+`run-42281734865-audit.json` 证明准备和主组都完整：准备2setter/15profile，56.3462278s；主组36setter/216profile，632.4437035s；每类12次strictTrue和完整save/RO，trace无error/未终止call，SDK原生叶调用10260对、无重复setter/漏getter。owned parent release/ExitApp/handle wait/CoUninit清理完整，cleanup_errors=[]。part几何1body/V12000/S3800/centroid在各次save/RO保持；assembly是本run新建空assembly、drawing是安装GB base新建图纸，不声称任意复杂模型已测。
+
+此次实测SOLIDWORKS revision `33.5.0`、owned PID6592、native Windows runner；production `windows_document_drafting_standard.py` 当前LF字节与R5 head完全相同，其Windows CRLF SHA256 `0dd74fa0b7a37b705e53cf655a0234c7f49e56ac739cdd82edf441a641f2e6ff` 与原report source_files匹配。8个reader/validator AST另存 `run-42281734865-reader-parity.json`。登记数据不修改reader/setter逻辑，不新增API。
+
+成功proof只支持已测36转换和精确revision。内部成功不是公开CLI/daemon/SDK/MCP验收；因此按原计划继续公开gate，仍采用三类显式独立1800秒组、同一owned hidden daemon，lease/expected_update_stamp/完整CAS/零setter拒绝/noop/保存RO/新documentID/几何和SDK/MCP读取都须实际通过。`public-native-dependency-preflight.json` 已验证当前proof、GitHub run/artifact身份和三类baseline原件hash，未启动native host；正式公开run完成前不称merge-ready。
+
+
+本轮登记验证完成：`native-proof-full-tests.log`：2159 tests / 68.168s / OK (skipped32)；`native-proof-sdk-types.log`：SDK生成无漂移、strict6文件、25负向消费者通过；标准门禁28 tests和公开入口12 tests通过，包含强制空名单负向、未测ANSI→ISO zero setter、proof/audit/run/artifact摘要对应、exact revision范围。git diff --check通过。生产adapter没有修改，只有 `document_drafting_standard.py` 的36 tuple与单revision数据登记。下一次公开dispatch默认关闭、需exacthead，仅1次；不会重复内部R5。

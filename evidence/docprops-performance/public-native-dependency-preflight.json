@@ -1,0 +1,28 @@
+{
+  "proof_verified": true,
+  "dependency": {
+    "run_id": 42281734865,
+    "source_head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+    "artifact_id": 13538635862,
+    "artifact_name": "swcli-docprops-performance-42281734865-1",
+    "artifact_digest": "sha256:13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d",
+    "run_attempt": 1
+  },
+  "native_group_complete": true,
+  "fixtures": [
+    {
+      "kind": "part",
+      "sha256": "6f62f4e76568006abd0bb9a131231674816911335d42f0819ecd0d64ee506f14"
+    },
+    {
+      "kind": "assembly",
+      "sha256": "71f9d6ceed42ce46c16f63869fd47a1148f8a742e4e7717b30c8d04fee3ebf59"
+    },
+    {
+      "kind": "drawing",
+      "sha256": "efcfb4e0c8492fff4df11f02129dd81af724a57af7c6367ed72f28ac43884e6e"
+    }
+  ],
+  "native_started": false,
+  "public_acceptance_verified": false
+}

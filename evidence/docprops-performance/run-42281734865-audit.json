@@ -1,0 +1,154 @@
+{
+  "audit_success": true,
+  "auditor_sha256": "7555c1ea23802e0d690cef5ed202ccda51d37ba3ddb9c048258bcbe5ff521550",
+  "all_original_hashes_verified": true,
+  "source_head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+  "run_id": "42281734865",
+  "run_attempt": "1",
+  "source_hashes": {
+    "scripts/dev/calibrate-document-properties.py": "5874d7947e0edad5d4cf1dcb48740f8e12a94493bc280a6b8a352ec7d5ce8318",
+    "scripts/dev/run-document-properties-calibration.py": "f1af736b71afff375b3838ac1c0fbf00647c29ff51fe7038bd949206ef2e29a6",
+    "scripts/ci/verify-document-properties-calibration.py": "e09e627dadd16d6f87752cb8c31b28ebf1aa33b30f68aa43d2f77f1171f254c9",
+    "scripts/ci/verify-through-all-calibration.py": "883541f571838fb44bb15c38b46a6dbb53c390e01d10cf27af30ab675c6fef4e"
+  },
+  "source_byte_forms_verified_locally": {
+    "scripts/dev/calibrate-document-properties.py": "git-CRLF",
+    "scripts/dev/run-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-through-all-calibration.py": "git-CRLF"
+  },
+  "manifest_sha256": "08abd8b8f8e690b9856121215ea1f4fd049058c2426edc806e6b7026d43b33b9",
+  "native_group_complete": true,
+  "completed_transitions": 36,
+  "per_kind": {
+    "part": {
+      "setter_attempts": 12,
+      "strict_true_returns": 12,
+      "complete_saved_readonly_transitions": 12
+    },
+    "assembly": {
+      "setter_attempts": 12,
+      "strict_true_returns": 12,
+      "complete_saved_readonly_transitions": 12
+    },
+    "drawing": {
+      "setter_attempts": 12,
+      "strict_true_returns": 12,
+      "complete_saved_readonly_transitions": 12
+    }
+  },
+  "coverage_error": null,
+  "first_failure": null,
+  "active_group_at_conclusion": "standards-36",
+  "fixture_preparation": {
+    "complete": true,
+    "setter_requests": 2,
+    "profile_reads": 15,
+    "driver_elapsed_seconds": 56.34622779999995,
+    "trace": {
+      "begin_records": 1331,
+      "terminal_records": 1331,
+      "error_records": 0,
+      "unfinished_call": null,
+      "first_error": null,
+      "categories": {
+        "other_guards_and_io": {
+          "calls": 1040,
+          "wrapper_seconds": 38.20724190000351,
+          "begin_trace_seconds": 6.035064900006773,
+          "checkpoint_seconds": 4.020951199997853,
+          "function_body_seconds": 28.14450649999526,
+          "pre_native_failures": 0
+        },
+        "identity": {
+          "calls": 274,
+          "wrapper_seconds": 1.7604007000031743,
+          "begin_trace_seconds": 1.5721707000018341,
+          "checkpoint_seconds": 0.0009092999996482831,
+          "function_body_seconds": 0.18574229999921954,
+          "pre_native_failures": 0
+        },
+        "fixed_profile_reader": {
+          "calls": 15,
+          "wrapper_seconds": 5.105854900000168,
+          "begin_trace_seconds": 0.073733900000434,
+          "checkpoint_seconds": 4.849999982070585e-05,
+          "function_body_seconds": 5.031993599999623,
+          "pre_native_failures": 0
+        },
+        "standard_setter": {
+          "calls": 2,
+          "wrapper_seconds": 0.034735200000113764,
+          "begin_trace_seconds": 0.011201699999901393,
+          "checkpoint_seconds": 7.300000106624793e-06,
+          "function_body_seconds": 0.023517500000025393,
+          "pre_native_failures": 0
+        }
+      },
+      "scope": "completed wrappers only; wrapper excludes terminal fsync; function body may contain multiple COM leaves"
+    },
+    "sdk_trace": {
+      "reader_requests": 15,
+      "single_setter_requests": 2,
+      "native_call_pairs": 722,
+      "authorized_worker_pid": 2388,
+      "error_records": 0,
+      "repeated_setters": 0,
+      "scope": "flat SDK leaf boundaries, complete fixed getter cycles and exactly one setter per transition"
+    }
+  },
+  "driver_elapsed_seconds": 632.4437034999999,
+  "trace": {
+    "begin_records": 13484,
+    "terminal_records": 13484,
+    "error_records": 0,
+    "unfinished_call": null,
+    "first_error": null,
+    "categories": {
+      "other_guards_and_io": {
+        "calls": 10140,
+        "wrapper_seconds": 372.1057103999856,
+        "begin_trace_seconds": 50.37447090000228,
+        "checkpoint_seconds": 153.2855386999879,
+        "function_body_seconds": 168.38208360001067,
+        "pre_native_failures": 0
+      },
+      "identity": {
+        "calls": 3092,
+        "wrapper_seconds": 16.559522500004505,
+        "begin_trace_seconds": 15.338007000001653,
+        "checkpoint_seconds": 0.009833299995534617,
+        "function_body_seconds": 1.1940217000051234,
+        "pre_native_failures": 0
+      },
+      "fixed_profile_reader": {
+        "calls": 216,
+        "wrapper_seconds": 73.21958700000323,
+        "begin_trace_seconds": 1.1191341000057946,
+        "checkpoint_seconds": 0.0007019999975454994,
+        "function_body_seconds": 72.09866080000165,
+        "pre_native_failures": 0
+      },
+      "standard_setter": {
+        "calls": 36,
+        "wrapper_seconds": 0.5221955999998045,
+        "begin_trace_seconds": 0.1919777999987673,
+        "checkpoint_seconds": 0.00013840000065101776,
+        "function_body_seconds": 0.32993629999918994,
+        "pre_native_failures": 0
+      }
+    },
+    "scope": "completed wrappers only; wrapper excludes terminal fsync; function body may contain multiple COM leaves"
+  },
+  "sdk_trace": {
+    "reader_requests": 216,
+    "single_setter_requests": 36,
+    "native_call_pairs": 10260,
+    "authorized_worker_pid": 8140,
+    "error_records": 0,
+    "repeated_setters": 0,
+    "scope": "flat SDK leaf boundaries, complete fixed getter cycles and exactly one setter per transition"
+  },
+  "full_acceptance_eligible": false,
+  "public_whitelist_updates": []
+}

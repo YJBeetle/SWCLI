@@ -1,0 +1,254 @@
+{
+  "format": "swcli-docprops-native-proof-v1",
+  "native_group_complete": true,
+  "completed_transitions": 36,
+  "full_acceptance_eligible": false,
+  "public_acceptance_verified": false,
+  "source_head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+  "run_id": 42281734865,
+  "run_attempt": 1,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42281734865",
+  "artifact_id": 13538635862,
+  "artifact_name": "swcli-docprops-performance-42281734865-1",
+  "artifact_sha256": "13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d",
+  "manifest_sha256": "08abd8b8f8e690b9856121215ea1f4fd049058c2426edc806e6b7026d43b33b9",
+  "source_hashes": {
+    "scripts/dev/calibrate-document-properties.py": "5874d7947e0edad5d4cf1dcb48740f8e12a94493bc280a6b8a352ec7d5ce8318",
+    "scripts/dev/run-document-properties-calibration.py": "f1af736b71afff375b3838ac1c0fbf00647c29ff51fe7038bd949206ef2e29a6",
+    "scripts/ci/verify-document-properties-calibration.py": "e09e627dadd16d6f87752cb8c31b28ebf1aa33b30f68aa43d2f77f1171f254c9",
+    "scripts/ci/verify-through-all-calibration.py": "883541f571838fb44bb15c38b46a6dbb53c390e01d10cf27af30ab675c6fef4e"
+  },
+  "auditor_sha256": "7555c1ea23802e0d690cef5ed202ccda51d37ba3ddb9c048258bcbe5ff521550",
+  "platform": "native-windows",
+  "runner": "windows-2025",
+  "host_revision": "33.5.0",
+  "profile": "drafting-defaults-v1",
+  "transitions": [
+    [
+      1,
+      7,
+      1,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      1,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      7,
+      2,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      2,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      7,
+      3,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      3,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      7,
+      4,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      4,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      7,
+      5,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      5,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      7,
+      6,
+      "drafting-defaults-v1"
+    ],
+    [
+      1,
+      6,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      1,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      1,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      2,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      2,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      3,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      3,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      4,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      4,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      5,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      5,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      7,
+      6,
+      "drafting-defaults-v1"
+    ],
+    [
+      2,
+      6,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      1,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      1,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      2,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      2,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      3,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      3,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      4,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      4,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      5,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      5,
+      7,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      7,
+      6,
+      "drafting-defaults-v1"
+    ],
+    [
+      3,
+      6,
+      7,
+      "drafting-defaults-v1"
+    ]
+  ],
+  "group_design": "independent owned GB fixture preparation, then original single 36-transition group; each group 1800 seconds, each native call 600 seconds",
+  "main_group_elapsed_seconds": 632.4437034999999,
+  "fixture_preparation": {
+    "setter_requests": 2,
+    "profile_reads": 15,
+    "elapsed_seconds": 56.34622779999995
+  },
+  "main_group_profile_reads": 216,
+  "audit_path": "evidence/docprops-performance/run-42281734865-audit.json",
+  "scope": "part/assembly/drawing; GB7 to ANSI/ISO/DIN/JIS/BSI/GOST and back; fixed observed defaults only; no arbitrary named-to-named, custom, unknown, Wine or untested revision claim"
+}
