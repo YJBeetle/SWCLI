@@ -310,12 +310,18 @@ class ArtifactSourceTests(unittest.TestCase):
     def test_artifacts_are_same_sha_run_attempt_and_have_digest(self):
         env = {"GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2", "GITHUB_SHA": "1" * 40}
         run = {"head_sha": env["GITHUB_SHA"], "event": "push", "run_attempt": 2,
-               "repository": {"full_name": release.REPOSITORY}}
+               "repository": {"full_name": release.REPOSITORY}, "id": 123, "path": ".github/workflows/ci.yml",
+               "status": "in_progress", "head_branch": "v0.2.3"}
         artifacts = [{"id": index, "name": name, "expired": False, "size_in_bytes": 100,
                       "digest": "sha256:" + "a" * 64, "workflow_run": {"head_sha": env["GITHUB_SHA"]}}
-                     for index, name in enumerate(("swcli-dist", "swcli-windows-hosted-123-2"))]
+                     for index, name in enumerate(("swcli-dist", "swcli-windows-hosted-123-1"), 1)]
         class API:
             def api(self, path):
+                if "/jobs?" in path:
+                    return {"jobs": [{"name": name, "conclusion": "success", "head_sha": env["GITHUB_SHA"],
+                        "started_at": "start", "completed_at": "end"} for name in (
+                        "Validate release tag before private native runtime", "Windows / Python 3.9",
+                        "Windows / Python 3.14", "Build wheel", "Complete SOLIDWORKS functional verification")]}
                 return {"artifacts": artifacts} if "/artifacts?" in path else run
         self.assertEqual(len(release.verify_run_artifacts(API(), env)), 2)
         for key, value in (("expired", True), ("digest", ""), ("workflow_run", {"head_sha": "2" * 40})):

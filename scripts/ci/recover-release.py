@@ -29,13 +29,13 @@ def load_publisher(path):
     return module
 
 
-def source_context(api, run_id):
+def source_context(api, run_id, *, allow_running=False):
     require(re.fullmatch(r"[1-9][0-9]*", str(run_id)), "Invalid original run ID")
     run_id = str(run_id)
     run = api.api("actions/runs/" + run_id)
     require(str(run.get("id")) == run_id and run.get("repository", {}).get("full_name") == REPOSITORY
             and run.get("event") == "push" and run.get("path") == ".github/workflows/ci.yml"
-            and run.get("status") == "completed", "Original tag workflow is not complete/trusted")
+            and run.get("status") in (("completed", "in_progress") if allow_running else ("completed",)), "Original tag workflow is not complete/trusted")
     tag = run.get("head_branch", "")
     require(re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+)?", tag), "Original run is not a version tag")
     commit = run.get("head_sha", "")

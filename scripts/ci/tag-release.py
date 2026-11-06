@@ -7,6 +7,7 @@ import csv
 import email.parser
 import hashlib
 import io
+import importlib.util
 import json
 import os
 from pathlib import Path, PureWindowsPath
@@ -234,7 +235,7 @@ def prepare(root, dist, evidence, output, env, artifacts=None):
     provenance = {"schema_version": 1, "repository": REPOSITORY, **tag,
                   "run_id": env["GITHUB_RUN_ID"], "run_attempt": env["GITHUB_RUN_ATTEMPT"],
                   "run_url": "https://github.com/" + REPOSITORY + "/actions/runs/" + env["GITHUB_RUN_ID"],
-                  "artifacts": ["swcli-dist", "swcli-windows-hosted-" + env["GITHUB_RUN_ID"] + "-" + env["GITHUB_RUN_ATTEMPT"]],
+                  "artifacts": list(artifacts) if artifacts else ["swcli-dist", "swcli-windows-hosted-" + env["GITHUB_RUN_ID"] + "-" + env["GITHUB_RUN_ATTEMPT"]],
                   "artifact_metadata": artifacts or {},
                   "packages": {p.name: sha256(p) for p in packages}, "native_receipts": native,
                   "native_verified": True, "public_download_verified": False,
@@ -302,19 +303,14 @@ def verify_run_artifacts(api, env):
             and run.get("repository", {}).get("full_name") == REPOSITORY
             and str(run.get("run_attempt")) == env["GITHUB_RUN_ATTEMPT"],
             "Workflow source/run attempt differs from release")
-    rows = api.api("actions/runs/" + run_id + "/artifacts?per_page=100")["artifacts"]
-    expected = ("swcli-dist", "swcli-windows-hosted-" + run_id + "-" + env["GITHUB_RUN_ATTEMPT"])
-    result = {}
-    for name in expected:
-        selected = [a for a in rows if a["name"] == name]
-        require(len(selected) == 1 and selected[0].get("expired") is False,
-                "Missing/ambiguous original artifact: " + name)
-        item = selected[0]
-        require(item.get("workflow_run", {}).get("head_sha") == env["GITHUB_SHA"]
-                and re.fullmatch(r"sha256:[0-9a-f]{64}", item.get("digest", "")),
-                "Artifact has no matching source SHA/digest: " + name)
-        result[name] = {key: item[key] for key in ("id", "name", "digest", "size_in_bytes")}
-    return result
+    spec = importlib.util.spec_from_file_location("release_recovery_selector", Path(__file__).with_name("recover-release.py"))
+    selector = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(selector)
+    try:
+        context = selector.source_context(api, run_id, allow_running=True)
+    except RuntimeError as exc:
+        raise ValueError(str(exc)) from exc
+    return {item["name"]: item for item in context["artifacts"].values()}
 
 
 def publish(output, api):
@@ -363,7 +359,7 @@ def publish(output, api):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("check-tag", "release"))
+    parser.add_argument("mode", choices=("check-tag", "resolve-artifacts", "release"))
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--dist", type=Path)
     parser.add_argument("--evidence", type=Path)
@@ -371,6 +367,13 @@ def main():
     args = parser.parse_args()
     if args.mode == "check-tag":
         print(json.dumps(validate_tag(args.root, os.environ)))
+    elif args.mode == "resolve-artifacts":
+        validate_tag(args.root, os.environ)
+        artifacts = verify_run_artifacts(GitHub(), os.environ)
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+            for name, item in artifacts.items():
+                key = "dist_id" if name == "swcli-dist" else "native_id"
+                output.write(key + "=" + str(item["id"]) + "\n")
     else:
         require(args.dist and args.evidence and args.output, "Release paths are required")
         api = GitHub()

@@ -499,16 +499,21 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+      - name: Resolve artifacts from successful native execution
+        id: release-source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/ci/tag-release.py resolve-artifacts
       - name: Download original distributions from this run
         uses: actions/download-artifact@v8
         with:
-          name: swcli-dist
+          artifact-ids: ${{ steps.release-source.outputs.dist_id }}
           path: ${{ runner.temp }}/release-dist
           digest-mismatch: error
       - name: Download original native receipts from this run
         uses: actions/download-artifact@v8
         with:
-          name: swcli-windows-hosted-${{ github.run_id }}-${{ github.run_attempt }}
+          artifact-ids: ${{ steps.release-source.outputs.native_id }}
           path: ${{ runner.temp }}/release-native
           digest-mismatch: error
       - name: Verify source, original artifacts and full native proof; publish without replacing assets
