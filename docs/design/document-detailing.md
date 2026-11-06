@@ -20,4 +20,8 @@ swcli document detailing-option-set auto_center_marks.part_holes true \
 
 便携测试只证明接线与保护。内部 Windows 校准使用独立拥有的宿主、空工程图和前台零件；逐字段 true/false，逐次保存并只读重开、核对整组值、图纸/视图/投影以及原有 annotation scalars；验证 read-only 拒绝。每个追踪调用 600 秒、整组 1800 秒，首个失败停止并保留原报告、trace、文件和 hash。CI 手动 `detailing_calibration=true` 仅允许本分支，默认关闭，不运行完整 native suite，不触发 release。
 
-当前 `CALIBRATED_REVISIONS` 为空；公开变更写入 fail closed。内部校准在其独占 Python 进程中临时允许本次宿主的准确版本号，结束后恢复。内部校准不等于公开 CLI/daemon 验收；未取得对应原生证据不得把新写入宣称为已验收。版本放行必须引用持久证据，不能根据便携测试放行。
+当前变更写入仅开放 **原生 Windows + SOLIDWORKS `33.5.0`**，依据 `docs/evidence/detailing-internal-42260661085.json` 中核对过 head/digest/trace/四次保存重开的内部证据。其他版本、Wine、未知运行时 fail closed。相同值的无 mutation no-op 不代表变更写入获支持。
+
+公开验收使用默认关闭的 `workflow_dispatch` 输入 `detailing_public_gate=true`（与内部 `detailing_calibration` 互斥），仅本分支可运行，同样跳过 test/package/full-native/release。`verify-detailing-public.py` 不访问 COM，只用安装后的 CLI/daemon，真实 SDK 与 MCP bridge；检查逐值写入、no-op、lease/stamp/完整 CAS 拒绝、read-only 拒绝、四次独立保存重开、原文件 hash、无关注解标量、单宿主/worker，以及 request ID 对应的完整 native trace 顺序。stdio 的 MCP 协议契约由便携测试覆盖，不冒称为本 gate 的真实 stdio CAD 证据。
+
+内部校准不等于公开 CLI/daemon 验收；公开 gate 通过并核验原产物前，该范围仍未达到 merge-ready。此候选不属于完整文档属性页、完整建模 suite 或 release 验收。

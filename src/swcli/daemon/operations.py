@@ -464,7 +464,19 @@ def document_detailing_option_set(context: OperationContext, values: Dict[str, A
     result = set_document_detailing_option_windows(
         app=context.app, document=context.entry.document, **values,
     )
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        # A final descriptor failure must not erase a setter's partial-mutation
+        # receipt. Failure results permit an unavailable document descriptor.
+        result["ok"] = False
+        detail = "final drawing observation failed: " + str(exc)
+        if "error" in result:
+            result["error"]["message"] += "; " + detail
+        else:
+            result["error"] = {"type": type(exc).__name__, "message": detail}
+        result["session_id"] = context.session_id
+        return result
 
 
 @_register_handler

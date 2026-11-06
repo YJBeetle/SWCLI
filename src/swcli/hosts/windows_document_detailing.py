@@ -1,6 +1,8 @@
 """Protected drawing defaults; never insert marks or alter existing views."""
 
+import ctypes
 from functools import lru_cache
+import sys
 from pathlib import Path
 
 from ..document_detailing import DETAILING_FIELDS, validate_detailing_options
@@ -10,10 +12,10 @@ from .windows_feature_inspection import _same
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
 
-# Populate only from retained native save/reopen evidence. Empty means public
-# writes fail closed. Internal calibration temporarily scopes the allowlist to
-# its owned host; there is no public wire parameter or environment switch.
-CALIBRATED_REVISIONS = frozenset()
+# Exact revision proven by retained native save/reopen evidence:
+# docs/evidence/detailing-internal-42260661085.json. Other revisions fail closed.
+# Internal calibration scopes its own allowlist; no wire/environment override.
+CALIBRATED_REVISIONS = frozenset({"33.5.0"})
 
 
 @lru_cache(maxsize=8)
@@ -50,6 +52,14 @@ def _constants(app):
     if not path.is_file():
         raise RuntimeError("official swconst type library is unavailable beside SOLIDWORKS")
     return _load_constants(str(path.resolve()))
+
+
+def _native_windows():
+    if sys.platform != "win32":
+        return False
+    # A Wine Python reports win32 too. Unknown runtime discovery fails before
+    # mutation; native Windows evidence must not silently enable Wine writes.
+    return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
 
 
 def _read_options(document, constants):
@@ -125,7 +135,7 @@ def set_document_detailing_option_windows(
             return result
         if not _writable_context(app, snapshot[2]):
             raise ValueError("detailing editing requires a normal drawing sheet")
-        if _com_value(app, "RevisionNumber") not in CALIBRATED_REVISIONS:
+        if not _native_windows() or _com_value(app, "RevisionNumber") not in CALIBRATED_REVISIONS:
             raise ValueError("drawing detailing writes lack native calibration for this SOLIDWORKS revision")
         desired = {**before, field: value}
         result["mutation"] = {"attempted": True, "may_have_changed": True}

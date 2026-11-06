@@ -34,17 +34,20 @@ def timeout_reason(started, now, records):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--public-gate", action="store_true")
     parser.add_argument("--swconst", required=True)
     parser.add_argument("--drawing-template", required=True)
     args = parser.parse_args()
     args.output_dir.mkdir()
-    evidence = args.output_dir / "calibration"
-    command = [sys.executable, "-I", str(Path(__file__).with_name("verify-detailing-calibration.py")),
-               "--output-dir", str(evidence), "--swconst", args.swconst,
-               "--drawing-template", args.drawing_template]
+    evidence = args.output_dir / ("public" if args.public_gate else "calibration")
+    verifier = "verify-detailing-public.py" if args.public_gate else "verify-detailing-calibration.py"
+    command = [sys.executable, "-I", str(Path(__file__).with_name(verifier)),
+               "--output-dir", str(evidence), "--drawing-template", args.drawing_template]
+    if not args.public_gate:
+        command += ["--swconst", args.swconst]
     started = time.time()
     receipt = dict(schema_version=1, source_commit=os.environ.get("GITHUB_SHA"),
-                   public_acceptance=False, native_timeout_seconds=600, group_timeout_seconds=1800)
+                   public_acceptance=args.public_gate, native_timeout_seconds=600, group_timeout_seconds=1800)
     with (args.output_dir / "stdout.log").open("wb") as stdout, (args.output_dir / "stderr.log").open("wb") as stderr:
         process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
         receipt["process_id"] = process.pid
@@ -54,7 +57,11 @@ def main():
             if trace.exists():
                 for line in trace.read_text(encoding="utf-8").splitlines():
                     try:
-                        records.append(json.loads(line))
+                        row = json.loads(line)
+                        if "time" not in row and "monotonic_seconds" in row:
+                            row["time"] = row["monotonic_seconds"] + time.time() - time.monotonic()
+                        if "call" in row and "phase" in row:
+                            records.append(row)
                     except json.JSONDecodeError:
                         pass  # Ignore only an in-progress final line.
             reason = timeout_reason(started, time.time(), records)

@@ -49,6 +49,7 @@ class DetailingTests(unittest.TestCase):
         self.registry.set_current(front, session_id="writer")
         self.lease = self.registry.acquire_lease(self.entry, session_id="writer", ttl_seconds=60)
         self.patches = [mock.patch.object(adapter, "_constants", return_value=self.constants),
+                        mock.patch.object(adapter, "_native_windows", return_value=True),
                         mock.patch.object(adapter, "CALIBRATED_REVISIONS", frozenset({"test-revision"}))]
         for patch in self.patches:
             patch.start()
@@ -113,6 +114,13 @@ class DetailingTests(unittest.TestCase):
         self.assertIn("lack native calibration", result["error"]["message"])
         self.assert_untouched()
 
+    def test_wine_or_unknown_runtime_cannot_use_native_windows_evidence(self):
+        with mock.patch.object(adapter, "_native_windows", return_value=False):
+            result = self.edit()
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+        self.assert_untouched()
+
     def test_native_setter_partial_failure_never_retries_or_rolls_back(self):
         def fail(pref, option, value):
             self.native[pref] = value
@@ -124,6 +132,15 @@ class DetailingTests(unittest.TestCase):
         self.assertTrue(self.native[901])
         self.extension.SetUserPreferenceToggle.assert_called_once()
         self.document.SetSaveFlag.assert_not_called()
+        validate_operation_result("document.detailing-option-set", result)
+
+    def test_final_descriptor_failure_preserves_partial_mutation_receipt(self):
+        with mock.patch("swcli.daemon.operations._with_document", side_effect=RuntimeError("descriptor unavailable")):
+            result = self.edit()
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.assertTrue(self.native[901])
+        self.extension.SetUserPreferenceToggle.assert_called_once()
         validate_operation_result("document.detailing-option-set", result)
 
     def test_wrong_readback_or_neighbor_change_are_partial_failures(self):

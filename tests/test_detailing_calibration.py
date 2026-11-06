@@ -28,9 +28,7 @@ class DetailingCalibrationTests(unittest.TestCase):
         self.assertIn("600-second", watchdog.timeout_reason(0, 621, records))
 
     def test_no_wire_or_environment_override_can_enable_writes(self):
-        from swcli.hosts.windows_document_detailing import CALIBRATED_REVISIONS
         from swcli.operation_schemas import validate_operation_request
-        self.assertEqual(CALIBRATED_REVISIONS, frozenset())
         with self.assertRaises(ValueError):
             validate_operation_request("document.detailing-option-set", {"_calibration": True})
 

@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      detailing_public_gate:
+        description: Run only public drawing-default CLI/daemon acceptance on codex/docprops-detailing
+        required: false
+        default: false
+        type: boolean
       detailing_calibration:
         description: Run only internal drawing-default calibration on codex/docprops-detailing
         required: false
@@ -72,7 +77,7 @@ jobs:
         run: python scripts/ci/tag-release.py check-tag
 
   test:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.detailing_calibration) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate)) }}
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
     timeout-minutes: 15
@@ -172,7 +177,7 @@ jobs:
           retention-days: 14
 
   package:
-    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.detailing_calibration) }}
+    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate)) }}
     name: Build wheel
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -488,7 +493,8 @@ jobs:
 
 
   detailing-calibration:
-    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-detailing' && inputs.detailing_calibration }}
+    name: ${{ inputs.detailing_public_gate && 'Detailing public CLI/daemon gate' || 'Detailing internal calibration' }}
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-detailing' && (inputs.detailing_calibration || inputs.detailing_public_gate) && !(inputs.detailing_calibration && inputs.detailing_public_gate) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -620,7 +626,7 @@ jobs:
             -AssetsRoot "$env:PRIVATE_ROOT\assets" `
             -StateDirectory "$env:PRIVATE_ROOT\state"
 
-      - name: Run only bounded internal detailing calibration
+      - name: Run only the selected bounded detailing validation
         id: detailing
         timeout-minutes: 31
         shell: powershell
@@ -629,11 +635,13 @@ jobs:
         run: |
           $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
           if ($LASTEXITCODE -ne 0) { throw "Drawing fixture discovery failed" }
-          python -I scripts/ci/run-detailing-calibration.py `
-            --output-dir "$env:SWCLI_SMOKE_ROOT\detailing" `
-            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
-            --drawing-template $drawingTemplate
-          if ($LASTEXITCODE -ne 0) { throw "Internal detailing calibration failed; retain first-failure evidence" }
+          $validationArguments = @("-I", "scripts/ci/run-detailing-calibration.py",
+            "--output-dir", "$env:SWCLI_SMOKE_ROOT\detailing",
+            "--swconst", "C:\Program Files\SOLIDWORKS\swconst.tlb",
+            "--drawing-template", $drawingTemplate)
+          if ("${{ inputs.detailing_public_gate }}" -eq "true") { $validationArguments += "--public-gate" }
+          python @validationArguments
+          if ($LASTEXITCODE -ne 0) { throw "Detailing validation failed; retain first-failure evidence" }
       - name: Retain original installer logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -646,7 +654,7 @@ jobs:
         if: always()
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
-      - name: Retain original internal calibration evidence
+      - name: Retain original detailing validation evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
