@@ -1,5 +1,8 @@
-"""Guarded part image quality candidate. No GLB options or global writes."""
+"""Guarded part image quality on the calibrated SOLIDWORKS profile."""
+import ctypes
 import os
+import sys
+import sysconfig
 from typing import Any
 
 from ..document_image_quality import (IMAGE_QUALITY_FIELDS, NATIVE_FIELDS, SHADED_MODES,
@@ -11,8 +14,37 @@ from .windows_document_annotations import _edit_context, _verify_context, _writa
 from .windows_feature_inspection import _same
 
 
+# Exact changed Double transitions from the two independently audited fixtures
+# in Actions run 42301795947. Each tuple is (low, high, fine, custom) in meters.
+_PUBLIC_CUSTOM_PROFILES = (
+    (9.036144578313254e-06, 0.00025, 5.7692307692307704e-05, 1.8750000000000002e-05),
+    (1.5358492510821644e-05, 0.00042491829279939875, 9.805806756909202e-05, 3.186887195995491e-05),
+)
+
+
 class DocumentImageQualityUnsupported(RuntimeError):
-    """Writes remain closed outside explicitly enabled internal calibration."""
+    """The runtime or requested write is outside the calibrated profile."""
+
+
+def _public_runtime(app):
+    if (sys.platform != "win32" or sys.implementation.name != "cpython"
+            or sys.version_info[:3] != (3, 12, 10) or sysconfig.get_platform() != "win-amd64"):
+        return False
+    try:
+        ntdll = ctypes.WinDLL("ntdll.dll")
+    except (AttributeError, OSError):
+        return False
+    return (getattr(ntdll, "wine_get_version", None) is None
+            and _com_value(app, "RevisionNumber") == "33.5.0")
+
+
+def _public_custom_target(before, value):
+    bounds = before["deviation_range"]["bounds_m"]
+    return before["shaded_mode"] == "fine" and any(
+        bounds == [low, high] and before["native"]["shaded_deviation_m"] == fine
+        and value == custom * 1000.0
+        for low, high, fine, custom in _PUBLIC_CUSTOM_PROFILES
+    )
 
 
 class DocumentImageQualityConflict(RuntimeError):
@@ -93,9 +125,10 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
     result = {"ok": False, "action": "document.image-quality-set", "mutation": {"attempted": False, "may_have_changed": False}}
     try:
         validate_value(field, value); validate_quality(expected_quality)
-        if os.environ.get("SWCLI_IMAGE_QUALITY_CALIBRATION") != "1":
+        calibration = os.environ.get("SWCLI_IMAGE_QUALITY_CALIBRATION") == "1"
+        if not calibration and not _public_runtime(app):
             raise DocumentImageQualityUnsupported(
-                "image quality writes require internal calibration; GLB tessellation control is unproven")
+                "image quality writes require SOLIDWORKS 33.5.0 on native Windows with CPython 3.12.10 x64")
         state, foreground, edit, foreground_state = _baseline(app, document)
         _require_writable(document)
         before = _read_quality(document)
@@ -115,6 +148,9 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
             native = value / 1000.0
             if bounds["status"] != 0 or not bounds["bounds_m"][0] <= native <= bounds["bounds_m"][1]:
                 raise ValueError("deviation is outside the observed native range or range is unavailable")
+            if not calibration and not _public_custom_target(before, value):
+                raise DocumentImageQualityUnsupported(
+                    "changed deviation requires a verified fine-to-custom value and native range profile")
         else:
             native = SHADED_MODES[value] if field == "shaded_mode" else value
         spec = IMAGE_QUALITY_FIELDS[field]

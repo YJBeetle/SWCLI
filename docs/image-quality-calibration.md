@@ -1,8 +1,8 @@
 # Part Image Quality and GLB evidence boundary
 
-This branch adds document display-quality observation and a **default-closed
-internal write candidate**, not accepted GLB export-option support. No release,
-main integration, production host or local Windows VM is involved.
+The internal part display-quality group passed on SOLIDWORKS 33.5.0 with native
+Windows CPython 3.12.10 x64. The same scope is enabled for a separate public
+acceptance run. GLB format options remain unsupported.
 
 ## Public contract
 
@@ -12,7 +12,7 @@ main integration, production host or local Windows VM is involved.
   field-specific typed value, complete `expected_quality`, required
   `expected_update_stamp` and `lease_id`. CLI uses `--if-quality`,
   `--if-update-stamp`, `--lease`. SDK methods and MCP `execute` share this schema.
-- Writable candidates: `shaded_mode` (coarse/fine, native 1/2; custom=3 is observed only),
+- Writable fields: `shaded_mode` (coarse/fine, native 1/2; custom=3 is observed only),
   `shaded_deviation_mm` (native meters), `optimize_edge_length` (boolean).
   Read-only observations: `save_tessellation`, `apply_to_referenced_parts`.
 - Snapshot: five normalized values, all five raw `native` members, and
@@ -35,11 +35,20 @@ main integration, production host or local Windows VM is involved.
   replace the first native cause. At most one dirty mark follows verified
   readback. Same-value operations call no setter or dirty mark.
 
-Without `SWCLI_IMAGE_QUALITY_CALIBRATION=1` in the daemon process, writing returns
-`DocumentImageQualityUnsupported` before native preference access. The dedicated
-owned-host CI wrapper enables it only for its new daemon and restores the parent
-environment. This switch is internal; a passing calibration does not
-implicitly promote the candidate to public acceptance.
+Public writes require SOLIDWORKS revision `33.5.0` on native Windows with CPython
+3.12.10 x64. The daemon refuses other runtimes before preference access. A changed
+custom deviation requires fine mode and the matching native range, current value
+and target in one row below. Same-value requests retain the zero-setter behavior.
+
+| Native range (m) | Current native fine (m) | Requested custom (mm) |
+| --- | --- | --- |
+| `[9.036144578313254e-06, 0.00025]` | `5.7692307692307704e-05` | `0.018750000000000003` |
+| `[1.5358492510821644e-05, 0.00042491829279939875]` | `9.805806756909202e-05` | `0.03186887195995491` |
+
+These values come from the cylinder and box save/reopen evidence. Other changed
+deviation requests return `DocumentImageQualityUnsupported` before a setter.
+The internal calibration switch remains reserved for the owned CI daemon. The
+separate public gate clears both internal switches.
 
 ## Official evidence
 
@@ -112,15 +121,12 @@ strict GLB group start in the same owned host. Each group retains 600/1800 s
 budgets; the whole CI step remains capped at 35 minutes. An exporter failure
 cannot be relabeled as a property API failure or used as property acceptance.
 
-A native 33.5.0 artifact declared 3696 embedded buffer bytes but contained a
-zero-length BIN chunk. The production container check now rejects that case;
-metadata/accessor counts are not mesh evidence. The next internal experiment
-uses an ASCII staging basename with a single `.glb` extension, enabled only by
-`SWCLI_GLB_PLAIN_STAGING_CALIBRATION=1` in its owned daemon. This tests a filename
-hypothesis without changing the API, preferences or retry policy; it does not
-establish a cause. Default staging is unchanged. Rejected bytes are retained as
-an explicitly invalid CI diagnostic, never published as successful CAD output.
-
+Run 42301795947 completed the property group and stopped at its first GLB
+export. A single `SaveAs3` call with an ASCII staging name produced the exact
+same 3816 bytes as the earlier multi-dot filename. The file declared 3696
+embedded buffer bytes and contained a zero-length BIN chunk. Strict verification
+rejected it and retained the original bytes as a diagnostic. GLB control
+remains unverified. No exporter correction follows from the filename experiment.
 
 The 33.5.0 Integer-custom failure is preserved in run 42271766677: coarse and
 fine had saved/reopened successfully; setting Integer 44 to 3 returned True but
@@ -136,11 +142,6 @@ request/result schemas through the MCP bridge and reads the exact background
 handle through MCP, checking raw quality and native trace. This path has not yet
 passed native acceptance. A cleanup failure clears every acceptance flag.
 
-At the user-requested closeout, run 42280265165 at c85ca5f remains in progress
-before CAD setup. Public writes remain closed and no merge-ready acceptance is
-claimed. Follow WORK_HANDOFF.md for the exact snapshot and preserved originals.
-
-
 Run 42280265165 subsequently failed the unchanged strict readback check: a
 single Double request for 0.06927710843373494 mm returned True and selected
 custom mode, but the native value became 0.07142857142857144 mm. The receipt
@@ -150,5 +151,6 @@ The corrected calibration requests the fixture's initial, independently
 observed native custom value after the preset stages, retaining the same
 readback, raw persistence, geometry and trace requirements. It does not infer
 a quantization grid or prove arbitrary in-range values are exactly writable.
-Public writes remain closed. Original failure ZIP and independent first-failure
-audit are preserved under run-42280265165 in the handoff artifact directory.
+The original failure ZIP and first-failure audit are preserved under
+run-42280265165 in the handoff artifact directory. The subsequent property-only
+audit of run 42301795947 verified both fixtures and the two observed targets.

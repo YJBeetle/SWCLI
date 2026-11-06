@@ -494,14 +494,14 @@ Lease boundaries are deliberately narrow:
 - `lease status` hides the token from other sessions but reports the owning
   `session_id` for coordination. It is not a multi-tenant privacy boundary.
 
-`document image-quality` observes a bounded **part-only** display-quality
-snapshot, including raw native values and the native deviation range. This is
-separate from GLTF/GLB export options. The candidate `image-quality-set` operation
-requires a complete `--if-quality` snapshot, `--if-update-stamp` and `--lease`;
-it **fails closed by default** pending native calibration. It does not expose
-Draco, cameras, lights, motion or a GLB triangle budget. Image Quality changes
-alone do not establish that the GLB exporter changes tessellation. See the
-[calibration scope and evidence contract](docs/image-quality-calibration.md).
+`document image-quality` reads the part display-quality snapshot, including raw
+values and the native deviation range. `document image-quality-set` requires a
+complete `--if-quality` snapshot, `--if-update-stamp` and `--lease`. Writes are
+scoped to SOLIDWORKS 33.5.0 on native Windows with CPython 3.12.10 x64. Presets
+accept `coarse` and `fine`, edge optimization accepts booleans, and changed
+custom deviations require a verified native profile. See the
+[calibrated profiles and evidence](docs/image-quality-calibration.md). GLB
+format options and tessellation control remain unsupported.
 
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.

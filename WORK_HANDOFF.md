@@ -2,6 +2,14 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 当前状态：内部属性通过，进入公开验收
+
+- [42301795947](https://github.com/YJBeetle/SWCLI/actions/runs/42301795947) 精确 head `0a5afc1508574800adb2c82561a9b1d32fe8b979`。原 artifact 13546105488，1641461 bytes，SHA-256 `c49857f607eb2efc09b16c5366a46f4e08685f0341fba46168ce95940ff77b0a`。原件及独立审计位于持久根 `run-42301795947`。后续段落为历史。
+- 属性组通过独立审计。圆柱、方盒的 coarse/fine/custom 均核保存及全 raw 重开。校验 58 条 CLI trace、2 次 SDK 后台读取、16 次解析几何对照和清理。两种 edge 值通过。单 Double 仅证明该两种已观察 fine-to-custom 转换。
+- 整次 run 的首个失败发生在独立 GLB 组的首个导出。1 次 `SaveAs3` 产物宣称 BIN 3696 bytes，实际为 0。普通暂存名与旧 run 42265919228 的多点暂存名产物逐字节相同，GLB SHA-256 `be886c6cb8853fc6e4c516531ed08a874894749bf0e375e7337f434a104e9c51`。`independent-glb-first-failure.json` 记录单次 trace 和诊断。严格验证保留。当前证据排除了暂存名修复，GLB 控制及原生导出根因待查。
+- 公开入口按已审计证据限于 SOLIDWORKS 33.5.0 和原生 Windows CPython 3.12.10 x64。可写 coarse/fine 和 edge 布尔。Double 仅开放两个实际测得的完整 native range + fine + custom 组合。其他 changed Double 在 setter 前拒绝。完整 CAS、lease、stamp、严格读回和副作用保护均继续生效。
+- 必要验收使用既有独立 public profile。关闭内部开关，覆盖 CLI 保存/重开、SDK 及 MCP 同后台句柄读取、trace 和清理。该验收单独记录，结果出具前仍无可合并验收结论。GLB 导出无有据修复，保留失败证据，当前不重复派发 GLB 校准。
+
 ## 当前继续处理状态（2026-11-07 06:03 Asia/Shanghai）
 
 - 用户经统筹明确继续处理实际失败，停止持续poll只约束监控方式，不停止当前功能；不新增字段/新计划，不发版，本路仍不合main。上一节“运行中”现为历史快照。

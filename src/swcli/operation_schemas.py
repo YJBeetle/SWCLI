@@ -215,7 +215,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {"field": _string(enum=list(IMAGE_QUALITY_FIELDS)),
          "value": {"anyOf": [_string(), _number(), _boolean()]},
          "expected_quality": quality_schema()},
-        description="Internal calibration only: writes fail closed by default. Requires explicit daemon calibration environment, lease, stamp and complete quality CAS. No GLB format options or accepted tessellation guarantee.",
+        description="Part display quality writes on SOLIDWORKS 33.5.0 with native Windows CPython 3.12.10 x64. Changed custom deviations require a verified fine-to-custom value and native range profile. Requires lease, stamp and complete quality CAS.",
         required=("field", "value", "expected_quality"),
         document_id="optional", expected_update_stamp="required", lease_id="required",
         parameter_conditions=[{"oneOf": [

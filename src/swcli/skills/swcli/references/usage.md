@@ -702,18 +702,18 @@ Image Quality, with normalized `shaded_mode`, `shaded_deviation_mm`,
 `deviation_range`. It supports parts only and preserves the selected background
 handle, foreground, configuration, dirty flag and update stamp.
 
-The candidate `document image-quality-set FIELD VALUE --if-quality '<complete
-quality JSON>' --if-update-stamp N --lease TOKEN --document ID` edits one typed
-field. Writable presets are `coarse` and `fine`; `custom` is an observed classification,
-not an Integer setter target. A positive `shaded_deviation_mm` within the actual
-native range uses one Double setter and must read back as custom quality, with
-that mode transition recorded explicitly;
-edge optimization uses `true`/`false`. `expected_quality` is the whole `quality`
-object, including raw values and range. CAS is exact, not a rounded display
-comparison. Never construct a partial snapshot or reuse one after a state change.
-Writes fail closed outside the explicitly enabled internal calibration harness.
-Failures preserve attempted/may-have-changed receipts; inspect before another
-request and never assume rollback.
+`document image-quality-set FIELD VALUE --if-quality '<complete quality JSON>'
+--if-update-stamp N --lease TOKEN --document ID` edits one field on SOLIDWORKS
+33.5.0 with native Windows CPython 3.12.10 x64. Presets accept `coarse` and
+`fine`, and edge optimization accepts `true` or `false`. Changed
+`shaded_deviation_mm` writes require a verified fine-to-custom profile. The
+exact calibrated targets in millimeters are `0.018750000000000003` and
+`0.03186887195995491`, each with its corresponding native fine value and range.
+The result records the custom mode transition. Use the entire observed `quality`
+object as `expected_quality`, including native values and range. Obtain a fresh
+snapshot and stamp before submitting another write. A failed setter may have
+modified the document. Inspect the mutation receipt and re-read before deciding
+what to do next.
 
 These fields are document display properties. GLTF/GLB Export Options (views,
 cameras, lights, motion, exploded views, Draco) have no verified API mapping in

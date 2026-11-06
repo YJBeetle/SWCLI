@@ -73,6 +73,47 @@ class ImageQualityTests(unittest.TestCase):
         self.document.SetSaveFlag.assert_not_called()
         self.app.ActivateDoc3.assert_not_called()
 
+    def test_public_runtime_rejects_wine_other_revisions_and_python_versions(self):
+        app = SimpleNamespace(RevisionNumber="33.5.0")
+        with mock.patch.object(adapter.sys, "platform", "win32"), \
+                mock.patch.object(adapter.sys, "version_info", (3, 12, 10)), \
+                mock.patch.object(adapter.sysconfig, "get_platform", return_value="win-amd64"), \
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True) as dll:
+            dll.return_value = SimpleNamespace()
+            self.assertTrue(adapter._public_runtime(app))
+            dll.return_value = SimpleNamespace(wine_get_version=object())
+            self.assertFalse(adapter._public_runtime(app))
+            dll.return_value = SimpleNamespace()
+            app.RevisionNumber = "33.5.1"
+            self.assertFalse(adapter._public_runtime(app))
+            with mock.patch.object(adapter.sys, "version_info", (3, 12, 9)):
+                dll.reset_mock()
+                self.assertFalse(adapter._public_runtime(app))
+                dll.assert_not_called()
+
+    def test_public_custom_requires_exact_native_profile_and_target(self):
+        self.native[44] = 2
+        self.native[32] = 5.7692307692307704e-05
+        low, high = 9.036144578313254e-06, 0.00025
+        self.ranges.side_effect = lambda extension: (0, self.native[32], low, high)
+        before = adapter._read_quality(self.document)
+        with mock.patch.dict(os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION=""), \
+                mock.patch.object(adapter, "_public_runtime", return_value=True):
+            wrong = self.edit("shaded_deviation_mm", 0.06927710843373494, expected=before)
+            self.assertEqual(wrong["error"]["type"], "DocumentImageQualityUnsupported")
+            self.assert_no_mutation()
+            target = 0.018750000000000003
+            self.ranges.side_effect = lambda extension: (0, self.native[32], low, high * 2)
+            unverified = self.edit("shaded_deviation_mm", target, expected=adapter._read_quality(self.document))
+            self.assertEqual(unverified["error"]["type"], "DocumentImageQualityUnsupported")
+            self.assert_no_mutation()
+            self.ranges.side_effect = lambda extension: (0, self.native[32], low, high)
+            result = self.edit("shaded_deviation_mm", target, expected=before)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["quality"]["shaded_mode"], "custom")
+        self.extension.SetUserPreferenceDouble.assert_called_once_with(32, 0, target / 1000)
+        validate_operation_result("document.image-quality-set", result)
+
     def test_read_background_complete_raw_snapshot_under_other_session(self):
         result = self.operation("document.image-quality", session="reader")
         self.assertTrue(result["ok"], result)
@@ -81,8 +122,9 @@ class ImageQualityTests(unittest.TestCase):
         self.assertFalse(result["document"]["active"] or result["document"]["current"])
         self.assert_no_mutation()
 
-    def test_writes_are_closed_by_default_before_native_access(self):
-        with mock.patch.dict(os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION=""):
+    def test_unsupported_runtime_refuses_before_preference_access(self):
+        with mock.patch.dict(os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION=""), \
+                mock.patch.object(adapter, "_public_runtime", return_value=False):
             result = self.edit()
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"]["type"], "DocumentImageQualityUnsupported")
