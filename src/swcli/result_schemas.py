@@ -2734,9 +2734,10 @@ def validate_operation_result(name: str, result: Any) -> None:
                 try:
                     validate_table_options(result[key])
                     for field, entry in result[key].items():
-                        unavailable = result["document"]["type"] not in TABLE_FIELDS[field]["types"]
-                        if unavailable != ("unavailable" in entry):
-                            raise ValueError("inconsistent table field applicability")
+                        if "document" in result:
+                            unavailable = result["document"]["type"] not in TABLE_FIELDS[field]["types"]
+                            if unavailable != ("unavailable" in entry):
+                                raise ValueError("inconsistent table field applicability")
                 except ValueError as error:
                     raise OperationResultInvalid(name + ": " + str(error)) from error
         if name.endswith("-set") and result["ok"] is True:

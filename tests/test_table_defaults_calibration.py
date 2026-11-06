@@ -21,6 +21,8 @@ class TableCalibrationTests(unittest.TestCase):
         source = (ROOT / ".github/workflows/ci.yml").read_text()
         entry = source.split('      table_defaults_calibration:', 1)[1].split('      table_defaults_head:', 1)[0]
         self.assertIn('default: false', entry)
+        self.assertIn('table_defaults_document_types:', source)
+        self.assertIn('- assembly-drawing', source)
         job = source.split('  table-defaults-calibration:', 1)[1]
         for guard in ("github.event_name == 'workflow_dispatch'", "refs/heads/codex/docprops-table-defaults",
                       'inputs.table_defaults_calibration', 'inputs.table_defaults_head == github.sha'):

@@ -49,6 +49,14 @@ on:
         required: false
         default: false
         type: boolean
+      table_defaults_document_types:
+        description: Explicit internal calibration scope; excluded types stay closed
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - assembly-drawing
       table_defaults_mode:
         description: Internal calibration or public CLI/daemon acceptance using audited internal proof
         required: false
@@ -669,7 +677,7 @@ jobs:
         run: |
           $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
           if ($LASTEXITCODE -ne 0) { throw 'Drawing template discovery failed' }
-          scripts/ci/windows/calibrate-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults" -DrawingTemplate $drawingTemplate
+          scripts/ci/windows/calibrate-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults" -DrawingTemplate $drawingTemplate -DocumentTypes "${{ inputs.table_defaults_document_types || 'all' }}"
       - name: Accept only proven table defaults through public CLI daemon SDK and MCP
         if: ${{ inputs.table_defaults_mode == 'public' }}
         timeout-minutes: 35

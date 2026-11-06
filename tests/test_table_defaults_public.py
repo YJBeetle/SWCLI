@@ -46,6 +46,18 @@ class PublicTableContractTests(unittest.TestCase):
             self.assertEqual(mcp_wire.call_args.kwargs['document_id'], fixture.entry.document_id)
             self.assertEqual(mcp_wire.call_args.kwargs['lease_id'], fixture.lease)
 
+    def test_failed_gate_cleanup_never_sends_requests_that_can_replace_a_timed_out_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            instance = gate.TableSmoke(directory=Path(temporary), host_directory=r'C:\proof', endpoint='127.0.0.1:18495')
+            instance.owned = {'d-abcdef': instance.session}
+            instance.record.update(success=False, state='failed')
+            with mock.patch.object(instance, 'close') as close, mock.patch.object(instance, 'health') as health:
+                instance.cleanup()
+            close.assert_not_called()
+            health.assert_not_called()
+            self.assertEqual(instance.record['cleanup_deferred_to_owned_wrapper'], ['d-abcdef'])
+            self.assertEqual(instance.owned, {'d-abcdef': instance.session})
+
     def test_declared_wine_write_is_refused_before_worker_start_or_queue(self):
         from swcli.daemon import server
         from swcli.result_schemas import validate_operation_result
@@ -134,6 +146,7 @@ class TableCLI(FakeCLI):
         self.request_override = None
         self.table_defect = None
         self.setters = 0
+        self.accepted_document_types = (1, 2, 3)
 
     def run(self, command, **kwargs):
         self.native_calls = []
@@ -172,6 +185,8 @@ class TableCLI(FakeCLI):
             mutation = dict(attempted=False, may_have_changed=False)
             if doc['read_only']:
                 return dict(ok=False, action=operation, mutation=mutation, error=dict(type='ValueError', message='readonly'))
+            if doc['type'] not in self.accepted_document_types:
+                return dict(ok=False, action=operation, mutation=mutation, error=dict(type='DocumentTableCalibrationRequired', message='document type not calibrated'))
             _, values, *_ = _typed_operation(args)
             self.native_calls += cycle
             if values['expected_options'] != options:
@@ -229,7 +244,7 @@ class TableCLI(FakeCLI):
 
 
 class PublicTableGateControlTests(unittest.TestCase):
-    def exercise(self, defect=None):
+    def exercise(self, defect=None, document_types=(1, 2, 3)):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
@@ -239,8 +254,9 @@ class PublicTableGateControlTests(unittest.TestCase):
         trace_path = root / 'trace.jsonl'
         trace_path.write_text('')
         internal = dict(success=True, full_acceptance_eligible=False, diagnostic_case='document-table-defaults-internal',
-                        host={'revision': '33.5.0'}, cases=[])
+                        host={'revision': '33.5.0'}, requested_document_types=list(document_types), cases=[])
         for kind, suffix in enumerate(('SLDPRT', 'SLDASM', 'SLDDRW'), 1):
+            if kind not in document_types: continue
             source = fixtures / ('annotations.' + suffix)
             source.write_bytes(b'owned fixture' * 100)
             before = options_for(kind)
@@ -252,6 +268,7 @@ class PublicTableGateControlTests(unittest.TestCase):
             internal['cases'].append(dict(document_type=kind, success=True, original={'options': before},
                 final_options=after, file_sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
         fake = TableCLI(directory, trace_path)
+        fake.accepted_document_types = document_types
         fake.table_defect = defect
         instance = gate.TableSmoke(directory=directory, host_directory=r'C:\proof', endpoint='127.0.0.1:18495')
         instance.record_path = directory / 'table-defaults-public.json'
@@ -277,6 +294,18 @@ class PublicTableGateControlTests(unittest.TestCase):
         for case in report['table_cases']:
             self.assertEqual(case['persisted']['options'], case['final_options'])
             self.assertTrue(case['success'])
+
+    def test_assembly_drawing_scope_explicitly_refuses_part_writes_without_native_setter(self):
+        fake, report = self.exercise(document_types=(2, 3))
+        self.assertTrue(report['success'])
+        self.assertEqual(report['accepted_document_types'], [2, 3])
+        self.assertEqual([case['document_type'] for case in report['table_cases']], [2, 3])
+        self.assertEqual(fake.setters, 8)
+        self.assertEqual(len(report['client_contracts']), 2)
+        refusal = report['excluded_part_write']['refusal']
+        self.assertEqual(refusal['error']['type'], 'DocumentTableCalibrationRequired')
+        self.assertEqual(refusal['mutation'], dict(attempted=False, may_have_changed=False))
+        self.assertEqual(fake.documents, {})
 
     def test_first_failure_stops_native_trace_setter_or_persistence_plan(self):
         for defect in ('missing-getter', 'setter-failure', 'lost-persisted-value'):

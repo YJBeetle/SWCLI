@@ -175,14 +175,19 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--drawing-template", type=Path, required=True)
+    parser.add_argument("--document-types", nargs="+", choices=tuple(fixtures.KINDS), default=list(fixtures.KINDS))
     args = parser.parse_args(argv)
     checked(args.swconst.is_file(), "official swconst type library is required")
     checked(args.drawing_template.is_file() and args.drawing_template.suffix.lower() == ".drwdot", "explicit drawing template is required")
+    checked(len(args.document_types) == len(set(args.document_types)), "duplicate document type in calibration plan")
+    selected = [kind for kind in fixtures.KINDS if kind in args.document_types]
     args.output_dir.mkdir()
-    runner = partial(calibrate_case, drawing_template=args.drawing_template.resolve(), swconst=args.swconst.resolve())
+    def runner(*arguments, **keywords):
+        arguments[7]["requested_document_types"] = [fixtures.KINDS[kind][0] for kind in selected]
+        return calibrate_case(*arguments, **keywords, drawing_template=args.drawing_template.resolve(), swconst=args.swconst.resolve())
     with trace_native_request("table-defaults-calibration", "internal.table-defaults"):
         return harness.run(args.output_dir.resolve(), args.swconst.resolve(), False, case_runner=runner,
-            case_plan=[(kind, "front", False) for kind in fixtures.KINDS], diagnostic_case="document-table-defaults-internal")
+            case_plan=[(kind, "front", False) for kind in selected], diagnostic_case="document-table-defaults-internal")
 
 
 if __name__ == "__main__":

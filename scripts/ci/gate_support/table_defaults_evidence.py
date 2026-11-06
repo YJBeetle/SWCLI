@@ -29,10 +29,14 @@ def audit(directory, native_trace, *, report_sha256):
     revision = report['host']['revision']
     require(type(revision) is str and revision and type(report['host']['process_id']) is int, 'host identity unavailable')
     cases = report['cases']
-    require([case['document_type'] for case in cases] == [1, 2, 3], 'document-type plan incomplete')
+    requested = report.get('requested_document_types', [1, 2, 3])
+    require(type(requested) is list and requested and all(type(kind) is int for kind in requested)
+            and requested == sorted(set(requested)) and set(requested) <= {1, 2, 3}, 'invalid explicit document-type plan')
+    require([case['document_type'] for case in cases] == requested, 'document-type plan incomplete')
     profiles, artifacts, setter_count, getter_count = {}, [], 0, 0
-    for case, suffix in zip(cases, ('SLDPRT', 'SLDASM', 'SLDDRW')):
+    for case in cases:
         kind = case['document_type']
+        suffix = {1: 'SLDPRT', 2: 'SLDASM', 3: 'SLDDRW'}[kind]
         require(case.get('success') is True and case.get('internal_calibration_only') is True
                 and case.get('preparation_only') is False, 'case is not completed internal write calibration')
         fields = [field for field, spec in TABLE_FIELDS.items() if kind in spec['types']]
@@ -130,9 +134,9 @@ def audit(directory, native_trace, *, report_sha256):
     global_calls = [(index, row['call']) for index, row in enumerate(records) if row['phase'] == 'begin'
                     and row['call'].startswith(('ISldWorks.SetUserPreference', 'SldWorks.SetUserPreference'))]
     require(all(index < first_table and name == 'SldWorks.SetUserPreferenceToggle(swSketchInference)'
-                for index, name in global_calls) and len(global_calls) in (0, 2),
+                for index, name in global_calls) and len(global_calls) in ((0, 2) if 1 in requested else (0,)),
             'global preference setter occurred outside owned analytic fixture preparation')
-    return dict(success=True, revision=revision, profiles=profiles, report_sha256=report_sha256,
+    return dict(success=True, revision=revision, document_types=requested, profiles=profiles, report_sha256=report_sha256,
                 harness_trace_sha256=sha256(directory / 'trace.jsonl'), native_trace_sha256=sha256(native_trace),
                 native_setter_calls=setter_count, native_getter_calls=getter_count, maximum_native_stage_seconds=maximum,
                 artifacts=artifacts, evidence_kind='independent-internal-artifact-audit', full_acceptance_eligible=False)

@@ -17,11 +17,12 @@ spec.loader.exec_module(auditor)
 
 
 class TableEvidenceTests(unittest.TestCase):
-    def fixture(self, directory):
+    def fixture(self, directory, document_types=(1, 2, 3)):
         report = dict(success=True, cleanup_errors=[], diagnostic_case='document-table-defaults-internal',
-                      full_acceptance_eligible=False, host=dict(revision='33.5.0', process_id=123), cases=[])
+                      full_acceptance_eligible=False, host=dict(revision='33.5.0', process_id=123), requested_document_types=list(document_types), cases=[])
         methods = ["GetExecutablePath"]
         for kind, suffix in enumerate(('SLDPRT', 'SLDASM', 'SLDDRW'), 1):
+            if kind not in document_types: continue
             fake = fakes.DocumentTableTests()
             fake.setUp()
             self.addCleanup(fake.doCleanups)
@@ -91,3 +92,35 @@ class TableEvidenceTests(unittest.TestCase):
                     self.assertEqual(result['native_getter_calls'], 237)
                     self.assertEqual(result['profiles']['1']['bom.box_border'], [[1, 2], [2, 2]])
                     self.assertFalse(result['full_acceptance_eligible'])
+
+    def test_explicit_bounded_scope_is_complete_and_cannot_hide_an_incomplete_full_plan(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            report, native = self.fixture(directory, document_types=(2, 3))
+            path = directory / 'report.json'
+            path.write_text(json.dumps(report))
+            result = auditor.audit(directory, native, report_sha256=auditor.sha256(path))
+            self.assertEqual(result['document_types'], [2, 3])
+            self.assertEqual(set(result['profiles']), {'2', '3'})
+            self.assertEqual((result['native_setter_calls'], result['native_getter_calls']), (8, 186))
+            report['requested_document_types'] = [1, 2, 3]
+            path.write_text(json.dumps(report))
+            with self.assertRaisesRegex(ValueError, 'document-type plan incomplete'):
+                auditor.audit(directory, native, report_sha256=auditor.sha256(path))
+
+    def test_scope_without_analytic_part_refuses_global_fixture_setters(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            report, native = self.fixture(directory, document_types=(2, 3))
+            path = directory / 'report.json'
+            path.write_text(json.dumps(report))
+            rows = [json.loads(line) for line in native.read_text().splitlines()]
+            extra = []
+            for number in (1, 2):
+                extra += [dict(rows[0], sequence=number, call='SldWorks.SetUserPreferenceToggle(swSketchInference)', phase=phase)
+                          for phase in ('begin', 'end')]
+            for row in rows[1:-1]: row['sequence'] += 2
+            rows[1:1] = extra
+            native.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+            with self.assertRaisesRegex(ValueError, 'global preference setter'):
+                auditor.audit(directory, native, report_sha256=auditor.sha256(path))

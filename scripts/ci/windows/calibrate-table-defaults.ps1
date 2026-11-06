@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
     [Parameter(Mandatory = $true)][string]$DrawingTemplate,
-    [string]$Swconst = "C:\Program Files\SOLIDWORKS\swconst.tlb"
+    [string]$Swconst = "C:\Program Files\SOLIDWORKS\swconst.tlb",
+    [ValidateSet("all", "assembly-drawing")][string]$DocumentTypes = "all"
 )
 $ErrorActionPreference = "Stop"
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
@@ -12,11 +13,13 @@ $stderr = Join-Path $OutputDirectory "worker.native.stderr.jsonl"
 $previousTrace = $env:SWCLI_TRACE_NATIVE_CALLS
 try {
     $env:SWCLI_TRACE_NATIVE_CALLS = '1'
-    $worker = Start-Process -FilePath (Get-Command python).Source -ArgumentList @(
+    $arguments = @(
         '-I', ('"' + (Join-Path $PSScriptRoot '../verify-table-defaults-calibration.py') + '"'),
         '--output-dir', ('"' + $evidence + '"'), '--swconst', ('"' + $Swconst + '"'),
         '--drawing-template', ('"' + $DrawingTemplate + '"')
-    ) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -NoNewWindow -PassThru
+    )
+    if ($DocumentTypes -eq "assembly-drawing") { $arguments += @("--document-types", "assembly", "drawing") }
+    $worker = Start-Process -FilePath (Get-Command python).Source -ArgumentList $arguments -RedirectStandardOutput $stdout -RedirectStandardError $stderr -NoNewWindow -PassThru
 } finally {
     $env:SWCLI_TRACE_NATIVE_CALLS = $previousTrace
 }

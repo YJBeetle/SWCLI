@@ -70,8 +70,10 @@ Every failure returns `mutation.attempted` and `mutation.may_have_changed`.
 A Boolean setter return is retained as `native_returned`. Once a setter is
 entered, both mutation flags are true even if the call raises, returns false,
 or fails round-trip/context checks. There are no setter retries, automatic
-rollback writes or host restarts. Callers must inspect the selected document
-following a partial failure.
+rollback writes or host restarts. The handler stops native observation on the first adapter failure. If the
+document descriptor becomes unavailable, the failure omits that metadata and
+retains the original error, scalar observations and partial mutation receipt.
+Callers must inspect the current host/document state following a partial failure.
 
 The official `SetUserPreferenceToggle` help describes the return as the enabled
 state, while the baseline annotation adapter records a successful disable as
@@ -88,7 +90,10 @@ They do not prove native SOLIDWORKS behavior.
 
 The branch-only `CI` dispatch input `table_defaults_calibration` defaults to
 false and requires `table_defaults_head` to equal this branch's exact SHA.
-`table_defaults_mode` selects `internal` (default) or `public`. Both use the
+`table_defaults_mode` selects `internal` (default) or `public`.
+`table_defaults_document_types` records the internal plan explicitly (`all` by
+default, or the independent `assembly-drawing` scope). Excluded document types
+stay closed; their failed or incomplete runs do not become accepted evidence. Both use the
 dedicated `swcli-table-defaults-calibration` concurrency group and skip unrelated
 portable/package/full native jobs in that manual run. Internal mode runs only
 the candidate calibration on a fresh GitHub Windows runner. It keeps the
@@ -102,8 +107,10 @@ The internal report retains `full_acceptance_eligible: false`. A green internal
 run must first pass independent checks of its original ZIP/GitHub artifact
 SHA256, exact head, paired/nested native traces, getter/setter counts, original
 and saved fixture hashes, write/no-op/CAS receipts, host cleanup and persisted
-values. The auditor derives only observed raw transitions; it does not open the
-whole scalar catalog.
+values. The auditor requires completed cases to equal the explicit requested document
+plan, and derives only observed raw transitions. It does not open excluded
+document types or the whole scalar catalog. A public scope excluding part
+writes also checks a refused part write without native preference mutation.
 
 Public mode requires pinned successful internal run/artifact provenance and
 re-audits the downloaded original report, traces and fixtures before private

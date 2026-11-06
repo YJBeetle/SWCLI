@@ -33,6 +33,16 @@ class TableSmoke(modeling.ModelingSmoke):
         self.group_started = time.monotonic()
         self.record['group_timeout_seconds'] = 1800
 
+    def cleanup(self):
+        if self.record.get('success') is not True:
+            # A timed-out worker may be gone. Sending close/status here could
+            # start a replacement through the generic manager; the owned
+            # wrapper performs process cleanup without further CAD requests.
+            self.cleaning_up = True
+            self.record['cleanup_deferred_to_owned_wrapper'] = sorted(self.owned)
+            return
+        super().cleanup()
+
     def command(self, *args, **kwargs):
         require(self.cleaning_up or time.monotonic() - self.group_started < 1800, 'table public group exceeded 1800 seconds')
         result = super().command(*args, **kwargs)
@@ -178,17 +188,35 @@ def run(gate, fixtures, trace, internal, proof):
     require(internal.get('success') is True and internal.get('full_acceptance_eligible') is False
             and internal.get('diagnostic_case') == 'document-table-defaults-internal', 'internal candidate evidence is incomplete')
     cases = internal['cases']
-    require([case['document_type'] for case in cases] == [1, 2, 3] and all(case['success'] for case in cases), 'internal document-type coverage is incomplete')
+    requested = internal.get('requested_document_types', [1, 2, 3])
+    require(type(requested) is list and requested and requested == sorted(set(requested)) and set(requested) <= {1, 2, 3}
+            and [case['document_type'] for case in cases] == requested and all(case['success'] for case in cases), 'internal document-type coverage is incomplete')
     gate.record.update(profile='document-table-defaults', evidence_kind='installed-public-cli-daemon-gate',
                        covers_full_modeling_suite=False, feature_acceptance_eligible=True, internal_proof=proof, table_cases=[])
     health = gate.health()
+    gate.record['accepted_document_types'] = requested
     gate.record['host'] = host = health['host']
     require(health.get('server_version') == __version__ and host.get('owned_by_daemon') is True
             and host.get('visible') is False and host.get('shared_interactive') is False
             and host.get('revision') == internal['host']['revision'], 'public table gate host/version differs from internal proof')
     gate.require_empty()
-    for candidate, suffix in zip(cases, ('SLDPRT', 'SLDASM', 'SLDDRW')):
+    if 1 not in requested:
+        part = gate.create()
+        peer = gate.create()
+        gate.command('document', 'lease', 'acquire', '--ttl-seconds', 1800, document=part)
+        part_before = observed(gate, trace, part, 1)
+        part_refusal = change(gate, trace, part, 1, part_before, 'all.use_template_settings',
+                              not part_before['options']['all.use_template_settings']['value'], error='DocumentTableCalibrationRequired')
+        part_after = observed(gate, trace, part, 1)
+        require(part_after['options'] == part_before['options'] and part_after['document'] == part_before['document'],
+                'excluded part write changed options or document state')
+        gate.record['excluded_part_write'] = dict(before=part_before, refusal=part_refusal, after=part_after)
+        gate.close(part)
+        gate.close(peer)
+        gate.require_empty(after_case='excluded-part-write')
+    for candidate in cases:
         kind = candidate['document_type']
+        suffix = {1: 'SLDPRT', 2: 'SLDASM', 3: 'SLDDRW'}[kind]
         source = fixtures / ('annotations.' + suffix)
         source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
         require(source_hash == candidate['file_sha256'], 'original internal fixture digest mismatch')
@@ -251,6 +279,7 @@ def run(gate, fixtures, trace, internal, proof):
         gate.require_empty(after_case='tables-' + suffix)
         case['success'] = True
         gate.checkpoint('tables-' + suffix + '-verified')
+    require(not gate.owned, 'public table ownership journal still contains open documents')
     gate.record['host_after'] = gate.health()['host']
     require(gate.record['host_after'] == host, 'public table gate replaced its owning host')
     gate.record.update(state='completed', success=True, elapsed_seconds=time.monotonic() - gate.group_started)

@@ -260,6 +260,35 @@ class DocumentTableTests(unittest.TestCase):
                     read.assert_called_once_with(folder / "swconst.tlb")
                     if callable(member): member.assert_called_once_with()
 
+    def test_lost_document_descriptor_preserves_first_error_and_partial_setter_receipt(self):
+        def apply(preference, option, value):
+            self.native[preference] = value
+            self.document.GetTitle = mock.Mock(spec=(), side_effect=[RuntimeError("primary native target loss"),
+                                                            RuntimeError("secondary descriptor loss")])
+            return True
+        self.extension.SetUserPreferenceInteger.side_effect = apply
+        result = self.edit()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], {"type": "RuntimeError", "message": "primary native target loss"})
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.assertIs(result["native_returned"], True)
+        self.assertNotIn("document", result)
+        self.assertNotIn("warnings", result)
+        self.document.GetTitle.assert_called_once_with()
+        self.extension.SetUserPreferenceInteger.assert_called_once()
+        self.document.SetSaveFlag.assert_not_called()
+
+    def test_descriptor_failure_after_verified_write_retains_receipt_and_observed_values(self):
+        with mock.patch("swcli.daemon.operations._with_document", side_effect=RuntimeError("descriptor unavailable after write")):
+            result = self.edit()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["message"], "descriptor unavailable after write")
+        self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["options"]["bom.box_border"], {"value": "thick", "native_value": 2})
+        self.assertNotIn("document", result)
+        self.extension.SetUserPreferenceInteger.assert_called_once()
+
     def test_exact_profile_refuses_unproved_direction_value_and_revision(self):
         expected = self.read()["options"]
         profile = {("33.5.0", 1): {"bom.box_border": [(1, 2), (2, 2)]}}
