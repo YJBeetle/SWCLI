@@ -66,3 +66,16 @@ Official references:
 - [Geometry preference enum](https://help.solidworks.com/2023/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swAcisOutputGeometryPreference_e.html)
 - [STEP export behavior](https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_EXPORT_OPTION_STEP.htm)
 - [STEP import interface and LoadFile4](https://help.solidworks.com/2024/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IImportStepData.html)
+
+- [Sketch segment length readback](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchSegment~GetLength.html)
+- [System preference setter result](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~SetUserPreferenceIntegerValue.html)
+
+
+Public acceptance preparation uses a separate default-off
+`native_step_public_targeted` profile. The public writer group performs six CLI
+exports plus SDK/MCP bridge exports, rejects stale CAS/foreign lease/readonly
+writes, and reopens the saved source through the CLI. After this host exits,
+an independent observer group reads the exact SHA256-pinned public output
+files with `LoadFile4`, then saves and reopens imported native geometry. Each
+group owns one host with no failure retry or replacement. These prepared paths
+have not run yet; they do not enable the empty public revision allowlist.

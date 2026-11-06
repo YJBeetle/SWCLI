@@ -111,6 +111,9 @@ def step_preferences(app, document, protocol, geometry, result):
     desired = {"swStepAP": STEP_PROTOCOLS[protocol],
                "swStepExportPreference": constants[STEP_GEOMETRIES[geometry]]}
     result["step_preferences"] = {"before": before, "requested": desired, "restored": False}
+    if (before["swStepAP"] not in STEP_PROTOCOLS.values()
+            or before["swStepExportPreference"] not in {constants[name] for name in STEP_GEOMETRIES.values()}):
+        raise StepExportError("StepPreferenceUnsupported", "original STEP preferences are outside the safely restorable profile")
     # Compare the entire snapshot immediately before entering the mutation scope.
     _verify_metadata_state(app, document, state, foreground, changed=False)
     if _snapshot(app, keys) != before:

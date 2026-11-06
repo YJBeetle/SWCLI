@@ -353,8 +353,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(export_parser)
     add_lease_token(export_parser)
     export_parser.add_argument("output")
-    export_parser.add_argument("--step-protocol", choices=("ap203", "ap214"))
-    export_parser.add_argument("--step-geometry", choices=("solid-surface", "wireframe", "wireframe-sketches"))
+    export_parser.add_argument("--step-protocol", choices=("ap203", "ap214"),
+                               help="STEP protocol; requires a calibrated owned hidden host and writable part")
+    export_parser.add_argument("--step-geometry", choices=("solid-surface", "wireframe", "wireframe-sketches"),
+                               help="STEP geometry; specify together with --step-protocol, lease and update stamp")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
         "--strict",

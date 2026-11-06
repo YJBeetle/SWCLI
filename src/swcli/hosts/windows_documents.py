@@ -743,7 +743,8 @@ def export_active_windows_document(
         "output": str(output_path),
     }
     try:
-        validate_step_options(output, step_protocol, step_geometry)
+        if validate_step_options(output, step_protocol, step_geometry):
+            result["mutation"] = {"attempted": False, "may_have_changed": False}
     except StepExportError as exc:
         result["error"] = {"type": exc.code, "message": str(exc)}
         return result
@@ -821,8 +822,11 @@ def export_active_windows_document(
         with step_preferences(app, document, step_protocol, step_geometry, result), _stl_single_file(
             app, export_format == "STL" and before["document"]["type"] == 2
         ):
+            if step_protocol is not None:
+                result["mutation"] = {"attempted": True, "may_have_changed": True}
             document.ClearSelection2(True)
-            save_error = int(document.SaveAs3(str(export_path), 0, 1))
+            save_error = int(native_call("document-export", "IModelDoc2.SaveAs3",
+                                         lambda: document.SaveAs3(str(export_path), 0, 1)))
             if save_error != 0 or not export_path.is_file():
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
                                    "save_errors": save_error}

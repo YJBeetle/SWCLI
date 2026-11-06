@@ -11,23 +11,25 @@ class StepWorkflowTests(unittest.TestCase):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
         block = text.split("  solidworks-e2e:\n", 1)[1].split("    runs-on:", 1)[0]
         expression = re.search(r"if: \$\{\{ (.*?) \}\}", block)[1]
-        for event in ("push", "pull_request", "workflow_dispatch"):
-            for ref in ("refs/heads/main", "refs/heads/codex/other", "refs/heads/codex/swcli-step-export-options", "refs/tags/v0.0.0"):
-                for full in (False, True):
-                    for targeted in (False, True):
-                        values = {"github.repository": "YJBeetle/SWCLI", "github.event_name": event,
-                                  "github.ref": ref, "needs.test.result": "success", "needs.package.result": "success",
-                                  "needs.tag-policy.result": "success", "inputs.native_full": full,
-                                  "inputs.native_step_targeted": targeted}
-                        rendered = expression.replace("always()", "True")
-                        rendered = rendered.replace("startsWith(github.ref, 'refs/tags/v')", repr(ref.startswith("refs/tags/v")))
-                        for name in sorted(values, key=len, reverse=True):
-                            rendered = rendered.replace(name, repr(values[name]))
-                        actual = eval(rendered.replace("&&", " and ").replace("||", " or ").replace("!", " not "), {"__builtins__": {}})
-                        expected = ((event == "push" and ref.startswith("refs/tags/v")) or
-                                    (event == "workflow_dispatch" and ((full and not targeted) or
-                                     (targeted and ref == "refs/heads/codex/swcli-step-export-options"))))
-                        self.assertEqual(actual, expected, (event, ref, full, targeted))
+        from itertools import product
+        for event, ref, full, targeted, public in product(
+            ("push", "pull_request", "workflow_dispatch"),
+            ("refs/heads/main", "refs/heads/codex/other", "refs/heads/codex/swcli-step-export-options", "refs/tags/v0.0.0"),
+            (False, True), (False, True), (False, True),
+        ):
+            values = {"github.repository": "YJBeetle/SWCLI", "github.event_name": event,
+                      "github.ref": ref, "needs.test.result": "success", "needs.package.result": "success",
+                      "needs.tag-policy.result": "success", "inputs.native_full": full,
+                      "inputs.native_step_targeted": targeted, "inputs.native_step_public_targeted": public}
+            rendered = expression.replace("always()", "True")
+            rendered = rendered.replace("startsWith(github.ref, 'refs/tags/v')", repr(ref.startswith("refs/tags/v")))
+            for name in sorted(values, key=len, reverse=True):
+                rendered = rendered.replace(name, repr(values[name]))
+            actual = eval(rendered.replace("&&", " and ").replace("||", " or ").replace("!", " not "), {"__builtins__": {}})
+            expected = ((event == "push" and ref.startswith("refs/tags/v")) or
+                        (event == "workflow_dispatch" and ((full and not targeted and not public) or
+                         (targeted != public and ref == "refs/heads/codex/swcli-step-export-options"))))
+            self.assertEqual(actual, expected, (event, ref, full, targeted, public))
         input_block = text.split("      native_step_targeted:", 1)[1].split("\npermissions:", 1)[0]
         self.assertIn("default: false", input_block)
         target = text.split("      - name: Calibrate STEP protocol", 1)[1].split("      - name:", 1)[0]
@@ -37,9 +39,12 @@ class StepWorkflowTests(unittest.TestCase):
         self.assertNotIn("pull_request_target", text)
         self.assertIn("windows-step-internal-calibration", text)
         concurrency = text.split("  solidworks-e2e:", 1)[1].split("    env:", 1)[0]
-        self.assertIn("format('swcli-step-export-{0}', github.ref)", concurrency)
+        self.assertIn("format('swcli-step-export-internal-{0}', github.ref)", concurrency)
         self.assertIn("|| 'swcli-hosted-windows-solidworks'", concurrency)
         self.assertIn("cancel-in-progress: false", concurrency)
+        self.assertIn("format('swcli-step-export-public-{0}', github.ref)", concurrency)
+        self.assertIn("default: false", text.split("      native_step_public_targeted:", 1)[1].split("\npermissions:", 1)[0])
+        self.assertIn("--export-report", text)
 
     def test_watchdogs_and_evidence_do_not_enable_public_revision_allowlist(self):
         script = (ROOT / "scripts/ci/verify-step-export-calibration.py").read_text()

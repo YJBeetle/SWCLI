@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -118,6 +119,55 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(not _com_value(document, "GetSaveFlag"), "reopened source observation mutated source")
     call("close-reopened-source", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
     live["document"] = document = None
+    verify_imported_geometry(app, target, output, name, geometry, call, case, live)
+
+
+def verify_reopened_geometry(before, after, geometry):
+    """Compare physical geometry, keeping analytic bounds and exact topology."""
+    if geometry == "solid-surface":
+        checked(before.keys() == after.keys(), "geometry observation schema changed")
+        checked({k:v for k,v in before.items() if k not in ("metrics", "bodies")} ==
+                {k:v for k,v in after.items() if k not in ("metrics", "bodies")},
+                "geometry observation method/context changed")
+        checked(before["metrics"]["solid_body_count"] == after["metrics"]["solid_body_count"] == 1,
+                "solid topology changed after native save/reopen")
+        checked(len(before["bodies"]) == len(after["bodies"]) == 1,
+                "solid body observation count changed")
+        pairs = [(before["metrics"], after["metrics"]), (before["bodies"][0], after["bodies"][0])]
+        checked(before["bodies"][0]["index"] == after["bodies"][0]["index"] == 0,
+                "solid body identity changed")
+        for first, second in pairs:
+            for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
+                for value in (first[key], second[key]):
+                    checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=1e-7, abs_tol=1e-5),
+                            "analytic box geometry differs: " + key)
+                checked(math.isclose(first[key], second[key], rel_tol=1e-7, abs_tol=1e-5),
+                        "box geometry differs after native save/reopen: " + key)
+            for axis, expected in (("x", 0), ("y", 0), ("z", 5)):
+                for value in (first["centroid_mm"][axis], second["centroid_mm"][axis]):
+                    checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=0, abs_tol=1e-9),
+                            "analytic box centroid differs: " + axis)
+                checked(math.isclose(first["centroid_mm"][axis], second["centroid_mm"][axis], rel_tol=0, abs_tol=1e-9),
+                        "box centroid differs after native save/reopen: " + axis)
+    else:
+        checked(before["segment_count"] == after["segment_count"] >= 12,
+                "wireframe topology changed after native save/reopen")
+        checked(len(before["lengths_mm"]) == len(after["lengths_mm"]) == before["segment_count"],
+                "wireframe segment observation count changed")
+        for first, second in zip(before["lengths_mm"], after["lengths_mm"]):
+            checked(math.isfinite(first) and math.isfinite(second) and first > 0 and second > 0
+                    and math.isclose(first, second, rel_tol=0, abs_tol=1e-9),
+                    "wireframe segment differs after native save/reopen")
+        expected = 320 if geometry == "wireframe" else 460
+        for value in (before["total_length_mm"], after["total_length_mm"]):
+            checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=1e-7, abs_tol=1e-5),
+                    "analytic wireframe length differs after native save/reopen")
+
+
+def verify_imported_geometry(app, target, output, name, geometry, call, case, live):
+    import pythoncom
+    from win32com.client import VARIANT
+    original_step_digest = hashlib.sha256(target.read_bytes()).hexdigest()
     imported_data = call("GetImportFileData", lambda: app.GetImportFileData(str(target)))
     checked(imported_data is not None, "STEP import data interface is unavailable")
     errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
@@ -135,6 +185,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     imported_native = output / (name + "-imported.SLDPRT")
     case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
     checked(case["imported_save"]["ok"], "imported geometry save failed")
+    native_digest = hashlib.sha256(imported_native.read_bytes()).hexdigest()
     call("close-import", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
     live["document"] = document = None
     opened, document = call("reopen-imported-native", lambda: open_windows_document_with_handle(
@@ -144,11 +195,24 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(opened["ok"] and opened["api_errors"] == opened["api_warnings"] == 0, "imported native reopen failed")
     case["reopened_imported_geometry"] = call("verify-reopened-import", lambda:
         check_box(document) if geometry == "solid-surface" else read_wireframe(document))
-    checked(case["reopened_imported_geometry"] == case["imported_geometry"], "geometry changed after native save/reopen")
+    verify_reopened_geometry(case["imported_geometry"], case["reopened_imported_geometry"], geometry)
+    checked(not _com_value(document, "GetSaveFlag"), "read-only imported observation changed save state")
+    checked(hashlib.sha256(imported_native.read_bytes()).hexdigest() == native_digest, "read-only reopen changed native bytes")
+    checked(hashlib.sha256(target.read_bytes()).hexdigest() == original_step_digest, "readback changed STEP bytes")
+    case["imported_native_sha256"] = native_digest
     call("close-reopened-import", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
     live["document"] = None
     checked(_com_value(app, "GetDocumentCount") == 0, "documents leaked between STEP cases")
     case["success"] = True
+
+
+def readback_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
+    source_report = json.loads((output / "source-public-report.json").read_text(encoding="utf-8"))
+    row = source_report["outputs"][int(profile_kind)]
+    target = Path(row["path"])
+    checked(hashlib.sha256(target.read_bytes()).hexdigest() == row["sha256"], "public STEP digest mismatch")
+    case.update(public_output=row, actual_step=verify_step_output(target, row["protocol"], row["geometry"]))
+    verify_imported_geometry(app, target, output, target.stem, row["geometry"], call, case, live)
 
 
 def worker(args):
@@ -173,6 +237,13 @@ def worker(args):
     globals()["_com_value"] = bounded_com_value
     harness._com_value = bounded_com_value
     harness.read_constants = lambda pythoncom, path: read_step_constants(path)
+    if args.export_report is not None:
+        public = json.loads(args.export_report.read_text(encoding="utf-8"))
+        checked(public["success"] and len(public["outputs"]) == 8, "public export group is incomplete")
+        (args.output_dir / "source-public-report.json").write_text(json.dumps(public, indent=2) + "\n", encoding="utf-8")
+        return harness.run(args.output_dir, args.swconst, False, case_runner=readback_case,
+            case_plan=[(str(index), "front", False) for index in range(len(public["outputs"]))],
+            diagnostic_case="step-public-output-readback")
     return harness.run(args.output_dir, args.swconst, False, case_runner=calibrate_case,
         case_plan=[(protocol + ":" + geometry, "front", False)
                    for protocol in ("ap203", "ap214")
@@ -184,6 +255,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
+    parser.add_argument("--export-report", type=Path, help="validate actual files from a completed public group, without exporting")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     args.output_dir = args.output_dir.resolve()
@@ -191,10 +263,15 @@ def main(argv=None):
         return worker(args)
     checked(args.swconst.is_file(), "installed official type library is required")
     args.output_dir.mkdir()
+    (args.output_dir / "input-identity.json").write_text(json.dumps(dict(
+        source_commit=os.environ.get("GITHUB_SHA"),
+        swconst_path=str(args.swconst.resolve()),
+        swconst_sha256=hashlib.sha256(args.swconst.read_bytes()).hexdigest())) + "\n", encoding="utf-8")
     started = time.monotonic()
     with (args.output_dir / "worker.stdout.log").open("wb") as stdout, (args.output_dir / "worker.stderr.log").open("wb") as stderr:
+        extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []
         process = subprocess.Popen([sys.executable, "-I", __file__, "--worker", "--output-dir", str(args.output_dir),
-                                    "--swconst", str(args.swconst.resolve())], stdout=stdout, stderr=stderr)
+                                    "--swconst", str(args.swconst.resolve()), *extra], stdout=stdout, stderr=stderr)
         while process.poll() is None:
             time.sleep(0.25)
             active = None

@@ -210,6 +210,7 @@ class StepExportTests(unittest.TestCase):
                     overwrite=True, step_protocol="ap214", step_geometry="solid-surface")
             self.assertFalse(result["ok"])
             self.assertEqual(result["error"]["type"], "StepOutputMismatch")
+            self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
             self.assertEqual(path.read_bytes(), b"old output")
             self.assertEqual(list(Path(directory).iterdir()), [path])
             validate_operation_result("document.export", result)
@@ -264,3 +265,13 @@ class StepExportTests(unittest.TestCase):
                 enums.pop()
                 with self.assertRaises(step.StepExportError):
                     step.read_step_constants(path)
+
+
+    def test_unknown_original_preference_fails_before_any_setter(self):
+        for values in ({999: 242, 777: 0}, {999: 203, 777: 99}):
+            self.values = values
+            with self.assertRaises(step.StepExportError) as raised:
+                with self.scope({}):
+                    self.fail("unknown original preference must not enter mutation scope")
+            self.assertEqual(raised.exception.code, "StepPreferenceUnsupported")
+            self.assertEqual(self.writes, [])
