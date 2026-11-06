@@ -10,6 +10,15 @@ spec.loader.exec_module(calibration)
 
 
 class DimensionCalibrationTests(unittest.TestCase):
+    def test_geometry_control_uses_saved_background_state_without_relaxing_comparisons(self):
+        script = (ROOT / "scripts/ci/verify-dimension-format-calibration.py").read_text()
+        self.assertLess(script.index('case["save_source"]'), script.index('geometry-saved-background-before'))
+        self.assertLess(script.index('create-foreground'), script.index('geometry-saved-background-before'))
+        self.assertLess(script.index('geometry-no-write-control'), script.index('internal-set-'))
+        self.assertIn('case["geometry_control"] == case["geometry_before"]', script)
+        self.assertIn('case["geometry_after"] == case["geometry_before"]', script)
+        self.assertIn('geometry(doc)) == case["geometry_before"]', script)
+
     def test_watchdog_enforces_native_and_group_limits_without_restart(self):
         rows = [{"call": "setter", "phase": "begin", "time": 100}]
         self.assertIsNone(calibration.deadline_reason(rows, elapsed=600, now=700, started=0))
@@ -26,7 +35,11 @@ class DimensionCalibrationTests(unittest.TestCase):
         for condition in ("github.event_name == 'workflow_dispatch'", "github.ref == 'refs/heads/codex/docprops-dimension-format'", "inputs.dimension_format_calibration"):
             self.assertIn(condition, job)
         self.assertNotIn("pull_request", workflow)
-        self.assertNotIn("smoke-solidworks.ps1", job)
+        self.assertNotIn("-Suite full", job)
+        self.assertNotIn("-VisibleSmoke", job)
+        internal = job.split("      - name: Calibrate dimension display only", 1)[1].split("      - name:", 1)[0]
+        self.assertNotIn("smoke-solidworks.ps1", internal)
+        self.assertIn("inputs.dimension_format_calibration && !inputs.dimension_format_public", internal)
         self.assertIn("timeout-minutes: 31", job)
         self.assertIn("verify-dimension-format-calibration.py", job)
         self.assertIn("if: always()", job)

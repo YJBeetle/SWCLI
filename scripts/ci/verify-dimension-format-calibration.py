@@ -89,12 +89,12 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
             app=app, document=doc, sketch_feature=sketch, depth_mm=10))
         case["boss"] = boss
         checked(boss["ok"] and not boss.get("warnings"), "fixture extrusion failed")
-        case["geometry_before"] = call("geometry-before", lambda: geometry(doc))
+        case["geometry_before_save"] = call("geometry-before-save", lambda: geometry(doc))
         sketch = feature = None
     source = output / ("source." + suffix)
     case["save_source"] = call("save-source", lambda: save_as_native_windows(str(source), document=doc))
     checked(case["save_source"]["ok"] and not _com_value(doc, "GetSaveFlag"), "source save failed")
-    source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+    source_hash = case["source_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
     foreground = None
     try:
         made, foreground = call("create-foreground", lambda: create_part_windows_with_handle(app=app))
@@ -129,6 +129,17 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
         validate_operation_result("document.dimension-format-set", closed)
         checked(not closed["ok"] and closed["error"]["type"] == "DimensionFormatNotCalibrated"
                 and not closed["mutation"]["attempted"], "uncalibrated public write was not closed")
+        if kind == 1:
+            # Both sides must observe the saved background document. The old
+            # baseline preceded SaveAs and the foreground transition.
+            control_state = case["geometry_control_state_before"] = _state(doc)
+            case["geometry_before"] = call("geometry-saved-background-before", lambda: geometry(doc))
+            case["geometry_control"] = call("geometry-no-write-control", lambda: geometry(doc))
+            checked(case["geometry_control"] == case["geometry_before"],
+                    "no-write geometry control is not bitwise stable; no display setter attempted")
+            case["geometry_control_state_after"] = _state(doc)
+            checked(case["geometry_control_state_after"] == control_state,
+                    "no-write geometry observation changed saved background document state")
         protected = case["protected_before"] = dict(units=_read_units(doc), annotations=_read_options(doc))
         application = lambda: dict(dual_display=app.GetUserPreferenceToggle(43),
                                   parentheses=app.GetUserPreferenceToggle(48), position=app.GetUserPreferenceIntegerValue(14))

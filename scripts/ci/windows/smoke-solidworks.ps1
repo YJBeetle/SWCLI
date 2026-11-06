@@ -7,12 +7,14 @@ param(
     [ValidateSet("core", "full")]
     [string]$Suite = "full",
     [string]$PropertyFixtureDirectory,
-    [string]$AnnotationFixtureDirectory
+    [string]$AnnotationFixtureDirectory,
+    [string]$DimensionFormatFixtureDirectory
 )
 
 $ErrorActionPreference = "Stop"
 if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
 if ($AnnotationFixtureDirectory -and -not $Hidden) { throw "Annotation verification requires the initial hidden host" }
+if ($DimensionFormatFixtureDirectory -and -not $Hidden) { throw "Dimension format verification requires the initial hidden host" }
 if (-not $VisibleSmoke -and -not $Hidden) { throw "Business suites require -Hidden; use -VisibleSmoke for the lightweight visible check" }
 New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
 $partPath = Join-Path $Workspace "swcli-box-100x50x20.SLDPRT"
@@ -344,7 +346,7 @@ $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120
 if (-not $Hidden) { $daemonArguments += "--visible" }
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
-    if ($AnnotationFixtureDirectory) {
+    if ($AnnotationFixtureDirectory -or $DimensionFormatFixtureDirectory) {
         $env:SWCLI_TRACE_NATIVE_CALLS = "1"
     }
     else {
@@ -407,6 +409,17 @@ try {
     }
     if (-not $doctor.daemon.reachable) {
         throw "swclid is not reachable after startup"
+    }
+
+    if ($DimensionFormatFixtureDirectory) {
+        & python -I (Join-Path $PSScriptRoot "../verify-dimension-format-public.py") `
+            --output-dir (Join-Path $Workspace "dimension-format-public") `
+            --fixture-dir $DimensionFormatFixtureDirectory --native-trace $daemonStderr
+        if ($LASTEXITCODE -ne 0) { throw "Installed public dimension format acceptance failed; preserve original report/trace" }
+        $stop = Invoke-SwCliJson -Name "dimension-format-stop" -Arguments @("daemon", "stop", "--json")
+        Assert-OwnedDaemonExit -Process $daemon -Name "dimension-format-public"
+        $started = $false
+        return
     }
 
     if ($VisibleSmoke) {

@@ -13,6 +13,7 @@ DIMENSION_FORMAT_FIELDS = {
 # Internal calibration is not installed-public-CLI acceptance. No new native
 # writes are enabled by merely passing mocks or a private adapter calibration.
 CALIBRATED_DOCUMENT_TYPES = frozenset()
+CALIBRATED_HOST_REVISIONS = frozenset()
 
 
 def format_schema():

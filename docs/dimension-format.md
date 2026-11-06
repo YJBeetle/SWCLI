@@ -31,3 +31,9 @@ Windows 手动 CI：现有 `ci.yml` 的 `dimension_format_calibration=true`，�
 - [文档 Toggle setter](https://help.solidworks.com/2023/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.imodeldocextension~setuserpreferencetoggle.html?format=P&value=) 的返回值文案与已有 Windows2025 校准存在差异：代码仅接受严格 True，并要求精确 readback；False 直接记录部分 mutation，不推测成功。
 
 偏好/option ID 来自已安装官方 SOLIDWORKS 2025 SDK `samples/appcomm/win32/swconst.h`（只读读取，未启动 Wine/SOLIDWORKS），并在CI首次CAD操作前逐项核对官方类型库。
+
+## 公开验收路径（准备中）
+
+新增默认关闭的 `dimension_format_public` 手动模式；与内部校准互斥，不进入默认full/release共享concurrency。独立fixture准备报告与源文件摘要绑定后，通过安装的CLI驱动一个隐藏daemon，在同一worker中核三种文档的CAS拒绝、每项写入/同值、只读拒绝、保存重开、单位/零显示不变及几何。每个尺寸操作request_id与完整native trace边界关联，记录整个trace前缀摘要；SDK/MCP上下文另有定向契约测试。公开写入需同时匹配经过证据确认的文档类型与确切SOLIDWORKS revision；未知位置只能读取或同值观察。
+
+首次内部运行42260887789失败，原始artifact摘要`cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`已核。首失败为前后台/保存转换两侧的质心逐位比较不等，尚未保存重开，不能算原生通过。修复将基线放到保存/后台转换之后并增加无写入控制读；仍保留精确相等的写后和重开比较，不放宽几何或状态断言。当前公开文档类型及revision白名单仍空。

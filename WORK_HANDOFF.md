@@ -25,3 +25,13 @@
 - 原始job快照：../evidence/portable-ci-42260858025.json。
 - 原生专属运行42260887789最近快照仍in_progress，处于runner磁盘准备，未到CAD校准。跟踪输出保存在 ../evidence/native-watch-42260887789.log（120秒间隔）。没有重复dispatch。
 - 原生未完成边界：需要完成后保存远端原始artifact、核report/supervisor/trace的第一个真实失败；仅有相关修复后再开验证。当前没有原生成功证据、没有安装后公开CLI写入验收证据；新写入继续fail closed。
+
+## 内部校准42260887789首失败（已保留原产物）
+
+- 结论failure，非通过；host revision 33.5.0，part的API映射/readback、lease/stamp/CAS与受保护单位/注解检查均走到，但未通过几何比较，未到保存重开；assembly/drawing未运行。
+- 原始artifact ID13524834970，digest sha256:cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c，head4a2b4f461539cd4c5c80505a5172c2fcc3d071f2。下载ZIP和GitHub digest一致。
+- 持久证据 ../evidence/native-42260887789/original.zip、artifacts.json、integrity.json、extracted/dimension-format/report.json、trace.jsonl、source.SLDPRT、supervisor.json。原件未修改。
+- 第一真实失败：display writes changed geometry。volume11999.999999999998、area3799.9999999999995前后相同；centroid Y从5.514537417020185e-16变为8.271806125530278e-16 mm。当前不能据此宣称几何通过或完成验收。
+- 相关修复：把比较基线从“未保存/前台”移到“已保存/后台”，新增无写入重复测量及状态控制；保留原有逐值精确的写后/重开比较，不放宽容差。无写入控制若不稳定则在setter前失败。
+- 按最新统筹口径，已准备安装后公开CLI/daemon gate、确切host revision门禁、独立fixture摘要绑定、SDK/MCP上下文测试；公开模式默认关闭。当前白名单仍空，不标merge-ready，未运行公共验收。
+- 新增共享修改 scripts/ci/windows/smoke-solidworks.ps1：仅显式DimensionFormatFixtureDirectory时提前运行专属gate并验证owned daemon退出；默认full流程保持原路由。CI新增dimension_format_public默认false，与internal模式互斥。

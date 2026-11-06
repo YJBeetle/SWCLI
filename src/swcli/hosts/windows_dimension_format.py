@@ -1,7 +1,7 @@
 """Document-only dimension display operations, with complete-value CAS."""
 
 from ..document_dimension_format import (
-    DIMENSION_FORMAT_FIELDS, CALIBRATED_DOCUMENT_TYPES, native_value, validate_format,
+    DIMENSION_FORMAT_FIELDS, CALIBRATED_DOCUMENT_TYPES, CALIBRATED_HOST_REVISIONS, POSITIONS, native_value, validate_format,
 )
 from .native_trace import native_call
 from .windows import _com_value, _error
@@ -79,9 +79,12 @@ def set_dimension_format_windows(*, app, document, field, value, expected_format
         if before[field] == desired_value:
             result.update(ok=True, format=before, changed=False)
             return result
+        if before["dual_position"] not in POSITIONS.values():
+            raise ValueError("the native dimension position is outside the calibrated profile")
         if not _writable_context(app, edit):
             raise ValueError("dimension display editing requires a normal sheet or no active model sketch")
-        if not _calibration and state[0] not in CALIBRATED_DOCUMENT_TYPES:
+        if not _calibration and (state[0] not in CALIBRATED_DOCUMENT_TYPES
+                or _com_value(app, "RevisionNumber") not in CALIBRATED_HOST_REVISIONS):
             raise DimensionFormatNotCalibrated("dimension display writes lack installed public acceptance; native setter disabled")
         # Preserve independently owned units and existing annotation/zero fields.
         units, annotations = _read_units(document), _read_options(document)

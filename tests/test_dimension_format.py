@@ -195,6 +195,29 @@ class DimensionFormatTests(unittest.TestCase):
                 self.assertFalse(result["mutation"]["attempted"])
                 self.fixture.assert_no_setters()
 
+    def test_public_write_requires_exact_calibrated_host_revision(self):
+        self.app.RevisionNumber = "33.test"
+        with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
+                mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})):
+            result = self.public(True, self.values())
+            self.assertTrue(result["ok"], result)
+            self.extension.SetUserPreferenceToggle.assert_called_once_with(43, 200, True)
+        self.setUp()
+        self.app.RevisionNumber = "34.0"
+        with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
+                mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})):
+            result = self.public(True, self.values())
+        self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
+        self.fixture.assert_no_setters()
+
+    def test_unknown_native_position_is_readable_but_cannot_be_mutated(self):
+        self.native[14] = 999
+        result = self.edit(expected_format={**self.before, "dual_position": 999})
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["error"]["type"], "ValueError")
+        self.assertFalse(result["mutation"]["attempted"])
+        self.fixture.assert_no_setters()
+
     def test_native_setter_cannot_clear_preexisting_dirty_state(self):
         self.fixture.modified = True
         def clear_dirty(*args):
