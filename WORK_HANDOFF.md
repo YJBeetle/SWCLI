@@ -18,3 +18,10 @@
 - CI artifacts：远端 dimension-format-42260887789-1；下载后原样保存到 ../evidence/native-42260887789/。当前尚未有完成证据。
 - 远端已核实为公开仓库 https://github.com/YJBeetle/SWCLI，当前身份ADMIN；初始导出审批因缺少远端信任信息被拒，经只读验证后本次提交/推送与校准触发获准。
 - 未完成边界：内部原生校准与安装后公开CLI验收严格区分；即使内部成功仍需公开入口全链路证据后另行开放写入，不合并、不发布。
+
+## Windows便携CI补充
+
+- 同一实现head `4a2b4f461539cd4c5c80505a5172c2fcc3d071f2` 的推送CI通过：https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 。Windows/Python3.9、Windows/Python3.14、wheel构建均success；native/full/release均skipped。这不是原生验收。
+- 原始job快照：../evidence/portable-ci-42260858025.json。
+- 原生专属运行42260887789最近快照仍in_progress，处于runner磁盘准备，未到CAD校准。跟踪输出保存在 ../evidence/native-watch-42260887789.log（120秒间隔）。没有重复dispatch。
+- 原生未完成边界：需要完成后保存远端原始artifact、核report/supervisor/trace的第一个真实失败；仅有相关修复后再开验证。当前没有原生成功证据、没有安装后公开CLI写入验收证据；新写入继续fail closed。
