@@ -695,7 +695,15 @@ _RESULT_FIELDS = {
         ),
     ),
     "document.export": (
-        {"output": STRING, "artifact": ARTIFACT},
+        {"output": STRING, "artifact": ARTIFACT,
+         "stl_source_state": _object({"before": {"type": "object"}, "after": {"type": "object"},
+                                      "unchanged": BOOL, "observation_error": ERROR}, ("before", "unchanged")),
+         "stl_preferences": _object({
+             "before": {"type": "object"}, "requested": {"type": "object"},
+             "readback": {"type": "object"}, "after": {"type": "object"},
+             "constants": {"type": "object"}, "mutation_attempted": BOOL, "restored": BOOL,
+             "cleanup_errors": {"type": "array", "items": {"type": "object"}},
+         })},
         ("output", "artifact"),
     ),
     "part.create-box": (
@@ -1897,6 +1905,15 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                 }
             )
     if name in ("document.render", "document.export"):
+        if name == "document.export":
+            schema["then"]["properties"] = {
+                "stl_preferences": {"required": ["before", "requested", "readback", "after", "constants",
+                                                   "mutation_attempted", "restored", "cleanup_errors"],
+                                    "properties": {"restored": {"const": True}, "cleanup_errors": {"maxItems": 0}}},
+                "stl_source_state": {"required": ["before", "after", "unchanged"],
+                                     "properties": {"unchanged": {"const": True}},
+                                     "not": {"required": ["observation_error"]}},
+            }
         schema["properties"]["artifact"] = deepcopy(ARTIFACT)
         artifact = schema["properties"]["artifact"]
         if name == "document.render":

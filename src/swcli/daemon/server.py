@@ -315,6 +315,8 @@ def _worker_main(
         waited = wait_windows_host_ready(
             app, timeout_seconds=startup_timeout_seconds
         )
+        from ..hosts.windows_stl_options import configure_calibration_host
+        configure_calibration_host(app, owned=owned_by_daemon)
         documents = DocumentRegistry(app)
         lifecycle_queue.put(
             {
@@ -387,6 +389,11 @@ def _worker_main(
                         lease_id=request.get("lease_id"),
                     )
                 validate_operation_result(str(request["operation"]), result)
+                preference_state = result.get("stl_preferences", {})
+                if preference_state.get("mutation_attempted") and not preference_state.get("restored"):
+                    # Preserve the first operation response, then retire this
+                    # worker. Unknown global preferences cannot serve more CAD.
+                    command_state_failed = True
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):
                     error = result.get("error") or {}

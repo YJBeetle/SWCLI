@@ -10,7 +10,9 @@ from uuid import uuid4
 
 from ..artifact_content import capture_content
 from .native_trace import native_call
+from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
+import struct
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -726,6 +728,7 @@ def export_active_windows_document(
     app: Any = None,
     document: Any = None,
     include_content: bool = False,
+    stl_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Export a selected document to a verified neutral or drawing format."""
 
@@ -795,6 +798,27 @@ def export_active_windows_document(
             }
             return result
 
+        if stl_options is not None:
+            from ..operation_schemas import _validate_parameter
+            from ..stl_options import STL_OPTIONS_SCHEMA
+            _validate_parameter("stl_options", stl_options, STL_OPTIONS_SCHEMA)
+            if export_format != "STL":
+                raise StlOptionsError("StlFormatRequired", "stl_options apply only to .stl exports")
+            readonly = _com_value(document, "IsOpenedReadOnly")
+            viewonly = _com_value(document, "IsOpenedViewOnly")
+            if type(readonly) is not bool or type(viewonly) is not bool:
+                raise StlOptionsError("SourceStateUnavailable", "source read-only state is not observable")
+            if readonly or viewonly:
+                raise StlOptionsError("DocumentReadOnly", "STL options refuse read-only or view-only sources")
+            option_state = (_com_value(document, "GetUpdateStamp"),
+                            _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+            if type(option_state[0]) is not int or not isinstance(option_state[1], str) or not option_state[1]:
+                raise StlOptionsError("SourceStateUnavailable", "source stamp/configuration is not observable")
+            result["stl_source_state"] = {
+                "before": {**before, "configuration": option_state[1], "update_stamp": option_state[0]},
+                "unchanged": False,
+            }
+
         warnings = _export_source_warnings(before)
         if strict and warnings:
             result["error"] = {
@@ -809,11 +833,23 @@ def export_active_windows_document(
         )
         export_path = temporary_output_path
 
-        with _stl_single_file(
-            app, export_format == "STL" and before["document"]["type"] == 2
-        ):
+        if stl_options is not None:
+            result["stl_preferences"] = evidence = {}
+            preference_scope = stl_preferences(app, stl_options, evidence)
+        else:
+            preference_scope = _stl_single_file(
+                app, export_format == "STL" and before["document"]["type"] == 2)
+        with preference_scope:
             document.ClearSelection2(True)
-            save_error = int(document.SaveAs3(str(export_path), 0, 1))
+            save_error = int(native_call("export", "IModelDoc2.SaveAs3",
+                                         lambda: document.SaveAs3(str(export_path), 0, 1)))
+            if save_error != 0:
+                result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
+                                   "save_errors": save_error}
+        if stl_options is not None and not evidence.get("restored"):
+            result.setdefault("error", {"type": "ExportPreferenceRestoreFailed",
+                                       "message": "STL preferences could not be restored; worker is closed to further option writes"})
+            return result
         if save_error != 0 or not export_path.is_file():
             result["error"] = {
                 "type": "ExportFailed",
@@ -835,9 +871,24 @@ def export_active_windows_document(
             }
             return result
 
+        if stl_options is not None:
+            with export_path.open("rb") as stream:
+                header = stream.read(84)
+            is_binary = len(header) == 84 and size_bytes == 84 + 50 * struct.unpack_from("<I", header, 80)[0]
+            if is_binary != (stl_options["encoding"] == "binary"):
+                raise StlOptionsError("ExportVerificationFailed", "actual STL encoding differs from requested encoding")
         after = _export_source_state(document)
+        if stl_options is not None:
+            observed_option_state = (_com_value(document, "GetUpdateStamp"),
+                                     _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+            result["stl_source_state"]["after"] = {
+                **after, "configuration": observed_option_state[1], "update_stamp": observed_option_state[0]}
+            result["stl_source_state"]["unchanged"] = (
+                result["stl_source_state"]["after"] == result["stl_source_state"]["before"])
+            if not result["stl_source_state"]["unchanged"]:
+                raise StlOptionsError("SourceStateChanged", "STL export changed source identity/state; no CAD rollback")
         changes = _export_source_change_warnings(before, after)
-        if strict and changes:
+        if (strict or stl_options is not None) and changes:
             result["error"] = {
                 "type": "SourceStateChanged",
                 "message": "export changed the source document state",
@@ -862,13 +913,27 @@ def export_active_windows_document(
             result["artifact"]["content"] = content
         result["ok"] = True
         return result
-    except _ExportPreferenceError as exc:
+    except (StlOptionsError, _ExportPreferenceError) as exc:
         result["error"] = {"type": exc.code, "message": str(exc)}
         return result
     except Exception as exc:
         result["error"] = _error(exc)
         return result
     finally:
+        if "stl_source_state" in result and "after" not in result["stl_source_state"]:
+            try:
+                state = {**_export_source_state(document),
+                         "configuration": _com_value(_com_value(document, "GetActiveConfiguration"), "Name"),
+                         "update_stamp": _com_value(document, "GetUpdateStamp")}
+                result["stl_source_state"]["after"] = state
+                result["stl_source_state"]["unchanged"] = state == result["stl_source_state"]["before"]
+                if not result["stl_source_state"]["unchanged"]:
+                    result["ok"] = False
+                    result.setdefault("error", {"type": "SourceStateChanged", "message": "source may have changed; no CAD rollback"})
+            except Exception as exc:
+                result["stl_source_state"]["observation_error"] = _error(exc)
+                result["ok"] = False
+                result.setdefault("error", {"type": "SourceStateUnavailable", "message": "cannot observe source after export; no CAD rollback"})
         if temporary_output_path is not None:
             try:
                 temporary_output_path.unlink(missing_ok=True)
