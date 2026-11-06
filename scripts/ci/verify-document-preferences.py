@@ -270,8 +270,10 @@ def roundtrip(gate, trace, profile, document, foreground, current, kind, suffix,
     return writable, foreground, current
 
 
-def run(gate, fixtures, trace, profile, *, host_fixtures=None):
-    sources = [(suffix, kind, fixtures / ('annotations.' + suffix)) for suffix, kind in KINDS]
+def run(gate, fixtures, trace, profile, *, host_fixtures=None, kinds=KINDS, contract_probe=None):
+    require(kinds and len(set(kinds)) == len(kinds) and all(item in KINDS for item in kinds),
+            'finite unique document kinds required')
+    sources = [(suffix, kind, fixtures / ('annotations.' + suffix)) for suffix, kind in kinds]
     require(all(path.is_file() for _, _, path in sources), 'three prepared native inputs are required')
     gate.record.update(profile='document-preferences-' + profile, state='running', success=False,
                        preference_cases=[], evidence_kind='installed-public-cli-gate', covers_full_modeling_suite=False,
@@ -292,6 +294,8 @@ def run(gate, fixtures, trace, profile, *, host_fixtures=None):
         gate.record['preference_cases'].append(case)
         geometry_before = support.geometry(gate, document) if kind == 1 else None
         if geometry_before is not None: case['geometry_initial'] = geometry_before
+        if contract_probe is not None:
+            contract_probe(gate, trace, profile, document, initial)
         plan = targets(profile, initial)
         case['planned_targets'] = plan
         first_field, first_value = plan[0]

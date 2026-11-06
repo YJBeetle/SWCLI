@@ -106,3 +106,19 @@ run 42260761081 / attempt 1 已 completed/cancelled，未分配 runner（runner_
 - [pywin32 官方 PythonCOM.cpp 签名](https://github.com/mhammond/pywin32/blob/main/com/win32com/src/PythonCOM.cpp)
 
 本修复关联121 tests通过（含9项新的owned/管道故障），完整便携2115 tests / 70.291秒 / skipped32，均OK。新增独立 `owned-interface-portable-benchmark.json` 仍证实250→0 dumps、字节相同；不是原生性能结论。仅相关修复提交后再对新head启动一次新验证。当前尚未得到标准36内部校准、公开CLI/daemon/SDK/MCP验收或merge-ready证据。
+
+### R3 新 head / 单次新验证
+
+- 相关修复提交并推送：`143f9d5691def3f4cb2b09d8e56feb3e53ca50a7`。
+- [run 42267580008](https://github.com/YJBeetle/SWCLI/actions/runs/42267580008)，attempt1，2026-11-07 02:05:50 Asia/Shanghai 发起；该head唯一一次dispatch。
+- 参数 `docprops_calibration=true`、`docprops_expected_head=143f9d5691def3f4cb2b09d8e56feb3e53ca50a7`、`native_full=false`；依旧仅standards-36，独立concurrency，不进默认full/release。
+- 持久回执 `evidence/docprops-performance/dispatch-r3.json`。当前等待真实执行，不重复dispatch，不取消其他run。
+- 本轮增加的共享文件修改包含 `scripts/dev/run-document-properties-calibration.py`（私有in-memory管道授权传递），除原calibrator/CI wrapper/auditor外无生产schema/SDK/MCP工具字段修改；手动CLI默认路径未改变。
+
+## 对应公开验收入口准备（仍关闭，尚未执行公开CI）
+
+新增 `scripts/ci/verify-document-properties-public.py`，复用现有 `verify-document-preferences.py` 的严格标准 CLI/daemon gate；该共享gate仅新增默认关闭的optional contract probe和明确有限kinds参数，默认仍全部三类，不改原 full CI。公开入口必须先存在**经独立核原件的真实成功 proof JSON**、API核实的success/run/head/attempt/artifact digest、精确36转换白名单；当前proof文件不存在/白名单空，启动前拒绝。没有制造成功placeholder，没有开放标准写。
+
+公开计划定义为**三个明确独立的1800秒kind组（各12转换）**，同一owned hidden daemon在组间保持，首失败停止、不重启、不回滚；它不是内部单组36的替代或“旧单组通过”。直接复用内部已核baseline字节做本run独立fixture副本，逐次保存/RO、lease/foreign session/update stamp/完整snapshot CAS/只读/状态/身份/geometry/trace保护全部沿用原严格gate。额外每kind做typed SDK读取及MCP execute读取（无写、无host启动），验证真实结果schema、request ID、native reader trace和与CLI同一snapshot/state；MCP不调用daemon_start/stop。
+
+当前10项公开入口portable故障测试通过，既有公开gate13项回归通过（原件 `public-gate-preparation-tests.log`、`existing-public-gate-regression.log`）。这只是准备；R3内部run仍在执行/安装，未触发公开CI。只有核实R3真实成功、精确Windows/revision范围和source/digest后，才写proof/白名单并接线一次必要公开验证。合入main/发布仍由主对话，不由本路执行。
