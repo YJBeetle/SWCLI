@@ -51,3 +51,9 @@ class UnitCalibrationTests(unittest.TestCase):
         self.assertIn('timeout-minutes: 32',block)
         self.assertIn('python -I scripts/ci/run-unit-profile-public.py',block)
         self.assertLess(workflow.index('name: Calibrate bounded document unit profile'),workflow.index('name: Verify public document unit profile CLI'))
+
+    def test_closed_domain_refusal_must_not_hide_native_api_failure(self):
+        for error in ('UnitProfileCalibrationRequired','ValueError'):
+            calibration.require_closed_refusal(dict(ok=False,mutation=dict(attempted=False,may_have_changed=False),error=dict(type=error)))
+        for error in ('com_error','RuntimeError','DocumentUnitProfileConflict'):
+            with self.assertRaises(RuntimeError):calibration.require_closed_refusal(dict(ok=False,mutation=dict(attempted=False,may_have_changed=False),error=dict(type=error)))

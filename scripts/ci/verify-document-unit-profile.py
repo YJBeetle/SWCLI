@@ -90,9 +90,10 @@ def run(gate,fixtures,prior_pids):
         case['noop']=edit(gate,document,before,value=source)
         case['lease_refusal']=edit(gate,document,before,value=value,session=gate.session+'-contender',lease='l-not-owned',error='DocumentLeaseConflict')
         case['stamp_refusal']=edit(gate,document,before,value=value,stamp=baseline['update_stamp']+1,error='DocumentUpdateConflict')
-        wrong=deepcopy(before['unit_profile']);wrong['linkage']['swUnitsTimeUnits']+=1
+        wrong=deepcopy(before['unit_profile']);wrong['linkage']['swUnitsTimeUnits']+=(-1 if wrong['linkage']['swUnitsTimeUnits']==2147483647 else 1)
         case['cas_refusal']=edit(gate,document,before,value=value,snapshot=wrong,error='DocumentUnitProfileConflict')
-        error='UnitProfileCalibrationRequired' if before['unit_profile']['values']['system']['native_value']==4 else 'ValueError'
+        error=expected['refused']['error']['type']
+        require(error in ('UnitProfileCalibrationRequired','ValueError'),'calibration refusal was an unexpected API failure')
         case['closed_domain_refusal']=edit(gate,document,before,value=value,error=error)
         after=case['after_refusal']=read(gate,document)
         require(after['document']==baseline and typed_key(after['unit_profile'])==typed_key(before['unit_profile']),'refusal changed state or complete profile')

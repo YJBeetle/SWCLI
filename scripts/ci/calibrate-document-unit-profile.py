@@ -34,6 +34,13 @@ def expired(now, started, begins):
     return now-started > 1800 or any(now-value > 600 for value in begins.values())
 
 
+def require_closed_refusal(result):
+    require(result.get('ok') is False
+            and result.get('mutation')==dict(attempted=False,may_have_changed=False)
+            and result.get('error',{}).get('type') in ('UnitProfileCalibrationRequired','ValueError'),
+            'unproved write escaped closed domain or failed unexpectedly')
+
+
 def supervise(args):
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -174,7 +181,7 @@ def worker(args):
                     noop=case['noop']=call('public-same-value',lambda:operation('document.unit-profile-set',dict(field='linear.precision',value=source,expected_snapshot=before),True));persist()
                     require(noop['ok'] and not noop['changed'] and noop['mutation']==dict(attempted=False,may_have_changed=False) and noop['document']==read['document'],'same-value write changed state')
                 refused=case['refused']=call('public-unproved-write',lambda:operation('document.unit-profile-set',dict(field='linear.precision',value=value,expected_snapshot=before),True));persist()
-                require(not refused['ok'] and refused['mutation']==dict(attempted=False,may_have_changed=False),'unproved write escaped closed domain')
+                require_closed_refusal(refused)
                 again=case['after_refusal']=call('read-after-refusal',lambda:operation('document.unit-profile'));persist()
                 require(again['ok'] and again['unit_profile']==before and again['document']==read['document'],'refusal changed profile or state')
                 if kind==1:require(geometry(document)==case['geometry_before'],'unit observation changed geometry')

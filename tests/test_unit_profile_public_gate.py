@@ -60,7 +60,7 @@ class UnitPublicGateTests(unittest.TestCase):
         cases=[]
         for kind,suffix in ((1,'SLDPRT'),(2,'SLDASM'),(3,'SLDDRW')):
             p=self.fixtures/('units.'+suffix);p.write_bytes(bytes(1024))
-            cases.append(dict(success=True,document_type=kind,file_sha256=hashlib.sha256(p.read_bytes()).hexdigest(),read=dict(unit_profile=profile(kind))))
+            cases.append(dict(success=True,document_type=kind,file_sha256=hashlib.sha256(p.read_bytes()).hexdigest(),read=dict(unit_profile=profile(kind)),refused=dict(error=dict(type='UnitProfileCalibrationRequired'))))
         (self.fixtures/'report.json').write_text(json.dumps(dict(success=True,profile='units-read-cas-v1',source_commit='native-head',cases=cases)))
         self.fake=ProfileCLI(self.output,self.fixtures)
     def execute(self):
