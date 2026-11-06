@@ -575,6 +575,8 @@ verification and any strict checks pass. This core operation selects format
 only from the explicit output extension and does not interpret source naming
 conventions.
 
+GLB container verification rejects missing/short embedded BIN buffers; mesh
+accessor declarations alone cannot supply the missing geometry.
 Mesh exports use bounded container/basic-geometry checks, not a guarantee of
 watertightness, tessellation accuracy, materials or geometric equivalence.
 Native translator availability and tessellation settings belong to the host;

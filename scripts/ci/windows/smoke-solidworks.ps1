@@ -346,9 +346,12 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120")
 if (-not $Hidden) { $daemonArguments += "--visible" }
+$previousGlbStagingCalibration = [Environment]::GetEnvironmentVariable("SWCLI_GLB_PLAIN_STAGING_CALIBRATION", "Process")
 $previousQualityCalibration = [Environment]::GetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", "Process")
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
+    if ($ImageQualityCalibration) { $env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION = "1" }
+    else { Remove-Item Env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION -ErrorAction SilentlyContinue }
     if ($ImageQualityCalibration) { $env:SWCLI_IMAGE_QUALITY_CALIBRATION = "1" }
     else { Remove-Item Env:SWCLI_IMAGE_QUALITY_CALIBRATION -ErrorAction SilentlyContinue }
     if ($AnnotationFixtureDirectory -or $ImageQualityCalibration) {
@@ -368,6 +371,7 @@ try {
 finally {
     [Environment]::SetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", $previousNativeTrace, "Process")
     [Environment]::SetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", $previousQualityCalibration, "Process")
+    [Environment]::SetEnvironmentVariable("SWCLI_GLB_PLAIN_STAGING_CALIBRATION", $previousGlbStagingCalibration, "Process")
 }
 # Pin the OS handle while it is alive; preflight exits long before we check it.
 $null = $daemon.Handle
@@ -418,6 +422,13 @@ try {
     }
 
     if ($ImageQualityCalibration) {
+        # Independent property persistence group precedes the separate GLB
+        # experiment. Both keep their own hard 1800s watchdog, same owned host;
+        # the overall CI step remains capped at 35 minutes.
+        & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
+            --document-properties --output-dir (Join-Path $Workspace "properties-calibration") `
+            --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+        if ($LASTEXITCODE -ne 0) { throw "Internal image-quality document-properties group failed; stop before GLB experiment" }
         & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
             --output-dir (Join-Path $Workspace "calibration") `
             --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"

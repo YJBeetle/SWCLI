@@ -117,7 +117,7 @@ class CalibrationTests(unittest.TestCase):
         self.swconst=Path(temporary.name)/"swconst.tlb"; self.swconst.write_bytes(b"static")
         self.fake=QualityCLI(self.directory,self.trace)
 
-    def run_gate(self):
+    def run_gate(self, *, document_properties=False):
         def sdk(**kwargs):
             def read(**context):
                 quality=deepcopy(self.fake.documents[context["document_id"]]["quality"])
@@ -127,7 +127,7 @@ class CalibrationTests(unittest.TestCase):
                 mock.patch.object(gate,"constants",return_value={}), mock.patch.object(gate,"Client",side_effect=sdk), \
                 mock.patch.object(gate.importlib.metadata,"version",return_value="portable-fake"), \
                 mock.patch("sys.stdout",new=io.StringIO()):
-            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog"])
+            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--document-properties"] if document_properties else [])])
 
     def record(self): return json.loads((self.directory/"image-quality.json").read_text())
 
@@ -145,6 +145,20 @@ class CalibrationTests(unittest.TestCase):
             self.assertTrue(all(row["success"] and row["reopen"]["read_only"] for row in case["levels"]))
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(all(event["request_timeout_seconds"]==600 for event in record["events"]))
+
+    def test_document_properties_is_a_separate_complete_group_without_glb_claims(self):
+        self.run_gate(document_properties=True);record=self.record()
+        self.assertTrue(record["success"])
+        self.assertEqual(record["profile"],"document-image-quality-calibration")
+        self.assertFalse(record["covers_glb_mesh"] or record["glb_control_proven"] or record["image_quality_writes_accepted"])
+        self.assertEqual(record["optimize_edge_length_verified_values"],[True,False])
+        for case in record["cases"]:
+            self.assertEqual(case["levels"][-1]["reopened_quality"]["quality"]["optimize_edge_length"],False)
+            self.assertTrue(case["levels"][0]["reopened_quality"]["quality"]["optimize_edge_length"])
+            self.assertTrue(case["levels"][1]["reopened_quality"]["quality"]["optimize_edge_length"])
+            self.assertNotIn("mesh",case["levels"][-1])
+        self.assertFalse(any(call.command=="document" and call.document_command=="export" for call in self.fake.calls))
+        self.assertEqual(self.fake.documents,{})
 
     def test_first_failure_trace_and_lost_persistence_stop_without_retry_and_clean_once(self):
         for defect in ("native-first-failure","missing-trace","missing-native-getter","reopen-lost-value","global-setter","reordered-preferences"):
@@ -181,7 +195,9 @@ class CalibrationTests(unittest.TestCase):
             block=workflow.split("      - name: "+name,1)[1].split("      - name:",1)[0]
             self.assertIn("if: ${{ !inputs.image_quality_calibration }}",block)
         wrapper=(ROOT/"scripts/ci/windows/smoke-solidworks.ps1").read_text()
-        block=wrapper.split('    if ($ImageQualityCalibration) {\n        & python',1)[1].split('    if ($VisibleSmoke)',1)[0]
+        block=wrapper.split('    if ($ImageQualityCalibration) {\n        # Independent property',1)[1].split('    if ($VisibleSmoke)',1)[0]
         self.assertIn('return',block)
+        self.assertLess(block.index('--document-properties'),block.index('Internal image-quality document-properties group failed'))
+        self.assertLess(block.index('Internal image-quality document-properties group failed'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))
         self.assertIn('if ($LASTEXITCODE -ne 0)',block)
         self.assertNotIn('restart',block)

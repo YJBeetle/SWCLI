@@ -13,7 +13,7 @@ from test_export_validation import amf, archive, binary_stl, glb, three_mf_membe
 class WindowsMeshExportTests(unittest.TestCase):
     def export(self, format, payload, *, document_type=1, strict=False, save_error=0,
                preference=False, restore_failure=False, native_failure=False,
-               unavailable=False, enable_rejected=False):
+               unavailable=False, enable_rejected=False, plain_staging=False):
         self.preference = preference
         self.saved = []
         self.preference_writes = []
@@ -50,6 +50,7 @@ class WindowsMeshExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
             output = Path(folder) / ("fixture." + format)
             output.write_bytes(b"previous valid artifact")
+            stack.enter_context(mock.patch.dict(documents.os.environ, SWCLI_GLB_PLAIN_STAGING_CALIBRATION="1" if plain_staging else ""))
             stack.enter_context(mock.patch.object(documents.sys, "platform", "win32"))
             stack.enter_context(mock.patch.dict("sys.modules", {
                 "pythoncom": ModuleType("pythoncom"), "win32com": win32com,
@@ -61,11 +62,29 @@ class WindowsMeshExportTests(unittest.TestCase):
             )
             self.output = output.read_bytes()
             self.residue = sorted(path.name for path in Path(folder).iterdir())
-            self.assertEqual(self.residue, [output.name])
+            expected=[output.name]
+            if plain_staging and format=="GLB" and result.get("error",{}).get("type")=="ExportVerificationFailed":
+                diagnostic=output.with_name(output.stem+".invalid-native.glb")
+                self.assertEqual(diagnostic.read_bytes(),payload); expected.append(diagnostic.name)
+            self.assertEqual(self.residue, sorted(expected))
             for temporary in self.saved:
                 self.assertNotEqual(temporary, output)
                 self.assertFalse(temporary.exists())
         return result
+
+    def test_plain_staging_is_internal_glb_only_single_save_and_keeps_rejected_bytes(self):
+        for format,payload in (("GLB",glb()),("GLB",b"invalid native bytes"),("STL",binary_stl())):
+            with self.subTest(format=format,payload=payload[:10]):
+                result=self.export(format,payload,plain_staging=True)
+                self.assertEqual(len(self.saved),1)
+                if format=="GLB":
+                    self.assertTrue(self.saved[0].name.startswith("swcli-"))
+                    self.assertEqual(self.saved[0].name.count("."),1)
+                else: self.assertTrue(self.saved[0].name.startswith("."))
+                if payload==b"invalid native bytes":
+                    self.assertFalse(result["ok"])
+                    self.assertEqual(result["error"]["type"],"ExportVerificationFailed")
+                    self.assertEqual(self.output,b"previous valid artifact")
 
     def test_all_mesh_formats_for_parts_and_assemblies(self):
         for kind in (1, 2):

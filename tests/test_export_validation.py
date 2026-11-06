@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 from pathlib import Path
@@ -208,6 +209,19 @@ class ExportValidationTests(unittest.TestCase):
         extended = bytearray(payload + struct.pack("<I4s", 4, b"EXTN") + b"data")
         struct.pack_into("<I", extended, 8, len(extended))
         self.assertTrue(self.valid("GLB", bytes(extended)))
+
+    def test_glb_rejects_missing_or_short_embedded_buffer_even_with_mesh_metadata(self):
+        payload=glb(); metadata_end=20+struct.unpack_from("<I",payload,12)[0]
+        for binary in (b"", b"\0"*32, b"\0"*40):
+            changed=bytearray(payload[:metadata_end]+struct.pack("<I4s",len(binary),b"BIN\0")+binary)
+            struct.pack_into("<I",changed,8,len(changed))
+            self.assertFalse(self.valid("GLB",bytes(changed)))
+        changed=bytearray(payload[:metadata_end]);struct.pack_into("<I",changed,8,len(changed))
+        self.assertFalse(self.valid("GLB",bytes(changed)))
+        model=glb_model();model["buffers"][0]["uri"]="data:application/octet-stream;base64,"+base64.b64encode(bytes(36)).decode()
+        metadata=json.dumps(model).encode();metadata+=b" "*(-len(metadata)%4)
+        external=struct.pack("<4sIII4s",b"glTF",2,20+len(metadata),len(metadata),b"JSON")+metadata
+        self.assertTrue(self.valid("GLB",external))
 
     def test_glb_rejects_duplicate_json_and_incomplete_chunks(self):
         for chunk in (struct.pack("<I4s", 4, b"JSON") + b"{}  ",

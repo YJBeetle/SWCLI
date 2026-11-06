@@ -77,3 +77,15 @@
 - run：[42265919228](https://github.com/YJBeetle/SWCLI/actions/runs/42265919228)，**head `d6eff718a9a6a38a0bcdd6724a9916c72256c4f7`**，`image_quality_calibration=true`, `native_full=false`，其他参数默认值；此head派发一次。专属profile+ref concurrency，未进入默认full/release分组。
 - 原件 `dispatch-trace-fix-request.json` / `dispatch-trace-fix-result.json`，低频监控 `run-42265919228-watch.log`。这是保存/审计原artifact后的相关代码修复验证，非不改代码重试。
 - 当前没有任何写入、save/reopen或GLB实证通过结论，公共写入保持关闭；待此run完成后独立审计再决定精确开放范围及后续公共验收。
+
+### 第二轮原件：真实 GLB 缺失二进制 buffer
+
+- run `42265919228` / head `d6eff718a9a6a38a0bcdd6724a9916c72256c4f7` 已失败；原zip已验证digest：`sha256:bdfcbf0e992c951acc7a2508e6c7a38cffa7bc0613ec9f0847ef9c6931231ee7`（941989 bytes）。目录同持久artifact根下 `run-42265919228`，未改原件。
+- 第一失败在严格GLB mesh解析：`external or invalid GLB buffer`。真实 `cylinder-coarse.glb` 3816 bytes，JSON chunk 3788、BIN chunk **0**；首buffer声明3696 bytes，indices/POSITION/NORMAL的bufferViews总范围也3696。没有uri或Draco扩展。声明的240 indices /114 positions/114 normals **不是实测网格**，不得据此认定80 triangles或细分有效。
+- 这是实际输出缺数据，不是应放宽的解析断言。[Khronos GLB buffer规则](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-stored-buffer) 要求对应BIN数据，额外padding最多3bytes。
+- 此前已通过：圆柱baseline保存、完整raw readonly/writable新handle重开、SDK read；edge false→true单setter返回True；custom→coarse单setter返回True，明确deviation联动0.018750000000000003→0.12500000000000003 mm，range保持；完整CAS拒绝、三字段noop、coarse native保存及保存后raw读取。尚未到变更后的coarse readonly重开、fine/custom写入、box或完整GLB对照，所以仍未开放写入。
+- 生产`export_validation._glb`存在确认缺口：只看mesh/accessor声明会接受空BIN。已增加embedded buffer字节长度和padding检查，原缺数据产物离线复验现在返回False；保留合法外部buffer/扩展容器的既有边界，不把诊断解码器要求强加为全部格式校验。
+- 下一校准仅CI开启 `SWCLI_GLB_PLAIN_STAGING_CALIBRATION=1`，同一SaveAs3仅调用一次，暂存名由点号开头多扩展改为ASCII单扩展`swcli-UUID.glb`；生产默认命名尚不变。**这只是隔离文件名变量的有界假设，不宣称已确认根因**。若仍无数据，会单独保留`.invalid-native.glb`原字节，正常目标不被替换。父环境恢复，无global preference/API fallback/retry。
+- GLB SaveAs3增加明确native trace，其他格式调用不变。新增共享冲突面：`src/swcli/hosts/windows_documents.py`（仅GLB staging/诊断/trace）、`hosts/export_validation.py`（GLB实际buffer检查）、`test_export_validation.py`、`test_windows_mesh_exports.py`；不改STL/STEP参数。
+- 为忠实区分控制域，内部校准先运行独立 `--document-properties` 组（圆柱+box三字段、含edge true/false分别单请求及另存重开、明确 `covers_glb_mesh=false`），成功后才运行原严格GLB组；两组分别保持600/1800秒、同一个owned host，CI步骤整体35分钟上限不增。第一组失败绝不进入第二组；GLB组失败立刻停止。这样GLB exporter缺陷不冒充属性API失败或反之，不把独立property组通过声称为GLB通过。
+- 本地生产GLB改动后完整回归 **1845 tests OK（32 skipped）**；新增独立属性组后focused **81 tests OK（2 skipped）**，actionlint通过。完整原日志 `portable-tests-glb-validation-fix.log`。下一次必要验证只对相关修复新head派发一次。

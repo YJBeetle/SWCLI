@@ -29,13 +29,16 @@ from gate_support.glb_mesh import inspect_glb
 
 
 class QualitySmoke(modeling.ModelingSmoke):
-    def __init__(self, **kwargs):
+    def __init__(self, *, document_properties=False, **kwargs):
+        self.document_properties = document_properties
         super().__init__(request_timeout_seconds=600, **kwargs)
         self.started = time.monotonic()
-        self.record.update(profile="image-quality-calibration", evidence_kind="internal-installed-cli-sdk-calibration",
+        self.record.update(profile="document-image-quality-calibration" if document_properties else "image-quality-calibration",
+            covers_glb_mesh=not document_properties, evidence_kind="internal-installed-cli-sdk-calibration",
             full_acceptance_eligible=False, covers_full_modeling_suite=False,
             group_timeout_seconds=1800, image_quality_writes_accepted=False, glb_control_proven=False,
             expected_version=__version__, source_commit=os.environ.get("GITHUB_SHA"),
+            export_staging_profile="plain filename in internal CI only; default exporter unchanged",
             python_version=sys.version,
             format_options_status="unsupported: no verified API mapping; same host defaults observed, not independently controlled")
 
@@ -205,6 +208,10 @@ def run(gate, trace, swconst):
                     target = (low+(high-low)*0.75)*1000
                 require(target > 0 and not math.isclose(target, current["quality"]["shaded_deviation_mm"], rel_tol=1e-12, abs_tol=1e-12), "custom deviation must actually change")
                 row["deviation_write"] = current = edit(gate, document, current, "shaded_deviation_mm", target, trace)
+            if gate.document_properties and mode == "custom":
+                # An explicit second requested test value, never failure
+                # rollback: verify disabling independently after enabling.
+                row["edge_disable_write"] = current = edit(gate, document, current, "optimize_edge_length", False, trace)
             row["noops"] = []
             for field in IMAGE_QUALITY_FIELDS:
                 current = edit(gate, document, current, field, current["quality"][field], trace)
@@ -213,10 +220,11 @@ def run(gate, trace, swconst):
             saved = row["native_save"] = annotations.save_copy(gate, document, shape+"-"+mode+".SLDPRT", "SLDPRT")
             saved_quality = row["saved_quality"] = read(gate, document, trace)
             require(exact_snapshot(expected, saved_quality["quality"]), "native save changed quality snapshot")
-            output = gate.directory/(shape+"-"+mode+".glb")
-            row["export"] = gate.write("document", "export", str(output), "--strict", document=document)
-            require(not row["export"].get("warnings") and row["export"]["artifact"]["size_bytes"] == output.stat().st_size, "GLB export warnings/size mismatch")
-            row["mesh"] = inspect_glb(output)
+            if not gate.document_properties:
+                output = gate.directory/(shape+"-"+mode+".glb")
+                row["export"] = gate.write("document", "export", str(output), "--strict", document=document)
+                require(not row["export"].get("warnings") and row["export"]["artifact"]["size_bytes"] == output.stat().st_size, "GLB export warnings/size mismatch")
+                row["mesh"] = inspect_glb(output)
             require(exact_snapshot(read(gate, document, trace)["quality"], expected), "GLB export changed quality")
             annotations.same_geometry(geometry, gate.measure(document, volume=volume, area=area)["metrics"])
             gate.close(document); gate.close(foreground)
@@ -234,19 +242,21 @@ def run(gate, trace, swconst):
                 row["next_writable_open"] = opened
                 current = read(gate, document, trace)
                 require(exact_snapshot(current["quality"], expected), "writable reopen lost raw quality")
-        counts = {row["mode"]: row["mesh"]["triangles"] for row in case["levels"]}
-        case["triangle_counts"] = counts
-        case["quality_associated_triangle_difference_observed"] = len(set(counts.values())) > 1
-        case["format_materials_extensions_stable"] = all(all(row["mesh"][key] == case["levels"][0]["mesh"][key]
-            for key in ("materials", "extensions_used", "extensions_required", "camera_count", "animation_count", "scene_extensions")) for row in case["levels"])
-        require(case["format_materials_extensions_stable"], "GLB material/extension/scene controls drifted between quality levels")
+        if not gate.document_properties:
+            counts = {row["mode"]: row["mesh"]["triangles"] for row in case["levels"]}
+            case["triangle_counts"] = counts
+            case["quality_associated_triangle_difference_observed"] = len(set(counts.values())) > 1
+            case["format_materials_extensions_stable"] = all(all(row["mesh"][key] == case["levels"][0]["mesh"][key]
+                for key in ("materials", "extensions_used", "extensions_required", "camera_count", "animation_count", "scene_extensions")) for row in case["levels"])
+            require(case["format_materials_extensions_stable"], "GLB material/extension/scene controls drifted between quality levels")
         require(hashlib.sha256(Path(baseline["path"]).read_bytes()).hexdigest() == baseline["sha256"], "quality experiment modified its original native baseline")
         case["success"] = True
         gate.require_empty()
     gate.record["host_after"] = gate.health()["host"]
     require(gate.record["host_after"] == gate.record["host"], "quality calibration host state changed")
     gate.record.update(state="completed", success=True,
-        image_quality_calibration_passed=True, image_quality_writes_accepted=False, glb_control_proven=False)
+        image_quality_calibration_passed=True, image_quality_writes_accepted=False, glb_control_proven=False,
+        optimize_edge_length_verified_values=[True, False] if gate.document_properties else [True])
 
 
 def main(argv=None):
@@ -255,6 +265,7 @@ def main(argv=None):
     parser.add_argument("--native-trace", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--endpoint", default=modeling.DEFAULT_ENDPOINT)
+    parser.add_argument("--document-properties", action="store_true", help="independent document-properties evidence group; does not export or claim GLB meshes")
     parser.add_argument("--inside-watchdog", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if not args.inside_watchdog:
@@ -266,7 +277,7 @@ def main(argv=None):
             (args.output_dir/"group-timeout.json").write_text(json.dumps(dict(success=False, first_failure="hard 1800-second group deadline", full_acceptance_eligible=False)))
             return 1
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    gate = QualitySmoke(directory=args.output_dir.resolve(), host_directory=str(args.output_dir.resolve()), endpoint=args.endpoint)
+    gate = QualitySmoke(directory=args.output_dir.resolve(), host_directory=str(args.output_dir.resolve()), endpoint=args.endpoint, document_properties=args.document_properties)
     gate.record_path = args.output_dir/"image-quality.json"
     with gate.record_path.open("x") as stream: json.dump(gate.record, stream)
     trace = Trace(args.native_trace)

@@ -100,3 +100,20 @@ Original reports, CLI stdout/stderr, request journal, native trace, saved parts,
 GLBs and cleanup receipts are uploaded on success or failure. Portable fake
 host tests and synthetic/actual Draco parser tests prove gate behavior only.
 They cannot be substituted for Windows evidence or full public acceptance.
+
+
+The property-persistence group is independent of the GLB experiment: it runs
+first with `--document-properties`, covers both fixtures and both boolean
+values, and explicitly records no GLB coverage. Only after it succeeds does the
+strict GLB group start in the same owned host. Each group retains 600/1800 s
+budgets; the whole CI step remains capped at 35 minutes. An exporter failure
+cannot be relabeled as a property API failure or used as property acceptance.
+
+A native 33.5.0 artifact declared 3696 embedded buffer bytes but contained a
+zero-length BIN chunk. The production container check now rejects that case;
+metadata/accessor counts are not mesh evidence. The next internal experiment
+uses an ASCII staging basename with a single `.glb` extension, enabled only by
+`SWCLI_GLB_PLAIN_STAGING_CALIBRATION=1` in its owned daemon. This tests a filename
+hypothesis without changing the API, preferences or retry policy; it does not
+establish a cause. Default staging is unchanged. Rejected bytes are retained as
+an explicitly invalid CI diagnostic, never published as successful CAD output.
