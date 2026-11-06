@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from swcli.document_table_profiles import INTERNAL_PROOF
+from swcli.document_table_profiles import INTERNAL_PROOF, PROFILES
 
 spec = importlib.util.spec_from_file_location('_table_internal_auditor', Path(__file__).with_name('gate_support') / 'table_defaults_evidence.py')
 auditor = importlib.util.module_from_spec(spec)
@@ -56,6 +56,9 @@ def check_remote(env_output):
 def check_local(directory):
     pinned = proof()
     result = auditor.audit(directory / 'calibration', directory / 'worker.native.stderr.jsonl', report_sha256=pinned['report_sha256'])
+    expected_profiles = {(result['revision'], int(kind)): {field: [tuple(pair) for pair in transitions]
+        for field, transitions in fields.items()} for kind, fields in result['profiles'].items()}
+    require(PROFILES == expected_profiles, 'runtime transitions differ from independently proved internal scope')
     require(result['native_trace_sha256'] == pinned['native_trace_sha256']
             and result['harness_trace_sha256'] == pinned['harness_trace_sha256'], 'original trace digest mismatch')
     (directory / 'independent-audit.json').write_text(json.dumps(result, indent=2) + '\n')

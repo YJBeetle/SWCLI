@@ -19,7 +19,7 @@ All calls use `swDetailingNoOptionSpecified` and the corresponding
 `IModelDocExtension.GetUserPreferenceInteger/Toggle` or
 `SetUserPreferenceInteger/Toggle`. Preference IDs are resolved by exact symbol
 name from the owning installation's `swconst.tlb`, using the directory returned
-by `ISldWorks.GetExecutablePath`. Missing/duplicate symbols or unexpected line
+by `ISldWorks.GetExecutablePath` (read once through the existing pywin32 property/method adapter). Missing/duplicate symbols or unexpected line
 weight constants fail closed. No guessed IDs, application preferences, registry
 writes or caller-supplied COM members are accepted.
 
@@ -43,6 +43,14 @@ integer. Writable border values are bounded to `thin`, `normal`, `thick`.
   `client.document.table_option_set(field=..., value=..., expected_options=..., document_id=..., expected_update_stamp=..., lease_id=...)`.
 - MCP: generic operation execution exposes the same catalog/request/result
   schemas. There is no force/calibration parameter or environment gate bypass.
+
+Admission data is scoped to exact `RevisionNumber`, document type, field and
+`(before raw value, after raw value)` transition in
+`document_table_profiles.py`. A verified target may also admit its unchanged
+pair for no-op observation. A known revision does not authorize every catalog
+value or an untested reverse transition. Declared `macos-wine` and `linux-wine`
+daemons reject these writes before worker dispatch; native Windows evidence
+does not open Wine support. At this stage the data remains empty.
 
 The `expected_options` argument is the entire `options` object returned by the
 read, including all raw values and unavailable entries. Validation rejects
@@ -80,7 +88,9 @@ They do not prove native SOLIDWORKS behavior.
 
 The branch-only `CI` dispatch input `table_defaults_calibration` defaults to
 false and requires `table_defaults_head` to equal this branch's exact SHA.
-This mode skips the unrelated portable/package/full native jobs and runs only
+`table_defaults_mode` selects `internal` (default) or `public`. Both use the
+dedicated `swcli-table-defaults-calibration` concurrency group and skip unrelated
+portable/package/full native jobs in that manual run. Internal mode runs only
 the candidate calibration on a fresh GitHub Windows runner. It keeps the
 existing event policy (no pull-request secret execution). One owned host serves
 part, assembly and explicit-template drawing fixtures. It checks each supported
@@ -88,10 +98,29 @@ scalar, no-op, stale full CAS, geometry/feature health, new-file save/reopen and
 read-only rejection. Failure stops the remaining plan; the wrapper limits calls
 to 600 seconds and the group to 1800 seconds and preserves original evidence.
 
-The report retains `full_acceptance_eligible: false`. Even a green internal run
-does not populate `_CALIBRATED_PROFILES` or constitute a public CLI/daemon
-acceptance run. Public write promotion needs review and native end-to-end
-acceptance on the exact candidate. No release or main merge is performed here.
+The internal report retains `full_acceptance_eligible: false`. A green internal
+run must first pass independent checks of its original ZIP/GitHub artifact
+SHA256, exact head, paired/nested native traces, getter/setter counts, original
+and saved fixture hashes, write/no-op/CAS receipts, host cleanup and persisted
+values. The auditor derives only observed raw transitions; it does not open the
+whole scalar catalog.
+
+Public mode requires pinned successful internal run/artifact provenance and
+re-audits the downloaded original report, traces and fixtures before private
+runtime setup. Read permission for that artifact is scoped to this manual,
+exact-branch/head job. It starts one owned hidden daemon and uses public CLI
+requests for selected-document edits, lease/stamp/full-snapshot conflicts,
+no-ops, distinct save-as and fresh-handle read-only reopen. The part keeps its
+independent analytic volume, area and centroid. Typed SDK and MCP bridge reads
+and no-op writes use the same real daemon. Per-request native trace proofs
+require exactly one setter for a changed field, zero for no-op/refusal, complete
+readback ordering and no application preference setters. The wrapper confirms
+owned daemon shutdown after the empty-document check.
+
+A successful scoped public gate is recorded separately from the internal run;
+it is not a full-modeling or release gate. Profiles and evidence still require
+coordinator review before main integration. No release or main merge is
+performed here.
 
 Out of scope: fonts/text formats, layers, padding, zero quantity, leading or
 trailing zeros, quantity header strings, BOM update rules, other table types,

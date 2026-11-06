@@ -46,6 +46,23 @@ class PublicTableContractTests(unittest.TestCase):
             self.assertEqual(mcp_wire.call_args.kwargs['document_id'], fixture.entry.document_id)
             self.assertEqual(mcp_wire.call_args.kwargs['lease_id'], fixture.lease)
 
+    def test_declared_wine_write_is_refused_before_worker_start_or_queue(self):
+        from swcli.daemon import server
+        from swcli.result_schemas import validate_operation_result
+        for platform in ('macos-wine', 'linux-wine'):
+            with self.subTest(platform=platform), mock.patch.object(server.WorkerManager, '_start_worker') as start:
+                manager = server.WorkerManager(host_platform=platform)
+                start.reset_mock()
+                with mock.patch.object(manager, '_refresh_worker_state_locked'):
+                    response = manager.call(dict(request_id='wine-table', operation='document.table-option-set',
+                        timeout_ms=600000, parameters={}, document_id='d-abcdef', expected_update_stamp=7, lease_id='l-abcdefghijkl'))
+                self.assertFalse(response['success'])
+                self.assertEqual(response['result']['mutation'], dict(attempted=False, may_have_changed=False))
+                self.assertEqual(response['error']['code'], 'DocumentTableCalibrationRequired')
+                validate_operation_result('document.table-option-set', response['result'])
+                start.assert_not_called()
+                self.assertIsNone(manager._request_queue)
+
     def trace_rows(self, operation, calls):
         base = dict(event='swcli.native-call', request_id='fresh-table-request', operation=operation, worker_pid=99)
         rows = [dict(base, sequence=0, call=operation, phase='begin')]
@@ -86,10 +103,6 @@ class PublicTableContractTests(unittest.TestCase):
         result = gate.change(fake, trace, 'd-abcdef', 1, current, 'bom.box_border', 'normal', error='DocumentLeaseConflict', contender=True)
         self.assertEqual(result, response)
         self.assertEqual(trace.verify.call_args.kwargs['getters'], 0)
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 from tests.test_modeling_smoke import FakeCLI
@@ -272,3 +285,7 @@ class PublicTableGateControlTests(unittest.TestCase):
                 self.assertLessEqual(len(report['table_cases']), 1)
                 if defect == 'setter-failure':
                     self.assertEqual(fake.setters, 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

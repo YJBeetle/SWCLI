@@ -587,6 +587,16 @@ class WorkerManager:
                 )
                 self._remember_response(request, response)
                 return response
+            if request.get("operation") == "document.table-option-set" and self.host_platform != "windows":
+                message = "document table writes have no accepted native evidence for this Wine host platform"
+                response = _error_response(request["request_id"], "DocumentTableCalibrationRequired", message)
+                response["result"] = {
+                    "ok": False, "action": "document.table-option-set",
+                    "error": {"type": "DocumentTableCalibrationRequired", "message": message},
+                    "mutation": {"attempted": False, "may_have_changed": False},
+                }
+                self._remember_response(request, response)
+                return response
             if self._process is None or not self._process.is_alive():
                 self._start_worker()
             assert self._request_queue is not None

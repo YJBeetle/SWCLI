@@ -51,6 +51,23 @@ class TableCalibrationTests(unittest.TestCase):
         self.assertNotIn('swcli-hosted-windows-solidworks', job)
         self.assertNotIn('swcli-release-', job)
 
+    def test_failed_exact_geometry_comparison_persists_actual_values_without_relaxing(self):
+        import math
+        import json
+        before = dict(solid_body_count=1, volume_mm3=12000.0, surface_area_mm2=3800.0,
+                      centroid_mm=dict(x=0.0, y=0.0, z=5.0))
+        actual = dict(before, volume_mm3=math.nextafter(12000.0, math.inf))
+        case = {"geometry_reopened": before}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            with self.assertRaisesRegex(RuntimeError, 'changed analytic fixture geometry'):
+                gate.record_geometry_check(output, case, 'bom.box_border', actual)
+            recorded = json.loads((output / 'geometry-observations.jsonl').read_text())
+            self.assertEqual(recorded['before'], before)
+            self.assertEqual(recorded['after'], actual)
+            self.assertFalse(recorded['exact_equal'])
+            self.assertEqual(case['geometry_checks'], [recorded])
+
     def test_wrapper_has_native_and_group_limits_and_one_process_start(self):
         source = (ROOT / 'scripts/ci/windows/calibrate-table-defaults.ps1').read_text()
         self.assertEqual(source.count('Start-Process '), 1)

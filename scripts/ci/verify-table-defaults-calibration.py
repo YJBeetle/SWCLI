@@ -30,6 +30,17 @@ spec.loader.exec_module(fixtures)
 harness, checked = fixtures.harness, fixtures.checked
 
 
+def record_geometry_check(output, case, field, actual):
+    """Persist both operands before the unchanged exact-geometry assertion."""
+    before = case["geometry_reopened"]
+    row = dict(field=field, before=before, after=actual, exact_equal=actual == before)
+    case.setdefault("geometry_checks", []).append(row)
+    with (output / "geometry-observations.jsonl").open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(row, allow_nan=False) + "\n")
+        stream.flush()
+    checked(actual == before, "table scalar write changed analytic fixture geometry")
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
                    *, profile_kind, drawing_template, swconst):
     fixtures.prepare_case(app, output, constants, plane, reverse, call, case, report, live,
@@ -113,7 +124,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                     and conflict["mutation"] == dict(attempted=False, may_have_changed=False), "full table CAS did not reject drift")
             if kind == 1:
                 measured = fixtures.part_geometry(document, call)
-                checked(measured == case["geometry_reopened"], "table scalar write changed analytic fixture geometry")
+                record_geometry_check(output, case, field, measured)
             checked(call("verify-table-feature-health", lambda: _diagnose_features(document, 500)) == initial_health,
                     "table scalar write changed feature health or feature count")
         case["final_options"] = current
@@ -146,7 +157,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case["readonly_rejection"] = denied
     checked(not denied["ok"] and denied["mutation"] == dict(attempted=False, may_have_changed=False), "read-only write was not blocked")
     if kind == 1:
-        checked(fixtures.part_geometry(document, call) == case["geometry_reopened"], "saved table fixture geometry changed")
+        reopened_geometry = fixtures.part_geometry(document, call)
+        record_geometry_check(output, case, "saved-reopen", reopened_geometry)
     checked(hashlib.sha256(path.read_bytes()).hexdigest() == digest and not _com_value(document, "GetSaveFlag"),
             "read-only table readback altered the file or modified state")
     case["persisted_sha256"] = digest

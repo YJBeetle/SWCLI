@@ -42,6 +42,10 @@ class TableEvidenceTests(unittest.TestCase):
                 case['noops'].append(fake.edit(field, value))
                 case['conflicts'].append(fake.edit(field, value, expected=before))
                 methods += cycle + ['IModelDocExtension.SetUserPreference' + spec['kind']] + cycle * 4
+            if kind == 1:
+                case['geometry_reopened'] = dict(solid_body_count=1, volume_mm3=12000.0, surface_area_mm2=3800.0, centroid_mm=dict(x=0.0, y=0.0, z=5.0))
+                fields = [field for field, spec in TABLE_FIELDS.items() if kind in spec['types']]
+                case['geometry_checks'] = [dict(field=field, before=deepcopy(case['geometry_reopened']), after=deepcopy(case['geometry_reopened']), exact_equal=True) for field in fields + ['saved-reopen']]
             case['final_options'] = fake.read()['options']
             case['persisted'] = fake.read()
             case['readonly_rejection'] = dict(ok=False, mutation=dict(attempted=False, may_have_changed=False))

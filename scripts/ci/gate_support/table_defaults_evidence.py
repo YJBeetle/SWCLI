@@ -60,6 +60,11 @@ def audit(directory, native_trace, *, report_sha256):
                     and conflict['mutation'] == dict(attempted=False, may_have_changed=False), 'full snapshot conflict mutated the document')
             raw_before, raw_after = changed['before'][field]['native_value'], current[field]['native_value']
             profile[field] = [[raw_before, raw_after], [raw_after, raw_after]]
+        if kind == 1:
+            geometry = case.get('geometry_checks', [])
+            require([row['field'] for row in geometry] == fields + ['saved-reopen'], 'missing exact part geometry operands')
+            require(all(row['exact_equal'] is True and row['before'] == row['after'] == case['geometry_reopened']
+                        for row in geometry), 'part geometry exact comparison failed')
         require(current == case['final_options'] == case['persisted']['options'] and case['persisted']['ok'] is True,
                 'saved/reopened scalar values differ')
         require(case['save_defaults']['ok'] is True and case['save_defaults']['api_saved'] is True

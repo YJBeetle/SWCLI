@@ -69,7 +69,23 @@
 - Report SHA256 `afb23a5832c588778117ca30d562b8f0029cad9bd5926132dab2e73730412d5c`; harness trace `45fc6b9acbc0da4249e485c1e8eb63b090ea829621932c874a3dbc4d5d8f2952`; native trace `8fdbdb893b8bab2db75dfe3acbfc9ba09275d0f8b60158d9c3fb0d1037661526`.
 - Actual source fix: use existing `_com_value(app, "GetExecutablePath")` once, supporting either pywin32 property or method. New property/method tests verify one read/no retry.
 - Baseline analytic fixture preparation temporarily disables/restores sketch inference (two known pre-table calls). No table preference setter ran before failure. Independent auditing separates this existing owned-fixture behavior from table operations and validates nested trace frames.
-- A related-fix internal calibration run will be needed on the next pushed head; it has not been dispatched yet. Public acceptance remains blocked on clean audited internal evidence.
+- Related-fix internal calibration dispatched once on `973dcaa86f3332605475c0a9520b2bdb555ff2dd`: https://github.com/YJBeetle/SWCLI/actions/runs/42266161306 ; `native_full=false`, `table_defaults_calibration=true`, `table_defaults_mode=internal`, `table_defaults_head=973dcaa86f3332605475c0a9520b2bdb555ff2dd`. Result: **failed at unchanged exact geometry equality after two part writes**, before save/reopen. Public acceptance remains blocked on clean audited internal evidence.
+- Related-fix ordinary portable push CI: https://github.com/YJBeetle/SWCLI/actions/runs/42266119875 (same head, **success**, Windows 3.9/3.14 + package).
 - Public preparation now includes exact version/type/field/(before raw, after raw) transition admission, still **empty**. Unproved values, directions, revisions and types remain closed. The public mode checks pinned remote artifact provenance and independent local report/trace/fixture hashes before preparing private runtime inputs; it uses dedicated table concurrency, not full/release concurrency.
 
 - Related-fix preflight: **65 focused tests passed, 3 optional MCP/platform skips**; SDK generation/strict types/8 negative consumers passed. No repeated full suite was run for coordinator messages.
+
+- Public scope additionally stays closed for declared `macos-wine` / `linux-wine` daemons: a new supervisor guard refuses table writes before worker queue/start, preserving an explicit no-mutation receipt. Native Windows CI is not extrapolated to Wine. Shared integration file added: `src/swcli/daemon/server.py`; targeted tests cover both Wine modes.
+
+## Second native run: geometry assertion failure (not accepted)
+
+- Run https://github.com/YJBeetle/SWCLI/actions/runs/42266161306 at `973dcaa86f3332605475c0a9520b2bdb555ff2dd`.
+- Original artifact ID `13528935364`, name `table-defaults-internal-42266161306-1`; original ZIP retained in `docs/verification/table-defaults-evidence/run-42266161306/original.zip`.
+- Original ZIP/GitHub digest verified equal: `sha256:2a6ba4b978bd84f2b2dd0f7db3b3ecfe6e5dbaf4b9b880151f14e609df2a556b`.
+- Report SHA256 `11e7c4a9d404ddaf9936eead447c3acad462a3feb9cbab3b9f0e8d2121a4d7c0`.
+- Two part writes returned true and passed scalar/context/CAS/no-op checks: template settings `True→False` (returned `True`), BOM box border `0→1`. The second then failed `measured == geometry_reopened`. The existing independent analytic geometry check had passed. The actual failing measurement operands were not retained, so the precise difference and cause cannot yet be stated.
+- No save/reopen of edited defaults; assembly/drawing not attempted; cleanup errors empty. No partial result is promoted.
+- Related evidence-recording correction: persist full before/after operands in `geometry-observations.jsonl` and report **before** the unchanged equality assertion. A one-ULP fault-injection test still fails, proving no geometric threshold/assertion relaxation. No extra CAD measurement call or retry is added.
+- Runtime profiles and pinned proof remain empty. A single further diagnostic calibration on the instrumentation-correction head is necessary to obtain the missing actual values; it is not public acceptance.
+
+- Geometry-recording/public-proof/native-only supervisor preflight: **154 tests passed, 1 platform skip**; SDK generation and strict consumer checks passed. The original exact equality still rejects an injected one-ULP change; no new CAD measurement call or geometry tolerance is introduced.
