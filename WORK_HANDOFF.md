@@ -23,7 +23,7 @@
 ## 便携证据
 
 - 本机安装wheel后全套1834项通过、32项平台跳过；SDK生成检查、严格类型检查mypy1.18.2、安装资源检查通过。
-- 追加公开gate/host范围/trace顺序后定向34项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
+- 追加公开gate/host范围/trace顺序后定向35项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
 - 首版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 ，head4a2b4f4，Python3.9/3.14和wheel success。
 - 修复版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42264284837 ，headf6bc634，Python3.9/3.14和wheel success。full/native/release均skipped。这些不是原生或公开写入验收。
 - 原始日志在工作树同级 `../evidence/`：portable-tests.log、wheel-build.log、public-preparation-focused-tests.log、sdk-regression.log、mcp-regression.log、public-wrapper-regression.log及portable-ci-*.json，不依赖tmp。
@@ -64,3 +64,8 @@
 - 实现/观测器提交 `e08feb1f37fcf19fe06d630a029191645c7a8a87` 已推送；对应Windows/Python3.9、3.14、wheel CI https://github.com/YJBeetle/SWCLI/actions/runs/42271747465 全部success，native/full/release skipped。
 - 仅一次相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42272595406 ，head=e08feb1f37fcf19fe06d630a029191645c7a8a87，dimension_format_calibration=true、dimension_format_public=false、native_full=false，目前in_progress。
 - 低频跟踪 ../evidence/native-watch-42272595406.log；结构化总状态 ../evidence/calibration-state.json。尚无成功结论，未开放白名单、未触发公共验收。
+
+## 当前授权与身份保护补充
+
+- 当前无待审批动作。既有实现、中文提交/推送到YJBeetle/SWCLI及定向Windows校准/公开gate授权继续有效；独立核验后可在开发分支开放确切范围，合main仍由主对话办理。此前远端信任审批问题已核公开仓库与ADMIN权限后解决，不重复操作，不绕过自动审批。
+- 公开候选进一步在任何偏好读取前拒绝不可读标题/路径/Extension；正向原生调用顺序不变，新增定向用例通过。当前仍未开放写入，不影响运行中的e08feb1校准head。

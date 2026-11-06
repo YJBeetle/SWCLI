@@ -147,6 +147,18 @@ class DimensionFormatTests(unittest.TestCase):
         self.assertFalse(result["ok"], result)
         self.assertFalse(result["mutation"]["attempted"])
 
+    def test_unreadable_identity_refuses_before_native_preference_access(self):
+        for member, value in (("GetTitle", None), ("GetTitle", ""), ("GetPathName", None)):
+            with self.subTest(member=member, value=value):
+                self.setUp()
+                setattr(self.document, member, lambda value=value: value)
+                result = self.edit()
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(result["mutation"]["attempted"])
+                self.extension.GetUserPreferenceToggle.assert_not_called()
+                self.extension.GetUserPreferenceInteger.assert_not_called()
+                self.fixture.assert_no_setters()
+
     def test_dirty_marking_cannot_change_native_values_or_hide_read_state_mutation(self):
         for damage in (lambda: self.native.update({48: True}),
                        lambda: setattr(self.document, "GetUpdateStamp", lambda: 88),

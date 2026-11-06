@@ -49,8 +49,11 @@ def _read_format(document):
 
 
 def _identity(document):
-    return (_com_value(document, "GetTitle"), _com_value(document, "GetPathName"),
-            _com_value(document, "Extension"))
+    title, path = _com_value(document, "GetTitle"), _com_value(document, "GetPathName")
+    extension = _com_value(document, "Extension")
+    if type(title) is not str or not title or type(path) is not str or extension is None:
+        raise RuntimeError("native document identity is unreadable")
+    return title, path, extension
 
 
 def _verify(app, document, state, foreground, edit, identity, *, changed=False):
