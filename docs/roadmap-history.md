@@ -1,0 +1,279 @@
+# Historical roadmap and acceptance notes
+
+This preserves earlier planning language and evidence boundaries. For current priorities see [the roadmap](roadmap.md).
+
+# Product roadmap
+
+This is the project's execution roadmap, not a promise of release dates or
+protocol stability. Capabilities and the installed version are authoritative.
+
+## v0.1.0a4: first reusable part-modeling loop
+
+Implemented and covered by portable tests and native Windows smoke:
+
+- one operation catalog for parameters, result contracts and execution guards;
+- unsaved part creation with exact, short-lived document handles;
+- fresh rectangle/full-circle sketches on origin planes, explicit millimeter
+  dimensions and native post-edit verification;
+- sketch-ID-based blind solid extrusion, reverse and merge controls, native
+  definition and rebuild/body verification;
+- new-filename native part save-as, retained live handles/leases, existing-target
+  rejection and close/reopen verification;
+- read-only native solid-body volume, area and volume-weighted centroid,
+  explicitly scoped to body sums rather than a geometric union or material mass;
+- sketch-ID-based blind cut extrusion with explicit all-solid scope, common
+  normal/reverse direction and native/volume-removal verification;
+- read-only sketch-ID observation including native constraint/absorption state
+  and line/arc geometry, with explicit incomplete coverage for other types;
+- product-facing skill and guide packaged with SWCLI, with an installed-wheel
+  resource/Schema gate.
+
+DockerSW's real Wine gate mirrors the part-modeling primitives in addition to
+the six existing export outputs. A source/unit/native-Windows pass does not
+prove Wine delivery: confirm the relevant DockerSW CI before claiming support.
+These features are available in the v0.1.0a4 pre-release, not the older a3 wheel.
+
+## Next modeling increments
+
+The a5 driving-dimension slice is scoped in
+[driving dimensions](design/driving-dimensions.md). Its typed creation/inspect/set
+operations are available in **v0.1.0a5**. Installed-wheel Windows,
+fresh hosted Windows visible/hidden modes and independent hidden Wine delivery
+have passed at the exact formal-version candidate recorded in the
+[a5 release notes](releases/v0.1.0a5.md). Release assets and runtime CI have
+distinct provenance; a green development gate is not itself a publication.
+
+Read-only `sketch.list` is also available since a5 to recover
+fresh exact 2D sketch handles from opened/reopened native parts. Native Windows
+and Wine discovery gates have passed for the verified development candidate.
+Discovery of saved diameter handles is exposed as the narrow operation
+`dimension.discover-diameter SKETCH_ID`, following its three-plane internal
+Windows proof. It preserves explicit unobservable/ambiguous outcomes, strict
+native metadata and unchanged configuration/edit/stamp checks; an empty display
+chain is not absence proof. The installed public gate repeats discovery after
+native reopen and checks the recovered ID through typed inspection. Fresh hosted
+Windows dual-mode verification and independent DockerSW Wine delivery now pass
+this slice, including failed-cut continuation in the same hidden host. The exact
+commit, artifacts, image promotion and state-preservation checks are recorded in
+[the a5 verification record](verification/a5-2026-10-07.md).
+Do not infer dimensions from names or claim arbitrary dimension support.
+
+The [rectangle size/positioning slice](design/rectangle-driving-dimensions.md)
+is implemented in **v0.1.0a6**: explicit center fixing, exact width/height
+creation, role-specific inspection/editing and saved-pair discovery. Installed
+formal-version Windows visible/hidden and hidden DockerSW Wine gates passed,
+including three-plane edits, background/session restoration, lease/stamp and
+origin-constraint refusal, native save/reopen and unchanged-read verification.
+The [a6 record](verification/a6-2026-10-10.md) separates development, formal host
+and distribution proof, including the independent MacSW verification boundary.
+
+The [a7 feature-depth slice](design/feature-depth-editing.md) is implemented:
+exact creation/discovery handles, read-only `feature.list/inspect` and guarded
+`feature.set-depth`. The formal-version candidate passed installed Windows
+visible/hidden and complete DockerSW Wine delivery gates, including depth writes,
+equal-depth behavior, native save/read-only reopen, lease/CAS guards, the six
+exports and subsequent driving dimensions on the same instance. See the
+[runtime record](verification/a7-depth-runtime-2026-10-10.md) for first-failure
+history, exact runtime provenance and independent MacSW limitations. Equal-depth
+selection access may advance the stamp; partial failures retain evidence, not
+an automatic rollback. Readable definitions do not imply arbitrary edit authority.
+
+The [a8 exact face/edge slice](design/entity-observation.md) provides complete
+bounded read-only `entity.list/inspect`, short mixed-kind IDs, native ownership/
+identity and analytic geometry with conservative scope retirement. Formal
+installed Windows visible/hidden and DockerSW hidden Wine delivery gates pass,
+including native save/reopen, six exports, dimensions, required Toolbox,
+evidence uploads and image promotion. The
+[formal receipt](verification/a8-formal-runtime-2026-10-11.md) separates exact
+runtime candidates, first failures/fixes and distribution proof; the linked
+design retains incremental native/development receipts. Trimmed boundaries,
+topology-edit survival and general entity-targeted writes are not implemented.
+
+The **a9 pre-release** groups minimal assembly creation, already-open
+saved-part insertion, native `.SLDASM`/`.SLDDRW` save-as and STL/3MF/AMF plus
+part GLB export. The shared gate covers generated assemblies, eight generated
+part/assembly mesh exports and optional drawing save/reopen cases. Formal a9
+host and distribution receipts now pass; a8 assets are unchanged.
+See the [a9 release draft](releases/v0.1.0a9.md) for precise scope and release gates.
+
+Next:
+
+The a9 pre-release separates lightweight status and summary capabilities,
+supports `--operation NAME` and explicit `--full`, and advertises adapter export
+extensions. The packaged guide documents JSON field paths, current modeling
+limits and host/PID semantics. OS PID mapping and path wrappers remain
+host-owned. The [candidate Windows/Wine gates](verification/a9-runtime-2026-10-23.md)
+now pass; the unchanged tested CI assets are published as `v0.1.0a9`.
+
+The [exact edge-targeted fillet slice](design/edge-fillet-creation.md) is published
+in [a10](releases/v0.1.0a10.md), using the verified Windows/Linux-Wine CI assets.
+It supports one explicit edge and constant radius with native target readback,
+lease/stamp/restoration guards, geometry and native save/reopen checks.
+
+Current work:
+
+1. a11 [drawing creation and standard three views](design/drawing-three-views.md)
+   is published using unchanged CI assets at `499ca8b`. Installed Windows and
+   DockerSW full gates passed at that commit. The owner accepted the hosted Mac software-rendering complex
+   drawing timeout as a non-blocking a11 CI limitation on 2026-10-25; retain the
+   failed diagnostic, and keep Mac integration/smoke evidence separate rather
+   than claiming a full Mac pass. See the [current receipt matrix and policy](verification/a11-runtime-2026-10-25.md).
+   Both hosts pin the released commit; retain these acceptance boundaries for future work.
+2. [a12 single-direction through-all cuts](releases/v0.1.0a12.md) and
+   [a13 simple closed polygon sketches](releases/v0.1.0a13.md) are published.
+   a13's exact final `8d6e5d3` source passed installed Windows and full Wine
+   acceptance; unchanged original CI wheel/sdist were independently checked
+   again through anonymous public downloads. Polygon blind boss/cut is covered
+   by 48 combinations, while polygon through-all and depth editing remain
+   explicitly unsupported.
+3. The next bounded modeling investigation is
+   [polygon feature-depth editing](design/polygon-depth-editing.md):
+   the development branch exposes blind depth editing for simple triangles and
+   axis-aligned concave L profiles after the Windows internal proof. A bounded
+   public matrix checks write, equal-depth and save/reopen in installed Windows
+   and Wine. General selected-body/face support and additional end conditions
+   stay separate.
+
+Each increment needs request/result Schema, document/lease/stamp guards,
+portable failure tests and real Windows proof. DockerSW/MacSW independently
+verify their Wine delivery; those gates are not SWCLI publication prerequisites.
+Partial mutation is not rollback; do not publish an automatic transaction
+guarantee without implementing and proving its recovery boundary.
+
+For agent usability, a Minecraft-style voxel fox is a bounded composition
+example, not a sculpting target; subsequent examples should cover mechanical
+parts. Do not add model-specific commands. If a goal requires disproportionate
+implementation cost, revisit its support scope and acceptance criteria rather
+than accumulating a general-purpose framework to meet one example.
+
+## Modeling and assembly sequence
+
+1. Finish the foundational part modeling increments, including reliable
+   feature readback, editing and native save/reopen.
+2. Build assembly placement and mates on stable component and geometry
+   references. Start with explicit constraints and verify the solved state
+   after edits and reopen.
+3. Add editable exploded views with explicit component displacement and
+   ordered steps, then presentation animations with defined trajectories.
+4. Evaluate physical motion studies separately. Establish a supported native
+   environment, a bounded mechanism and independent checks on computed
+   results before widening the supported study types.
+
+## File metadata and document options
+
+The a15 prerelease reads document-level custom properties. Windows and Wine
+accepted part and assembly fixtures with separate document and configuration
+values, including empty and missing values.
+
+The next metadata increment adds file summary reads and edits, explicit
+configuration property reads, a cross-configuration summary, and custom
+property adds, sets and deletes. Windows CI exercises public CLI operations,
+scope isolation, guarded writes and save/reopen of separate native copies.
+Creation time, save time, saved-by and saved version history are read-only.
+
+A17 document length display units and decimal places have passed the installed
+Windows public CLI gate for parts and assemblies, including guarded edits and
+saved-copy readback. Geometry commands retain their documented millimeter
+semantics; drawing and fractional display write profiles remain separate work.
+
+A18's seven annotation scalars cover attachment arrows, bent leader toggle and
+length, and leading/trailing zero display. The final a18 Windows public CLI gate
+verified parts, assemblies and drawings, including changed values, no-ops,
+lease/CAS refusals and saved-copy readback. The accepted source and original
+artifacts are recorded in [the final Windows receipt](verification/a18-final-windows-2026-11-06.md).
+See [the bounded contract](design/document-annotation-options.md).
+Annotation text format and overall drafting standard remain later increments
+because changing them can propagate to subtype settings.
+[SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
+
+## MCP tool names (0.2.1)
+
+The MCP server remains named `swcli`. Its five tools are `status`,
+`daemon_start`, `daemon_stop`, `capabilities` and `execute`. The client/daemon
+protocol, operation names and lifecycle protections stay the same. The stdio
+SDK contract and packaged skill describe these current names. This work and
+Windows tray support are independent of the 0.2.0a1 release.
+
+## Resident host visibility (0.2.1)
+
+The Windows notification icon and `--tray auto|on|off` are implemented in
+0.2.1. Omitted `auto` shows on native Windows and is off under
+Wine; an explicit value wins. The icon is independent of SW visibility, and
+hiding it keeps the host/documents alive. Status and confirmed stop reuse the
+normal daemon protocol and document/ownership guards. Portable and official MCP
+SDK control tests, isolated wheel installation, and native Windows registration
+and removal have passed. Real native menu status, stop cancellation and hiding
+were checked with a diagnostic manager; the actual MCP/daemon test attached the
+existing user SW, retained it across client exit and icon-window hiding, then
+stopped the test daemon and removed its icon without closing that SW. See
+[the native evidence and limits](verification/0.2.1-windows-tray-2026-11-06.md).
+An owned SW shutdown, a new CAD regression matrix and Wine consumer validation
+were not part of this slice. This is development evidence, not a release claim.
+
+## Independent SOLIDWORKS instances (deferred, low priority)
+
+Keep independent visible/hidden multi-instance support on the backlog. It is not
+on the 0.2 release critical path: multiple SOLIDWORKS processes have a substantial
+memory cost, and most users should share one intentionally selected host.
+Do not enable an extra instance by default. Reliable isolation still needs
+separate Windows and Wine evidence; the current existing-host guard and explicit
+attach behavior remain until that work is deliberately resumed.
+
+## Later protocol and integrations
+
+- Stable entity references with topology/revision validation and explicit stale
+  reference behavior, not guessed feature names or face indices.
+- Batches/transactions with documented partial-result and recovery semantics.
+- A thin stdio MCP adapter reuses the same daemon protocol, with explicit
+  lifecycle tools, host launcher selection, read-only runtime observations and
+  live schema discovery. The Python SDK (0.2.4) generates typed
+  methods/results from the same operation catalog and reuses daemon transport;
+  no route adds a second public COM/raw-Python execution surface.
+- [x] Bounded MCP artifact delivery (0.2.2): render/export content
+  travels through the existing daemon response, returning PNG previews or
+  original exported bytes as embedded resources, with an 8 MiB raw-byte limit
+  and size/hash/delivery status. Portable capture tests and official SDK
+  stdio/TCP delivery tests pass; this is not a new native Windows full-run claim.
+- [x] Secure remote connections and workspace file transfer (0.2.3):
+  certificate-verified TLS/token-file authentication, rooted 1 MiB chunked
+  upload/download, size/SHA256 verification and atomic publication; default
+  per-file maximum 1 GiB. CLI and opt-in MCP tools keep client and host roots
+  separate. This is shared-token access, not multi-user RBAC or public hosting.
+  See the packaged remote-files guide for configuration and recovery limits.
+- Extend the implemented minimal assembly/drawing creation toward editing,
+  arbitrary views, sheets, dimensions and BOM only through separately verified slices.
+
+The longer-term application goal includes translating supported OpenSCAD
+descriptions into editable SOLIDWORKS-native sketches, dimensions and feature
+trees, not silently falling back to mesh-only import. The converter is an
+upper-layer application; this goal does not require designing it now.
+
+## Release gate
+
+Native Windows is the primary SWCLI runtime and release acceptance target.
+The combined 0.2.0a1 source has passed its installed Windows full gate and
+independent original-package/native-receipt audit. Version-tag publication
+retains its own same-run original artifacts and anonymous-download checks.
+DockerSW and MacSW have independent version/delivery cycles; a Wine-specific
+failure is investigated in that runtime and does not block SWCLI publication.
+A defect traced to SWCLI remains a SWCLI issue regardless of where it appears.
+
+The Windows lifecycle gate records task/process inventories around refusals,
+owned shutdown and attached-user-host shutdown. The current raw inventories
+and independent identity comparisons passed. Earlier startup evidence remains
+historical and is not relabeled with the new inventory proof.
+
+The a13 pre-release and its historical verification boundaries are recorded in
+[v0.1.0a13 release notes](releases/v0.1.0a13.md). A pre-release does not imply a
+stable compatibility commitment.
+Runtime and distribution receipts remain distinct; the
+[a13 release notes](releases/v0.1.0a13.md) link the final runtime and distribution evidence.
+Publication does not turn the known Mac diagnostic limitation into a full Mac
+CAD acceptance claim.
+
+Continue pre-releases until the protocol and recovery boundaries can support a
+compatibility commitment. A new release must name its exact verified commit,
+installation command, Windows/Wine evidence and known limitations. Do not
+equate a built wheel, a registry push or cached installation with successful
+real modeling/exports. CI filename routing stays in the consumer's workflow;
+do not recreate a generic `sw-export` policy wrapper.

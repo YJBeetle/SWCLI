@@ -4,6 +4,22 @@ This guide is for AI systems **using** SWCLI, rather than maintaining its source
 It is distributed with the skill and Python package. Use the running daemon's
 capabilities to resolve version differences; pre-release interfaces can change.
 
+## Choose a workflow
+
+Read the relevant section rather than the entire guide:
+
+- [Connect and discover](#connect-and-discover): host identity, JSON envelopes and supported scope.
+- [Select documents and coordinate writers](#select-documents-and-coordinate-writers): sessions, leases and stamps.
+- [Model and verify](#model-and-verify): sketches and parameterized geometry.
+- [Read and edit file metadata](#read-and-edit-file-metadata): properties and document options.
+- [Observe features and edit depth](#observe-features-and-edit-depth): feature guards.
+- [Observe exact faces and edges](#observe-exact-faces-and-edges-since-a8): stale handles and geometry.
+- [Create a drawing](#create-a-drawing): supported drawing workflow.
+- [Export and recover](#export-and-recover): exports and partial outcomes.
+
+For Python scripts use [SDK](sdk.md); for agent tools use [MCP](mcp.md);
+for TLS and large files use [remote files](remote-files.md).
+
 ## MCP clients
 
 Use [the MCP guide](mcp.md) for stdio configuration, explicit daemon start/stop,
@@ -39,8 +55,10 @@ The public plate example scopes and restores this setting for its CLI calls.
 DockerSW starts its own service; do not launch a second Windows worker there.
 
 Use `--endpoint HOST:PORT` or `SWCLI_ENDPOINT` for another endpoint. The current
-transport has no authentication. Do not expose it to untrusted networks. Use
-an authenticated tunnel or a trusted boundary. Native save/open/output paths
+default plaintext transport has no authentication. For remote use configure
+certificate-verified TLS and token-file authentication using the
+[remote/workspace guide](remote-files.md), or use an authenticated tunnel.
+`--allow-remote` alone does not secure a listener. Native save/open/output paths
 belong to the server. DockerSW's Linux entry point translates mounted Linux
 paths for Wine; this is not a general remote file-transfer facility.
 
