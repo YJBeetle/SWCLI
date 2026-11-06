@@ -54,6 +54,7 @@ REQUIRED = {
     "docs/runtime-tests.md",
     "examples/model-plate.ps1",
     "scripts/ci/verify-installed.py",
+    "scripts/ci/summarize-tests.py",
     "scripts/ci/verify-invalid-requests.py",
     "scripts/ci/verify-modeling.py",
     "scripts/ci/verify-driving-dimensions.py",

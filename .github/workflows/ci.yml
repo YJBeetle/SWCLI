@@ -86,6 +86,7 @@ jobs:
           cache: pip
 
       - name: Install SWCLI
+        id: portable_install
         shell: powershell
         run: |
           python -m pip install --upgrade pip
@@ -96,9 +97,11 @@ jobs:
           }
 
       - name: Run unit tests
+        id: unit_tests
         run: python -m unittest discover -s tests -v
 
       - name: Parse Windows CI scripts
+        id: script_parser
         if: ${{ matrix.python == '3.14' }}
         shell: powershell
         run: |
@@ -121,11 +124,38 @@ jobs:
           if ($failed) { throw "PowerShell parser rejected one or more Windows CI scripts" }
 
       - name: Verify installed commands and schemas
+        id: portable_resources
         shell: powershell
         run: |
           swcli version --json
           if ($LASTEXITCODE -ne 0) { throw "SWCLI entry point failed" }
           python scripts/ci/verify-installed.py
+
+      - name: Summarize portable checks
+        if: always()
+        continue-on-error: true
+        shell: powershell
+        run: |
+          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
+          python scripts/ci/summarize-tests.py `
+            --evidence-root "$env:RUNNER_TEMP\swcli-portable-no-cad-evidence" `
+            --output-dir "$env:RUNNER_TEMP\swcli-portable-summary" `
+            --host windows --scope "portable-checks-python-${{ matrix.python }}" `
+            --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+            --stage "install=${{ steps.portable_install.outcome }}" `
+            --stage "unit-tests=${{ steps.unit_tests.outcome }}" `
+            --stage "script-parser=${{ steps.script_parser.outcome }}" `
+            --stage "installed-resources=${{ steps.portable_resources.outcome }}"
+
+      - name: Upload portable summary
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-portable-summary-${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-portable-summary/
+          if-no-files-found: ignore
+          retention-days: 14
 
   package:
     name: Build wheel
@@ -143,6 +173,7 @@ jobs:
           cache: pip
 
       - name: Build and inspect distributions
+        id: build_distributions
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -152,6 +183,7 @@ jobs:
           python scripts/ci/verify-sdist.py dist/*.tar.gz
 
       - name: Verify installed wheel and product skill
+        id: verify_distribution
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -159,11 +191,37 @@ jobs:
           python -I scripts/ci/verify-installed.py
 
       - name: Upload distributions
+        id: upload_distributions
         uses: actions/upload-artifact@v7
         with:
           name: swcli-dist
           path: dist/
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize package checks
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          client_version="$(python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)")"
+          python scripts/ci/summarize-tests.py \
+            --evidence-root "$RUNNER_TEMP/swcli-package-no-cad-evidence" \
+            --output-dir "$RUNNER_TEMP/swcli-package-summary" \
+            --host linux-wine --scope portable-package \
+            --source-commit "$GITHUB_SHA" --client-version "$client_version" \
+            --stage "build=${{ steps.build_distributions.outcome }}" \
+            --stage "installed-resources=${{ steps.verify_distribution.outcome }}" \
+            --stage "distribution-upload=${{ steps.upload_distributions.outcome }}"
+
+      - name: Upload package summary separately from original distributions
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-package-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-package-summary/
+          if-no-files-found: ignore
           retention-days: 14
 
   solidworks-e2e:
@@ -184,6 +242,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Download built SWCLI distributions
+        id: native_distribution
         uses: actions/download-artifact@v8
         with:
           name: swcli-dist
@@ -217,12 +276,14 @@ jobs:
         run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
 
       - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
         shell: powershell
         run: |
           scripts/ci/windows/install-media-dependencies.ps1
           scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
 
       - name: Prepare protected Google Drive configuration
+        id: private_config
         shell: powershell
         env:
           RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
@@ -237,6 +298,7 @@ jobs:
           }
 
       - name: Stream Google Drive through WinFsp
+        id: drive_mount
         shell: powershell
         run: |
           $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
@@ -250,6 +312,7 @@ jobs:
             -PidPath "$env:PROBE_ROOT\rclone.pid"
 
       - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
         shell: powershell
         run: |
           scripts/ci/windows/probe-imdisk.ps1 `
@@ -258,6 +321,7 @@ jobs:
             -DriveLetter S
 
       - name: Fetch private smoke-test runtime
+        id: private_fetch
         shell: powershell
         run: |
           $assets = "$env:PRIVATE_ROOT\assets"
@@ -279,6 +343,7 @@ jobs:
           }
 
       - name: Install native SOLIDWORKS
+        id: native_install
         shell: powershell
         run: |
           scripts/ci/windows/install-solidworks.ps1 `
@@ -288,6 +353,7 @@ jobs:
             -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
 
       - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
         shell: powershell
         run: |
           scripts/ci/windows/prepare-test-runtime.ps1 `
@@ -295,6 +361,7 @@ jobs:
             -StateDirectory "$env:PRIVATE_ROOT\state"
 
       - name: Install built SWCLI wheel
+        id: client_install
         shell: powershell
         run: |
           $wheels = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\swcli-dist" -Filter *.whl -File)
@@ -308,6 +375,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
       - name: Prepare property fixtures for public CLI verification
+        id: property_fixtures
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -318,6 +386,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
+        id: native_tests
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
@@ -344,9 +413,34 @@ jobs:
           retention-days: 14
 
       - name: Remove private test inputs and stop services
+        id: native_cleanup
         if: always()
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+
+      - name: Summarize public test evidence
+        if: always()
+        continue-on-error: true
+        shell: powershell
+        run: |
+          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
+          python scripts/ci/summarize-tests.py `
+            --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
+            --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
+            --host windows --scope windows-installed-full `
+            --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+            --stage "distributions=${{ steps.native_distribution.outcome }}" `
+            --stage "media-tools=${{ steps.media_tools.outcome }}" `
+            --stage "private-config=${{ steps.private_config.outcome }}" `
+            --stage "drive-mount=${{ steps.drive_mount.outcome }}" `
+            --stage "iso-mount=${{ steps.iso_mount.outcome }}" `
+            --stage "private-fetch=${{ steps.private_fetch.outcome }}" `
+            --stage "solidworks-install=${{ steps.native_install.outcome }}" `
+            --stage "runtime-setup=${{ steps.runtime_setup.outcome }}" `
+            --stage "client-install=${{ steps.client_install.outcome }}" `
+            --stage "property-fixtures=${{ steps.property_fixtures.outcome }}" `
+            --stage "functional-tests=${{ steps.native_tests.outcome }}" `
+            --stage "cleanup=${{ steps.native_cleanup.outcome }}"
 
       - name: Upload SWCLI-generated smoke evidence
         if: always()
@@ -355,6 +449,8 @@ jobs:
           name: swcli-windows-hosted-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}\swcli-native-smoke
+            ${{ runner.temp }}\swcli-test-summary\summary.json
+            ${{ runner.temp }}\swcli-test-summary\summary.md
             ${{ runner.temp }}\swcli-hosted-media\*.json
             ${{ runner.temp }}\swcli-hosted-media\cache-size.txt
             ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
