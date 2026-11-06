@@ -4,8 +4,8 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **尚未 merge-ready。** 当前 `PROFILES` / `INTERNAL_PROOF` 均为空，公开写入保持关闭。已有完整类型校准均失败，不能作为公开验收或版本发布证据。
-- 当前内部范围 `assembly-drawing`（类型 `[2,3]`，8 个字段）已完成 CAD case，但 run `42279939696` 在 wrapper 退出码检查失败。已保存原件并独立审核，仍不开放 profiles；正在最小修复 wrapper。part 原生失败和真实公开 gate 仍是本系列未完成阻断，不能作为后置交付忽略。默认完整计划保留零件精确几何断言，没有放宽阈值。
+- **尚未 merge-ready。** 33.5.0 装配体/工程图精确转换已按成功的内部原件限定开放，待同分支公开验收。零件写入继续关闭，系列完整验收仍待完成。
+- 内部范围 `assembly-drawing`（类型 `[2,3]`，8 项）已在 wrapper 修复后的 run `42301331238` 通过。公开 gate 和 part 原生失败仍是本系列未完成阻断，默认完整计划保留零件精确几何断言。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -89,3 +89,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 单次 API 快照状态 **in_progress**；snapshot 与原始 dispatch inputs 保存在 `docs/verification/table-defaults-evidence/run-42301331238/`。未启动 watcher/持续 poll 或 automation；不取消他人 CI，完成原件可用后再推进。无原生 API retry/rollback/host replacement。
 - 先执行实际 Windows plain-child exit 0/7 regression，再准备 private runtime，再执行既有 `[2,3]` CAD plan。Windows 进程回执修复仍待该 CI 证实；前轮 CAD report 审核通过不能代替新 wrapper 成功或公开验收。
 - 既定系列仍未完成：part 精确几何失败保持阻断；`PROFILES`/`INTERNAL_PROOF` 空；真实公开 CLI/daemon/SDK/MCP native gate 尚未执行。相关能力不改成“后置交付”，系列整组完成后才进入发版确认；本路不 merge/main/release。
+
+
+## 装配体和工程图内部校准通过，进入公开验收
+
+- [42301331238](https://github.com/YJBeetle/SWCLI/actions/runs/42301331238) / `50db73af937cd78aa9adcd8c4bfdd5467c956533` 完成成功。原始 wrapper 回执为 exit 0，native/group 限制为 600/1800 秒。
+- Artifact `13545815581`（`table-defaults-internal-42301331238-1`）。原始 ZIP 与 GitHub digest 均为 `sha256:7e473478064998f3e116329d29007f8f21c441be74d7827a7d3bfbc90fc2f4f6`。在 ignored `run-42301331238/` 保存 run/artifact metadata、original.zip、extracted 原件及独立 audit。
+- 独立审核确认 33.5.0、完整请求和完成类型 [2,3]、8 setters / 186 getters、零应用偏好 setter、单一 owned host、完整 trace、原始及另存/reopen 文件哈希。最大阶段约 4.067 秒。
+- Report SHA256 `f04b79376ea8e5e5fd7569c7d20feb28ae6193215ee9dc29695c3bca5dbbd7f9`，harness trace `eb97a6e5fb77dae6d1f46f63122c9847d90dc965c16a319df92b87f8d5393afa`，native trace `d95c6b1ac3c577cb4a90772a83b7f47f51b618adabeab5880cf03bbd7812ef13`。
+- 只在分支开放通过审核的 raw pairs。装配体 toggle true→false，工程图 false→true，两类型适用边框 0→1，并各自允许目标值同值请求。零件、其他 revision 和未验证方向仍关闭。
+- 公开 CLI/daemon/SDK/MCP gate 将使用上述 pinned 原件，在独立 run 检查全量 CAS、lease/stamp、readonly、单 setter 和另存重开。零件先前精确几何失败仍是系列阻断，公开 gate 另验零件读取及写入被拒绝。

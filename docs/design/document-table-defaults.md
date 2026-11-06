@@ -3,9 +3,10 @@
 This branch implements five non-font document defaults. It does not create,
 insert, enumerate or edit an actual BOM/general table. Public reads use the
 selected document's `IModelDocExtension`, without activation or application
-preference changes. Public writes currently fail closed with
-`DocumentTableCalibrationRequired`: the accepted version/type profile set is
-empty. Internal candidate calibration is not public acceptance.
+preference changes. The development branch enables the exact transitions from
+its audited internal SOLIDWORKS 33.5.0 assembly and drawing calibration for
+public acceptance. Requests outside that profile fail with
+`DocumentTableCalibrationRequired`. Public acceptance is tracked separately.
 
 | Field | API preference symbol | Type | Document types |
 | --- | --- | --- | --- |
@@ -50,7 +51,10 @@ Admission data is scoped to exact `RevisionNumber`, document type, field and
 pair for no-op observation. A known revision does not authorize every catalog
 value or an untested reverse transition. Declared `macos-wine` and `linux-wine`
 daemons reject these writes before worker dispatch; native Windows evidence
-does not open Wine support. At this stage the data remains empty.
+does not open Wine support. On 33.5.0 the assembly template toggle admits
+true to false and the drawing toggle admits false to true. Both document types
+admit thin to normal for each applicable border. Only the resulting values
+admit same-value requests. Part writes remain closed.
 
 The `expected_options` argument is the entire `options` object returned by the
 read, including all raw values and unavailable entries. Validation rejects
