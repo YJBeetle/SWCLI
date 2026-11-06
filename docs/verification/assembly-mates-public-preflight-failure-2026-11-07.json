@@ -1,0 +1,48 @@
+{
+  "run_id": 42301013926,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42301013926",
+  "head": "035a6e30fcdc20e8ed1fa0ff8922c8365aa730cf",
+  "job_id": 128180138026,
+  "artifact_id": 13544353858,
+  "artifact_sha256": "8f6c98f3f1d2ee9fe79d003f7a083699b9bb1d5936792395f06930b9f3758af0",
+  "distribution_artifact_id": 13544596144,
+  "distribution_artifact_sha256": "1c8367164447ee8c5b943f6fcd8196ef13042d7602b431018fc0f564fa733009",
+  "wheel_sha256": "e4efe6da3e469b881de86b063dae914b50394b0f690546a0946f08defab2f8b7",
+  "github_digests_matched": true,
+  "verified_installed_wheel_python_files": 83,
+  "first_failure": {
+    "type": "DaemonConnectTimeout",
+    "message": "Lifecycle status could not connect to the endpoint"
+  },
+  "first_command": {
+    "label": "preflight-status",
+    "started_utc": "2026-11-06T22:18:08.191556+00:00",
+    "timeout": 60,
+    "process_id": 5904,
+    "exit_code": 1,
+    "error_type": "DaemonConnectTimeout",
+    "seconds": 1.2029999999999745
+  },
+  "original_response": {
+    "error": {
+      "code": "TimeoutError",
+      "message": "timed out",
+      "transport_phase": "connect"
+    },
+    "success": false
+  },
+  "host_started": false,
+  "native_cad_requests": 0,
+  "native_files_created": 0,
+  "partial_cad_mutation": false,
+  "owned_failure_cleanup": {
+    "child_exit_code": 1,
+    "host_process_id": null,
+    "errors": [],
+    "attempted": false,
+    "exit_confirmed": false
+  },
+  "internal_acceptance_run_id": 42279916240,
+  "public_acceptance": false,
+  "merge_ready": false
+}

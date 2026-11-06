@@ -120,3 +120,16 @@
 - 内部脚本在 flag 已晋级时于获取宿主前拒绝运行，防止原来的“公开应拒绝”探针在晋级后额外写入；不改变已成功 ac9e54f 原件及断言。后续使用 public stage 一次必要 dispatch，不持续轮询，正常运行保存链接后结束等待，最终 review 由统筹本人负责。
 - 晋级候选提交前全量 1861 项通过（26 平台跳过），针对性 42 项通过；SDK generator / strict mypy / 8 负向消费类型场景通过。日志 `evidence/portable/promotion-{tests,all-tests,sdk}.log`。
 - 原始外层生命周期追踪另核实 acquire-owned-host / ExitApp / WaitForOwnedProcess 各仅一次且正常结束，未组内重启。
+
+## 必要公开 gate 已触发，本轮停止持续跟进
+- 已 push 代码候选 `035a6e30fcdc20e8ed1fa0ff8922c8365aa730cf`，远端分支 SHA 已核对一致。唯一公开 dispatch [run 42301013926](https://github.com/YJBeetle/SWCLI/actions/runs/42301013926)，输入 `assembly_mates_calibration=true`, `assembly_mates_stage=public`, `native_full=false`；初始 GET 精确 head 一致、正常 in_progress（Windows 3.9/3.14 与 package 已获得 runner）。receipt `evidence/public-dispatch-035a6e3.json`。
+- 不重复 dispatch，不取消任何 CI，不持续 sleep/轮询；正常运行后按用户指令结束本轮，由统筹完成/失败原件可用后分次快照跟进。未创建单 CI automation，未派审查代理，未 rebase main 或更改版本/发布/指针。
+- 当前只是内部 native 四组＋组合及保存关闭只读重开验收完成。公开 gate 仍待真实 CLI→daemon→worker、后台文档/lease/CAS拒绝、SaveAs+Save3、可写及只读重开、源与 ASM 内容/哈希、宿主连续性和清理原件。必须继续做完本系列已计划的公开验证后才由统筹判可合并，系列能力一起完成后再发版。
+- 本节为本地交接状态更新（尚未另行提交），代码候选和正在运行的 CI head 均保持 035a6e3；原始工件在本工作树 evidence/ 持续保留，不提交压缩包。
+
+## 首次公开 gate 失败与修复
+- [run 42301013926](https://github.com/YJBeetle/SWCLI/actions/runs/42301013926) 的精确 head 为 `035a6e30fcdc20e8ed1fa0ff8922c8365aa730cf`。Windows 3.9、3.14 和 package 均通过，公开 job 128180138026 在首个 `preflight-status` 失败。原始 CLI 返回 `TimeoutError` 和 `transport_phase=connect`，共享 runner 归类为 `DaemonConnectTimeout`。未启动 daemon 或 SOLIDWORKS，未发出 CAD 请求，无部分修改。
+- 原始公开 ZIP `evidence/run-42301013926/swcli-assembly-mates-42301013926-1-13544353858.zip` 的 GitHub digest 为 `8f6c98f3f1d2ee9fe79d003f7a083699b9bb1d5936792395f06930b9f3758af0`，原始分发 ZIP `swcli-dist-13544596144.zip` 的 GitHub digest 为 `1c8367164447ee8c5b943f6fcd8196ef13042d7602b431018fc0f564fa733009`，均已匹配。wheel、已安装的 83 个 Python 文件 hash 与精确 Git blob 逐一一致。原件和元数据保存在该 evidence 目录，首因收据见 `docs/verification/assembly-mates-public-preflight-failure-2026-11-07.json`。
+- 仅公开配合 runner 使用本地独占 bind 确认可用的专用端口。被占用则直接失败，无未知 daemon RPC。共享 runner 原有状态探测和拒绝语义由既有测试覆盖。原生断言、组预算和 CI 并发设置均保持。真实回环测试覆盖端口占用拒绝和端口释放后成功。配合测试 43 项和共享 runner 测试 28 项通过。
+- 内部四组和组合场景原生保存关闭重开已完成。公开验收仍待新 head 的独立 CLI→daemon→worker 原件。
+- 修复后的全量便携回归执行 1862 项，26 项平台跳过，其余通过。日志 `evidence/portable/public-bind-all-tests.log`。

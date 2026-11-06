@@ -295,7 +295,7 @@ class Runner:
             arguments.append(output.parent / "modeling/modeling.json")
         return arguments, output
 
-    def run(self):
+    def preflight(self):
         # Prepared wrappers may already own a host. Adopt only for its bounded
         # shutdown; no CAD set is run in that pre-warmed session.
         existing = None
@@ -327,6 +327,9 @@ class Runner:
                 time.sleep(0.2)
             else:
                 raise RuntimeError("Previous owned endpoint did not stop")
+
+    def run(self):
+        self.preflight()
         self.args.fixture_work_dir.mkdir(parents=True, exist_ok=True)
         for test_set in self.plan:
             started = time.monotonic()

@@ -3,6 +3,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import socket
 import tempfile
 import unittest
 from unittest import mock
@@ -126,6 +127,33 @@ class FakeGate:
                 operation_schemas={k:v.parameters for k,v in public.OPERATION_CATALOG.items()},
                 operation_result_schemas={k:v.result for k,v in public.OPERATION_CATALOG.items()})
         raise AssertionError('unexpected public command: '+repr(arguments))
+
+
+
+class PublicMatePreflightTests(unittest.TestCase):
+    def test_preflight_checks_vacant_loopback_by_bind_and_refuses_occupied_endpoint(self):
+        spec = importlib.util.spec_from_file_location(
+            "_mate_runner_test", ROOT / "scripts/ci/run-assembly-mates-public.py"
+        )
+        runner_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner_module)
+        runner = runner_module.PublicMateRunner.__new__(runner_module.PublicMateRunner)
+        runner.record = {}
+        runner.checkpoint = mock.Mock()
+        runner.health = mock.Mock()
+        runner.public = mock.Mock()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            runner.bind_host, runner.bind_port = listener.getsockname()
+            with self.assertRaises(OSError):
+                runner.preflight()
+            self.assertEqual(runner.record, {})
+        runner.preflight()
+        self.assertTrue(runner.record["preflight_endpoint"]["bind_verified"])
+        runner.checkpoint.assert_called_once()
+        runner.health.assert_not_called()
+        runner.public.assert_not_called()
 
 
 class PublicMateGateTests(unittest.TestCase):

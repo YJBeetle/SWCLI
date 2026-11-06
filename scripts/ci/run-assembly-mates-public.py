@@ -3,11 +3,30 @@ import argparse
 import importlib.util
 import os
 import json
+import socket
 from pathlib import Path
 from types import SimpleNamespace
 
 spec=importlib.util.spec_from_file_location('_mates_public_runner',Path(__file__).with_name('verify-runtime-sets.py'))
 runtime=importlib.util.module_from_spec(spec);spec.loader.exec_module(runtime)
+
+
+class PublicMateRunner(runtime.Runner):
+    def preflight(self):
+        # This dedicated job starts with no daemon. Windows may time out when
+        # connecting to a vacant loopback port. Test binding instead, without
+        # sending an RPC or attempting to shut down any other endpoint.
+        address = (self.bind_host, self.bind_port)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            probe.bind(address)
+        self.record["preflight_endpoint"] = {
+            "host": self.bind_host,
+            "port": self.bind_port,
+            "bind_verified": True,
+        }
+        self.checkpoint()
 
 
 def main(argv=None):
@@ -27,7 +46,7 @@ def main(argv=None):
         host_fixture_work_dir=str(output/'private-fixture-work'),cli_command=None,python_path=[],
         sample_part='unused',sample_assembly='unused',sample_drawing='unused',sample_drawing_local=output/'unused',
         wine_prefix=None,drawing_template=None)
-    runner=runtime.Runner(options)
+    runner=PublicMateRunner(options)
     from gate_support.runtime_plan import TestSet, Step
     runner.plan=(TestSet('assembly-mates',(Step('verify-assembly-mates.py','modeling'),)),)
     runner.record.update(expected_sets=['assembly-mates'],coverage_scope='public-assembly-standard-mates',
