@@ -43,6 +43,23 @@ def active_public_request(path):
     return None if active is None else time.time() - (time.monotonic() - active)
 
 
+def finish_failed_owned_host(handle, child_exit, api, events, evidence):
+    evidence.update(attempted=False, exit_confirmed=False)
+    if handle is None or child_exit in (None, 0):
+        return
+    status=events.WaitForSingleObject(handle,0)
+    if status==events.WAIT_OBJECT_0:
+        evidence['exit_confirmed']=True
+        return
+    if status!=events.WAIT_TIMEOUT:
+        raise RuntimeError('owned host exit state is unknown; no termination attempted')
+    evidence['attempted']=True
+    api.TerminateProcess(handle,1)
+    if events.WaitForSingleObject(handle,10000)!=events.WAIT_OBJECT_0:
+        raise RuntimeError('owned failed host did not exit after one termination')
+    evidence['exit_confirmed']=True
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
@@ -110,6 +127,15 @@ def main(argv=None):
                         win32api.TerminateProcess(host_handle,124)
                 try:process.wait(timeout=10)
                 except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
+            if not failure and process.returncode not in (None,0):
+                cleanup=dict(child_exit_code=process.returncode,host_process_id=host_pid,errors=[])
+                try:
+                    import win32event
+                    finish_failed_owned_host(host_handle,process.returncode,win32api,win32event,cleanup)
+                except Exception as error:
+                    cleanup['errors'].append(dict(type=type(error).__name__,message=str(error)))
+                # Keep the original child's report/error/exit code authoritative.
+                (output/'owned-failure-cleanup.json').write_text(json.dumps(cleanup,indent=2)+'\n',encoding='utf-8')
             if host_handle is not None:host_handle.Close()
     return 124 if failure else process.returncode
 

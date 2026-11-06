@@ -316,8 +316,8 @@ _RESULT_FIELDS = {
     }, ("document", "source_document_id", "source", "sheet", "views", "mutation", "rebuilt",
         "verification", "diagnostics", "cleanup_errors")),
     "assembly.mate-targets": ({"snapshot": SNAPSHOT}, ("document", "snapshot")),
-    "assembly.add-mate": ({"before": SNAPSHOT, "snapshot": SNAPSHOT, "mate": MATE, "mutation": MUTATION, "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))}},
-                          ("document", "before", "snapshot", "mate", "mutation", "cleanup_errors")),
+    "assembly.add-mate": ({"before": SNAPSHOT, "snapshot": SNAPSHOT, "mate": MATE, "mutation": MUTATION, "diagnostics_before": DIAGNOSTICS, "diagnostics": DIAGNOSTICS, "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))}},
+                          ("document", "before", "snapshot", "mate", "mutation", "diagnostics_before", "diagnostics", "cleanup_errors")),
     "assembly.add-component": (
         {
             "inserted": {"const": True},
@@ -1574,6 +1574,10 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             "mutation": {"properties": {key: {"const": True} for key in MUTATION["properties"]}},
             "mate": {"properties": healthy},
             "snapshot": {"properties": {"mates": {"items": {"properties": healthy}}}},
+            "diagnostics_before": {"properties": {"healthy": {"const": True}, "truncated": {"const": False},
+                "issue_count": {"const": 0}, "issues": {"maxItems": 0}, "scanned_feature_count": {"minimum": 1}}},
+            "diagnostics": {"properties": {"healthy": {"const": True}, "truncated": {"const": False},
+                "issue_count": {"const": 0}, "issues": {"maxItems": 0}, "scanned_feature_count": {"minimum": 1}}},
             "cleanup_errors": {"maxItems": 0},
         }
     if name == "feature.fillet":

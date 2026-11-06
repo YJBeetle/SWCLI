@@ -3,6 +3,11 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import shutil
+import subprocess
+import tempfile
+from types import SimpleNamespace as NS
+from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -31,6 +36,8 @@ class CalibrationTests(unittest.TestCase):
         self.assertNotIn('assembly_mates_calibration',default)
         self.assertIn('needs: [test, package]',job)
         self.assertIn('digest-mismatch: error',job)
+        self.assertIn('pip install --force-reinstall $wheels[0].FullName',job)
+        self.assertNotIn('pip install --force-reinstall',default)
         self.assertIn('timeout-minutes: 31',job)
         self.assertIn('run-assembly-mates-calibration.py',job)
         self.assertIn("inputs.assembly_mates_stage != 'public'",job)
@@ -40,6 +47,26 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn('if: always()',job)
         self.assertIn('${{ runner.temp }}\\swcli-native-smoke',job)
         self.assertIn('cleanup-hosted-solidworks.ps1',job)
+
+    def test_catalog_must_be_complete_and_closes_only_known_clean_source_once(self):
+        calibration=load('verify-assembly-mates-calibration.py')
+        part=NS(GetTitle=lambda:'component',GetPathName=lambda:'source.SLDPRT',GetType=lambda:1,
+                GetSaveFlag=lambda:False,GetUpdateStamp=lambda:3)
+        app=NS(GetDocumentCount=lambda:1,GetDocuments=lambda:(part,),CloseDoc=mock.Mock())
+        call=lambda label,function:function()
+        catalog=calibration.document_catalog(app,call,'test')
+        self.assertEqual(catalog['count'],1)
+        calibration.close_known_source(app,Path('source.SLDPRT'),catalog,call,'close-source')
+        app.CloseDoc.assert_called_once_with('component')
+        unknown=dict(count=1,documents=[dict(path='unknown.SLDASM',title='unknown',type=2,modified=False)])
+        app.CloseDoc.reset_mock()
+        with self.assertRaises(RuntimeError):calibration.close_known_source(app,Path('source.SLDPRT'),unknown,call,'refuse')
+        app.CloseDoc.assert_not_called()
+        with mock.patch.object(part,'GetSaveFlag',lambda:None):
+            with self.assertRaises(RuntimeError):calibration.document_catalog(app,call,'unknown-modified')
+        for raw,count in ((None,1),(0,0),('bad',0),(None,False)):
+            with mock.patch.object(app,'GetDocuments',lambda raw=raw:raw),mock.patch.object(app,'GetDocumentCount',lambda count=count:count):
+                with self.assertRaises(RuntimeError):calibration.document_catalog(app,call,'bad')
 
     def test_external_watchdog_has_fixed_native_and_group_budgets_without_retry(self):
         watchdog=load('run-assembly-mates-calibration.py')
@@ -56,6 +83,32 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn('watchdog.json',source)
         self.assertIn('stdout.log',source)
         self.assertIn('stderr.log',source)
+
+    def test_failed_host_cleanup_never_touches_success_unknown_or_an_exited_handle(self):
+        watchdog=load('run-assembly-mates-calibration.py')
+        handle=object();api=NS(TerminateProcess=mock.Mock())
+        events=NS(WAIT_OBJECT_0=0,WAIT_TIMEOUT=258,WaitForSingleObject=mock.Mock(return_value=0))
+        for selected,code in ((handle,0),(None,1),(handle,1)):
+            proof={};watchdog.finish_failed_owned_host(selected,code,api,events,proof)
+            self.assertFalse(proof['attempted'])
+        api.TerminateProcess.assert_not_called()
+        events.WaitForSingleObject.return_value=-1
+        with self.assertRaises(RuntimeError):watchdog.finish_failed_owned_host(handle,1,api,events,{})
+        api.TerminateProcess.assert_not_called()
+        events.WaitForSingleObject.side_effect=[258,0]
+        proof={};watchdog.finish_failed_owned_host(handle,1,api,events,proof)
+        api.TerminateProcess.assert_called_once_with(handle,1)
+        self.assertEqual(proof,dict(attempted=True,exit_confirmed=True))
+
+    def test_failed_host_cleanup_does_not_repeat_termination_on_exit_timeout(self):
+        watchdog=load('run-assembly-mates-calibration.py')
+        api=NS(TerminateProcess=mock.Mock());handle=object()
+        events=NS(WAIT_OBJECT_0=0,WAIT_TIMEOUT=258,WaitForSingleObject=mock.Mock(return_value=258))
+        proof={}
+        with self.assertRaises(RuntimeError):watchdog.finish_failed_owned_host(handle,1,api,events,proof)
+        api.TerminateProcess.assert_called_once_with(handle,1)
+        self.assertTrue(proof['attempted'])
+        self.assertFalse(proof['exit_confirmed'])
 
     def test_save_reopen_compares_content_and_uses_new_face_ownership_not_old_session_tokens(self):
         calibration=load('verify-assembly-mates-calibration.py')
@@ -82,3 +135,32 @@ class CalibrationTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+@unittest.skipUnless(shutil.which('git'),'Git commit provenance fixture')
+class InstalledPackageIdentityTests(unittest.TestCase):
+    def test_exact_commit_bytes_survive_checkout_newline_changes_and_reject_stale_same_version(self):
+        spec=importlib.util.spec_from_file_location('_package_identity',ROOT/'scripts/ci/gate_support/package_identity.py')
+        identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);repo=root/'checkout';source=repo/'src/swcli';source.mkdir(parents=True)
+            installed=root/'installed';installed.mkdir();hooks=root/'empty-hooks';hooks.mkdir()
+            (source/'__init__.py').write_bytes(b'__version__="same"\n')
+            (source/'adapter.py').write_bytes(b'correct_native_code=True\n')
+            def git(*args):
+                return subprocess.check_output(['git','-c','core.hooksPath='+str(hooks),'-c','commit.gpgsign=false',
+                    '-c','user.name=fixture','-c','user.email=fixture@localhost',*args],cwd=repo,stderr=subprocess.DEVNULL)
+            git('init','-q');git('-c','core.autocrlf=false','add','src');git('commit','-qm','fixture')
+            head=git('rev-parse','HEAD').decode().strip()
+            for path in source.glob('*.py'):(installed/path.name).write_bytes(path.read_bytes())
+            (source/'adapter.py').write_bytes(b'correct_native_code=True\r\n')
+            result=identity.verify_installed_package(repo,installed_root=installed,expected_commit=head)
+            self.assertTrue(result['matches_source_commit'])
+            self.assertEqual(result['verified_python_files'],2)
+            (installed/'adapter.py').write_bytes(b'stale_native_code=True\n')
+            with self.assertRaisesRegex(RuntimeError,'source differs'):
+                identity.verify_installed_package(repo,installed_root=installed,expected_commit=head)
+            with self.assertRaisesRegex(RuntimeError,'HEAD differs'):
+                identity.verify_installed_package(repo,installed_root=installed,expected_commit='0'*40)
+            with self.assertRaisesRegex(RuntimeError,'editable checkout'):
+                identity.verify_installed_package(repo,installed_root=source,expected_commit=head)

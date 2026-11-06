@@ -2563,3 +2563,5 @@ class AssemblyAddMateResult(_AssemblyAddMateResultRequired, total=False):
     before: AssemblyMateTargetsResultSnapshot
     snapshot: AssemblyMateTargetsResultSnapshot
     mate: AssemblyMateTargetsResultSnapshotMatesItem
+    diagnostics_before: DocumentCreateResultDiagnostics
+    diagnostics: DocumentCreateResultDiagnostics

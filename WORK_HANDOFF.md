@@ -81,3 +81,17 @@
 - 这是本地待提交 fixture 修正；正在运行的 b456bbc / run 42268147736 保持原 head，没有取消或重 dispatch。公开许可仍为空。
 - 公开许可开放前还在落实已有“仅外部已保存零件”边界：新增真实 `IComponent2.IsVirtual` 布尔拒绝与非空 `.SLDPRT` 文件检查，不增加请求参数或扩大支持范围；官方属性文档已核，后续 native preflight 同时核此成员。
 - target 读操作补充前后真实 ActiveDoc 身份一致性检查：若读取过程中用户/原生行为切换前台，则返回 `MateObservationChanged`，不自动激活或恢复用户文档。包含该项后本地针对性 33 项通过。
+
+## 第二次原生结果（不是验收通过）
+- Run 42268147736 / b456bbc 已 completed/failure，原 ZIP `evidence/run-42268147736/swcli-assembly-mates-13529059551.zip`，GitHub digest `1d1f455b6ed9ec999039e6b9babcd4e57082972e535c96e824fad91c540a5673` 匹配，完整 native trace 原件保留。
+- 目标映射读取已通过；aligned coincident 与 aligned concentric 补充均 native ok，错误码 0、未抑制，距离分别约 8.88e-16 mm / 0，parallel_error=0；同心最终 LockRotation=false。第一条创建后快照与下一次完整 CAS 完全一致。
+- Strict SaveAs 成功生成 63,401 字节 ASM，SHA-256 `a3ff1b5f76bf1ad9bbac96c55c3da8ce9db9393a7b399a7ae5e2bf6620cdf0a0`。但在独立 reopen 前 GetDocumentCount 不为 0，因此无保存重开验收，后三组未执行，公开许可保持空。
+- 原 report 同时证实 PRT/ASM GetTitle 均为 `coincident-aligned`；已准备的 8a7095c 文件名消歧待纳入下一新 head。将补完整关闭目录而不重试失败的关闭，不删除未知文档，不放宽空目录断言。
+- 下一阶段接口补充：新 assembly.add-mate 成功结果增加目标 ASM 根特征 diagnostics_before / diagnostics，以同时核对 MateGroup 等根求解错误；只增强已有求解保护，仍为相同客户端→daemon→worker 链路。相关 schema / SDK / MCP 契约同步后才提交。
+- 根诊断与关闭目录的新契约/回归已通过；公开 fixture cleanup 对同一文档生命周期只允许一次 CloseDoc，失败不重放。退出失败组时父 supervisor 只按已验证 OS handle 结束仍存活的 owned host，单次终止/未知状态不终止，保持原 child report/错误/exit code，不触碰名称匹配的其它进程。
+- 本路目前无待授权动作，技术门槛仍是未取得保存关闭重开及独立公开链路的完整证据。
+
+## 新 head 的关闭/重开修复验证
+- 最新完整便携回归 1858 项通过，26 平台跳过；本功能针对性 39 项通过。SDK generator / strict mypy / 8 负向消费场景与 actionlint 均通过；日志 `evidence/portable/reopen-fix-*`。
+- 专属 native/public gate 在启动 owned host 前逐文件核对已安装 wheel Python 字节与 Git 精确 commit，拒绝同版本旧安装/可编辑源目录/未知 head；只在独立 mate job 强制重装本次 wheel，默认 full/release 安装和并发未改。
+- 新 head 将只触发一次 internal 校准，公开 flag/精确 revision 集合继续为空；仍未完成保存关闭重开或公开链路验收。

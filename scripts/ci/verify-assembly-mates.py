@@ -17,6 +17,19 @@ modeling=importlib.util.module_from_spec(spec);spec.loader.exec_module(modeling)
 require=modeling.require
 
 
+class PublicMateSmoke(modeling.ModelingSmoke):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.close_attempts=set()
+
+    def close(self, document):
+        # Cleanup may close other owned fixtures, but must not replay a failed
+        # native close with an uncertain outcome from this same fixture life.
+        require(document not in self.close_attempts,'native close already attempted; no cleanup retry')
+        self.close_attempts.add(document)
+        return super().close(document)
+
+
 def content(snapshot):
     result=copy.deepcopy(snapshot)
     for key in ('title','path','update_stamp','modified'):result.pop(key)
@@ -152,7 +165,13 @@ def run_case(gate,kind,alignment):
         reopened=read(gate,fresh,names)
         require(not reopened['snapshot']['modified'],'fresh reopened assembly is modified')
         verify_content(content(reopened['snapshot']),case['saved_content'])
-        case.setdefault('reopens',[]).append(dict(mode=mode,open=opened,targets=reopened))
+        diagnosed=gate.command('document','diagnose',document=fresh)
+        validate_operation_result('document.diagnose',diagnosed)
+        require(diagnosed['diagnostics']['healthy'] and not diagnosed['diagnostics']['truncated']
+                and diagnosed['diagnostics']['scanned_feature_count']>0,'reopened root diagnostics failed')
+        require(diagnosed['needs_rebuild']==0,'reopened assembly needs rebuild')
+        case.setdefault('reopens',[]).append(dict(mode=mode,open=opened,targets=reopened,
+                                                diagnostics=diagnosed))
         if mode=='readonly':
             refusal=command_mate(gate,fresh,kind,alignment,targets,reopened['snapshot'],expected_error='DocumentReadOnly')
             require(not refusal['mutation']['attempted'],'read-only mate write reached native creation')
@@ -195,7 +214,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     require(args.request_timeout==600,'public mate native request budget must stay 600 seconds')
     args.output_dir.mkdir(parents=True,exist_ok=True)
-    gate=modeling.ModelingSmoke(directory=args.output_dir,host_directory=args.host_output_dir or str(args.output_dir),
+    gate=PublicMateSmoke(directory=args.output_dir,host_directory=args.host_output_dir or str(args.output_dir),
         endpoint=args.endpoint,cli=[args.cli_command] if args.cli_command else None,request_timeout_seconds=600,suite=args.suite)
     with gate.record_path.open('x',encoding='utf-8') as stream:json.dump(gate.record,stream)
     try:run(gate)

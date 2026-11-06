@@ -10,6 +10,7 @@ import math
 from ..assembly_mates import PUBLIC_MATE_WRITES_CALIBRATED, CALIBRATED_WINDOWS_REVISIONS
 from .windows import _com_value, _error, _describe_document
 from .native_trace import native_call
+from .windows_documents import _diagnose_features
 from .windows_entity_geometry import _numbers, _direction
 from .windows_entity_observation import _geometry
 from .windows_entity_references import capture_verified_reference
@@ -405,6 +406,11 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
         require(all(m["error_code"] == 0 and not m["suppressed"] and not m.get("lock_rotation", False) and
                     m["distance_mm"] <= DISTANCE_TOLERANCE_MM and m["parallel_error"] <= DIRECTION_TOLERANCE
                     for m in before["mates"]), "existing mate is not healthy", "MateSolveFailed")
+        result["diagnostics_before"] = native_call("assembly-mates", "Assembly.root-diagnostics.before",
+                                                   lambda: _diagnose_features(document, 128))
+        require(result["diagnostics_before"]["healthy"] and not result["diagnostics_before"]["truncated"]
+                and result["diagnostics_before"]["scanned_feature_count"] > 0,
+                "assembly root feature diagnostics are not healthy", "MateSolveFailed")
         data = native_call("assembly-mates", "AssemblyDoc.CreateMateData", lambda: document.CreateMateData(KINDS[kind]))
         require(data is not None, "native mate definition is absent", "MateCreationFailed")
         data = _dispatch(data, "ICoincidentMateFeatureData" if kind == "coincident" else "IConcentricMateFeatureData", app=app)
@@ -453,6 +459,11 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
         require(all(m["error_code"] == 0 and not m["suppressed"] and not m.get("lock_rotation", False) and m["distance_mm"] <= DISTANCE_TOLERANCE_MM
                     and m["parallel_error"] <= DIRECTION_TOLERANCE for m in after["mates"]),
                 "mate solve/geometry verification failed", "MateSolveFailed")
+        result["diagnostics"] = native_call("assembly-mates", "Assembly.root-diagnostics.after",
+                                            lambda: _diagnose_features(document, 128))
+        require(result["diagnostics"]["healthy"] and not result["diagnostics"]["truncated"]
+                and result["diagnostics"]["scanned_feature_count"] > 0,
+                "assembly root feature diagnostics failed after mating", "MateSolveFailed")
         require(value(value(document, "Extension"), "NeedsRebuild2") == 0, "assembly still needs rebuild", "MateSolveFailed")
         result["document"] = _describe_document(document)
         result["ok"] = True

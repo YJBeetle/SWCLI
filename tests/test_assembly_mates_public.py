@@ -67,7 +67,10 @@ class FakeGate:
             return {'document':self.descriptor(identifier)}
         if action==('document','list'):return {'documents':[self.descriptor(i) for i in self.documents]}
         if action==('document','inspect'):
-            return {'structure':{'configurations':{'active':'Default'}}}
+            return {'structure':{'configurations':{'active':'Default'}},'needs_rebuild':0}
+        if action==('document','diagnose'):
+            return dict(ok=True,action='document.diagnose',document=self.descriptor(document),needs_rebuild=0,
+                diagnostics=dict(healthy=True,issues=[],issue_count=0,scanned_feature_count=3,truncated=False,limit=128))
         if action==('document','lease'):
             self.leases[document]='l-000000000001';return {'lease':{'lease_id':self.leases[document]}}
         if action==('feature','extrude'):return {'ok':True}
@@ -114,6 +117,8 @@ class FakeGate:
             doc['snapshot']['update_stamp']+=1
             return dict(ok=True,action='assembly.add-mate',document=self.descriptor(document),before=snapshot,
                 snapshot=copy.deepcopy(doc['snapshot']),mate=mate,cleanup_errors=[],
+                diagnostics_before=dict(healthy=True,issues=[],issue_count=0,scanned_feature_count=3,truncated=False,limit=128),
+                diagnostics=dict(healthy=True,issues=[],issue_count=0,scanned_feature_count=3,truncated=False,limit=128),
                 mutation=dict(attempted=True,creation_returned=True,may_have_changed=True))
         if arguments[0]=='capabilities':return {'operations':[arguments[2]]}
         raise AssertionError('unexpected public command: '+repr(arguments))
@@ -165,6 +170,16 @@ class PublicMateGateTests(unittest.TestCase):
         public.verify_content(public.content(changed),public.content(original))
         changed['components'][1]['faces'][0]['parameters'][6]=.004
         with self.assertRaises(RuntimeError):public.verify_content(public.content(changed),public.content(original))
+
+    def test_failed_close_is_not_replayed_by_fixture_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            gate=public.PublicMateSmoke(directory=Path(directory),host_directory=directory,endpoint='127.0.0.1:1',request_timeout_seconds=600)
+            gate.owned['d-000001']='owner'
+            gate.command=mock.Mock(side_effect=RuntimeError('first native CloseDoc failure'))
+            with self.assertRaisesRegex(RuntimeError,'first native CloseDoc failure'):gate.close('d-000001')
+            gate.cleanup()
+            gate.command.assert_called_once()
+            self.assertTrue(gate.record['cleanup_errors'])
 
     def test_real_cli_parser_accepts_exact_public_context_without_private_permission(self):
         parser=build_parser()

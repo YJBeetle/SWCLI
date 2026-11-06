@@ -638,7 +638,7 @@ jobs:
           python --version
           python -m pip install --upgrade pip
           if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
-          python -m pip install $wheels[0].FullName
+          python -m pip install --force-reinstall $wheels[0].FullName
           if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
           python -I scripts/ci/verify-installed.py
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }

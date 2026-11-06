@@ -7,10 +7,12 @@ parameter. The external supervisor enforces 600/1800 second budgets.
 import argparse
 import copy
 import hashlib
+import gc
 import importlib.util
 import json
 import math
 import os
+import sys
 from pathlib import Path
 
 from swcli.hosts.native_trace import trace_native_request
@@ -19,7 +21,7 @@ from swcli.daemon.operations import execute_operation
 from swcli.hosts.windows import _com_value
 from swcli.hosts.windows_assemblies import create_assembly_windows_with_handle, add_part_component_windows
 from swcli.hosts.windows_assembly_mates import read_mate_targets_windows, add_mate_windows, KINDS, ALIGNMENTS
-from swcli.hosts.windows_documents import open_windows_document_with_handle
+from swcli.hosts.windows_documents import open_windows_document_with_handle, _diagnose_features
 from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_part_windows_with_handle
 from swcli.hosts.windows_sketches import create_circle_sketch_windows_with_handle
@@ -31,6 +33,8 @@ spec = importlib.util.spec_from_file_location('_mates_owned_harness', Path(__fil
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 checked = harness.checked
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from gate_support.package_identity import verify_installed_package
 
 EXPECTED_ENUMS = dict(swMateCOINCIDENT=0, swMateCONCENTRIC=1, swMateAlignALIGNED=0,
     swMateAlignANTI_ALIGNED=1, swSolidBody=0, swComponentFullyResolved=2,
@@ -48,6 +52,7 @@ REQUIRED_MEMBERS = {
 
 
 def read_official_types(pythoncom, swconst):
+    package=verify_installed_package(Path(__file__).resolve().parents[2])
     library = pythoncom.LoadTypeLib(str(swconst))
     found = {}
     for index in range(library.GetTypeInfoCount()):
@@ -75,7 +80,7 @@ def read_official_types(pythoncom, swconst):
         checked(REQUIRED_MEMBERS[name] <= functions, 'official member contract missing: ' + name + ' ' + str(REQUIRED_MEMBERS[name] - functions))
         members[name] = sorted(REQUIRED_MEMBERS[name])
     checked(set(members) == set(REQUIRED_MEMBERS), 'official type library lacks required interfaces: ' + str(set(REQUIRED_MEMBERS) - set(members)))
-    return dict(enums=found, members=members, swconst_sha256=hashlib.sha256(swconst.read_bytes()).hexdigest(),
+    return dict(package=package,enums=found, members=members, swconst_sha256=hashlib.sha256(swconst.read_bytes()).hexdigest(),
                 sldworks_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
 
 
@@ -115,6 +120,37 @@ def equivalent(actual, expected):
     if isinstance(actual, list):
         return len(actual) == len(expected) and all(equivalent(a,b) for a,b in zip(actual,expected))
     return actual == expected
+
+
+def document_catalog(app, call, label):
+    count=call(label+'.count',lambda:_com_value(app,'GetDocumentCount'))
+    raw=call(label+'.documents',lambda:_com_value(app,'GetDocuments'))
+    checked(type(count) is int and count>=0,'native document count is unknown')
+    checked(raw is None or isinstance(raw,(tuple,list)),'native document catalog is unknown')
+    native=list(raw or ())
+    checked(len(native)==count,'native document catalog is incomplete')
+    rows=[]
+    for document in native:
+        row=dict(title=_com_value(document,'GetTitle'),path=_com_value(document,'GetPathName'),
+                 type=_com_value(document,'GetType'),modified=_com_value(document,'GetSaveFlag'),
+                 update_stamp=_com_value(document,'GetUpdateStamp'))
+        checked(isinstance(row['title'],str) and row['title'] and isinstance(row['path'],str)
+                and type(row['type']) is int and row['type'] in (1,2,3)
+                and type(row['modified']) is bool and type(row['update_stamp']) is int,
+                'native catalog document identity or modified state is unknown')
+        rows.append(row)
+    return dict(count=count,documents=rows)
+
+
+def close_known_source(app, part_path, catalog, call, label):
+    expected=str(part_path).casefold()
+    checked(all(row['path'].casefold()==expected and row['type']==1 and not row['modified']
+                for row in catalog['documents']),
+            'unknown or modified documents remain after one assembly close')
+    checked(catalog['count']<=1,'source reference is ambiguous')
+    if catalog['documents']:
+        title=catalog['documents'][0]['title']
+        call(label,lambda:app.CloseDoc(title))
 
 
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
@@ -210,16 +246,19 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case['saved_content']=expected_content
     digest=hashlib.sha256(path.read_bytes()).hexdigest()
     title=_com_value(document,'GetTitle');source_title=_com_value(source,'GetTitle')
+    case['closing_identity']=dict(assembly_title=title,source_title=source_title)
     # Drop every retained document/feature binding before reopening; the source
     # must be loaded from disk through the assembly references.
     document=source=feature=sketch=registry=entry=None
     live['document']=None
+    gc.collect()
+    checked(title!=source_title,'generated source/assembly titles must be unambiguous')
     call(prefix+'.close-assembly',lambda:app.CloseDoc(title))
-    loaded=app.GetOpenDocumentByName(str(part_path))
-    if loaded is not None:
-        loaded=None
-        call(prefix+'.close-source',lambda:app.CloseDoc(source_title))
-    checked(_com_value(app,'GetDocumentCount')==0,'documents remain before independent reopen')
+    catalog=case['catalog_after_assembly_close']=document_catalog(app,call,prefix+'.after-assembly-close')
+    close_known_source(app,part_path,catalog,call,prefix+'.close-source')
+    catalog=case['catalog_before_reopen']=document_catalog(app,call,prefix+'.before-independent-reopen')
+    checked(catalog['count']==0,'documents remain before independent reopen')
+    gc.collect()
     reopened,document=call(prefix+'.reopen-readonly',lambda:open_windows_document_with_handle(str(path),app=app,read_only=True))
     live['document']=document
     case['reopen']=reopened
@@ -228,6 +267,11 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     read=call(prefix+'.observe-reopened',lambda:read_mate_targets_windows(app=app,document=document,components=names))
     case['reopened_targets']=read
     checked(read['ok'] and not read['snapshot']['modified'],'reopened native mate observation failed: ' + str(read))
+    case['reopened_diagnostics']=call(prefix+'.diagnose-reopened',lambda:_diagnose_features(document,128))
+    checked(case['reopened_diagnostics']['healthy'] and not case['reopened_diagnostics']['truncated']
+            and case['reopened_diagnostics']['scanned_feature_count']>0,'reopened root assembly diagnostics failed')
+    case['reopened_needs_rebuild']=_com_value(_com_value(document,'Extension'),'NeedsRebuild2')
+    checked(type(case['reopened_needs_rebuild']) is int and case['reopened_needs_rebuild']==0,'reopened assembly needs rebuild')
     actual_content=persistent_shape(read['snapshot'])
     case['reopened_content']=actual_content
     checked(equivalent(actual_content,expected_content),'saved/reopened component relations or native mate definitions differ')
@@ -236,8 +280,12 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case.update(assembly_sha256=digest,part_sha256=part_hash,assembly_size_bytes=path.stat().st_size,
                 part_size_bytes=part_path.stat().st_size)
     title=_com_value(document,'GetTitle');document=live['document']=None
+    gc.collect()
     call(prefix+'.close-reopened',lambda:app.CloseDoc(title))
-    checked(_com_value(app,'GetDocumentCount')==0,'reopened references remain loaded')
+    catalog=case['catalog_after_reopened_close']=document_catalog(app,call,prefix+'.after-reopened-close')
+    close_known_source(app,part_path,catalog,call,prefix+'.close-reopened-source')
+    catalog=case['catalog_after_case']=document_catalog(app,call,prefix+'.after-case')
+    checked(catalog['count']==0,'reopened references remain loaded')
     checked(_com_value(app,'GetProcessID')==report['host']['process_id'],'calibration host changed')
     case['success']=True
 

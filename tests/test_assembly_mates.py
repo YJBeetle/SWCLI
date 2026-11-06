@@ -17,6 +17,8 @@ from swcli.hosts import windows_assembly_mates as api
 from swcli.operation_schemas import OPERATION_CATALOG, validate_operation_request
 from swcli.result_schemas import validate_operation_result
 
+HEALTHY = dict(healthy=True, issues=[], issue_count=0, scanned_feature_count=3, truncated=False, limit=128)
+
 IDENTITY = [1.,0.,0.,0.,1.,0.,0.,0.,1.,0.,0.,0.,1.,0.,0.,0.]
 
 
@@ -94,6 +96,7 @@ class MateTests(unittest.TestCase):
     def setUp(self):
         self.scene=Scene()
         self.patches=[mock.patch.object(api, 'PUBLIC_MATE_WRITES_CALIBRATED', False),
+                      mock.patch.object(api, '_diagnose_features', return_value=HEALTHY),
                       mock.patch.object(api, '_saved_external_part', return_value=True),
                       mock.patch.object(api, '_native_windows', return_value=True),
                       mock.patch.object(api, '_dispatch', side_effect=lambda native, interface, **context: native),
@@ -280,6 +283,20 @@ class MateTests(unittest.TestCase):
         self.assertEqual(result['error']['type'],'MateSolveFailed')
         self.assertTrue(result['mate']['lock_rotation'])
         self.assertTrue(result['mutation']['creation_returned'])
+        self.scene.doc.CreateMate.assert_called_once()
+
+    def test_unhealthy_root_mate_group_before_and_after_commit_cannot_be_hidden(self):
+        bad=dict(HEALTHY,healthy=False,issue_count=1,issues=[dict(index=0,name='Mates',type='MateGroup',code=4,severity='error')])
+        with mock.patch.object(api,'_diagnose_features',return_value=bad):
+            result=self.add()
+        self.assertEqual(result['error']['type'],'MateSolveFailed')
+        self.assertFalse(result['mutation']['attempted'])
+        self.scene.doc.CreateMate.assert_not_called()
+        with mock.patch.object(api,'_diagnose_features',side_effect=[HEALTHY,bad]):
+            result=self.add()
+        self.assertEqual(result['error']['type'],'MateSolveFailed')
+        self.assertTrue(result['mutation']['creation_returned'])
+        self.assertEqual(result['diagnostics'],bad)
         self.scene.doc.CreateMate.assert_called_once()
 
     def test_rebuild_failure_does_not_retry_creation(self):

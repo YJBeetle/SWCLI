@@ -2,6 +2,7 @@
 import argparse
 import importlib.util
 import os
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -15,6 +16,10 @@ def main(argv=None):
     parser.add_argument('--swconst',type=Path,required=True) # explicit installation identity, no COM calls
     args=parser.parse_args(argv)
     output=args.output_dir.resolve()
+    from gate_support.package_identity import verify_installed_package
+    output.mkdir(parents=True,exist_ok=True)
+    package=verify_installed_package(Path(__file__).resolve().parents[2])
+    with (output/'installed-package.json').open('x',encoding='utf-8') as stream:json.dump(package,stream,indent=2)
     os.environ['SWCLI_TRACE_NATIVE_CALLS']='1'
     options=SimpleNamespace(suite='core',mode='hidden',output_dir=output,host_output_dir=str(output),
         endpoint='127.0.0.1:18539',request_timeout=600,startup_timeout=600,set_timeout=1800,

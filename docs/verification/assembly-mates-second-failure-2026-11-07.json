@@ -1,0 +1,178 @@
+{
+  "run_id": 42268147736,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42268147736",
+  "head": "b456bbc4558717f7220e0d7a55a9babfeeef29ad",
+  "artifact_id": 13529059551,
+  "artifact_sha256": "1d1f455b6ed9ec999039e6b9babcd4e57082972e535c96e824fad91c540a5673",
+  "github_digest_matched": true,
+  "outcome": "failed-before-independent-reopen",
+  "failure": {
+    "type": "RuntimeError",
+    "message": "documents remain before independent reopen",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 323, in run\n    case_runner(app, output, constants, plane, reverse, call, case, report, live,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-assembly-mates-calibration.py\", line 248, in traced_case\n    return calibrate_case(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-assembly-mates-calibration.py\", line 222, in calibrate_case\n    checked(_com_value(app,'GetDocumentCount')==0,'documents remain before independent reopen')\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 33, in checked\n    raise RuntimeError(message)\nRuntimeError: documents remain before independent reopen\n"
+  },
+  "host": {
+    "process_id": 4108,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "type_libraries": {
+    "enums": {
+      "swMateCOINCIDENT": 0,
+      "swMateCONCENTRIC": 1,
+      "swMateAlignALIGNED": 0,
+      "swMateAlignANTI_ALIGNED": 1,
+      "swComponentFullyResolved": 2,
+      "swComponentResolved": 3,
+      "swSolidBody": 0,
+      "swThisConfiguration": 1
+    },
+    "members": {
+      "IFeature": [
+        "GetDefinition",
+        "GetErrorCode2",
+        "GetSpecificFeature2",
+        "IsSuppressed2"
+      ],
+      "IComponent2": [
+        "GetCorresponding",
+        "GetID",
+        "GetSuppression2",
+        "IsFixed",
+        "ReferencedConfiguration",
+        "Transform2"
+      ],
+      "IEntity": [
+        "GetComponent"
+      ],
+      "IAssemblyDoc": [
+        "CreateMate",
+        "CreateMateData",
+        "GetComponentCount",
+        "GetComponents",
+        "GetEditTarget",
+        "GetEditTargetComponent"
+      ],
+      "IMate2": [
+        "Alignment",
+        "GetMateEntityCount",
+        "MateEntity",
+        "Type"
+      ],
+      "IMateEntity2": [
+        "Reference",
+        "ReferenceComponent"
+      ],
+      "ICoincidentMateFeatureData": [
+        "EntitiesToMate",
+        "MateAlignment"
+      ],
+      "IConcentricMateFeatureData": [
+        "EntitiesToMate",
+        "LockRotation",
+        "MateAlignment"
+      ]
+    },
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "observed_mates": [
+    {
+      "name": "Coincident1",
+      "kind": "coincident",
+      "alignment": "aligned",
+      "error_code": 0,
+      "suppressed": false,
+      "components": [
+        "coincident-aligned-1",
+        "coincident-aligned-2"
+      ],
+      "references": [
+        "f0fa80c2474f0f41f84fe7e4116184812178a6f957b47a0a14323dac1324f3ba",
+        "26fe7a84108600cee7aa558ad7d3fc1ecff5419136d8d7972d0d5a380990f1b0"
+      ],
+      "distance_mm": 8.881784197001252e-16,
+      "parallel_error": 0.0
+    },
+    {
+      "name": "Concentric1",
+      "kind": "concentric",
+      "alignment": "aligned",
+      "error_code": 0,
+      "suppressed": false,
+      "components": [
+        "coincident-aligned-1",
+        "coincident-aligned-2"
+      ],
+      "references": [
+        "575a52bd491e3231327acf283b2569f427f7ae33c9be2f8ab0e41ad508455ad9",
+        "998aaadc9d5e45a4618aa275c546ef93f5a3f0d5a9ccad8bbd1943c63c644b7f"
+      ],
+      "distance_mm": 0.0,
+      "parallel_error": 0.0,
+      "lock_rotation": false
+    }
+  ],
+  "native_create_mate_begin_count": 2,
+  "native_create_mate_end_count": 2,
+  "native_create_mate_error_count": 0,
+  "created_snapshot_equals_next_complete_cas": true,
+  "saved_assembly": {
+    "name": "coincident-aligned.SLDASM",
+    "size_bytes": 63401,
+    "sha256": "a3ff1b5f76bf1ad9bbac96c55c3da8ce9db9393a7b399a7ae5e2bf6620cdf0a0",
+    "response": {
+      "ok": true,
+      "action": "document.save-as",
+      "output": "D:\\a\\_temp\\swcli-native-smoke\\assembly-mates-calibration\\native\\coincident-aligned.SLDASM",
+      "document_before": {
+        "title": "Assem1",
+        "path": "",
+        "type": 2,
+        "modified": true,
+        "update_stamp": 126
+      },
+      "api_saved": true,
+      "save_errors": 0,
+      "save_error_names": [],
+      "save_warnings": null,
+      "document": {
+        "title": "coincident-aligned",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\assembly-mates-calibration\\native\\coincident-aligned.SLDASM",
+        "type": 2,
+        "modified": false,
+        "update_stamp": 126
+      },
+      "file_verification": {
+        "non_empty": true,
+        "minimum_size_valid": true
+      },
+      "artifact": {
+        "kind": "native-document",
+        "format": "SLDASM",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\assembly-mates-calibration\\native\\coincident-aligned.SLDASM",
+        "size_bytes": 63401
+      }
+    }
+  },
+  "saved_part": {
+    "name": "coincident-aligned.SLDPRT",
+    "size_bytes": 57661,
+    "sha256": "372e824fb5a8e9a4320b941d68e76d358883a846eb517c1b709d93dcd3da1225"
+  },
+  "document_titles": {
+    "part": "coincident-aligned",
+    "assembly": "coincident-aligned"
+  },
+  "suspected_fixture_cause": "equal document titles; disambiguate fixture filenames and record complete post-close catalog",
+  "unchecked_cases": [
+    "coincident/anti-aligned",
+    "concentric/aligned",
+    "concentric/anti-aligned"
+  ],
+  "save_reopen_acceptance": false,
+  "internal_acceptance": false,
+  "public_acceptance": false,
+  "promotion_permitted": false,
+  "cleanup_errors": []
+}
