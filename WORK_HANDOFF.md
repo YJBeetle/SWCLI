@@ -1,6 +1,6 @@
 # 有界旋转凸台工作交接
 
-当前：内部原生校准与独立原始证据核验通过。公共范围已按实证开放，公开CLI/daemon验收run 42269057556执行中；merge-ready=false。
+当前：**merge-ready=true**。产品代码冻结于3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad；最终run42273047248 success，原始artifact13533039600、ZIP digest/head及内部85项/公开84项审计和两组trace全部通过。后续tip只追加证据docs，无产品代码改变；无待授权动作。
 
 ## Scope / 实现
 - 唯一worktree：/Users/YJBeetle/.codex/worktrees/swcli-revolve-feature/SWCLI；分支codex/swcli-revolve-feature；基线3bda2c00489dde6a3d1e4521c548f751b1d1c197。
@@ -61,3 +61,27 @@
 - 不把该注入当作真实CAD内核故障。内部控制与公开CLI分别目录、分别自有宿主及600/1800预算，组内不重启；无公共调试开关或直接COM公共旁路。
 - 最终public targeted job会先运行此独立内部控制组，再运行公开CLI组；默认full/release仍不运行它。现有3dd23c8 run不改动、不取消。
 - 26项针对性、Python/YAML解析及接线检查通过；准备将此控制与失效读回修复作为最终head的必要验收，等现有公开结果确认后仅dispatch最终head一次。
+
+## 首个公开原始证据核验完成 / 最终run执行中
+- 首公开run42269057556，head3dd23c842e63857da13afa3fb6ec18640cd3b735，success；原始artifact13530365438，ZIP SHA256 0a35f8a224076c6b1ee7784ca8463bef77fe37e92760925d2fcc44911da562ef。
+- 独立public review成功：run/artifact/report head一致、实际SLDPRT hash、三平面解析几何/原生特征/吸收轮廓/只读重开/lease-stamp-CAS-foreign/只读与非法范围拒绝、单宿主/完整关闭、trace闭合及恰好3次FeatureRevolve2创建无重试均通过。记录在evidence/revolve/ci/42269057556/independent-review.json。
+- 但它不是最终修复代码验收：29bd9e33ad15bb02dc651c74bd2de123d4c3cc1a修复失效读回partial契约；3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad加入真实模型内部partial故障控制，均已push。
+- 最终run https://github.com/YJBeetle/SWCLI/actions/runs/42273047248，head3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad，已核对应。
+- 输入native_revolve_public=true / native_revolve_calibration=false / native_full=false；最终head仅此一次必要dispatch，不取消/重复其他run。
+- 最新授权已沿用；无等待审批或授权的动作。继续等待最终原生及原始ZIP/head/digest/trace/partial保存重开核验；通过后给主对话精确可合commit，自己不合main/发版。
+
+## 统筹独立预审（最终原件待齐）
+- 统筹已提前独立审查3922bee最终head，26项关联便携检查通过，Windows/revision边界、单次FeatureRevolve2、partial handle和失败控制未见代码阻断。
+- 仍仅等待42273047248最终原件审计；不沿用旧3dd23c8成功作最终代码验收。结果齐后提供精确tip/run/artifact/hash与原报告给统筹优先集成，自己不合main。
+
+## 最终可交付 / 立即供统筹集成
+- 产品验收head：3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad；最终run https://github.com/YJBeetle/SWCLI/actions/runs/42273047248，success。
+- Windows artifact13533039600，原始ZIP SHA256 13c3a4695603e33875acb9a64c639baec056c48bdb7416b75b65664b89a29365。run/artifact/两份原报告source_commit一致。
+- 内部85项、公开84项独立原件检查通过；内部trace120/1510边界、22.684秒、单宿主/4次单次创建/唯一明确注入观察错误，公开34228边界/同worker与宿主/3次单次创建全部闭合，无重试或组内重启。
+- 真实partial模型保留首RuntimeError、三个mutation标记true、精确对象、立即测量和保存只读重开；partial文件hash707d7b14060610bf5543dee31adfca1fa794683df802e9f33f8e75984c57cb1f。明确是观察故障注入，不宣称真实CAD内核故障覆盖。
+- 三公开文件实际字节SHA：front 3f23304871651a33a8ece12a0b75bba6d7efb2340e30d244fd97059bb6577461；top 81c0498c0e3480a7b53106d91718b7d72bd1095e59e4b60149f707c4ae281e4a；right a3cc51bf22d2512af0a3980a6ae173f1c57aad4c726708ddcdd2d09f85824763。
+- 七个wheel核心/SDK模块与产品head字节一致；dist digest a30cf934daa222c7112b4e0207628f3569724ffb4398c29a56432cca39384723。
+- 详尽审计摘要：evidence/revolve/ci/42273047248/final-audit-summary.json；两份审计internal-control-review.json/independent-review.json；原件original.zip与artifact-metadata.json。
+- 原报告：evidence/revolve/ci/42273047248/extracted/swcli-native-smoke/revolve-partial-control/report.json；同目录revolve-public/revolve-public.json与runtime-sets.json；相应trace/实际SLDPRT均已安全提取。
+- 仓库证据文档：docs/verification/revolve-2026-11-07.md。按统筹要求仅追加证据docs提交；可合tip由其后git rev-parse HEAD给出，产品代码与已验收3922bee完全一致。
+- 无其他未完成的本路实现/验收步骤；main集成/冲突协调由统筹办理，不自行merge或release。既有feature.list/inspect仍仅拉伸，部分角/任意曲线/切除/薄壁/已有实体合并及未验证平台/版本继续不支持。
