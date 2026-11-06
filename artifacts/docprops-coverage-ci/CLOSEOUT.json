@@ -1,0 +1,54 @@
+{
+  "scope": "coverage-ci tooling/report closeout only",
+  "code_commit": "7f279206bd695437f527fd8fa40d3330d5366e4b",
+  "cross_branch_evidence_commit": "c2a9674e04acccc23a726dceda5a23c07355af8a",
+  "tip_before_closeout": "3df0eedf99cbe29b42603456d771b8063f6253fc",
+  "run_id": 42260050176,
+  "run_head": "7f7a4af80d6f731e9a625f6033b4ca496e876f94",
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42260050176",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "updated_at": "2026-11-06T17:20:41Z",
+  "native_steps_executed": 0,
+  "native_artifact_zip": null,
+  "native_artifact_zip_sha256": null,
+  "internal_calibration_passed": false,
+  "public_acceptance_passed": false,
+  "release_eligible": false,
+  "portable_checks": "13 focused tests passed; historical related results in WORK_HANDOFF",
+  "active_ci_runs_owned_by_this_lane": [],
+  "pending_approvals": [],
+  "further_dispatch": false,
+  "automation_created": false,
+  "notes": [
+    "One requested closeout status read; no continuing polling/sleep.",
+    "Coordinator owns all further review/integration; no new functions or review plan.",
+    "Historical owner findings are pinned snapshots, not current-main defect claims."
+  ],
+  "local_evidence_manifest_digests": [
+    {
+      "path": "artifacts/docprops-coverage-ci/cancelled-42260050176/SHA256.json",
+      "sha256": "e163fbccc06abcf12a5c2ded7012fe010640b9bde138a9336a8452af4904fad4"
+    },
+    {
+      "path": "artifacts/docprops-coverage-ci/routing15-20261107/SHA256.json",
+      "sha256": "f5c6b5c921e8ad8c8d10b36cd22567969f51424e9b305fc69b118a76c5379603"
+    },
+    {
+      "path": "artifacts/docprops-coverage-ci/manual-routing-narrow-20261107/SHA256.json",
+      "sha256": "31411c5b99457e853e862080bee0c3018f82499d7022b34a39f6a03fd33a574a"
+    },
+    {
+      "path": "artifacts/docprops-coverage-ci/handler-peer-review/SHA256.json",
+      "sha256": "087940aff142f0ba05cf1a166e6d8e7a572061895a20aea79eed87eda39f1cf6"
+    },
+    {
+      "path": "artifacts/docprops-coverage-ci/routing-increment-bc619f3/SHA256.json",
+      "sha256": "9707723e57efe811fd3506771b18d30480b102c4faacf40e7372c4e22cfec7db"
+    },
+    {
+      "path": "artifacts/docprops-coverage-ci/routing-increment-step/SHA256.json",
+      "sha256": "8e5f589745cef255d5c48d8139343d1b7757cbc1b3d0cee37ff39ce27ad948e8"
+    }
+  ]
+}
