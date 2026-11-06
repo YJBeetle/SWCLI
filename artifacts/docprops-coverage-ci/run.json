@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": 42260050176,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42260050176",
+  "head": "7f7a4af80d6f731e9a625f6033b4ca496e876f94",
+  "workflow": "ci.yml",
+  "event": "workflow_dispatch",
+  "inputs": {
+    "docprops_targeted": true,
+    "docprops_expected_head": "7f7a4af80d6f731e9a625f6033b4ca496e876f94",
+    "native_full": false
+  },
+  "status": "pending",
+  "conclusion": null,
+  "run_attempt": 1,
+  "scope": "internal-calibration",
+  "full_acceptance_eligible": false,
+  "portable_checks": {
+    "new_tests": 8,
+    "document_tests": 97,
+    "sdk_tests": 11,
+    "mcp_tests": 18,
+    "mcp_skipped": 2,
+    "annotation_wiring_tests": 4,
+    "annotation_wiring_skipped": 2
+  },
+  "notes": [
+    "Original native artifacts are not yet available; no native acceptance claim.",
+    "No unrelated full CI or another branch run was dispatched."
+  ]
+}

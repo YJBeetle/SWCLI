@@ -20,3 +20,12 @@
 代码提交将用中文说明并推送本分支；为避免push自动触发无关CI使用 `[skip ci]`。
 随后只手动调用一次现有 ci.yml，参数 docprops_targeted=true、native_full=false、docprops_expected_head=精确代码提交。
 CI链接/head/最终状态和持久产物将在本节续记。未取得报告前，原生校准与新增写入验收均不成立。
+
+## 已推送代码与唯一校准运行
+
+- 代码提交：`7f7a4af80d6f731e9a625f6033b4ca496e876f94`，已推送 origin。
+- [CI 42260050176](https://github.com/YJBeetle/SWCLI/actions/runs/42260050176)，attempt 1，workflow_dispatch。
+- 参数：`docprops_targeted=true`、`docprops_expected_head=7f7a4af80d6f731e9a625f6033b4ca496e876f94`、`native_full=false`。
+- GitHub已核head匹配；基础test/package、完整原生与发布job均 skipped，仅docprops-targeted等待共享并发队列。
+- 当前状态 pending，无原生报告/trace/保存副本可审计，不能标为原生通过。运行记录：`artifacts/docprops-coverage-ci/run.json`。
+- 后续只跟踪此run；完成/失败后先保存原始artifact ZIP并核SHA256，再提取审计，不因排队重复触发。
