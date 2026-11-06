@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import threading
 import time
+import uuid
 
 from swcli import __version__
 from swcli.document_tolerances import TOLERANCE_FIELDS
@@ -106,33 +107,51 @@ def edit(gate,trace,document,before,field,value,*,expected=None,error=None,sessi
 
 
 def client_contracts(gate,trace,document,current):
+    row={}
+    gate.record.setdefault("client_contracts",[]).append(row)
+    def receive(label,invoke,*,correlated=True):
+        request_id=str(uuid.uuid4()) if correlated else None
+        receipt=row[label]=dict(state="running",request_id=request_id)
+        gate.checkpoint(label+".started")
+        try:
+            response=invoke(request_id)
+        except Exception as exc:
+            receipt.update(state="failed",error=dict(type=type(exc).__name__,message=str(exc)),
+                           outcome_unknown=getattr(exc,"outcome_unknown",False))
+            if hasattr(exc,"response"):receipt["raw"]=dict(exc.response.raw)
+            elif hasattr(exc,"raw"):receipt["raw"]=exc.raw
+            raise
+        raw=dict(response.raw) if hasattr(response,"raw") else response
+        receipt.update(state="received",raw=raw,request_id=raw.get("request_id"))
+        gate.checkpoint(label+".received")
+        return response
     client=Client(endpoint=gate.endpoint,session_id=gate.session,timeout_seconds=600)
-    sdk=client.document.tolerances(document_id=document,expected_update_stamp=current["document"]["update_stamp"])
+    sdk=receive("sdk_read",lambda rid:client.document.tolerances(document_id=document,
+        expected_update_stamp=current["document"]["update_stamp"],request_id=rid))
     observed=sdk.require_result()
     require(observed["options"]==current["options"] and observed["document"]==current["document"],"SDK read differs from CLI")
     trace.verify(gate,setters=0,getters=2,raw={**observed,"request_id":sdk.request_id})
-    noop=client.document.tolerance_set(field="linear.precision",value="3",expected_options=current["options"],
-        document_id=document,expected_update_stamp=current["document"]["update_stamp"],lease_id=gate.leases[document])
+    noop=receive("sdk_noop",lambda rid:client.document.tolerance_set(field="linear.precision",value="3",
+        expected_options=current["options"],document_id=document,expected_update_stamp=current["document"]["update_stamp"],
+        lease_id=gate.leases[document],request_id=rid))
     value=noop.require_result()
     require(value["changed"] is False and value["document"]==current["document"],"SDK noop mutated native state")
     trace.verify(gate,setters=0,getters=2,raw={**value,"request_id":noop.request_id})
     bridge=DaemonBridge(endpoint=gate.endpoint,session_id=gate.session,timeout_seconds=600)
-    cap=bridge.call("capabilities",dict(operation="document.tolerance-set"))
+    cap=receive("mcp_capabilities",lambda rid:bridge.call("capabilities",dict(operation="document.tolerance-set")),correlated=False)
     require(cap["success"] is True,"MCP operation discovery failed")
-    mcp=bridge.call("execute",dict(operation="document.tolerances",parameters={},document_id=document,
-                                 expected_update_stamp=current["document"]["update_stamp"]))
+    mcp=receive("mcp_execute",lambda rid:bridge.call("execute",dict(operation="document.tolerances",parameters={},
+        document_id=document,expected_update_stamp=current["document"]["update_stamp"],request_id=rid)))
     require(mcp["success"] is True and mcp["result"]["options"]==current["options"]
             and mcp["result"]["document"]==current["document"],"MCP bridge read differs from CLI")
     trace.verify(gate,setters=0,getters=2,raw={**mcp["result"],"request_id":mcp["request_id"]})
-    mcp_noop=bridge.call("execute",dict(operation="document.tolerance-set",parameters=dict(
+    mcp_noop=receive("mcp_noop",lambda rid:bridge.call("execute",dict(operation="document.tolerance-set",parameters=dict(
         field="linear.precision",value="3",expected_options=current["options"]),document_id=document,
-        expected_update_stamp=current["document"]["update_stamp"],lease_id=gate.leases[document]))
+        expected_update_stamp=current["document"]["update_stamp"],lease_id=gate.leases[document],request_id=rid)))
     require(mcp_noop["success"] is True and mcp_noop["result"]["ok"] is True
             and mcp_noop["result"]["changed"] is False and mcp_noop["result"]["document"]==current["document"],
             "MCP bridge noop changed native state or failed context forwarding")
     trace.verify(gate,setters=0,getters=2,raw={**mcp_noop["result"],"request_id":mcp_noop["request_id"]})
-    gate.record.setdefault("client_contracts",[]).append(dict(sdk_read=dict(sdk.raw),sdk_noop=dict(noop.raw),
-        mcp_capabilities=cap,mcp_execute=mcp,mcp_noop=mcp_noop))
 
 
 def run(gate,fixtures,trace):
@@ -150,6 +169,11 @@ def run(gate,fixtures,trace):
         gate.record["tolerance_cases"].append(case)
         gate.command("document","lease","acquire","--ttl-seconds",1800,document=document)
         current=case["initial"]=read(gate,trace,document)
+        observer=case["observer_read"]=gate.command("document","tolerances",document=document,session=gate.session+"-reader")
+        validate_operation_result("document.tolerances",observer)
+        trace.verify(gate,setters=0,getters=2);gate.background(observer,document)
+        require(observer["options"]==current["options"] and observer["document"]==current["document"],
+                "read under another session's lease changed values or background identity")
         if kind==1:case["geometry_initial"]=helpers.geometry(gate,document)
         case["lease_refusal"]=edit(gate,trace,document,current,"linear.type","basic",session=gate.session+"-contender",error="DocumentLeaseConflict")
         case["stamp_refusal"]=edit(gate,trace,document,current,"linear.type","basic",stamp=current["document"]["update_stamp"]+1,error="DocumentUpdateConflict")
@@ -157,30 +181,58 @@ def run(gate,fixtures,trace):
         case["cas_refusal"]=edit(gate,trace,document,current,"linear.type","basic",expected=stale,error="ValueError")
         after=read(gate,trace,document)
         require(after==current,"guard refusals changed public document state")
-        for field,value in (("linear.type","basic"),("linear.type","none"),("linear.precision","0"),
-                            ("linear.precision","8"),("linear.precision","3")):
-            current=edit(gate,trace,document,current,field,value)
-            case["writes"].append(current)
-        if kind==1:verify_unchanged_geometry(case["geometry_initial"],helpers.geometry(gate,document))
-        saved=case["save"]=helpers.save_copy(gate,document,"public-tolerances."+suffix,suffix)
-        clean=read(gate,trace,document)
-        for field in TOLERANCE_FIELDS:
-            case.setdefault("clean_noops",[]).append(edit(gate,trace,document,clean,field,clean["options"][field]["value"]))
-        client_contracts(gate,trace,document,clean)
-        gate.close(document);gate.close(foreground)
-        reopened,fresh,foreground=helpers.open_background(gate,saved["host_path"],kind,read_only=True)
-        case["reopen"]=reopened
-        require(fresh!=document,"readonly reopen reused retired document identity")
-        observed=case["reopened_options"]=read(gate,trace,fresh)
-        require(observed["options"]==current["options"] and observed["document"]["modified"] is False,"saved defaults did not persist cleanly")
-        gate.command("document","lease","acquire","--ttl-seconds",1800,document=fresh)
-        case["readonly_refusal"]=edit(gate,trace,fresh,observed,"linear.type","basic",error="ValueError")
-        final=read(gate,trace,fresh)
-        require(final==observed,"readonly refusal changed native state")
-        if kind==1:verify_unchanged_geometry(case["geometry_initial"],helpers.geometry(gate,fresh))
-        gate.close(fresh);gate.close(foreground);gate.require_empty(after_case="tolerances-"+suffix)
-        require(hashlib.sha256(source.read_bytes()).hexdigest()==source_hash
-                and hashlib.sha256(Path(saved["path"]).read_bytes()).hexdigest()==saved["sha256"],"source or saved bytes changed")
+        retired={document}
+        copies=[]
+        plans=[("zero",(("linear.type","basic"),("linear.precision","0"))),
+               ("eight",(("linear.precision","8"),("linear.type","none"),("linear.type","basic"))),
+               ("final",(("linear.precision","3"),("linear.type","none"),("linear.precision","0"),
+                         ("linear.precision","8"),("linear.precision","3")))]
+        for index,(label,changes) in enumerate(plans):
+            phase=dict(label=label,writes=[])
+            case.setdefault("persistence_cases",[]).append(phase)
+            for field,value in changes:
+                current=edit(gate,trace,document,current,field,value)
+                phase["writes"].append(current);case["writes"].append(current)
+            if kind==1:
+                phase["geometry_changed"]=helpers.geometry(gate,document)
+                verify_unchanged_geometry(case["geometry_initial"],phase["geometry_changed"])
+            saved=phase["save"]=helpers.save_copy(gate,document,"public-tolerances-"+label+"."+suffix,suffix)
+            copies.append(saved);case["save"]=saved
+            clean=read(gate,trace,document)
+            require(clean["options"]==current["options"] and clean["document"]["modified"] is False,
+                    "saving changed tolerance defaults lost values or retained dirty state")
+            for field in TOLERANCE_FIELDS:
+                phase.setdefault("clean_noops",[]).append(edit(gate,trace,document,clean,field,clean["options"][field]["value"]))
+            if index==len(plans)-1:client_contracts(gate,trace,document,clean)
+            gate.close(document);gate.close(foreground)
+            reopened,fresh,foreground=helpers.open_background(gate,saved["host_path"],kind,read_only=True)
+            phase["reopen"]=reopened;case["reopen"]=reopened
+            require(fresh not in retired,"readonly reopen reused retired document identity")
+            retired.add(fresh)
+            observed=phase["reopened_options"]=read(gate,trace,fresh);case["reopened_options"]=observed
+            require(observed["options"]==current["options"] and observed["document"]["modified"] is False,
+                    "saved defaults did not persist cleanly")
+            gate.command("document","lease","acquire","--ttl-seconds",1800,document=fresh)
+            phase["readonly_refusal"]=edit(gate,trace,fresh,observed,"linear.type","basic",error="ValueError")
+            final=read(gate,trace,fresh)
+            require(final==observed,"readonly refusal changed native state")
+            if kind==1:
+                phase["geometry_reopened"]=helpers.geometry(gate,fresh)
+                verify_unchanged_geometry(case["geometry_initial"],phase["geometry_reopened"])
+            gate.close(fresh);gate.close(foreground)
+            gate.require_empty(after_case="tolerances-"+suffix+"-"+label)
+            require(hashlib.sha256(source.read_bytes()).hexdigest()==source_hash
+                    and all(hashlib.sha256(Path(copy["path"]).read_bytes()).hexdigest()==copy["sha256"] for copy in copies),
+                    "source or a previous saved copy changed")
+            phase["success"]=True
+            if index+1<len(plans):
+                opened,document,foreground=helpers.open_background(gate,saved["host_path"],kind)
+                phase["writable_reopen"]=opened
+                require(document not in retired,"writable reopen reused retired document identity")
+                retired.add(document)
+                gate.command("document","lease","acquire","--ttl-seconds",1800,document=document)
+                current=read(gate,trace,document)
+                require(current["options"]==observed["options"],"writable reopen lost the persisted profile")
         case["success"]=True;gate.checkpoint("tolerances-"+suffix+"-verified")
     require(gate.health()["host"]==host,"public gate changed its owned host")
     gate.record.update(state="completed",success=True,elapsed_seconds=time.monotonic()-gate.group_started)

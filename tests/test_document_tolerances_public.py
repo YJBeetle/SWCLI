@@ -108,12 +108,14 @@ class PublicToleranceGateTests(unittest.TestCase):
         self.assertEqual([c["kind"] for c in record["tolerance_cases"]],[1,2,3])
         self.assertEqual(len(contracts.call_args_list),3)
         self.assertEqual(self.fake.documents,{})
-        self.assertEqual(self.fake.native_sets,15)
+        self.assertEqual(self.fake.native_sets,30)
         self.assertFalse(record["full_acceptance_eligible"])
         self.assertEqual(record["cleanup_errors"],[])
         self.assertEqual({p["worker_pid"] for p in record["native_proofs"]},{4242})
         for case in record["tolerance_cases"]:
             self.assertTrue(case["success"])
+            self.assertEqual([phase["reopened_options"]["options"]["linear.precision"]["value"] for phase in case["persistence_cases"]],["0","8","3"])
+            self.assertEqual([phase["reopened_options"]["options"]["linear.type"]["value"] for phase in case["persistence_cases"]],["basic","basic","none"])
             self.assertEqual(case["reopened_options"]["options"]["linear.precision"],option("linear.precision","3"))
             self.assertFalse(case["reopened_options"]["document"]["modified"])
             self.assertNotEqual(case["open"]["document"]["document_id"],case["reopen"]["document"]["document_id"])
@@ -135,6 +137,62 @@ class PublicToleranceGateTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):self.execute()
                 record=self.report();self.assertFalse(record["success"])
                 self.assertEqual(len(record["tolerance_cases"]),1)
+
+
+class PublicToleranceClientContractsTests(unittest.TestCase):
+    def current(self):
+        return dict(ok=True,action="document.tolerances",scope="document_defaults_linear",write_enabled=True,
+            session_id="contract",document=dict(title="owned",path="C:\\owned.SLDPRT",type=1,modified=False,
+                update_stamp=7,document_id="d-ab12cd",active=False,current=False),
+            options={"linear.type":option("linear.type","none"),"linear.precision":option("linear.precision","3")})
+
+    def execute(self,defect=None):
+        from types import SimpleNamespace
+        from swcli import PROTOCOL_VERSION
+        calls=[];current=self.current();proof=mock.Mock()
+        self.latest_runner=None
+        runner=SimpleNamespace(endpoint="127.0.0.1:3498",session="contract",leases={"d-ab12cd":"l-ab12cd34ef56"},record={},checkpoint=mock.Mock())
+        self.latest_runner=runner
+        def transport(operation,parameters,**context):
+            calls.append((operation,deepcopy(parameters),deepcopy(context)))
+            self.assertEqual(context["session_id"],"contract")
+            if operation=="daemon.capabilities":
+                self.assertEqual(parameters["operation"],"document.tolerance-set")
+                result=dict(operation_schemas={})
+            else:
+                self.assertEqual(context["document_id"],"d-ab12cd")
+                self.assertEqual(context["expected_update_stamp"],7)
+                result=deepcopy(current)
+                if operation=="document.tolerance-set":
+                    self.assertEqual(context["lease_id"],"l-ab12cd34ef56")
+                    self.assertEqual(parameters,dict(field="linear.precision",value="3",expected_options=current["options"]))
+                    result.pop("write_enabled");result.update(action=operation,field="linear.precision",before=deepcopy(current["options"]),
+                        changed=False,mutation=dict(attempted=False,may_have_changed=False))
+                    if defect=="dirty-sdk-noop" and len(calls)==2:result["document"]["modified"]=True
+                if defect=="mcp-read-mismatch" and len(calls)==4:
+                    result["options"]["linear.precision"]=option("linear.precision","0")
+            return dict(api_version=PROTOCOL_VERSION,request_id=context["request_id"],success=True,duration_ms=0,result=result)
+        with mock.patch("swcli.sdk.client.call_daemon",side_effect=transport), \
+             mock.patch("swcli.mcp.call_daemon",side_effect=transport):
+            gate.client_contracts(runner,proof,"d-ab12cd",current)
+        return runner,proof,calls
+
+    def test_real_sdk_and_bridge_forward_required_context_and_complete_cas_without_retries(self):
+        runner,proof,calls=self.execute()
+        self.assertEqual([call[0] for call in calls],["document.tolerances","document.tolerance-set", "daemon.capabilities",
+            "document.tolerances","document.tolerance-set"])
+        self.assertEqual(proof.verify.call_count,4)
+        self.assertEqual(len({c[2]["request_id"] for c in calls}),5)
+        self.assertEqual(len(runner.record["client_contracts"]),1)
+
+    def test_sdk_noop_state_change_and_bridge_read_mismatch_are_rejected(self):
+        for defect in ("dirty-sdk-noop","mcp-read-mismatch"):
+            with self.subTest(defect=defect):
+                with self.assertRaises(RuntimeError):self.execute(defect)
+                row=self.latest_runner.record["client_contracts"][0]
+                key="sdk_noop" if defect=="dirty-sdk-noop" else "mcp_execute"
+                self.assertIn("raw",row[key])
+                self.assertIn("request_id",row[key]["raw"])
 
 
 if __name__=="__main__":unittest.main()

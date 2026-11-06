@@ -5,7 +5,7 @@
 - 独立工作树：`/Users/YJBeetle/.codex/worktrees/docprops-tolerances/SWCLI`
 - 分支：`codex/docprops-tolerances`；起点 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
 - 仅 Dimensions > Linear 文档默认公差类型/精度；未访问 IDimension、IDimensionTolerance 或模型特征尺寸值。
-- **公开写入 fail closed**：`PUBLIC_WRITE_FIELDS` 为空，读接口 `write_enabled=false`。包括 no-op 也拒绝。便携测试与内部原生校准均不等于公开端到端验收；不得据此发布或开启写入。
+- **当前公开验收候选**：内部原生及独立artifact审计通过后，仅 revision33.5.0、类型none/basic、precision0/3/8及已证实旧值开放本分支写入；其余含noop拒绝。公开gate待完成，尚无merge-ready commit，不发布。历史关闭状态及失败保留在下文。
 - 未使用本地 VM/SOLIDWORKS；未改 main、DockerSW、MacSW 或其他工作树；没有合入其他分支。
 
 ## 操作与契约
@@ -16,7 +16,7 @@
 | `document.tolerance-set` | `swcli document tolerance-set FIELD VALUE --if-options JSON` / `client.document.tolerance_set` | field=`linear.type` 或 `linear.precision`；value 字符串；完整 expected_options；**强制 document_id、expected_update_stamp、lease_id**；返回 before/options/changed 与 mutation.attempted/may_have_changed |
 
 `options` 固定含 `linear.type`、`linear.precision`，每项为 `{value, native_value}`。
-候选类型只写 `none/basic`；精度只写字符串 `0`–`8`。读取保留已知类型映射，精度 -3 映射
+候选类型只写 `none/basic`；精度只写字符串 `0/3/8`。旧值限定类型none/basic、精度follow_nominal/0/3/8。读取保留已知类型映射，精度 -3 映射
 follow_nominal，未知原生整数用 other 保留。CAS 比较两个字段的完整语义值与原生整数。
 没有任意 COM 参数、数字偏好编号或校准开关的公开入口。
 
@@ -91,3 +91,15 @@ full_acceptance_eligible=false；不改变 PR secrets 规则或 release/tag 条�
 ## 用户批准的唯一几何判据例外（2026-11-07）
 
 用户明确答复“允许仅此质心误差界限”。内部与公开gate统一采用质心绝对误差≤1e-12 mm；体积、面积、实体数逐位相等和原解析体积/面积检查保留，并新增(0,0,5) mm解析质心检查。未放宽任何状态断言。该例外不适用于其他几何值或其他线程。关联边界/one-ULP/非有限值测试已补充；测试通过后将对修复head进行一次必要内部校准。公开写入仍关闭。
+
+- 第二轮内部校准：[run 42266358630](https://github.com/YJBeetle/SWCLI/actions/runs/42266358630)，head `252ad8b86ddebc282b94ee765199f9bcec38e088`；calibrate_tolerances=true、accept_tolerances=false、native_full=false、cleanup_profile=auto、vfs_cache_gib=8；本修复head仅dispatch一次。请求与回执在 `evidence/calibration-r2/`。
+
+## 第二轮内部原生审计通过，公开验收准备中
+
+- run `42266358630` / head `252ad8b86ddebc282b94ee765199f9bcec38e088`：三个文档类型均完成5次真实setter、5次noop、完整值CAS拒绝、保存与只读重开及只读拒写，45个request完整且同一worker。
+- 原ZIP SHA-256 `89164b4642dc4c5d4167e1f97e30eab89945bf2583cdc804ce18708794b86285`，匹配GitHub artifact digest；审计摘要 `evidence/run-42266358630/audit.json`。138次偏好getter、15次setter；trace整组10.81秒，最大span2.60秒，未超600/1800秒，无清理错误。实际native revision `33.5.0`。
+- 新审计器曾误加未有依据的原生文件头假设；已移除该假设，改核实际原生保存/只读重开断言、最小尺寸与精确摘要；几何/状态/trace断言未减弱。内部冻结脚本校验readonly=true但未单独保留open raw receipt，公开gate将逐个保留原始open回执。
+- 为公开验收仅开放 revision33.5.0、none/basic、precision0/3/8，旧值限定none/basic与follow_nominal/0/3/8；其他版本/值及未知旧值含noop均拒绝。该开发分支尚未完成公开验收，不算merge-ready，不发布。
+- 公开gate扩为每种文档三个保存重开profile：basic/0、basic/8、none/3；同时覆盖两种类型下各精度的内存往返、所有原源/前次副本hash、干净noop、只读拒绝、CLI/SDK/MCP bridge原始回执与trace。
+
+- 公开候选集成检查：1846项全套便携测试通过、32项跳过；SDK generator/strict typing/8项负例与installed resources通过；公差相关27项（含固定界限、版本/旧值拒绝、三个持久profile、首失败原回执及SDK/MCP转发）通过。当前即将对公开候选head只dispatch一次accept_tolerances=true，calibrate_tolerances/native_full=false。

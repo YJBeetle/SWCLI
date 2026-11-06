@@ -8,8 +8,12 @@ IDimension、IDimensionTolerance、特征尺寸或应用级偏好。不改模型
 `other` 加原生整数。偏好编号与 Linear option 从安装的官方 `swconst.tlb` 按名称解析；
 缺失即报错，不猜测编号。精度 -3 读为 `follow_nominal`；其他未支持特殊值保留为 `other`。
 
-公开写入当前 fail closed（`write_enabled: false`），包括 no-op。候选写入仅在内部校准
-进程启用：类型 none/basic，精度字符串 0–8。内部成功也不自动开启公开写入。
+内部原生校准与独立artifact审计已通过（run 42266358630 / head 252ad8b）。
+本分支仅为公开验收开放精确候选范围：native RevisionNumber=33.5.0；类型 none/basic；
+精度字符串 0/3/8。旧值必须为类型 none/basic、精度 follow_nominal/0/3/8，包含 no-op。
+其他原生版本/字段/旧值/目标值继续拒写。`write_enabled` 表示该宿主版本的候选写入开关，
+不替代只读、lease、CAS、编辑上下文等每次请求的校验。
+**公开 CLI/daemon 验收尚待完成，当前不算 merge-ready。**
 写入要求明确 document_id、有效 lease、expected_update_stamp 以及包含两个字段完整
 语义值和原生整数的 expected_options；修改一个字段时也必须核对另一字段。
 原生 setter 至多调用一次；False、异常、回读不匹配或状态变化即停止，部分 mutation
@@ -35,3 +39,14 @@ native_full=false。原生调用/操作上限600秒，组上限1800秒；生成�
 检查后台隔离、整值 CAS、noop、保存/只读重开、原始文件摘要和零件解析几何断言。
 首失败停止，保留 report/trace/日志/文件；不运行全量 CAD gate，也不生成全量验收摘要。
 原始证据下载后保存在本工作树 evidence 目录。此校准为内部校准，不是公开端到端验收。
+
+公开验收使用 accept_tolerances=true、calibrate_tolerances=false、native_full=false，
+仅本分支手动。复用初始隐藏daemon，不进入其他业务组；对三个文档类型分别保存并
+只读重开 basic/precision0、basic/precision8、none/precision3 三个副本，保留原始源文件
+和之前副本的摘要；核对跨会话lease读取、CAS/lease/stamp拒绝、干净文档noop及其零setter
+trace，SDK typed与MCP bridge的读取/noop走同一daemon。MCP stdio本身由既有便携契约覆盖。
+
+唯一获用户明确批准的几何例外：质心绝对误差≤1e-12 mm；体积、面积、实体数逐位相等，
+保留原解析体积/面积，并检查解析质心(0,0,5) mm。任何状态断言未放宽。
+内部ZIP SHA-256：89164b4642dc4c5d4167e1f97e30eab89945bf2583cdc804ce18708794b86285，
+已匹配GitHub digest；完整审计和首轮失败历史见 WORK_HANDOFF.md。

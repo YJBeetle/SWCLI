@@ -17,7 +17,7 @@ class ToleranceTests(unittest.TestCase):
     def setUp(self):
         self.codes = {"swDetailingLinearDimension": 110, "swDetailingToleranceStyle": 201,
                       "swDetailingLinearTolPrecision": 202}  # Deliberately fake IDs.
-        self.native = {201: 0, 202: 2}
+        self.native = {201: 0, 202: -3}
         self.dirty, self.stamp = False, 7
         self.extension = SimpleNamespace(
             GetUserPreferenceInteger=mock.Mock(side_effect=lambda p,o:self.native[p]),
@@ -30,7 +30,7 @@ class ToleranceTests(unittest.TestCase):
             SetSaveFlag=mock.Mock(side_effect=lambda:setattr(self,"dirty",True)))
         self.foreground = SimpleNamespace(GetType=lambda:1, GetSaveFlag=lambda:False,
             GetUpdateStamp=lambda:9, GetTitle=lambda:"Foreground", GetPathName=lambda:"")
-        self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda:(self.document,self.foreground),
+        self.app = SimpleNamespace(RevisionNumber=lambda:"33.5.0", ActiveDoc=self.foreground, GetDocuments=lambda:(self.document,self.foreground),
             IsSame=lambda a,b:int(a is b), ActivateDoc3=mock.Mock(), SetUserPreferenceIntegerValue=mock.Mock())
         self.registry=DocumentRegistry(self.app)
         self.entry=self.registry.register(self.document)
@@ -67,21 +67,43 @@ class ToleranceTests(unittest.TestCase):
         self.assertTrue(result["ok"],result)
         self.assertEqual(result["scope"],"document_defaults_linear")
         self.assertEqual(result["options"]["linear.type"],dict(value="other",native_value=900))
-        self.assertFalse(result["write_enabled"])
+        self.assertTrue(result["write_enabled"])
         validate_operation_result("document.tolerances",result)
         self.extension.GetUserPreferenceInteger.assert_any_call(201,110)
         self.extension.GetUserPreferenceInteger.assert_any_call(202,110)
         self.assertIs(self.app.ActiveDoc,self.foreground)
         self.assert_no_mutation()
 
-    def test_public_writer_is_closed_including_noop_and_has_partial_receipt(self):
-        for value in ("basic","none"):
-            result=self.edit(value=value)
-            self.assertFalse(result["ok"])
-            self.assertIn("native public acceptance",result["error"]["message"])
-            self.assertEqual(result["mutation"],dict(attempted=False,may_have_changed=False))
-            validate_operation_result("document.tolerance-set",result)
+    def test_closed_allowlist_refuses_including_noop_and_has_partial_receipt(self):
+        with mock.patch.object(adapter,"PUBLIC_WRITE_FIELDS",frozenset()):
+            for value in ("basic","none"):
+                result=self.edit(value=value)
+                self.assertFalse(result["ok"])
+                self.assertIn("native public acceptance",result["error"]["message"])
+                self.assertEqual(result["mutation"],dict(attempted=False,may_have_changed=False))
+                validate_operation_result("document.tolerance-set",result)
         self.assert_no_mutation()
+
+    def test_other_revisions_or_uncalibrated_prevalues_refuse_before_setter(self):
+        for revision in ("33.4.0","34.0.0",None):
+            self.setUp();self.app.RevisionNumber=lambda:revision
+            self.assertFalse(self.call()["write_enabled"])
+            result=self.edit()
+            self.assertFalse(result["ok"]);self.assert_no_mutation()
+        for preference,value in ((201,7),(202,2),(201,999)):
+            self.setUp();self.native[preference]=value
+            result=self.edit()
+            self.assertFalse(result["ok"]);self.assert_no_mutation()
+
+    def test_uncalibrated_prevalue_noop_also_refuses(self):
+        self.native[202]=2
+        result=self.edit(value="none")
+        self.assertFalse(result["ok"]);self.assert_no_mutation()
+
+    def test_only_proven_precision_targets_are_writable(self):
+        from swcli.document_tolerances import validate_value
+        for value in ("1","2","4","5","6","7","follow_nominal"):
+            with self.subTest(value=value),self.assertRaises(ValueError):validate_value("linear.precision",value)
 
     def test_writer_requires_all_context_and_rejects_wire_calibration_bypass(self):
         values=dict(field="linear.type",value="basic",expected_options=self.call()["options"])
@@ -98,14 +120,14 @@ class ToleranceTests(unittest.TestCase):
         self.assert_no_mutation()
 
     def test_candidates_roundtrip_single_setter_and_noop_without_dirty_repair(self):
-        for field,value,code in (("linear.type","basic",201),("linear.precision","4",202)):
+        for field,value,code in (("linear.type","basic",201),("linear.precision","3",202)):
             with self.subTest(field=field):
                 self.setUp()
                 with self.enabled():
                     result=self.edit(field,value)
                     self.assertTrue(result["ok"],result)
                     validate_operation_result("document.tolerance-set",result)
-                    self.extension.SetUserPreferenceInteger.assert_called_once_with(code,110,1 if code==201 else 4)
+                    self.extension.SetUserPreferenceInteger.assert_called_once_with(code,110,1 if code==201 else 3)
                     self.assertEqual(result["mutation"],dict(attempted=True,may_have_changed=True))
                     self.extension.SetUserPreferenceInteger.reset_mock(); self.document.SetSaveFlag.reset_mock()
                     result=self.edit(field,value)
@@ -220,12 +242,12 @@ class ToleranceTests(unittest.TestCase):
 
     def test_cli_preserves_complete_snapshot_and_guards(self):
         expected=self.call()["options"]
-        args=build_parser().parse_args(["document","tolerance-set","linear.precision","4",
+        args=build_parser().parse_args(["document","tolerance-set","linear.precision","3",
             "--if-options",json.dumps(expected),"--document",self.entry.document_id,
             "--lease",self.lease,"--if-update-stamp","7","--json"])
         op,values,*_= _typed_operation(args)
         self.assertEqual(op,"document.tolerance-set")
-        self.assertEqual(values,dict(field="linear.precision",value="4",expected_options=expected))
+        self.assertEqual(values,dict(field="linear.precision",value="3",expected_options=expected))
 
 
 if __name__=="__main__": unittest.main()

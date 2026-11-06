@@ -17,11 +17,14 @@ TOLERANCE_FIELDS = {
     "linear.type": {"preference": "swDetailingToleranceStyle", "values": TOLERANCE_TYPES,
                     "writable": ("none", "basic")},
     "linear.precision": {"preference": "swDetailingLinearTolPrecision", "values": PRECISIONS,
-                         "writable": tuple(str(n) for n in range(9))},
+                         "writable": ("0", "3", "8")},
 }
-# Deliberately empty until recorded public native acceptance exists. Internal
-# calibration uses a process-local test patch, never an environment or wire flag.
-PUBLIC_WRITE_FIELDS = frozenset()
+# Exact revision and values proven by the internal Windows artifact audit.
+# Public CLI/daemon acceptance is recorded separately in WORK_HANDOFF.md.
+PUBLIC_WRITE_FIELDS = frozenset(TOLERANCE_FIELDS)
+PUBLIC_WRITE_REVISIONS = frozenset({"33.5.0"})
+CALIBRATED_PREVALUES = {"linear.type": frozenset({"none", "basic"}),
+                        "linear.precision": frozenset({"follow_nominal", "0", "3", "8"})}
 
 
 def value_schema(field, *, writable=True):
