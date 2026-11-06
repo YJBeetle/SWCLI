@@ -95,6 +95,13 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
 
+      - name: Reject invalid native route combinations before private runtime
+        env:
+          SWCLI_ROUTE_FULL: ${{ inputs.native_full || false }}
+          SWCLI_ROUTE_LINE_FONT_INTERNAL: ${{ inputs.line_font_calibration || false }}
+          SWCLI_ROUTE_LINE_FONT_PUBLIC: ${{ inputs.line_font_public || false }}
+        run: python scripts/ci/validate-line-font-route.py
+
       - name: Install SWCLI
         id: portable_install
         shell: powershell

@@ -65,3 +65,21 @@
 - run 42269536427 仍在 runner 磁盘清理、未进入 native public group 时，仅强制取消本线程该已知必失败的 gate run，避免继续消耗安装资源；未动其他 run。
 - parser 现在严格要求完整 enter/read/restore/read 的固定边界，再分别核业务读写和状态观察；没有放宽状态/几何断言。
 - 新增便携联测使用真实 trace_native_request + native_api_sequence + execute_operation（COM mock）重现 worker 调用边界；22 项相关测试通过。adapter、公开精确转换域、SDK/MCP schema 均未变。
+
+- CommandInProgress 证据修复提交 `a783b498213597385bed2dfa41cc7cfa1dced2ed` 已推送；推送首次被 GitHub 远端拒绝，检查确认远端仍为36a262a。期间误触发旧 head 的 run 42272160735，发现后在 native job 前立即取消，conclusion=cancelled；随后 Git push 成功并用 ls-remote 核对精确 SHA，才重新触发正确 head。此失误不作为任何验证结果。
+- 当前唯一正确的新公开 run：[42272391578](https://github.com/YJBeetle/SWCLI/actions/runs/42272391578)，已从 GitHub 核对 head=`a783b498213597385bed2dfa41cc7cfa1dced2ed`；line_font_public=true / line_font_calibration=false / native_full=false，其余默认。当前尚未达到 merge-ready。
+
+## 授权与自动审批现状
+
+- 统筹转达的本轮授权已覆盖自己的 codex 分支实现/中文提交推送、定向 Windows 内部/公开 gate 和已严格核实的精确域开放；当前无需额外授权。main 集成仍由主对话处理。
+- 唯一自动审批拒绝动作：将原始 native CI ZIP/metadata/audit 一并 staging + push 至 GitHub。原理由原产物可能含内部日志/测试文件且远端信任/可见性尚未核实，现有本地审计授权不等于此原产物外传授权。
+- 已采用获准的更安全替代：不推送 ZIP/原生日志/测试文件；保留本地持久原产物，推送代码、便携测试与无原日志的 hash/永久 run/artifact 引用摘要。未绕过自动审批，当前无待审批动作；不用为已解决的授权问题重复操作。
+- 当前公开 run 42272391578 的 head 已核为 a783b498213597385bed2dfa41cc7cfa1dced2ed，Windows 3.14 portable 已成功；等待同一次必要 run 后续，不因排队重发。
+
+## targeted/full 路由修复（不重跑 CAD）
+
+- 统筹指出的空绿组合在本分支确实存在：native_full=true + targeted=true + 错误 branch 会进入 native job，但 targeted gate 不执行，full矩阵又被 targeted 开关跳过。
+- 最小修复：portable test job 安装 SWCLI 前执行 `scripts/ci/validate-line-font-route.py`，明确拒绝 full/internal/public 多选及非本分支的线型请求；native job 原本强制 needs.test.success，因此预检失败时不会进入带私密输入的 runtime。
+- 默认全 false 保持 portable；单独 native_full=true 保持 full；合法版本 tag 仍由既有 tag-policy 控制完整 native/release；错误参数 workflow 明确失败，避免空绿。
+- 新增 56 组 flags/ref/event 组合断言、CLI env 解码/错误组合子进程检查，以及 YAML 接线检查；不接触 CAD 或凭据。
+- 当前公开 run 42272391578 继续以原 head a783b498213597385bed2dfa41cc7cfa1dced2ed 独立取证，其参数本来就是合法单 public + 正确 branch。此路由补丁不改变产品 adapter、CLI、SDK/MCP 或公开 gate 脚本；不为统筹路由消息触发另一 CAD。
