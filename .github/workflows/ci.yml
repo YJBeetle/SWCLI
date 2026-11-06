@@ -59,6 +59,16 @@ on:
         required: false
         default: false
         type: boolean
+      accept_tolerances:
+        description: Public document tolerance acceptance (codex/docprops-tolerances only)
+        required: false
+        default: false
+        type: boolean
+      calibrate_tolerances:
+        description: Internal document tolerance calibration (codex/docprops-tolerances only)
+        required: false
+        default: false
+        type: boolean
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -73,12 +83,15 @@ jobs:
     name: Validate native scope before runtime access
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      profile: ${{ steps.resolve.outputs.profile }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
       - name: Reject mixed scopes and incorrect feature branches
+        id: resolve
         env:
           SWCLI_NATIVE_INPUTS: ${{ toJSON(inputs) }}
         run: python scripts/ci/validate-native-profile.py
@@ -271,15 +284,16 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy, native-profile]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
+      SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
       SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
 
@@ -463,8 +477,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Public revolve acceptance failed; preserve original evidence; no automatic retry" }
 
       - name: Prepare property fixtures for public CLI verification
-        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: property_fixtures
+        if: ${{ needs.native-profile.outputs.profile == 'full' }}
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -475,8 +489,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
-        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: annotation_fixtures
+        if: ${{ needs.native-profile.outputs.profile == 'full' || needs.native-profile.outputs.profile == 'tolerances-public' }}
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -488,9 +502,34 @@ jobs:
             --drawing-template $drawingTemplate
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
+      - name: Calibrate document default tolerances internally
+        id: tolerance_calibration
+        if: ${{ needs.native-profile.outputs.profile == 'tolerances-calibration' }}
+        timeout-minutes: 31
+        shell: powershell
+        env:
+          SWCLI_TRACE_NATIVE_CALLS: "1"
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Drawing template discovery failed" }
+          python -I scripts/ci/verify-tolerance-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\tolerance-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Tolerance internal calibration failed; preserve first report/trace" }
+
+      - name: Accept document default tolerances through public clients
+        id: tolerance_acceptance
+        if: ${{ needs.native-profile.outputs.profile == 'tolerances-public' }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\tolerance-public" -Hidden -ToleranceFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
+
       - name: Run real SOLIDWORKS modeling and export smoke test
-        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: native_tests
+        if: ${{ needs.native-profile.outputs.profile == 'full' }}
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
@@ -527,6 +566,10 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: |
+          if ($env:SWCLI_NATIVE_PROFILE -ne "full") {
+            "Targeted scope: $env:SWCLI_NATIVE_PROFILE; full_acceptance_eligible=false. See the selected original receipt."
+            exit 0
+          }
           if ("${{ inputs.native_revolve_calibration }}" -eq "true") {
             "Internal revolve calibration only; see revolve-calibration/report.json. Public acceptance is false."
             exit 0

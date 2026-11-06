@@ -32,6 +32,7 @@ class NativeProfileTests(unittest.TestCase):
                     result = PROFILE.resolve(event, ref, inputs)
                     expected = (selected[0] if selected else "portable") if event == "workflow_dispatch" else (
                         "full" if event == "push" and ref.startswith("refs/tags/v") else "portable")
+                    expected = {"native_full": "full", "calibrate_tolerances": "tolerances-calibration", "accept_tolerances": "tolerances-public"}.get(expected, expected)
                     self.assertEqual(result, expected)
 
     def test_malformed_flags_fail_closed(self):
@@ -39,7 +40,7 @@ class NativeProfileTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 PROFILE.resolve("workflow_dispatch", "refs/heads/main", {"native_full": value})
         for value in (True, "true"):
-            self.assertEqual(PROFILE.resolve("workflow_dispatch", "refs/heads/main", {"native_full": value}), "native_full")
+            self.assertEqual(PROFILE.resolve("workflow_dispatch", "refs/heads/main", {"native_full": value}), "full")
 
     def test_cli_invalid_inputs_fail_and_valid_tag_keeps_full(self):
         for event, ref, inputs, success in (

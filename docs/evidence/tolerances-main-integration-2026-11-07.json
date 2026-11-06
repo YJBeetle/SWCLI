@@ -1,0 +1,135 @@
+{
+  "run_id": 42277528349,
+  "head": "59f29e8681346495831e80b417f8d4904f75b2a2",
+  "artifact_id": 13536290093,
+  "sha256": "e32f86cc732e7eb381cde26acea327f1c5549caa96c3a3bde9e24893374c29cc",
+  "github_digest_verified": true,
+  "scope": "bounded document linear tolerance defaults",
+  "full_modeling_release_eligible": false,
+  "success": true,
+  "merge_ready": true,
+  "validated_profile_preflight": true,
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 6748,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.3129999999998745,
+    "visible": false
+  },
+  "cases": [
+    {
+      "kind": 1,
+      "source_sha256": "5ebe3927e315cb5877ec42bc58e5bc21ef5d5cc4a818422ca23b985855f3d97a",
+      "changed_writes": 10,
+      "persistence_profiles": 3
+    },
+    {
+      "kind": 2,
+      "source_sha256": "36330c1284a06bbc22274ddc250af7707e8dd3f915cdab5282a27b26e2181db4",
+      "changed_writes": 10,
+      "persistence_profiles": 3
+    },
+    {
+      "kind": 3,
+      "source_sha256": "e70404874f46581e5dd1a7b810fc08462198d11ab7e52c92923567f87c30fe5e",
+      "changed_writes": 10,
+      "persistence_profiles": 3
+    }
+  ],
+  "copies": [
+    {
+      "format": "SLDPRT",
+      "profile": "zero",
+      "sha256": "abc1cc4f810c818ce5a41602efe9cfe700e60d284d4b85ce856d71cf221c82b3",
+      "bytes": 51225
+    },
+    {
+      "format": "SLDPRT",
+      "profile": "eight",
+      "sha256": "e54de6a1477cb1a3adadaf64a3f63fe2a37e1169ed338a1151fd6454930f8a87",
+      "bytes": 51669
+    },
+    {
+      "format": "SLDPRT",
+      "profile": "final",
+      "sha256": "087b2e9d6508faa4d6c5173821772c993fcd3a252615a912a0f8176d7ba321ce",
+      "bytes": 51048
+    },
+    {
+      "format": "SLDASM",
+      "profile": "zero",
+      "sha256": "a356b17de5ce4a9e7fa9dba2c0de9c7bbaaca0aa3e2697ee23bfbf500d6bd858",
+      "bytes": 28335
+    },
+    {
+      "format": "SLDASM",
+      "profile": "eight",
+      "sha256": "f7839ab8a001973a83e04642406a3b114e7020db53e504a465eac540d31fc3da",
+      "bytes": 28368
+    },
+    {
+      "format": "SLDASM",
+      "profile": "final",
+      "sha256": "adc8e1cf1df42c86d99f18dfa4ad744dad415346fdc5ba9ce108d8d3285ad322",
+      "bytes": 28770
+    },
+    {
+      "format": "SLDDRW",
+      "profile": "zero",
+      "sha256": "2c4713c2af0e04bf4d9ba94881a4dfc70d036cf3a5ab96c507c7a3ad883bd7ee",
+      "bytes": 24957
+    },
+    {
+      "format": "SLDDRW",
+      "profile": "eight",
+      "sha256": "1d0f0c69a5fc84ca3f18d8afed8973c23de3c9211209c4c89fc844423f611aba",
+      "bytes": 25009
+    },
+    {
+      "format": "SLDDRW",
+      "profile": "final",
+      "sha256": "2310ba1ba67f341ba27ca2d02cf95fbb1cebce19341ba0571ade61ed0ec1b644",
+      "bytes": 24816
+    }
+  ],
+  "native_requests": 120,
+  "native_preference_setters": 30,
+  "native_preference_getters": 330,
+  "native_dirty_calls": 9,
+  "worker_pids": [
+    7564
+  ],
+  "elapsed_seconds": 77.64100000000008,
+  "boundary": "bounded public CLI/daemon and live SDK/MCP bridge only; MCP stdio portable contracts; not a full modeling/release gate",
+  "status": "integrated-and-locally-verified; not-released",
+  "integration_base": "0e72beb15a2266a79fd9931c80a157531c9ab42f",
+  "personal_review": {
+    "source_fixes": true,
+    "associated_tests_passed": 39,
+    "original_zip_entries_match_extracted_bytes": true,
+    "live_github_digest_head_conclusion_verified": true,
+    "audit_reexecuted_without_writing_or_extracting_originals": true
+  },
+  "main_preservation": {
+    "previous_main_files_exact": 12,
+    "existing_handlers_ast_unchanged": true,
+    "tolerance_handlers_ast_exact": true,
+    "release_tag_policy_permissions_exact": true
+  },
+  "routing_flags": 7,
+  "integration_portable": {
+    "tests": 1910,
+    "skipped": 32,
+    "success": true,
+    "log_sha256": "9d81c45f760b1f1c8b06e917ad252d501bc7b20ba0fe96570bca188072ab44ed"
+  },
+  "sdk": {
+    "success": true,
+    "consumer_refusals": 10
+  },
+  "routing_combinations": 2304
+}

@@ -20,6 +20,7 @@ from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
+from .document_tolerances import TOLERANCE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -249,6 +250,16 @@ def build_parser() -> argparse.ArgumentParser:
         else:
             editor.add_argument("--if-value", dest="expected_value", help="require this raw value")
         editor.add_argument("--json", action="store_true", dest="as_json")
+    tolerance_reader = document_commands.add_parser("tolerances", help="read document default linear tolerance type/precision")
+    add_document_selector(tolerance_reader)
+    tolerance_reader.add_argument("--json", action="store_true", dest="as_json")
+    tolerance_editor = document_commands.add_parser("tolerance-set", help="edit one calibrated document tolerance default")
+    add_document_selector(tolerance_editor)
+    add_lease_token(tolerance_editor)
+    tolerance_editor.add_argument("field", choices=tuple(TOLERANCE_FIELDS))
+    tolerance_editor.add_argument("value", help="none/basic for linear.type; 0/3/8 for linear.precision")
+    tolerance_editor.add_argument("--if-options", required=True, help="complete options JSON from document tolerances")
+    tolerance_editor.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1343,6 +1354,12 @@ def _typed_operation(
                 args.expected_update_stamp,
                 None,
             )
+        if command == "tolerances":
+            return ("document.tolerances", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "tolerance-set":
+            return ("document.tolerance-set", {"field": args.field, "value": args.value,
+                    "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

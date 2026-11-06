@@ -3,6 +3,8 @@ import json
 import os
 
 FEATURE_REFS = {
+    "calibrate_tolerances": "refs/heads/codex/docprops-tolerances",
+    "accept_tolerances": "refs/heads/codex/docprops-tolerances",
     "detailing_calibration": "refs/heads/codex/docprops-detailing",
     "detailing_public_gate": "refs/heads/codex/docprops-detailing",
     "native_revolve_calibration": "refs/heads/codex/swcli-revolve-feature",
@@ -34,12 +36,16 @@ def resolve(event, ref, inputs):
     scope = selected[0]
     if scope in FEATURE_REFS and ref != FEATURE_REFS[scope]:
         raise ValueError("feature profile requires its exact development branch: " + scope)
-    return scope
+    return {"native_full": "full", "calibrate_tolerances": "tolerances-calibration",
+            "accept_tolerances": "tolerances-public"}.get(scope, scope)
 
 
 def main():
     profile = resolve(os.environ["GITHUB_EVENT_NAME"], os.environ["GITHUB_REF"],
                       json.loads(os.environ.get("SWCLI_NATIVE_INPUTS", "{}")))
+    if os.environ.get("GITHUB_OUTPUT"):
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
+            stream.write("profile=" + profile + "\n")
     print("Validated native scope: " + profile)
 
 

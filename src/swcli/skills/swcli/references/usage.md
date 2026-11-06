@@ -732,3 +732,14 @@ The Python SDK uses `client.feature.revolve`; MCP uses generic `execute` with
 the same protocol parameters and context. Inspect operation schemas first.
 The existing `feature.list/inspect` scope remains part extrusions; revolve
 creation returns its exact feature handle and verified definition evidence.
+
+### Experimental document default tolerances
+
+`swcli document tolerances --document DOCUMENT_ID --json` reads the document's
+linear-dimension tolerance type and precision defaults, with native integer values.
+This does not inspect or edit individual model dimensions. `tolerance-set` is
+restricted to native Windows revision 33.5.0 (Wine is blocked), type none/basic and
+precision 0/3/8. It requires
+a document lease, update stamp, and the complete `expected_options` snapshot;
+old type must be none/basic and old precision follow_nominal/0/3/8. The bounded public CLI/daemon acceptance passed on native Windows SW33.5.0
+(run 42277528349, source 59f29e8).
