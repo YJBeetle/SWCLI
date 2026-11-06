@@ -3,6 +3,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -11,6 +12,7 @@ import test_document_annotations as annotation_tests
 from swcli.cli import build_parser, _typed_operation
 from swcli.daemon.documents import DocumentLeaseConflict
 from swcli.daemon.operations import execute_operation, DocumentUpdateConflict
+from swcli.daemon import server
 from swcli.hosts import windows_dimension_format as adapter
 from swcli.operation_schemas import OPERATION_CATALOG, validate_operation_request
 from swcli.result_schemas import validate_operation_result, OperationResultInvalid
@@ -22,6 +24,8 @@ class DimensionFormatTests(unittest.TestCase):
         fixture.setUp()
         self.__dict__.update(fixture.__dict__)
         self.fixture = fixture
+        self.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
+        self.foreground.Extension = SimpleNamespace()
         self.native.update({43: False, 14: 1, 48: False})
         self.document.GetUnits = lambda: (0, 1, 0, 2, 0)
         self.before = {"dual_display": False, "dual_position": 1, "parentheses": False}
@@ -177,6 +181,147 @@ class DimensionFormatTests(unittest.TestCase):
                 self.assertFalse(result["ok"], result)
                 self.assertTrue(result["mutation"]["attempted"])
                 self.document.SetSaveFlag.assert_called_once()
+
+    def test_foreground_state_and_identity_drift_are_partial_failures(self):
+        for member, replacement in (("GetUpdateStamp", lambda: 99999),
+                                    ("GetSaveFlag", lambda: True),
+                                    ("GetTitle", lambda: "Peer changed"),
+                                    ("GetPathName", lambda: "C:\\peer-changed.SLDPRT"),
+                                    ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Other")),
+                                    ("Extension", object())):
+            with self.subTest(member=member):
+                self.setUp()
+                def apply(*args):
+                    self.fixture.apply(*args)
+                    setattr(self.foreground, member, replacement)
+                    return True
+                self.extension.SetUserPreferenceToggle.side_effect = apply
+                result = self.edit()
+                validate_operation_result("document.dimension-format-set", result)
+                self.assertFalse(result["ok"], result)
+                self.assertIn("foreground document", result["error"]["message"])
+                self.assertEqual(result["mutation"], {"attempted": True, "may_have_changed": True})
+                self.extension.SetUserPreferenceToggle.assert_called_once()
+                self.document.SetSaveFlag.assert_not_called()
+                self.assertIs(getattr(self.foreground, member), replacement)
+
+    def test_foreground_drift_during_read_noop_and_dirty_marking_is_rejected(self):
+        for stage in ("read", "noop", "dirty"):
+            with self.subTest(stage=stage):
+                self.setUp()
+                def damage():
+                    self.foreground.GetSaveFlag = lambda: True
+                if stage == "dirty":
+                    def mark():
+                        self.fixture.modified = True
+                        damage()
+                    self.document.SetSaveFlag.side_effect = mark
+                    result = self.edit()
+                else:
+                    original = self.extension.GetUserPreferenceToggle.side_effect
+                    def read(*args):
+                        damage()
+                        return original(*args)
+                    self.extension.GetUserPreferenceToggle.side_effect = read
+                    result = self.public() if stage == "read" else self.edit(value=False)
+                self.assertFalse(result["ok"], result)
+                self.assertTrue(self.foreground.GetSaveFlag())
+                if stage == "dirty":
+                    self.assertTrue(result["mutation"]["may_have_changed"])
+                    self.extension.SetUserPreferenceToggle.assert_called_once()
+                    self.document.SetSaveFlag.assert_called_once()
+                else:
+                    self.fixture.assert_no_setters()
+
+    def test_active_target_write_and_no_foreground_write_remain_supported(self):
+        for active in ("target", "none"):
+            with self.subTest(active=active):
+                self.setUp()
+                self.app.ActiveDoc = self.document if active == "target" else None
+                result = self.edit()
+                self.assertTrue(result["ok"], result)
+                self.document.SetSaveFlag.assert_called_once()
+
+    def test_handler_preserves_receipt_when_final_document_observation_fails(self):
+        for failure in ("postflight", "native", "cas"):
+            with self.subTest(failure=failure):
+                self.setUp()
+                if failure == "native":
+                    self.extension.SetUserPreferenceToggle.side_effect = RuntimeError("first native failure")
+                if failure == "cas":
+                    self.native[48] = True
+                original_describe = self.documents.describe
+                observations = 0
+                def observe(*args, **kwargs):
+                    nonlocal observations
+                    observations += 1
+                    if observations == 2:
+                        raise RuntimeError("postflight failed")
+                    return original_describe(*args, **kwargs)
+                with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
+                        mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})), \
+                        mock.patch.object(adapter, "_native_windows", return_value=True), \
+                        mock.patch.object(self.documents, "describe", side_effect=observe) as describe:
+                    self.app.RevisionNumber = "33.test"
+                    result = self.public(True, self.values())
+                validate_operation_result("document.dimension-format-set", result)
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["mutation"], {"attempted": failure != "cas", "may_have_changed": failure != "cas"})
+                self.assertEqual(result["error"]["message"], "first native failure" if failure == "native" else
+                                 "dimension display snapshot no longer matches expected_format" if failure == "cas" else "postflight failed")
+                self.assertEqual(result["warnings"][0]["code"], "DocumentObservationFailed")
+                self.assertEqual(result["before"], {**self.before, "parentheses": failure == "cas"})
+                if failure == "postflight":
+                    self.assertEqual(result["format"], {**self.before, "dual_display": True})
+                    self.assertTrue(result["native_return"])
+                    self.assertTrue(result["changed"])
+                self.assertEqual(describe.call_count, 2)
+                self.assertEqual(self.extension.SetUserPreferenceToggle.call_count, 0 if failure == "cas" else 1)
+
+    def test_worker_returns_handler_partial_receipt_after_postflight_failure(self):
+        for failure in ("postflight", "native", "cas"):
+            with self.subTest(failure=failure):
+                self.setUp()
+                self.app.RevisionNumber = "33.test"
+                self.app.GetProcessID = lambda: 1234
+                if failure == "native":
+                    self.extension.SetUserPreferenceToggle.side_effect = RuntimeError("first native failure")
+                pythoncom, com_client, responses = mock.Mock(), mock.Mock(), mock.Mock()
+                if failure == "cas":
+                    self.native[48] = True
+                original_describe = self.documents.describe
+                observations = 0
+                def observe(*args, **kwargs):
+                    nonlocal observations
+                    observations += 1
+                    if observations == 2:
+                        raise RuntimeError("postflight failed")
+                    return original_describe(*args, **kwargs)
+                request = dict(request_id="partial-receipt", operation="document.dimension-format-set",
+                               parameters=self.values(), session_id="writer", document_id=self.entry.document_id,
+                               expected_update_stamp=7, lease_id=self.lease["lease_id"])
+                with mock.patch.dict("sys.modules", {"pythoncom": pythoncom,
+                            "win32com": mock.Mock(client=com_client), "win32com.client": com_client}), \
+                        mock.patch.object(server, "acquire_resident_app", return_value=(self.app, False)), \
+                        mock.patch.object(server, "wait_windows_host_ready", return_value=0), \
+                        mock.patch.object(server, "DocumentRegistry", return_value=self.documents), \
+                        mock.patch.object(server, "_describe_app", return_value={}), \
+                        mock.patch.object(server, "_wait_for_worker_request", side_effect=[request, None]), \
+                        mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
+                        mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})), \
+                        mock.patch.object(adapter, "_native_windows", return_value=True), \
+                        mock.patch.object(self.documents, "describe", side_effect=observe) as describe:
+                    server._worker_main(mock.Mock(), responses, mock.Mock(), True, 120, True)
+                responses.put.assert_called_once()
+                response = responses.put.call_args.args[0]
+                self.assertFalse(response["success"], response)
+                self.assertEqual(response["error"]["message"], "first native failure" if failure == "native" else
+                                 "dimension display snapshot no longer matches expected_format" if failure == "cas" else "postflight failed")
+                self.assertEqual(response["result"]["mutation"], {"attempted": failure != "cas", "may_have_changed": failure != "cas"})
+                validate_operation_result(request["operation"], response["result"])
+                self.assertEqual(describe.call_count, 2)
+                self.assertEqual(self.extension.SetUserPreferenceToggle.call_count, 0 if failure == "cas" else 1)
+                pythoncom.CoUninitialize.assert_called_once()
 
     def test_request_contract_rejects_incomplete_native_snapshot_and_wrong_value_type(self):
         spec = OPERATION_CATALOG["document.dimension-format-set"]

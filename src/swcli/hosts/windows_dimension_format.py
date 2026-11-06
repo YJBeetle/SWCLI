@@ -56,10 +56,22 @@ def _identity(document):
     return title, path, extension
 
 
-def _verify(app, document, state, foreground, edit, identity, *, changed=False):
+def _foreground_snapshot(app, document, foreground):
+    if foreground is None or _same(app, document, foreground):
+        return None
+    return _state(foreground), _identity(foreground)
+
+
+def _verify(app, document, state, foreground, edit, identity, foreground_snapshot, *, changed=False):
     current = _identity(document)
     if current[:2] != identity[:2] or not _same(app, current[2], identity[2]):
         raise RuntimeError("document identity changed during dimension display operation")
+    if foreground_snapshot is not None:
+        peer_state, peer_identity = foreground_snapshot
+        current_peer = _identity(foreground)
+        if (_state(foreground) != peer_state or current_peer[:2] != peer_identity[:2]
+                or not _same(app, current_peer[2], peer_identity[2])):
+            raise RuntimeError("foreground document state or identity changed during dimension display operation")
     _verify_context(app, document, edit)
     _verify_metadata_state(app, document, state, foreground, changed=changed)
 
@@ -69,8 +81,9 @@ def read_dimension_format_windows(*, app, document):
     try:
         state, foreground = _state(document), _com_value(app, "ActiveDoc")
         edit, identity = _edit_context(document), _identity(document)
+        foreground_snapshot = _foreground_snapshot(app, document, foreground)
         values = _read_format(document)
-        _verify(app, document, state, foreground, edit, identity)
+        _verify(app, document, state, foreground, edit, identity, foreground_snapshot)
         result.update(ok=True, format=values)
     except Exception as error:
         result["error"] = _error(error)
@@ -88,11 +101,12 @@ def set_dimension_format_windows(*, app, document, field, value, expected_format
         _require_writable(document)
         state, foreground = _state(document), _com_value(app, "ActiveDoc")
         edit, identity = _edit_context(document), _identity(document)
+        foreground_snapshot = _foreground_snapshot(app, document, foreground)
         before = _read_format(document)
         result["before"] = before
         if before != expected_format:
             raise DocumentDimensionFormatConflict("dimension display snapshot no longer matches expected_format")
-        _verify(app, document, state, foreground, edit, identity)
+        _verify(app, document, state, foreground, edit, identity, foreground_snapshot)
         if before[field] == desired_value:
             result.update(ok=True, format=before, changed=False)
             return result
@@ -106,11 +120,11 @@ def set_dimension_format_windows(*, app, document, field, value, expected_format
             raise DimensionFormatNotCalibrated("dimension display writes lack installed public acceptance; native setter disabled")
         # Preserve independently owned units and existing annotation/zero fields.
         units, annotations = _read_units(document), _read_options(document)
-        _verify(app, document, state, foreground, edit, identity)
+        _verify(app, document, state, foreground, edit, identity, foreground_snapshot)
         if _read_format(document) != before:
             raise DocumentDimensionFormatConflict("dimension display changed before native setter")
         _require_writable(document)
-        _verify(app, document, state, foreground, edit, identity)
+        _verify(app, document, state, foreground, edit, identity, foreground_snapshot)
         desired = {**before, field: desired_value}
         spec = DIMENSION_FORMAT_FIELDS[field]
         method = "SetUserPreference" + spec["kind"]
@@ -136,12 +150,12 @@ def set_dimension_format_windows(*, app, document, field, value, expected_format
             raise RuntimeError("dimension display setter changed protected document units")
         if _read_options(document) != annotations:
             raise RuntimeError("dimension display setter changed protected annotation/zero fields")
-        _verify(app, document, post, foreground, edit, identity)
-        _verify(app, document, state, foreground, edit, identity, changed=True)
+        _verify(app, document, post, foreground, edit, identity, foreground_snapshot)
+        _verify(app, document, state, foreground, edit, identity, foreground_snapshot, changed=True)
         post = _state(document)
         if _read_format(document) != after or _read_units(document) != units or _read_options(document) != annotations:
             raise RuntimeError("dimension display changed while marking document for saving")
-        _verify(app, document, post, foreground, edit, identity)
+        _verify(app, document, post, foreground, edit, identity, foreground_snapshot)
         result.update(ok=True, format=after, changed=True)
     except Exception as error:
         result["error"] = _error(error)

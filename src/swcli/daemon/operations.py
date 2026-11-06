@@ -460,7 +460,20 @@ def document_dimension_format_set(context: OperationContext, values: Dict[str, A
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = set_dimension_format_windows(app=context.app, document=context.entry.document, **values)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as error:
+        # A failed final observation cannot erase an already attempted mutation
+        # or replace the first native/business failure. Never retry the write.
+        result["ok"] = False
+        if "error" not in result:
+            result["error"] = {"type": type(error).__name__, "message": str(error)}
+        result.setdefault("warnings", []).append({
+            "code": "DocumentObservationFailed",
+            "message": "final document observation failed: " + str(error),
+        })
+        result["session_id"] = context.session_id
+        return result
 
 
 @_register_handler

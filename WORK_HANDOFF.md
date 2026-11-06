@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：前两轮内部校准失败，原始产物均已核验；前三轮内部已失败且原件均保全；最小保存路由修复的内部运行42277961301已提交，目前queued；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
+当前状态：前三轮内部校准失败且原件均保全；保存路由修复的内部运行42277961301正在执行，保持原运行不重发。两项P1处理链保护已修复并通过定向与全套便携测试；公开CLI/daemon gate未触发，不merge-ready，写入白名单仍空。
 
 ## 分支与范围
 
@@ -83,3 +83,11 @@
 - 代码commit `6445c1375586d33eca13db0ffa0ee697c64ced89`；Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42277229594 （Python3.9、3.14、wheel）success。相关两项既有SaveAs/路径冲突回归也通过，日志 ../evidence/existing-save-routing-regression.log。
 - 唯一相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42277961301 ，head6445c1375586d33eca13db0ffa0ee697c64ced89，dimension_format_calibration=true、dimension_format_public=false、native_full=false。提交快照queued，正常排队，不是失败，不重复dispatch。
 - 低频跟踪 ../evidence/native-watch-42277961301.log（300秒间隔）；有完成结果时立即保存原产物并核首失败/完整成功链路。公开gate仍未运行，名单仍空，不merge-ready。当前无待审批动作。
+
+## 处理链同行审查修复
+
+- set handler捕获最终documents.describe故障：保留原始before/format/native_return/changed/mutation，返回ok=false；已有原生或CAS错误的type/message完整保留，最终观察故障另列DocumentObservationFailed warning。不重试setter或describe，不回滚。
+- 后台读写捕获前台文档自身type/stamp/dirty/config/title/path/Extension，所有保护阶段核对；发现漂移拒绝并保留已尝试mutation，不恢复前台状态。目标本身为前台时沿用目标写入状态规则，不错误拒绝正常置脏。
+- 新增真实execute_operation handler及_worker_main路径测试，覆盖成功setter后观察失败、首个native失败再观察失败、CAS首错再观察失败；同时覆盖六类前台漂移、读取/同值/SetSaveFlag阶段及前台目标正向路径。
+- 当前定向41项通过；全套1860项通过、32项平台跳过；SDK生成检查与mypy1.18.2严格实现及8项consumer拒绝通过。这些均为便携测试，不能替代原生公开验收。
+- 既有6445c13内部运行不因本次审查另起CAD运行。其完整证据核验后，最终产品head需要一次必要的安装公开CLI/daemon gate。
