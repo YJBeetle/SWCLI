@@ -7,11 +7,13 @@ param(
     [ValidateSet("core", "full")]
     [string]$Suite = "full",
     [string]$PropertyFixtureDirectory,
-    [string]$AnnotationFixtureDirectory
+    [string]$AnnotationFixtureDirectory,
+    [string]$ToleranceFixtureDirectory
 )
 
 $ErrorActionPreference = "Stop"
 if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
+if ($ToleranceFixtureDirectory -and -not $Hidden) { throw "Tolerance verification requires the initial hidden host" }
 if ($AnnotationFixtureDirectory -and -not $Hidden) { throw "Annotation verification requires the initial hidden host" }
 if (-not $VisibleSmoke -and -not $Hidden) { throw "Business suites require -Hidden; use -VisibleSmoke for the lightweight visible check" }
 New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
@@ -344,7 +346,7 @@ $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120
 if (-not $Hidden) { $daemonArguments += "--visible" }
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
-    if ($AnnotationFixtureDirectory) {
+    if ($AnnotationFixtureDirectory -or $ToleranceFixtureDirectory) {
         $env:SWCLI_TRACE_NATIVE_CALLS = "1"
     }
     else {
@@ -429,6 +431,17 @@ try {
     }
 
     Invoke-SwCliJson -Name "capabilities" -Arguments @("capabilities", "--full", "--json") | Out-Null
+    if ($ToleranceFixtureDirectory) {
+        & python -I (Join-Path $PSScriptRoot "../verify-document-tolerances.py") `
+            --output-dir (Join-Path $Workspace "document-tolerances") `
+            --fixture-dir $ToleranceFixtureDirectory --native-trace $daemonStderr
+        if ($LASTEXITCODE -ne 0) { throw "Public document tolerance gate failed; preserve first evidence" }
+        Invoke-SwCliJson -Name "tolerance-daemon-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+        Assert-OwnedDaemonExit -Process $daemon -Name "tolerance"
+        $started = $false
+        return
+    }
+
     & python (Join-Path $PSScriptRoot "../verify-invalid-requests.py")
     if ($LASTEXITCODE -ne 0) { throw "invalid wire requests changed the running host or documents" }
 

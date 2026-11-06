@@ -60,7 +60,7 @@ full_acceptance_eligible=false；不改变 PR secrets 规则或 release/tag 条�
 - 全套便携测试：1833 项通过，32 项跳过（macOS / Python 3.15.2，专用隔离 venv）；之后新增一项 watchdog 行为测试，最终公差相关15项通过。初次环境/接线失败已修正，不属于原生失败。
 - 原始便携日志与摘要保存在 `evidence/portable/`（持久本地证据，不纳入实现提交）。
 - 实现提交：`27dc93077791359ded7296abee240f06350db51d`（已推送；提交消息含 skip ci，避免重复 push CI）。
-- Windows CI：[run 42261066525](https://github.com/YJBeetle/SWCLI/actions/runs/42261066525)，**已且仅已 dispatch 一次，运行中**。
+- Windows CI：[run 42261066525](https://github.com/YJBeetle/SWCLI/actions/runs/42261066525)，**首轮失败；未重复 dispatch**。Windows Python 3.9/3.14 便携作业与 wheel 均通过。
 - 精确测试 head：`27dc93077791359ded7296abee240f06350db51d`；ref=`codex/docprops-tolerances`；`calibrate_tolerances=true`、`native_full=false`、`cleanup_profile=auto`、`vfs_cache_gib=8`；media/assets 使用 workflow 既有默认值。
 - `evidence/dispatch-parameters.json` 与 `dispatch-submitted.json` 保存请求/head；初始状态保存为 `evidence/run-42261066525.initial.json`。未记录任何凭据。
 - 远端 origin 已验证为公开 `https://github.com/YJBeetle/SWCLI.git`，当前用户 ADMIN；初次网络审批要求核实目的地，核实后重试已获准并完成推送/dispatch。
@@ -70,3 +70,18 @@ full_acceptance_eligible=false；不改变 PR secrets 规则或 release/tag 条�
 取得并保全对应原生 run/head/参数和首真实失败（若有）；排队不是失败，不重复 dispatch。
 即使内部校准通过，也仍缺少公开 CLI/MCP/SDK 端到端写入验收，公开写入不得据此开启。
 主对话统一处理集成冲突、公开 gate 与后续发布；本分支不合 main、不发布。
+
+## 首轮原生失败与后续公开 gate 准备
+
+- 原生 head `27dc93077791359ded7296abee240f06350db51d`；原 ZIP artifact `13525731977`。
+- SHA-256 `bf1f00be3b91ae53d289799aa27c57545a540e14eddb59e23cbc811c893e5ff8`，已逐字匹配 GitHub artifact digest。原 ZIP、解压内容、run/artifact metadata、独立核查 JSON 均在 `evidence/run-42261066525/`。
+- 第一真实失败：part 的 `document defaults changed model geometry`，触发新增 metrics 整字典逐位相等比较。体积11999.999999999998 mm³、面积3799.9999999999995 mm² 前后逐位一致；仅质心Y从5.514537417020185e-16变为8.271806125530278e-16 mm，差2.757268708510093e-16 mm。两次解析体积/面积检查均通过，但整组仍失败。
+- 原生 trace 独立核对13个request的完整边界、顺序与单一worker；5次setter、5次noop、44次偏好getter、0次SetSaveFlag（该生成零件在创建几何后已为dirty）；无原生调用异常，无清理错误。文档stamp保持163，说明完整值CAS确有必要。
+- **不能算通过**：未到part保存重开；assembly/drawing未开始。公开写入保持关闭。
+- 用户原要求“不放宽几何或状态断言”；已异步请求用户明确选择：维持质心逐位相等，或仅允许质心绝对误差≤1e-12 mm并保留体积/面积逐位相等与原解析断言。未获答复前不修改该断言、不发起新原生验证。
+- 已按统筹新要求准备 `verify-document-tolerances.py`：公开CLI→daemon，保存副本/只读重开/hash、后台/lease/stamp/完整CAS/noop、原生trace顺序和零setter证明；SDK typed读/noop及MCP bridge发现/读/noop走同一daemon。MCP stdio协议本身沿用既有便携契约测试，不把bridge实测冒充stdio握手验收。
+- `accept_tolerances` 新增默认关闭且仅本分支手动；独立concurrency；wrapper使用初始隐藏daemon，专属gate后停止并验证生命周期，不进入full/release其他组。尚未dispatch公开验收，当前引擎关闭导致其不能误报成功。
+- 新公开gate便携故障注入通过，公差相关共18项；关联CI接线7项（2跳过）、modeling sequence12项（1跳过）通过。并未为统筹消息重复全套测试。
+- 后续若内部完整证据通过，拟只开放实际逐项证明的none/basic及precision=0/3/8；其他可读精度不因边界点通过而自动开放。然后做一次必要公开验收，核原始证据后再给主对话merge-ready commit。
+
+- 供用户具体审阅但**尚未应用**的判据补丁：`evidence/proposed-centroid-criterion.patch`；仅质心≤1e-12 mm，同时新增(0,0,5) mm解析质心检查；体积/面积/实体数逐位相等及原解析体积/面积断言保留。公开gate后续也须与获准判据一致。

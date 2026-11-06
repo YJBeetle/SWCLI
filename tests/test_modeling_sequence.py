@@ -96,6 +96,7 @@ class ModelingSequenceTests(unittest.TestCase):
         # The explicitly authorized tolerance calibration is the sole exception:
         # default off, manual only and restricted to its independent branch.
         self.assertEqual(light.count("calibrate_"), 1)
+        self.assertEqual(light.count("accept_tolerances:"), 1)
         optin = light.split("      calibrate_tolerances:", 1)[1].split("      native_full:", 1)[0]
         self.assertIn("default: false", optin)
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances'", native_guard)

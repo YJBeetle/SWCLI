@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      accept_tolerances:
+        description: Public document tolerance acceptance (codex/docprops-tolerances only)
+        required: false
+        default: false
+        type: boolean
       calibrate_tolerances:
         description: Internal document tolerance calibration (codex/docprops-tolerances only)
         required: false
@@ -238,13 +243,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.calibrate_tolerances && 'Internal document tolerance calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.accept_tolerances && 'Public document tolerance acceptance' || inputs.calibrate_tolerances && 'Internal document tolerance calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances') || (github.event_name == 'workflow_dispatch' && inputs.accept_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.calibrate_tolerances && format('swcli-tolerance-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ (inputs.calibrate_tolerances || inputs.accept_tolerances) && format('swcli-tolerance-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
@@ -389,7 +394,7 @@ jobs:
 
       - name: Prepare property fixtures for public CLI verification
         id: property_fixtures
-        if: ${{ !inputs.calibrate_tolerances }}
+        if: ${{ !inputs.calibrate_tolerances && !inputs.accept_tolerances }}
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -430,9 +435,17 @@ jobs:
             --drawing-template $drawingTemplate
           if ($LASTEXITCODE -ne 0) { throw "Tolerance internal calibration failed; preserve first report/trace" }
 
+      - name: Accept document default tolerances through public clients
+        id: tolerance_acceptance
+        if: ${{ inputs.accept_tolerances && !inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances' }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\tolerance-public" -Hidden -ToleranceFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
+
       - name: Run real SOLIDWORKS modeling and export smoke test
         id: native_tests
-        if: ${{ !inputs.calibrate_tolerances }}
+        if: ${{ !inputs.calibrate_tolerances && !inputs.accept_tolerances }}
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
@@ -469,8 +482,8 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: |
-          if ("${{ inputs.calibrate_tolerances }}" -eq "true") {
-            "Internal document tolerance calibration only; full_acceptance_eligible=false; see original report/trace artifacts." >> $env:GITHUB_STEP_SUMMARY
+          if ("${{ inputs.calibrate_tolerances }}" -eq "true" -or "${{ inputs.accept_tolerances }}" -eq "true") {
+            "Targeted document tolerance verification only; full_acceptance_eligible=false; see original report/trace artifacts." >> $env:GITHUB_STEP_SUMMARY
             exit 0
           }
           $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
