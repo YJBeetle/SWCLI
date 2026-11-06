@@ -46,3 +46,12 @@
 - 公开阶段仍未触发。没有把内部校准脚本的 private permission 引入 CLI/protocol/SDK/MCP 参数。
 - 内部 run 42263284406 仍对应 886131e，在独立 runner 上安装 SOLIDWORKS；本地后续准备不改变该 run 的 head。
 - 公开许可还检查真实原生 Windows，Wine 与未知/不可读 runtime 不能因相同 SOLIDWORKS revision 获得写许可；新增回归后最新 27 项针对性测试通过。
+
+## 分发工件独立核验
+- 本地公开 gate/许可准备已提交但未 push：`efb8bfc4696ac0cbc7f82e573037562d326c1dba`，空公开许可名单保持。
+- 已保留 run 42263284406 原始分发 ZIP：`evidence/run-42263284406/swcli-dist-13525408428.zip`；SHA-256 与 GitHub artifact digest `ea519c0cefb90dd52b1b0dfc3a457dcd991bfcc11fdfbdd056ff9d5537a3926e` 一致。
+- wheel 内全部 Python 源字节逐文件对比精确 CI head 886131e 一致，包含原生配合 adapter；明细 `distribution-verification.json`。这是分发溯源证据，不是原生/公开验收。
+
+## SDK 兼容性补充
+- 审查生成 diff 发现，若把新 operation 插在旧 schema 前，generator 的相同结构去重会删除旧导出 `FeatureFilletResultMutation`。已把两个新 operation 追加在既有 catalog 后，保留旧导出与既有 operation 顺序。
+- 新增真实旧类型的正向 mypy 消费测试；严格 SDK 与 27 项本功能测试通过。未修改 generator 的全局策略。

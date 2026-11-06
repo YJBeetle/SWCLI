@@ -46,6 +46,21 @@ class AssemblyOperations:
     def __init__(self, client: Dispatcher) -> None:
         self._client = client
 
+    def add_component(self, *, path: str, configuration: Union[str, Unset] = UNSET, x_mm: Union[float, Unset] = UNSET, y_mm: Union[float, Unset] = UNSET, z_mm: Union[float, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyAddComponentResult]:
+        """assembly.add-component; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['path'] = path
+        if configuration is not UNSET:
+            parameters['configuration'] = configuration
+        if x_mm is not UNSET:
+            parameters['x_mm'] = x_mm
+        if y_mm is not UNSET:
+            parameters['y_mm'] = y_mm
+        if z_mm is not UNSET:
+            parameters['z_mm'] = z_mm
+        return cast("Response[models.AssemblyAddComponentResult]", self._client._execute('assembly.add-component', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def mate_targets(self, *, components: List[str], document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.AssemblyMateTargetsResult]:
         """assembly.mate-targets; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
@@ -61,21 +76,6 @@ class AssemblyOperations:
         parameters['targets'] = targets
         parameters['expected_value'] = expected_value
         return cast("Response[models.AssemblyAddMateResult]", self._client._execute('assembly.add-mate', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
-
-
-    def add_component(self, *, path: str, configuration: Union[str, Unset] = UNSET, x_mm: Union[float, Unset] = UNSET, y_mm: Union[float, Unset] = UNSET, z_mm: Union[float, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyAddComponentResult]:
-        """assembly.add-component; runtime validation enforces bounds, conditions and context."""
-        parameters: Dict[str, object] = {}
-        parameters['path'] = path
-        if configuration is not UNSET:
-            parameters['configuration'] = configuration
-        if x_mm is not UNSET:
-            parameters['x_mm'] = x_mm
-        if y_mm is not UNSET:
-            parameters['y_mm'] = y_mm
-        if z_mm is not UNSET:
-            parameters['z_mm'] = z_mm
-        return cast("Response[models.AssemblyAddComponentResult]", self._client._execute('assembly.add-component', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
 class DaemonOperations:

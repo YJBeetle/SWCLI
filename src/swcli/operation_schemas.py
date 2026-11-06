@@ -133,19 +133,6 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         required=("source_document_id", "configuration"), temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
-    "assembly.mate-targets": _operation(
-        "assembly.mate-targets", {"components": COMPONENT_NAMES},
-        required=("components",), **_DOCUMENT_READ_CONTEXT,
-    ),
-    "assembly.add-mate": _operation(
-        "assembly.add-mate", {
-            "kind": {"type": "string", "enum": ["coincident", "concentric"]},
-            "alignment": {"type": "string", "enum": ["aligned", "anti-aligned"]},
-            "targets": {"type": "array", "items": TARGET, "minItems": 2, "maxItems": 2},
-            "expected_value": SNAPSHOT,
-        }, required=("kind", "alignment", "targets", "expected_value"),
-        temporary_activation=True, document_id="optional", expected_update_stamp="required", lease_id="optional",
-    ),
     "assembly.add-component": _operation(
         "assembly.add-component",
         {
@@ -515,6 +502,25 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
 from .workspace import definitions as workspace_definitions
 for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
+
+# Append new operation shapes after existing models. The SDK generator interns
+# equal nested schemas in catalog order; inserting earlier would remove the
+# already exported FeatureFilletResultMutation type from existing consumers.
+OPERATION_CATALOG.update({
+    "assembly.mate-targets": _operation(
+        "assembly.mate-targets", {"components": COMPONENT_NAMES},
+        required=("components",), **_DOCUMENT_READ_CONTEXT,
+    ),
+    "assembly.add-mate": _operation(
+        "assembly.add-mate", {
+            "kind": {"type": "string", "enum": ["coincident", "concentric"]},
+            "alignment": {"type": "string", "enum": ["aligned", "anti-aligned"]},
+            "targets": {"type": "array", "items": TARGET, "minItems": 2, "maxItems": 2},
+            "expected_value": SNAPSHOT,
+        }, required=("kind", "alignment", "targets", "expected_value"),
+        temporary_activation=True, document_id="optional", expected_update_stamp="required", lease_id="optional",
+    ),
+})
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)

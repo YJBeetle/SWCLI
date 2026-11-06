@@ -265,6 +265,8 @@ class ContractTests(unittest.TestCase):
         from swcli.sdk._generated import AssemblyOperations
         self.assertTrue(hasattr(AssemblyOperations,'add_mate'))
         self.assertTrue(hasattr(AssemblyOperations,'mate_targets'))
+        from swcli.sdk.models import FeatureFilletResultMutation
+        self.assertIn('creation_returned',FeatureFilletResultMutation.__annotations__)
         read=OPERATION_CATALOG['assembly.mate-targets']
         write=OPERATION_CATALOG['assembly.add-mate']
         self.assertFalse(read.temporary_activation or read.lease_guarded)

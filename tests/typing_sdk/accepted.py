@@ -1,6 +1,6 @@
 from pathlib import Path
 from swcli.sdk import Client, FileReceipt, Response, TLSConfig
-from swcli.sdk.models import DocumentInspectResult
+from swcli.sdk.models import DocumentInspectResult, FeatureFilletResultMutation
 
 
 def inspect_design(client: Client) -> int:
@@ -28,3 +28,7 @@ def workflows(client: Client) -> FileReceipt:
 def configured() -> Client:
     return Client(tls=TLSConfig(token_file=Path("token.txt"), ca_file="ca.pem", server_name="cad.internal"),
                   client_workspace=Path("client-files"))
+
+
+def existing_fillet_mutation_type() -> FeatureFilletResultMutation:
+    return {"attempted": True, "creation_returned": True, "may_have_changed": True}
