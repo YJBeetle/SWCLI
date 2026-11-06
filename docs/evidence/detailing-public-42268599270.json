@@ -1,0 +1,54 @@
+{
+  "success": true,
+  "scope": "two drawing defaults; native Windows 33.5.0 only",
+  "source_commit": "85f99dac08c768794cead88cc3755ad60c77a1d2",
+  "public_run": "https://github.com/YJBeetle/SWCLI/actions/runs/42268599270",
+  "artifact_sha256": "568003c8475a5be47a90d27e50372a8dac047dd275fd9848467ec690367b960e",
+  "report_sha256": "e4fc06859979c79eebca71574b53195fec6e6d9ded82b1ce4ee60b0e6da3689d",
+  "watchdog_sha256": "8f2543f8049662ad7a4abf657add9a391ecc71089ed814f71c3f9fed14c20bf3",
+  "trace_sha256": "005b465ef0157a7dfd0a2ed21fe9b4fcb79e5a84542a77f3296dc1bdc2360242",
+  "native_proof_requests": 39,
+  "setter_calls": 4,
+  "distinct_document_handles": 8,
+  "files": [
+    {
+      "name": "public-detailing-1.SLDDRW",
+      "sha256": "f052841d29f9941448a316855762db0def2bb4f281b37bcc1dd1ce12ed2c6bbe",
+      "size_bytes": 25015
+    },
+    {
+      "name": "public-detailing-2.SLDDRW",
+      "sha256": "304ad9cefa7d34ebb58b2ea6d6cf0c69d7e9f3b4f1f5da17bd749bdb67224791",
+      "size_bytes": 24495
+    },
+    {
+      "name": "public-detailing-3.SLDDRW",
+      "sha256": "a23ed518edc8e973fe878ec5b1ca2fe75b2afe3e87e829d67b02a1d28b4d3dd7",
+      "size_bytes": 25342
+    },
+    {
+      "name": "public-detailing-4.SLDDRW",
+      "sha256": "4f0485cb9f2ff507998702685384275540ba2c5189508bd108a4cc059bf36b9d",
+      "size_bytes": 25284
+    }
+  ],
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 8792,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6160293999998885,
+    "visible": false
+  },
+  "elapsed_seconds": 52.130000591278076,
+  "covers_full_modeling_suite": false,
+  "mcp_scope": "real-daemon bridge; stdio contract portable-tested",
+  "artifact_id": 13529511630,
+  "github_artifact_digest": "sha256:568003c8475a5be47a90d27e50372a8dac047dd275fd9848467ec690367b960e",
+  "portable_ci": "https://github.com/YJBeetle/SWCLI/actions/runs/42268553295",
+  "internal_calibration": "https://github.com/YJBeetle/SWCLI/actions/runs/42260661085",
+  "coverage": "generated empty GB A4 drawing; scalar storage/guards/persistence; no model-view insertion-effect acceptance"
+}

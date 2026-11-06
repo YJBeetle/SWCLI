@@ -1,0 +1,41 @@
+{
+  "scope": "two drawing default boolean preferences only",
+  "source_head": "85f99dac08c768794cead88cc3755ad60c77a1d2",
+  "feature_tip": "124c94cd996da8c1c29405aecf332968a34d074f",
+  "integration_base": "78ebaf6c24f697007afd8f39d9ea087c3df08257",
+  "public_run": 42268599270,
+  "artifact_id": 13529511630,
+  "artifact_sha256": "568003c8475a5be47a90d27e50372a8dac047dd275fd9848467ec690367b960e",
+  "independent_code_review": "no blocking issue; 20 feature and 126 related tests reviewed",
+  "independent_native_review": {
+    "requests": 39,
+    "native_requests": 108,
+    "setter_calls": 4,
+    "saved_readonly_reopen_copies": 4,
+    "distinct_document_ids": 8,
+    "revision": "33.5.0",
+    "cleanup_errors": []
+  },
+  "limitations": [
+    "No independent public artifact sampling of SLDWORKS PID disappearance; daemon exit is proven",
+    "Not actual creation of center marks in new model views",
+    "No Wine or other revision support",
+    "Not release/full-native acceptance"
+  ],
+  "main_preservation": {
+    "non_ci_files_exact": 11,
+    "full_native_release_tag_jobs_exact": true
+  },
+  "integration_portable": {
+    "tests": 1841,
+    "skipped": 32,
+    "success": true,
+    "log_sha256": "590a083d445c319411675875092b50ccd330a76ce054c207c07f11144ff150e6"
+  },
+  "sdk": {
+    "success": true,
+    "consumer_refusals": 8,
+    "log_sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d"
+  },
+  "status": "integrated-and-locally-verified; publication-not-performed"
+}

@@ -21,6 +21,7 @@ from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
 from .document_annotations import ANNOTATION_FIELDS
+from .document_detailing import DETAILING_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -258,6 +259,16 @@ def build_parser() -> argparse.ArgumentParser:
     annotations_editor.add_argument("value", help="enum name, true/false, or millimeters according to field")
     annotations_editor.add_argument("--if-value", dest="expected_value", required=True, help="require this previous scalar value")
     annotations_editor.add_argument("--json", action="store_true", dest="as_json")
+    detailing_reader = document_commands.add_parser("detailing-options", help="read two drawing view-creation defaults")
+    add_document_selector(detailing_reader)
+    detailing_reader.add_argument("--json", action="store_true", dest="as_json")
+    detailing_editor = document_commands.add_parser("detailing-option-set", help="set one protected drawing default")
+    add_document_selector(detailing_editor)
+    add_lease_token(detailing_editor)
+    detailing_editor.add_argument("field", choices=tuple(DETAILING_FIELDS))
+    detailing_editor.add_argument("value", choices=("true", "false"))
+    detailing_editor.add_argument("--if-options", required=True, help="complete observed options JSON object")
+    detailing_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1327,6 +1338,13 @@ def _typed_operation(
                 return text
             return ("document.annotation-option-set", {"field": args.field, "value": scalar(args.value),
                     "expected_value": scalar(args.expected_value)}, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
+        if command == "detailing-options":
+            return ("document.detailing-options", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "detailing-option-set":
+            return ("document.detailing-option-set", {"field": args.field, "value": args.value == "true",
+                    "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
         if command == "units":
             return ("document.units", {}, args.as_json, args.document_id,

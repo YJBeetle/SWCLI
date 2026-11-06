@@ -244,6 +244,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentAnnotationOptionSetResult]", self._client._execute('document.annotation-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def detailing_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentDetailingOptionsResult]:
+        """document.detailing-options; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentDetailingOptionsResult]", self._client._execute('document.detailing-options', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def detailing_option_set(self, *, field: Literal['auto_center_marks.part_holes', 'auto_center_marks.part_fillets'], value: bool, expected_options: Dict[str, JSONValue], document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDetailingOptionSetResult]:
+        """document.detailing-option-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_options'] = expected_options
+        return cast("Response[models.DocumentDetailingOptionSetResult]", self._client._execute('document.detailing-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def units(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentUnitsResult]:
         """document.units; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

@@ -13,6 +13,7 @@ from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
+from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -90,7 +91,7 @@ def _operation(
             if selected_document is None
             else selected_document
         ),
-        lease_guarded=lease_id == "optional",
+        lease_guarded=lease_id in ("optional", "required"),
         temporary_activation=temporary_activation,
         result=operation_result_schema(name),
     )
@@ -218,6 +219,14 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                                       "expected_value": annotation_value_schema(field, writable=False)}},
         } for field in ANNOTATION_FIELDS],
         **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.detailing-options": _operation("document.detailing-options", **_DOCUMENT_READ_CONTEXT),
+    "document.detailing-option-set": _operation(
+        "document.detailing-option-set",
+        {"field": _string(enum=list(DETAILING_FIELDS)), "value": _boolean(),
+         "expected_options": detailing_options_schema()},
+        required=("field", "value", "expected_options"),
+        document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
     "document.units-set": _operation(
@@ -607,6 +616,8 @@ def validate_operation_request(
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)
+    if operation == "document.detailing-option-set":
+        validate_detailing_options(parameters["expected_options"])
     if operation == "document.units-set" and not {"length_unit", "decimal_places"}.intersection(parameters):
         raise ValueError("document.units-set requires length_unit or decimal_places")
     if operation == "sketch.polygon":
