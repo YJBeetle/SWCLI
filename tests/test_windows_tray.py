@@ -201,6 +201,22 @@ class ControllerTests(unittest.TestCase):
         self.assertIn("用户 SW 正在运行: 是", text)
 
 
+class TrayActivationTests(unittest.TestCase):
+    def test_activation_never_queries_status_and_context_click_opens_only_menu(self):
+        controller = mock.Mock()
+        view = tray.Win32TrayView(controller)
+        view.con = mock.Mock(WM_RBUTTONUP=0x205, WM_CONTEXTMENU=0x7b)
+        with mock.patch.object(view, "_menu") as menu:
+            for event in (0x202, 0x203, 0x400, 0x401):
+                self.assertEqual(view._notify(1, view.CALLBACK, 1, event), 0)
+            menu.assert_not_called()
+            controller.request.assert_not_called()
+            for event in (0x205, 0x7b):
+                view._notify(1, view.CALLBACK, 1, event)
+            self.assertEqual(menu.call_count, 2)
+            controller.request.assert_not_called()
+
+
 @unittest.skipUnless(sys.platform == "win32", "Native Shell icon gate; no SW or COM call")
 class NativeNotificationAreaTests(unittest.TestCase):
     def test_real_icon_exists_then_is_removed_without_starting_a_daemon(self):

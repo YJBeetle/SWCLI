@@ -244,8 +244,6 @@ class Win32TrayView:
         event = lparam & 0xffff
         if event in (self.con.WM_RBUTTONUP, self.con.WM_CONTEXTMENU):
             self._menu()
-        elif event in (self.con.WM_LBUTTONUP, 0x400, 0x401):  # NIN_SELECT / NIN_KEYSELECT
-            self.controller.request("status")
         return 0
 
     def _destroy(self, *_):

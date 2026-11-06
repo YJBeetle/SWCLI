@@ -153,8 +153,8 @@ swcli daemon start --tray off --json
 {"tray":"off"}
 ```
 
-The native icon offers read-only runtime status, confirmed daemon stop, and
-hide-icon. Hiding the icon keeps the daemon, SW and documents running. The
+Right-click the icon and select **查看状态** to open runtime status; left-click
+does not open a dialog. The menu also offers confirmed daemon stop and hide-icon. Hiding the icon keeps the daemon, SW and documents running. The
 stop action uses the same open-document and attached-user-host protections as
 `daemon_stop`; it never force-closes documents or processes. A pending
 request blocks duplicate clicks. After a timeout the result remains unknown;
