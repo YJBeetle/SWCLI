@@ -12,6 +12,13 @@
 - 新增原数值量化反例：即使返回True且custom也失败，observed/mutation保留、单Double/零dirty；fake模拟preset偏差联动及任意插值量化，证明gate使用真实先前观察值，完整严格断言保留。对应**32 tests OK**，diff-check通过。生产adapter/schema未修改，无无差异重跑。
 - 独立首错audit：`/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42280265165/independent-first-failure-audit.json`；audit_ok仅指离线核对通过，`image_quality_calibration_passed=false/public_acceptance_passed=false`保持。下一相关新head只派发一次，正常运行后记录run/head/链接即结束等待，不启动watch/sleep/automation。
 
+### 已派发最小修复的必要新run
+
+- 新run：[42301795947](https://github.com/YJBeetle/SWCLI/actions/runs/42301795947)，精确head **`0a5afc1508574800adb2c82561a9b1d32fe8b979`**；参数`image_quality_calibration=true`, `native_full=false`，其他默认。此head只派发一次，独立profile+ref分组，未重跑旧run/取消他人/重启组内host。
+- 初次一次性快照状态`in_progress`，head已核一致；公开写全关闭，未新增验收通过宣称。正常运行后结束本轮，无watch/sleep/automation，等待统筹后续分次快照/原件就绪再处理。
+- 请求/返回：`dispatch-observed-custom-value-request.json` / `dispatch-observed-custom-value-result.json`；初始快照`run-42301795947-initial-snapshot.json`，均在持久artifact根。新run尚无完成artifact/digest。
+- 分支最后文档交接提交只记录上述run；CAD证据绑定`0a5afc1`，不能把后续文档tip说成正在测试的source head。整组验收/统筹review完成后才考虑发版，正式发布前仍需用户确认，本路未发布。
+
 ## 当前收口状态（2026-11-07 03:42 Asia/Shanghai）
 
 - 按用户最新指令，本轮停止持续sleep/轮询与无变化播报；仅取一次状态后交统筹跟进。不创建单CI automation、不扩新计划、不新增审查代理、不rebase main。
