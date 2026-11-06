@@ -73,6 +73,8 @@ class ToleranceCLI(AnnotationsCLI):
             return dict(result,field=field,before=before,options=deepcopy(options),changed=changed,
                         mutation=dict(attempted=changed,may_have_changed=changed),document=self.descriptor(document,args.session))
         result=super().dispatch(args)
+        if args.command=="document" and args.document_command=="measure":
+            result["metrics"]["centroid_mm"]=dict(x=0.,y=0.,z=5.)
         if args.command=="document" and args.document_command in ("create","open"):
             document=self.documents[result["document"]["document_id"]]
             document.setdefault("tolerances",{"linear.type":option("linear.type","none"),

@@ -21,6 +21,7 @@ from swcli.mcp import DaemonBridge
 spec=importlib.util.spec_from_file_location("_tolerance_public_helpers",Path(__file__).with_name("verify-document-annotations.py"))
 helpers=importlib.util.module_from_spec(spec);spec.loader.exec_module(helpers)
 require=helpers.require
+from gate_support.tolerance_geometry import verify_unchanged_geometry
 GET="IModelDocExtension.GetUserPreferenceInteger"
 SET="IModelDocExtension.SetUserPreferenceInteger"
 DIRTY="IModelDoc2.SetSaveFlag"
@@ -160,7 +161,7 @@ def run(gate,fixtures,trace):
                             ("linear.precision","8"),("linear.precision","3")):
             current=edit(gate,trace,document,current,field,value)
             case["writes"].append(current)
-        if kind==1:helpers.same_geometry(case["geometry_initial"],helpers.geometry(gate,document))
+        if kind==1:verify_unchanged_geometry(case["geometry_initial"],helpers.geometry(gate,document))
         saved=case["save"]=helpers.save_copy(gate,document,"public-tolerances."+suffix,suffix)
         clean=read(gate,trace,document)
         for field in TOLERANCE_FIELDS:
@@ -176,7 +177,7 @@ def run(gate,fixtures,trace):
         case["readonly_refusal"]=edit(gate,trace,fresh,observed,"linear.type","basic",error="ValueError")
         final=read(gate,trace,fresh)
         require(final==observed,"readonly refusal changed native state")
-        if kind==1:helpers.same_geometry(case["geometry_initial"],helpers.geometry(gate,fresh))
+        if kind==1:verify_unchanged_geometry(case["geometry_initial"],helpers.geometry(gate,fresh))
         gate.close(fresh);gate.close(foreground);gate.require_empty(after_case="tolerances-"+suffix)
         require(hashlib.sha256(source.read_bytes()).hexdigest()==source_hash
                 and hashlib.sha256(Path(saved["path"]).read_bytes()).hexdigest()==saved["sha256"],"source or saved bytes changed")

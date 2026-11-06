@@ -35,6 +35,8 @@ spec = importlib.util.spec_from_file_location("_tolerance_owned_harness", Path(_
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 checked = harness.checked
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support.tolerance_geometry import verify_unchanged_geometry
 
 
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template):
@@ -103,7 +105,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         case["geometry_after"]=measured
         checked(measured["ok"],"final measurement failed")
         harness.verify_geometry(measured["metrics"],10,cut=False)
-        checked(measured["metrics"]==case["geometry_before"]["metrics"],"document defaults changed model geometry")
+        verify_unchanged_geometry(case["geometry_before"]["metrics"], measured["metrics"])
     path=output/("tolerances."+{"part":"SLDPRT","assembly":"SLDASM","drawing":"SLDDRW"}[profile_kind])
     saved=call("save-owned-fixture",lambda:save_as_native_windows(str(path),document=document))
     case["save"]=saved
