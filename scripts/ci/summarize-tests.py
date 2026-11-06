@@ -45,6 +45,10 @@ def markdown(value):
 
 def run_url(environment):
     server = environment.get("GITHUB_SERVER_URL", "https://github.com").rstrip("/")
+    # Validate the literal authority before urlsplit: older Python accepts
+    # malformed bracketed hosts that newer versions reject outright.
+    if not re.fullmatch(r"https://[A-Za-z0-9.-]+(?::[0-9]+)?", server):
+        return None
     try:
         parsed = urlsplit(server)
         hostname = parsed.hostname
@@ -180,7 +184,7 @@ class Summary:
 
     def ordinary(self, record, path, kind=None, name=None):
         kind = kind or Path(path).name
-        name = name or str(Path(path).with_suffix(""))
+        name = name or Path(path).with_suffix("").as_posix()
         if diagnostic(record):
             return self.phase(name, "SKIP", evidence=[path], detail="diagnostic/calibration evidence excluded from public acceptance")
         status = record_status(record, kind)
@@ -244,7 +248,7 @@ class Summary:
     def receipt(self, path, direct_runtime_paths):
         relative = path.relative_to(self.root).as_posix()
         if path.is_symlink() or not path.is_file():
-            row = self.phase(str(Path(relative).with_suffix("")), "FAIL", evidence=[relative])
+            row = self.phase(Path(relative).with_suffix("").as_posix(), "FAIL", evidence=[relative])
             self.failure(row, {"code": "EvidenceError", "message": "Receipt is not a regular non-symlink file"}, 3)
             return
         try:
@@ -254,7 +258,7 @@ class Summary:
             if not isinstance(record, dict):
                 raise ValueError("Public acceptance receipt must be a JSON object")
         except (OSError, ValueError) as exc:
-            row = self.phase(str(Path(relative).with_suffix("")), "FAIL", evidence=[relative])
+            row = self.phase(Path(relative).with_suffix("").as_posix(), "FAIL", evidence=[relative])
             self.failure(row, {"code": "UnreadableEvidence", "message": str(exc)}, 6)
             return
         if path.name == "runtime-sets.json":
@@ -267,7 +271,7 @@ class Summary:
             if not has_direct and not diagnostic(record):
                 for mode, proof in sorted(record["functional_sets"].items()):
                     if isinstance(proof, dict):
-                        self.runtime_sets(proof, relative, name=str(Path(relative).with_suffix("")) + "/" + mode)
+                        self.runtime_sets(proof, relative, name=Path(relative).with_suffix("").as_posix() + "/" + mode)
         else:
             if path.name == "runtime.json" and record.get("profile") == "visible-smoke":
                 # Outer Mac completion is valid only with its embedded shared gate.

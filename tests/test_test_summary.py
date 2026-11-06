@@ -2,7 +2,7 @@
 import copy
 import importlib.util
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import sys
 import tempfile
 import unittest
@@ -217,6 +217,27 @@ class PublicSummaryTests(unittest.TestCase):
         with patch.dict(summary.os.environ, {}, clear=True), self.assertRaisesRegex(ValueError, "original test receipt"):
             summary.main(args + ["--step-summary", str(receipt)])
         self.assertEqual(receipt.read_bytes(), original)
+
+    def test_phase_identifiers_use_posix_separators_on_both_path_flavors(self):
+        for path_type in (PurePosixPath, PureWindowsPath):
+            with self.subTest(path_type=path_type.__name__):
+                reporter = summary.Summary(self.root, SOURCE)
+                with patch.object(summary, "Path", path_type):
+                    reporter.runtime_sets(sets(), "hidden/runtime-sets.json")
+                names = [row["name"] for row in reporter.result()["phases"]]
+                self.assertEqual(names[0], "hidden/runtime-sets")
+                self.assertEqual(names[1:], ["hidden/runtime-sets/" + name for name in summary.FULL_SET_NAMES])
+                self.assertFalse(any("\\" in name for name in names))
+
+    def test_literal_server_authority_is_checked_before_version_dependent_parser(self):
+        for server in ("https://github.com)[x](evil", "https://github.com\t", "https://github.com/evil", "https://github.com@evil"):
+            with self.subTest(server=server), patch.object(summary, "urlsplit") as parse:
+                self.assertIsNone(summary.run_url({"GITHUB_SERVER_URL": server,
+                    "GITHUB_REPOSITORY": "owner/repo", "GITHUB_RUN_ID": "123"}))
+                parse.assert_not_called()
+        self.assertEqual(summary.run_url({"GITHUB_SERVER_URL": "https://github.example:8443",
+            "GITHUB_REPOSITORY": "owner/repo", "GITHUB_RUN_ID": "123"}),
+            "https://github.example:8443/owner/repo/actions/runs/123")
 
     def test_full_group_names_match_shared_public_plan(self):
         ci = str(ROOT / "scripts/ci")
