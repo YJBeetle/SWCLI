@@ -244,10 +244,29 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  units-route:
+    name: Validate manual units routing before private native setup
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Reject conflicting profiles and wrong units refs
+        env:
+          ROUTE_EVENT: ${{ github.event_name }}
+          ROUTE_REF: ${{ github.ref }}
+          ROUTE_NATIVE_FULL: ${{ inputs.native_full }}
+          ROUTE_UNITS_CALIBRATION: ${{ inputs.units_calibration }}
+          ROUTE_UNITS_PUBLIC: ${{ inputs.units_public_acceptance }}
+        run: python scripts/ci/validate-units-route.py
+
   solidworks-e2e:
     name: ${{ inputs.units_calibration && inputs.units_public_acceptance && 'Public units read/CAS acceptance' || inputs.units_calibration && 'Bounded units read/CAS calibration' || 'Complete SOLIDWORKS functional verification' }}
-    needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    needs: [test, package, tag-policy, units-route]
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && (github.event_name != 'workflow_dispatch' || needs.units-route.result == 'success') && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
