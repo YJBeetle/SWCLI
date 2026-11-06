@@ -1,5 +1,14 @@
 # STL export options handoff
 
+## Native Windows / Wine guard correction — new-head public gate pending
+
+- Coordinator found that the previous implementation trusted `GITHUB_ACTIONS`/`RUNNER_OS` labels and a matching tasklist/revision without checking the actual worker platform. The old run and all originals remain genuine evidence for its exact old head, but do **not** accept this correction or clear the merge blocker.
+- Minimal runtime correction: require actual `sys.platform == "win32"`; query the already loaded `ntdll.dll` with Windows APIs, require its known `NtClose` export to resolve, then reject a present `wine_get_version` export. Only an absent Wine export with explicit `ERROR_PROC_NOT_FOUND` (127) is accepted. Missing DLL/API, exception, or any other/unknown result refuses writes. Environment labels alone never establish the platform.
+- Worker registration, each isolation check, and public profile qualification all enforce the probe. Existing owned/hidden host, single-process inventory, mutex, exact native revision/enums/profile, readback and restoration requirements remain unchanged. No schema, SDK, profile list, assertion, native retry or timeout change.
+- Portable regression covers real non-Windows runner-label spoofing, simulated macOS/Linux, Wine, missing ntdll, missing known export, unknown/other last-error, and unavailable loader/API. Rejected calls have no inventory subprocess, preference reads/setters or export save, including already-registered workers and the direct qualifier.
+- Validation: focused STL suite 24 tests OK; complete portable suite 1848 tests OK (26 platform skips), 52.743 seconds. Original logs: `evidence/portable/native-host-probe-targeted.log` and `evidence/portable/native-host-probe-full.log`. `git diff --check` passed. No SDK/schema regeneration or profile/assertion changes.
+- New matching-head public acceptance is required before integration. No continuous polling, rerun of the old successful head, main/release action or broader support claim.
+
 ## Current status / bounded public acceptance self-check (2026-11-07 05:58:03 +08:00)
 - **Exact native-tested code tip / merge candidate:** `2bc0504fd3889d920c091961a26b31c61e03e67d` on `codex/swcli-stl-export-options`. Later commits change only Markdown handoff/acceptance documentation; implementation is byte-identical to that public-tested tip. Coordinator owns final review/integration.
 - **Public gate PASSED and original self-check PASSED:** [42279951554](https://github.com/YJBeetle/SWCLI/actions/runs/42279951554), exact head `2bc0504fd3889d920c091961a26b31c61e03e67d`, `workflow_dispatch`, inputs `stl_options_public=true`, `stl_options_targeted=false`, `native_full=false`. Final run metadata saved; no new dispatch/polling/review agents.

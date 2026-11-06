@@ -259,6 +259,11 @@ class StlExportFailureEvidenceTests(unittest.TestCase):
 
 
 class StlIsolationTests(unittest.TestCase):
+    def setUp(self):
+        patch = mock.patch.object(adapter, "require_native_windows")
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def test_worker_ownership_and_explicit_disposable_runner_optin_are_all_required(self):
         app = object()
         for owned, github, optin, expected in ((False, "true", "1", False),
@@ -305,6 +310,9 @@ class StlNativeVoidContractTests(unittest.TestCase):
 
 class StlPublicQualificationPolicyTests(unittest.TestCase):
     def setUp(self):
+        patch = mock.patch.object(adapter, "require_native_windows")
+        patch.start()
+        self.addCleanup(patch.stop)
         self.codes = {"observed-enum": 1}
         self.app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
         self.qualifier = SimpleNamespace(QUALIFICATION={"solidworks_revision": "33.5.0"},
@@ -350,7 +358,7 @@ class ActualQualifiedStlProfilesTests(unittest.TestCase):
         schema = OPERATION_CATALOG["document.export"].parameters["properties"]["stl_options"]
         self.assertEqual(schema["x-swcli-qualified-stl"]["profiles"], PROFILES)
         app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
-        with mock.patch.object(adapter, "_MODE", "public-isolated"):
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.object(adapter, "require_native_windows"):
             for name, options in PROFILES.items():
                 validate_operation_request("document.export", dict(output="curved.stl", stl_options=options))
                 self.assertEqual(adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS), name)
@@ -358,3 +366,82 @@ class ActualQualifiedStlProfilesTests(unittest.TestCase):
                             {**PROFILES["coarse"], "deviation_mm":0.5}):
                 with self.assertRaises(adapter.StlOptionsError):
                     adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS)
+
+
+class StlNativeHostProbeTests(unittest.TestCase):
+    def probe(self, *, platform="win32", module=101, known=202, wine=None, error=127, failure=None):
+        import ctypes
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=module),
+            GetProcAddress=mock.Mock(side_effect=[known, wine]))
+        stack.enter_context(mock.patch.object(adapter.sys, "platform", platform))
+        loader = stack.enter_context(mock.patch.object(ctypes, "WinDLL", create=True,
+            return_value=kernel, side_effect=failure))
+        reset = stack.enter_context(mock.patch.object(ctypes, "set_last_error", create=True))
+        stack.enter_context(mock.patch.object(ctypes, "get_last_error", create=True, return_value=error))
+        return kernel, loader, reset
+
+    def test_native_windows_requires_known_export_and_explicit_wine_export_absence(self):
+        kernel, loader, reset = self.probe()
+        adapter.require_native_windows()
+        loader.assert_called_once_with("kernel32.dll", use_last_error=True)
+        kernel.GetModuleHandleW.assert_called_once_with("ntdll.dll")
+        self.assertEqual(kernel.GetProcAddress.call_args_list,
+            [mock.call(101, b"NtClose"), mock.call(101, b"wine_get_version")])
+        reset.assert_called_once_with(0)
+
+    def test_real_non_windows_cannot_be_authorized_by_runner_environment_labels(self):
+        # No platform or ctypes mock: regression for the coordinator's macOS reproduction.
+        if sys.platform == "win32":
+            self.skipTest("actual non-Windows regression runs on the Linux/macOS portable jobs")
+        with mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows",
+                "SWCLI_STL_CALIBRATION":"0", "SWCLI_STL_EXCLUSIVE_RUNNER":"1"}), \
+                mock.patch.object(adapter, "_HOST", None), mock.patch.object(adapter, "_MODE", None):
+            adapter.configure_calibration_host(object(), owned=True)
+            self.assertIsNone(adapter._HOST)
+            self.assertIsNone(adapter._MODE)
+
+    def test_non_windows_wine_and_unknown_probes_never_set_preferences_or_save(self):
+        cases = [dict(platform="darwin"), dict(platform="linux"), dict(wine=303, error=0),
+            dict(module=None), dict(known=None), dict(error=0), dict(error=5),
+            dict(failure=OSError("loader unavailable")), dict(failure=AttributeError("no WinDLL"))]
+        from swcli.stl_calibrated_profiles import PROFILES, NATIVE_ENUMS
+        for case in cases:
+            with self.subTest(case=case), ExitStack() as stack:
+                # Keep each probe's sequential GetProcAddress results reusable across entry points.
+                kernel, loader, _ = self.probe(**case)
+                kernel.GetProcAddress.side_effect = lambda _module, name: (case.get("known", 202)
+                    if name == b"NtClose" else case.get("wine"))
+                stack.enter_context(mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows",
+                    "SWCLI_STL_CALIBRATION":"0", "SWCLI_STL_EXCLUSIVE_RUNNER":"1"}))
+                stack.enter_context(mock.patch.object(adapter, "_HOST", None))
+                stack.enter_context(mock.patch.object(adapter, "_MODE", None))
+                stack.enter_context(mock.patch.object(adapter, "_POISONED", False))
+                inventory = stack.enter_context(mock.patch.object(adapter.subprocess, "run"))
+                app = mock.Mock()
+                app.GetProcessID.return_value = 101
+                app.Visible = False
+                app.RevisionNumber.return_value = "33.5.0"
+                adapter.configure_calibration_host(app, owned=True)
+                self.assertIsNone(adapter._HOST)
+                self.assertIsNone(adapter._MODE)
+                # Even an already registered worker and a direct qualifier must re-probe.
+                adapter._HOST, adapter._MODE = app, "public-isolated"
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.require_isolation(app)
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(app, PROFILES["angle-fine"], 1, NATIVE_ENUMS)
+                with self.assertRaises(adapter.StlOptionsError):
+                    with adapter.stl_preferences(app, PROFILES["angle-fine"], {}):
+                        app.SaveAs3()
+                with self.assertRaises(adapter.StlOptionsError):
+                    execute_operation(app, "document.export", dict(output="a.stl", stl_options=PROFILES["angle-fine"]),
+                        documents=object(), document_id="d-ab12cd", expected_update_stamp=1, lease_id="l-ab12cd34ef56")
+                inventory.assert_not_called()
+                for kind in ("Toggle", "IntegerValue", "DoubleValue"):
+                    getattr(app, "SetUserPreference" + kind).assert_not_called()
+                    getattr(app, "GetUserPreference" + kind).assert_not_called()
+                app.SaveAs3.assert_not_called()
+                if case.get("platform") in ("darwin", "linux"):
+                    loader.assert_not_called()

@@ -11,6 +11,7 @@ import math
 import os
 from pathlib import Path
 import subprocess
+import sys
 from .native_trace import native_call
 from .windows import _com_value
 
@@ -32,6 +33,39 @@ class StlOptionsError(RuntimeError):
         self.code = code
 
 
+def require_native_windows():
+    """Prove the worker runs on native Windows; environment labels are not proof.
+
+    An absent Wine export is accepted only after a known ntdll export resolves
+    and GetProcAddress explicitly reports ERROR_PROC_NOT_FOUND. Any unknown
+    probe result is closed, including missing ctypes APIs or loader failures.
+    """
+    if sys.platform != "win32":
+        raise StlOptionsError("StlIsolationUnavailable", "STL options require a native Windows worker")
+    try:
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+        module = kernel.GetModuleHandleW
+        module.argtypes = [wintypes.LPCWSTR]
+        module.restype = wintypes.HMODULE
+        lookup = kernel.GetProcAddress
+        lookup.argtypes = [wintypes.HMODULE, wintypes.LPCSTR]
+        lookup.restype = ctypes.c_void_p
+        ntdll = module("ntdll.dll")
+        if not ntdll or not lookup(ntdll, b"NtClose"):
+            raise StlOptionsError("StlIsolationUnavailable", "native ntdll probe is unavailable")
+        ctypes.set_last_error(0)
+        wine = lookup(ntdll, b"wine_get_version")
+        error = ctypes.get_last_error()
+        if wine or error != 127:  # ERROR_PROC_NOT_FOUND, not an unknown lookup failure.
+            raise StlOptionsError("StlIsolationUnavailable", "Wine or unknown native Windows probe; STL options are disabled")
+    except StlOptionsError:
+        raise
+    except Exception as exc:
+        raise StlOptionsError("StlIsolationUnavailable", "native Windows probe failed; STL options are disabled") from exc
+
+
 def configure_calibration_host(app, *, owned):
     """Worker-only registration; no protocol parameter can assert isolation."""
     global _HOST, _MODE
@@ -41,6 +75,10 @@ def configure_calibration_host(app, *, owned):
     internal = os.environ.get("SWCLI_STL_CALIBRATION") == "1"
     public = os.environ.get("SWCLI_STL_EXCLUSIVE_RUNNER") == "1"
     if internal == public:  # Neither mode or ambiguous double opt-in.
+        return
+    try:
+        require_native_windows()
+    except StlOptionsError:
         return
     _HOST = app
     _MODE = "internal-calibration" if internal else "public-isolated"
@@ -81,6 +119,7 @@ def constants():
 def require_isolation(app):
     if _HOST is not app or _POISONED:
         raise StlOptionsError("StlOptionsNotCalibrated", "ordinary public writes are disabled; STL options require an explicitly qualified isolated Windows runner worker")
+    require_native_windows()
     # Detect even non-ROT instances in other sessions. Never terminate them.
     probe = subprocess.run(["tasklist.exe", "/FI", "IMAGENAME eq SLDWORKS.exe", "/FO", "CSV", "/NH"],
                            capture_output=True, text=True, check=True, timeout=10)
@@ -100,6 +139,7 @@ def qualify_public_profile(app, options, document_type, codes):
     """
     if _MODE != "public-isolated":
         return None
+    require_native_windows()
     try:
         from ..stl_calibrated_profiles import QUALIFICATION, PROFILES, NATIVE_ENUMS
     except ImportError as exc:
