@@ -37,7 +37,7 @@ EXPECTED_ENUMS = dict(swMateCOINCIDENT=0, swMateCONCENTRIC=1, swMateAlignALIGNED
     swComponentResolved=3, swThisConfiguration=1)
 REQUIRED_MEMBERS = {
     'IAssemblyDoc': {'CreateMateData', 'CreateMate', 'GetComponents', 'GetComponentCount', 'GetEditTarget', 'GetEditTargetComponent'},
-    'IComponent2': {'GetID', 'GetCorresponding', 'ReferencedConfiguration', 'IsFixed', 'GetSuppression2', 'Transform2'},
+    'IComponent2': {'GetID', 'GetCorresponding', 'ReferencedConfiguration', 'IsFixed', 'IsVirtual', 'GetSuppression2', 'Transform2'},
     'IEntity': {'GetComponent'},
     'ICoincidentMateFeatureData': {'EntitiesToMate', 'MateAlignment'},
     'IConcentricMateFeatureData': {'EntitiesToMate', 'MateAlignment', 'LockRotation'},
@@ -137,7 +137,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case['source_metrics'] = metrics
     checked(metrics['ok'] and metrics['metrics']['solid_body_count'] == 1, 'source metrics unavailable')
     checked(math.isclose(metrics['metrics']['volume_mm3'], math.pi * 3**2 * 10, rel_tol=1e-7, abs_tol=1e-5), 'source volume differs')
-    part_path = output / (prefix + '.SLDPRT')
+    part_path = output / (prefix + '-component.SLDPRT')
     case['part_save'] = call(prefix + '.save-part', lambda: save_as_native_windows(str(part_path), document=source))
     checked(case['part_save']['ok'], 'strict source part save failed')
     part_hash = hashlib.sha256(part_path.read_bytes()).hexdigest()

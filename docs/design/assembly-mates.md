@@ -86,3 +86,5 @@ SLDASM 文件随独立 artifact 保留；本地交接记录见 `WORK_HANDOFF.md`
 - [配合类型](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swMateType_e.html)
 - [对齐枚举](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swMateAlign_e.html)
 - [组件抑制状态枚举](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swComponentSuppressionState_e.html)
+
+- [IComponent2.IsVirtual 只读属性](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icomponent2~isvirtual.html)

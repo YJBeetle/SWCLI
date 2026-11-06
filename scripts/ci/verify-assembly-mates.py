@@ -72,7 +72,7 @@ def run_case(gate,kind,alignment):
     source=gate.create()
     circle=gate.circle(source,radius=3)
     gate.write('feature','extrude',circle['sketch']['sketch_id'],'--depth-mm',10,document=source)
-    part=gate.directory/(prefix+'.SLDPRT')
+    part=gate.directory/(prefix+'-component.SLDPRT')
     gate.write('document','save-as',str(part),document=source)
     part_hash=hashlib.sha256(part.read_bytes()).hexdigest()
     source_structure=gate.command('document','inspect','--detail','structure',document=source)

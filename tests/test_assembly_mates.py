@@ -45,7 +45,7 @@ class Scene:
                 GetUpdateStamp=lambda: 7, GetSaveFlag=lambda: False, SketchManager=NS(ActiveSketch=None))
             source.GetPathName=lambda c=c: f'C:\\part{c}.SLDPRT'
             component=NS(Name2=f'part{c}-1', GetPathName=source.GetPathName, ReferencedConfiguration='Default',
-                GetModelDoc2=lambda source=source: source, GetSuppression2=lambda: 2,
+                GetModelDoc2=lambda source=source: source, GetSuppression2=lambda: 2, IsVirtual=lambda:False,
                 GetID=lambda c=c: c+1, IsFixed=lambda c=c: c==0, Transform2=NS(ArrayData=list(IDENTITY)))
             body=NS()
             faces=[]
@@ -94,6 +94,7 @@ class MateTests(unittest.TestCase):
     def setUp(self):
         self.scene=Scene()
         self.patches=[mock.patch.object(api, 'PUBLIC_MATE_WRITES_CALIBRATED', False),
+                      mock.patch.object(api, '_saved_external_part', return_value=True),
                       mock.patch.object(api, '_native_windows', return_value=True),
                       mock.patch.object(api, '_dispatch', side_effect=lambda native, interface, **context: native),
                       mock.patch.object(api, 'capture_verified_reference', side_effect=lambda a,e,f: f.token),
@@ -120,6 +121,18 @@ class MateTests(unittest.TestCase):
         self.assertTrue(result['ok'], result)
         self.assertEqual(result['snapshot'], self.expected)
         Draft202012Validator(SNAPSHOT).validate(result['snapshot'])
+        self.scene.doc.CreateMate.assert_not_called()
+
+    def test_read_refuses_foreground_identity_change_without_restoring_or_selecting(self):
+        original=api.snapshot
+        def changed(*args,**kwargs):
+            result=original(*args,**kwargs)
+            self.scene.app.ActiveDoc=object()
+            return result
+        with mock.patch.object(api,'snapshot',side_effect=changed):
+            result=api.read_mate_targets_windows(app=self.scene.app,document=self.scene.doc,components=self.scene.names)
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['type'],'MateObservationChanged')
         self.scene.doc.CreateMate.assert_not_called()
 
     def test_public_writes_remain_fail_closed_before_native_acceptance(self):
@@ -191,6 +204,8 @@ class MateTests(unittest.TestCase):
                (self.scene.components[1], 'IsFixed', lambda:True),
                (self.scene.components[1], 'GetSuppression2', lambda:0),
                (self.scene.components[1], 'ReferencedConfiguration', 'other'),
+               (self.scene.components[1], 'IsVirtual', lambda:True),
+               (self.scene.components[1], 'IsVirtual', lambda:None),
                (self.scene.doc,'IsOpenedReadOnly',lambda:True),
                (self.scene.doc,'IsOpenedReadOnly',lambda:0),
                (self.scene.doc,'IsOpenedViewOnly',lambda:True),
@@ -208,6 +223,13 @@ class MateTests(unittest.TestCase):
         self.assertEqual(self.add(targets=targets)['error']['type'],'ComponentNotFound')
         with mock.patch.object(self.scene.faces[1][0], 'GetComponent', lambda:self.scene.components[0]):
             self.assertFalse(self.add()['ok'])
+        self.scene.doc.CreateMate.assert_not_called()
+
+    def test_missing_saved_external_source_never_reaches_native_creation(self):
+        with mock.patch.object(api,'_saved_external_part',return_value=False):
+            result=self.add()
+        self.assertEqual(result['error']['type'],'ComponentFileUnavailable')
+        self.assertFalse(result['mutation']['attempted'])
         self.scene.doc.CreateMate.assert_not_called()
 
     def test_unknown_native_arrays_booleans_nonfinite_transforms_fail_closed(self):
@@ -385,3 +407,16 @@ class DispatchInterfaceTests(unittest.TestCase):
             open_process.assert_called_once_with(3,False,77)
             handle.Close.assert_called_once_with()
             load.assert_called_once_with(str(root/'sldworks.tlb'))
+
+    def test_saved_external_part_requires_exact_extension_and_nonempty_real_file(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'part.SLDPRT'
+            self.assertFalse(api._saved_external_part(str(path)))
+            path.touch()
+            self.assertFalse(api._saved_external_part(str(path)))
+            path.write_bytes(b'saved fixture')
+            self.assertTrue(api._saved_external_part(str(path)))
+            other=Path(directory)/'part.SLDASM';other.write_bytes(b'assembly')
+            self.assertFalse(api._saved_external_part(str(other)))

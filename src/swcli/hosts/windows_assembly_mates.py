@@ -205,9 +205,17 @@ def _face(app, assembly, source, component, native, index):
                 reference_sha256=hashlib.sha256(reference).hexdigest()), mapped
 
 
+def _saved_external_part(path):
+    from pathlib import Path
+    source = Path(path)
+    return source.suffix.casefold() == ".sldprt" and source.is_file() and source.stat().st_size > 0
+
+
 def _component(app, assembly, component):
     source = value(component, "GetModelDoc2")
     require(source is not None and integer(value(source, "GetType"), "source document type") == 1, "component must be a loaded part", "UnsupportedMateScope")
+    require(not boolean(value(component, "IsVirtual"), "component virtual flag"),
+            "virtual components are outside the first-batch scope", "UnsupportedMateScope")
     state = integer(value(component, "GetSuppression2"), "component suppression")
     require(state in (2, 3), "component must be fully resolved", "ComponentSuppressedOrLightweight")
     cfg = text(value(component, "ReferencedConfiguration"), "component configuration")
@@ -217,6 +225,8 @@ def _component(app, assembly, component):
     require(not modified, "component part has unsaved modifications", "ComponentModified")
     require(value(value(source, "SketchManager"), "ActiveSketch") is None, "component sketch is being edited", "EditInProgress")
     path = text(value(component, "GetPathName"), "component path")
+    require(_saved_external_part(path), "component must reference a nonempty saved external PRT",
+            "ComponentFileUnavailable")
     require(path.casefold() == text(value(source, "GetPathName"), "source path").casefold(), "component source path differs")
     bodies = sequence(source.GetBodies2(0, False), "solid bodies", 1)
     require(len(bodies) == 1, "component must contain exactly one solid body", "UnsupportedMateScope")
@@ -336,7 +346,10 @@ def snapshot(app, document, names):
 def read_mate_targets_windows(*, app, document, components):
     result = dict(ok=False, action="assembly.mate-targets")
     try:
+        foreground = value(app, "ActiveDoc")
         result["snapshot"] = snapshot(app, document, components)[0]
+        require(_same(app, foreground, value(app, "ActiveDoc")),
+                "foreground document changed during mate target observation", "MateObservationChanged")
         result["document"] = _describe_document(document)
         result["ok"] = True
     except Exception as exc:

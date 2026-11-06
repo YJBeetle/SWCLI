@@ -128,6 +128,9 @@ class PublicMateGateTests(unittest.TestCase):
             self.assertEqual(len(gate.record['cases']),4)
             self.assertTrue(all(len(case['reopens'])==2 for case in gate.record['cases']))
             self.assertFalse(gate.documents)
+            parts={path.stem for path in Path(directory).glob('*.SLDPRT')}
+            assemblies={path.stem for path in Path(directory).glob('*.SLDASM')}
+            self.assertTrue(parts and assemblies and parts.isdisjoint(assemblies))
             self.assertEqual(sum(args[:2]==('assembly','add-mate') for args,*_ in gate.commands),17)
 
     def test_source_can_auto_unload_without_hiding_unrelated_documents(self):

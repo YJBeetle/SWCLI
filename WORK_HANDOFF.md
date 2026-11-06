@@ -69,3 +69,15 @@
 - 最新完整便携回归：1849 项通过、26 平台跳过（`evidence/portable/native-fix-all-tests.log`）；本功能 30 项通过，SDK 生成/严格类型与 8 负向消费场景通过，actionlint 通过。
 - 首失败可审查摘要：`docs/verification/assembly-mates-first-failure-2026-11-07.json`；仍无原生配合成功证据，未开放任何公开写入。
 - 下一次只对包含具体接口读取修复的新 head 调用 internal stage 一次，不对原失败 head 原样重跑，不取消其它任务。
+
+## 修复后第二次内部校准已触发
+- 所有本地修复/公开准备已 push 到唯一分支，当前 head `b456bbc4558717f7220e0d7a55a9babfeeef29ad`。
+- 新 head 的唯一 internal dispatch：[run 42268147736](https://github.com/YJBeetle/SWCLI/actions/runs/42268147736)，参数 `assembly_mates_calibration=true`, `assembly_mates_stage=internal`, `native_full=false`；前一失败 run 42263284406 未原样重跑。
+- 溯源记录 `evidence/internal-dispatch-b456bbc.json`；仍待原 ZIP/digest/逐调用 trace/组合配合及保存重开证据。公开名单继续为空，不是 merge-ready。
+- 另按基线 AST 导出逐项核验，既有 SDK public model 导出均保留，明细 `evidence/portable/sdk-export-compatibility.json`。
+
+## Fixture 身份消歧准备
+- 由首失败原 report 可见 GetTitle 对 PRT 返回无扩展名标题。发现生成 PRT/ASM 同 basename 会使 native CloseDoc/后台激活名称存在歧义，已将源命名为 `*-component.SLDPRT`、目标保留 `*.SLDASM`；两个 native/public fixture gate 同步，且有文件 stem 不相交回归。
+- 这是本地待提交 fixture 修正；正在运行的 b456bbc / run 42268147736 保持原 head，没有取消或重 dispatch。公开许可仍为空。
+- 公开许可开放前还在落实已有“仅外部已保存零件”边界：新增真实 `IComponent2.IsVirtual` 布尔拒绝与非空 `.SLDPRT` 文件检查，不增加请求参数或扩大支持范围；官方属性文档已核，后续 native preflight 同时核此成员。
+- target 读操作补充前后真实 ActiveDoc 身份一致性检查：若读取过程中用户/原生行为切换前台，则返回 `MateObservationChanged`，不自动激活或恢复用户文档。包含该项后本地针对性 33 项通过。
