@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：6445c13的内部原生校准42277961301已成功并核原件；P1修复c062dd6的Windows便携CI已过。统筹澄清原计划公开gate继续，因此仅在开发分支开放原生Windows / revision33.5.0 / 三种文档的验收候选，正在提交一次必要公开运行。尚无最终head公开原生通过结论，不merge-ready；记录run后停止持续监看。
+当前状态：内部原生42277961301成功并已核原件；最终产品候选7962b58含P1修复与原生Windows33.5.0三种文档受限范围。一次必要公开验收42282493201已提交，唯一状态快照queued；同head便携CI42282468280正在运行。当前不merge-ready。已记录run/head/链接，按收口要求结束本轮，无持续监看。
 
 ## 分支与范围
 
@@ -108,3 +108,12 @@
 - c062dd6两处P1保持；portable假host设为显式未知revision，保证未校准范围拒绝用例不依赖候选名单为空。公开运行将绑定本次精确产品head；记录一次状态后停止轮询。
 
 - 候选本地检查：精确wheel构建安装及installed CLI/schema/product skill检查通过（不激活COM）；全套1860项通过、32项平台跳过，定向41项与SDK生成检查通过。原始便携日志 ../evidence/public-candidate-*.log。
+
+## 公开验收运行交接（唯一快照）
+
+- 最终产品head `7962b58eb64669fdad0a4ada151ffe0bd779158b`，已推送；不含新增字段或场景，含原计划受限候选和P1修复。
+- 唯一必要公开运行 https://github.com/YJBeetle/SWCLI/actions/runs/42282493201 ：workflow_dispatch、head与候选完全相同；inputs dimension_format_public=true、dimension_format_calibration=false、native_full=false。唯一状态快照queued，是正常排队，不是失败；没有原样重发。公开产物尚不可用，无公开通过结论。
+- 同head自动便携CI https://github.com/YJBeetle/SWCLI/actions/runs/42282468280 ，快照in_progress。c062dd6的Windows便携CI成功与候选本地1860/41项、打包安装检查均已过；不能把该前置证据当候选Windows或原生公开通过。
+- 后续由统筹分次快照跟进：运行完成后先保存原ZIP、元数据并核head/digest、报告、逐请求trace、保存重开/源副本SHA、三类状态和part精确几何、worker/host不变、清理与600/1800秒边界；通过才有最终head已验收范围。已准备原计划gate，不因本轮结束永久搁置。
+- 当前无可宣称已通过公开写入验收的子集，不提供可合通过tip。开发候选开启仅为该次公开gate，不等于可发布。没有新dispatch计划、automation或本地watch；不合main、不发布、不rebase，保留统筹main0e72beb。
+- 总状态与运行参数保存在 ../evidence/calibration-state.json；内部成功原件见 ../evidence/native-42277961301/。本轮工作树文档提交仅补交接，不改变上述最终产品head。
