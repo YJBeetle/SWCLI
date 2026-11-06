@@ -32,3 +32,13 @@ class UnitCalibrationTests(unittest.TestCase):
         self.assertEqual(workflow.count('if: ${{ !inputs.units_calibration }}'),3)
         self.assertIn('python -I scripts/ci/calibrate-document-unit-profile.py',workflow)
         self.assertIn('if: always()',workflow.split('name: Upload SWCLI-generated smoke evidence')[1][:40])
+
+    def test_units_group_is_profile_ref_scoped_only_for_manual_units(self):
+        workflow=(ROOT/'.github/workflows/ci.yml').read_text()
+        native=workflow.split('  solidworks-e2e:',1)[1].split('    env:',1)[0]
+        self.assertIn("group: ${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}",native)
+        self.assertIn('cancel-in-progress: false',native)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded'",native)
+        # Full/tag/release keeps its existing global group; units gets profile+ref.
+        self.assertEqual(workflow.count("format('swcli-units-read-cas-{0}', github.ref)"),1)
+        self.assertIn('group: swcli-release-${{ github.ref }}',workflow)

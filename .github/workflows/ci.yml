@@ -245,7 +245,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: swcli-hosted-windows-solidworks
+      group: ${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
