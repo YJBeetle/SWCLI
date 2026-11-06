@@ -28,3 +28,13 @@
 新增便携回归保留首失败数值，另断言实体数量、体积、面积、1e-5 mm 质心偏移均被拒绝。
 
 后续结果必须以新的精确 head 和新原产物记录；当前不宣称原生、继承或公共 CLI 门禁完成。
+
+
+## 预原生取消：42266550762
+
+[Run](https://github.com/YJBeetle/SWCLI/actions/runs/42266550762) 的 head 为 `64e26324b2afd801dd6520c600fcc7082397d839`。
+便携检查和两个 PowerShell wrapper 解析通过，随后仍处于磁盘清理。
+补核官方 [swRebuildOnActivation_e](https://help.solidworks.com/2024/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swRebuildOnActivation_e.html)
+发现恢复前景的选项 0 会请求用户决定；已改为 no-rebuild=1。
+为避免已知的隐藏宿主弹窗风险，仅取消了这个尚未开始安装/原生测试的本分支 run，保存取消前步骤元数据。
+这不是 CAD API 失败或通过，不计为原生校准结果，不涉及其他分支或本地 VM。

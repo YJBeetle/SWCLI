@@ -72,6 +72,14 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 本地已准备修复：记录同一 writable 实例的写前 geometry；直接复用既有 `verify-document-annotations.py::same_geometry`（实体数精确，体积/面积原 rel=1e-9 abs=1e-6，质心原 abs=1e-6 mm），不修改既有 helper；保留原 analytic box 检查，并新增两种字号保存重开的几何比较。
 - 这会替换本分支新增的浮点逐位比较；用户已明确答复“批准固定容差修复及一次校准”，据此准备新的实现提交与一次修复验证。公开写入仍关闭。
 
+## 第二个 run 的预原生取消
+
+- 几何修复提交 `64e26324b2afd801dd6520c600fcc7082397d839` 已推送；run `42266550762` 的 Windows 字体便携检查（含两个 PowerShell wrapper 解析）通过。
+- 补核官方 `swRebuildOnActivation_e` 时发现校准器恢复前景用了 0（swUserDecision，可能弹窗）；正确不重建选项为 1。
+- 已只取消本分支这个 run：取消前保存了步骤元数据，native 安装和字体步骤均未开始，当前处于 Free disposable runner disk。没有 API 重试、组内宿主重启或取消其他分支 run。
+- 后续将以修正为官方 no-rebuild=1 的新 head 做已授权的修复校准；此次预原生取消不能算作 CAD 测试成功/失败。
+- 官方依据：[swRebuildOnActivation_e](https://help.solidworks.com/2024/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swRebuildOnActivation_e.html)。
+
 ## 公开门禁准备（独立后续提交，未开放写入）
 
 - 主对话要求内部校准后继续公开 CLI/daemon 链路，不能以空白名单宣称完成。

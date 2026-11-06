@@ -155,7 +155,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             import pythoncom
             from win32com.client import VARIANT
             errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
-            call("restore-generated-foreground", lambda: app.ActivateDoc3(_com_value(foreground, "GetTitle"), False, 0, errors))
+            # Official swRebuildOnActivation_e.swDontRebuildActiveDoc = 1;
+            # 0 is swUserDecision and may prompt in a hidden host.
+            call("restore-generated-foreground", lambda: app.ActivateDoc3(_com_value(foreground, "GetTitle"), False, 1, errors))
             require(errors.value == 0, "failed to restore generated foreground")
             registry.sync()
             entry = registry.register(document)

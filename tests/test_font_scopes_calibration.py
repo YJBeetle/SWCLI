@@ -137,6 +137,8 @@ class FontScopeCalibrationTests(unittest.TestCase):
         source = (ROOT / "scripts/ci/verify-font-scopes-calibration.py").read_text()
         self.assertIn('case["geometry_before"] = fixtures.part_geometry(document, call)', source)
         self.assertIn('case["geometry_reopened_" + mode]', source)
+        self.assertIn('False, 1, errors)', source)
+        self.assertNotIn('False, 0, errors)', source)
 
     def test_calibration_has_no_general_write_enable_switch(self):
         text = (ROOT / "src/swcli/hosts/windows_document_font_scopes.py").read_text()
