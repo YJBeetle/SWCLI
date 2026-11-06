@@ -40,8 +40,8 @@ CI head/参数/run 链接、原始产物与首个真实失败将在触发后追�
 
 ## 集成接口清单（供主对话合并冲突）
 
-- operation `document.unit-profile`；CLI `sw-cli document unit-profile [--document ID] [--if-update-stamp N] --json`。返回 `unit_profile`：profile/document_type/values/native_units/linkage。
-- operation `document.unit-profile-set`；CLI `sw-cli document unit-profile-set FIELD VALUE --if-snapshot JSON --lease TOKEN --if-update-stamp N [--document ID] --json`。
+- operation `document.unit-profile`；CLI `swcli document unit-profile [--document ID] [--if-update-stamp N] --json`。返回 `unit_profile`：profile/document_type/values/native_units/linkage。
+- operation `document.unit-profile-set`；CLI `swcli document unit-profile-set FIELD VALUE --if-snapshot JSON --lease TOKEN --if-update-stamp N [--document ID] --json`。
 - set schema 参数：`field`、`value`、`expected_snapshot` 全部必填；操作上下文 `lease_id`、`expected_update_stamp` 必填。字段为 `system`、`linear.unit`、`linear.precision`、`angular.unit`、`angular.precision`、`mass_properties.length_unit`、`mass_properties.mass_unit`、`mass_properties.volume_unit`、`mass_properties.precision`。
 - set 结果保留 `field/before/unit_profile/changed/mutation`；失败时可附 `observed/native_return_value`，有 attempted/may_have_changed 的 partial mutation。无公开 calibration 参数。
 - 共享文件修改：`src/swcli/cli.py`、`daemon/operations.py`、`operation_schemas.py`、`result_schemas.py`、`sdk/models.py`、`sdk/_generated.py` 与 `.github/workflows/ci.yml`。`_operation` 的 lease_guarded 从仅 optional 扩为 optional/required，使本组必填 lease 真正进入 registry 守护；保留原 optional 语义。
@@ -92,3 +92,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 准备公共验收时进一步收紧：预期空域拒写只接受 `UnitProfileCalibrationRequired` / `ValueError`，COM/API/RuntimeError 不能当作成功拒写。public按对应native fixture原始`refused.error.type`精确断言，非目标CAS漂移也保持有效Int32边界。相关34项通过，记录`public-refusal-tests.log`。
 
 当前正在执行的内部run仍是6c314f7；新增校准脚本断言尚不在该run中，因此即使它绿灯，仍须人工复核每类原始refused.error.type与zero-mutation回执。若原件符合收紧断言，无需为纯断言收紧无信息重跑；若真实错误暴露则保存首失败并作相关修复。未来公共验收head将含收紧断言。此变动仍无 `src/swcli` 改动。
+
+
+## 并发修复与公共准备当前交接
+
+- 并发隔离修复提交 `6c314f7`；旧run `42260282974` 已精确取消并保存run/job/check原件；替代仅一次 `42262804840` / head `6c314f7d6466ccf4d7734c1127470c34e458258a`。
+- 当前替代 native job `128049625609` 已实际获得runner并进入in_progress，不再挂在全局pending。最新观察仍在 `Free disposable runner disk for installation`，尚未进入units API业务；这不是单位功能通过或失败。原始run/job快照位于 `docs/evidence/units-profile/run-42262804840/`。
+- 公共验收准备提交 `e21b4ad`，拒写异常收紧提交 `a439a18`。尚未触发公共验收，尚无public原生结果，不提供merge-ready声明。当前无其他代码未提交。
+- 已准备后续公共命令：在此内部run原件审核通过后，使用含公共准备的明确head，手动选择 `units_calibration=true,units_public_acceptance=true,native_full=false`。该必要公共profile将先在同head准备/核对新fixtures，再运行公共CLI；不要在当前内部结果出来前重复dispatch。
+- 若当前内部run失败，先持久下载该run原始产物及首个真实失败，按相关修复行动；若绿灯，仍须审核三类完整snapshots、原件hash、readonly重开、part几何及refused.error.type再执行公共profile。后续source纯断言收紧不要求为相同已证明事实无信息重跑。
+- 新CLI入口应写为已安装 `swcli` 或 `python -I -m swcli`；文档已纠正选择器为实际 `--document`。九字段changed-write、scalar/system跨系统联动与写入持久性仍未验收，空白名单保持不变。
