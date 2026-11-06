@@ -56,3 +56,14 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 本次 handler/真实 `_worker_main`/daemon/native-sequence 126 tests 通过；覆盖首业务错误后不重读以及写入成功后描述失败的 mutation 回执穿透。
 - 当前 receipt/scope head 完整 portable suite **1855 tests / 32 skips 通过**；SDK generator、strict mypy 与 8 negative consumers 通过。检查日志：`receipt-scoped-full-portable.log`、`receipt-scoped-sdk-types.log`。
 - Windows push CI 会解析 PowerShell；本地未运行 Windows CAD。可移植 mock 和内部 native 均不作为公开链路验收。
+
+
+## 收口快照（2026-11-07 Asia/Shanghai）
+
+- 已推送产品修复 tip：`5cc22a70204724c237991706d1d11ae290811fe4`，中文提交“fix: 保留表格修改首错回执并限定装配体工程图校准范围”。完整本地 portable 1855 tests / 32 skips 与 SDK generator/strict mypy/8 negative consumers 通过。
+- 同 head 普通 push CI [42279908900](https://github.com/YJBeetle/SWCLI/actions/runs/42279908900) **success**（Windows Python 3.9、3.14、wheel；full/release skipped）。真实 handler/worker 收尾回执修复已在该 head，前台 peer 四项检查没有重复修改。
+- 当前唯一进行中的内部 scoped run [42279939696](https://github.com/YJBeetle/SWCLI/actions/runs/42279939696)，exact head `5cc22a70204724c237991706d1d11ae290811fe4`；`native_full=false`、`table_defaults_calibration=true`、`table_defaults_mode=internal`、`table_defaults_document_types=assembly-drawing`、`table_defaults_head=5cc22a70204724c237991706d1d11ae290811fe4`。
+- 按最新收口指令只取一次状态：**in_progress**，仍在 `Free disposable runner disk for installation`，尚无本组 CAD 校准结果、完成 artifact 或摘要。原始 inputs / dispatch metadata / handoff snapshot 保存在 `docs/verification/table-defaults-evidence/run-42279939696/`。停止本地持续 watcher，不取消 GitHub run，不再 dispatch、sleep 或持续轮询。
+- 当前 **没有可合并发版的公开原生验收子集**；`PROFILES` / `INTERNAL_PROOF` 均空。不得将 portable 通过或在跑内部校准视为公开 CLI/daemon 验收。SDK/MCP 本地契约已检查，但真实同 daemon 的 native public gate 尚未执行。
+- 后续由统筹分次快照：待本 run 完成、原件可用再核对 original ZIP/GitHub digest、head、首错、完整 requested `[2,3]` cases、trace/fixtures；成功也仅属内部证据，公开精确 scope 开放及一次 exact-head public gate 尚未完成。若失败如实交接，不为凑齐无限迭代。
+- part 写入继续关闭，前次精确 centroid 比较失败原件保持；不复用其他线程容差许可、不放宽断言、不扩展新功能/计划、不重跑旧失败。保留 main `0e72beb` 的 detailing/revolve 整合，不在此 rebase/merge/release。
