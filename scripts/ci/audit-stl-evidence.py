@@ -12,7 +12,7 @@ spec.loader.exec_module(metrics_module)
 require = metrics_module.require
 
 
-def audit(directory, expected_head):
+def audit(directory, expected_head, *, phase="internal"):
     reports = list(directory.rglob("stl-calibration.json"))
     require(len(reports) == 1, "exactly one original STL report is required")
     report_path = reports[0]
@@ -20,8 +20,16 @@ def audit(directory, expected_head):
     report = json.loads(report_path.read_text(encoding="utf-8-sig"))
     require(report.get("success") is True and report.get("source_commit") == expected_head,
             "native report did not pass at the expected commit")
-    require(report.get("public_acceptance") is False and report.get("full_acceptance") is False,
-            "internal calibration must not claim public or full acceptance")
+    public = phase == "public"
+    require(report.get("public_acceptance") is public and report.get("full_acceptance") is False,
+            "internal calibration must not claim public or full acceptance; public audit requires an explicit public result")
+    if public:
+        from swcli.stl_calibrated_profiles import QUALIFICATION, PROFILES, NATIVE_ENUMS
+        require(report.get("scope") == "public-isolated-stl-options" and report.get("qualification") == QUALIFICATION,
+                "public evidence does not reference the installed audited qualification")
+        require(report["daemon_export_mode"]["internal_calibration"] is False
+                and report["daemon_export_mode"]["explicit_exclusive_runner"] is True,
+                "public evidence enabled the internal calibration bypass")
     require(report.get("native_timeout_seconds") == 600 and report.get("group_timeout_seconds") == 1800,
             "native timeout contract changed")
     require(not report.get("cleanup_errors"), "native report contains cleanup errors")
@@ -47,6 +55,21 @@ def audit(directory, expected_head):
         require(case.get("success") is True, "a planned native case did not complete")
         result = case["result"]
         prefs = result["stl_preferences"]
+        if public:
+            names = [name for name, options in PROFILES.items() if case["options"] == options]
+            require(len(names) == 1 and prefs.get("execution_mode") == "public-isolated"
+                    and prefs.get("calibrated_profile") == names[0] and prefs["constants"] == NATIVE_ENUMS,
+                    "public export did not use the exact qualified native profile")
+            if case["name"] == "mcp-fine":
+                transport = case["mcp_transport"]
+                require(transport["transport"] == "official-sdk-stdio" and transport["server_name"] == "swcli"
+                        and "execute" in transport["tools"] and transport["is_error"] is False,
+                        "public MCP evidence did not cross the official stdio tool transport")
+            catalog = case["post_export_catalog"]["documents"]
+            active = [row["document_id"] for row in catalog if row["active"]]
+            current = [row["document_id"] for row in catalog if row["current"]]
+            require(len(active) == 1 and active == current and active[0] != result["document"]["document_id"],
+                    "public foreground/current catalog identity is not preserved")
         require(result["ok"] is True and prefs["restored"] is True and not prefs["cleanup_errors"]
                 and prefs["before"] == prefs["after"] and prefs["readback"] == prefs["requested"],
                 "preference transaction is not exactly restored and retained")
@@ -90,24 +113,37 @@ def audit(directory, expected_head):
                           native_save_count=len(save_calls), preference_set_count=len(setters),
                           preference_read_count=len(reads)))
     require(len(workers) == 1, "calibration replaced its COM worker between cases")
-    require({c["name"] for c in cases} == {"coarse", "deviation-fine", "angle-fine", "fine", "ascii-inch", "binary-meter"},
+    planned = {"coarse", "deviation-fine", "angle-fine", "fine", "ascii-inch", "binary-meter"}
+    if public:
+        planned.update({"sdk-fine", "mcp-fine"})
+        guards = report.get("negative_guards", [])
+        require({row["name"] for row in guards} == {"stale-stamp", "foreign-lease", "uncalibrated-profile", "read-only-source"},
+                "public native guard evidence is incomplete")
+        for guard in guards:
+            response = guard["response"]
+            require(response["success"] is False and response["error"]["code"] == guard["expected_error"],
+                    "public native guard returned the wrong first error")
+            trace = [r for r in records if r.get("request_id") == response["request_id"]]
+            require(trace and not any(r.get("stage") == "stl-preferences-write" or r.get("call") == "IModelDoc2.SaveAs3" for r in trace),
+                    "a rejected public request entered native preference writes or export")
+    require({c["name"] for c in cases} == planned,
             "planned independent tolerance/encoding/unit cases are incomplete")
     by_name = {c["name"]: c for c in cases}
     for name in ("deviation-fine", "angle-fine", "fine"):
         require(by_name[name]["triangle_count"] > by_name["coarse"]["triangle_count"]
                 and by_name[name]["volume_relative_error"] < by_name["coarse"]["volume_relative_error"],
                 "retained output does not prove individual tolerance improvement: " + name)
-    for name in ("ascii-inch", "binary-meter"):
+    for name in (("ascii-inch", "binary-meter", "sdk-fine", "mcp-fine") if public else ("ascii-inch", "binary-meter")):
         require(by_name[name]["triangle_count"] == by_name["fine"]["triangle_count"]
                 and abs(by_name[name]["volume_mm3"]-by_name["fine"]["volume_mm3"])/by_name["fine"]["volume_mm3"] < 1e-4,
                 "retained unit/encoding variant does not preserve scaled geometry")
-    return dict(success=True, scope="independent-internal-stl-audit", source_commit=expected_head,
+    return dict(success=True, scope="independent-public-stl-audit" if public else "independent-internal-stl-audit", source_commit=expected_head,
                 report_sha256=hashlib.sha256(report_path.read_bytes()).hexdigest(),
                 native_source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
                 trace_sha256=hashlib.sha256((root / "daemon.stderr.log").read_bytes()).hexdigest(),
                 worker_pid=next(iter(workers)), cases=cases,
                 native_constants=report["cases"][0]["result"]["stl_preferences"]["constants"],
-                host=report["health"]["result"]["host"], public_acceptance=False, full_acceptance=False)
+                host=report["health"]["result"]["host"], public_acceptance=public, full_acceptance=False)
 
 
 def main():
@@ -115,8 +151,9 @@ def main():
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--expected-head", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--phase", choices=("internal", "public"), default="internal")
     args = parser.parse_args()
-    result = audit(args.evidence_root, args.expected_head)
+    result = audit(args.evidence_root, args.expected_head, phase=args.phase)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, allow_nan=False))
 

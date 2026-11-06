@@ -113,3 +113,33 @@ class StlPublicCIWiringTests(unittest.TestCase):
             self.assertIn(negative, source)
         self.assertIn('("sdk-fine", fine_options)', source)
         self.assertIn('("mcp-fine", fine_options)', source)
+
+
+@unittest.skipUnless(importlib.util.find_spec("mcp") is not None, "optional official MCP SDK")
+class StlActualMCPTransportTests(unittest.IsolatedAsyncioTestCase):
+    async def test_exact_stl_options_cross_real_stdio_without_native_lifecycle_side_effects(self):
+        from test_mcp import MCPStdioIntegrationTests
+        from swcli.stl_calibrated_profiles import PROFILES
+        fixture = MCPStdioIntegrationTests()
+        daemon, captured = fixture.fake_daemon()
+        self.addCleanup(daemon.server_close)
+        self.addCleanup(daemon.shutdown)
+        spec = importlib.util.spec_from_file_location("stl_public_transport", ROOT / "scripts/ci/verify-stl-options.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        context = dict(document_id="d-ab12cd", expected_update_stamp=161, lease_id="l-ab12cd34ef56")
+        with tempfile.TemporaryDirectory() as folder:
+            result, transport = await module.mcp_stdio_export("127.0.0.1:"+str(daemon.server_address[1]),
+                context, PROFILES["fine"], Path(folder)/"curved.stl", Path(folder)/"mcp.stderr.log")
+        self.assertTrue(result["success"])
+        self.assertEqual(transport["transport"], "official-sdk-stdio")
+        self.assertFalse(transport["is_error"])
+        self.assertEqual(len(captured), 1)
+        request = captured[0]
+        self.assertEqual(request["operation"], "document.export")
+        self.assertEqual(request["parameters"]["stl_options"], PROFILES["fine"])
+        self.assertIs(request["parameters"]["include_content"], False)
+        for field, value in context.items():
+            self.assertEqual(request[field], value)
+        self.assertEqual(request["session_id"], "stl-calibration")
+        self.assertEqual(request["timeout_ms"], 600000)

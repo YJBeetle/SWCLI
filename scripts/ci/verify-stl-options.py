@@ -85,6 +85,32 @@ def mesh_metrics(path, *, unit, expected_encoding):
                 volume_relative_error=abs(volume-expected_volume)/expected_volume)
 
 
+async def mcp_stdio_export(endpoint, context, options, path, error_log):
+    """Use the official MCP client against the installed public stdio server."""
+    from datetime import timedelta
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    parameters = StdioServerParameters(command=sys.executable, args=[
+        "-I", "-m", "swcli", "--endpoint", endpoint, "--session", "stl-calibration",
+        "--request-timeout", "600", "mcp", "serve"],
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+    with error_log.open("a", encoding="utf-8") as errors:
+        async with stdio_client(parameters, errlog=errors) as streams:
+            async with ClientSession(*streams, read_timeout_seconds=timedelta(seconds=610)) as session:
+                initialized = await session.initialize()
+                tools = [tool.name for tool in (await session.list_tools()).tools]
+                require(initialized.serverInfo.name == "swcli" and "execute" in tools,
+                        "installed public MCP server discovery failed")
+                reply = await session.call_tool("execute", {"operation": "document.export",
+                    "parameters": dict(output=str(path), strict=True, stl_options=options, include_content=False), **context})
+                payload = reply.structuredContent
+                require(isinstance(payload, dict) and reply.content
+                        and json.loads(reply.content[0].text) == payload,
+                        "MCP structured/text receipts differ")
+                return payload, dict(transport="official-sdk-stdio", server_name=initialized.serverInfo.name,
+                                     protocol_version=initialized.protocolVersion, tools=tools, is_error=reply.isError)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -160,13 +186,14 @@ def main(argv=None):
                 result = dict(response.require_result())
                 result["request_id"] = response.request_id
             else:
-                from swcli.mcp import DaemonBridge
-                response = DaemonBridge(endpoint=endpoint, session_id="stl-calibration", timeout_seconds=600).call(
-                    "execute", {"operation": "document.export", "parameters": dict(output=str(path), strict=True,
-                    stl_options=options, include_content=False), **context})
+                import asyncio
+                response, transport = asyncio.run(asyncio.wait_for(
+                    mcp_stdio_export(endpoint, context, options, path, root / "mcp.stderr.log"), timeout=615))
                 event["response"] = response
+                event["mcp_transport"] = transport
                 checkpoint()
-                require(response.get("success") is True, "first MCP STL failure: " + str(response))
+                require(response.get("success") is True and not transport["is_error"],
+                        "first MCP STL failure: " + str(response))
                 result = {**response["result"], "request_id": response["request_id"]}
             event.update(result=result, state="completed")
             documents[document] = result["document"]
@@ -286,6 +313,8 @@ def main(argv=None):
                 route = "sdk" if name == "sdk-fine" else "mcp" if name == "mcp-fine" else "cli"
                 result = cli_export(doc, path, options, route=route)
                 case["route"] = route
+                if route == "mcp":
+                    case["mcp_transport"] = report["events"][-1]["mcp_transport"]
                 case["result"] = result
                 if args.phase == "public":
                     require(result["stl_preferences"].get("execution_mode") == "public-isolated",

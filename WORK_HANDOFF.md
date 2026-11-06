@@ -1,5 +1,13 @@
 # STL export options handoff
 
+## Current status (2026-11-07)
+- Internal native qualification **passed and independently audited**: run `42272270166`, code head `d8df4a874cc0c8460cf8615964420e7e9c20ff7b`. Original native/dist ZIP digests, installed wheel source-byte match, native part save/reopen, actual STL triangle/geometry/unit/encoding and per-request 1 save / 16 setters / 96 preference reads all verified.
+- Exact six tuples are pinned in `src/swcli/stl_calibrated_profiles.py` and discoverable in schema `x-swcli-qualified-stl`. Enabled only for explicit exclusive native GitHub Windows 33.5.0 hidden owned workers and parts; others remain fail closed.
+- Separate public CLI/TCP SDK/real MCP stdio gate is prepared; public CI and independent public audit are still required. **Not yet public accepted / merge-ready.**
+- No permission/automatic-review blocker. No VM, DockerSW/MacSW, main, version or release changes. Coordinator owns final main integration.
+
+The sections below retain stage history and the two original failures; later status supersedes earlier proposals without rewriting original evidence.
+
 ## Scope / interface proposal (2026-11-07)
 - Worktree `/Users/YJBeetle/.codex/worktrees/swcli-stl-export-options/SWCLI`; branch `codex/swcli-stl-export-options`; clean baseline `3bda2c00489dde6a3d1e4521c548f751b1d1c197`.
 - No `.codegraph/` exists. No local VM use. No edits to DockerSW, MacSW, other worktrees, version or release gates.
@@ -69,3 +77,30 @@
 
 - Added per-set full preference snapshots (read-only diagnostics under the same mutex) so any remaining normalization/coupling can be attributed to its exact setter. The final exact vector barrier, restore verification and one-save rule remain unchanged; successful trace now requires 16 setter calls and 96 preference reads (8 original + 8 CAS + 64 intermediate + 8 final + 8 restored).
 - Complete local portable suite after public-policy and sample corrections: **1843 tests passed, 32 skips**; SDK typing/generator and workflow YAML checks passed. The public qualification data is still absent; this is not merge-ready/public accepted.
+
+## Third internal calibration dispatched after native-point correction
+- Commit/head `d8df4a874cc0c8460cf8615964420e7e9c20ff7b` pushed.
+- Run https://github.com/YJBeetle/SWCLI/actions/runs/42272270166 ; exact own branch, `stl_options_targeted=true`, `stl_options_public=false`, `native_full=false`; no defaults, permissions, other branches or runs changed.
+- This is one run for a changed sample/backend evidence head after two retained first-failure corrections; it is not a retry for queueing or a retry inside native code. Both failed original ZIPs/digests and first errors remain persistent.
+- Public/merge-ready status remains **not accepted** until exact native outputs and independent audit, then separate public gate evidence are complete.
+
+## Coordinator authorization refresh
+- Coordinator relayed explicit user authorization to continue branch implementation, Chinese commits/push, targeted native calibration and separate public acceptance; independently verified precise capabilities may be enabled on this branch for the public gate. Main integration remains coordinator-owned.
+- No authorization action is currently pending. No automatic approval rejection has occurred. No VM/DockerSW/MacSW action or credential output is needed. Continue the existing third run; do not repeat solved authorization steps or dispatch for normal queueing.
+
+## Internal native acceptance independently audited (exact bounded scope)
+- **Passed internal run:** https://github.com/YJBeetle/SWCLI/actions/runs/42272270166; head **`d8df4a874cc0c8460cf8615964420e7e9c20ff7b`**, all portable/package/native jobs succeeded. This is internal qualification, not default full/release or public acceptance.
+- Native original ZIP SHA256 **`900b434d209730dc351377e589512be1743953638e949d0e090431054a487617`**, dist ZIP **`d0b4d09f305787977e578af085043a49a2bae4baddd96c502ef6fe60312b390f`**, each matched GitHub digest. Installed wheel copies of six backend/catalog/worker files were byte-compared with git objects at the exact head; all matched.
+- Report SHA256 **`7a78f8e642e771e1737016ec0ff210c0f46b15eba1f4091750e9a5f9ff5989d3`**; trace **`754a2fe537a836d751f0377d308cff087d9be81b4ea3ceb118b1c69d31296099`**; saved/reopened native source **`07c0450bc74de4af0677f5e3210b4a06801dd764b3b8151e9f6dcb9998aa997a`**. Persistent original archives/unpacked files, wheel audit and independent audit JSON are under `evidence/ci/`.
+- Native Windows 33.5.0 / owned hidden host / one stable COM worker. Each of six exports has one SaveAs3, 16 setters with correct void/bool return values and 96 preference reads. Exact requested/readback vectors, exact restored vector, source stamp/configuration/state and saved-file digest all verified.
+- Curve results: coarse 48 triangles / max chord 0.3407421 mm / volume relative error 0.04507036; deviation-fine and fine 232 / 0.0151856 mm / 0.00199731; angle-fine 144 / 0.0380535 mm / 0.00506920. ASCII inch and binary meter both 232, scaled geometry matches fine.
+- Opened only those six exact parameter tuples on explicitly opted-in exclusive native GitHub Windows 33.5.0 part hosts, pinned to actual enum vector. Other values, cm/foot, assemblies, ordinary/shared/interactive/Wine/other hosts remain refused. Every request still verifies exact native readback; model-dependent normalization is never accepted as requested.
+- Qualification data in `src/swcli/stl_calibrated_profiles.py` was created only after the passing original artifact and independent audit. `x-swcli-qualified-stl` advertises exact profiles and conditional availability across protocol/SDK/MCP discovery.
+- Next required stage: installed public CLI/daemon/SDK/MCP gate with internal toggle removed, then independent audit. **Not yet public accepted or merge-ready.**
+
+- Strengthened the pending public gate to cross the actual official MCP SDK stdio transport (`initialize`, tool discovery, `execute`, matching structured/text receipts), not merely call `DaemonBridge` internally. A portable real-stdio test verifies the exact qualified tuple/lease/stamp/session reaches the TCP endpoint once and never starts/stops native lifecycle. Public-only CI step installs the existing declared MCP optional dependencies; default/internal/full gates are unchanged.
+
+## Public gate pre-dispatch checks complete
+- Complete local suite with real optional MCP/Pillow dependencies: **1845 passed, 26 platform skips**, 60.324 seconds.
+- Targeted STL / actual MCP stdio suite: **26 passed**. Native tuple data has a typed SDK consumer example; generator/strict typing/8 negative consumer cases passed. Installed CLI/schema/product skill and workflow YAML checks passed; `git diff --check` clean.
+- Public code/data remains bounded to internally audited six exact tuples and explicit exclusive Windows runner/part/native revision/enum mapping. Ready to commit/push this public-gate head and dispatch public-only once; no final/public acceptance claim yet.

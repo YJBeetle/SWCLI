@@ -336,3 +336,25 @@ class StlPublicQualificationPolicyTests(unittest.TestCase):
                 sys.modules, {"swcli.stl_calibrated_profiles": None}):
             with self.assertRaisesRegex(adapter.StlOptionsError, "no independently audited"):
                 adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes)
+
+
+class ActualQualifiedStlProfilesTests(unittest.TestCase):
+    def test_exact_native_profiles_and_provenance_are_available_to_schema_sdk_and_worker(self):
+        from swcli.stl_calibrated_profiles import QUALIFICATION, PROFILES, NATIVE_ENUMS
+        self.assertEqual(set(PROFILES), {"coarse", "deviation-fine", "angle-fine", "fine", "ascii-inch", "binary-meter"})
+        self.assertEqual(QUALIFICATION["source_commit"], "d8df4a874cc0c8460cf8615964420e7e9c20ff7b")
+        self.assertEqual(QUALIFICATION["solidworks_revision"], "33.5.0")
+        self.assertTrue(QUALIFICATION["internal_run"].endswith("/42272270166"))
+        for name in ("original_zip_sha256", "dist_zip_sha256", "report_sha256", "trace_sha256", "native_source_sha256"):
+            self.assertRegex(QUALIFICATION[name], r"^[0-9a-f]{64}$")
+        schema = OPERATION_CATALOG["document.export"].parameters["properties"]["stl_options"]
+        self.assertEqual(schema["x-swcli-qualified-stl"]["profiles"], PROFILES)
+        app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
+        with mock.patch.object(adapter, "_MODE", "public-isolated"):
+            for name, options in PROFILES.items():
+                validate_operation_request("document.export", dict(output="curved.stl", stl_options=options))
+                self.assertEqual(adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS), name)
+            for options in ({**PROFILES["fine"], "unit":"cm"}, {**PROFILES["fine"], "encoding":"ascii"},
+                            {**PROFILES["coarse"], "deviation_mm":0.5}):
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS)

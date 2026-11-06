@@ -1,7 +1,8 @@
-"""Internal isolated-runner STL preference transaction. Public use fails closed.
+"""Qualified isolated-runner STL preference transaction.
 
 A daemon-owned instance alone does not isolate per-user global preferences.
-Only explicitly opted-in disposable GitHub Windows runners qualify today.
+Ordinary/shared hosts remain closed; public tuples require audited data and
+an explicit disposable native Windows runner mode.
 """
 from contextlib import contextmanager
 import csv
@@ -79,7 +80,7 @@ def constants():
 
 def require_isolation(app):
     if _HOST is not app or _POISONED:
-        raise StlOptionsError("StlOptionsNotCalibrated", "STL options require an isolated calibration worker; public writes are disabled")
+        raise StlOptionsError("StlOptionsNotCalibrated", "ordinary public writes are disabled; STL options require an explicitly qualified isolated Windows runner worker")
     # Detect even non-ROT instances in other sessions. Never terminate them.
     probe = subprocess.run(["tasklist.exe", "/FI", "IMAGENAME eq SLDWORKS.exe", "/FO", "CSV", "/NH"],
                            capture_output=True, text=True, check=True, timeout=10)
