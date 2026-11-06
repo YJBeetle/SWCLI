@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：前两轮内部校准失败，原始产物均已核验；第三轮内部42272595406已失败：几何和尺寸写入通过，但校准SaveAs未刷新注册表；最小保存路由修复待校准；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
+当前状态：前两轮内部校准失败，原始产物均已核验；前三轮内部已失败且原件均保全；最小保存路由修复的内部运行42277961301已提交，目前queued；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
 
 ## 分支与范围
 
@@ -77,3 +77,9 @@
 - 第一真实失败是随后的clean-read `DocumentNotFound`：校准脚本直接调用底层SaveAs，绕过现有document.save-as处理器的refresh_key，原路径绑定被注册表正确拒绝。未完成same-value、重开/只读；assembly/drawing未运行。不能把这些阶段性结果当验收通过。
 - 最小修复：校准save-copy通过已有execute_operation(document.save-as)路由，显式document_id/lease/stamp，沿用handler的finally refresh_key；不忽略路径身份检查、不重绑/重获lease、不改注册表实现。新增测试证明SaveAs后同一ID与原lease仍有效且可继续document.dimension-format。
 - 当前定向36项通过。公开写入名单仍空，公开gate未触发。下一次只在该相关修复与Windows检查通过后执行必要内部验证。
+
+## 保存路由修复验证
+
+- 代码commit `6445c1375586d33eca13db0ffa0ee697c64ced89`；Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42277229594 （Python3.9、3.14、wheel）success。相关两项既有SaveAs/路径冲突回归也通过，日志 ../evidence/existing-save-routing-regression.log。
+- 唯一相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42277961301 ，head6445c1375586d33eca13db0ffa0ee697c64ced89，dimension_format_calibration=true、dimension_format_public=false、native_full=false。提交快照queued，正常排队，不是失败，不重复dispatch。
+- 低频跟踪 ../evidence/native-watch-42277961301.log（300秒间隔）；有完成结果时立即保存原产物并核首失败/完整成功链路。公开gate仍未运行，名单仍空，不merge-ready。当前无待审批动作。
