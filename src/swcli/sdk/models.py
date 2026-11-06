@@ -325,6 +325,102 @@ class DrawingStandardViewsResult(_DrawingStandardViewsResultRequired, total=Fals
     cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
 
 
+class AssemblyMateTargetsParameters(TypedDict):
+    components: List[str]
+
+
+class AssemblyMateTargetsResultSnapshotComponentsItemFacesItem(TypedDict):
+    index: int
+    surface_kind: Literal['plane', 'cylinder']
+    parameters: List[float]
+    area_mm2: float
+    sense: bool
+    reference_sha256: str
+
+
+class AssemblyMateTargetsResultSnapshotComponentsItem(TypedDict):
+    name: str
+    path: str
+    configuration: str
+    native_id: int
+    fixed: bool
+    suppression: Literal[2, 3]
+    source_update_stamp: int
+    source_modified: bool
+    transform: List[float]
+    faces: List[AssemblyMateTargetsResultSnapshotComponentsItemFacesItem]
+
+
+class AssemblyMateTargetsResultSnapshotMatesItem(TypedDict):
+    name: str
+    kind: Literal['coincident', 'concentric']
+    alignment: Literal['aligned', 'anti-aligned']
+    error_code: int
+    suppressed: bool
+    components: List[str]
+    references: List[str]
+    distance_mm: float
+    parallel_error: float
+
+
+class AssemblyMateTargetsResultSnapshot(TypedDict):
+    title: str
+    path: str
+    configuration: str
+    update_stamp: int
+    modified: bool
+    components: List[AssemblyMateTargetsResultSnapshotComponentsItem]
+    mates: List[AssemblyMateTargetsResultSnapshotMatesItem]
+
+
+class _AssemblyMateTargetsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['assembly.mate-targets']
+
+
+class AssemblyMateTargetsResult(_AssemblyMateTargetsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    snapshot: AssemblyMateTargetsResultSnapshot
+
+
+class AssemblyAddMateParametersTargetsItem(TypedDict):
+    component: str
+    face_index: int
+
+
+class AssemblyAddMateParameters(TypedDict):
+    kind: Literal['coincident', 'concentric']
+    alignment: Literal['aligned', 'anti-aligned']
+    targets: List[AssemblyAddMateParametersTargetsItem]
+    expected_value: AssemblyMateTargetsResultSnapshot
+
+
+class AssemblyAddMateResultMutation(TypedDict):
+    attempted: bool
+    creation_returned: bool
+    may_have_changed: bool
+
+
+class _AssemblyAddMateResultRequired(TypedDict):
+    ok: bool
+    action: Literal['assembly.add-mate']
+    mutation: AssemblyAddMateResultMutation
+    cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
+
+
+class AssemblyAddMateResult(_AssemblyAddMateResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    before: AssemblyMateTargetsResultSnapshot
+    snapshot: AssemblyMateTargetsResultSnapshot
+    mate: AssemblyMateTargetsResultSnapshotMatesItem
+
+
 class _AssemblyAddComponentParametersRequired(TypedDict):
     path: str
 
@@ -2191,12 +2287,6 @@ class FeatureFilletParameters(TypedDict):
     radius_mm: float
 
 
-class FeatureFilletResultMutation(TypedDict):
-    attempted: bool
-    creation_returned: bool
-    may_have_changed: bool
-
-
 class FeatureFilletResultFeature(TypedDict, total=False):
     name: str
     type: str
@@ -2223,7 +2313,7 @@ class FeatureFilletResult(_FeatureFilletResultRequired, total=False):
     warnings: List[DocumentCreateResultWarningsItem]
     error: DocumentCreateResultError
     radius_mm: float
-    mutation: FeatureFilletResultMutation
+    mutation: AssemblyAddMateResultMutation
     feature: FeatureFilletResultFeature
     verification: FeatureFilletResultVerification
     rebuilt: bool

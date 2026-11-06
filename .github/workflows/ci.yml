@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      assembly_mates_calibration:
+        description: Run only the owned standard-mate calibration on its development branch
+        required: false
+        default: false
+        type: boolean
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -479,6 +484,206 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+
+  assembly-mates-calibration:
+    name: Owned assembly mate calibration (not full acceptance)
+    needs: [test, package]
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/swcli-assembly-mates' && inputs.assembly_mates_calibration }}
+    runs-on: windows-2025
+    timeout-minutes: 120
+    concurrency:
+      group: swcli-assembly-mates-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
+      SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Download built SWCLI distributions
+        id: native_distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-dist
+          path: ${{ runner.temp }}/swcli-dist
+          digest-mismatch: error
+
+      - name: Initialize private paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-hosted-media" >> $env:GITHUB_ENV
+          "PRIVATE_ROOT=$env:RUNNER_TEMP\swcli-private-runtime" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
+          "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+
+      - name: Measure disposable runner disk
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      # Installation snapshots are disabled until fresh-runner native core
+      # registration and equation behavior are proven equivalent to installation.
+      - name: Free disposable runner disk for installation
+        shell: powershell
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"${{ inputs.vfs_cache_gib || '8' }}" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'auto' }}" -MinFreeGiB $targetGiB
+
+      - name: Measure disk after runner cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-media-dependencies.ps1
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
+
+      - name: Prepare protected Google Drive configuration
+        id: private_config
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, [Convert]::FromBase64String($env:RCLONE_CONFIG_B64))
+          if (-not (rclone --config $env:RCLONE_CONFIG_FILE listremotes | Select-String -SimpleMatch "gdrive:" -Quiet)) {
+            throw "gdrive: remote is unavailable"
+          }
+
+      - name: Stream Google Drive through WinFsp
+        id: drive_mount
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
+        shell: powershell
+        run: |
+          scripts/ci/windows/probe-imdisk.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
+
+      - name: Fetch private smoke-test runtime
+        id: private_fetch
+        shell: powershell
+        run: |
+          $assets = "$env:PRIVATE_ROOT\assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          rclone --config $env:RCLONE_CONFIG_FILE copy "gdrive:$env:SW_ASSETS_PATH" $assets `
+            --include "/SolidWorks_Flexnet_Server/**" `
+            --include "/SOLIDWORKS Corp/SOLIDWORKS/**" `
+            --include "/sw2025_network_serials_licensing.reg" `
+            --exclude "*" `
+            --transfers 4 `
+            --checkers 8 `
+            --log-level NOTICE
+          foreach ($required in @(
+            "$assets\sw2025_network_serials_licensing.reg",
+            "$assets\SolidWorks_Flexnet_Server",
+            "$assets\SOLIDWORKS Corp\SOLIDWORKS"
+          )) {
+            if (-not (Test-Path -LiteralPath $required)) { throw "Missing private test input: $required" }
+          }
+
+      - name: Install native SOLIDWORKS
+        id: native_install
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-solidworks.ps1 `
+            -MediaRoot $env:SW_MEDIA_ROOT `
+            -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
+
+      - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
+        shell: powershell
+        run: |
+          scripts/ci/windows/prepare-test-runtime.ps1 `
+            -AssetsRoot "$env:PRIVATE_ROOT\assets" `
+            -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Install built SWCLI wheel
+        id: client_install
+        shell: powershell
+        run: |
+          $wheels = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\swcli-dist" -Filter *.whl -File)
+          if ($wheels.Count -ne 1) { throw "Expected exactly one SWCLI wheel from the package job" }
+          python --version
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          python -m pip install $wheels[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
+
+      - name: Calibrate owned standard mates with strict native budgets
+        id: assembly_mates
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/run-assembly-mates-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\assembly-mates-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Mate calibration failed; preserve the original report and trace" }
+
+      - name: Measure streamed data and remaining disk
+        if: always()
+        shell: powershell
+        run: |
+          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-smoke.json"
+          $cacheBytes = (Get-ChildItem $env:RCLONE_CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue |
+            Measure-Object Length -Sum).Sum
+          if ($null -eq $cacheBytes) { $cacheBytes = 0 }
+          "Rclone VFS cache: {0:N2} GiB" -f ($cacheBytes / 1GB) |
+            Tee-Object -FilePath "$env:PROBE_ROOT\cache-size.txt"
+
+      - name: Upload private installer logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-mates-install-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}\swcli-private-runtime\install-logs
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove private test inputs and stop services
+        id: native_cleanup
+        if: always()
+        shell: powershell
+        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+
+      - name: Upload SWCLI-generated smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-assembly-mates-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\swcli-native-smoke
+            ${{ runner.temp }}\swcli-hosted-media\*.json
+            ${{ runner.temp }}\swcli-hosted-media\cache-size.txt
+            ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
+          if-no-files-found: warn
+          retention-days: 14
 
   release:
     name: Publish original verified version-tag artifacts

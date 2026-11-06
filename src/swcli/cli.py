@@ -578,6 +578,19 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(component_parser)
     component_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    targets_parser = assembly_commands.add_parser("mate-targets", help="observe two top-level parts; fixed anchor first")
+    targets_parser.add_argument("components", nargs=2)
+    add_document_selector(targets_parser)
+    targets_parser.add_argument("--json", action="store_true", dest="as_json")
+    mate_parser = assembly_commands.add_parser("add-mate", help="create a calibrated standard mate using a complete CAS snapshot")
+    mate_parser.add_argument("--kind", choices=("coincident", "concentric"), required=True)
+    mate_parser.add_argument("--alignment", choices=("aligned", "anti-aligned"), required=True)
+    mate_parser.add_argument("--targets", type=json.loads, required=True, help="JSON array of two component/face_index objects")
+    mate_parser.add_argument("--expected-value", type=json.loads, required=True, help="complete snapshot JSON from mate-targets")
+    add_document_selector(mate_parser)
+    add_lease_token(mate_parser)
+    mate_parser.add_argument("--json", action="store_true", dest="as_json")
+
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
     box_parser = part_commands.add_parser(
@@ -1217,6 +1230,13 @@ def _typed_operation(
             args.lease_id,
         )
     if args.command == "assembly":
+        if args.assembly_command == "mate-targets":
+            return ("assembly.mate-targets", {"components": args.components}, args.as_json,
+                    args.document_id, args.expected_update_stamp, None)
+        if args.assembly_command == "add-mate":
+            return ("assembly.add-mate", {"kind": args.kind, "alignment": args.alignment,
+                    "targets": args.targets, "expected_value": args.expected_value}, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
         return (
             "assembly.add-component",
             {

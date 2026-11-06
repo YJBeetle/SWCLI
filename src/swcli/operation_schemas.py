@@ -8,6 +8,7 @@ from math import isfinite
 from re import search
 from typing import Any, Dict, Optional
 
+from .assembly_mates import COMPONENT_NAMES, SNAPSHOT, TARGET
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
@@ -131,6 +132,19 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {"source_document_id": _string(pattern="^d-[a-z0-9]{6}$"), "configuration": _string(minLength=1)},
         required=("source_document_id", "configuration"), temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "assembly.mate-targets": _operation(
+        "assembly.mate-targets", {"components": COMPONENT_NAMES},
+        required=("components",), **_DOCUMENT_READ_CONTEXT,
+    ),
+    "assembly.add-mate": _operation(
+        "assembly.add-mate", {
+            "kind": {"type": "string", "enum": ["coincident", "concentric"]},
+            "alignment": {"type": "string", "enum": ["aligned", "anti-aligned"]},
+            "targets": {"type": "array", "items": TARGET, "minItems": 2, "maxItems": 2},
+            "expected_value": SNAPSHOT,
+        }, required=("kind", "alignment", "targets", "expected_value"),
+        temporary_activation=True, document_id="optional", expected_update_stamp="required", lease_id="optional",
     ),
     "assembly.add-component": _operation(
         "assembly.add-component",
@@ -604,6 +618,15 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation in ("assembly.mate-targets", "assembly.add-mate"):
+        names = parameters["components"] if operation == "assembly.mate-targets" else [t["component"] for t in parameters["targets"]]
+        if len(set(names)) != 2:
+            raise ValueError("mate targets require two distinct component names")
+        if operation == "assembly.add-mate":
+            if names != [c["name"] for c in parameters["expected_value"]["components"]]:
+                raise ValueError("mate target order differs from expected snapshot")
+            if expected_update_stamp != parameters["expected_value"]["update_stamp"]:
+                raise ValueError("expected_update_stamp differs from expected snapshot")
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

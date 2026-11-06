@@ -7,6 +7,7 @@ from math import isclose, dist
 from .polygon_geometry import TOLERANCE_MM, validate_polygon
 from typing import Any, Dict
 
+from .assembly_mates import SNAPSHOT, MATE, MUTATION
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_annotations import ANNOTATION_FIELDS
@@ -314,6 +315,9 @@ _RESULT_FIELDS = {
         "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))},
     }, ("document", "source_document_id", "source", "sheet", "views", "mutation", "rebuilt",
         "verification", "diagnostics", "cleanup_errors")),
+    "assembly.mate-targets": ({"snapshot": SNAPSHOT}, ("document", "snapshot")),
+    "assembly.add-mate": ({"before": SNAPSHOT, "snapshot": SNAPSHOT, "mate": MATE, "mutation": MUTATION, "cleanup_errors": {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))}},
+                          ("document", "before", "snapshot", "mate", "mutation", "cleanup_errors")),
     "assembly.add-component": (
         {
             "inserted": {"const": True},
@@ -1561,6 +1565,17 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "then": {"required": list(success_required), "not": {"required": ["error"]}},
         "else": {"required": ["error"]},
     }
+    if name == "assembly.add-mate":
+        schema["required"].extend(["mutation", "cleanup_errors"])
+        healthy = {"error_code": {"const": 0}, "suppressed": {"const": False},
+                   "distance_mm": {"type": "number", "minimum": 0, "maximum": 1e-5},
+                   "parallel_error": {"type": "number", "minimum": 0, "maximum": 1e-8}}
+        schema["then"]["properties"] = {
+            "mutation": {"properties": {key: {"const": True} for key in MUTATION["properties"]}},
+            "mate": {"properties": healthy},
+            "snapshot": {"properties": {"mates": {"items": {"properties": healthy}}}},
+            "cleanup_errors": {"maxItems": 0},
+        }
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {

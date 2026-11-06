@@ -35,6 +35,7 @@ from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
 )
+from ..hosts.windows_assembly_mates import read_mate_targets_windows, add_mate_windows
 from ..hosts.windows_assemblies import (
     create_assembly_windows_with_handle,
     add_part_component_windows,
@@ -217,6 +218,21 @@ def drawing_standard_views(context: OperationContext, values: Dict[str, Any]) ->
         result.setdefault("error", {"type": "DocumentRegistrationFailed", "message": str(exc)})
     result["source_document_id"] = source.document_id
     return result
+
+
+@_register_handler
+def assembly_mate_targets(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_mate_targets_windows(app=context.app, document=context.entry.document, **values)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def assembly_add_mate(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    return add_mate_windows(app=context.app, document=context.entry.document, **values)
 
 
 @_register_handler

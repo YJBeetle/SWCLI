@@ -46,6 +46,23 @@ class AssemblyOperations:
     def __init__(self, client: Dispatcher) -> None:
         self._client = client
 
+    def mate_targets(self, *, components: List[str], document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.AssemblyMateTargetsResult]:
+        """assembly.mate-targets; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['components'] = components
+        return cast("Response[models.AssemblyMateTargetsResult]", self._client._execute('assembly.mate-targets', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def add_mate(self, *, kind: Literal['coincident', 'concentric'], alignment: Literal['aligned', 'anti-aligned'], targets: List[models.AssemblyAddMateParametersTargetsItem], expected_value: models.AssemblyMateTargetsResultSnapshot, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyAddMateResult]:
+        """assembly.add-mate; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['kind'] = kind
+        parameters['alignment'] = alignment
+        parameters['targets'] = targets
+        parameters['expected_value'] = expected_value
+        return cast("Response[models.AssemblyAddMateResult]", self._client._execute('assembly.add-mate', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def add_component(self, *, path: str, configuration: Union[str, Unset] = UNSET, x_mm: Union[float, Unset] = UNSET, y_mm: Union[float, Unset] = UNSET, z_mm: Union[float, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyAddComponentResult]:
         """assembly.add-component; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
