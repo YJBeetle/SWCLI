@@ -62,3 +62,8 @@
 - 审查修复三：CI 首先执行无机密 dispatch-policy；错误分支、font+native_full、未选择字体入口的 public-notes 都明确失败，合法请求只进入一个验证路由，避免全部跳过的绿色运行。
 - 字体专项 64 项通过；完整便携回归 1,883 项通过、32 项跳过、57.981 秒，日志 `artifacts/font-scopes/portable-postreview-final.log`；SDK 生成检查与 actionlint 通过。
 - 下一步在修复后的精确 head 执行 public-notes 门禁，当前仍非 merge-ready；首失败不能升级为公开验收。
+
+
+## 本批收口快照
+
+修复实现 head `15d32ceea38b123c3cd3503b34d86663a65f5f3c` 已推送；[公开 run 42279469524](https://github.com/YJBeetle/SWCLI/actions/runs/42279469524) 精确匹配该 head。最后一次快照为 in_progress，dispatch-policy 与 Windows 字体便携检查通过，当前在 runner 磁盘清理，CAD/公开 CLI/observer 均尚未开始。按用户收口指令停止本地持续监看，保存 `artifacts/font-scopes/run-42279469524-handoff-snapshot.json`；不取消远程运行、不重复派发。公开验收仍待完成原件，当前尚非 merge-ready。
