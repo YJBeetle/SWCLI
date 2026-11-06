@@ -128,6 +128,45 @@ class TopologyCalibrationTests(unittest.TestCase):
             self.assertEqual(receipt["native_timeout_seconds"], 600)
             self.assertTrue((output/"internal-calibration.stderr.log").is_file())
 
+    def test_public_runner_requires_its_owned_daemon_at_the_same_endpoint(self):
+        import json
+        from swcli.cli import build_parser
+
+        for reported_port in (45191, 18495):
+            with self.subTest(reported_port=reported_port), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary) / "new"
+                endpoint = "127.0.0.1:45191"
+                daemon = mock.Mock(returncode=0)
+                daemon.poll.return_value = None
+
+                def start(command, *, stdout, **_):
+                    args = build_parser().parse_args(command[4:])
+                    self.assertEqual((args.host, args.port), ("127.0.0.1", 45191))
+                    receipt = {"action": "daemon.serve", "ok": True,
+                               "endpoint": f"127.0.0.1:{reported_port}"}
+                    stdout.write((json.dumps(receipt) + "\n").encode())
+                    stdout.flush()
+                    return daemon
+
+                with mock.patch.object(runner.subprocess, "Popen", side_effect=start) as launch, \
+                     mock.patch.object(runner.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+                    result = runner.main(["--output-dir", str(output), "--swconst", "official.tlb"])
+
+                launch.assert_called_once()
+                commands = [call.args[0] for call in run.call_args_list]
+                if reported_port == 45191:
+                    self.assertEqual(result, 0)
+                    self.assertEqual(len(commands), 3)
+                    for command in commands[1:]:
+                        self.assertEqual(command[command.index("--endpoint") + 1], endpoint)
+                    daemon.wait.assert_called_once_with(timeout=30)
+                else:
+                    self.assertEqual(result, 1)
+                    self.assertEqual(len(commands), 1)
+                    daemon.wait.assert_not_called()
+                    report = json.loads((output / "targeted.json").read_text())
+                    self.assertIn("did not confirm " + endpoint, report["failure"]["message"])
+
     def test_targeted_is_manual_default_off_branch_guarded_and_preserves_default_gates(self):
         text = (ROOT/".github/workflows/ci.yml").read_text()
         inputs = text.split("      native_topology_targeted:", 1)[1].split("      native_full:", 1)[0]

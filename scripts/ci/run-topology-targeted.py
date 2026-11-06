@@ -41,21 +41,34 @@ def main(argv=None):
                 item["error"] = {"type": type(error).__name__, "message": str(error)}
                 raise
             finally: persist()
-    endpoint = "127.0.0.1:45191"
+    host, port = "127.0.0.1", 45191
+    endpoint = f"{host}:{port}"
+    daemon_ready = False
     try:
         command("internal-calibration", [sys.executable, "-I", str(scripts/"verify-topology-calibration.py"),
             "--output-dir", str(root/"internal"), "--swconst", str(args.swconst)], GROUP_TIMEOUT)
         # A separate public group starts one owned host exactly once. No restart
         # inside either group, including after any failure or timeout.
         with (root/"daemon.stdout.log").open("wb") as stdout, (root/"daemon.stderr.log").open("wb") as stderr:
-            daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "--endpoint", endpoint,
-                "daemon", "serve", "--startup-timeout", "120"], stdout=stdout, stderr=stderr,
+            daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve",
+                "--host", host, "--port", str(port), "--startup-timeout", "120"], stdout=stdout, stderr=stderr,
                 env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})
             deadline = time.monotonic() + 180
             while True:
                 if daemon.poll() is not None:
                     raise RuntimeError("targeted daemon exited during startup")
-                if '"action": "daemon.serve"' in (root/"daemon.stdout.log").read_text(errors="replace"):
+                for line in (root/"daemon.stdout.log").read_text(encoding="utf-8", errors="replace").splitlines():
+                    try:
+                        message = json.loads(line)
+                    except ValueError:
+                        continue
+                    if not isinstance(message, dict) or message.get("action") != "daemon.serve":
+                        continue
+                    if message.get("ok") is not True or message.get("endpoint") != endpoint:
+                        raise RuntimeError(f"targeted daemon did not confirm {endpoint}: {message!r}")
+                    daemon_ready = True
+                    break
+                if daemon_ready:
                     break
                 if time.monotonic() >= deadline:
                     raise TimeoutError("targeted daemon startup exceeded 180 seconds")
@@ -68,7 +81,7 @@ def main(argv=None):
     except BaseException as error:
         report["failure"] = {"type": type(error).__name__, "message": str(error)}
     finally:
-        if daemon is not None and daemon.poll() is None:
+        if daemon_ready and daemon.poll() is None:
             try:
                 command("shutdown", [sys.executable, "-I", "-m", "swcli", "--endpoint", endpoint,
                     "--request-timeout", "30", "daemon", "stop", "--json"], 45)

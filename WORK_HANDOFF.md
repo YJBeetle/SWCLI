@@ -97,3 +97,16 @@
 - 最小修复只在 calibration fixture：`notch_split_faces` 用 +Y 精确方向及原侧面 y=15 的平面偏移选择生成夹具，保留恰好2面的断言，并增加各170 mm²断言。槽底面 y=9 被排除；不使用最近几何、不修改持久引用解析/公开接口，不放宽任何原断言，不新增功能/字段/计划。
 - 验证：24 targeted/CI wiring tests PASS；使用该原始 report 的真实10面列表离线复核，旧选择器确为3，新选择器恰为原两面。日志 `.task-evidence/portable-notch-fix/targeted.log`；原件离线复核不运行任何 CAD，也不重试原生操作。
 - 用户明确继续当前系列实际失败处理；无待授权动作。只在此确切修复提交后对新 head 一次必要 targeted CI，正常运行即记录链接并结束本轮，不持续盯守。review 和最终合 main 由统筹本人负责，正式发布前用户确认。当前仍非 merge-ready：notch merge/save-reopen 与公开 native gate 尚待新证据。
+
+## 阶段 13：notch 最小修复已推送并启动必要验收
+- 精确 tip：`a62663accc8f5ec8753081a53c37145c01d9033a`（fix: 按原侧面平面位置识别拓扑分裂夹具），已 push `codex/swcli-topology-references`；24 targeted/wiring tests PASS。公开实现、契约、原生断言未放宽；只修夹具平面筛选并加强面积检查。
+- 唯一新 head run：<https://github.com/YJBeetle/SWCLI/actions/runs/42301645599>，run/head 已读回匹配；`native_topology_targeted=true` / `native_full=false`，其余默认。当前一次快照 status=in_progress，conclusion=pending。
+- 回执 `.task-evidence/dispatch/notch-fix-request.json`，状态 `.task-evidence/dispatch/notch-fix-snapshot.json`。原 run 42278901394 的首因、完整 hole 内部证据和原 ZIP/digest 已保留；无无差异重跑、CAD API 重试/回滚或组内重启。
+- 按最新用户要求，新 run 正常运行后本轮结束等待，停止持续轮询；后续原件可用时由统筹分次跟进。当前不是 merge-ready：notch merge/最终重开及公开 native CLI/SDK/MCP 尚待该 run 证明。不扩新功能/计划，不创建 CI automation，不碰 main/DockerSW/MacSW；正式发布前用户确认。
+
+## 阶段 14：内部两场景已验收，修正公开 runner 绑定地址
+
+- [42301645599](https://github.com/YJBeetle/SWCLI/actions/runs/42301645599) 的 head 为 `a62663accc8f5ec8753081a53c37145c01d9033a`。Windows Python 3.9/3.14 与 wheel 构建通过。原 native ZIP artifact ID `13545456690`，SHA256 为 `c6046b83e11543932ea8115b953046fd0b98b18ed9be0aca14d3c82a462ebfff`，已核 GitHub digest、head，保留于 `.task-evidence/ci-42301645599/`，含原日志和 `first-failure.json`。
+- hole 与 notch 的内部原生校准均通过，清理无错误。已独立核对两组修改态及最终态共四个 SLDPRT 哈希，以及只读重开后的 12000 mm³ 体积。hole 删除前 OK 且原生身份一致，删除后 Invalid=1/NULL。notch 的分裂、合并、保存重开和持续拒绝均通过。
+- 公开组首个 `daemon status` 连接 `127.0.0.1:45191` 超时。原启动回执显示 daemon 实际监听 `127.0.0.1:18495`，因为 runner 把客户端的全局 `--endpoint` 当作服务端绑定参数。后续停止命令也使用错端口，进程等待超时是次生结果。公开组尚未执行引用用例。
+- 修复只在 runner 和回归测试。使用 `daemon serve --host 127.0.0.1 --port 45191`，收到同端口且成功的服务启动回执后才运行公开组，并以该回执约束清理时发送的停止命令。25 项针对性检查通过，覆盖成功端口贯通与错误端口时禁止进入公开组。产品、并发策略及 CAD 验收断言不变。
