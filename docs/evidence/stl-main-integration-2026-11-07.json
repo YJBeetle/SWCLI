@@ -1,0 +1,73 @@
+{
+  "source_head": "f22b7a1d7a2963a62d432879a53233a999995ceb",
+  "integration_base": "be82ac29576d6cb08327e27108ef6676adebb4cd",
+  "public_run": 42302254750,
+  "artifact_verified": {
+    "native": {
+      "id": 13545532008,
+      "digest": "sha256:dbed6adca425dbc853e4b263606aa5bd51e639ff7033f73dd91b30855d437564"
+    },
+    "dist": {
+      "id": 13544477442,
+      "digest": "sha256:6e37ebf7b913a1a451a4ec34f7989298ea0d6008535bdf473afa43171f474a44"
+    }
+  },
+  "report_sha256": "435eab97bb665acbb1f0e38536666e2d4e3f1c7c24b3002dc8c6cb7fc5b67ae9",
+  "trace_sha256": "2064dd0d1c76fc3880686efa8bb905d6fecb9c1c3d4eeb848afa2171493fd15e",
+  "native_source_sha256": "ce725a6e338dbbbbaca893d97407ae79a38fe23691ea3a9568f14f18286fe498",
+  "public_acceptance": true,
+  "host": {
+    "revision": "33.5.0",
+    "solidworks_revision": "33.5.0",
+    "language": "english",
+    "process_id": 2316,
+    "visible": false,
+    "startup_wait_seconds": 0.42200000000002547,
+    "owned_by_daemon": true,
+    "shared_interactive": false,
+    "platform": "windows"
+  },
+  "original_wheel_source_files_verified": 96,
+  "public_outputs": [
+    {
+      "name": "coarse",
+      "triangle_count": 48
+    },
+    {
+      "name": "deviation-fine",
+      "triangle_count": 232
+    },
+    {
+      "name": "angle-fine",
+      "triangle_count": 144
+    },
+    {
+      "name": "fine",
+      "triangle_count": 232
+    },
+    {
+      "name": "ascii-inch",
+      "triangle_count": 232
+    },
+    {
+      "name": "binary-meter",
+      "triangle_count": 232
+    },
+    {
+      "name": "sdk-fine",
+      "triangle_count": 232
+    },
+    {
+      "name": "mcp-fine",
+      "triangle_count": 232
+    }
+  ],
+  "release_eligible": false,
+  "integration_portable": {
+    "ran": 2003,
+    "passed": 1970,
+    "skipped": 33,
+    "log_sha256": "61a8ddba668028e1e20e81bd4f24e5a36216e2a16d78769c83e75208693c8609"
+  },
+  "sdk_check": "passed"
+}

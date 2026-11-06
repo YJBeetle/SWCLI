@@ -3,6 +3,8 @@ import json
 import os
 
 FEATURE_REFS = {
+    "stl_options_public": "refs/heads/codex/swcli-stl-export-options",
+    "stl_options_targeted": "refs/heads/codex/swcli-stl-export-options",
     "calibrate_font_scopes": "refs/heads/codex/docprops-font-scopes",
     "calibrate_tolerances": "refs/heads/codex/docprops-tolerances",
     "accept_tolerances": "refs/heads/codex/docprops-tolerances",

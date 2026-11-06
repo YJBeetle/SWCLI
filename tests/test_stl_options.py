@@ -1,0 +1,447 @@
+"""Portable failure/contract coverage; never substitutes for native evidence."""
+from contextlib import ExitStack
+from copy import deepcopy
+import math
+from pathlib import Path
+import sys
+from types import ModuleType, SimpleNamespace
+import unittest
+from unittest import mock
+from jsonschema import Draft202012Validator
+from swcli.cli import build_parser, _typed_operation
+from swcli.daemon.operations import execute_operation
+from swcli.hosts import windows_stl_options as adapter
+from swcli.operation_schemas import OPERATION_CATALOG, validate_operation_request
+from swcli.sdk import Client
+
+OPTIONS = dict(encoding="binary", unit="mm", deviation_mm=0.1, angle_degrees=10)
+
+class StlOptionsContractTests(unittest.TestCase):
+    def test_cli_schema_sdk_and_mcp_catalog_share_options(self):
+        args = build_parser().parse_args(["document", "export", "curved.stl", "--stl-encoding", "binary",
+            "--stl-unit", "mm", "--stl-deviation-mm", "0.1", "--stl-angle-degrees", "10"])
+        operation, parameters, *_ = _typed_operation(args)
+        self.assertEqual(parameters["stl_options"], OPTIONS)
+        self.assertEqual(validate_operation_request(operation, parameters), parameters)
+        client = Client()
+        with mock.patch.object(client, "_execute", return_value=None) as call:
+            client.document.export(output="curved.stl", stl_options=OPTIONS)
+        self.assertEqual(call.call_args.args[1]["stl_options"], OPTIONS)
+        schema = OPERATION_CATALOG[operation].parameters
+        self.assertTrue(Draft202012Validator(schema).is_valid(parameters))
+        import swcli.mcp as mcp
+        bridge = mcp.DaemonBridge()
+        envelope = {"api_version": "swcli/v1", "request_id": "stl-test", "duration_ms": 0, "success": False,
+                    "error": {"code": "StlOptionsNotCalibrated", "message": "closed"}}
+        # Explicit metadata-only content avoids the unrelated discovery call.
+        with mock.patch.object(mcp, "call_daemon", return_value=envelope) as forwarded:
+            reply = bridge.call("execute", {"operation": operation,
+                "parameters": {**parameters, "include_content": False}, "request_id": "stl-test",
+                "document_id": "d-ab12cd", "expected_update_stamp": 7, "lease_id": "l-ab12cd34ef56"})
+        self.assertEqual(reply["error"]["code"], "StlOptionsNotCalibrated")
+        self.assertEqual(forwarded.call_args.args[1]["stl_options"], OPTIONS)
+        self.assertEqual(forwarded.call_args.kwargs["expected_update_stamp"], 7)
+        self.assertEqual(forwarded.call_args.kwargs["lease_id"], "l-ab12cd34ef56")
+
+    def test_closed_complete_finite_bounded_stl_only_contract(self):
+        invalid = [{}, {**OPTIONS, "unknown": 1}, {**OPTIONS, "unit": "yard"},
+            {**OPTIONS, "deviation_mm": True}, {**OPTIONS, "deviation_mm": 0},
+            {**OPTIONS, "deviation_mm": 1.01}, {**OPTIONS, "angle_degrees": 0.49},
+            {**OPTIONS, "angle_degrees": float("nan")}, {**OPTIONS, "angle_degrees": float("inf")}]
+        for options in invalid:
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                validate_operation_request("document.export", dict(output="a.stl", stl_options=options))
+        for suffix in ("glb", "3mf", "amf", "step", "pdf"):
+            values = dict(output="a." + suffix, stl_options=OPTIONS)
+            with self.assertRaises(ValueError):
+                validate_operation_request("document.export", values)
+            self.assertFalse(Draft202012Validator(OPERATION_CATALOG["document.export"].parameters).is_valid(values))
+
+    def test_missing_context_and_public_calls_fail_before_com(self):
+        app = SimpleNamespace()
+        with self.assertRaisesRegex(ValueError, "explicit"):
+            execute_operation(app, "document.export", dict(output="a.stl", stl_options=OPTIONS))
+        with mock.patch.object(adapter, "_HOST", None):
+            with self.assertRaisesRegex(adapter.StlOptionsError, "public writes are disabled"):
+                execute_operation(app, "document.export", dict(output="a.stl", stl_options=OPTIONS),
+                    documents=object(), document_id="d-ab12cd", expected_update_stamp=1, lease_id="l-ab12cd34ef56")
+
+class StlPreferenceTransactionTests(unittest.TestCase):
+    def setUp(self):
+        self.codes = {name: i for i, name in enumerate(adapter.PREFERENCES)}
+        self.codes.update({name: i for i, name in enumerate(adapter.UNIT_NAMES.values())})
+        self.codes["swSTLQuality_Custom"] = 3
+        self.state = {name: (False if kind == "Toggle" else 2 if kind == "IntegerValue" else 0.25)
+                      for name, kind in adapter.PREFERENCES.items()}
+        self.original = deepcopy(self.state)
+        self.calls = []
+        self.write_failure = self.restore_failure = None
+        self.writes = 0
+        app = SimpleNamespace()
+        for kind in ("Toggle", "IntegerValue", "DoubleValue"):
+            def getter(code, kind=kind):
+                name = next(n for n, k in adapter.PREFERENCES.items() if k == kind and self.codes[n] == code)
+                self.calls.append(("read", name))
+                return self.state[name]
+            def setter(code, value, kind=kind):
+                name = next(n for n, k in adapter.PREFERENCES.items() if k == kind and self.codes[n] == code)
+                self.calls.append(("write", name, value))
+                self.writes += 1
+                self.state[name] = value  # COM may mutate even when it raises.
+                if self.writes == self.write_failure or (self.writes > 8 and name == self.restore_failure):
+                    raise RuntimeError("setter original error")
+                return None if kind == "Toggle" else True
+            setattr(app, "GetUserPreference" + kind, getter)
+            setattr(app, "SetUserPreference" + kind, setter)
+        self.app = app
+        self.evidence = {}
+        self.stack = ExitStack()
+        self.addCleanup(self.stack.close)
+        self.stack.enter_context(mock.patch.object(adapter, "require_isolation"))
+        self.stack.enter_context(mock.patch.object(adapter, "constants", return_value=self.codes))
+        self.stack.enter_context(mock.patch.object(adapter, "_POISONED", False))
+        self.mutex = SimpleNamespace(CreateMutex=mock.Mock(return_value=7), WaitForSingleObject=mock.Mock(return_value=0),
+            ReleaseMutex=mock.Mock(), WAIT_OBJECT_0=0, WAIT_ABANDONED=128)
+        self.stack.enter_context(mock.patch.dict(sys.modules, {"win32event": self.mutex,
+            "win32api": SimpleNamespace(CloseHandle=mock.Mock())}))
+
+    def test_applies_real_stl_values_then_restores_whole_vector(self):
+        with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
+            self.assertTrue(self.state["swSTLBinaryFormat"])
+            self.assertEqual(self.state["swExportStlUnits"], self.codes["swMM"])
+            self.assertEqual(self.state["swSTLDeviation"], 0.0001)
+            self.assertEqual(self.state["swSTLAngleTolerance"], math.radians(10))
+        self.assertTrue(self.evidence["restored"])
+        self.assertEqual(self.state, self.original)
+        self.assertEqual(self.writes, 16)
+
+    def test_native_failure_is_preserved_even_if_restore_also_fails(self):
+        self.restore_failure = "swSTLQuality"
+        with self.assertRaisesRegex(ValueError, "first native failure"):
+            with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
+                raise ValueError("first native failure")
+        self.assertFalse(self.evidence["restored"])
+        self.assertTrue(self.evidence["cleanup_errors"])
+        self.assertTrue(adapter._POISONED)
+
+    def test_partial_setter_failure_restores_and_does_not_export_or_retry(self):
+        self.write_failure = 3
+        with self.assertRaisesRegex(RuntimeError, "setter original error"):
+            with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
+                self.fail("export must not execute")
+        self.assertTrue(self.evidence["restored"])
+        self.assertEqual(self.writes, 11)
+
+    def test_native_deviation_normalization_is_refused_before_export_and_restored(self):
+        original = self.app.SetUserPreferenceDoubleValue
+        def normalizes(code, value):
+            result = original(code, value)
+            if code == self.codes["swSTLDeviation"] and value == 0.0005:
+                self.state["swSTLDeviation"] = 0.0005335936864527374
+            return result
+        self.app.SetUserPreferenceDoubleValue = normalizes
+        with self.assertRaisesRegex(adapter.StlOptionsError, "exact requested"):
+            with adapter.stl_preferences(self.app, {**OPTIONS, "deviation_mm": 0.5}, self.evidence):
+                self.fail("a normalized value must never be exported as the requested value")
+        self.assertEqual(self.evidence["requested"]["swSTLDeviation"], 0.0005)
+        self.assertEqual(self.evidence["readback"]["swSTLDeviation"], 0.0005335936864527374)
+        self.assertTrue(self.evidence["restored"])
+        self.assertEqual(self.state, self.original)
+
+    def test_mutex_contention_and_abandonment_never_write(self):
+        for status in (258, 128):
+            self.mutex.WaitForSingleObject.return_value = status
+            with self.assertRaises(adapter.StlOptionsError):
+                with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
+                    self.fail("mutex failure must not export")
+            self.assertEqual(self.writes, 0)
+
+    def test_readback_mismatch_fails_without_export_and_restores(self):
+        original = self.app.SetUserPreferenceToggle
+        def ignore(code, value):
+            return None
+        self.app.SetUserPreferenceToggle = ignore
+        with self.assertRaisesRegex(adapter.StlOptionsError, "exact requested"):
+            with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
+                self.fail("readback failure must not export")
+        self.assertTrue(self.evidence["restored"])
+
+
+class StlDaemonGuardsTests(unittest.TestCase):
+    def test_stale_stamp_and_other_session_lease_never_call_export(self):
+        from test_document_units import DocumentUnitsTests
+        from swcli.daemon.operations import DocumentUpdateConflict
+        from swcli.daemon.documents import DocumentLeaseConflict
+        fixture = DocumentUnitsTests()
+        fixture.setUp()
+        values = dict(output="a.stl", stl_options=OPTIONS)
+        with mock.patch.object(adapter, "require_isolation"), mock.patch(
+                "swcli.daemon.operations.export_active_windows_document") as export:
+            with self.assertRaises(DocumentUpdateConflict):
+                execute_operation(fixture.app, "document.export", values, documents=fixture.documents,
+                    document_id=fixture.entry.document_id, expected_update_stamp=6,
+                    lease_id=fixture.lease["lease_id"], session_id="writer")
+            with self.assertRaises(DocumentLeaseConflict):
+                execute_operation(fixture.app, "document.export", values, documents=fixture.documents,
+                    document_id=fixture.entry.document_id, expected_update_stamp=7,
+                    lease_id=fixture.lease["lease_id"], session_id="other")
+            export.assert_not_called()
+            fixture.app.ActivateDoc3.assert_not_called()
+
+    def test_readonly_and_wrong_format_reject_before_preference_writes(self):
+        import tempfile
+        from test_windows_mesh_exports import WindowsMeshExportTests
+        from swcli.hosts import windows_documents as docs
+        # Adapter runs through existing platform and pythoncom mock boundaries.
+        case = WindowsMeshExportTests()
+        original = docs.export_active_windows_document
+        for readonly in (True, False):
+            def with_options(output, **kwargs):
+                doc = kwargs["app"].ActiveDoc
+                doc.IsOpenedReadOnly = lambda: readonly
+                doc.IsOpenedViewOnly = lambda: False
+                return original(output, stl_options=OPTIONS, **kwargs)
+            with mock.patch.object(docs, "export_active_windows_document", side_effect=with_options), mock.patch.object(
+                    docs, "stl_preferences") as transaction:
+                result = case.export("STL" if readonly else "GLB", b"not exported")
+                self.assertEqual(result["error"]["type"], "DocumentReadOnly" if readonly else "StlFormatRequired")
+                transaction.assert_not_called()
+                self.assertEqual(case.saved, [])
+
+
+class StlExportFailureEvidenceTests(unittest.TestCase):
+    def export(self, *, restored=True, encoding="binary", save_error=0, native_failure=False):
+        from contextlib import contextmanager
+        from test_windows_mesh_exports import WindowsMeshExportTests
+        from test_export_validation import binary_stl
+        from swcli.hosts import windows_documents as docs
+        case = WindowsMeshExportTests()
+        original = docs.export_active_windows_document
+        def with_options(output, **kwargs):
+            doc = kwargs["app"].ActiveDoc
+            doc.IsOpenedReadOnly = lambda: False
+            doc.IsOpenedViewOnly = lambda: False
+            doc.GetUpdateStamp = lambda: 5
+            doc.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
+            return original(output, stl_options={**OPTIONS, "encoding": encoding}, **kwargs)
+        @contextmanager
+        def transaction(app, options, evidence, **kwargs):
+            evidence.update(mutation_attempted=True, restored=False, cleanup_errors=[])
+            try:
+                yield
+            finally:
+                evidence["restored"] = restored
+                if not restored:
+                    evidence["cleanup_errors"].append({"preference": "swSTLQuality", "error": "restore failed"})
+        with mock.patch.object(docs, "export_active_windows_document", side_effect=with_options), mock.patch.object(
+                docs, "stl_preferences", side_effect=transaction):
+            result = case.export("STL", binary_stl(), save_error=save_error, native_failure=native_failure)
+        return result, case
+
+    def test_original_native_status_survives_restore_failure_and_target_is_preserved(self):
+        for parameters, code in ((dict(save_error=1), "ExportFailed"), (dict(native_failure=True), "RuntimeError")):
+            result, case = self.export(restored=False, **parameters)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["error"]["type"], code)
+            self.assertEqual(case.output, b"previous valid artifact")
+            self.assertEqual(len(case.saved), 1)
+            self.assertTrue(result["stl_source_state"]["unchanged"])
+            self.assertTrue(result["stl_preferences"]["cleanup_errors"])
+
+    def test_encoding_mismatch_and_restore_failure_never_replace_existing_output(self):
+        for parameters, code in ((dict(encoding="ascii"), "ExportVerificationFailed"),
+                                 (dict(restored=False), "ExportPreferenceRestoreFailed")):
+            result, case = self.export(**parameters)
+            self.assertEqual(result["error"]["type"], code)
+            self.assertFalse(result["ok"])
+            self.assertEqual(case.output, b"previous valid artifact")
+            self.assertEqual(len(case.saved), 1)
+
+
+class StlIsolationTests(unittest.TestCase):
+    def setUp(self):
+        patch = mock.patch.object(adapter, "require_native_windows")
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def test_worker_ownership_and_explicit_disposable_runner_optin_are_all_required(self):
+        app = object()
+        for owned, github, optin, expected in ((False, "true", "1", False),
+                (True, "false", "1", False), (True, "true", "0", False), (True, "true", "1", True)):
+            with self.subTest(owned=owned, github=github, optin=optin), mock.patch.dict(
+                    "os.environ", {"GITHUB_ACTIONS": github, "RUNNER_OS": "Windows", "SWCLI_STL_CALIBRATION": optin}), mock.patch.object(adapter, "_HOST", None):
+                adapter.configure_calibration_host(app, owned=owned)
+                self.assertEqual(adapter._HOST is app, expected)
+
+    def test_other_process_visible_host_and_unregistered_app_are_refused(self):
+        app = SimpleNamespace(GetProcessID=lambda: 101, Visible=False)
+        for inventory, visible, registered in (('"SLDWORKS.exe","101"\n"SLDWORKS.exe","102"', False, True),
+                ('"SLDWORKS.exe","101"', True, True), ('"SLDWORKS.exe","101"', False, False)):
+            app.Visible = visible
+            with self.subTest(inventory=inventory, visible=visible, registered=registered), mock.patch.object(
+                    adapter, "_HOST", app if registered else None), mock.patch.object(adapter, "_POISONED", False), mock.patch.object(
+                    adapter.subprocess, "run", return_value=SimpleNamespace(stdout=inventory)):
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.require_isolation(app)
+
+    def test_exact_single_owned_hidden_host_passes_without_starting_or_killing_any_process(self):
+        app = SimpleNamespace(GetProcessID=lambda: 101, Visible=False)
+        with mock.patch.object(adapter, "_HOST", app), mock.patch.object(adapter, "_POISONED", False), mock.patch.object(
+                adapter.subprocess, "run", return_value=SimpleNamespace(stdout='"SLDWORKS.exe","101"')) as inventory:
+            adapter.require_isolation(app)
+        self.assertEqual(inventory.call_args.args[0][0], "tasklist.exe")
+        self.assertEqual(inventory.call_count, 1)
+
+
+class StlNativeVoidContractTests(unittest.TestCase):
+    def test_toggle_void_return_is_distinct_from_boolean_setter_status(self):
+        codes = {"swSTLBinaryFormat": 69, "swSTLQuality": 78}
+        app = SimpleNamespace(SetUserPreferenceToggle=mock.Mock(return_value=None),
+                              SetUserPreferenceIntegerValue=mock.Mock(return_value=True))
+        self.assertIsNone(adapter._write(app, "swSTLBinaryFormat", True, codes))
+        self.assertIs(adapter._write(app, "swSTLQuality", 3, codes), True)
+        app.SetUserPreferenceToggle.return_value = False
+        with self.assertRaises(adapter.StlOptionsError):
+            adapter._write(app, "swSTLBinaryFormat", True, codes)
+        app.SetUserPreferenceIntegerValue.return_value = None
+        with self.assertRaises(adapter.StlOptionsError):
+            adapter._write(app, "swSTLQuality", 3, codes)
+
+
+class StlPublicQualificationPolicyTests(unittest.TestCase):
+    def setUp(self):
+        patch = mock.patch.object(adapter, "require_native_windows")
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.codes = {"observed-enum": 1}
+        self.app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
+        self.qualifier = SimpleNamespace(QUALIFICATION={"solidworks_revision": "33.5.0"},
+            PROFILES={"proven-profile": OPTIONS}, NATIVE_ENUMS=self.codes)
+
+    def test_public_policy_refuses_unproven_tuple_document_kind_revision_and_enum_vector(self):
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.dict(
+                sys.modules, {"swcli.stl_calibrated_profiles": self.qualifier}):
+            self.assertEqual(adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes), "proven-profile")
+            for options, kind, codes in (({**OPTIONS, "deviation_mm": 0.2},1,self.codes),
+                    (OPTIONS,2,self.codes), (OPTIONS,1,{"observed-enum":2})):
+                with self.subTest(options=options, kind=kind, codes=codes), self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(self.app, options, kind, codes)
+            self.app.RevisionNumber = lambda: "34.0.0"
+            with self.assertRaises(adapter.StlOptionsError):
+                adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes)
+
+    def test_public_factory_requires_single_explicit_mode_and_owned_disposable_runner(self):
+        for internal, public, owned, expected in (("0","1",True,"public-isolated"),
+                ("1","1",True,None), ("0","1",False,None), ("0","0",True,None)):
+            with mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows", "SWCLI_STL_CALIBRATION":internal,
+                    "SWCLI_STL_EXCLUSIVE_RUNNER":public}), mock.patch.object(adapter,"_HOST",None), mock.patch.object(adapter,"_MODE",None):
+                adapter.configure_calibration_host(self.app, owned=owned)
+                self.assertEqual(adapter._MODE, expected)
+                self.assertEqual(adapter._HOST is self.app, expected is not None)
+
+    def test_no_qualification_module_keeps_public_writes_closed(self):
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.dict(
+                sys.modules, {"swcli.stl_calibrated_profiles": None}):
+            with self.assertRaisesRegex(adapter.StlOptionsError, "no independently audited"):
+                adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes)
+
+
+class ActualQualifiedStlProfilesTests(unittest.TestCase):
+    def test_exact_native_profiles_and_provenance_are_available_to_schema_sdk_and_worker(self):
+        from swcli.stl_calibrated_profiles import QUALIFICATION, PROFILES, NATIVE_ENUMS
+        self.assertEqual(set(PROFILES), {"coarse", "deviation-fine", "angle-fine", "fine", "ascii-inch", "binary-meter"})
+        self.assertEqual(QUALIFICATION["source_commit"], "d8df4a874cc0c8460cf8615964420e7e9c20ff7b")
+        self.assertEqual(QUALIFICATION["solidworks_revision"], "33.5.0")
+        self.assertTrue(QUALIFICATION["internal_run"].endswith("/42272270166"))
+        for name in ("original_zip_sha256", "dist_zip_sha256", "report_sha256", "trace_sha256", "native_source_sha256"):
+            self.assertRegex(QUALIFICATION[name], r"^[0-9a-f]{64}$")
+        schema = OPERATION_CATALOG["document.export"].parameters["properties"]["stl_options"]
+        self.assertEqual(schema["x-swcli-qualified-stl"]["profiles"], PROFILES)
+        app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.object(adapter, "require_native_windows"):
+            for name, options in PROFILES.items():
+                validate_operation_request("document.export", dict(output="curved.stl", stl_options=options))
+                self.assertEqual(adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS), name)
+            for options in ({**PROFILES["fine"], "unit":"cm"}, {**PROFILES["fine"], "encoding":"ascii"},
+                            {**PROFILES["coarse"], "deviation_mm":0.5}):
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(app, options, 1, NATIVE_ENUMS)
+
+
+class StlNativeHostProbeTests(unittest.TestCase):
+    def probe(self, *, platform="win32", module=101, known=202, wine=None, error=127, failure=None):
+        import ctypes
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=module),
+            GetProcAddress=mock.Mock(side_effect=[known, wine]))
+        stack.enter_context(mock.patch.object(adapter.sys, "platform", platform))
+        loader = stack.enter_context(mock.patch.object(ctypes, "WinDLL", create=True,
+            return_value=kernel, side_effect=failure))
+        reset = stack.enter_context(mock.patch.object(ctypes, "set_last_error", create=True))
+        stack.enter_context(mock.patch.object(ctypes, "get_last_error", create=True, return_value=error))
+        return kernel, loader, reset
+
+    def test_native_windows_requires_known_export_and_explicit_wine_export_absence(self):
+        kernel, loader, reset = self.probe()
+        adapter.require_native_windows()
+        loader.assert_called_once_with("kernel32.dll", use_last_error=True)
+        kernel.GetModuleHandleW.assert_called_once_with("ntdll.dll")
+        self.assertEqual(kernel.GetProcAddress.call_args_list,
+            [mock.call(101, b"NtClose"), mock.call(101, b"wine_get_version")])
+        reset.assert_called_once_with(0)
+
+    def test_real_non_windows_cannot_be_authorized_by_runner_environment_labels(self):
+        # No platform or ctypes mock: regression for the coordinator's macOS reproduction.
+        if sys.platform == "win32":
+            self.skipTest("actual non-Windows regression runs on the Linux/macOS portable jobs")
+        with mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows",
+                "SWCLI_STL_CALIBRATION":"0", "SWCLI_STL_EXCLUSIVE_RUNNER":"1"}), \
+                mock.patch.object(adapter, "_HOST", None), mock.patch.object(adapter, "_MODE", None):
+            adapter.configure_calibration_host(object(), owned=True)
+            self.assertIsNone(adapter._HOST)
+            self.assertIsNone(adapter._MODE)
+
+    def test_non_windows_wine_and_unknown_probes_never_set_preferences_or_save(self):
+        cases = [dict(platform="darwin"), dict(platform="linux"), dict(wine=303, error=0),
+            dict(module=None), dict(known=None), dict(error=0), dict(error=5),
+            dict(failure=OSError("loader unavailable")), dict(failure=AttributeError("no WinDLL"))]
+        from swcli.stl_calibrated_profiles import PROFILES, NATIVE_ENUMS
+        for case in cases:
+            with self.subTest(case=case), ExitStack() as stack:
+                # Keep each probe's sequential GetProcAddress results reusable across entry points.
+                kernel, loader, _ = self.probe(**case)
+                kernel.GetProcAddress.side_effect = lambda _module, name: (case.get("known", 202)
+                    if name == b"NtClose" else case.get("wine"))
+                stack.enter_context(mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows",
+                    "SWCLI_STL_CALIBRATION":"0", "SWCLI_STL_EXCLUSIVE_RUNNER":"1"}))
+                stack.enter_context(mock.patch.object(adapter, "_HOST", None))
+                stack.enter_context(mock.patch.object(adapter, "_MODE", None))
+                stack.enter_context(mock.patch.object(adapter, "_POISONED", False))
+                inventory = stack.enter_context(mock.patch.object(adapter.subprocess, "run"))
+                app = mock.Mock()
+                app.GetProcessID.return_value = 101
+                app.Visible = False
+                app.RevisionNumber.return_value = "33.5.0"
+                adapter.configure_calibration_host(app, owned=True)
+                self.assertIsNone(adapter._HOST)
+                self.assertIsNone(adapter._MODE)
+                # Even an already registered worker and a direct qualifier must re-probe.
+                adapter._HOST, adapter._MODE = app, "public-isolated"
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.require_isolation(app)
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(app, PROFILES["angle-fine"], 1, NATIVE_ENUMS)
+                with self.assertRaises(adapter.StlOptionsError):
+                    with adapter.stl_preferences(app, PROFILES["angle-fine"], {}):
+                        app.SaveAs3()
+                with self.assertRaises(adapter.StlOptionsError):
+                    execute_operation(app, "document.export", dict(output="a.stl", stl_options=PROFILES["angle-fine"]),
+                        documents=object(), document_id="d-ab12cd", expected_update_stamp=1, lease_id="l-ab12cd34ef56")
+                inventory.assert_not_called()
+                for kind in ("Toggle", "IntegerValue", "DoubleValue"):
+                    getattr(app, "SetUserPreference" + kind).assert_not_called()
+                    getattr(app, "GetUserPreference" + kind).assert_not_called()
+                app.SaveAs3.assert_not_called()
+                if case.get("platform") in ("darwin", "linux"):
+                    loader.assert_not_called()

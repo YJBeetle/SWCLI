@@ -28,7 +28,7 @@ class ToleranceCIWiringTests(unittest.TestCase):
         self.assertIn("timeout-minutes: 31",gate)
         summary=job.split("      - name: Summarize public test evidence",1)[1].split("      - name:",1)[0]
         self.assertIn('if ($env:SWCLI_NATIVE_PROFILE -ne "full")',summary)
-        self.assertLess(summary.index("exit 0"),summary.index("summarize-tests.py"))
+        self.assertLess(summary.index("exit 0"),summary.index("--scope windows-installed-full"))
         self.assertIn("full_acceptance_eligible=false",summary)
 
     def test_supervisor_bounds_native_span_and_group_without_restart(self):

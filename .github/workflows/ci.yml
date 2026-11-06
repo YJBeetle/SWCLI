@@ -80,6 +80,16 @@ on:
         required: false
         default: internal
         options: [internal, public-notes]
+      stl_options_public:
+        description: Run bounded public STL CLI SDK MCP acceptance on an explicitly isolated runner
+        required: false
+        default: false
+        type: boolean
+      stl_options_targeted:
+        description: Run isolated STL options calibration only (branch-scoped, no public acceptance)
+        required: false
+        default: false
+        type: boolean
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -315,13 +325,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy, native-profile]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
@@ -507,6 +517,31 @@ jobs:
           python -I scripts/ci/verify-revolve-public.py --output-dir "$env:SWCLI_SMOKE_ROOT\revolve-public"
           if ($LASTEXITCODE -ne 0) { throw "Public revolve acceptance failed; preserve original evidence; no automatic retry" }
 
+      - name: Calibrate isolated STL export options only
+        id: stl_options_targeted
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.stl_options_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-stl-export-options' }}
+        timeout-minutes: 30
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-stl-options.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\stl-options-targeted" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "STL options calibration failed; preserve original report, trace and files" }
+
+      - name: Verify public STL options through installed CLI SDK MCP
+        id: stl_options_public
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.stl_options_public && !inputs.native_full && !inputs.stl_options_targeted && github.ref == 'refs/heads/codex/swcli-stl-export-options' }}
+        timeout-minutes: 30
+        shell: powershell
+        run: |
+          python -m pip install "mcp>=1.30,<2" "Pillow>=10.4"
+          if ($LASTEXITCODE -ne 0) { throw "Public MCP optional dependencies could not be installed" }
+          python -I scripts/ci/verify-stl-options.py `
+            --phase public `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\stl-options-public" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Public STL options acceptance failed; preserve original receipts, trace and files" }
+
       - name: Prepare property fixtures for public CLI verification
         id: property_fixtures
         if: ${{ needs.native-profile.outputs.profile == 'full' }}
@@ -597,6 +632,27 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: |
+          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
+          if ("${{ inputs.stl_options_public }}" -eq "true") {
+            python scripts/ci/summarize-tests.py `
+              --evidence-root "$env:SWCLI_SMOKE_ROOT\stl-options-public" `
+              --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
+              --host windows --scope windows-stl-options-public-isolated `
+              --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+              --stage "stl-options-public=${{ steps.stl_options_public.outcome }}" `
+              --stage "cleanup=${{ steps.native_cleanup.outcome }}"
+            exit $LASTEXITCODE
+          }
+          if ("${{ inputs.stl_options_targeted }}" -eq "true") {
+            python scripts/ci/summarize-tests.py `
+              --evidence-root "$env:SWCLI_SMOKE_ROOT\stl-options-targeted" `
+              --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
+              --host windows --scope windows-stl-options-internal-calibration `
+              --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+              --stage "stl-options-internal=${{ steps.stl_options_targeted.outcome }}" `
+              --stage "cleanup=${{ steps.native_cleanup.outcome }}"
+            exit $LASTEXITCODE
+          }
           if ($env:SWCLI_NATIVE_PROFILE -ne "full") {
             "Targeted scope: $env:SWCLI_NATIVE_PROFILE; full_acceptance_eligible=false. See the selected original receipt."
             exit 0
@@ -609,7 +665,6 @@ jobs:
             "Bounded revolve public acceptance only; see revolve-public/revolve-public.json; not complete full acceptance."
             exit 0
           }
-          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
           python scripts/ci/summarize-tests.py `
             --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
             --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `

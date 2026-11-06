@@ -1237,6 +1237,13 @@ class DocumentRenderResult(_DocumentRenderResultRequired, total=False):
     artifact: DocumentRenderResultArtifact
 
 
+class DocumentExportParametersStlOptions(TypedDict):
+    encoding: Literal['binary', 'ascii']
+    unit: Literal['mm', 'cm', 'm', 'inch', 'foot']
+    deviation_mm: float
+    angle_degrees: float
+
+
 class _DocumentExportParametersRequired(TypedDict):
     output: str
 
@@ -1245,6 +1252,7 @@ class DocumentExportParameters(_DocumentExportParametersRequired, total=False):
     overwrite: bool
     strict: bool
     include_content: bool
+    stl_options: DocumentExportParametersStlOptions
 
 
 class _DocumentExportResultArtifactRequired(TypedDict):
@@ -1259,6 +1267,43 @@ class DocumentExportResultArtifact(_DocumentExportResultArtifactRequired, total=
     content: ArtifactContent
 
 
+class _DocumentExportResultStlSourceStateRequired(TypedDict):
+    before: Dict[str, JSONValue]
+    unchanged: bool
+
+
+class DocumentExportResultStlSourceState(_DocumentExportResultStlSourceStateRequired, total=False):
+    after: Dict[str, JSONValue]
+    observation_error: DocumentCreateResultError
+
+
+class DocumentExportResultStlPreferencesSetterSnapshotsItem(TypedDict):
+    after_preference: str
+    values: Dict[str, JSONValue]
+
+
+class DocumentExportResultStlPreferencesSetterReturnsItem(TypedDict):
+    phase: Literal['set', 'restore']
+    preference: str
+    return_type: Literal['bool', 'NoneType']
+    value: Union[bool, None]
+
+
+class DocumentExportResultStlPreferences(TypedDict, total=False):
+    execution_mode: Literal['internal-calibration', 'public-isolated']
+    calibrated_profile: str
+    before: Dict[str, JSONValue]
+    requested: Dict[str, JSONValue]
+    readback: Dict[str, JSONValue]
+    after: Dict[str, JSONValue]
+    constants: Dict[str, JSONValue]
+    mutation_attempted: bool
+    restored: bool
+    cleanup_errors: List[Dict[str, JSONValue]]
+    setter_snapshots: List[DocumentExportResultStlPreferencesSetterSnapshotsItem]
+    setter_returns: List[DocumentExportResultStlPreferencesSetterReturnsItem]
+
+
 class _DocumentExportResultRequired(TypedDict):
     ok: bool
     action: Literal['document.export']
@@ -1271,6 +1316,8 @@ class DocumentExportResult(_DocumentExportResultRequired, total=False):
     error: DocumentCreateResultError
     output: str
     artifact: DocumentExportResultArtifact
+    stl_source_state: DocumentExportResultStlSourceState
+    stl_preferences: DocumentExportResultStlPreferences
 
 
 class SketchListParameters(TypedDict, total=False):

@@ -394,6 +394,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="require a saved, rebuilt source and preserve its state",
     )
+    export_parser.add_argument("--stl-encoding", choices=("binary", "ascii"))
+    export_parser.add_argument("--stl-unit", choices=("mm", "cm", "m", "inch", "foot"))
+    export_parser.add_argument("--stl-deviation-mm", type=float)
+    export_parser.add_argument("--stl-angle-degrees", type=float)
     export_parser.add_argument("--json", action="store_true", dest="as_json")
 
     sketch_parser = subcommands.add_parser(
@@ -1504,6 +1508,11 @@ def _typed_operation(
                     "output": args.output,
                     "overwrite": args.overwrite,
                     "strict": args.strict,
+                    **({"stl_options": {key: getattr(args, "stl_" + key)
+                                        for key in ("encoding", "unit", "deviation_mm", "angle_degrees")
+                                        if getattr(args, "stl_" + key) is not None}}
+                       if any(getattr(args, "stl_" + key) is not None
+                              for key in ("encoding", "unit", "deviation_mm", "angle_degrees")) else {}),
                 },
                 args.as_json,
                 args.document_id,

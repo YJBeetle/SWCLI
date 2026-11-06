@@ -31,3 +31,13 @@ def workflows(client: Client) -> FileReceipt:
 def configured() -> Client:
     return Client(tls=TLSConfig(token_file=Path("token.txt"), ca_file="ca.pem", server_name="cad.internal"),
                   client_workspace=Path("client-files"))
+
+
+# Exact recipes remain typed data; every write still goes through Client.
+from swcli.stl_calibrated_profiles import PROFILES
+from swcli.sdk.models import DocumentExportResult
+
+
+def export_qualified_stl(client: Client) -> Response[DocumentExportResult]:
+    return client.document.export(output="curved.stl", stl_options=PROFILES["fine"], strict=True,
+        document_id="d-ab12cd", expected_update_stamp=161, lease_id="l-ab12cd34ef56")

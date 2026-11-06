@@ -21,6 +21,7 @@ from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
 from .polygon_geometry import validate_polygon
+from .stl_options import STL_OPTIONS_SCHEMA
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CONTEXT_FIELDS = ("document_id", "expected_update_stamp", "lease_id")
@@ -331,8 +332,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "overwrite": _boolean(),
             "strict": _boolean(),
             "include_content": _boolean(),
+            "stl_options": deepcopy(STL_OPTIONS_SCHEMA),
         },
         required=("output",),
+        parameter_conditions=[{"if": {"required": ["stl_options"]}, "then": {
+            "properties": {"output": {"pattern": "\\.[sS][tT][lL]$"}}}}],
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
@@ -665,6 +669,9 @@ def validate_operation_request(
         validate_value(parameters["field"], parameters["value"])
     if operation == "document.font-scope-set":
         validate_font_edit(parameters["scope"], parameters["field"], parameters["value"], parameters["expected_fonts"])
+    if operation == "document.export" and "stl_options" in parameters:
+        if not isinstance(parameters.get("output"), str) or not parameters["output"].lower().endswith(".stl"):
+            raise ValueError("stl_options require .stl output")
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

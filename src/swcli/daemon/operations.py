@@ -718,6 +718,8 @@ def document_export(
         "app": context.app,
         "document": context.entry.document if context.entry is not None else None,
     }
+    if "stl_options" in values:
+        kwargs["stl_options"] = values["stl_options"]
     if "include_content" in values:
         kwargs["include_content"] = values["include_content"]
     return export_active_windows_document(str(values["output"]), **kwargs)
@@ -1456,6 +1458,11 @@ def execute_operation(
         expected_update_stamp=expected_update_stamp,
         lease_id=lease_id,
     )
+    if operation == "document.export" and "stl_options" in values:
+        if documents is None or not document_id or document_id == "active" or expected_update_stamp is None or not lease_id:
+            raise ValueError("STL options require explicit document_id, expected_update_stamp and lease_id")
+        from ..hosts.windows_stl_options import require_isolation
+        require_isolation(app)
     spec = OPERATION_CATALOG[operation]
     if spec.handler is None:
         raise ValueError(f"operation belongs to the supervisor: {operation}")
