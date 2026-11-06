@@ -59,6 +59,9 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 开发版 MCP 支持直接返回渲染 PNG 预览、导出文件的原始二进制资源（单文件不超过 8 MiB）。
 内容由 daemon 通过现有连接回传，不要求 MCP 客户端能访问宿主输出路径；附件状态及仅返回元数据的方式见 MCP 指南。
+更大的文件可使用开发版 `swcli transfer upload|download`，或配置工作区后使用 MCP 的
+`upload_file` / `download_file`。文件分块传输、校验后原子落盘；连接可配置证书校验的 TLS 和令牌文件认证。
+配置方法与客户端／宿主目录区别见 [远程连接和文件指南](src/swcli/skills/swcli/references/remote-files.md)。
 
 ## 安装
 
@@ -230,7 +233,7 @@ swcli --request-id export-build-42 document export output.STEP --strict --json
 
 在同一个正在运行的 daemon 内，swclid 会缓存最近完成的响应，包括失败和超时。使用相同 ID 重复完全相同的语义请求时，不会再次进入 SOLIDWORKS，而是返回首次终局结果并报告 `replayed: true`；失败后若要再次执行，必须使用新的 request ID。除非显式传入 `--request-id`，CLI 每次调用都会生成新的 UUID。如果复用该 ID 时改变了操作、参数、session、文档、更新戳或 lease，则返回 `RequestIdConflict`。超时预算不属于请求语义，因此重试时可以调整等待时间。能力发现会报告重放缓存的大小与作用域。该缓存容量有限，且 daemon 重启后会丢失，因此它用于保护紧邻的传输重试，并不承诺跨 daemon 故障的持久化 exactly-once 执行。
 
-所有类型化的 `swcli document`、`swcli sketch`、`swcli feature` 和 `swcli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。当前协议没有传输层认证，因此 `daemon serve` 默认拒绝监听非回环地址；只有明确传入 `--allow-remote` 才会放行。该参数不会增加任何认证，只能在可信网络边界或已认证隧道后使用。`doctor` 始终是只读操作。
+所有类型化的 `swcli document`、`swcli sketch`、`swcli feature` 和 `swcli part` 命令都使用该服务。默认端点是 `127.0.0.1:18495`，可通过 `--endpoint HOST:PORT` 或 `SWCLI_ENDPOINT` 选择其他 daemon。无法连接 daemon 时会直接报错，绝不会回退到第二套直接 COM 执行模式。本地和远程端点都不会被隐式启动；本地端点不可用时返回带显式启动提示的 `DaemonUnavailable`。开发版支持同一端点的 TLS 和令牌文件认证，完整配置后可监听远程地址。未配置认证时，`daemon serve` 默认拒绝非回环监听；显式 `--allow-remote` 仍只适用于可信网络边界或已认证隧道，该参数本身不增加认证。`doctor` 始终是只读操作。
 
 可以查询已经运行的 daemon 所声明的版本化能力，而不会隐式启动 SOLIDWORKS：
 

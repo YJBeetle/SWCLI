@@ -102,8 +102,12 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   for size limits and metadata-only mode.
 - For CI acceptance use `document export --strict`. Do not suppress source
   saving/rebuilding problems just to obtain a green pipeline.
-- Treat remote paths as paths on the execution host. A remote connection does
-  not upload local files, and `--allow-remote` does not provide authentication.
+- Treat CAD paths as paths on the execution host. For remote TLS/token setup or
+  files larger than the inline limit, read the [workspace transfer guide](references/remote-files.md).
+  Use configured client/daemon roots with `upload_file` / `download_file` or
+  `swcli transfer`; downloading saves to the MCP server's client workspace,
+  not automatically to the chat UI. Never redo a successful CAD export to retry delivery.
+  `--allow-remote` does not provide authentication.
 - At task completion, choose whether to keep the host ready or explicitly call
   `daemon_stop` using the user's stated preferences and expected follow-up
   work. MCP disconnect leaves the host running. Stopping affects all clients

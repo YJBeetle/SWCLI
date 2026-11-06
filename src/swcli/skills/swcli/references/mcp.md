@@ -93,9 +93,10 @@ extra in an unrelated terminal Python does not update the packaged runtime.
 An already-ready daemon is reused without changing visibility. Remote endpoints
 are connection-only for startup: start the daemon on its host. A loopback
 address may be a tunnel; configure the intended local launcher only when it
-really manages that endpoint. Endpoint configuration does not add authentication,
-encryption or arbitrary workspace uploads/downloads. Keep the trusted boundary/tunnel
-and host path rules; bounded export content uses that existing connection.
+really manages that endpoint. For certificate-verified TLS, token authentication
+and optional `upload_file` / `download_file` tools, read the
+[remote/workspace guide](remote-files.md). Endpoint selection alone does not
+configure those features; client and daemon roots remain distinct.
 
 If the user has a visible SOLIDWORKS instance, default startup currently refuses
 to create another host. `attach_existing:true` explicitly shares that instance
@@ -245,8 +246,8 @@ arbitrary-file read tool or new transport/listener.
 CAD success and delivery status are separate. If the export succeeded but its
 attachment is unavailable or too large, retain the successful result and host
 path; do not repeat the export just to recover a missing attachment. General
-workspace transfer, larger downloads and authenticated remote connections are
-separate features. Use `parameters.include_content=false` for metadata-only
+workspace transfer and authenticated remote connections use the separately
+configured [workspace file tools](remote-files.md). Use `parameters.include_content=false` for metadata-only
 render/export results. Other operations and the five MCP tools stay unchanged.
 Document/session/lease/CAS requirements still come from the live schema.
 

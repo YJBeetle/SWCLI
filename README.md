@@ -88,6 +88,9 @@ In the development version, MCP render/export results can include a PNG preview
 or the original exported file as an embedded resource (up to 8 MiB). Content is
 transferred by the daemon, so its output path need not exist on the MCP client's
 machine. The MCP guide describes attachment status and metadata-only mode.
+For larger files, development builds add `swcli transfer upload|download` and
+optional MCP `upload_file` / `download_file` tools for explicitly configured
+workspaces. See [TLS authentication and file transfer](src/swcli/skills/swcli/references/remote-files.md).
 
 ## Installation
 
@@ -343,11 +346,12 @@ default endpoint is `127.0.0.1:18495`; select another daemon with
 `--endpoint HOST:PORT` or `SWCLI_ENDPOINT`. Failure to reach the daemon is an
 error and never falls back to a second direct-COM execution mode. No endpoint,
 local or remote, is started implicitly; an unavailable local endpoint produces
-`DaemonUnavailable` with an explicit startup hint. The protocol currently has
-no transport authentication. `daemon serve` therefore refuses non-loopback listeners unless
-`--allow-remote` is explicitly supplied; that flag adds no authentication and
-must only be used behind a trusted network boundary or authenticated tunnel.
-`doctor` remains read-only.
+`DaemonUnavailable` with an explicit startup hint. Development builds support
+certificate-verified TLS plus token-file authentication on the same endpoint,
+and bounded workspace file transfers. See the [remote connection/file guide](src/swcli/skills/swcli/references/remote-files.md).
+Plain non-loopback listeners still require the explicit `--allow-remote` opt-in
+behind a trusted boundary/tunnel; that flag adds no authentication. `doctor`
+remains read-only.
 
 Query the versioned capabilities of an already running daemon without starting
 SOLIDWORKS implicitly:

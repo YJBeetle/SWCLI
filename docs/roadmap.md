@@ -229,10 +229,12 @@ attach behavior remain until that work is deliberately resumed.
   original exported bytes as embedded resources, with an 8 MiB raw-byte limit
   and size/hash/delivery status. Portable capture tests and official SDK
   stdio/TCP delivery tests pass; this is not a new native Windows full-run claim.
-  Larger workspace uploads/downloads remain separate work.
-- [ ] Secure remote connectivity and file transfer: add authenticated, encrypted
-  connections and explicit workspace uploads/downloads. Keep client and daemon
-  host paths distinct and remote lifecycle control explicit.
+- [x] Secure remote connections and workspace file transfer (development):
+  certificate-verified TLS/token-file authentication, rooted 1 MiB chunked
+  upload/download, size/SHA256 verification and atomic publication; default
+  per-file maximum 1 GiB. CLI and opt-in MCP tools keep client and host roots
+  separate. This is shared-token access, not multi-user RBAC or public hosting.
+  See the packaged remote-files guide for configuration and recovery limits.
 - Extend the implemented minimal assembly/drawing creation toward editing,
   arbitrary views, sheets, dimensions and BOM only through separately verified slices.
 
