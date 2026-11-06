@@ -2,6 +2,15 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 当前收口状态（2026-11-07 03:42 Asia/Shanghai）
+
+- 按用户最新指令，本轮停止持续sleep/轮询与无变化播报；仅取一次状态后交统筹跟进。不创建单CI automation、不扩新计划、不新增审查代理、不rebase main。
+- 唯一仍运行的原生run：[42280265165](https://github.com/YJBeetle/SWCLI/actions/runs/42280265165)，精确head **`c85ca5f524b3f2e4136241f9fd973d1c137fbf68`**。快照UTC `2026-11-06T19:42:20.231041+00:00`：wheel、Windows3.9/3.14均success；native处于`Free disposable runner disk for installation`，尚未进入CAD。仅终止本地`gh run watch`进程，没有取消GitHub run。
+- 快照原件：`/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42280265165-closeout-snapshot.json`。dispatch请求/返回、watch原日志均保留；新run尚无完成artifact/digest，后续由统筹分次快照跟进，结果可用再下载原件。
+- **本批没有可声称公开验收/merge-ready的image-quality写子集。** Backend公共写仍全关闭；只有旧head的coarse/fine有限内部保存重开证据。新单Double custom、两实体完整布尔方向、最终foreground/handler保护仍待当前原生run。GLB格式专属选项未映射；真实缺BIN产物已收紧生产validator，普通暂存文件名假设仍未证明。
+- 当前分支tip将包含随后准备的MCP公开gate检查与清理失败标记保护；它们**不属于正在运行的c85ca5f证据**，没有为这些准备额外dispatch。本次只保存当前已有工作，未开放白名单。主对话后续review/合并/发版，本路不合main、不tag。
+- 生产peer保护本地1853全回归通过；原始peer脚本4/4拒绝复核通过。后续公开gate准备的定向30 tests通过，diff-check通过；它们都是portable证据，不填补native/public缺口。
+
 ## 隔离与范围
 
 - Worktree：`/Users/YJBeetle/.codex/worktrees/docprops-export-options/SWCLI`
@@ -121,3 +130,11 @@
 - 独立artifact审计器同步custom阶段两个合法noop，并拒绝overall failure且未进入后续GLB组的property成功冒称（避免wrapper终止/最后checkpoint故障误归因）。公共写仍全关闭；下一内部校准必须携带这些生产保护和单Double custom路径。
 
 - 最终本地回归 **1853 tests OK（32 skipped，46.703s）**，持久原日志`portable-tests-peer-finalization-fix.log`；focused58通过，SDK生成一致性/strict6源文件与9消费者拒绝、actionlint、diff-check通过。尚未把任何fake当native。
+
+### 单Double与peer保护的精确内部校准（运行中）
+
+- 修复提交已推送：`c85ca5f524b3f2e4136241f9fd973d1c137fbf68`。run [42280265165](https://github.com/YJBeetle/SWCLI/actions/runs/42280265165)，`image_quality_calibration=true`, `native_full=false`，其他输入默认。独立profile+ref并发、只派发一次、不重排队。
+- dispatch原件：`dispatch-single-double-peer-fix-request.json` / `dispatch-single-double-peer-fix-result.json`，持久watch `run-42280265165-watch.log`。原生结果未定，公共写全关闭。
+- 按peer原始`repro.py`直接对新head运行，结果保存在`peer-original-probe-c85ca5f.json`：descriptor异常不抛出丢回执；mutation双true保留；stamp/dirty/title/path 4/4漂移拒绝且前台同指针。此为mock-only独立复现，不冒称native验收。
+
+- 后续公开gate准备补真实MCP检查（尚未native运行）：从运行daemon发现写入request/result schema并与installed contract核对，随后600s单次读取exact后台handle，schema/full raw值/身份+原trace独立核验；不启停host。helper反例覆盖错误身份、品质、schema。公开group收尾cleanup失败清除所有pass/accepted标记，不留下部分成功宣称。MCP准备不属于运行中的`c85ca5f`，backend仍全关闭；此段将在必要公开gate的新head验收。

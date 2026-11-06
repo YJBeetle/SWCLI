@@ -15,11 +15,14 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 from swcli import __version__
 from swcli.document_image_quality import IMAGE_QUALITY_FIELDS, exact_snapshot
 from swcli.result_schemas import validate_operation_result
 from swcli.sdk import Client
+from swcli.mcp import DaemonBridge
+from swcli.operation_schemas import OPERATION_CATALOG
 
 spec = importlib.util.spec_from_file_location("_quality_annotations", Path(__file__).with_name("verify-document-annotations.py"))
 annotations = importlib.util.module_from_spec(spec); spec.loader.exec_module(annotations)
@@ -35,9 +38,9 @@ class QualitySmoke(modeling.ModelingSmoke):
         super().__init__(request_timeout_seconds=600, **kwargs)
         self.started = time.monotonic()
         self.record.update(profile="document-image-quality-public" if public_acceptance else "document-image-quality-calibration" if document_properties else "image-quality-calibration",
-            covers_glb_mesh=not document_properties, evidence_kind="public-installed-cli-sdk-document-image-quality" if public_acceptance else "internal-installed-cli-sdk-calibration",
+            covers_glb_mesh=not document_properties, evidence_kind="public-installed-cli-sdk-mcp-document-image-quality" if public_acceptance else "internal-installed-cli-sdk-calibration",
             full_acceptance_eligible=False, covers_full_modeling_suite=False,
-            group_timeout_seconds=1800, image_quality_writes_accepted=False, public_acceptance_passed=False, glb_control_proven=False,
+            group_timeout_seconds=1800, image_quality_writes_accepted=False, public_acceptance_passed=False, image_quality_calibration_passed=False, glb_control_proven=False,
             expected_version=__version__, source_commit=os.environ.get("GITHUB_SHA"),
             export_staging_profile="not used by document-properties group" if document_properties else "plain filename in internal CI only; default exporter unchanged",
             python_version=sys.version,
@@ -137,6 +140,28 @@ def edit(gate, document, before, field, value, trace):
     return result
 
 
+def public_mcp_observation(gate, document, current, trace):
+    """Discover the installed public contract and read the exact background handle."""
+    bridge = DaemonBridge(endpoint=gate.endpoint, session_id=gate.session+"-mcp", timeout_seconds=600)
+    capability = bridge.call("capabilities", {"operation": "document.image-quality-set"})
+    require(capability.get("success") is True, "MCP public schema discovery failed")
+    contract = capability["result"]
+    require(contract["operation_schemas"]["document.image-quality-set"] == OPERATION_CATALOG["document.image-quality-set"].parameters
+            and contract["operation_result_schemas"]["document.image-quality-set"] == OPERATION_CATALOG["document.image-quality-set"].result,
+            "MCP installed request/result contract differs")
+    reply = bridge.call("execute", dict(operation="document.image-quality", parameters={},
+        document_id=document, expected_update_stamp=current["document"]["update_stamp"]))
+    require(reply.get("success") is True, "MCP public image-quality observation failed")
+    result = reply["result"]
+    validate_operation_result("document.image-quality", result)
+    require(result["document"]["document_id"] == document
+            and result["document"]["active"] is False and result["document"]["current"] is False
+            and exact_snapshot(result["quality"], current["quality"]), "MCP background identity/raw quality differs")
+    proof = trace.verify(SimpleNamespace(record=dict(events=[dict(command=["MCP", "document", "image-quality"],
+        result={**result, "request_id":reply["request_id"]})])), setters=0)
+    return dict(capabilities=capability, read=reply, native_call_proof=proof, request_timeout_seconds=600)
+
+
 def open_saved(gate, saved, kind, *, read_only):
     result = gate.command("document", "open", saved["host_path"], *(("--read-only",) if read_only else ()))
     require(result["api_errors"] == result["api_warnings"] == 0 and result["read_only"] is read_only
@@ -175,6 +200,8 @@ def run(gate, trace, swconst):
                 and reply.require_result()["document"]["active"] is False
                 and reply.require_result()["document"]["current"] is False,
                 "SDK quality or exact background identity mapping disagrees with public CLI")
+        if gate.public_acceptance:
+            case["mcp"] = public_mcp_observation(gate, document, current, trace)
         require(current["quality"]["apply_to_referenced_parts"] is False and current["quality"]["shaded_mode"] != "other", "unsupported initial image quality profile")
         # Keep an immutable, independently reopened baseline before the first
         # preference setter. A first-call failure must leave native input evidence.
@@ -299,11 +326,14 @@ def main(argv=None):
         require(args.native_trace.is_file() and args.swconst.is_file(), "quality trace and official swconst are required")
         run(gate, trace, args.swconst)
     except BaseException as exc:
-        gate.record.update(state="failed", success=False, error=dict(type=type(exc).__name__, message=str(exc)))
+        gate.record.update(state="failed", success=False, image_quality_writes_accepted=False, public_acceptance_passed=False,
+            image_quality_calibration_passed=False, error=dict(type=type(exc).__name__, message=str(exc)))
         raise
     finally:
         gate.cleanup()
-        if gate.record["cleanup_errors"]: gate.record.update(state="failed", success=False)
+        if gate.record["cleanup_errors"]:
+            gate.record.update(state="failed", success=False, image_quality_writes_accepted=False,
+                public_acceptance_passed=False, image_quality_calibration_passed=False)
         gate.checkpoint("image-quality-final")
     if gate.checkpoint_error: raise gate.checkpoint_error
     require(not gate.record["cleanup_errors"], "quality cleanup failed")

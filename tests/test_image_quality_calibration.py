@@ -131,6 +131,7 @@ class CalibrationTests(unittest.TestCase):
         with mock.patch.object(gate.modeling.subprocess,"run",side_effect=self.fake.run), \
                 mock.patch.object(gate,"constants",return_value={}), mock.patch.object(gate,"Client",side_effect=sdk), \
                 mock.patch.object(gate.importlib.metadata,"version",return_value="portable-fake"), \
+                mock.patch.object(gate,"public_mcp_observation",return_value={"scope":"portable gate fixture"}), \
                 mock.patch.dict(gate.os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION="", SWCLI_GLB_PLAIN_STAGING_CALIBRATION=""), \
                 mock.patch("sys.stdout",new=io.StringIO()):
             return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--document-properties"] if document_properties else []), *(["--public-acceptance"] if public_acceptance else [])])
@@ -179,6 +180,36 @@ class CalibrationTests(unittest.TestCase):
                     gate.main(["--public-acceptance","--document-properties","--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace)])
                 native.assert_not_called()
 
+    def test_public_mcp_observation_discovers_contract_and_reads_once_without_host_start(self):
+        from tests.test_sdk import document
+        core=dict(ok=True,action="document.image-quality",session_id="quality-mcp",document=document(),quality=snapshot())
+        core["document"].update(active=False,current=False)
+        native_trace=mock.Mock(); native_trace.verify.return_value={"setter_count":0}
+        host=SimpleNamespace(endpoint="127.0.0.1:19812",session="quality")
+        contract=gate.OPERATION_CATALOG["document.image-quality-set"]
+        schemas=dict(success=True,result=dict(operation_schemas={"document.image-quality-set":contract.parameters},
+            operation_result_schemas={"document.image-quality-set":contract.result}))
+        for defect in (None,"identity","quality","schema"):
+            with self.subTest(defect=defect):
+                capabilities=deepcopy(schemas); reply=dict(success=True,request_id="mcp-read-once",result=deepcopy(core))
+                if defect=="identity": reply["result"]["document"]["active"]=True
+                if defect=="quality": reply["result"]["quality"]["save_tessellation"]=False
+                if defect=="schema": capabilities["result"]["operation_schemas"]={}
+                with mock.patch.object(gate,"DaemonBridge") as factory:
+                    bridge=factory.return_value;bridge.call.side_effect=[capabilities,reply]
+                    if defect:
+                        with self.assertRaises((RuntimeError,ValueError,KeyError)):
+                            gate.public_mcp_observation(host,core["document"]["document_id"],core,native_trace)
+                    else:
+                        result=gate.public_mcp_observation(host,core["document"]["document_id"],core,native_trace)
+                        self.assertEqual(result["read"],reply)
+                        self.assertEqual(bridge.call.call_count,2)
+                        self.assertEqual(bridge.call.call_args.args,("execute",dict(operation="document.image-quality",parameters={},
+                            document_id=core["document"]["document_id"],expected_update_stamp=core["document"]["update_stamp"])))
+                    bridge.manager.start.assert_not_called();bridge.manager.stop.assert_not_called()
+                    factory.assert_called_once_with(endpoint=host.endpoint,session_id="quality-mcp",timeout_seconds=600)
+        native_trace.verify.assert_called_once()
+
     def test_first_failure_trace_and_lost_persistence_stop_without_retry_and_clean_once(self):
         for defect in ("native-first-failure","missing-trace","missing-native-getter","reopen-lost-value","global-setter","reordered-preferences"):
             with self.subTest(defect=defect):
@@ -190,6 +221,17 @@ class CalibrationTests(unittest.TestCase):
                     self.assertEqual(self.fake.setters,1)
                     self.assertTrue(Path(self.record()["cases"][0]["baseline_save"]["path"]).is_file())
                 self.assertEqual(len(self.record()["cases"]),1)
+
+    def test_cleanup_failure_cannot_retain_public_acceptance_flags(self):
+        original=gate.QualitySmoke.cleanup
+        def fail_cleanup(smoke):
+            original(smoke)
+            smoke.record["cleanup_errors"].append("injected cleanup failure")
+        with mock.patch.object(gate.QualitySmoke,"cleanup",fail_cleanup):
+            with self.assertRaisesRegex(RuntimeError,"cleanup failed"):
+                self.run_gate(document_properties=True,public_acceptance=True)
+        record=self.record()
+        self.assertFalse(record["success"] or record["public_acceptance_passed"] or record["image_quality_writes_accepted"] or record["image_quality_calibration_passed"])
 
     def test_external_watchdog_bounds_whole_group_without_retry(self):
         with mock.patch.object(gate.subprocess,"run",side_effect=subprocess.TimeoutExpired("gate",1800)) as child:

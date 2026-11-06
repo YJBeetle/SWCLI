@@ -128,3 +128,14 @@ left both the raw mode (2) and deviation unchanged. The official enumeration
 explicitly directs custom values to `swImageQualityShadedDeviation`. The next
 single-Double calibration must prove its linked custom classification; neither
 the True return nor the documented route alone is accepted as native proof.
+
+
+The prepared separate public gate clears both internal switches. In addition to
+installed CLI persistence and SDK observation, it discovers the live write
+request/result schemas through the MCP bridge and reads the exact background
+handle through MCP, checking raw quality and native trace. This path has not yet
+passed native acceptance. A cleanup failure clears every acceptance flag.
+
+At the user-requested closeout, run 42280265165 at c85ca5f remains in progress
+before CAD setup. Public writes remain closed and no merge-ready acceptance is
+claimed. Follow WORK_HANDOFF.md for the exact snapshot and preserved originals.
