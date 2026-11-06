@@ -20,6 +20,9 @@ try {
     )
     if ($DocumentTypes -eq "assembly-drawing") { $arguments += @("--document-types", "assembly", "drawing") }
     $worker = Start-Process -FilePath (Get-Command python).Source -ArgumentList $arguments -RedirectStandardOutput $stdout -RedirectStandardError $stderr -NoNewWindow -PassThru
+    # Retain the native handle while the child is live, as in the existing
+    # external-host fixture; Windows PowerShell otherwise can lose ExitCode.
+    $null = $worker.Handle
 } finally {
     $env:SWCLI_TRACE_NATIVE_CALLS = $previousTrace
 }
@@ -46,4 +49,13 @@ if ($failure) {
     throw $failure
 }
 $worker.WaitForExit()
-if ($worker.ExitCode -ne 0) { throw 'Table calibration failed; inspect the original report and native trace' }
+$workerExitCode = $worker.ExitCode
+[ordered]@{
+    success = ($null -ne $workerExitCode -and $workerExitCode -eq 0)
+    worker_exit_code = $workerExitCode
+    native_seconds = 600
+    group_seconds = 1800
+} | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'wrapper-result.json')
+if ($null -eq $workerExitCode -or $workerExitCode -ne 0) {
+    throw "Table calibration failed (worker exit=$workerExitCode); inspect the original report and native trace"
+}

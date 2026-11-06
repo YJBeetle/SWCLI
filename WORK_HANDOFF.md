@@ -5,7 +5,7 @@
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
 - **尚未 merge-ready。** 当前 `PROFILES` / `INTERNAL_PROOF` 均为空，公开写入保持关闭。已有完整类型校准均失败，不能作为公开验收或版本发布证据。
-- 下一组计划显式限定 `assembly-drawing`（类型 `[2,3]`，8 个字段）。这是尚未执行的独立范围，只有整组成功并独立审核原始 artifact 后，才可开放精确 revision/type/field/raw transition，在新精确 head 执行公开 CLI/daemon 验收。排除的 part 写入继续关闭；默认完整计划仍执行原来的零件精确几何断言，没有放宽阈值。
+- 当前内部范围 `assembly-drawing`（类型 `[2,3]`，8 个字段）已完成 CAD case，但 run `42279939696` 在 wrapper 退出码检查失败。已保存原件并独立审核，仍不开放 profiles；正在最小修复 wrapper。part 原生失败和真实公开 gate 仍是本系列未完成阻断，不能作为后置交付忽略。默认完整计划保留零件精确几何断言，没有放宽阈值。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -67,3 +67,16 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 当前 **没有可合并发版的公开原生验收子集**；`PROFILES` / `INTERNAL_PROOF` 均空。不得将 portable 通过或在跑内部校准视为公开 CLI/daemon 验收。SDK/MCP 本地契约已检查，但真实同 daemon 的 native public gate 尚未执行。
 - 后续由统筹分次快照：待本 run 完成、原件可用再核对 original ZIP/GitHub digest、head、首错、完整 requested `[2,3]` cases、trace/fixtures；成功也仅属内部证据，公开精确 scope 开放及一次 exact-head public gate 尚未完成。若失败如实交接，不为凑齐无限迭代。
 - part 写入继续关闭，前次精确 centroid 比较失败原件保持；不复用其他线程容差许可、不放宽断言、不扩展新功能/计划、不重跑旧失败。保留 main `0e72beb` 的 detailing/revolve 整合，不在此 rebase/merge/release。
+
+
+## 42279939696 完成失败：原件与最小修复（覆盖上面的在跑快照）
+
+- run `42279939696` / head `5cc22a70204724c237991706d1d11ae290811fe4` **completed/failure**。首个失败步骤 `Calibrate only bounded table defaults`；日志定位 `calibrate-table-defaults.ps1:49` 的子进程 `$worker.ExitCode -ne 0` 收尾检查。原 wrapper 未记录该值，不能声称原值已证实为 null。
+- Artifact ID `13536576827`、名称 `table-defaults-internal-42279939696-1`。原始 ZIP `run-42279939696/original.zip` 与 GitHub digest 均为 `sha256:af6372f11df6322a14a254e3bec5d025fff5ce2ce294849e3d8f0e05bcb94894`；metadata、原始完整失败 log、report/trace 已保存。
+- 原始 report `success=true`、请求/完成类型 `[2,3]`、3+5 个写入/CAS/no-op、两份 distinct save-as/readonly reopen 均完整，cleanup errors 空；native request 正常 end，无 traceback。共享 harness 返回整数 `0 if report["success"] else 1`。
+- 独立原件审核通过：SOLIDWORKS `33.5.0`，8 setters / 186 preference getters，零应用偏好 setter、单 owned host 生命周期、完整 paired/nested traces、最大阶段约 7.173 秒、原始和保存文件哈希均符合。审核结果保存在 `run-42279939696/independent-audit.json`。**这不改变整轮 failure，不是公开验收，不作为 profile/pin。**
+- 原始 SHA256：report `f206ad7a1bf9ac1e5908645759ade6d6def13205734cf8321f2513ff5d4b14b9`；harness trace `72ac09b6775bb582c77b5308aa6263e247bc35882ef7d1f715c0bdbb7aff4182`；native trace `d7fc8c13690620471046ddcdab17725ee6f17a54d3925696f2bb4eba66fb5327`。
+- 最小修复沿用已有 `start-external-host.ps1` 的 live process Handle 保留方式，避免 Windows PowerShell 在等待短命子进程后丢失 ExitCode；内部 wrapper 新增实际 `worker_exit_code` 回执，unknown/nonzero 仍 fail closed；公开 wrapper 的 gate 子进程同样保留 handle，bounded wait 后 flush，无重试/回滚/host 重启。
+- 新 Windows 真子进程测试 `tests/test_table_defaults_process_exit.py`：复制生产 wrapper，仅用无 CAD Python 子脚本替代 worker，分别验证 exit 0/7、实际回执与 wrapper 成败、带空格路径和 stdout。普通 CI 执行；定向原生 job 也在 private runtime 准备前执行该测试，避免包装器退化再消耗安装环境。本地 macOS 无 Windows PowerShell，此项明确 skip，待 CI 确认。
+- 本地 focused table tests 22 tests / 1 Windows skip，以及 table/modeling-sequence/annotation-wiring 相关 38 tests / 4 platform skips 通过；workflow YAML 与 preflight 顺序验证通过。产品 API/字段、精确几何/CAS/状态断言及 600/1800 秒限制均未修改；profiles/pin 仍空。
+- 最新用户澄清：既定系列能力需一起完成后发版，part/public 未完成点仍为阻断，不因收口改成后置；不扩字段/新计划、不派审查代理。仅对这次 wrapper 首因做相关修复；后续定向 run 一次 dispatch 后保存状态，不持续轮询。

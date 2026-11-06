@@ -37,7 +37,9 @@ try {
         '--native-trace', ('"' + $daemonStderr + '"'),
         '--internal-report-sha256', $InternalReportSha256, '--internal-head', $InternalHead, '--internal-run', $InternalRun
     ) -RedirectStandardOutput (Join-Path $OutputDirectory 'gate.stdout.log') -RedirectStandardError (Join-Path $OutputDirectory 'gate.stderr.log') -NoNewWindow -PassThru
+    $null = $gate.Handle
     if (-not $gate.WaitForExit(1800000)) { throw 'Public table acceptance exceeded its 1800-second group budget' }
+    $gate.WaitForExit()
     if ($gate.ExitCode -ne 0) { throw 'Public table acceptance failed; preserve its first report/trace failure' }
     & $python -I -m swcli --request-timeout 120 daemon stop --json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'daemon-stop.json')
     if ($LASTEXITCODE -ne 0 -or -not $daemon.WaitForExit(120000) -or $daemon.ExitCode -ne 0) { throw 'Public table owned daemon shutdown was not confirmed' }

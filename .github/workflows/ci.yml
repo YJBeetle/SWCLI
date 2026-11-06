@@ -536,6 +536,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Candidate installation failed' }
           python -I scripts/ci/verify-installed.py
           if ($LASTEXITCODE -ne 0) { throw 'Installed resources are invalid' }
+      - name: Verify table wrapper exit codes without CAD
+        shell: powershell
+        run: |
+          python -m unittest discover -s tests -p test_table_defaults_process_exit.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Table process exit-code regression failed before private runtime setup' }
       - name: Check pinned internal run and original artifact provenance
         if: ${{ inputs.table_defaults_mode == 'public' }}
         shell: powershell
