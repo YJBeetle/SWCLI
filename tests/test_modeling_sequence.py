@@ -91,8 +91,14 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn("contents: write", publishing)
         self.assertNotIn("contents: write", light)
         self.assertIn("default: false", light.split("      native_full:", 1)[1])
-        for forbidden in ("secrets.", "RCLONE_CONFIG", "calibrate_", "pull_request:"):
+        for forbidden in ("secrets.", "RCLONE_CONFIG", "pull_request:"):
             self.assertNotIn(forbidden, light)
+        # The explicitly authorized tolerance calibration is the sole exception:
+        # default off, manual only and restricted to its independent branch.
+        self.assertEqual(light.count("calibrate_"), 1)
+        optin = light.split("      calibrate_tolerances:", 1)[1].split("      native_full:", 1)[0]
+        self.assertIn("default: false", optin)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances'", native_guard)
         for name in ("calibrate_fillet:", "calibrate_through_all:", "calibrate_properties:", "calibrate_polygon:"):
             self.assertNotIn(name, workflow)
         self.assertIn("-Hidden -Suite full -PropertyFixtureDirectory", native)

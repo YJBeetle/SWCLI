@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
+from .document_tolerances import TOLERANCE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
@@ -62,6 +63,12 @@ def _annotation_option_schema(spec):
 DOCUMENT_ANNOTATION_OPTIONS = _object(
     {field: _annotation_option_schema(spec) for field, spec in ANNOTATION_FIELDS.items()},
     tuple(ANNOTATION_FIELDS),
+)
+
+
+DOCUMENT_TOLERANCE_OPTIONS = _object(
+    {field: _annotation_option_schema({"kind": "Integer", **spec}) for field, spec in TOLERANCE_FIELDS.items()},
+    tuple(TOLERANCE_FIELDS),
 )
 
 
@@ -564,6 +571,16 @@ _RESULT_FIELDS = {
         {"field": {"enum": list(ANNOTATION_FIELDS)}, "before": DOCUMENT_ANNOTATION_OPTIONS,
          "options": DOCUMENT_ANNOTATION_OPTIONS, "changed": BOOL, "mutation": METADATA_MUTATION},
         ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
+    "document.tolerances": (
+        {"scope": {"const": "document_defaults_linear"}, "options": DOCUMENT_TOLERANCE_OPTIONS, "write_enabled": BOOL},
+        ("session_id", "document", "scope", "options", "write_enabled"),
+    ),
+    "document.tolerance-set": (
+        {"scope": {"const": "document_defaults_linear"}, "field": {"enum": list(TOLERANCE_FIELDS)},
+         "before": DOCUMENT_TOLERANCE_OPTIONS, "options": DOCUMENT_TOLERANCE_OPTIONS,
+         "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "scope", "field", "before", "options", "changed", "mutation"),
     ),
     "document.units": (
         {"units": DOCUMENT_LENGTH_UNITS},
@@ -2719,6 +2736,13 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "document.tolerance-set" and result["ok"] is True:
+        before, after, field = result["before"], result["options"], result["field"]
+        changed = before[field] != after[field]
+        if (changed != result["changed"] or result["mutation"] != {"attempted": changed, "may_have_changed": changed}
+                or any(before[key] != after[key] for key in before if key != field)
+                or (changed and result["document"]["modified"] is not True)):
+            raise OperationResultInvalid(name + ": inconsistent tolerance edit lifecycle")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

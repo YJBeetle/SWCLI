@@ -692,3 +692,11 @@ Request IDs protect nearby transport retries: reuse the same explicit
 terminal result, including failure; a genuinely new retry needs a new ID.
 This bounded in-memory cache is lost on daemon restart, not a durable
 exactly-once log. Unknown outcomes require inspection, not blind retries.
+
+### Experimental document default tolerances
+
+`swcli document tolerances --document DOCUMENT_ID --json` reads the document's
+linear-dimension tolerance type and precision defaults, with native integer values.
+This does not inspect or edit individual model dimensions. `tolerance-set` is
+currently disabled pending public native acceptance; its candidate engine requires
+a document lease, update stamp, and the complete `expected_options` snapshot.

@@ -12,6 +12,7 @@ from .cut_termination import cut_termination_fields, cut_termination_conditions,
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
+from .document_tolerances import TOLERANCE_FIELDS, value_schema, snapshot_schema, validate_value
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
@@ -90,7 +91,7 @@ def _operation(
             if selected_document is None
             else selected_document
         ),
-        lease_guarded=lease_id == "optional",
+        lease_guarded=lease_id in ("optional", "required"),
         temporary_activation=temporary_activation,
         result=operation_result_schema(name),
     )
@@ -218,6 +219,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                                       "expected_value": annotation_value_schema(field, writable=False)}},
         } for field in ANNOTATION_FIELDS],
         **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.tolerances": _operation("document.tolerances", **_DOCUMENT_READ_CONTEXT),
+    "document.tolerance-set": _operation(
+        "document.tolerance-set",
+        {"field": _string(enum=list(TOLERANCE_FIELDS)), "value": _string(),
+         "expected_options": snapshot_schema()},
+        required=("field", "value", "expected_options"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": value_schema(field)}},
+        } for field in TOLERANCE_FIELDS],
+        document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
     "document.units-set": _operation(
@@ -604,6 +617,8 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.tolerance-set":
+        validate_value(parameters["field"], parameters["value"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

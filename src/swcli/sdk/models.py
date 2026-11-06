@@ -771,6 +771,48 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
+DocumentTolerancesParameters = DocumentAnnotationOptionsParameters
+
+
+class _DocumentTolerancesResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.tolerances']
+
+
+class DocumentTolerancesResult(_DocumentTolerancesResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    scope: Literal['document_defaults_linear']
+    options: Dict[str, JSONValue]
+    write_enabled: bool
+
+
+class DocumentToleranceSetParameters(TypedDict):
+    field: Literal['linear.type', 'linear.precision']
+    value: str
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentToleranceSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.tolerance-set']
+
+
+class DocumentToleranceSetResult(_DocumentToleranceSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    scope: Literal['document_defaults_linear']
+    field: Literal['linear.type', 'linear.precision']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+
+
 DocumentUnitsParameters = DocumentAnnotationOptionsParameters
 
 

@@ -244,6 +244,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentAnnotationOptionSetResult]", self._client._execute('document.annotation-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def tolerances(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentTolerancesResult]:
+        """document.tolerances; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentTolerancesResult]", self._client._execute('document.tolerances', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def tolerance_set(self, *, field: Literal['linear.type', 'linear.precision'], value: str, expected_options: Dict[str, JSONValue], document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentToleranceSetResult]:
+        """document.tolerance-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_options'] = expected_options
+        return cast("Response[models.DocumentToleranceSetResult]", self._client._execute('document.tolerance-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def units(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentUnitsResult]:
         """document.units; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
