@@ -226,6 +226,31 @@
       "area": "coverage-ci",
       "status": "unaccepted-independent-branch",
       "native_evidence": null
+    },
+    {
+      "area": "topology-references",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "assembly-mates",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "revolve-feature",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "stl-export-options",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "step-export-options",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
     }
   ],
   "integration_snapshot": {
@@ -239,5 +264,113 @@
       "document.drafting-standard",
       "document.drafting-standard-set"
     ]
-  }
+  },
+  "coordination_index": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/threads.json",
+  "assigned_threads": [
+    {
+      "name": "docprops-font-scopes",
+      "branch": "codex/docprops-font-scopes",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-font-scopes/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-dimension-format",
+      "branch": "codex/docprops-dimension-format",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-tolerances",
+      "branch": "codex/docprops-tolerances",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-tolerances/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-table-defaults",
+      "branch": "codex/docprops-table-defaults",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-detailing",
+      "branch": "codex/docprops-detailing",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-detailing/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-line-style",
+      "branch": "codex/docprops-line-style",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-coverage-ci",
+      "branch": "codex/docprops-coverage-ci",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-coverage-ci/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-units-expanded",
+      "branch": "codex/docprops-units-expanded",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-export-options",
+      "branch": "codex/docprops-export-options",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-export-options/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "docprops-calibration-performance",
+      "branch": "codex/docprops-calibration-performance",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "swcli-topology-references",
+      "branch": "codex/swcli-topology-references",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-topology-references/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "swcli-assembly-mates",
+      "branch": "codex/swcli-assembly-mates",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "swcli-revolve-feature",
+      "branch": "codex/swcli-revolve-feature",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-revolve-feature/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "swcli-stl-export-options",
+      "branch": "codex/swcli-stl-export-options",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-stl-export-options/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "name": "swcli-step-export-options",
+      "branch": "codex/swcli-step-export-options",
+      "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-step-export-options/SWCLI",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    }
+  ]
 }
