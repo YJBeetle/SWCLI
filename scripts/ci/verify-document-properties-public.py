@@ -59,9 +59,11 @@ def verified_proof(path=PROOF):
                 for row in proof['transitions']), 'transition scope must retain exact typed values')
     checked({tuple(row) for row in proof['transitions']} == finite_transitions()
             and len(proof['transitions']) == 36, 'proof does not cover the exact finite transition set')
-    from swcli.document_drafting_standard import CALIBRATED_DRAFTING_TRANSITIONS
+    from swcli.document_drafting_standard import CALIBRATED_DRAFTING_TRANSITIONS, CALIBRATED_DRAFTING_WINDOWS_REVISIONS
     checked(set(CALIBRATED_DRAFTING_TRANSITIONS) == finite_transitions()
             and len(CALIBRATED_DRAFTING_TRANSITIONS) == 36, 'exact audited public whitelist is not installed')
+    checked(tuple(CALIBRATED_DRAFTING_WINDOWS_REVISIONS) == (proof['host_revision'],),
+            'public native Windows revision scope differs from audited host')
     return proof
 
 

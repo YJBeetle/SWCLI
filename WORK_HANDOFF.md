@@ -142,3 +142,16 @@ GitHub download-artifact v8输入签名已核实：[官方 action.yml](https://r
 当前关联127 tests（含6项模板发现/参数绑定）通过，完整便携2131 tests / 66.887秒 / skipped32，OK，原件 `full-tests-exact-gb-and-public.log`；相关workflow actionlint exit0。公开入口仍缺成功proof/白名单并保持关闭；未触发公开CI。
 
 当前待审批动作：无。已沿用用户/主统筹授权完成限定worktree的修复与own branch push/targeted CI；没有未解决的自动审批拒绝，不需要重复授权。下一步仅对提交后的相关修复新head启动一次内部标准36校准，记录确切head/run；公开门禁要等其真实证据。
+
+### R4（本线程第4次dispatch，非历史VM的r4）
+
+- 模板相关修复已提交推送：`ea45651b1afbd18e936ea5946c93c329c058bca0`。
+- [run 42274393189](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189)，attempt1，2026-11-07 02:50:53 Asia/Shanghai 对此head唯一一次dispatch。
+- 参数 `docprops_calibration=true`、`docprops_public=false`、`docprops_expected_head=ea45651b1afbd18e936ea5946c93c329c058bca0`、`native_full=false`；仅内部标准36，未触发公开gate。持久回执 `dispatch-r4.json`。
+- 这仍是单个1800秒组，须三类各12、全部36保存/RO及216固定profile；选择GB模板不替代原生断言。没有本地VM操作，没有自动重试/rollback或组内重启。
+
+### 公开写环境边界：仍关闭的补强
+
+新增 `CALIBRATED_DRAFTING_WINDOWS_REVISIONS=()` 与标准writer的精确原生Windows/revision门禁；转换tuple和revision清单当前均空。即便后来具备转换数据，Wine、非Win32、无法判定的ntdll/未测RevisionNumber仍拒绝changed写；完整CAS同值no-op维持0 setter。新增5项host scope故障测试，标准相关共28 tests通过，公开准备10 tests通过；RevisionNumber单层native trace验证通过，未嵌套调用。官方RevisionNumber方法已核实：[SOLIDWORKS官方接口文档](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~RevisionNumber.html)。
+
+这次src共享文件新增改动仅 `src/swcli/document_drafting_standard.py`（空revision数据）和 `src/swcli/hosts/windows_document_drafting_standard.py`（changed写前环境门禁），没有请求/result schema、SDK/MCP字段变化。8个固定reader/validator函数与正在运行的ea45651按AST逐项相同，持久指纹 `native-fixed-reader-parity.json`；不借旧校准证明新写gate。SDK生成、strict types及消费者正负类型检查已通过（`sdk-contract-types.log`）。R4仍固定ea45651；此补强不触发额外CI、不填白名单，后续必须以真实内部/公开证据收敛范围。

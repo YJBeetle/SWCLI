@@ -15,6 +15,8 @@ DRAFTING_DEFAULTS_PROFILE = "drafting-defaults-v1"
 # Each future entry must be (document_type, source_native, target_native, profile).
 # Public operations are wired; no changed transition is enabled before native calibration.
 CALIBRATED_DRAFTING_TRANSITIONS = ()
+# Native Windows only; exact RevisionNumber strings need independent evidence.
+CALIBRATED_DRAFTING_WINDOWS_REVISIONS = ()
 # Exact swUserPreferenceOption_e values from read-r1's installed official TLB.
 # The four preference/option API pairings are documented in the official DP pages.
 BASE_STANDARD_OPTIONS = {

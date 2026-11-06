@@ -90,7 +90,10 @@ class DocumentDraftingStandardTests(unittest.TestCase):
         if expected is None:expected=self.expected()
         transitions=tuple((kind,source,target,DRAFTING_DEFAULTS_PROFILE)
                           for kind in (1,2,3) for source,target in ((7,2),(2,7))) if calibrated else ()
-        with mock.patch.object(adapter,'CALIBRATED_DRAFTING_TRANSITIONS',transitions):
+        # Portable object fakes explicitly simulate the host-scope guard; these
+        # tests supply no native Windows calibration evidence.
+        with mock.patch.object(adapter,'CALIBRATED_DRAFTING_TRANSITIONS',transitions), mock.patch.object(
+                adapter, '_require_calibrated_native_host', return_value=None):
             return adapter.set_document_drafting_standard_windows(
                 app=self.app,document=self.document,value=value,expected_snapshot=expected)
 

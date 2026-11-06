@@ -5,14 +5,16 @@ This development batch still requires native and installed public acceptance;
 its finite transition whitelist is not populated by expectation.
 """
 
+import ctypes
 import json
+import sys
 from typing import Any
 
 from ..document_annotation_fonts import ANNOTATION_FONT_MEMBERS
 from ..document_annotations import ANNOTATION_FIELDS
 from ..document_display_options import display_fields_for_document, resolve_display_preference_ids
 from ..document_drafting_standard import (
-    BASE_STANDARD_OPTIONS, CALIBRATED_DRAFTING_TRANSITIONS, DRAFTING_DEFAULTS_PROFILE,
+    BASE_STANDARD_OPTIONS, CALIBRATED_DRAFTING_TRANSITIONS, CALIBRATED_DRAFTING_WINDOWS_REVISIONS, DRAFTING_DEFAULTS_PROFILE,
     DRAFTING_STANDARD_OPTION, DRAFTING_STANDARD_PREFERENCE, DRAFTING_STANDARDS,
     LENGTH_UNIT_NATIVE_FIELDS, drafting_defaults_coverage, drafting_standard_observation, validate_drafting_standard,
 )
@@ -148,6 +150,24 @@ def read_document_drafting_standard_windows(*, app: Any, document: Any) -> dict:
     return result
 
 
+def _require_calibrated_native_host(app):
+    # No Windows calibration is promoted to Wine or another revision. Unknown
+    # native-runtime detection is closed. The export check mirrors the existing
+    # Windows tray detector, without treating loader failure as native Windows.
+    message = "drafting-standard changes require calibration for this native host"
+    if sys.platform != "win32":
+        raise ValueError(message)
+    try:
+        ntdll = ctypes.WinDLL("ntdll")
+    except (AttributeError, OSError) as error:
+        raise ValueError(message) from error
+    if getattr(ntdll, "wine_get_version", None) is not None:
+        raise ValueError(message)
+    revision = _com_value(app, "RevisionNumber")
+    if type(revision) is not str or revision not in CALIBRATED_DRAFTING_WINDOWS_REVISIONS:
+        raise ValueError(message)
+
+
 def set_document_drafting_standard_windows(
     *, app: Any, document: Any, value: str, expected_snapshot: dict,
 ) -> dict:
@@ -174,6 +194,7 @@ def set_document_drafting_standard_windows(
                       DRAFTING_STANDARDS[value], DRAFTING_DEFAULTS_PROFILE)
         if transition not in CALIBRATED_DRAFTING_TRANSITIONS:
             raise ValueError("this document drafting standard transition requires native calibration")
+        _require_calibrated_native_host(app)
         if not _writable_context(app, edit):
             raise ValueError("drafting standard editing requires a normal drawing sheet or no active model sketch")
         extension = _com_value(document, "Extension")

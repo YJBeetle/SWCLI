@@ -43,7 +43,8 @@ class NativePrerequisites(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'portable-only-proof.json'; path.write_text(json.dumps(self.proof()))
             transitions = tuple(public.finite_transitions())
-            with patch.object(model, 'CALIBRATED_DRAFTING_TRANSITIONS', transitions):
+            with patch.object(model, 'CALIBRATED_DRAFTING_TRANSITIONS', transitions), patch.object(
+                    model, 'CALIBRATED_DRAFTING_WINDOWS_REVISIONS', ('33.5.0',)):
                 self.assertEqual(public.verified_proof(path)['completed_transitions'], 36)
             with patch.object(model, 'CALIBRATED_DRAFTING_TRANSITIONS', transitions + ((1, 1, 2, 'drafting-defaults-v1'),)):
                 with self.assertRaisesRegex(RuntimeError, 'whitelist'):
