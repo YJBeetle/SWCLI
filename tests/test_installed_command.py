@@ -4,7 +4,7 @@ import importlib.metadata
 import importlib.util
 import io
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -61,14 +61,18 @@ class CommandContractTests(unittest.TestCase):
                 self.assertEqual(installed.console_entrypoint(distribution("swcli"), directory), executable)
 
     def test_console_probe_invokes_new_executable_and_rejects_wrong_distribution(self):
-        response = SimpleNamespace(stdout=json.dumps({"client_version": __version__}))
-        with mock.patch.object(installed.subprocess, "run", return_value=response) as run:
-            installed.verify_console_version(Path("/tool path/swcli"), __version__)
-        self.assertEqual(run.call_args.args[0], ["/tool path/swcli", "version", "--json"])
-        response.stdout = json.dumps({"client_version": "older"})
-        with mock.patch.object(installed.subprocess, "run", return_value=response), \
-                self.assertRaisesRegex(RuntimeError, "installed distribution"):
-            installed.verify_console_version(Path("/tool path/swcli"), __version__)
+        commands = (PurePosixPath("/tool path/swcli"),
+                    PureWindowsPath("C:/tool path/swcli.exe"))
+        for command in commands:
+            with self.subTest(command=str(command)):
+                response = SimpleNamespace(stdout=json.dumps({"client_version": __version__}))
+                with mock.patch.object(installed.subprocess, "run", return_value=response) as run:
+                    installed.verify_console_version(command, __version__)
+                self.assertEqual(run.call_args.args[0], [str(command), "version", "--json"])
+                response.stdout = json.dumps({"client_version": "older"})
+                with mock.patch.object(installed.subprocess, "run", return_value=response), \
+                        self.assertRaisesRegex(RuntimeError, "installed distribution"):
+                    installed.verify_console_version(command, __version__)
 
 
 if __name__ == "__main__":
