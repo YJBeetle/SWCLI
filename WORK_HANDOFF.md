@@ -1,7 +1,7 @@
 # 文档属性校准性能：当前接管与验收边界
 
-工作树：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI`  
-分支：`codex/docprops-calibration-performance`  
+工作树：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI`
+分支：`codex/docprops-calibration-performance`
 基线：`1593330e6e757073d44c5bb9a04dc06deca10966`（parent `3bda2c00489dde6a3d1e4521c548f751b1d1c197`），仅批次本地 checkpoint，不是已发布/已验收版本。
 
 ## 范围与保护
@@ -54,3 +54,5 @@ R4 原生整组1800秒超时：30 setter True，29完整保存/只读重开；�
 - trace 新字段：`begin_trace_seconds`、`checkpoint_seconds`、`native_seconds`（pre-native失败为null）、`native_started`、`native_completed`、`timing_scope`；旧 `elapsed_seconds` 保留。report revision 是进程内缓存，不是公共 schema。
 - 共享文件修改：`.github/workflows/ci.yml`（专属 opt-in job/input，portable job branch guard）、`scripts/ci/windows/cleanup-hosted-solidworks.ps1`（可选 PrivateInputsOnly，原默认保留）、`scripts/dev/calibrate-document-properties.py`、既有校准测试一行 invalidation。其余新增脚本/测试/证据/交接文件；生产 src/schema/SDK 不改。
 - 依赖：继承批次 checkpoint 的 fixed drafting-defaults-v1 reader、hardened driver 与 owned harness。最终 workflow 共享冲突由主集成处理；本路不读写其他 worktree、不等待其他分支。
+
+- 实现已提交并推送：`81c32732a07ca0459c82955d2314e81ad2323857`；独立分支首次推送成功。提交标记 `[skip ci]` 避免无关 push CI。后续仅文档/receipt更新；实际绑定 head/run 见本目录持久 `evidence/docprops-performance/dispatch.json`（触发后生成）。
