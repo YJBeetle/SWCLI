@@ -153,3 +153,11 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 完整portable1864项通过（32 skipped）；随后补充peer配置/关闭catalog、目标identity、dirty mark中peer变化、reader peer变化、前台就是target的stamp变化，相关45项通过；SDK generated/strict types/8负向typing也通过。记录同目录portable/targeted txt。这些是便携与mock证据，**不是修复后native验收**。
 
 当前诊断run `42277659656`来源`3940938`仍是旧产品源，不因本消息取消或重复；它仅用于现有几何首因诊断。产品修复提交推送后，最终精确head必须执行必要public gate；不能用旧head校准或mock已修复直接给merge-ready。现无待审批动作，changed-write域仍为空，未改任何几何断言。
+
+## 产品P1修复后精确head的必要public gate
+
+修复提交 `5f307d1f4fa908acbcc25b59f6be7c32c3ed24fa` 已推送。相同用户授权下，仅对该精确产品head触发一次必要public验证：[42279525986](https://github.com/YJBeetle/SWCLI/actions/runs/42279525986)，参数 `units_calibration=true,units_public_acceptance=true,native_full=false`，实际head已核对，初始run原件 `docs/evidence/units-profile/product-42279525986/run-initial.json`。
+
+旧几何诊断run `42277659656` / 3940938继续保留，最近观察在安装；本次新run由同一分支profile group串行等待旧运行，未取消旧run或其他人的run。两者目的不同：旧run保留重开几何actual定位首因，新run验证已实际修改的产品peer/回执保护。不得以旧head的任何绿灯作为P1已原生修复，也不能因新guard而跳过/放宽几何断言。最终merge-ready仍取决于新head严格内部与public原件审核。
+
+官方源复核：ISldWorks.GetDocuments返回本session打开文档数组（https://help.solidworks.com/2021/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetDocuments.html）；本组foreground快照沿用现有`_state`的IModelDoc2.GetActiveConfiguration，2025文档标注已由IConfigurationManager.ActiveConfiguration取代（https://help.solidworks.com/2025/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~GetActiveConfiguration.html）。本次不旁路改写旧A17/A18 helper、不在失败后切API重试；按既有兼容路径的实际native结果核验。
