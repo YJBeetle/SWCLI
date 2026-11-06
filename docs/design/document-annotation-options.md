@@ -266,3 +266,15 @@ mode=true、active view为空、引用模型名为空，sheet/view名字均非�
 active/pseudo sketch、无引用模型及完整稳定上下文。format缺失不能绕过mode/view/
 foreign sketch保护；五类负例零写，known open前值CAS和同值不写回归已过。
 此只读诊断不替代实际写入和两轮保存重开，仍待修正后完整CI。
+
+## 最终 Windows 验收完成
+
+精确 `254d1ad11847d002f0af07d630beba3350b7f66d / 0.1.0a18` 的
+[42173065847](https://github.com/YJBeetle/SWCLI/actions/runs/42173065847)
+已完整 success，并独立核对原始 ZIP、公共回执、原生 trace 和原 CI 安装包。
+三类文档七字段异值及反向箭头均完成保存只读重开，无格式工程图不再误拒绝；
+147 条原生请求证明 30 次 setter、6 次标脏、21 次同值零写及全部拒绝保护。
+继承完整 19/20、metadata/units、建模、导出、visible 和清理均通过。
+旧段落中的“待验”保留开发阶段历史，当前最终结论和原包来源以
+[最终验收记录](../verification/a18-final-windows-2026-11-06.md)为准。
+原 wheel/sdist 字节保持，发布资料已准备但尚未发布，等待用户最终确认。
