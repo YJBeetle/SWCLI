@@ -98,7 +98,10 @@ def worker_config(args, script, source, driver):
         script_args.append('--owned-interface-stdin')
     if getattr(args, 'isolated_host', False):
         script_args.append('--isolated-host')
-    for flag, value in (('--swconst', args.swconst), ('--drawing-template', args.drawing_template),
+    for flag, value in (('--swconst', args.swconst),
+                        ('--part-template', getattr(args, 'part_template', None)),
+                        ('--assembly-template', getattr(args, 'assembly_template', None)),
+                        ('--drawing-template', args.drawing_template),
                         ('--font-typeface', args.font_typeface)):
         if value is not None:
             script_args += [flag, value]
@@ -327,6 +330,8 @@ def main():
     parser.add_argument('--attach-pid', type=int, required=True)
     parser.add_argument('--stage', choices=('read', 'fonts', 'display', 'standards'), required=True)
     parser.add_argument('--swconst')
+    parser.add_argument('--part-template')
+    parser.add_argument('--assembly-template')
     parser.add_argument('--drawing-template')
     parser.add_argument('--font-typeface')
     parser.add_argument('--isolated-host', action='store_true', help='forward explicit target-instance isolation; never controls other SW processes')

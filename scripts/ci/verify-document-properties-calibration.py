@@ -130,7 +130,7 @@ def verify_complete_report(report, driver, pid):
     return transitions
 
 
-def run_owned(output, swconst, drawing_template, context):
+def run_owned(output, swconst, drawing_template, context, *, part_template, assembly_template):
     import pythoncom
     from swcli.hosts.windows import _com_value
     harness = load_script('_docprops_owned_harness', 'scripts/ci/verify-through-all-calibration.py')
@@ -152,6 +152,7 @@ def run_owned(output, swconst, drawing_template, context):
                                    script=str(ROOT / 'scripts/dev/calibrate-document-properties.py'),
                                    python=driver.default_python(), attach_pid=pid, stage='standards',
                                    swconst=str(swconst), drawing_template=str(drawing_template),
+                                   part_template=str(part_template), assembly_template=str(assembly_template),
                                    font_typeface=None, isolated_host=True, owned_interface_data=packet)
             code = call('standards-36-driver', lambda: run_driver_with_pump(driver, args, pythoncom.PumpWaitingMessages))
             receipt = json.loads((output / 'standards-36-driver/driver.json').read_text(encoding='utf-8'))
@@ -187,21 +188,27 @@ def main(argv=None):
     parser.add_argument('--output-dir', type=Path)
     parser.add_argument('--swconst', type=Path)
     parser.add_argument('--drawing-template', type=Path)
+    parser.add_argument('--part-template', type=Path)
+    parser.add_argument('--assembly-template', type=Path)
     args = parser.parse_args(argv)
     context = source_context(args.expected_head)
     if args.check_context:
         print(json.dumps(context))
         return 0
-    checked(args.output_dir is not None and args.swconst is not None and args.drawing_template is not None,
+    checked(all(value is not None for value in (args.output_dir, args.swconst, args.drawing_template, args.part_template, args.assembly_template)),
             'output, installed official TLB and explicit drawing template required')
     output = args.output_dir.resolve()
     workspace = Path(r'C:\Workspace').resolve()
     checked(workspace in output.parents and output != workspace, 'output must be below C:\\Workspace')
-    checked(args.swconst.is_file() and args.drawing_template.is_file(), 'installed official inputs missing')
+    checked(all(path.is_file() and not path.is_symlink() for path in (args.swconst, args.drawing_template, args.part_template, args.assembly_template)), 'installed official inputs missing')
     output.mkdir(parents=True, exist_ok=False)
     (output / 'context.json').write_text(json.dumps(context, indent=2) + '\n', encoding='utf-8')
+    (output / 'template-selection.json').write_text(json.dumps({'success': True, 'source': 'explicit-installed-GB',
+        'part': str(args.part_template.resolve()), 'assembly': str(args.assembly_template.resolve()),
+        'drawing': str(args.drawing_template.resolve())}, indent=2)+'\n', encoding='utf-8')
     try:
-        return run_owned(output, args.swconst.resolve(), args.drawing_template.resolve(), context)
+        return run_owned(output, args.swconst.resolve(), args.drawing_template.resolve(), context,
+                         part_template=args.part_template.resolve(), assembly_template=args.assembly_template.resolve())
     finally:
         manifest(output, context)
 

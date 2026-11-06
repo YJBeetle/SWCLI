@@ -107,6 +107,8 @@ def arguments():
     parser.add_argument("--stage", choices=("read", "fonts", "display", "standards"), required=True)
     parser.add_argument("--output", help="New independent directory below C:\\Workspace")
     parser.add_argument("--swconst", help="Installed official swconst.tlb")
+    parser.add_argument("--part-template", help="Explicit installed PRTDOT for this diagnostic; no global preference change")
+    parser.add_argument("--assembly-template", help="Explicit installed ASMDOT for this diagnostic; no global preference change")
     parser.add_argument("--drawing-template", default=r"C:\ProgramData\SOLIDWORKS\SOLIDWORKS 2025\templates\gb_a4.drwdot")
     parser.add_argument("--font-typeface", default="Arial")
     args = parser.parse_args()
@@ -552,7 +554,8 @@ class Calibration:
             creator = lambda: self.create_drawing(app=self.app, template=template, projection="first-angle")
         else:
             method = self.create_part if kind == "part" else self.create_assembly
-            resolution = self.call(label + ".resolve-actual-template-readonly", lambda: self.resolve_template(self.app, None, kind=kind))
+            explicit = getattr(self.args, kind + "_template", None)
+            resolution = self.call(label + ".resolve-actual-template-readonly", lambda: self.resolve_template(self.app, explicit, kind=kind))
             require(resolution.get("ok") is True, "explicit actual template resolution failed")
             template = resolution["path"]
             self.source_file(template, label + "-actual-" + kind + "-template")

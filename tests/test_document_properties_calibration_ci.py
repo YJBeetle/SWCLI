@@ -146,9 +146,14 @@ class DedicatedWorkflow(unittest.TestCase):
         guard = job.split('    runs-on:', 1)[0]
         for term in ("github.event_name == 'workflow_dispatch'", "github.repository == 'YJBeetle/SWCLI'",
                      "github.ref == '" + ci.BRANCH_REF + "'", 'inputs.docprops_calibration',
-                     '!inputs.native_full', 'inputs.docprops_expected_head == github.sha'):
+                     'inputs.docprops_calibration != inputs.docprops_public', '!inputs.native_full', 'inputs.docprops_expected_head == github.sha'):
             self.assertIn(term, guard)
         self.assertIn('persist-credentials: false', job)
+        self.assertIn('actions: read', job)
+        self.assertIn('if: ${{ !inputs.docprops_public }}', job)
+        self.assertIn('if: ${{ inputs.docprops_public }}', job)
+        self.assertIn('digest-mismatch: error', job)
+        self.assertLess(job.index('--check-dependency'), job.index('secrets.'))
         self.assertIn('ref: ${{ github.sha }}', job)
         self.assertLess(job.index('--check-context'), job.index('secrets.'))
         self.assertIn('default: false\n        type: boolean\n      docprops_expected_head:', workflow)
@@ -159,7 +164,10 @@ class DedicatedWorkflow(unittest.TestCase):
         self.assertNotIn('group: swcli-hosted-windows-solidworks', job)
         self.assertIn('cancel-in-progress: false', job)
         self.assertIn('if: always()\n        shell: powershell\n        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1', job)
-        self.assertIn('path: C:\\Workspace\\swcli-docprops-${{ github.run_id }}-${{ github.run_attempt }}', job)
+        self.assertIn('C:\\Workspace\\swcli-docprops-${{ github.run_id }}-${{ github.run_attempt }}', job)
+        self.assertIn('--part-template $templates.part', job)
+        self.assertIn('--assembly-template $templates.assembly', job)
+        self.assertIn('docprops-template-selection.json', job)
         self.assertIn('-ProbeRoot $env:PROBE_ROOT -PrivateInputsOnly', job)
         cleanup = (ROOT / 'scripts/ci/windows/cleanup-hosted-solidworks.ps1').read_text()
         private_only = cleanup.split('if (-not $PrivateInputsOnly) {', 1)[1].split('$lmgrdPidPath', 1)[0]

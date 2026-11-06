@@ -79,6 +79,7 @@ def validate_dependency(proof):
     matches = [row for row in artifacts if row['id'] == proof['artifact_id']]
     checked(len(matches) == 1, 'exact native artifact ID missing/ambiguous')
     artifact = matches[0]
+    checked(sum(row['name'] == artifact['name'] for row in artifacts) == 1, 'native artifact name is ambiguous')
     checked(artifact['expired'] is False and artifact['digest'] == 'sha256:' + proof['artifact_sha256']
             and artifact['workflow_run']['head_sha'] == proof['source_head']
             and artifact['name'] == f"swcli-docprops-performance-{proof['run_id']}-1", 'native artifact digest/head differs')
@@ -116,6 +117,7 @@ def contract_probe(gate, trace, profile, document, before):
     from swcli.sdk import Client
     from swcli.result_schemas import validate_operation_result
     checked(profile == 'standards', 'this contract probe is standards-only')
+    checked(before['standard'] == {'value': 'gb', 'native_value': 7}, 'audited GB baseline was not retained before public writes')
     client = Client(endpoint=gate.endpoint, session_id=gate.session + '-sdk-contract', timeout_seconds=600)
     capabilities = client.daemon.capabilities(include_schemas=True, operation='document.drafting-standard-set').require_result()
     schema = capabilities['operation_schemas']['document.drafting-standard-set']
@@ -277,6 +279,7 @@ def main(argv=None):
     prepared = prepare_fixtures(args.artifact_root, fixtures, proof)
     (fixtures / 'provenance.json').write_text(json.dumps({'public_context': context, 'dependency': dependency, **prepared}, indent=2)+'\n', encoding='utf-8')
     code = run_public(args.output_dir, fixtures, args.expected_head)
+    (args.output_dir / 'fixture-provenance.json').write_text(json.dumps(prepared, indent=2)+'\n', encoding='utf-8')
     (args.output_dir / 'context.json').write_text(json.dumps({'public_context': context, 'dependency': dependency,
         'native_proof_sha256': hashlib.sha256(PROOF.read_bytes()).hexdigest()}, indent=2)+'\n', encoding='utf-8')
     files = [{'path': p.relative_to(args.output_dir).as_posix(), 'bytes': p.stat().st_size,

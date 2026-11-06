@@ -274,7 +274,7 @@ def run(gate, fixtures, trace, profile, *, host_fixtures=None, kinds=KINDS, cont
     require(kinds and len(set(kinds)) == len(kinds) and all(item in KINDS for item in kinds),
             'finite unique document kinds required')
     sources = [(suffix, kind, fixtures / ('annotations.' + suffix)) for suffix, kind in kinds]
-    require(all(path.is_file() for _, _, path in sources), 'three prepared native inputs are required')
+    require(all(path.is_file() for _, _, path in sources), 'a prepared native input is required for each requested document kind')
     gate.record.update(profile='document-preferences-' + profile, state='running', success=False,
                        preference_cases=[], evidence_kind='installed-public-cli-gate', covers_full_modeling_suite=False,
                        expected_version=__version__)

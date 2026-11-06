@@ -50,6 +50,11 @@ on:
         required: false
         default: false
         type: boolean
+      docprops_public:
+        description: Dedicated branch public standard CLI daemon SDK MCP gate (requires committed audited native proof)
+        required: false
+        default: false
+        type: boolean
       docprops_expected_head:
         description: Exact 40-character head for dedicated calibration (required when opted in)
         required: false
@@ -78,7 +83,7 @@ jobs:
         run: python scripts/ci/tag-release.py check-tag
 
   test:
-    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration }}
+    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration && !inputs.docprops_public }}
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
     timeout-minutes: 15
@@ -178,7 +183,7 @@ jobs:
           retention-days: 14
 
   package:
-    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration }}
+    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration && !inputs.docprops_public }}
     name: Build wheel
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -494,10 +499,13 @@ jobs:
 
 
   docprops-calibration:
-    name: Internal owned standards-36 performance calibration
-    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/codex/docprops-calibration-performance' && inputs.docprops_calibration && !inputs.native_full && inputs.docprops_expected_head == github.sha }}
+    name: ${{ inputs.docprops_public && 'Public standard CLI daemon SDK MCP verification' || 'Internal owned standards-36 performance calibration' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/codex/docprops-calibration-performance' && (inputs.docprops_calibration != inputs.docprops_public) && !inputs.native_full && inputs.docprops_expected_head == github.sha }}
     runs-on: windows-2025
-    timeout-minutes: 100
+    timeout-minutes: ${{ inputs.docprops_public && 170 || 100 }}
+    permissions:
+      contents: read
+      actions: read
     concurrency:
       group: swcli-docprops-performance-windows-${{ github.ref }}
       cancel-in-progress: false
@@ -524,6 +532,29 @@ jobs:
         run: |
           python scripts/ci/verify-document-properties-calibration.py --check-context --expected-head "$env:DOC_PROPS_EXPECTED_HEAD"
           if ($LASTEXITCODE -ne 0) { throw "Dedicated calibration source context rejected" }
+
+      - name: Validate committed native proof before public private inputs
+        id: public_dependency
+        if: ${{ inputs.docprops_public }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: ${{ github.workspace }}/src
+          DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
+        run: |
+          python scripts/ci/verify-document-properties-public.py --check-dependency --expected-head "$env:DOC_PROPS_EXPECTED_HEAD"
+          if ($LASTEXITCODE -ne 0) { throw "Audited native proof/whitelist dependency rejected; no public native startup" }
+
+      - name: Download exact verified native artifact for public gate
+        if: ${{ inputs.docprops_public }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.public_dependency.outputs.artifact_name }}
+          run-id: ${{ steps.public_dependency.outputs.run_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/swcli-docprops-verified-inputs
+          digest-mismatch: error
 
       - name: Initialize private paths
         shell: powershell
@@ -639,24 +670,50 @@ jobs:
       - name: Install exact calibration source
         shell: powershell
         run: |
-          python -m pip install .
+          $package = if ("${{ inputs.docprops_public }}" -eq "true") { ".[mcp]" } else { "." }
+          python -m pip install $package
           if ($LASTEXITCODE -ne 0) { throw "Calibration source installation failed" }
 
       - name: Calibrate one complete standards group on an owned host
         id: docprops_native
+        if: ${{ !inputs.docprops_public }}
         timeout-minutes: 35
         shell: powershell
         env:
           DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
         run: |
-          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
-          if ($LASTEXITCODE -ne 0) { throw "Official drawing template discovery failed" }
+          $templateJson = & python -I scripts/ci/gate_support/document_property_templates.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS" --output "$env:PROBE_ROOT\docprops-template-selection.json"
+          if ($LASTEXITCODE -ne 0) {
+            try {
+              New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+              Copy-Item -LiteralPath "$env:PROBE_ROOT\docprops-template-selection.json" -Destination "$env:SWCLI_SMOKE_ROOT\template-selection.json"
+            } catch { Write-Warning "Could not also preserve template selection receipt; original selector failure remains" }
+            throw "Exact installed GB template selection failed; no arbitrary fallback"
+          }
+          $templates = $templateJson | ConvertFrom-Json
           python -I scripts/ci/verify-document-properties-calibration.py `
             --expected-head "$env:DOC_PROPS_EXPECTED_HEAD" `
             --output-dir "$env:SWCLI_SMOKE_ROOT" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
-            --drawing-template $drawingTemplate
+            --part-template $templates.part `
+            --assembly-template $templates.assembly `
+            --drawing-template $templates.drawing
           if ($LASTEXITCODE -ne 0) { throw "Internal standards calibration failed; retain originals; no retry" }
+
+      - name: Verify public standard CLI daemon SDK MCP groups
+        id: docprops_public
+        if: ${{ inputs.docprops_public }}
+        timeout-minutes: 105
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
+        run: |
+          python -I scripts/ci/verify-document-properties-public.py `
+            --expected-head "$env:DOC_PROPS_EXPECTED_HEAD" `
+            --artifact-root "$env:RUNNER_TEMP\swcli-docprops-verified-inputs" `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\public"
+          if ($LASTEXITCODE -ne 0) { throw "Public standard group failed; preserve originals; no retry or host restart" }
 
       - name: Measure streamed data and remaining disk
         if: always()
@@ -679,7 +736,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: swcli-docprops-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ inputs.docprops_public && 'swcli-docprops-public' || 'swcli-docprops-performance' }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: C:\Workspace\swcli-docprops-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           retention-days: 30

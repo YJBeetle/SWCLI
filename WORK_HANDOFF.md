@@ -122,3 +122,23 @@ run 42260761081 / attempt 1 已 completed/cancelled，未分配 runner（runner_
 公开计划定义为**三个明确独立的1800秒kind组（各12转换）**，同一owned hidden daemon在组间保持，首失败停止、不重启、不回滚；它不是内部单组36的替代或“旧单组通过”。直接复用内部已核baseline字节做本run独立fixture副本，逐次保存/RO、lease/foreign session/update stamp/完整snapshot CAS/只读/状态/身份/geometry/trace保护全部沿用原严格gate。额外每kind做typed SDK读取及MCP execute读取（无写、无host启动），验证真实结果schema、request ID、native reader trace和与CLI同一snapshot/state；MCP不调用daemon_start/stop。
 
 当前10项公开入口portable故障测试通过，既有公开gate13项回归通过（原件 `public-gate-preparation-tests.log`、`existing-public-gate-regression.log`）。这只是准备；R3内部run仍在执行/安装，未触发公开CI。只有核实R3真实成功、精确Windows/revision范围和source/digest后，才写proof/白名单并接线一次必要公开验证。合入main/发布仍由主对话，不由本路执行。
+
+### 公开CI接线（默认关闭，未dispatch）
+
+已准备 `docprops_public=false` opt-in，与 `docprops_calibration` 互斥；同一专属分支/head guard与独立concurrency。公开模式在读取任何 RCLONE 私有输入前校验已提交成功proof、已安装精确白名单和GitHub run/head/attempt/artifact ID+digest；跨run下载仅actions:read，使用官方v8 `digest-mismatch:error`，名称须唯一且ID/digest匹配。PR/private secrets规则不扩展。Native模式仍原35分钟runner step；公开模式三个独立1800秒组/600秒native不变，105分钟step/170分钟总job仅容纳三组、startup/cleanup与安装，不是放宽组内预算。没有内部成功proof和白名单时公开preflight失败，尚未dispatch。
+
+GitHub download-artifact v8输入签名已核实：[官方 action.yml](https://raw.githubusercontent.com/actions/download-artifact/v8/action.yml)。新workflow actionlint通过，相关接线10 tests通过。最终公开运行时才需要重新完成相应便携/契约检查与确切head提交；当前R3继续固定143f9d5。
+
+### R3 核原件与GB模板相关修复（当前最新）
+
+[run 42267580008](https://github.com/YJBeetle/SWCLI/actions/runs/42267580008) attempt1 已completed/failure。原 artifact `13528709614`，ZIP SHA256 `3dfb206fe5a497922ba3f6974c1062dcfda1a325c4ef80afc29cc9a93a8c9b08`，已逐字节核对GitHub digest/head=`143f9d5691def3f4cb2b09d8e56feb3e53ca50a7`；ZIP/原件/该head四文件source snapshot持久保存在 `run-42267580008-original.zip`、`run-42267580008-original/`、`run-42267580008-source/`（Git忽略但保留）。`run-42267580008-audit.json` 全部原件hash/source/head/worker核对通过，native_group_complete=false。
+
+本次owned接口验证成功：单次unmarshal核PID，68-byte接口包只在内存传递，parent TABLESTRONG released=true，owned ExitApp/Wait等清理无错误。该结果只证明此 hosted 场景的接管链，不是标准转换通过。
+
+首实际失败：全局默认模板路径均空，通用发现选择 `C:\ProgramData\SOLIDWORKS\SOLIDWORKS 2025\templates\MBD\part 0001mm and smaller.prtdot`，其overall为ANSI1，原GB7基线断言拒绝。只到part初始观测，**0 setter**，几何11999.999999999998 mm³/1 body符合现有box断言，native cleanup_errors=[]。未改GB断言、未通过Set强行初始化、不重试API、不改全局模板偏好。
+
+相关修复：新增纯文件 `gate_support/document_property_templates.py`，仅挑明确安装的 `gb_part.prtdot`、`gb_assembly.asmdot`、`gb.drwdot`（或ProgramData唯一gb_a4）模板；不存在/重复/符号链接即拒绝。新增 `--part-template/--assembly-template` 内部诊断参数，包含在hardened worker完整授权argv中。每个实际输入仍原生校验GB7且hash不变；故意不接受MBD或任意首个模板。选择报告在success原manifest内保留；选择失败也保留独立失败原件，且artifact单root布局不变。
+
+当前关联127 tests（含6项模板发现/参数绑定）通过，完整便携2131 tests / 66.887秒 / skipped32，OK，原件 `full-tests-exact-gb-and-public.log`；相关workflow actionlint exit0。公开入口仍缺成功proof/白名单并保持关闭；未触发公开CI。
+
+当前待审批动作：无。已沿用用户/主统筹授权完成限定worktree的修复与own branch push/targeted CI；没有未解决的自动审批拒绝，不需要重复授权。下一步仅对提交后的相关修复新head启动一次内部标准36校准，记录确切head/run；公开门禁要等其真实证据。

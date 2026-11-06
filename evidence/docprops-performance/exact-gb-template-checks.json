@@ -1,0 +1,17 @@
+{
+  "scope": "portable checks plus independently audited R3 refusal, not native acceptance",
+  "portable_tests": 2131,
+  "portable_skipped": 32,
+  "targeted_tests": 127,
+  "full_acceptance_eligible": false,
+  "original_run": 42267580008,
+  "original_head": "143f9d5691def3f4cb2b09d8e56feb3e53ca50a7",
+  "sha256": {
+    "full-tests-exact-gb-and-public.log": "45e5e62dbee453a6b8b53b94d631d585236902072d06e63356123576962b156d",
+    "exact-gb-template-tests.log": "6c86ea9581084ecea53f972a27dfd8579d4868784dc124778f692ba8f7ef2c3b",
+    "exact-gb-template-actionlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run-42267580008-original.zip": "3dfb206fe5a497922ba3f6974c1062dcfda1a325c4ef80afc29cc9a93a8c9b08",
+    "run-42267580008-artifacts.json": "1902edc4956f70a11d199a4a5f498272479f4d7f30e0c4e7b13479905f4f786b",
+    "run-42267580008-audit.json": "fdcfae7fe516d06848192b9c8d3954c9ca3f2495a4bace757774eac47b0cc283"
+  }
+}
