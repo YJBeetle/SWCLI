@@ -48,3 +48,10 @@
 ## Windows 便携 CI
 
 首轮公开候选 `732f711` 的自动 CI [42264334066](https://github.com/YJBeetle/SWCLI/actions/runs/42264334066) 成功：Windows Python 3.9 / 3.14、SDK 类型、MCP 便携契约与 wheel 构建检查通过。它仅是便携/包证据，不替代公开原生 gate。
+
+## 相关修复后的唯一新公开验证
+
+- 修复提交 / 校准 head：`85f99dac08c768794cead88cc3755ad60c77a1d2`，已推送。
+- run：[42268599270](https://github.com/YJBeetle/SWCLI/actions/runs/42268599270)，head 已核对一致；参数 `detailing_public_gate=true/detailing_calibration=false/native_full=false`。
+- 此 run 仅因原始 trace 已复现的嵌套边界与报告初始化缺陷修复而新开；不是旧 head 的失败重试。保留原公开失败证据，当前等待新结果，尚未 merge-ready。
+- 持久回执 `artifacts/detailing/public-fixed-dispatch.json`、`run-42268599270.json`；最终便携日志 `associated-public-fixed.log`、`unittest-public-fixed.log`（1839 项/32 跳过，相关 20 项）。
