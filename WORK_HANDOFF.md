@@ -5,7 +5,7 @@
 - 基线：`3bda2c00489dde6a3d1e4521c548f751b1d1c197`
 - 范围：文档默认字体的 dimensions、notes、tables；annotations 仅完整交叉范围观察，避免重复通用注释字体功能。
 - 没有合并其他未验收分支，没有修改 DockerSW/MacSW、main、镜像或本地 Windows VM。
-- 当前发布/公开验收：**未完成**；公开 setter fail closed。
+- 当前发布/公开验收：**未完成**；公开 setter fail closed；**尚非 merge-ready**。
 
 ## 操作、CLI 与 schema
 
@@ -51,12 +51,22 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 用户已明确授权仅把 `RCLONE_CONFIG_B64` 传入该分支专属校准安装路径；不继承全部 secrets、不输出凭据、不扩大 PR 触发权限。
 - 先前自动审批拒绝 broad `secrets: inherit`，也拒绝未具名授权的单机密方案；用户随后明确确认后才实现具名传递。
 - 专属 concurrency 为 `swcli-font-scopes-${{ github.ref }}`、`cancel-in-progress=false`，不竞争其他 profile 的 pending 槽；默认 full/release group 保持原样。
-- 预定仅派发一次已有 `ci.yml`，参数 `calibrate_font_scopes=true,native_full=false`，ref 为本分支。
-- 运行链接 / 精确 head / 结果：待本地提交及用户对精确推送目标确认后派发并补记。自动审批不接受委派中的推送授权，当前等待直接确认。没有调用任何本地 VM。
+- 已且仅派发一次已有 `ci.yml`，参数 `calibrate_font_scopes=true,native_full=false`，ref 为本分支（其余安装路径沿用默认值，cleanup=auto，vfs=8）。
+- 实现提交：`a1860400953c85cf1cdbd6ca5229ae4c07c6c25d`，已推送同名分支。
+- 原生运行：[42262037827](https://github.com/YJBeetle/SWCLI/actions/runs/42262037827)，精确 head 同上；当前状态 in_progress，最终结果待回填。
+- 自动审批起初不接受委派中的推送授权；用户随后直接授权此精确仓库/分支推送及一次校准，之后才执行。没有调用任何本地 VM。
 - 内部组：一个新隐藏 owned host，PRT/ASM/DRW，四范围 CAS 和前景保护，分别毫米、磅值保存重开，readonly 拒绝，原几何断言和源文件哈希。
 - 每次同步 native/dispatcher 操作 600 秒、整组 1800 秒；只停止自己的 Python worker；首失败停止，不重试、不自动回滚、不组内重启。
 - 原产物：`watchdog.json`、`native/report.json`、`native/trace.jsonl`、worker stdout/stderr。stderr 有按请求关联的原生方法边界，不含参数/结果。
 - 校准 artifact 保留 30 天；将下载至 `artifacts/font-scopes/`，不依赖临时目录。
+
+## 公开门禁准备（独立后续提交，未开放写入）
+
+- 主对话要求内部校准后继续公开 CLI/daemon 链路，不能以空白名单宣称完成。
+- 已新增 `scripts/ci/verify-font-scopes-public.py` 与独立 owned-hidden-daemon wrapper，尚未接入 CI 或执行原生公开门禁。
+- 公开门禁只调用安装后的 CLI，逐请求检查完整字体 getter/property/setter 顺序、600 秒预算、全量 CAS、lease/stamp/readonly 拒绝、同值无 mutation、背景身份、两种字号模式保存重开、源文件哈希和几何。
+- 公开门禁及 SDK/MCP 契约便携测试 11 项通过；这些不是公开原生验收。
+- 必须先独立核对当前内部运行 artifact/head/digest/trace/save-reopen，才考虑精确范围开放，再对新 head 跑必要公开门禁。当前没有开放公开写入。
 
 ## 未完成边界与依赖
 
