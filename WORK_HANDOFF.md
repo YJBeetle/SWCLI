@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：前三轮内部校准失败且原件均保全；保存路由修复的内部运行42277961301正在执行，保持原运行不重发。两项P1处理链保护已修复并通过定向与全套便携测试；公开CLI/daemon gate未触发，不merge-ready，写入白名单仍空。
+当前状态：6445c13的原生内部校准42277961301已成功，part/assembly/drawing完整保存重开及保护证据均通过独立核验。最新产品head c062dd6修复两项P1并通过Windows便携CI；尚无该head的安装公开CLI/daemon原生验收。写入白名单仍空，不merge-ready。按最新收口要求停止持续监看，本轮不再dispatch。
 
 ## 分支与范围
 
@@ -91,3 +91,12 @@
 - 新增真实execute_operation handler及_worker_main路径测试，覆盖成功setter后观察失败、首个native失败再观察失败、CAS首错再观察失败；同时覆盖六类前台漂移、读取/同值/SetSaveFlag阶段及前台目标正向路径。
 - 当前定向41项通过；全套1860项通过、32项平台跳过；SDK生成检查与mypy1.18.2严格实现及8项consumer拒绝通过。这些均为便携测试，不能替代原生公开验收。
 - 既有6445c13内部运行不因本次审查另起CAD运行。其完整证据核验后，最终产品head需要一次必要的安装公开CLI/daemon gate。
+
+## 本轮最终收口（2026-11-07）
+
+- 最新产品提交 `c062dd65336727780acede40c8c57045c2893315` 已推送，含两项P1保护；Windows Python3.9/3.14与wheel CI https://github.com/YJBeetle/SWCLI/actions/runs/42279488573 success。元数据 ../evidence/portable-ci-42279488573.json。
+- 一次最终状态快照确认内部 https://github.com/YJBeetle/SWCLI/actions/runs/42277961301 completed/success；精确head `6445c1375586d33eca13db0ffa0ee697c64ced89`。artifact ID `13534904383`，name `dimension-format-42277961301-1`，SHA256 `b5bc069911527c77312c79dd3cba34c5ee6ddd5d8eb399eb569539d4a9826729`。原ZIP、GitHub元数据、integrity.json、解压原件、audit.log均在 ../evidence/native-42277961301/；摘要与GitHub digest/head一致。
+- 精确内部范围：原生Windows SOLIDWORKS revision33.5.0，part/assembly/drawing各8步三字段API/readback；完整CAS/lease/stamp拒绝、单位/注解/全局偏好保持、同值清洁、真实保存重开与只读拒绝、源/副本SHA、part完整精确盒形边界及既有raw metrics判据均过。supervisor成功、worker_exit=0、600/1800秒、cleanup_errors=[]；trace成对完整，只有预期lease/stamp拒绝错误。
+- 此运行先于P1修复c062dd6；且report/supervisor均full_acceptance_eligible=false。因此仅是该6445c13的内部校准，不是最终产品head的公开CLI/daemon验收，不提供已验收写入子集或可合并通过结论。
+- 未完成：最终产品head必要的安装公开CLI/daemon验收；通过前不开放文档类型/revision白名单。当前两集合仍空，Wine仍拒绝实际变更。公开gate准备代码保留，未新增功能或计划。
+- 按统筹转达的最新收口要求，已停止持续sleep/状态轮询并收回本地watch；无新dispatch/automation、无取消任何CI，无CAD失败重试/回滚/组内host重启。本轮交接后由统筹分次快照跟进，不自行合main或发布，不rebase main。

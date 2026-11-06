@@ -47,3 +47,5 @@ Windows证据不会开启Wine：真正公开变更还要求原生Windows运行�
 公开gate复用既有entity.list边/面只读结果，所有字段最终保存为与源初值不同的值，验证重开持久化；每个位置和两个布尔方向都实际执行过setter。
 
 Oracle核对的官方API：[GetVertices](https://help.solidworks.com/2019/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IBody2~GetVertices.html)、[IVertex.GetPoint](https://help.solidworks.com/2019/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IVertex~GetPoint.html)、[IEdge.GetStartVertex](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetStartVertex.html)、[ICurveParamData.StartPoint与Sense语义](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~StartPoint.html)。端点仅作此直线盒形夹具的无向几何比较，不重新定义公开trim、闭合或持久实体身份。
+
+收口快照（2026-11-07）：内部运行42277961301在head6445c1375586d33eca13db0ffa0ee697c64ced89完成part/assembly/drawing校准，原产物SHA256 `b5bc069911527c77312c79dd3cba34c5ee6ddd5d8eb399eb569539d4a9826729`已独立核验。最新产品c062dd6另修复最终文档观察失败丢失mutation回执及前台文档自身状态漂移漏检，便携CI通过；该head尚无公开原生验收。写入名单仍空，不能据内部成功宣称公开写入完成。
