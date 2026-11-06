@@ -102,3 +102,11 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 - 已准备后续公共命令：在此内部run原件审核通过后，使用含公共准备的明确head，手动选择 `units_calibration=true,units_public_acceptance=true,native_full=false`。该必要公共profile将先在同head准备/核对新fixtures，再运行公共CLI；不要在当前内部结果出来前重复dispatch。
 - 若当前内部run失败，先持久下载该run原始产物及首个真实失败，按相关修复行动；若绿灯，仍须审核三类完整snapshots、原件hash、readonly重开、part几何及refused.error.type再执行公共profile。后续source纯断言收紧不要求为相同已证明事实无信息重跑。
 - 新CLI入口应写为已安装 `swcli` 或 `python -I -m swcli`；文档已纠正选择器为实际 `--document`。九字段changed-write、scalar/system跨系统联动与写入持久性仍未验收，空白名单保持不变。
+
+## 内部原生校准已审阅通过，继续公共 gate
+
+`42262804840` / head `6c314f7d6466ccf4d7734c1127470c34e458258a` 最终success。原始Windows artifact ZIP保存在 `evidence/units-profile/native-42262804840/original.zip`，SHA256 `00545f8a24b4998b5bdf43582ed80d8c85c777926b93400a62f3bffde49b351f`；解压原件在同目录`original/`。ZIP/native文件仅持久本地，未提交至仓库。完成run/job/artifact元数据、原始report及review在 `docs/evidence/units-profile/run-42262804840/`。
+
+原始report SHA256 `46fc0ccfa42a7ccf0ac98d31675b79b24ddde808f3319ff3363bb0239c5a2bca`。5170 begin/end边界完整匹配、无error事件、最长10.234秒、全组39.437秒、cleanup_errors空。part/assembly源MMGS，drawing源IPS。三类noop零mutation/不dirty，拒写均明确ValueError且zero-mutation；before/after-refusal/readonly-reopened完整snapshot精确一致，原始native文件hash与报告一致。part V约12000、S约3800、质心约(0,0,5) mm，原始严格容差与精确重开比较通过。
+
+这仅证明此三fixture的内部读取/CAS/拒写范围；没有changed-write证据，不开放任何写白名单。已按用户延续授权继续公共验收，无待审批动作，也未遇自动审批拒绝。本轮公共准备关联34项与SDK generated --check通过，将对明确新head仅执行一次`units_calibration=true,units_public_acceptance=true,native_full=false`公共profile，仍不合main/不发布。
