@@ -9,6 +9,7 @@
 - 仅登记 part/assembly/drawing × GB7↔ANSI1/ISO2/DIN3/JIS4/BSI5/GOST6 共36 tuple、`drafting-defaults-v1` 与原生Windows revision `33.5.0`；custom/unknown、任意named→named、Wine、未来revision不开放。成功proof `docs/calibration/docprops-performance-windows.json`，明确public_acceptance_verified=false/full_acceptance_eligible=false。
 - 公开依赖与真实artifact baseline复制预检通过；必要公开gate [42300958960 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42300958960) 已唯一触发，固定代码tip `9a32b685908e83026fd51313eedd03a37b2a4e04`，最后快照 in_progress，尚无成功结果；不能标记merge-ready或标准公开验收完成。完整portable 2159项 / 68.168s / skipped32通过，SDK生成/strict6文件/25负向消费者通过；已仅对此相关提交触发一次公开gate；正常运行记录链接/状态后结束等待，后续由统筹分次快照。
 - 无新公开operation/CLI/request-result schema/SDK/MCP字段；生产adapter完整源码与R5逐字节一致，指纹 `run-42281734865-reader-parity.json`。本轮生产改动仅有限校准数据；协议/lease/stamp/fullCAS/保护/partial receipt不改。
+- 原batch三对operation均保留：总字体七写字段、display十字段、standard有限转换。当前公开R1仅standard，不覆盖字体/显示写验收；这两组仍由本路继续收口，统筹最终review，不能因任务名performance漏项或后置发版。详见文末责任/缺口清单。
 - 待审批/自动审批拒绝：无。无本地VM、DockerSW/MacSW或其他worktree操作，无新增功能/计划，不rebase统筹当前main，不重复dispatch、不持续轮询、不创建单任务automation。
 
 
@@ -222,3 +223,18 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 - 最后单次快照状态：in_progress，active steps：Free disposable runner disk for installation；快照时间见 `dispatch-public-r1.json.handoff_snapshot_utc`，完整快照 `run-42300958960-handoff-snapshot.json`。按用户要求没有持续watch/sleep/轮询，没有automation。正常运行即记录后结束等待。
 - 当前**只内部通过，公开待结果，不是merge-ready**。三类各12转换、各独立1800组、同owned hidden daemon；真实lease/stamp/fullCAS/拒绝/noop/几何/saveRO/freshIDs与SDK/MCP读取都要以本次公开原件证明。系列未完成点不直接后置发版；代码逐条合并及全系列发版由统筹审查与统筹控制，本路不merge/tag/publish。
 - 原始ZIP绝对路径：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI/evidence/docprops-performance/run-42281734865-original.zip`；原件root同目录 `run-42281734865-original/`；独立自验同目录 `run-42281734865-audit.json`。GitHub digest/ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d`；manifest SHA256 `08abd8b8f8e690b9856121215ea1f4fd049058c2426edc806e6b7026d43b33b9`。原件未修改；不依赖临时目录。
+
+
+### 原batch字体/显示责任与实际验收状态（统筹补充核对）
+
+原契约 `docs/design/document-preferences-batch.md` 已明确三对公共operation，不因当前性能任务名而缩减。**本路继续承担原batch的字体/显示公开验收收口，最终review/逐条合并/全系列发布由统筹负责**；当前记录中没有另一位已接走这两组验收的负责人，不把它们推给未指定线程。无新增字段/API/代理，未触发额外CI、未轮询当前standard run。
+
+| 原batch组 | 精确范围 | 当前实际状态 | 原计划剩余项 |
+| --- | --- | --- | --- |
+| 总注释字体 `annotation-font[-set]` | typeface、height_mm、height_points、bold、italic、underline、strikeout；P/A/D各7写，共21次；读取完整17字段及raw成员 | 代码/CLI/daemon/SDK/MCP目录已接线，portable及SDK契约检查通过。接管记录曾说明已有私有native诊断、不重跑fonts/display；但本工作树持久R4索引不含这两组完整原件，不能把历史诊断陈述升级为当前源码绑定的完整验收。没有已核实的公开成功run/artifact。R5读取字体profile不等于七字段写验收。 | 原计划公开fonts组：全部21字段写、逐字段save/RO、模式及native_normalizations、17字段full CAS、新鲜stamp、lease/拒绝/noop/后台/几何/原文件hash/清理及必要SDK/MCP实际契约证据；对应原件/head/digest自验。 |
+| 显示 `display-options` / `display-option-set` | grid4（display/major_spacing/minor_lines/snap_points）+ virtual_sharp.style1 + plane5（front/back/intersection color、transparency、show_intersections）；P/A各10、D仅前5，共25次适用写 | 代码/目录与portable/SDK契约检查通过；历史私有诊断说明同上，没有本路已核实的公开成功run/artifact。R5固定profile读到了10/5显示项，不能代替这些字段的公开写验收；D不开放plane字段。 | 原计划公开display组：25次适用写、全部未请求适用字段保持、最终save/RO、工程图plane拒绝、lease/stamp/字段CAS/拒绝/noop/后台/几何/hash/清理与必要SDK/MCP实际契约证据；对应原件/head/digest自验。 |
+| 绘图标准 `drafting-standard[-set]` | P/A/D各12个GB↔named转换，共36 | R5内部36/216/saveRO真实自验通过；公开R1 `42300958960` 已唯一触发，尚未处理公开完成原件 | 等原件可用后保存/hash/head/首次原因及coverage自验，再决定对应修复；正常run不轮询/不重复dispatch。 |
+
+既有 `scripts/ci/verify-document-preferences.py --profile fonts|display|standards` 已分别定义600请求/1800组预算和三类输入，fonts/display不是新scope；后续继续这两个既定profile的必要公开验证，复用已核R5 baseline副本与同类owned隐藏daemon原则，不回VM、不扩子类型字体/任意显示API/视觉效果承诺、不借standard成功覆盖它们。当前公开wrapper硬限定standards，`42300958960`只证明其自身实际执行范围；不能在其成功后就把原batch六operation全部标记完成。
+
+以上两组是本系列发版前仍需完成的原定验收，不直接列为发版后事项。当前不标记本batch整体merge-ready；统筹可继续逐条代码集成，但公开验收证据必须覆盖三组实际范围。
