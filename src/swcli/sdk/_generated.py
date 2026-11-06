@@ -229,6 +229,22 @@ class DocumentOperations:
         return cast("Response[models.DocumentPropertyDeleteResult]", self._client._execute('document.property-delete', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def font_scopes(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentFontScopesResult]:
+        """document.font-scopes; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentFontScopesResult]", self._client._execute('document.font-scopes', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def font_scope_set(self, *, scope: Literal['dimensions', 'notes', 'tables'], field: Literal['typeface', 'height_mm', 'height_points', 'bold', 'italic', 'underline', 'strikeout'], value: Union[str, bool, float], expected_fonts: models.DocumentFontScopesResultFonts, document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentFontScopeSetResult]:
+        """document.font-scope-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['scope'] = scope
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_fonts'] = expected_fonts
+        return cast("Response[models.DocumentFontScopeSetResult]", self._client._execute('document.font-scope-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def annotation_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationOptionsResult]:
         """document.annotation-options; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

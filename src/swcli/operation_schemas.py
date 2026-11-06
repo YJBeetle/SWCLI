@@ -12,6 +12,8 @@ from .cut_termination import cut_termination_fields, cut_termination_conditions,
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
+from .document_font_scopes import (WRITABLE_FONT_SCOPES, font_scopes_schema, font_value_schema, validate_font_edit)
+from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
@@ -90,7 +92,7 @@ def _operation(
             if selected_document is None
             else selected_document
         ),
-        lease_guarded=lease_id == "optional",
+        lease_guarded=lease_id != "forbidden",
         temporary_activation=temporary_activation,
         result=operation_result_schema(name),
     )
@@ -204,6 +206,20 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.property-delete",
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.font-scopes": _operation("document.font-scopes", **_DOCUMENT_READ_CONTEXT),
+    "document.font-scope-set": _operation(
+        "document.font-scope-set",
+        {"scope": _string(enum=list(WRITABLE_FONT_SCOPES)),
+         "field": _string(enum=list(FONT_WRITABLE_FIELDS)),
+         "value": {"anyOf": [_string(), _boolean(), _number()]},
+         "expected_fonts": font_scopes_schema()},
+        required=("scope", "field", "value", "expected_fonts"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": font_value_schema(field)}},
+        } for field in FONT_WRITABLE_FIELDS],
+        document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -604,6 +620,8 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.font-scope-set":
+        validate_font_edit(parameters["scope"], parameters["field"], parameters["value"], parameters["expected_fonts"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

@@ -692,3 +692,19 @@ Request IDs protect nearby transport retries: reuse the same explicit
 terminal result, including failure; a genuinely new retry needs a new ID.
 This bounded in-memory cache is lost on daemon restart, not a durable
 exactly-once log. Unknown outcomes require inspection, not blind retries.
+
+
+### Document font scopes (development)
+
+`swcli document font-scopes --document d-xxxxxx --json` reads complete 17-field
+snapshots for `dimensions`, `notes`, `tables`, and the read-only `annotations`
+guard scope. `height_mm` uses millimeters; `height_points` is an integer;
+`height_mode` identifies the active representation. A document default does not
+prove a locally formatted annotation or table inherits that font.
+
+`document.font-scope-set` requires explicit document, lease, update stamp and
+`expected_fonts` containing all four complete snapshots (`--if-fonts` in CLI).
+Its public setter currently returns `DocumentFontScopeNotCalibrated` without
+mutation. Internal Windows calibration is not public acceptance and does not
+activate this write surface. Never infer font/subtype inheritance, template
+behavior, or persistence from portable tests alone.

@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      calibrate_font_scopes:
+        description: Run only codex/docprops-font-scopes internal native calibration
+        required: false
+        default: false
+        type: boolean
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -67,6 +72,7 @@ jobs:
         run: python scripts/ci/tag-release.py check-tag
 
   test:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.calibrate_font_scopes) }}
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
     timeout-minutes: 15
@@ -166,6 +172,7 @@ jobs:
           retention-days: 14
 
   package:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.calibrate_font_scopes) }}
     name: Build wheel
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -478,6 +485,15 @@ jobs:
             ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
           if-no-files-found: warn
           retention-days: 14
+
+
+  font-scopes-calibration:
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-font-scopes' && inputs.calibrate_font_scopes }}
+    uses: ./.github/workflows/font-scopes-calibration.yml
+    with:
+      calibrate_font_scopes: true
+    secrets:
+      RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
 
 
   release:
