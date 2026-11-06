@@ -70,3 +70,10 @@
 - 修复保留所有native pair的完整顺序/边界/终止检查，仅对preference+dirty子序列执行精确getter/setter计数；显式拒绝任何global setter。fake补真实guard traces、global setter/偏好重排反例。新head将连同首次写前baseline保护做一次必要校准，不是原run无修改重试。
 - 独立复核 `independent-read-audit.json`：首read结果schema有效，document descriptor与extrusion后完全相同，解析圆柱kernel值匹配，write请求数0。最终lifecycle comparison通过，原始结束快照仍有host，1.3198387s内settle-02归零，不能只读第一结束快照就称泄漏或忽略它。report/trace各自SHA见audit。
 - 修复后的trace对子序列重放原请求成功：6 getter / 0 setter / 0 dirty；完整98个leaf native calls边界顺序仍检查，原件未改。原始report的failure保持原样。
+
+### 修复后的必要校准（等待结果）
+
+- 相关修复提交：`d6eff718a9a6a38a0bcdd6724a9916c72256c4f7` 已推送；完整guard trace/缺失getter/全局setter/重排/原生首错基线保留等focused24 tests OK，原native只读trace离线重放通过。没有因为接收统筹消息重复全套测试。
+- run：[42265919228](https://github.com/YJBeetle/SWCLI/actions/runs/42265919228)，**head `d6eff718a9a6a38a0bcdd6724a9916c72256c4f7`**，`image_quality_calibration=true`, `native_full=false`，其他参数默认值；此head派发一次。专属profile+ref concurrency，未进入默认full/release分组。
+- 原件 `dispatch-trace-fix-request.json` / `dispatch-trace-fix-result.json`，低频监控 `run-42265919228-watch.log`。这是保存/审计原artifact后的相关代码修复验证，非不改代码重试。
+- 当前没有任何写入、save/reopen或GLB实证通过结论，公共写入保持关闭；待此run完成后独立审计再决定精确开放范围及后续公共验收。
