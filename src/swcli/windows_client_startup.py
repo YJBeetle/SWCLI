@@ -48,6 +48,44 @@ def register_start_task(service, *, name, user_sid, arguments, session_id):
     return folder, running
 
 
+def _task_not_running(error):
+    # IDispatch may wrap SCHED_E_TASK_NOT_RUNNING in DISP_E_EXCEPTION.
+    codes = [getattr(error, "hresult", None)]
+    details = getattr(error, "excepinfo", None)
+    if isinstance(details, tuple) and len(details) > 5:
+        codes.append(details[5])
+    return any(isinstance(code, int) and code & 0xffffffff == 0x8004130b for code in codes)
+
+
+def _cleanup_start_task(folder, running, *, name, log, ready):
+    from .daemon.main import _read_startup_host
+    errors = []
+    def record(stage, error):
+        errors.append({"stage": stage, "code": type(error).__name__, "message": str(error)})
+    if not ready and running is not None:
+        try:
+            if running.State in (2, 4):  # only queued/running instances can stop
+                running.Stop()
+        except Exception as exc:
+            # The instance can finish between State and Stop. Other cleanup
+            # failures are evidence, never replacements for the startup error.
+            if not _task_not_running(exc):
+                record("task.stop", exc)
+        try:
+            host = _read_startup_host(log, start_offset=0)
+            if host and host.get("owned_by_daemon"):
+                subprocess.run(["taskkill", "/PID", str(host["process_id"]), "/T", "/F"],
+                               capture_output=True, timeout=10, check=False)
+        except Exception as exc:
+            record("host.cleanup", exc)
+    if folder is not None:
+        try:
+            folder.DeleteTask(name, 0)
+        except Exception as exc:
+            record("task.delete", exc)
+    return errors
+
+
 def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, attach_existing=False):
     import os
     import pythoncom
@@ -56,7 +94,7 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, a
     import win32com.client
     import win32security
     from .daemon.client import call_daemon
-    from .daemon.main import _read_startup_failure, _read_startup_host
+    from .daemon.main import _failure, _read_startup_failure
 
     name = "SWCLI-demand-" + uuid.uuid4().hex
     log = Path(os.environ.get("LOCALAPPDATA") or os.environ["TEMP"]) / "SWCLI" / "logs" / (name + ".log")
@@ -83,6 +121,7 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, a
     session_id = session.value
     folder = running = None
     ready = False
+    response = None
     pythoncom.CoInitialize()
     try:
         service = win32com.client.Dispatch("Schedule.Service")
@@ -96,28 +135,24 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, a
                 health = None
             if health and health.get("success"):
                 ready = True
-                return {"success": True, "result": {"health": health.get("result"), "log": str(log)}}
+                response = {"success": True, "result": {"health": health.get("result"), "log": str(log)}}
+                return response
             failure = _read_startup_failure(log, start_offset=0)
             if failure:
-                raise RuntimeError(f"{failure['code']}: {failure['message']}; log={log}")
+                response = _failure(failure["code"], failure["message"], log=str(log))
+                return response
             if running.State not in (2, 4):  # queued/running
-                raise RuntimeError(f"daemon startup task exited before readiness; log={log}")
+                response = _failure("DaemonExited", "daemon startup task exited before readiness", log=str(log))
+                return response
             time.sleep(0.25)
-        raise TimeoutError(f"daemon startup task did not become ready; log={log}")
+        response = _failure("StartupTimeout", "daemon startup task did not become ready", log=str(log))
+        return response
+    except Exception as exc:
+        response = _failure(type(exc).__name__, str(exc), log=str(log))
+        return response
     finally:
-        try:
-            if not ready and running is not None:
-                try:
-                    running.Stop()
-                finally:
-                    host = _read_startup_host(log, start_offset=0)
-                    if host and host.get("owned_by_daemon"):
-                        subprocess.run(["taskkill", "/PID", str(host["process_id"]), "/T", "/F"],
-                                       capture_output=True, timeout=10, check=False)
-        finally:
-            try:
-                if folder is not None:
-                    folder.DeleteTask(name, 0)
-            finally:
-                folder = running = service = None
-                pythoncom.CoUninitialize()
+        errors = _cleanup_start_task(folder, running, name=name, log=log, ready=ready)
+        if errors and response is not None:
+            response["cleanup_errors"] = errors
+        folder = running = service = None
+        pythoncom.CoUninitialize()

@@ -1,6 +1,9 @@
 """Windows startup broker must not change privilege or create autorun tasks."""
 
 import subprocess
+import contextlib
+import os
+from types import ModuleType
 import tempfile
 from pathlib import Path
 import sys
@@ -64,3 +67,94 @@ class BootstrapLoggingTests(unittest.TestCase):
                 self.assertIsNone(sys.stdout)
                 self.assertIsNone(sys.stderr)
             self.assertEqual(log.read_text(encoding="utf-8"), "原生宿主 startup\ndiagnostic\n")
+
+
+class ResidentStartupResultsTests(unittest.TestCase):
+    @contextlib.contextmanager
+    def broker(self, directory, *, state=3):
+        from swcli import windows_client_startup as broker
+        client = mock.Mock()
+        parent = ModuleType("win32com"); parent.client = client
+        security = mock.Mock()
+        security.GetTokenInformation.return_value = ("user-token",)
+        modules = {"pythoncom": mock.Mock(), "win32api": mock.Mock(),
+                   "win32con": mock.Mock(TOKEN_QUERY=8), "win32security": security,
+                   "win32com": parent, "win32com.client": client}
+        folder, running = mock.Mock(), mock.Mock(State=state)
+        def session_id(pid, output):
+            output._obj.value = 1
+            return True
+        dll = mock.Mock()
+        dll.ProcessIdToSessionId.side_effect = session_id
+        with mock.patch.dict(sys.modules, modules), \
+                mock.patch.dict(os.environ, {"LOCALAPPDATA": directory}), \
+                mock.patch("ctypes.WinDLL", return_value=dll, create=True), \
+                mock.patch.object(broker, "register_start_task", return_value=(folder, running)) as register, \
+                mock.patch("swcli.daemon.client.call_daemon", side_effect=ConnectionRefusedError), \
+                mock.patch("swcli.daemon.main._read_startup_failure", return_value={
+                    "code": "ExistingHostNotFound", "message": "attach requires an existing instance"}), \
+                mock.patch("swcli.daemon.main._read_startup_host", return_value=None), \
+                mock.patch.object(broker.subprocess, "run") as kill:
+            yield broker, folder, running, register, kill
+        modules["pythoncom"].CoUninitialize.assert_called_once()
+
+    def test_expected_refusal_returns_original_json_and_does_not_stop_finished_task(self):
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory) as (broker, folder, running, register, kill):
+            value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120,
+                                                  attach_existing=True)
+            self.assertFalse(value["success"])
+            self.assertEqual(value["error"]["code"], "ExistingHostNotFound")
+            self.assertNotIn("cleanup_errors", value)
+            running.Stop.assert_not_called()
+            kill.assert_not_called()
+            folder.DeleteTask.assert_called_once_with(register.call_args.kwargs["name"], 0)
+            self.assertIn("--attach-existing", register.call_args.kwargs["arguments"])
+
+    def test_task_exiting_between_state_and_stop_is_a_benign_cleanup_race(self):
+        # Exact native COM wrapper shape from CI: DISP_E_EXCEPTION with a nested
+        # SCHED_E_TASK_NOT_RUNNING, not every COM error or every failed Stop.
+        error = Exception("task already finished")
+        error.hresult = -2147352567
+        error.excepinfo = (0, None, None, None, 0, -2147216629)
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory, state=4) as (broker, folder, running, register, kill):
+            running.Stop.side_effect = error
+            value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120,
+                                                  attach_existing=True)
+            self.assertEqual(value["error"]["code"], "ExistingHostNotFound")
+            self.assertNotIn("cleanup_errors", value)
+            running.Stop.assert_called_once()
+            register.assert_called_once()
+            kill.assert_not_called()
+
+    def test_cleanup_failure_is_reported_without_hiding_refusal_or_retrying(self):
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory, state=4) as (broker, folder, running, register, kill):
+            running.Stop.side_effect = PermissionError("task stop denied")
+            folder.DeleteTask.side_effect = PermissionError("definition delete denied")
+            value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120,
+                                                  attach_existing=True)
+            self.assertEqual(value["error"]["code"], "ExistingHostNotFound")
+            self.assertEqual([row["stage"] for row in value["cleanup_errors"]], ["task.stop", "task.delete"])
+            running.Stop.assert_called_once()
+            folder.DeleteTask.assert_called_once()
+            register.assert_called_once()
+            kill.assert_not_called()
+
+    def test_ready_resident_is_preserved_when_its_task_definition_is_deleted(self):
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory, state=4) as (broker, folder, running, register, kill):
+            health = {"success": True, "result": {"host_connected": True, "worker_alive": True}}
+            with mock.patch("swcli.daemon.client.call_daemon", return_value=health):
+                value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120)
+            self.assertTrue(value["success"])
+            running.Stop.assert_not_called()
+            kill.assert_not_called()
+            folder.DeleteTask.assert_called_once()
+
+    def test_failed_attachment_never_terminates_a_shared_user_host(self):
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory, state=4) as (broker, folder, running, register, kill):
+            with mock.patch("swcli.daemon.main._read_startup_host", return_value={
+                    "owned_by_daemon": False, "process_id": 4321}):
+                value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120,
+                                                      attach_existing=True)
+            self.assertEqual(value["error"]["code"], "ExistingHostNotFound")
+            running.Stop.assert_called_once()
+            kill.assert_not_called()
