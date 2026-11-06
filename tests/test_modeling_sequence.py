@@ -103,6 +103,17 @@ class ModelingSequenceTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/codex/docprops-tolerances'", native_guard)
         self.assertIn("validate-native-profile.py", light)
         self.assertNotIn("inputs.calibrate_tolerances", native_guard)
+        # One explicitly authorized branch-only manual switch now routes to a
+        # separate workflow. The portable jobs still have no secret/native
+        # steps. Keep rejecting every other old or accidental calibration flag.
+        import re
+        self.assertEqual(set(re.findall(r"\bcalibrate_\w+", light)), {"calibrate_font_scopes", "calibrate_tolerances"})
+        font_input = light.split("      calibrate_font_scopes:", 1)[1].split("      native_full:", 1)[0]
+        self.assertIn("default: false", font_input)
+        font_job = native.split("  font-scopes-calibration:", 1)[1].split("  release:", 1)[0]
+        self.assertIn("github.event_name == 'workflow_dispatch'", font_job)
+        self.assertIn("github.ref == 'refs/heads/codex/docprops-font-scopes'", font_job)
+        self.assertNotIn("secrets: inherit", font_job)
         for name in ("calibrate_fillet:", "calibrate_through_all:", "calibrate_properties:", "calibrate_polygon:"):
             self.assertNotIn(name, workflow)
         self.assertIn("-Hidden -Suite full -PropertyFixtureDirectory", native)

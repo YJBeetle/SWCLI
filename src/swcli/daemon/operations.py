@@ -32,6 +32,9 @@ from ..hosts.windows_document_detailing import (
 )
 from ..hosts.windows_document_units import read_document_units_windows, set_document_units_windows
 from ..hosts.windows_document_tolerances import read_document_tolerances_windows, set_document_tolerance_windows
+from ..hosts.windows_document_font_scopes import (
+    read_document_font_scopes_windows, set_document_font_scope_windows,
+)
 from ..hosts.windows_document_annotations import (
     read_document_annotation_options_windows, set_document_annotation_option_windows,
 )
@@ -429,6 +432,35 @@ def document_property_set(context: OperationContext, values: Dict[str, Any]) -> 
 @_register_handler
 def document_property_delete(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     return _edit_document_property(context, values)
+
+
+@_register_handler
+def document_font_scopes(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_font_scopes_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_font_scope_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_font_scope_windows(app=context.app, document=context.entry.document, **values)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        # The native boundary has already supplied a trustworthy receipt. A
+        # descriptor getter must not erase it or replace the first native error.
+        result["ok"] = False
+        detail = {"type": type(exc).__name__, "message": str(exc)}
+        if "error" in result:
+            result.setdefault("warnings", []).append({
+                "code": "font-document-postflight-failed", "message": str(exc)})
+        else:
+            result["error"] = detail
+        result["session_id"] = context.session_id
+        return result
 
 
 @_register_handler

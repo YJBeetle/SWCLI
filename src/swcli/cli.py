@@ -21,6 +21,8 @@ from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
 from .document_tolerances import TOLERANCE_FIELDS
+from .document_font_scopes import WRITABLE_FONT_SCOPES
+from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -260,6 +262,17 @@ def build_parser() -> argparse.ArgumentParser:
     tolerance_editor.add_argument("value", help="none/basic for linear.type; 0/3/8 for linear.precision")
     tolerance_editor.add_argument("--if-options", required=True, help="complete options JSON from document tolerances")
     tolerance_editor.add_argument("--json", action="store_true", dest="as_json")
+    font_scopes = document_commands.add_parser("font-scopes", help="read complete document default fonts for four scopes")
+    add_document_selector(font_scopes)
+    font_scopes.add_argument("--json", action="store_true", dest="as_json")
+    font_editor = document_commands.add_parser("font-scope-set", help="edit audited native Windows 33.5.0 Notes defaults; other scopes remain closed")
+    add_document_selector(font_editor)
+    add_lease_token(font_editor)
+    font_editor.add_argument("scope", choices=WRITABLE_FONT_SCOPES)
+    font_editor.add_argument("field", choices=FONT_WRITABLE_FIELDS)
+    font_editor.add_argument("value", help="JSON scalar, e.g. true, 12, or a quoted font name")
+    font_editor.add_argument("--if-fonts", required=True, dest="expected_fonts", help="complete four-scope JSON snapshot")
+    font_editor.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -910,6 +923,7 @@ def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Opt
             not isinstance(operation_schema, dict)
             or not operation_schema_fields.issubset(operation_schema)
             or set(operation_schema) - operation_schema_fields - {"allOf"}
+                - ({"x-swcli-font-write-profiles"} if operation == "document.font-scope-set" else set())
         ):
             return f"operation schema fields are invalid for {operation}"
         if (
@@ -1360,6 +1374,13 @@ def _typed_operation(
             return ("document.tolerance-set", {"field": args.field, "value": args.value,
                     "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
+        if command == "font-scopes":
+            return ("document.font-scopes", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "font-scope-set":
+            return ("document.font-scope-set", {"scope": args.scope, "field": args.field,
+                    "value": json.loads(args.value), "expected_fonts": json.loads(args.expected_fonts)},
+                    args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

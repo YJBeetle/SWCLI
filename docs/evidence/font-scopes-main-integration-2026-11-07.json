@@ -1,0 +1,77 @@
+{
+  "source_head": "15d32ceea38b123c3cd3503b34d86663a65f5f3c",
+  "public_acceptance": true,
+  "exact_profile": "native-windows 33.5.0 Notes PRT/ASM/DRW seven fields",
+  "counts": {
+    "read": 45,
+    "changed": 21,
+    "same": 21,
+    "refused": 33
+  },
+  "unique_font_requests": 120,
+  "worker_pids": [
+    9088
+  ],
+  "files": [
+    {
+      "name": "notes-height_mm.SLDPRT",
+      "sha256": "c6a9026104eb2f4b656d792273195e02c3c7392d2b34e18f44c32d8da953e506",
+      "size_bytes": 49001
+    },
+    {
+      "name": "notes-height_points.SLDPRT",
+      "sha256": "a9c4b9ac20ce89ae52a7ef62eec0a41238654631c47008806293fadd7477b6c2",
+      "size_bytes": 48422
+    },
+    {
+      "name": "notes-height_mm.SLDASM",
+      "sha256": "62cde69f2ff4dd74729229898b40fa2ec6def6e695845f899b35891078b6df71",
+      "size_bytes": 32359
+    },
+    {
+      "name": "notes-height_points.SLDASM",
+      "sha256": "01b176f758fe2217404a096535227be7c52fd7ca7b5c5db1436bd9e412934d26",
+      "size_bytes": 32139
+    },
+    {
+      "name": "notes-height_mm.SLDDRW",
+      "sha256": "54a4c6f67be0c36ee7b8f0ef0e3f1a3fafb022b70de10c44bc17c4aa19bb2228",
+      "size_bytes": 28332
+    },
+    {
+      "name": "notes-height_points.SLDDRW",
+      "sha256": "d26ccfb866b203488ee8d6a36594ea1d2fe51e199eaf0c0743ef4cf545d2196d",
+      "size_bytes": 27733
+    }
+  ],
+  "artifact_id": 13537375331,
+  "archive_sha256": "67fec36badcdfd5cb9d29218efbad91aa601aad4d4a6ca9e24fe35b86ef942c3",
+  "part_geometry_observations": 5,
+  "part_geometry_exactly_equal": true,
+  "cleanup_success": true,
+  "seed_seconds": 27.113421700000117,
+  "public_seconds": 147.44925350000017,
+  "observer_seconds": 10.287456600000041,
+  "status": "integrated-and-locally-verified; not-released",
+  "integration_base": "6cc94598acce9a4366f26c6ae3f340069b7a93ff",
+  "public_run": 42279469524,
+  "github_metadata_digest_verified": true,
+  "limits": [
+    "Notes seven fields only; dimensions/tables writes closed",
+    "Windows native33.5.0 PRT/ASM/DRW only",
+    "Not entire font or document-property series acceptance"
+  ],
+  "original_zip_entries_equal_extraction": true,
+  "integration_portable": {
+    "success": true,
+    "tests": 1974,
+    "skipped": 32,
+    "log_sha256": "dac820b72ed66258e2e0a6fd2fc009ed7c2eb19d579eb1bb2458d99a3f6e0def"
+  },
+  "sdk": {
+    "success": true,
+    "consumer_refusals": 10
+  },
+  "existing_handlers_ast_unchanged": true,
+  "release_tag_permissions_unchanged": true
+}

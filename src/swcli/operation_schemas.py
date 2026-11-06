@@ -13,6 +13,8 @@ from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
 from .document_tolerances import TOLERANCE_FIELDS, value_schema, snapshot_schema, validate_value
+from .document_font_scopes import (WRITABLE_FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, font_scopes_schema, font_value_schema, validate_font_edit)
+from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
@@ -206,6 +208,20 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.property-delete",
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.font-scopes": _operation("document.font-scopes", **_DOCUMENT_READ_CONTEXT),
+    "document.font-scope-set": _operation(
+        "document.font-scope-set",
+        {"scope": _string(enum=list(WRITABLE_FONT_SCOPES)),
+         "field": _string(enum=list(FONT_WRITABLE_FIELDS)),
+         "value": {"anyOf": [_string(), _boolean(), _number()]},
+         "expected_fonts": font_scopes_schema()},
+        required=("scope", "field", "value", "expected_fonts"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": font_value_schema(field)}},
+        } for field in FONT_WRITABLE_FIELDS],
+        document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -541,6 +557,7 @@ for _name, (_properties, _required) in workspace_definitions().items():
 OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
     "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; 360 degrees)"
 )
+OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)
@@ -646,6 +663,8 @@ def validate_operation_request(
         _validate_parameter(name, value, properties[name])
     if operation == "document.tolerance-set":
         validate_value(parameters["field"], parameters["value"])
+    if operation == "document.font-scope-set":
+        validate_font_edit(parameters["scope"], parameters["field"], parameters["value"], parameters["expected_fonts"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

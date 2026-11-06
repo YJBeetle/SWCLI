@@ -743,3 +743,22 @@ precision 0/3/8. It requires
 a document lease, update stamp, and the complete `expected_options` snapshot;
 old type must be none/basic and old precision follow_nominal/0/3/8. The bounded public CLI/daemon acceptance passed on native Windows SW33.5.0
 (run 42277528349, source 59f29e8).
+
+### Document font scopes (development)
+
+`swcli document font-scopes --document d-xxxxxx --json` reads complete 17-field
+snapshots for `dimensions`, `notes`, `tables`, and the read-only `annotations`
+guard scope. `height_mm` uses millimeters; `height_points` is an integer;
+`height_mode` identifies the active representation. A document default does not
+prove a locally formatted annotation or table inherits that font.
+
+`document.font-scope-set` requires explicit document, lease, update stamp and
+`expected_fonts` containing all four complete snapshots (`--if-fonts` in CLI).
+The finite write profile currently permits `notes` only on native Windows,
+SOLIDWORKS revision `33.5.0`, for part/assembly/drawing documents. Wine, unknown
+runtimes, other revisions and `dimensions`/`tables` writes return
+`DocumentFontScopeNotCalibrated` without mutation. Query the operation schema's
+`x-swcli-font-write-profiles` for the exact range and internal native evidence.
+Public CLI/Notes-object inheritance acceptance remains pending its dedicated
+gate. Never infer subtype inheritance, table-template behavior or persistence
+from portable tests alone. Saving remains a separate explicitly authorized step.

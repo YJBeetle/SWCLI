@@ -10,6 +10,8 @@ from typing import Any, Dict
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_tolerances import TOLERANCE_FIELDS
+from .document_font_scopes import FONT_SCOPES, font_scopes_schema, validate_font_scopes
+from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
@@ -564,6 +566,15 @@ _RESULT_FIELDS = {
     ),
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.font-scopes": (
+        {"fonts": font_scopes_schema()}, ("session_id", "document", "fonts"),
+    ),
+    "document.font-scope-set": (
+        {"scope": {"enum": ["dimensions", "notes", "tables"]}, "field": {"enum": list(FONT_WRITABLE_FIELDS)},
+         "before": font_scopes_schema(), "fonts": font_scopes_schema(),
+         "observed_fonts": font_scopes_schema(), "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "scope", "field", "before", "fonts", "changed", "mutation"),
+    ),
     "document.annotation-options": (
         {"options": DOCUMENT_ANNOTATION_OPTIONS},
         ("session_id", "document", "options"),
@@ -2810,6 +2821,23 @@ def validate_operation_result(name: str, result: Any) -> None:
                 or any(before[key] != after[key] for key in before if key != field)
                 or (changed and result["document"]["modified"] is not True)):
             raise OperationResultInvalid(name + ": inconsistent tolerance edit lifecycle")
+    if name in ("document.font-scopes", "document.font-scope-set"):
+        for key in ("fonts", "before", "observed_fonts"):
+            if key in result:
+                try:
+                    validate_font_scopes(result[key])
+                except ValueError as exc:
+                    raise OperationResultInvalid(str(exc)) from exc
+    if name == "document.font-scope-set" and result["ok"] is True:
+        before, after = result["before"], result["fonts"]
+        scope, field = result["scope"], result["field"]
+        changed = before != after
+        if (result["changed"] is not changed
+                or result["mutation"] != {"attempted": changed, "may_have_changed": changed}
+                or any(before[key] != after[key] for key in FONT_SCOPES if key != scope)
+                or not font_unrequested_fields_match(before[scope], after[scope], field)
+                or (changed and result["document"]["modified"] is not True)):
+            raise OperationResultInvalid(name + ": inconsistent scoped font mutation evidence")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

@@ -345,7 +345,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
-            result = None
+            result = None  # Never reuse a previous request's mutation receipt.
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -425,6 +425,29 @@ def _worker_main(
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
                 response = _preserve_tolerance_receipt(response, str(request["operation"]), result, exc)
+                if (request["operation"] == "document.font-scope-set"
+                        and isinstance(result, dict)
+                        and isinstance(result.get("mutation"), dict)
+                        and set(result["mutation"]) == {"attempted", "may_have_changed"}
+                        and all(type(value) is bool for value in result["mutation"].values())):
+                    # Context restoration/validation can fail after native
+                    # writes completed. Keep the first business error and the
+                    # receipt; the transport error still signals host recovery.
+                    result["ok"] = False
+                    if "error" in result:
+                        result.setdefault("warnings", []).append({
+                            "code": "font-worker-postflight-failed", "message": str(exc)})
+                    else:
+                        result["error"] = {"type": type(exc).__name__, "message": str(exc)}
+                    try:
+                        validate_operation_result("document.font-scope-set", result)
+                    except Exception:
+                        # Even an invalid postflight payload cannot erase a
+                        # trusted two-boolean mutation boundary.
+                        result = {"ok": False, "action": "document.font-scope-set",
+                                  "mutation": result["mutation"], "error": result["error"],
+                                  "warnings": result.get("warnings", [])}
+                    response["result"] = result
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

@@ -731,8 +731,77 @@ class DocumentPropertyDeleteResult(_DocumentPropertyDeleteResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-class DocumentAnnotationOptionsParameters(TypedDict):
+class DocumentFontScopesParameters(TypedDict):
     pass
+
+
+class DocumentFontScopesResultFontsDimensions(TypedDict):
+    typeface: str
+    height_mm: float
+    height_points: int
+    height_mode: Literal['millimeters', 'points']
+    bold: bool
+    italic: bool
+    underline: bool
+    strikeout: bool
+    backwards: bool
+    upside_down: bool
+    vertical: bool
+    width_factor: float
+    char_spacing_factor: float
+    escapement: float
+    line_spacing: float
+    line_length: float
+    oblique_angle: float
+
+
+class DocumentFontScopesResultFonts(TypedDict):
+    dimensions: DocumentFontScopesResultFontsDimensions
+    notes: DocumentFontScopesResultFontsDimensions
+    tables: DocumentFontScopesResultFontsDimensions
+    annotations: DocumentFontScopesResultFontsDimensions
+
+
+class _DocumentFontScopesResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.font-scopes']
+
+
+class DocumentFontScopesResult(_DocumentFontScopesResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    fonts: DocumentFontScopesResultFonts
+
+
+class DocumentFontScopeSetParameters(TypedDict):
+    scope: Literal['dimensions', 'notes', 'tables']
+    field: Literal['typeface', 'height_mm', 'height_points', 'bold', 'italic', 'underline', 'strikeout']
+    value: Union[str, bool, float]
+    expected_fonts: DocumentFontScopesResultFonts
+
+
+class _DocumentFontScopeSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.font-scope-set']
+
+
+class DocumentFontScopeSetResult(_DocumentFontScopeSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    scope: Literal['dimensions', 'notes', 'tables']
+    field: Literal['typeface', 'height_mm', 'height_points', 'bold', 'italic', 'underline', 'strikeout']
+    before: DocumentFontScopesResultFonts
+    fonts: DocumentFontScopesResultFonts
+    observed_fonts: DocumentFontScopesResultFonts
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+
+
+DocumentAnnotationOptionsParameters = DocumentFontScopesParameters
 
 
 class _DocumentAnnotationOptionsResultRequired(TypedDict):
@@ -771,7 +840,7 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentDetailingOptionsParameters = DocumentAnnotationOptionsParameters
+DocumentDetailingOptionsParameters = DocumentFontScopesParameters
 
 
 class _DocumentDetailingOptionsResultRequired(TypedDict):
@@ -811,7 +880,7 @@ class DocumentDetailingOptionSetResult(_DocumentDetailingOptionSetResultRequired
     native_return: Union[bool, None]
 
 
-DocumentTolerancesParameters = DocumentAnnotationOptionsParameters
+DocumentTolerancesParameters = DocumentFontScopesParameters
 
 
 class _DocumentTolerancesResultRequired(TypedDict):
@@ -853,7 +922,7 @@ class DocumentToleranceSetResult(_DocumentToleranceSetResultRequired, total=Fals
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentUnitsParameters = DocumentAnnotationOptionsParameters
+DocumentUnitsParameters = DocumentFontScopesParameters
 
 
 class DocumentUnitsResultUnitsNativeUnits(TypedDict):
@@ -906,7 +975,7 @@ class DocumentUnitsSetResult(_DocumentUnitsSetResultRequired, total=False):
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentSummaryParameters = DocumentAnnotationOptionsParameters
+DocumentSummaryParameters = DocumentFontScopesParameters
 
 
 class DocumentSummaryResultFields(TypedDict):

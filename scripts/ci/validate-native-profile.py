@@ -3,6 +3,7 @@ import json
 import os
 
 FEATURE_REFS = {
+    "calibrate_font_scopes": "refs/heads/codex/docprops-font-scopes",
     "calibrate_tolerances": "refs/heads/codex/docprops-tolerances",
     "accept_tolerances": "refs/heads/codex/docprops-tolerances",
     "detailing_calibration": "refs/heads/codex/docprops-detailing",
@@ -24,6 +25,11 @@ def enabled(value):
 def resolve(event, ref, inputs):
     if not isinstance(inputs, dict):
         raise ValueError("workflow inputs must be an object")
+    font_profile = inputs.get("font_scopes_profile", "internal")
+    if font_profile not in ("internal", "public-notes"):
+        raise ValueError("unknown font profile")
+    if font_profile != "internal" and not enabled(inputs.get("calibrate_font_scopes", False)):
+        raise ValueError("font public profile requires font validation")
     selected = [key for key in FLAGS if enabled(inputs.get(key, False))]
     if event != "workflow_dispatch":
         if selected:
