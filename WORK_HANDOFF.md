@@ -89,3 +89,10 @@
 - GLB SaveAs3增加明确native trace，其他格式调用不变。新增共享冲突面：`src/swcli/hosts/windows_documents.py`（仅GLB staging/诊断/trace）、`hosts/export_validation.py`（GLB实际buffer检查）、`test_export_validation.py`、`test_windows_mesh_exports.py`；不改STL/STEP参数。
 - 为忠实区分控制域，内部校准先运行独立 `--document-properties` 组（圆柱+box三字段、含edge true/false分别单请求及另存重开、明确 `covers_glb_mesh=false`），成功后才运行原严格GLB组；两组分别保持600/1800秒、同一个owned host，CI步骤整体35分钟上限不增。第一组失败绝不进入第二组；GLB组失败立刻停止。这样GLB exporter缺陷不冒充属性API失败或反之，不把独立property组通过声称为GLB通过。
 - 本地生产GLB改动后完整回归 **1845 tests OK（32 skipped）**；新增独立属性组后focused **81 tests OK（2 skipped）**，actionlint通过。完整原日志 `portable-tests-glb-validation-fix.log`。下一次必要验证只对相关修复新head派发一次。
+
+### GLB buffer修复与两域校准的新head
+
+- 提交 `2f095357e6b80d324dc3563c8754bf1406f55d1a` 已推送；此head必要run：[42271766677](https://github.com/YJBeetle/SWCLI/actions/runs/42271766677)，参数 `image_quality_calibration=true`, `native_full=false`，其他默认，派发一次，无排队重派。原件 `dispatch-glb-buffer-fix-request.json` / `dispatch-glb-buffer-fix-result.json`。
+- 除已记录1845全回归、81focused外，GLB SaveAs3 trace及导出/原生trace相关 **53 tests OK**；最终导出validator/mesh-wrapper/分组接线 **31 tests OK**，`git diff --check`通过。
+- 新run先写 `properties-calibration/image-quality.json`，该组没有GLB导出，包含edge true/false分别单次请求并完整保存重开；通过后才进入 `calibration/image-quality.json` 的GLB实验。任一组首失败停止该组/后续步骤，整体35分钟上限不增；单组600/1800边界不变，同daemon/host不重启。
+- 独立审计器已预先按两个证据域分开，位于持久artifact根 `audit-image-quality-artifact.py`。仅当property报告完整通过、全部原文件/trace/raw persistence/kernel/cleanup独立复核通过，才允许将它作为**内部property证据**；即使后一GLB组失败也不能称整run通过或GLB通过，更不能替代后续独立公开验收。公共写入当前仍全部关闭，待原证据核完再开放精确范围。
