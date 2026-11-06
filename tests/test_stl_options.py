@@ -31,13 +31,14 @@ class StlOptionsContractTests(unittest.TestCase):
         self.assertTrue(Draft202012Validator(schema).is_valid(parameters))
         import swcli.mcp as mcp
         bridge = mcp.DaemonBridge()
-        envelope = {"api_version": "1", "request_id": "stl-test", "success": False,
+        envelope = {"api_version": "swcli/v1", "request_id": "stl-test", "duration_ms": 0, "success": False,
                     "error": {"code": "StlOptionsNotCalibrated", "message": "closed"}}
         # Explicit metadata-only content avoids the unrelated discovery call.
         with mock.patch.object(mcp, "call_daemon", return_value=envelope) as forwarded:
-            bridge.call("execute", {"operation": operation,
+            reply = bridge.call("execute", {"operation": operation,
                 "parameters": {**parameters, "include_content": False}, "request_id": "stl-test",
                 "document_id": "d-ab12cd", "expected_update_stamp": 7, "lease_id": "l-ab12cd34ef56"})
+        self.assertEqual(reply["error"]["code"], "StlOptionsNotCalibrated")
         self.assertEqual(forwarded.call_args.args[1]["stl_options"], OPTIONS)
         self.assertEqual(forwarded.call_args.kwargs["expected_update_stamp"], 7)
         self.assertEqual(forwarded.call_args.kwargs["lease_id"], "l-ab12cd34ef56")
@@ -89,7 +90,7 @@ class StlPreferenceTransactionTests(unittest.TestCase):
                 self.state[name] = value  # COM may mutate even when it raises.
                 if self.writes == self.write_failure or (self.writes > 8 and name == self.restore_failure):
                     raise RuntimeError("setter original error")
-                return True
+                return None if kind == "Toggle" else True
             setattr(app, "GetUserPreference" + kind, getter)
             setattr(app, "SetUserPreference" + kind, setter)
         self.app = app
@@ -142,7 +143,7 @@ class StlPreferenceTransactionTests(unittest.TestCase):
     def test_readback_mismatch_fails_without_export_and_restores(self):
         original = self.app.SetUserPreferenceToggle
         def ignore(code, value):
-            return True
+            return None
         self.app.SetUserPreferenceToggle = ignore
         with self.assertRaisesRegex(adapter.StlOptionsError, "exact requested"):
             with adapter.stl_preferences(self.app, OPTIONS, self.evidence):
@@ -239,3 +240,48 @@ class StlExportFailureEvidenceTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertEqual(case.output, b"previous valid artifact")
             self.assertEqual(len(case.saved), 1)
+
+
+class StlIsolationTests(unittest.TestCase):
+    def test_worker_ownership_and_explicit_disposable_runner_optin_are_all_required(self):
+        app = object()
+        for owned, github, optin, expected in ((False, "true", "1", False),
+                (True, "false", "1", False), (True, "true", "0", False), (True, "true", "1", True)):
+            with self.subTest(owned=owned, github=github, optin=optin), mock.patch.dict(
+                    "os.environ", {"GITHUB_ACTIONS": github, "SWCLI_STL_CALIBRATION": optin}), mock.patch.object(adapter, "_HOST", None):
+                adapter.configure_calibration_host(app, owned=owned)
+                self.assertEqual(adapter._HOST is app, expected)
+
+    def test_other_process_visible_host_and_unregistered_app_are_refused(self):
+        app = SimpleNamespace(GetProcessID=lambda: 101, Visible=False)
+        for inventory, visible, registered in (('"SLDWORKS.exe","101"\n"SLDWORKS.exe","102"', False, True),
+                ('"SLDWORKS.exe","101"', True, True), ('"SLDWORKS.exe","101"', False, False)):
+            app.Visible = visible
+            with self.subTest(inventory=inventory, visible=visible, registered=registered), mock.patch.object(
+                    adapter, "_HOST", app if registered else None), mock.patch.object(adapter, "_POISONED", False), mock.patch.object(
+                    adapter.subprocess, "run", return_value=SimpleNamespace(stdout=inventory)):
+                with self.assertRaises(adapter.StlOptionsError):
+                    adapter.require_isolation(app)
+
+    def test_exact_single_owned_hidden_host_passes_without_starting_or_killing_any_process(self):
+        app = SimpleNamespace(GetProcessID=lambda: 101, Visible=False)
+        with mock.patch.object(adapter, "_HOST", app), mock.patch.object(adapter, "_POISONED", False), mock.patch.object(
+                adapter.subprocess, "run", return_value=SimpleNamespace(stdout='"SLDWORKS.exe","101"')) as inventory:
+            adapter.require_isolation(app)
+        self.assertEqual(inventory.call_args.args[0][0], "tasklist.exe")
+        self.assertEqual(inventory.call_count, 1)
+
+
+class StlNativeVoidContractTests(unittest.TestCase):
+    def test_toggle_void_return_is_distinct_from_boolean_setter_status(self):
+        codes = {"swSTLBinaryFormat": 69, "swSTLQuality": 78}
+        app = SimpleNamespace(SetUserPreferenceToggle=mock.Mock(return_value=None),
+                              SetUserPreferenceIntegerValue=mock.Mock(return_value=True))
+        self.assertIsNone(adapter._write(app, "swSTLBinaryFormat", True, codes))
+        self.assertIs(adapter._write(app, "swSTLQuality", 3, codes), True)
+        app.SetUserPreferenceToggle.return_value = False
+        with self.assertRaises(adapter.StlOptionsError):
+            adapter._write(app, "swSTLBinaryFormat", True, codes)
+        app.SetUserPreferenceIntegerValue.return_value = None
+        with self.assertRaises(adapter.StlOptionsError):
+            adapter._write(app, "swSTLQuality", 3, codes)

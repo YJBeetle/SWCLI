@@ -66,3 +66,25 @@ class StlCIWiringTests(unittest.TestCase):
                 module.mesh_metrics(path, unit="inch", expected_encoding="ascii")
             with self.assertRaisesRegex(RuntimeError, "units"):
                 module.mesh_metrics(path, unit="mm", expected_encoding="binary")
+
+
+class StlEvidenceAuditTests(unittest.TestCase):
+    def test_missing_failed_wrong_head_and_scope_mixed_evidence_never_qualifies(self):
+        import json
+        spec = importlib.util.spec_from_file_location("stl_audit", ROOT / "scripts/ci/audit-stl-evidence.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with self.assertRaisesRegex(RuntimeError, "exactly one"):
+                module.audit(root, "expected-head")
+            baseline = dict(success=True, source_commit="expected-head", public_acceptance=False, full_acceptance=False,
+                            native_timeout_seconds=600, group_timeout_seconds=1800, cleanup_errors=[])
+            for changes, message in ((dict(success=False), "did not pass"),
+                    (dict(source_commit="other-head"), "did not pass"),
+                    (dict(public_acceptance=True), "must not claim"),
+                    (dict(native_timeout_seconds=120), "timeout contract"),
+                    (dict(cleanup_errors=[{"stage": "retained-host"}]), "cleanup errors")):
+                (root / "stl-calibration.json").write_text(json.dumps({**baseline, **changes}))
+                with self.subTest(changes=changes), self.assertRaisesRegex(RuntimeError, message):
+                    module.audit(root, "expected-head")

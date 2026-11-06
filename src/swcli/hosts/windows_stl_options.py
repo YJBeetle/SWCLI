@@ -95,8 +95,12 @@ def _write(app, name, value, codes):
     kind = PREFERENCES[name]
     status = native_call("stl-preferences-write", "ISldWorks.SetUserPreference" + kind + "." + name,
                          lambda: getattr(app, "SetUserPreference" + kind)(codes[name], value))
-    if status is not True:
-        raise StlOptionsError("ExportPreferenceRejected", "setter refused preference: " + name)
+    # ISldWorks.SetUserPreferenceToggle is void (unlike the integer/double
+    # setters). pywin32 must return None; successful setting is established by
+    # exact full-vector readback below, never by truth-testing this void result.
+    if (kind == "Toggle" and status is not None) or (kind != "Toggle" and status is not True):
+        raise StlOptionsError("ExportPreferenceRejected", "unexpected native setter return: " + name)
+    return status
 
 
 @contextmanager
@@ -131,14 +135,16 @@ def stl_preferences(app, options, evidence):
                       swSTLBinaryFormat=options["encoding"] == "binary",
                       swSTLComponentsIntoOneFile=True, swSTLShowInfoOnSave=False, swSTLPreview=False)
         evidence.update(before=before, requested=wanted, constants=codes, mutation_attempted=False,
-                        restored=False, cleanup_errors=[])
+                        restored=False, cleanup_errors=[], setter_returns=[])
         # Full-vector compare-and-set before any global preference mutation.
         if {name: _read(app, name, codes) for name in PREFERENCES} != before:
             raise StlOptionsError("ExportPreferenceConflict", "STL preference vector changed before mutation")
         try:
             for name, value in wanted.items():
                 evidence["mutation_attempted"] = True
-                _write(app, name, value, codes)
+                status = _write(app, name, value, codes)
+                evidence["setter_returns"].append({"phase": "set", "preference": name,
+                                                   "return_type": type(status).__name__, "value": status})
             evidence["readback"] = {name: _read(app, name, codes) for name in PREFERENCES}
             if evidence["readback"] != wanted:
                 raise StlOptionsError("ExportPreferenceReadbackFailed", "STL preferences did not retain the exact requested values")
@@ -148,7 +154,9 @@ def stl_preferences(app, options, evidence):
             # restore the original doubles, and verify the full vector at end.
             for name, value in before.items():
                 try:
-                    _write(app, name, value, codes)
+                    status = _write(app, name, value, codes)
+                    evidence["setter_returns"].append({"phase": "restore", "preference": name,
+                                                       "return_type": type(status).__name__, "value": status})
                 except Exception as exc:
                     evidence["cleanup_errors"].append({"preference": name, "error": str(exc)})
             try:

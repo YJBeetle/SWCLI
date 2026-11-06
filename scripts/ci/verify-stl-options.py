@@ -82,6 +82,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
+    parser.add_argument("--phase", choices=("internal", "public"), default="internal")
     args = parser.parse_args(argv)
     require(sys.platform == "win32" and os.environ.get("GITHUB_ACTIONS") == "true",
             "calibration requires a disposable GitHub Windows runner")
@@ -89,7 +90,7 @@ def main(argv=None):
     root.mkdir(parents=True, exist_ok=True)
     report_path = root / "stl-calibration.json"
     require(not report_path.exists(), "evidence directory was already used; do not overwrite original evidence")
-    report = dict(success=False, scope="internal-stl-options-calibration", public_acceptance=False,
+    report = dict(success=False, scope=("internal-stl-options-calibration" if args.phase == "internal" else "public-isolated-stl-options"), public_acceptance=False,
                   full_acceptance=False, source_commit=os.environ.get("GITHUB_SHA"),
                   native_timeout_seconds=600, group_timeout_seconds=1800, events=[], cases=[], cleanup_errors=[])
     started = time.monotonic()
@@ -98,7 +99,9 @@ def main(argv=None):
     endpoint = None
     daemon = None
     def checkpoint():
-        report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+        next_report = report_path.with_name("stl-calibration.next.json")
+        next_report.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+        next_report.replace(report_path)
     def call(operation, parameters=None, *, document=None, expected=None):
         require(time.monotonic()-started < 1800, "STL group exceeded 1800 seconds")
         context = {}
@@ -132,7 +135,36 @@ def main(argv=None):
         return result
     def lease(document):
         call("document.lease.acquire", {"ttl_seconds": 3600}, document=document)
-    def cli_export(document, path, options):
+    def cli_export(document, path, options, route="cli"):
+        require(time.monotonic()-started < 1800, "STL group exceeded 1800 seconds")
+        if route != "cli":
+            event = dict(route=route, operation="document.export", options=options, path=str(path), state="started")
+            report["events"].append(event)
+            checkpoint()
+            context = dict(document_id=document, expected_update_stamp=documents[document]["update_stamp"],
+                           lease_id=leases[document])
+            if route == "sdk":
+                from swcli.sdk import Client
+                response = Client(endpoint=endpoint, session_id="stl-calibration", timeout_seconds=600).document.export(
+                    output=str(path), strict=True, stl_options=options, **context)
+                event["response"] = dict(response.raw)
+                checkpoint()
+                result = dict(response.require_result())
+                result["request_id"] = response.request_id
+            else:
+                from swcli.mcp import DaemonBridge
+                response = DaemonBridge(endpoint=endpoint, session_id="stl-calibration", timeout_seconds=600).call(
+                    "execute", {"operation": "document.export", "parameters": dict(output=str(path), strict=True,
+                    stl_options=options, include_content=False), **context})
+                event["response"] = response
+                checkpoint()
+                require(response.get("success") is True, "first MCP STL failure: " + str(response))
+                result = {**response["result"], "request_id": response["request_id"]}
+            event.update(result=result, state="completed")
+            documents[document] = result["document"]
+            checkpoint()
+            return result
+
         argv = [sys.executable, "-I", "-m", "swcli", "--endpoint", endpoint, "--session", "stl-calibration",
                 "--request-timeout", "600", "document", "export", str(path), "--document", document,
                 "--if-update-stamp", str(documents[document]["update_stamp"]), "--lease", leases[document],
@@ -162,8 +194,16 @@ def main(argv=None):
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
         endpoint = "127.0.0.1:" + str(port)
-        env = {**os.environ, "SWCLI_STL_CALIBRATION": "1", "SWCLI_STL_SWCONST": str(args.swconst.resolve()),
+        env = {**os.environ, "SWCLI_STL_SWCONST": str(args.swconst.resolve()),
                "SWCLI_TRACE_NATIVE_CALLS": "1", "PYTHONIOENCODING": "utf-8"}
+        env.pop("SWCLI_STL_CALIBRATION", None)
+        env.pop("SWCLI_STL_EXCLUSIVE_RUNNER", None)
+        if args.phase == "internal":
+            env["SWCLI_STL_CALIBRATION"] = "1"
+        else:
+            env["SWCLI_STL_EXCLUSIVE_RUNNER"] = "1"
+        report["daemon_export_mode"] = dict(internal_calibration="SWCLI_STL_CALIBRATION" in env,
+                                          explicit_exclusive_runner="SWCLI_STL_EXCLUSIVE_RUNNER" in env)
         with (root / "daemon.stdout.log").open("w") as stdout, (root / "daemon.stderr.log").open("w") as stderr:
             daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--host", "127.0.0.1",
                                       "--port", str(port), "--tray", "off", "--startup-timeout", "600"],
@@ -206,14 +246,42 @@ def main(argv=None):
                 ("ascii-inch", dict(encoding="ascii", unit="inch", deviation_mm=0.01, angle_degrees=0.5)),
                 ("binary-meter", dict(encoding="binary", unit="m", deviation_mm=0.01, angle_degrees=0.5)),
             ]
+            if args.phase == "public":
+                require("SWCLI_STL_CALIBRATION" not in env, "public gate must not enable internal calibration")
+                from swcli.stl_calibrated_profiles import QUALIFICATION
+                report["qualification"] = QUALIFICATION
+                fine_options = dict(encoding="binary", unit="mm", deviation_mm=0.01, angle_degrees=0.5)
+                plan.extend([("sdk-fine", fine_options), ("mcp-fine", fine_options)])
+                report["negative_guards"] = []
+                def refuse(label, *, options=None, stamp=None, session="stl-calibration", expected):
+                    path = root / ("refused-"+label+".stl")
+                    response = call_daemon("document.export", dict(output=str(path), stl_options=options or fine_options),
+                        endpoint=endpoint, session_id=session, timeout_seconds=600, document_id=doc,
+                        expected_update_stamp=documents[doc]["update_stamp"] if stamp is None else stamp,
+                        lease_id=leases[doc])
+                    report["negative_guards"].append(dict(name=label, response=response, expected_error=expected))
+                    checkpoint()
+                    require(response.get("success") is False and response.get("error", {}).get("code") == expected,
+                            "public negative guard did not refuse before setters: " + str(response))
+                    require(not path.exists(), "guard refusal published an output")
+                    if "result" in response:
+                        validate_operation_result("document.export", response["result"])
+                refuse("stale-stamp", stamp=documents[doc]["update_stamp"]+1, expected="DocumentUpdateConflict")
+                refuse("foreign-lease", session="foreign-session", expected="DocumentLeaseConflict")
+                refuse("uncalibrated-profile", options={**fine_options, "deviation_mm": 0.2}, expected="StlOptionsProfileUncalibrated")
             baseline_preferences = None
             for name, options in plan:
                 path = root / (name + ".stl")
                 case = dict(name=name, options=options, path=str(path), success=False)
                 report["cases"].append(case)
                 checkpoint()
-                result = cli_export(doc, path, options)
+                route = "sdk" if name == "sdk-fine" else "mcp" if name == "mcp-fine" else "cli"
+                result = cli_export(doc, path, options, route=route)
+                case["route"] = route
                 case["result"] = result
+                if args.phase == "public":
+                    require(result["stl_preferences"].get("execution_mode") == "public-isolated",
+                            "public export used an internal or unqualified worker mode")
                 require(result["document"]["document_id"] == doc and result["document"]["active"] is False,
                         "STL export did not preserve background source/foreground identity")
                 prefs = result["stl_preferences"]
@@ -233,17 +301,25 @@ def main(argv=None):
                 require(cases[name]["triangle_count"] > coarse["triangle_count"], "individual STL tolerance did not refine triangle count: " + name)
                 require(cases[name]["volume_relative_error"] < coarse["volume_relative_error"], "tolerance did not improve analytic mesh volume: " + name)
             require(fine["max_wall_chord_error_mm"] < coarse["max_wall_chord_error_mm"], "refinement did not improve curved wall error")
-            for name in ("ascii-inch", "binary-meter"):
+            for name in (("ascii-inch", "binary-meter", "sdk-fine", "mcp-fine") if args.phase == "public"
+                         else ("ascii-inch", "binary-meter")):
                 require(cases[name]["triangle_count"] == fine["triangle_count"], "unit/encoding changed tessellation")
                 require(abs(cases[name]["volume_mm3"]-fine["volume_mm3"]) / fine["volume_mm3"] < 1e-4,
                         "unit/encoding geometric scale mismatch")
             require(hashlib.sha256(native.read_bytes()).hexdigest() == digest, "exports modified saved source bytes")
+            if args.phase == "public":
+                call("document.close", {"discard": False}, document=doc)
+                readonly = call("document.open", {"path": str(native), "read_only": True})
+                doc = readonly["document"]["document_id"]
+                lease(doc)
+                refuse("read-only-source", expected="DocumentReadOnly")
+                require(hashlib.sha256(native.read_bytes()).hexdigest() == digest, "read-only refusal changed source bytes")
             call("document.close", {"discard": False}, document=front)
             call("document.close", {"discard": False}, document=doc)
             report["shutdown"] = call_daemon("daemon.shutdown", endpoint=endpoint, timeout_seconds=600)
             require(report["shutdown"]["success"], "owned daemon shutdown failed")
             daemon.wait(timeout=30)
-            report.update(success=True, elapsed_seconds=time.monotonic()-started)
+            report.update(success=True, public_acceptance=args.phase == "public", elapsed_seconds=time.monotonic()-started)
     except BaseException as exc:
         report["error"] = dict(type=type(exc).__name__, message=str(exc), traceback=traceback.format_exc())
         raise

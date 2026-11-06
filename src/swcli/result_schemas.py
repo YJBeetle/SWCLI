@@ -703,6 +703,10 @@ _RESULT_FIELDS = {
              "readback": {"type": "object"}, "after": {"type": "object"},
              "constants": {"type": "object"}, "mutation_attempted": BOOL, "restored": BOOL,
              "cleanup_errors": {"type": "array", "items": {"type": "object"}},
+             "setter_returns": {"type": "array", "items": _object({
+                 "phase": {"enum": ["set", "restore"]}, "preference": STRING,
+                 "return_type": {"enum": ["bool", "NoneType"]}, "value": {"type": ["boolean", "null"]},
+             }, ("phase", "preference", "return_type", "value"))},
          })},
         ("output", "artifact"),
     ),

@@ -1126,6 +1126,13 @@ class DocumentExportResultStlSourceState(_DocumentExportResultStlSourceStateRequ
     observation_error: DocumentCreateResultError
 
 
+class DocumentExportResultStlPreferencesSetterReturnsItem(TypedDict):
+    phase: Literal['set', 'restore']
+    preference: str
+    return_type: Literal['bool', 'NoneType']
+    value: Union[bool, None]
+
+
 class DocumentExportResultStlPreferences(TypedDict, total=False):
     before: Dict[str, JSONValue]
     requested: Dict[str, JSONValue]
@@ -1135,6 +1142,7 @@ class DocumentExportResultStlPreferences(TypedDict, total=False):
     mutation_attempted: bool
     restored: bool
     cleanup_errors: List[Dict[str, JSONValue]]
+    setter_returns: List[DocumentExportResultStlPreferencesSetterReturnsItem]
 
 
 class _DocumentExportResultRequired(TypedDict):

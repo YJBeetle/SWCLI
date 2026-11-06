@@ -28,3 +28,24 @@
 - Logs under `evidence/portable/` remain local persistent artifacts, excluded from source commits by `evidence/.gitignore`.
 - Implementation files: `stl_options.py`, `hosts/windows_stl_options.py`, existing export adapter/handler/worker, CLI/catalog/result schemas/generated SDK, dedicated verifier/tests, documentation and explicitly gated manual CI input.
 - Next authorized stage: Chinese implementation commit and push this branch, then one `workflow_dispatch` of `ci.yml` with `stl_options_targeted=true`, `native_full=false` against the matching branch HEAD. No local VM, main merge or release.
+
+## Native dispatch (one authorized request)
+- Implementation commit / tested HEAD: `3664d4b99df98aa75d9df3aa8e252316ee602f53` (`feat: 添加隔离校准的STL格式参数与偏好恢复验证`), pushed to `codex/swcli-stl-export-options`.
+- Run: https://github.com/YJBeetle/SWCLI/actions/runs/42262477609
+- Workflow `ci.yml`, `workflow_dispatch`, ref `codex/swcli-stl-export-options`, inputs `stl_options_targeted=true`, `native_full=false`; existing media/assets/cleanup/cache defaults unchanged. Exactly one dispatch submitted, no other branch targeted.
+- Request/response and run snapshots under persistent `evidence/ci/`. Result pending; no native or public acceptance claimed.
+
+## Public promotion plan (after independent native evidence audit)
+- Parent requires public CLI/daemon acceptance beyond an internal-only candidate. Do not call this branch merge-ready at the current stage.
+- Safety boundary proposed for public promotion: explicitly configured disposable isolated GitHub Windows runner; worker-owned hidden host, exact-one SLDWORKS process, OS mutex and serialized worker remain mandatory. Ordinary/shared/interactive or non-isolated deployments continue to refuse global preference writes.
+- Promote only the exact parameter tuples actually proven by retained outputs, pinned to observed native revision and installed enum mapping. Schema-wide numeric bounds must not become an unverified general write allowlist.
+- Prepare a separate public gate that uses installed CLI plus SDK/MCP through the daemon, no internal-calibration toggle, verifies negative guards before setters, source/background identity, save/reopen, actual binary/ASCII/unit geometry, full preference restore and per-request single-save trace. A necessary public CI is a separate phase, not a rerun for normal queueing.
+- Native audit helper `scripts/ci/audit-stl-evidence.py` is drafted locally (not part of dispatched HEAD) to independently re-read retained mesh/source bytes, digests, exact vectors, request-correlated begin/end/set/read/save trace and stable worker identity before any promotion.
+- While the original native run is preparing its runner, the local verifier now has an uncommitted `--phase public` scaffold. It removes the internal calibration toggle, requires explicit isolated public mode, runs CLI plus SDK/MCP exports and native stale-stamp/foreign-lease/unproven-profile/read-only guard refusals. It remains unusable until an audited qualification file and runtime enforcement are populated from actual passing native evidence; no range has been opened or second CI dispatched.
+
+## First native failure retained / bounded correction
+- Run `42262477609` completed **failure** at the first STL case, after installation and native source save/reopen succeeded. No `SaveAs3` export call occurred. App revision `33.5.0`, owned hidden host PID 4512; source state unchanged.
+- Original native artifact ID `13526159120`, ZIP `evidence/ci/original-42262477609.zip`, SHA256 **`b83b79ceb578096b3bd5db9ac8f77ebf8efbdf27bb7d50b23eaf039e9e1a32e8`**, equal to GitHub artifact digest. Saved/reopened source SHA256 **`fd7c82324a9fc13ea664c04e6c96dab709f61972e1a498eed2ff0871fac3e699`**.
+- Root cause: implementation wrongly required boolean success from **ISldWorks.SetUserPreferenceToggle**, whose official signature is **void**. Original report/trace show toggle calls ended without COM exception; before/after full preference vectors are identical, although conservative status handling flagged restoration failure and retired worker.
+- Correction: require `None` for app toggle setters and true for app integer/double setters; retain per-set/restore return types/values. Exact vector CAS/readback/restoration assertions, single save, 600/1800, isolated host and fail-closed public boundary are unchanged. This corrects an API return contract; it does not relax a native geometry assertion.
+- Added real void-vs-boolean portable contract coverage and fixed MCP forwarding test to validate a correctly shaped swcli/v1 envelope. Next native dispatch is authorized only after this correction is committed, pushed and targeted checks pass.
