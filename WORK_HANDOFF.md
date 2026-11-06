@@ -200,3 +200,9 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 关联51项通过，含xyz正负边界/nextafter越界、无相对容差、NaN/+Inf/-Inf（before/after、各维度）、V/S正负一ULP仍失败、实体数类型/数量严格，以及public完整三类型流程的相同窄界限绑定和V/S/越界拒绝。完整portable1873项/47.118s通过（32 skipped），SDK generated --check和diff检查通过。原始输出与旧原生读数的**离线**新窄判据重放在`docs/evidence/units-profile/approved-centroid-bound/`；离线通过不是新native或翻转旧run结论。
 
 本次仅完成已批准既定范围的最小修复，不新扩字段/写域/计划；将中文提交推送后仅对明确新head做一次必要公共验证。changed-write白名单仍为空，不合main、不发布，正常CI启动后只记录链接结束等待，不持续poll。
+
+## 获批窄界限新head的唯一必要公共验证
+
+修复提交`9d1d54633a0ad7f9a8149342f6d3b58b0e55b05f`已中文提交推送。仅触发一次：[42303169518](https://github.com/YJBeetle/SWCLI/actions/runs/42303169518)，参数 `units_calibration=true,units_public_acceptance=true,native_full=false`。实际head已核对，初始原始run元数据在`docs/evidence/units-profile/approved-bound-42303169518/run-initial.json`。本次覆盖P1产品修复以及用户已批准的仅质心绝对1e-12mm界限；V/S/实体数及所有state/identity/CAS仍严格相等，原解析几何与raw/hex/delta全部保留。
+
+正常运行已记录链接，本轮结束等待，不持续sleep/poll、不建automation、不新建review agent、不新扩字段/计划、不触碰main/VM/DockerSW/MacSW。旧失败原件保留、不翻绿；新run未完成前无可合tip、无新native/public通过声明。后续由统筹分次取完成/失败原件审核，正式发布前仍由用户确认。原几何口径授权阻断已解决，无待审批动作。
