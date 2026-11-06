@@ -79,7 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--request-id",
         help="stable idempotency key for one typed request (default: random UUID)",
     )
+    parser.add_argument("--client-workspace", default=os.environ.get("SWCLI_CLIENT_WORKSPACE"),
+                        help="existing local directory for file transfers")
     subcommands = parser.add_subparsers(dest="command", required=True)
+    from .file_transfer import configure_parser as configure_transfer_parser
+    configure_transfer_parser(subcommands)
 
     from .mcp import configure_parser as configure_mcp_parser
     configure_mcp_parser(subcommands)
@@ -617,6 +621,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(load_schema(args.schema), ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "transfer":
+        from .file_transfer import run as run_transfer
+        return run_transfer(args)
+
     if args.command == "mcp":
         from .mcp import run as run_mcp
         return run_mcp(args)
@@ -823,8 +831,9 @@ def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Opt
     if not include_schemas:
         expected -= {"operation_schemas", "operation_result_schemas"}
     actual = set(payload)
-    if actual != expected:
-        missing = sorted(expected - actual)
+    optional = {"transport", "workspace"}
+    if actual - expected or expected - actual - optional:
+        missing = sorted(expected - actual - optional)
         unknown = sorted(actual - expected)
         return f"capabilities fields differ; missing={missing}, unknown={unknown}"
     if not isinstance(payload["server_version"], str):

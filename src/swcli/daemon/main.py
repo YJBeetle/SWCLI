@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 from ..background_runtime import background_python
+from ..secure_transport import ServerSecurity
 from .client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
 from .server import SwclidServer, WorkerManager, WorkerStartupError
 from .timeouts import validate_timeout
@@ -33,6 +34,12 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="explicitly allow an unauthenticated non-loopback listener",
     )
+    serve.add_argument("--tls-cert", default=os.environ.get("SWCLI_SERVER_TLS_CERT"))
+    serve.add_argument("--tls-key", default=os.environ.get("SWCLI_SERVER_TLS_KEY"))
+    serve.add_argument("--auth-token-file", default=os.environ.get("SWCLI_SERVER_AUTH_TOKEN_FILE"))
+    serve.add_argument("--workspace", default=os.environ.get("SWCLI_WORKSPACE"), help="existing directory exposed to workspace transfers")
+    serve.add_argument("--workspace-max-bytes", type=int,
+                       default=os.environ.get("SWCLI_WORKSPACE_MAX_BYTES", 1024 ** 3))
     serve.add_argument("--visible", action="store_true")
     serve.add_argument("--tray", choices=("auto", "on", "off"), default="auto",
                       help="notification icon: auto shows on native Windows, off on Wine")
@@ -103,10 +110,10 @@ def is_local_endpoint(endpoint: str) -> bool:
     return host.casefold() in {"127.0.0.1", "localhost"}
 
 
-def require_remote_bind_opt_in(host: str, *, allow_remote: bool) -> None:
+def require_remote_bind_opt_in(host: str, *, allow_remote: bool, secured: bool = False) -> None:
     """Reject unauthenticated non-loopback listeners unless explicitly allowed."""
 
-    if host.casefold() == "localhost":
+    if secured or host.casefold() == "localhost":
         return
     try:
         if ipaddress.ip_address(host).is_loopback:
@@ -517,8 +524,24 @@ def run(args: argparse.Namespace) -> int:
             return 1
         if not 1 <= args.port <= 65535:
             raise SystemExit("swcli daemon serve: port must be between 1 and 65535")
-        require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote)
-        server = SwclidServer((args.host, args.port))
+        workspace = None
+        try:
+            security = ServerSecurity.load(getattr(args, "tls_cert", None), getattr(args, "tls_key", None),
+                                           getattr(args, "auth_token_file", None))
+            require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote, secured=security.context is not None)
+            if getattr(args, "workspace", None):
+                from ..workspace import WorkspaceStore
+                workspace = WorkspaceStore(args.workspace, args.workspace_max_bytes)
+            settings = {"security": security} if security.context is not None else {}
+            if workspace is not None:
+                settings["workspace"] = workspace
+            server = SwclidServer((args.host, args.port), **settings)
+        except (OSError, ValueError) as exc:
+            if workspace is not None:
+                workspace.close()
+            print(json.dumps({"ok": False, "action": "daemon.serve", "error": {
+                "code": "InvalidRuntimeConfiguration", "message": str(exc)}}), flush=True)
+            return 1
         manager = None
         tray_controller = None
         exit_code = 0
@@ -609,9 +632,15 @@ def run(args: argparse.Namespace) -> int:
         finally:
             if tray_controller is not None:
                 tray_controller.close()
-            server.server_close()
-            if manager is not None:
-                manager.close()
+            try:
+                server.server_close()
+            except OSError as exc:
+                print(json.dumps({"ok": False, "action": "workspace.cleanup", "error": {
+                    "code": type(exc).__name__, "message": str(exc)}}), file=sys.stderr, flush=True)
+                exit_code = 1
+            finally:
+                if manager is not None:
+                    manager.close()
         return exit_code
 
     endpoint = (

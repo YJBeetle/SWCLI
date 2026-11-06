@@ -21,6 +21,8 @@
     "operation_result_schemas": ["operation_schemas"]
   },
   "properties": {
+    "transport": {"type": "object", "additionalProperties": false, "properties": {"tls": {"type": "boolean"}, "authenticated": {"type": "boolean"}}, "required": ["tls", "authenticated"]},
+    "workspace": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "properties": {"root": {"type": "string"}, "max_file_bytes": {"type": "integer", "minimum": 1}, "chunk_bytes": {"type": "integer", "minimum": 1}, "active_upload_limit": {"type": "integer", "minimum": 1}, "active_download_limit": {"type": "integer", "minimum": 1}, "expires_after_seconds": {"type": "integer", "minimum": 1}}, "required": ["root", "max_file_bytes", "chunk_bytes", "active_upload_limit", "active_download_limit", "expires_after_seconds"]}]},
     "export_formats": {
       "type": "object",
       "additionalProperties": false,

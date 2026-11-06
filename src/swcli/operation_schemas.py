@@ -82,7 +82,7 @@ def _operation(
         parameters=schema,
         handler=(
             None
-            if name.startswith("daemon.")
+            if name.startswith(("daemon.", "workspace."))
             else name.replace(".", "_").replace("-", "_")
         ),
         selected_document=(
@@ -497,6 +497,10 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     ),
 }
 
+
+from .workspace import definitions as workspace_definitions
+for _name, (_properties, _required) in workspace_definitions().items():
+    OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)

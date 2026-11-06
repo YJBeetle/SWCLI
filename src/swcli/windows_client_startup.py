@@ -105,6 +105,11 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, a
                  "--startup-timeout", str(startup_timeout_seconds), "--log", str(log)]
     from .windows_tray import validate_mode
     validate_mode(tray)
+    from .secure_transport import runtime_environment
+    import json
+    settings = runtime_environment()
+    if settings:
+        arguments.extend(("--runtime-settings", json.dumps(settings, ensure_ascii=True)))
     if tray != "auto":
         arguments.extend(("--tray", tray))
     if visible:

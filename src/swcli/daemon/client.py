@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from .. import PROTOCOL_VERSION
+from ..secure_transport import ClientSecurity
 from .timeouts import validate_timeout
 
 
@@ -49,6 +50,12 @@ def call_daemon(
             connect_timeout_seconds, name="connection timeout"
         )
 
+    try:
+        security = ClientSecurity.from_environment()
+    except Exception as exc:
+        exc._swcli_transport_phase = "configuration"
+        raise
+
     selected_endpoint = endpoint or os.environ.get(
         "SWCLI_ENDPOINT", DEFAULT_ENDPOINT
     )
@@ -85,11 +92,18 @@ def call_daemon(
         # distinguish a failed connect from a timeout reading an RPC response.
         exc._swcli_transport_phase = "connect"
         raise
+    transport = security.wrap(transport, host)
     with transport as connection:
-        connection.settimeout(timeout_seconds + 10.0)
-        connection.sendall(encoded)
         reader = connection.makefile("rb")
-        line = reader.readline(MAX_RESPONSE_BYTES + 1)
+        try:
+            if security.context is not None:
+                connection.settimeout(min(connect_timeout, 5.0))
+                security.authenticate(connection, reader)
+            connection.settimeout(timeout_seconds + 10.0)
+            connection.sendall(encoded)
+            line = reader.readline(MAX_RESPONSE_BYTES + 1)
+        finally:
+            reader.close()
     if not line:
         raise ConnectionError("swclid closed the connection without a response")
     if len(line) > MAX_RESPONSE_BYTES:

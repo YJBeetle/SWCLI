@@ -26,7 +26,7 @@ STARTUP_MESSAGE = (
 )
 
 
-def tool_definitions() -> list[Dict[str, Any]]:
+def tool_definitions(*, file_transfer=False) -> list[Dict[str, Any]]:
     fields = load_schema("request")["properties"]
     execute = {name: deepcopy(fields[name]) for name in (
         "operation", "parameters", "session_id", "document_id", "expected_update_stamp", "lease_id", "request_id",
@@ -47,12 +47,26 @@ def tool_definitions() -> list[Dict[str, Any]]:
         }),
         ("execute", "Execute one advertised SWCLI operation with exact parameters and session/document/lease/CAS context. Read its schema first. Does not start or recover SW. Writes/save/close require task authority. Host paths, native errors and partial-state rules are preserved. Render/export automatically request inline content when supported; parameters.include_content=false keeps metadata only. Up to 8 MiB is attached as PNG preview or a file resource; check artifact.content.status separately from CAD success. Use the explicit daemon tools for lifecycle.", execute),
     )
+    if file_transfer:
+        for direction in ("upload", "download"):
+            source_side, target_side = ("MCP client", "daemon") if direction == "upload" else ("daemon", "MCP client")
+            fields = {"source": {"type": "string", "minLength": 1},
+                      "destination": {"type": "string", "minLength": 1},
+                      "overwrite": {"type": "boolean", "default": False},
+                      "request_id": {"type": "string", "minLength": 1, "maxLength": 128}}
+            if direction == "upload":
+                fields["resume_transfer"] = {"type": "string", "pattern": "^[0-9a-f]{48}$"}
+            definitions += ((direction + "_file",
+                f"Stream a file from the configured {source_side} workspace to the configured {target_side} workspace. "
+                "Paths must be relative to those roots. Does not start SW or rerun CAD. Uses bounded chunks, SHA256 and atomic publication; "
+                "overwrite requires explicit authority. Large downloads are saved in the MCP server's client workspace, not embedded in chat. "
+                "On failure inspect transfer_id and session_id before resuming an upload; no automatic retry.", fields),)
     return [{
         "name": name, "description": description,
         "inputSchema": {"type": "object", "additionalProperties": False, "properties": properties,
-                        "required": ["operation", "parameters"] if name == "execute" else []},
+                        "required": ["operation", "parameters"] if name == "execute" else (["source", "destination"] if name.endswith("_file") else [])},
         "annotations": {"readOnlyHint": name in ("status", "capabilities"),
-                        "destructiveHint": name in ("execute", "daemon_stop"),
+                        "destructiveHint": name in ("execute", "daemon_stop", "upload_file", "download_file"),
                         "idempotentHint": name in ("status", "capabilities"), "openWorldHint": True},
     } for name, description, properties in definitions]
 
@@ -60,18 +74,24 @@ def tool_definitions() -> list[Dict[str, Any]]:
 class DaemonBridge:
     def __init__(self, *, endpoint: Optional[str] = None, session_id: Optional[str] = None,
                  timeout_seconds: float = 600.0, connect_timeout_seconds: float = 3.0,
-                 host_launcher: Optional[str] = None):
+                 host_launcher: Optional[str] = None, client_workspace: Optional[str] = None):
         self.endpoint = endpoint or os.environ.get("SWCLI_ENDPOINT", DEFAULT_ENDPOINT)
         parse_endpoint(self.endpoint)
         self.timeout_seconds = validate_timeout(timeout_seconds, name="request timeout", margin=10)
         self.connect_timeout_seconds = validate_timeout(connect_timeout_seconds, name="connection timeout")
         self.session_id = session_id or os.environ.get("SWCLI_SESSION_ID") or f"mcp-{uuid.uuid4()}"
-        self.schemas = {tool["name"]: tool["inputSchema"] for tool in tool_definitions()}
+        self.client_workspace = client_workspace or os.environ.get("SWCLI_CLIENT_WORKSPACE")
+        if self.client_workspace:
+            from .safe_workspace import SafeWorkspace
+            with SafeWorkspace(self.client_workspace):
+                pass
+        self.tools = tool_definitions(file_transfer=bool(self.client_workspace))
+        self.schemas = {tool["name"]: tool["inputSchema"] for tool in self.tools}
         self.response_validator = Draft202012Validator(load_schema("response"))
         self.manager = DaemonManager(endpoint=self.endpoint, host_launcher=host_launcher,
                                      connect_timeout_seconds=self.connect_timeout_seconds)
 
-    def call(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def call(self, name: str, arguments: Dict[str, Any], *, progress=None) -> Dict[str, Any]:
         request_id = str(uuid.uuid4())
         submitted = False
         try:
@@ -80,7 +100,15 @@ class DaemonBridge:
             Draft202012Validator(self.schemas[name]).validate(arguments)
             arguments = deepcopy(arguments)
             request_id = arguments.pop("request_id", request_id)
-            if name == "status":
+            if name in ("upload_file", "download_file"):
+                from .file_transfer import FileTransferClient
+                client = FileTransferClient(self.client_workspace, endpoint=self.endpoint, session_id=self.session_id,
+                    timeout_seconds=self.timeout_seconds, connect_timeout_seconds=self.connect_timeout_seconds)
+                submitted = True
+                value = getattr(client, "upload" if name == "upload_file" else "download")(
+                    **arguments, request_id=request_id, progress=progress)
+                result = {"success": True, "result": value}
+            elif name == "status":
                 result = self.manager.status()
             elif name == "daemon_start":
                 submitted = True
@@ -121,9 +149,11 @@ class DaemonBridge:
             result.setdefault("request_id", request_id)
             return result
         except Exception as exc:
-            return {"success": False, "request_id": request_id,
+            from .file_transfer import TransferError
+            details = ({"transfer_id": exc.transfer_id, "session_id": exc.session_id} if isinstance(exc, TransferError) else {})
+            return {"success": False, "request_id": request_id, **details,
                     "error": {"code": type(exc).__name__, "message": str(exc)},
-                    "outcome_unknown": submitted and getattr(exc, "_swcli_transport_phase", None) != "connect"}
+                    "outcome_unknown": submitted and getattr(exc, "_swcli_transport_phase", None) not in ("connect", "configuration", "tls", "authenticate")}
 
 
 def create_server(bridge: DaemonBridge):
@@ -141,7 +171,7 @@ def create_server(bridge: DaemonBridge):
 
     @server.list_tools()
     async def list_tools():
-        return [types.Tool(**tool) for tool in tool_definitions()]
+        return [types.Tool(**tool) for tool in bridge.tools]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: Dict[str, Any]):
@@ -149,7 +179,15 @@ def create_server(bridge: DaemonBridge):
         token = getattr(meta, "progressToken", None) if meta is not None else None
         if name == "daemon_start" and token is not None:
             await server.request_context.session.send_progress_notification(token, 0, 1, STARTUP_MESSAGE)
-        payload = await anyio.to_thread.run_sync(partial(bridge.call, name, arguments))
+        session = server.request_context.session
+        last_progress = [0.0]
+        def progress(done, total):
+            import time
+            now = time.monotonic()
+            if token is not None and (done == 0 or done == total or now - last_progress[0] >= 0.25):
+                last_progress[0] = now
+                anyio.from_thread.run(session.send_progress_notification, token, done, total, "Transferring workspace file bytes")
+        payload = await anyio.to_thread.run_sync(partial(bridge.call, name, arguments, progress=progress))
         if name == "daemon_start" and token is not None:
             message = "Daemon/SW startup finished; inspect the returned readiness." if payload.get("success") else "Startup failed; inspect the error and status before another start."
             await server.request_context.session.send_progress_notification(token, 1, 1, message)
@@ -181,7 +219,7 @@ def run(args):
     try:
         bridge = DaemonBridge(endpoint=args.endpoint, session_id=args.session,
                               timeout_seconds=args.request_timeout, connect_timeout_seconds=args.connect_timeout,
-                              host_launcher=args.host_launcher)
+                              host_launcher=args.host_launcher, client_workspace=args.client_workspace)
         asyncio.run(serve(bridge))
     except ModuleNotFoundError as exc:
         if exc.name == "mcp" or (exc.name or "").startswith("mcp."):

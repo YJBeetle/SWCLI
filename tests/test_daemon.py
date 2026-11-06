@@ -2095,6 +2095,9 @@ class DaemonProtocolTests(unittest.TestCase):
         handler.rfile = io.BytesIO(json.dumps(request).encode("utf-8") + b"\n")
         handler.wfile = io.BytesIO()
         handler.server = mock.Mock(manager=None)
+        handler.connection = mock.Mock()
+        handler.server.security = server.ServerSecurity()
+        handler.server.workspace = None
 
         handler.handle()
 
@@ -2124,6 +2127,9 @@ class DaemonProtocolTests(unittest.TestCase):
                 )
                 handler.wfile = io.BytesIO()
                 handler.server = mock.Mock(manager=mock.Mock())
+                handler.connection = mock.Mock()
+                handler.server.security = server.ServerSecurity()
+                handler.server.workspace = None
                 handler.handle()
                 response = json.loads(handler.wfile.getvalue())
                 self.assertFalse(response["success"])
@@ -2154,6 +2160,9 @@ class DaemonProtocolTests(unittest.TestCase):
         handler.rfile = io.BytesIO(json.dumps(request).encode("utf-8") + b"\n")
         handler.wfile = io.BytesIO()
         handler.server = mock.Mock(manager=mock.Mock())
+        handler.connection = mock.Mock()
+        handler.server.security = server.ServerSecurity()
+        handler.server.workspace = None
         handler.server.manager.health.return_value = {
             "host": {"language": "invalid\ud800"}
         }

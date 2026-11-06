@@ -1514,6 +1514,9 @@ _RESULT_FIELDS["feature.fillet"] = (
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
+    if name.startswith("workspace."):
+        from .workspace import result_schema
+        return result_schema(name)
     if name == "daemon.runtime-status":
         from .runtime_state import result_schema
         return result_schema()

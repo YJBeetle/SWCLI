@@ -99,6 +99,18 @@ class ResidentStartupResultsTests(unittest.TestCase):
             yield broker, folder, running, register, kill
         modules["pythoncom"].CoUninitialize.assert_called_once()
 
+    def test_runtime_settings_pass_config_paths_not_credential_contents(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory, self.broker(directory) as (broker, folder, running, register, kill), \
+                mock.patch.dict(os.environ, {"SWCLI_SERVER_AUTH_TOKEN_FILE": "C:\\private\\token.txt", "SWCLI_WORKSPACE": "C:\\Workspace\\exchange", "UNRELATED_SECRET": "never-copy", "LOCALAPPDATA": directory}, clear=True):
+            broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120)
+            args = register.call_args.kwargs["arguments"]
+            settings = json.loads(args[args.index("--runtime-settings") + 1])
+            self.assertEqual(settings["SWCLI_WORKSPACE"], "C:\\Workspace\\exchange")
+            self.assertEqual(settings["SWCLI_SERVER_AUTH_TOKEN_FILE"], "C:\\private\\token.txt")
+            self.assertNotIn("UNRELATED_SECRET", settings)
+            self.assertNotIn("never-copy", str(args))
+
     def test_expected_refusal_returns_original_json_and_does_not_stop_finished_task(self):
         with tempfile.TemporaryDirectory() as directory, self.broker(directory) as (broker, folder, running, register, kill):
             value = broker.start_resident_daemon(endpoint="127.0.0.1:19495", startup_timeout_seconds=120,

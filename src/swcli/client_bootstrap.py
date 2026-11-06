@@ -1,6 +1,7 @@
 """Foreground daemon action for a one-shot same-user Windows startup task."""
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
@@ -13,9 +14,13 @@ def main():
     parser.add_argument("--visible", action="store_true")
     parser.add_argument("--attach-existing", action="store_true")
     parser.add_argument("--tray", choices=("auto", "on", "off"), default="auto")
+    parser.add_argument("--runtime-settings")
     args = parser.parse_args()
     # The Task Scheduler action has no dependency on an inherited PYTHONPATH.
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    if args.runtime_settings:
+        from swcli.secure_transport import apply_runtime_environment
+        apply_runtime_environment(json.loads(args.runtime_settings))
     from swcli.cli import main as cli_main
     from swcli.daemon.client import parse_endpoint
     host, port = parse_endpoint(args.endpoint)

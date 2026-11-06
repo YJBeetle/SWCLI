@@ -7,6 +7,7 @@ import multiprocessing
 import queue
 import re
 import socketserver
+import ssl
 import subprocess
 import threading
 import time
@@ -15,6 +16,7 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, Optional
 
 from .. import PROTOCOL_VERSION, __version__
+from ..secure_transport import ServerSecurity, HANDSHAKE_SECONDS
 from ..hosts.windows import PROG_ID, _com_value, wait_windows_host_ready
 from ..hosts.native_trace import trace_native_request
 from ..hosts.native_sequence import NativeCommandRestoreFailed, native_api_sequence
@@ -833,9 +835,41 @@ class SwclidServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-    def __init__(self, address: Any, manager: Optional[WorkerManager] = None):
+    def __init__(self, address: Any, manager: Optional[WorkerManager] = None, *, security=None, workspace=None):
         self.manager = manager
+        self.security = security or ServerSecurity()
+        self.workspace = workspace
+        self._connection_slots = threading.BoundedSemaphore(32)
         super().__init__(address, SwclidRequestHandler)
+
+    def process_request(self, request, client_address):
+        if not self._connection_slots.acquire(False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._connection_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            if self.security.context is not None:
+                request.settimeout(HANDSHAKE_SECONDS)
+                request = self.security.context.wrap_socket(request, server_side=True)
+            request.settimeout(30)
+            super().process_request_thread(request, client_address)
+        except (ssl.SSLError, TimeoutError, ConnectionError, OSError):
+            request.close()
+        finally:
+            self._connection_slots.release()
+
+    def server_close(self):
+        try:
+            super().server_close()
+        finally:
+            if self.workspace is not None:
+                self.workspace.close()
 
     def request_shutdown(self) -> None:
         threading.Thread(target=self.shutdown, daemon=True).start()
@@ -843,6 +877,11 @@ class SwclidServer(socketserver.ThreadingTCPServer):
 
 class SwclidRequestHandler(socketserver.StreamRequestHandler):
     def handle(self) -> None:
+        if self.server.security.context is not None:
+            self.connection.settimeout(HANDSHAKE_SECONDS)
+        if not self.server.security.authenticate(self.rfile, self.wfile):
+            return
+        self.connection.settimeout(30)
         raw = self.rfile.readline(MAX_REQUEST_BYTES + 1)
         request_id = "invalid-request"
         try:
@@ -866,7 +905,14 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                         request_id = candidate_request_id
             request = validate_request(payload)
             request_id = request["request_id"]
-            if self.server.manager is None:
+            if request["operation"].startswith("workspace."):
+                if self.server.workspace is None:
+                    response = _error_response(request_id, "WorkspaceUnavailable", "Daemon workspace is not configured")
+                else:
+                    result = self.server.workspace.execute(request)
+                    validate_operation_result(request["operation"], result)
+                    response = _success_response(request_id, result)
+            elif self.server.manager is None:
                 response = _error_response(
                     request_id,
                     "Starting",
@@ -880,9 +926,11 @@ class SwclidRequestHandler(socketserver.StreamRequestHandler):
                 validate_operation_result("daemon.runtime-status", result)
                 response = _success_response(request_id, result)
             elif request["operation"] == "daemon.capabilities":
-                response = _success_response(
-                    request_id, self.server.manager.capabilities(**request["parameters"])
-                )
+                result = self.server.manager.capabilities(**request["parameters"])
+                result["workspace"] = self.server.workspace.describe() if self.server.workspace is not None else None
+                result["transport"] = {"tls": self.server.security.context is not None,
+                                       "authenticated": self.server.security.context is not None}
+                response = _success_response(request_id, result)
             elif request["operation"] == "daemon.shutdown":
                 response = self.server.manager.shutdown(request)
                 if response.get("success"):

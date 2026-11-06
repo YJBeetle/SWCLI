@@ -56,6 +56,14 @@ class CapabilityDiscoveryTests(unittest.TestCase):
         self.assertNotIn("operation_result_schemas", summary)
         self.start.assert_not_called()
 
+    def test_optional_workspace_transport_descriptors_are_validated(self):
+        summary = self.manager.capabilities()
+        summary["workspace"] = None
+        summary["transport"] = {"tls": True, "authenticated": True}
+        self.assertIsNone(_capabilities_mismatch(summary, include_schemas=False))
+        summary["transport"]["tls"] = "yes"
+        self.assertIsNotNone(_capabilities_mismatch(summary, include_schemas=False))
+
     def test_selected_query_returns_only_requested_schema_and_independent_copies(self):
         selected = self.manager.capabilities(operation="document.export")
         validate_operation_result("daemon.capabilities", selected)
@@ -130,6 +138,9 @@ class CapabilityDiscoveryTests(unittest.TestCase):
             handler.rfile = io.BytesIO(json.dumps(request).encode() + b"\n")
             handler.wfile = io.BytesIO()
             handler.server = mock.Mock(manager=self.manager)
+            handler.connection = mock.Mock()
+            handler.server.security = server.ServerSecurity()
+            handler.server.workspace = None
             with mock.patch.object(self.manager, "call", side_effect=AssertionError):
                 handler.handle()
             response = json.loads(handler.wfile.getvalue())

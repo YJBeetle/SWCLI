@@ -138,6 +138,12 @@ class DaemonManager:
         elif action == "restart":
             parameters = ["--endpoint", getattr(args, "daemon_endpoint", None) or self.endpoint,
                           "--startup-timeout", str(args.startup_timeout)]
+        if action == "serve":
+            for field, flag in (("workspace", "--workspace"), ("workspace_max_bytes", "--workspace-max-bytes"),
+                                ("tls_cert", "--tls-cert"), ("tls_key", "--tls-key"),
+                                ("auth_token_file", "--auth-token-file")):
+                if getattr(args, field, None):
+                    parameters.extend((flag, str(getattr(args, field))))
         if action != "doctor":
             if getattr(args, "tray", "auto") != "auto":
                 parameters.extend(("--tray", args.tray))
