@@ -277,4 +277,4 @@ foreign sketch保护；五类负例零写，known open前值CAS和同值不写�
 继承完整 19/20、metadata/units、建模、导出、visible 和清理均通过。
 旧段落中的“待验”保留开发阶段历史，当前最终结论和原包来源以
 [最终验收记录](../verification/a18-final-windows-2026-11-06.md)为准。
-原 wheel/sdist 字节保持，发布资料已准备但尚未发布，等待用户最终确认。
+原 wheel/sdist 字节保持；用户最终批准后已公开发布 v0.1.0a18，五份资产匿名下载及清单校验通过。发布后暂停，不推进下一版，main/MCP 合并由另一位 agent 处理。

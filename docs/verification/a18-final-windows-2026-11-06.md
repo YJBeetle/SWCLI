@@ -1,6 +1,6 @@
 # A18 最终 Windows 验收与发布审阅
 
-状态：最终原生与原 CI 包已独立核验，等待用户最终发布确认。尚未创建 A18 tag、release 或 draft，也未做公开下载验证。
+状态：用户已批准，已公开发布 [v0.1.0a18](https://github.com/YJBeetle/SWCLI/releases/tag/v0.1.0a18)，非 draft、prerelease。最终原生/原包及五份公开资产匿名下载均已独立核验。
 
 ## 固定来源
 
@@ -39,8 +39,16 @@
 
 ## 发布审阅和边界
 
-`/private/tmp/swcli-a18-release-ready` 已从本轮原 dist ZIP 提取原字节 wheel/sdist，并生成 RELEASE_NOTES、provenance 和 SHA256SUMS。状态为 `awaiting-owner-approval`，`release_created=false`、`public_download_verified=false`、`owner_approved=false`。原包内冻结发布说明保持原字节，其历史 pending 文本不代表本轮 CI 仍待验。
+最初审阅目录 `/private/tmp/swcli-a18-release-ready` 保留未发布快照。用户最终批准后，发布工作目录 `/private/tmp/swcli-a18-publication` 使用同一原始 CI wheel/sdist，公开五资产经两轮匿名逐字节与 SHA256SUMS 校验。provenance 当前为 `published-windows-verified`，`release_created=true`、`public_download_verified=true`、`owner_approved=true`。只在首次公开核验后更新 provenance/SHA256SUMS，原包始终保持字节。原包内冻结发布说明保留原字节，其历史 pending 文本不代表最终状态。
 
 能力仅为三类箭头、水平折线开关、引线长度、前导零和尾随零七项标量。字体、总体绘图标准及完整文档属性页面尚未开放。原失败 CI `42120377076`（门禁初值选取）与 `42125076559`（无格式普通 sheet 守卫）和独立只读诊断原件继续保留，不把旧失败伪装成通过。
 
-本轮不操作 VM、DockerSW、MacSW 或 main/MCP。A18 完成后暂停，不推进 A19；main/MCP 集成由另一位 agent 处理。正式发布须用户最终确认。
+本轮不操作 VM、DockerSW、MacSW 或 main/MCP。A18 完成后暂停，不推进 A19；main/MCP 集成由另一位 agent 处理。正式发布已获得用户最终确认并完成。
+
+## 公开发布回执
+
+- Release ID：`436204657`，node：`RE_kwDOUhPI5s4Z__Rx`，公开时间：`2026-11-06T07:13:08Z`。
+- 标签精确提交仍为 `254d1ad11847d002f0af07d630beba3350b7f66d`；后续文档提交不替代验收来源。
+- 五份公开资产为原 wheel、原 sdist、RELEASE_NOTES.md、provenance.json 和 SHA256SUMS，匿名下载与发布目录逐字节一致。
+- [机器可读公开校验回执](a18-publication.json)记录各资产大小与 SHA-256。
+- CI 定时任务此前已删除，本次不再创建；按用户要求发布后暂停，不推进下一版，不合并 main/MCP。
