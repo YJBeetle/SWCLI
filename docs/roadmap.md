@@ -188,12 +188,12 @@ The MCP server remains named `swcli`. Its five tools are `status`,
 `daemon_start`, `daemon_stop`, `capabilities` and `execute`. The client/daemon
 protocol, operation names and lifecycle protections stay the same. The stdio
 SDK contract and packaged skill describe these current names. This work and
-Windows tray development are independent of the published 0.2.0a1 release.
+Windows tray development are independent of the frozen 0.2.0a1 release.
 
 ## Resident host visibility (0.2.1 development)
 
 The Windows notification icon and `--tray auto|on|off` are implemented on the
-next-version branch. Omitted `auto` shows on native Windows and is off under
+development version. Omitted `auto` shows on native Windows and is off under
 Wine; an explicit value wins. The icon is independent of SW visibility, and
 hiding it keeps the host/documents alive. Status and confirmed stop reuse the
 normal daemon protocol and document/ownership guards. Portable and official MCP
