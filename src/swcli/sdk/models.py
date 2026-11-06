@@ -351,7 +351,7 @@ class AssemblyMateTargetsResultSnapshotComponentsItem(TypedDict):
     faces: List[AssemblyMateTargetsResultSnapshotComponentsItemFacesItem]
 
 
-class AssemblyMateTargetsResultSnapshotMatesItem(TypedDict):
+class _AssemblyMateTargetsResultSnapshotMatesItemRequired(TypedDict):
     name: str
     kind: Literal['coincident', 'concentric']
     alignment: Literal['aligned', 'anti-aligned']
@@ -361,6 +361,10 @@ class AssemblyMateTargetsResultSnapshotMatesItem(TypedDict):
     references: List[str]
     distance_mm: float
     parallel_error: float
+
+
+class AssemblyMateTargetsResultSnapshotMatesItem(_AssemblyMateTargetsResultSnapshotMatesItemRequired, total=False):
+    lock_rotation: bool
 
 
 class AssemblyMateTargetsResultSnapshot(TypedDict):

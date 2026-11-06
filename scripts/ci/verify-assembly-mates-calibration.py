@@ -41,7 +41,7 @@ REQUIRED_MEMBERS = {
     'IConcentricMateFeatureData': {'EntitiesToMate', 'MateAlignment', 'LockRotation'},
     'IMate2': {'Type', 'Alignment', 'GetMateEntityCount', 'MateEntity'},
     'IMateEntity2': {'Reference', 'ReferenceComponent'},
-    'IFeature': {'IsSuppressed2', 'GetErrorCode2', 'GetSpecificFeature2'},
+    'IFeature': {'IsSuppressed2', 'GetErrorCode2', 'GetSpecificFeature2', 'GetDefinition'},
 }
 
 
@@ -89,8 +89,16 @@ def persistent_shape(snapshot):
     references = {}
     for component in result['components']:
         component.pop('source_update_stamp')
+        component.pop('native_id', None)
+        geometry_keys = set()
         for face in component['faces']:
-            references[face.pop('reference_sha256')] = [component['name'], face['index']]
+            reference = face.pop('reference_sha256')
+            face.pop('index')
+            key = json.dumps(face, sort_keys=True, allow_nan=False)
+            checked(key not in geometry_keys, 'reopen proof has ambiguous equal face geometry')
+            geometry_keys.add(key)
+            references[reference] = [component['name'], copy.deepcopy(face)]
+        component['faces'].sort(key=lambda face: json.dumps(face, sort_keys=True))
     for mate in result['mates']:
         mate['references'] = [references[ref] for ref in mate['references']]
     return result

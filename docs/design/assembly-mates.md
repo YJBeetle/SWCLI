@@ -3,7 +3,7 @@
 本分支提供 `assembly.mate-targets` 的受限当前态观察，以及
 `assembly.add-mate` 的完整写入链路。公开写入暂时返回
 `MateWriteNotCalibrated`，必须分别取得内部 Windows 原生校准和公开客户端验收，
-才可开放被证实的精确范围。便携测试不是原生 CAD 证据。
+才可开放被证实的精确范围；运行时还须为原生 Windows，且匹配已校准的完整原生 revision；不从 Windows 证据开放 Wine 写入。便携测试不是原生 CAD 证据。
 
 ## 首批边界
 
@@ -55,7 +55,7 @@ daemon 临时激活精确目标，在既有 COM STA worker 执行。写前读取
 不替换首次原生错误。拒绝、原生空返回、异常、实体读回失败和求解失败都不会自动重试或回滚。
 
 成功要求读回配合类型/对齐/两个精确实体、未抑制、零特征错误，组件身份/源几何与固定锚点
-不变，已有配合定义不变，原生不再需要重建。独立计算变换到装配坐标的无界平面距离或圆柱
+不变，已有配合定义不变，同心最终定义中的 `LockRotation=false`，原生不再需要重建。独立计算变换到装配坐标的无界平面距离或圆柱
 轴线距离（≤ 1e-5 mm）及平行误差（≤ 1e-8）。这不代表碰撞检查、完整约束或有限面重叠。
 
 ## 分层证据与手动校准
@@ -68,7 +68,8 @@ daemon 临时激活精确目标，在既有 COM STA worker 执行。写前读取
 - 公开验收：必须另记真实 CLI→daemon→COM worker 的保存重开收据；内部脚本的私有 `_calibration`
   许可不属于公开参数，也不能作为公开功能验收。
 
-专用 workflow_dispatch 输入 `assembly_mates_calibration` 默认关闭，job 只允许
+专用 workflow_dispatch 输入 `assembly_mates_calibration` 默认关闭，`assembly_mates_stage`
+默认 `internal`，公开链路另选 `public`；job 只允许
 `codex/swcli-assembly-mates` 分支，以功能和 `github.ref` 隔离 concurrency。
 PR 无法触发机密安装流程，默认 full/release 门禁保持原样。ZIP、report、trace、SLDPRT 与
 SLDASM 文件随独立 artifact 保留；本地交接记录见 `WORK_HANDOFF.md`。

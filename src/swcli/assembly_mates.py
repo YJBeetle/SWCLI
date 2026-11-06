@@ -22,6 +22,10 @@ MATE = obj(dict(name=TEXT, kind=dict(type="string", enum=["coincident", "concent
     alignment=dict(type="string", enum=["aligned", "anti-aligned"]), error_code=INT, suppressed=BOOL,
     components=COMPONENT_NAMES, references=dict(type="array", items=HASH, minItems=2, maxItems=2),
     distance_mm=dict(type="number", minimum=0), parallel_error=dict(type="number", minimum=0)))
+MATE['properties']['lock_rotation'] = BOOL
+MATE['allOf'] = [{"if": {"properties": {"kind": {"const": "concentric"}}},
+                  "then": {"required": ["lock_rotation"]},
+                  "else": {"not": {"required": ["lock_rotation"]}}}]
 SNAPSHOT = obj(dict(title=TEXT, path=dict(type="string"), configuration=TEXT, update_stamp=INT,
     modified=BOOL, components=dict(type="array", items=COMPONENT, minItems=2, maxItems=2),
     mates=dict(type="array", items=MATE, maxItems=16)))
@@ -30,3 +34,4 @@ MUTATION = obj(dict(attempted=BOOL, creation_returned=BOOL, may_have_changed=BOO
 # Promotion requires recorded Windows native persistence plus independent public
 # client -> daemon -> worker evidence. Internal calibration is insufficient.
 PUBLIC_MATE_WRITES_CALIBRATED = False
+CALIBRATED_WINDOWS_REVISIONS = frozenset()

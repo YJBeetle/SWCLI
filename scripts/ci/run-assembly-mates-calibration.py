@@ -30,15 +30,30 @@ def active_call(path):
     return active
 
 
+def active_public_request(path):
+    active = None
+    if path.is_file():
+        for line in path.read_text(encoding='utf-8', errors='replace').splitlines():
+            try: item=json.loads(line)
+            except ValueError: continue
+            if item.get('event') != 'swcli.native-call' or item.get('sequence') != 0:
+                continue
+            if item.get('phase') == 'begin': active=item.get('monotonic_seconds')
+            elif item.get('phase') in ('end','error'): active=None
+    return None if active is None else time.time() - (time.monotonic() - active)
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--swconst',type=Path,required=True)
+    parser.add_argument('--mode',choices=('internal','public'),default='internal')
     args=parser.parse_args(argv)
     if sys.platform != 'win32':parser.error('Windows owned-host calibration only')
     args.output_dir.mkdir()
     output=args.output_dir.resolve()
-    child_output=output/'native'
+    child_output=output/('native' if args.mode=='internal' else 'public')
+    child_script='verify-assembly-mates-calibration.py' if args.mode=='internal' else 'run-assembly-mates-public.py'
     started=time.time()
     host_handle=None
     host_pid=None
@@ -53,15 +68,16 @@ def main(argv=None):
         capture_output=True,text=True,timeout=30,check=True)
     if probe.stdout.strip() != '0':raise RuntimeError('preexisting SOLIDWORKS host; calibration refused')
     with (output/'stdout.log').open('w',encoding='utf-8') as stdout, (output/'stderr.log').open('w',encoding='utf-8') as stderr:
-        process=subprocess.Popen([sys.executable,'-I',str(Path(__file__).with_name('verify-assembly-mates-calibration.py')),
+        process=subprocess.Popen([sys.executable,'-I',str(Path(__file__).with_name(child_script)),
                                   '--output-dir',str(child_output),'--swconst',str(args.swconst)],stdout=stdout,stderr=stderr)
         try:
             while process.poll() is None:
-                report=child_output/'report.json'
+                report=child_output/('report.json' if args.mode=='internal' else 'runtime-sets.json')
                 if host_handle is None and report.is_file():
                     try:state=json.loads(report.read_text(encoding='utf-8'))
                     except ValueError:state={}
-                    host=state.get('host',{})
+                    host=(state.get('host',{}) if args.mode=='internal' else
+                          next((item['host'] for item in state.get('sets',[]) if 'host' in item),{}))
                     if host:
                         pid=host.get('process_id')
                         if type(pid) is not int or pid<=0:raise RuntimeError('owned host PID unavailable')
@@ -75,7 +91,8 @@ def main(argv=None):
                         except BaseException:
                             handle.Close();raise
                         host_handle,host_pid=handle,pid
-                failure=budget_failure(time.time(),started,active_call(child_output/'trace.jsonl'))
+                failure=budget_failure(time.time(),started,active_call(child_output/'trace.jsonl') if args.mode=='internal' else
+                                       active_public_request(child_output/'daemon.log'))
                 if failure:break
                 time.sleep(.2)
         except BaseException as error:

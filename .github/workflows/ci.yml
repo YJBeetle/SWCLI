@@ -39,6 +39,14 @@ on:
           - "6"
           - "8"
           - "12"
+      assembly_mates_stage:
+        description: Select internal calibration or separately recorded public CLI acceptance
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - public
       assembly_mates_calibration:
         description: Run only the owned standard-mate calibration on its development branch
         required: false
@@ -486,7 +494,7 @@ jobs:
 
 
   assembly-mates-calibration:
-    name: Owned assembly mate calibration (not full acceptance)
+    name: ${{ inputs.assembly_mates_stage == 'public' && 'Public assembly mate CLI verification' || 'Owned assembly mate calibration (not full acceptance)' }}
     needs: [test, package]
     if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/swcli-assembly-mates' && inputs.assembly_mates_calibration }}
     runs-on: windows-2025
@@ -637,6 +645,7 @@ jobs:
 
       - name: Calibrate owned standard mates with strict native budgets
         id: assembly_mates
+        if: ${{ inputs.assembly_mates_stage != 'public' }}
         timeout-minutes: 31
         shell: powershell
         run: |
@@ -645,6 +654,19 @@ jobs:
             --output-dir "$env:SWCLI_SMOKE_ROOT\assembly-mates-calibration" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Mate calibration failed; preserve the original report and trace" }
+
+      - name: Verify standard mates through public CLI and a fresh daemon
+        id: assembly_mates_public
+        if: ${{ inputs.assembly_mates_stage == 'public' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/run-assembly-mates-calibration.py `
+            --mode public `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\assembly-mates-public" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Public mate verification failed; preserve original CLI evidence and native trace" }
 
       - name: Measure streamed data and remaining disk
         if: always()

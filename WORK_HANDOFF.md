@@ -22,3 +22,27 @@
 - SDK 生成一致性、strict mypy 与 8 个负向消费类型场景通过；wheel/sdist 构建和源包内容验证通过；actionlint v1.7.12 通过（无语法问题，日志含依赖下载信息）。
 - 手动输入最终名 `assembly_mates_calibration`。独立 job 并发按功能+ref 隔离，未修改 full/release 的并发组和执行体，未放宽现有测试断言。
 - 原生/公开边界：尚无 Windows 原生证据；本 head 公开写入仍 fail closed。内部校准后将继续单独公开 CLI→daemon→worker 验收，再提出精确开放范围，不以内部脚本代替公开验收。
+
+## 阶段：Windows 内部校准已触发
+- 功能提交已 push：`886131e9d033bc5b83e2285d119ee0e319a6fcf1`（`feat: 添加受限装配标准配合与独立原生校准`）。
+- 唯一已触发内部校准：[run 42263284406](https://github.com/YJBeetle/SWCLI/actions/runs/42263284406)，对应上列精确 head；参数 `assembly_mates_calibration=true`, `native_full=false`；未对其它分支 dispatch。
+- 原始 dispatch/run 记录在 `evidence/internal-dispatch.json`、`evidence/internal-run-42263284406.json`。正常排队不重复 dispatch、不取消他人 run。
+- 当前仍待原生结果/原 ZIP/digest/trace/实际 SLDPRT+SLDASM 审查；公开写入仍关闭，未达到 merge-ready。
+
+## 后续公开 gate 准备（尚未提交/触发）
+- 按统筹最新指令继续准备公开 CLI gate：所有零件、装配、配合、拒绝、SaveAs/Save3、可写与只读重开均经 CLI→daemon→COM worker，脚本不导入 COM，也不使用私有 `_calibration`。
+- 一组四种组合、同一个全新 owned daemon/host，配合目标为后台文档；包括 lease 外来调用、完整值 CAS、只读拒绝和源/输出文件 hash、组件关系/配合内容读回。
+- 新增阶段输入 `assembly_mates_stage=internal|public`（默认 internal），复用专属 job 的隔离并发和外部 600/1800 预算。当前 886131e 的内部 CI 不受这些未提交准备影响。
+- 在内部原 ZIP/head/digest/trace/保存重开审查通过前不开放公开写入，也不触发 public stage。
+
+## 内部 CI 进展与公开准备验证
+- Run 42263284406 的 Windows Python 3.9 / 3.14 便携 job 与 package 全部成功；专属原生校准 job 已获得 runner 并开始安装流程。默认 full/release job 均 skipped，符合输入范围。
+- 公开 gate 的便携准备测试覆盖四组合、源引用自动卸载、关系改变/缺失引用/截断输出拒绝、首失败停止，以及真实 CLI 参数解析；共 23 项针对性测试通过，public 阶段 actionlint 通过。
+- 未因正常排队重 dispatch，未取消他人 run，公开 gate 尚未原生执行。
+
+## 公开 gate 阶段实现完成（本地待提交）
+- 公开 gate 准备后的全套便携回归：1843 项通过，26 平台跳过；随后补充最终同心 `LockRotation` 定义读回及精确 native revision 许可守卫，对应最新 26 项针对性测试通过，SDK 生成/严格类型继续通过。
+- `CALIBRATED_WINDOWS_REVISIONS` 当前为空、公开 flag 仍 false。未经证实的其它 native revision 不会因将来开放某个 revision 而获得写许可。
+- 公开阶段仍未触发。没有把内部校准脚本的 private permission 引入 CLI/protocol/SDK/MCP 参数。
+- 内部 run 42263284406 仍对应 886131e，在独立 runner 上安装 SOLIDWORKS；本地后续准备不改变该 run 的 head。
+- 公开许可还检查真实原生 Windows，Wine 与未知/不可读 runtime 不能因相同 SOLIDWORKS revision 获得写许可；新增回归后最新 27 项针对性测试通过。

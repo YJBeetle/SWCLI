@@ -69,13 +69,14 @@ class Scene:
         self.doc.CreateMate=mock.Mock(side_effect=self.create)
         self.error_code=0
         self.suppressed=False
+        self.lock_rotation=False
 
     def create(self, data):
         entities=[NS(ReferenceComponent=face.GetComponent(), Reference=face) for face in data.EntitiesToMate]
         mate=NS(Type=0 if entities[0].Reference.GetSurface().IsPlane() else 1,
                 Alignment=data.MateAlignment, GetMateEntityCount=lambda: 2, MateEntity=lambda i: entities[i])
         feature=NS(Name='Coincident1', GetTypeName2=lambda: 'MateCoincident' if mate.Type==0 else 'MateConcentric',
-                   GetSpecificFeature2=lambda: mate, IsSuppressed2=lambda scope,names: (self.suppressed,),
+                   GetSpecificFeature2=lambda: mate, GetDefinition=lambda: NS(LockRotation=self.lock_rotation), IsSuppressed2=lambda scope,names: (self.suppressed,),
                    GetNextSubFeature=lambda: None)
         group=NS(Name='Mates', GetTypeName2=lambda: 'MateGroup', GetNextFeature=lambda: None,
                  GetFirstSubFeature=lambda: feature)
@@ -89,7 +90,9 @@ class Scene:
 class MateTests(unittest.TestCase):
     def setUp(self):
         self.scene=Scene()
-        self.patches=[mock.patch.object(api, '_dispatch', side_effect=lambda native, interface: native),
+        self.patches=[mock.patch.object(api, 'PUBLIC_MATE_WRITES_CALIBRATED', False),
+                      mock.patch.object(api, '_native_windows', return_value=True),
+                      mock.patch.object(api, '_dispatch', side_effect=lambda native, interface: native),
                       mock.patch.object(api, 'capture_verified_reference', side_effect=lambda a,e,f: f.token),
                       mock.patch.object(api, 'feature_error', side_effect=lambda f: self.scene.error_code),
                       mock.patch.object(api, '_running_command', return_value={'ui_active':False}),
@@ -119,6 +122,31 @@ class MateTests(unittest.TestCase):
     def test_public_writes_remain_fail_closed_before_native_acceptance(self):
         self.assertEqual(self.add(_calibration=False)['error']['type'], 'MateWriteNotCalibrated')
         self.scene.doc.CreateMateData.assert_not_called()
+        self.scene.doc.CreateMate.assert_not_called()
+
+    def test_public_runtime_permission_is_exact_and_unknown_revision_stays_closed(self):
+        self.scene.app.RevisionNumber=lambda:'known-revision'
+        with mock.patch.object(api,'PUBLIC_MATE_WRITES_CALIBRATED',True), \
+             mock.patch.object(api,'CALIBRATED_WINDOWS_REVISIONS',frozenset({'known-revision'})):
+            result=self.add(_calibration=False)
+            self.assertTrue(result['ok'],result)
+        self.scene.doc.FirstFeature=None
+        self.scene.doc.CreateMate.reset_mock()
+        for revision in ('different-revision','',None,True):
+            self.scene.app.RevisionNumber=lambda revision=revision:revision
+            with mock.patch.object(api,'PUBLIC_MATE_WRITES_CALIBRATED',True), \
+                 mock.patch.object(api,'CALIBRATED_WINDOWS_REVISIONS',frozenset({'known-revision'})):
+                result=self.add(_calibration=False)
+            self.assertEqual(result['error']['type'],'MateRuntimeNotCalibrated')
+            self.assertFalse(result['mutation']['attempted'])
+            self.scene.doc.CreateMate.assert_not_called()
+
+    def test_native_windows_calibration_never_opens_wine_writes(self):
+        with mock.patch.object(api,'PUBLIC_MATE_WRITES_CALIBRATED',True), \
+             mock.patch.object(api,'_native_windows',return_value=False):
+            result=self.add(_calibration=False)
+        self.assertEqual(result['error']['type'],'MateRuntimeNotCalibrated')
+        self.assertFalse(result['mutation']['attempted'])
         self.scene.doc.CreateMate.assert_not_called()
 
     def test_coincident_and_concentric_single_native_commit(self):
@@ -205,6 +233,15 @@ class MateTests(unittest.TestCase):
             self.assertTrue(result['mutation']['creation_returned'])
             self.assertIn('mate',result)
             self.scene.doc.CreateMate.assert_called_once()
+
+    def test_concentric_final_lock_rotation_is_read_back_and_cannot_be_hidden_by_staging(self):
+        targets=[dict(component=n,face_index=1) for n in self.scene.names]
+        self.scene.lock_rotation=True
+        result=self.add(kind='concentric',targets=targets)
+        self.assertEqual(result['error']['type'],'MateSolveFailed')
+        self.assertTrue(result['mate']['lock_rotation'])
+        self.assertTrue(result['mutation']['creation_returned'])
+        self.scene.doc.CreateMate.assert_called_once()
 
     def test_rebuild_failure_does_not_retry_creation(self):
         self.scene.doc.EditRebuild3=lambda:False

@@ -7,7 +7,7 @@ change configuration, save, retry a failed native write, or roll CAD back here.
 import hashlib
 import math
 
-from ..assembly_mates import PUBLIC_MATE_WRITES_CALIBRATED
+from ..assembly_mates import PUBLIC_MATE_WRITES_CALIBRATED, CALIBRATED_WINDOWS_REVISIONS
 from .windows import _com_value, _error, _describe_document
 from .native_trace import native_call
 from .windows_entity_geometry import _numbers, _direction
@@ -255,12 +255,16 @@ def observe_mate(app, document, feature, components, natives, bindings):
                 for c, f in matches), "mate surface class differs")
     suppression = sequence(feature.IsSuppressed2(1, _empty_variant()), "mate suppression", 1)
     require(len(suppression) == 1 and type(suppression[0]) is bool, "mate suppression is unreadable")
-    return dict(name=text(value(feature, "Name"), "mate name"), kind=kind_name,
+    observed = dict(name=text(value(feature, "Name"), "mate name"), kind=kind_name,
         alignment=next(key for key, code in ALIGNMENTS.items() if code == alignment),
         error_code=feature_error(feature), suppressed=suppression[0],
         components=[components[c]["name"] for c, _ in matches],
         references=[components[c]["faces"][f]["reference_sha256"] for c, f in matches],
         **relation(*[(components[c], components[c]["faces"][f]) for c, f in matches], kind_name))
+    if kind_name == "concentric":
+        definition = _dispatch(value(feature, "GetDefinition"), "IConcentricMateFeatureData")
+        observed["lock_rotation"] = boolean(value(definition, "LockRotation"), "concentric LockRotation")
+    return observed
 
 
 def snapshot(app, document, names):
@@ -305,6 +309,16 @@ def read_mate_targets_windows(*, app, document, components):
     return result
 
 
+def _native_windows():
+    import ctypes
+    import sys
+    if sys.platform != "win32":
+        return False
+    # Failure to load ntdll propagates and refuses writing. Unlike tray display,
+    # an unavailable runtime probe must not default to calibrated native Windows.
+    return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+
+
 def add_mate_windows(*, app, document, kind, alignment, targets, expected_value, _calibration=False):
     result = dict(ok=False, action="assembly.add-mate",
                   mutation=dict(attempted=False, creation_returned=False, may_have_changed=False), cleanup_errors=[])
@@ -312,6 +326,13 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
         require(_calibration or PUBLIC_MATE_WRITES_CALIBRATED,
                 "standard mate writes await native persistence and independent public acceptance",
                 "MateWriteNotCalibrated")
+        if not _calibration:
+            require(_native_windows(), "standard mate writes are calibrated only on native Windows",
+                    "MateRuntimeNotCalibrated")
+            revision = value(app, "RevisionNumber")
+            require(isinstance(revision, str) and revision in CALIBRATED_WINDOWS_REVISIONS,
+                    "standard mate writes are not calibrated for this exact native revision",
+                    "MateRuntimeNotCalibrated")
         require(kind in KINDS and alignment in ALIGNMENTS, "unsupported standard mate", "InvalidArgument")
         require(isinstance(targets, list) and len(targets) == 2, "exactly two targets required", "InvalidArgument")
         guard(app, document, write=True)
@@ -326,7 +347,7 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
             require(before["components"][c]["faces"][i]["surface_kind"] == ("plane" if kind == "coincident" else "cylinder"),
                     "target surface does not match requested mate", "MateSurfaceMismatch")
             faces.append(bindings[c][i])
-        require(all(m["error_code"] == 0 and not m["suppressed"] and
+        require(all(m["error_code"] == 0 and not m["suppressed"] and not m.get("lock_rotation", False) and
                     m["distance_mm"] <= DISTANCE_TOLERANCE_MM and m["parallel_error"] <= DIRECTION_TOLERANCE
                     for m in before["mates"]), "existing mate is not healthy", "MateSolveFailed")
         data = native_call("assembly-mates", "AssemblyDoc.CreateMateData", lambda: document.CreateMateData(KINDS[kind]))
@@ -363,16 +384,18 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
                 "created mate definition differs from request", "MateVerificationFailed")
         require(all(after[key] == before[key] for key in ("title", "path", "configuration")),
                 "assembly identity or configuration changed", "MateVerificationFailed")
-        definition_keys = ("name", "kind", "alignment", "suppressed", "error_code", "components", "references")
-        existing = [{key:m[key] for key in definition_keys} for m in after["mates"] if m["name"] != made["name"]]
-        require(existing == [{key:m[key] for key in definition_keys} for m in before["mates"]],
+        def definitions(rows):
+            return [{key: value for key, value in row.items()
+                     if key not in ("distance_mm", "parallel_error")} for row in rows]
+        existing = [mate for mate in after["mates"] if mate["name"] != made["name"]]
+        require(definitions(existing) == definitions(before["mates"]),
                 "existing mate definitions changed", "MateVerificationFailed")
         require(after["components"][0] == before["components"][0], "fixed anchor changed", "MateVerificationFailed")
         for c in range(2):
             require({k:v for k,v in after["components"][c].items() if k != "transform"} ==
                     {k:v for k,v in before["components"][c].items() if k != "transform"},
                     "component identity, configuration or source geometry changed", "MateVerificationFailed")
-        require(all(m["error_code"] == 0 and not m["suppressed"] and m["distance_mm"] <= DISTANCE_TOLERANCE_MM
+        require(all(m["error_code"] == 0 and not m["suppressed"] and not m.get("lock_rotation", False) and m["distance_mm"] <= DISTANCE_TOLERANCE_MM
                     and m["parallel_error"] <= DIRECTION_TOLERANCE for m in after["mates"]),
                 "mate solve/geometry verification failed", "MateSolveFailed")
         require(value(value(document, "Extension"), "NeedsRebuild2") == 0, "assembly still needs rebuild", "MateSolveFailed")

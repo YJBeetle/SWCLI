@@ -1567,7 +1567,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     }
     if name == "assembly.add-mate":
         schema["required"].extend(["mutation", "cleanup_errors"])
-        healthy = {"error_code": {"const": 0}, "suppressed": {"const": False},
+        healthy = {"error_code": {"const": 0}, "suppressed": {"const": False}, "lock_rotation": {"const": False},
                    "distance_mm": {"type": "number", "minimum": 0, "maximum": 1e-5},
                    "parallel_error": {"type": "number", "minimum": 0, "maximum": 1e-8}}
         schema["then"]["properties"] = {
