@@ -1,0 +1,48 @@
+{
+  "release_url": "https://github.com/YJBeetle/SWCLI/releases/tag/v0.1.0a18",
+  "release_id": 436204657,
+  "tag": "v0.1.0a18",
+  "tag_commit": "254d1ad11847d002f0af07d630beba3350b7f66d",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-11-06T07:13:08Z",
+  "assets": {
+    "provenance.json": {
+      "bytes": 65934,
+      "sha256": "ce7180041a0cfb084b0088792d1dce3d30bd564415b008c5f5f48a805b682714",
+      "anonymous_byte_match": true
+    },
+    "RELEASE_NOTES.md": {
+      "bytes": 2056,
+      "sha256": "3a0f39b2af2057e5c2e41adb2506b08cd0bbd23a6a634e31702b92547f915d24",
+      "anonymous_byte_match": true
+    },
+    "SHA256SUMS": {
+      "bytes": 351,
+      "sha256": "db507cca91da506cadb6170e810a223b58b1cc84cdc43328986dfbfa2b3e2233",
+      "anonymous_byte_match": true
+    },
+    "swcli-0.1.0a18-py3-none-any.whl": {
+      "bytes": 236427,
+      "sha256": "b9ffa6426e7be27005497c35c32a5a0a389976963fa0ee40da8cb8d80b0e068f",
+      "anonymous_byte_match": true
+    },
+    "swcli-0.1.0a18.tar.gz": {
+      "bytes": 949752,
+      "sha256": "6e9516670b59c1417809ba7bcdcae994e0a81b77d23056b99d8b095d26f746e5",
+      "anonymous_byte_match": true
+    }
+  },
+  "sha256sums_verified": true,
+  "original_ci_package_bytes_preserved": true,
+  "windows_final_verified": true,
+  "docker_promotion_claimed": false,
+  "public_provenance_sha256": "ce7180041a0cfb084b0088792d1dce3d30bd564415b008c5f5f48a805b682714",
+  "public_sha256sums_sha256": "db507cca91da506cadb6170e810a223b58b1cc84cdc43328986dfbfa2b3e2233",
+  "native_audit_sha256": "39ace908a8acd81388eb021ebe074e4f3faa254f73f3bec1fcdd374ce98745c6",
+  "package_audit_sha256": "da4b2d3610ebee3464e371d5fb7799048e43b4181f067621b22460aa3d49388d",
+  "owner_approved": true,
+  "main_merge_performed": false,
+  "mcp_integration": "deferred to another agent by owner instruction",
+  "advance_next_version": false
+}

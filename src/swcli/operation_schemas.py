@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
+from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
+from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -202,6 +204,30 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.property-delete",
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
+    "document.annotation-option-set": _operation(
+        "document.annotation-option-set",
+        {"field": _string(enum=list(ANNOTATION_FIELDS)),
+         "value": {"anyOf": [_string(), _boolean(), _number()]},
+         "expected_value": {"anyOf": [_string(), _boolean(), _number()]}},
+        required=("field", "value", "expected_value"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": annotation_value_schema(field),
+                                      "expected_value": annotation_value_schema(field, writable=False)}},
+        } for field in ANNOTATION_FIELDS],
+        **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
+    "document.units-set": _operation(
+        "document.units-set",
+        {"length_unit": _string(enum=list(LENGTH_UNITS)),
+         "decimal_places": _integer(minimum=DECIMAL_PLACES_MIN, maximum=DECIMAL_PLACES_MAX),
+         "expected_length_unit": _string(enum=list(LENGTH_UNITS)),
+         "expected_decimal_places": _integer(minimum=DECIMAL_PLACES_MIN, maximum=DECIMAL_PLACES_MAX)},
+        parameter_conditions=[{"anyOf": [{"required": ["length_unit"]}, {"required": ["decimal_places"]}]}],
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.summary": _operation("document.summary", **_DOCUMENT_READ_CONTEXT),
     "document.summary-set": _operation(
@@ -485,6 +511,14 @@ def operation_result_schemas() -> Dict[str, Dict[str, Any]]:
 
 
 def _validate_parameter(name: str, value: Any, schema: Dict[str, Any]) -> None:
+    if "anyOf" in schema:
+        for candidate in schema["anyOf"]:
+            try:
+                _validate_parameter(name, value, candidate)
+                return
+            except ValueError:
+                continue
+        raise ValueError(f"{name} does not match an allowed parameter type")
     expected = schema["type"]
     if expected == "string":
         valid = isinstance(value, str)
@@ -564,6 +598,11 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.annotation-option-set":
+        validate_annotation_value(parameters["field"], parameters["value"])
+        validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)
+    if operation == "document.units-set" and not {"length_unit", "decimal_places"}.intersection(parameters):
+        raise ValueError("document.units-set requires length_unit or decimal_places")
     if operation == "sketch.polygon":
         validate_polygon(parameters["vertices_mm"])
     if operation == "document.create":

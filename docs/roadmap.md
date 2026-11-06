@@ -166,10 +166,20 @@ property adds, sets and deletes. Windows CI exercises public CLI operations,
 scope isolation, guarded writes and save/reopen of separate native copies.
 Creation time, save time, saved-by and saved version history are read-only.
 
-After metadata acceptance, add read/write access to document options, starting
-with annotation text format, attachment arrows, bent leaders and zero display.
-Use the typed document preference APIs, with explicit per-field validation and
-save/reopen checks. [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
+A17 document length display units and decimal places have passed the installed
+Windows public CLI gate for parts and assemblies, including guarded edits and
+saved-copy readback. Geometry commands retain their documented millimeter
+semantics; drawing and fractional display write profiles remain separate work.
+
+A18's seven annotation scalars cover attachment arrows, bent leader toggle and
+length, and leading/trailing zero display. The final a18 Windows public CLI gate
+verified parts, assemblies and drawings, including changed values, no-ops,
+lease/CAS refusals and saved-copy readback. The accepted source and original
+artifacts are recorded in [the final Windows receipt](verification/a18-final-windows-2026-11-06.md).
+See [the bounded contract](design/document-annotation-options.md).
+Annotation text format and overall drafting standard remain later increments
+because changing them can propagate to subtype settings.
+[SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
 ## Resident host visibility (planned)
 
@@ -218,18 +228,16 @@ upper-layer application; this goal does not require designing it now.
 
 Before the planned `0.2.0a1` release:
 
-1. Wait for the a18 document-annotations acceptance, then merge its verified
-   commit from `codex/a18-document-annotations` into `main`. Preserve that
-   accepted commit as an ancestor of the release candidate.
-2. Complete the breaking command rename to `swcli` in SWCLI, DockerSW and MacSW,
-   including launchers, installation paths, MCP configuration, current usage
-   docs and tests. The service remains named `swclid`; environment variables
-   retain `SWCLI_*`.
-   Recheck the merged a18 code for legacy active command references.
-3. Only then freeze the version on the combined commit and perform final
-   acceptance of that source and its original CI packages under the existing
-   release policies. Earlier MCP-only/a18-only results are component evidence,
-   not acceptance of the final combined release candidate.
+The accepted a18 commit is included in the combined main history. Keep its
+original release and native evidence separate from the new MCP/manager changes.
+The integrated source passed portable tests; its final installed Windows gate
+and original CI wheel/sdist still need acceptance at the frozen version.
+
+The final Windows run also collects task and process inventories around startup
+refusals, owned shutdown and attached-user-host shutdown. Previous startup
+receipts proved the expected JSON and host ownership, but did not contain an
+independent final task inventory. Earlier MCP-only or a18-only results cannot
+replace acceptance of the combined candidate.
 
 The a13 pre-release and its historical verification boundaries are recorded in
 [v0.1.0a13 release notes](releases/v0.1.0a13.md). A pre-release does not imply a

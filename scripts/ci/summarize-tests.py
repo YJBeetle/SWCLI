@@ -25,6 +25,7 @@ RECEIPTS = {
     "runtime-sets.json", "runtime.json", "properties.json", "visible.json",
     "attach-refusal.json", "equation-dimension-result.json", "equation-dimension.json",
     "modeling.json", "driving-dimensions.json", "drawings.json", "toolbox.json",
+    "document-units.json", "document-annotations.json",
 }
 MAX_RECEIPT_BYTES = 64 * 1024 * 1024
 
@@ -138,7 +139,8 @@ def record_status(record, kind):
                         for proof in proofs.values()) else "FAIL")
     if record.get("success") is not True:
         return "FAIL"
-    if kind in ("modeling.json", "driving-dimensions.json", "drawings.json", "properties.json", "visible.json"):
+    if kind in ("modeling.json", "driving-dimensions.json", "drawings.json", "properties.json", "visible.json",
+                "document-units.json", "document-annotations.json"):
         return "PASS" if record.get("state") == "completed" else "FAIL"
     if kind in ("runtime.json", "runtime-sets.json"):
         return "PASS" if record.get("completed") is True else "FAIL"

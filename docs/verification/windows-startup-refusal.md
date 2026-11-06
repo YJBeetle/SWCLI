@@ -49,3 +49,34 @@ new targeted full run; portable tests are not native acceptance evidence.
 | Visible receipt | 789917f7f82feced9f137c886f46ea0dc55c790a5c4caeaa6e70b1646070fa85 |
 | Before-fix regression log | e97873386cdea4e4f942a28e4e3e886e482eab6472ae186eacbd42fa730eb361 |
 | Final source-unit log | 60e3f14b1c9c93e07b8e6f0919ee09d9a42a9a8192c26b2bad9b08001e548c08 |
+
+## Corrected original Windows run
+
+[42173211739](https://github.com/YJBeetle/SWCLI/actions/runs/42173211739)
+completed successfully at `9502f3ae014032fcdd4520f8f3b22f3ff700a39b`.
+Independent checks of the original artifacts confirmed the complete 19-set /
+20-step plan, 48 polygon cases, four depth writes and four equal-depth cases,
+12 through-all cases, 15 exports, visible mode, metadata save/reopen and the
+equation-driven dimension refusal. The attach-without-host receipt contains
+`ExistingHostNotFound` without cleanup errors. The external visible user host
+retains PID 9096 after its attached daemon stops; the endpoint is unreachable.
+
+| Original | SHA-256 |
+| --- | --- |
+| Native artifact 13486381394 ZIP | 20e4202f7d83e53ab303e8a7e59452c094c6003f52b25100cc02d53569c08e65 |
+| Dist artifact 13482380199 ZIP | 7376faed8a86b3166bed62d17a4c39163c1da502a4165622613d06966d601dd0 |
+| Full-plan receipt | 2110db76e53963abe8397b125d50ae1c45178483b0c2996ec2c20ee3bc8ceae9 |
+| Polygon receipt | cab7697f863fbe59b9f3c09766367ef71d808a912bdaeeb3d54969887edf2bf5 |
+
+The original wheel and sdist match that source, including its historical
+`sw-cli` entry point and version `0.1.0a16`; they are not acceptance of the later
+command/MCP/a18 integration. This original upload contains no independent
+scheduled-task terminal inventory, so that evidence remains unverified.
+
+The next necessary full run will capture task names/path/state and explicit
+process identity fields before and after lifecycle boundaries. Only uniquely
+named SWCLI tasks and newly observed processes are compared. A bounded read-only
+settling observation preserves each snapshot; inventory errors and persistent
+new resources fail the gate. No startup/stop/native API is retried, and no user
+host is terminated. Portable fixture tests cover the collector and assertions;
+actual Windows collection remains pending the combined candidate's full run.

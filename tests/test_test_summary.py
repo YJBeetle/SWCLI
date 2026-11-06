@@ -239,6 +239,28 @@ class PublicSummaryTests(unittest.TestCase):
             "GITHUB_REPOSITORY": "owner/repo", "GITHUB_RUN_ID": "123"}),
             "https://github.example:8443/owner/repo/actions/runs/123")
 
+    def test_units_and_annotations_use_public_completion_not_expected_negative_events(self):
+        for filename in ("document-units.json", "document-annotations.json"):
+            write(self.root / "hidden" / filename, passed(evidence_kind="installed-public-cli-gate",
+                  events=[{"returncode": 1, "result": {"ok": False, "error": {"type": "DocumentUpdateConflict"}}}]))
+        report = self.summarize()
+        self.assertEqual(report["totals"]["pass"], 2)
+        self.assertIsNone(report["first_failure"])
+        for filename in ("document-units.json", "document-annotations.json"):
+            write(self.root / "hidden" / filename, {"success": True, "cleanup_errors": []})
+        report = self.summarize()
+        self.assertEqual(report["totals"]["pass"], 0)
+        self.assertEqual(report["totals"]["fail"], 2)
+
+    def test_annotation_business_error_is_preserved_before_cleanup_and_stage(self):
+        write(self.root / "document-annotations.json", passed(success=False,
+              error={"type": "NativeReadbackMismatch", "message": "annotation native readback changed"},
+              cleanup_errors=["close failed"]))
+        report = self.summarize(["functional-tests=failure", "cleanup=failure"])
+        self.assertEqual(report["first_failure"]["code"], "NativeReadbackMismatch")
+        self.assertEqual(report["first_failure"]["evidence"], ["document-annotations.json"])
+        self.assertEqual(len(report["cleanup_errors"]), 2)
+
     def test_full_group_names_match_shared_public_plan(self):
         ci = str(ROOT / "scripts/ci")
         with patch.object(sys, "path", [ci] + sys.path):

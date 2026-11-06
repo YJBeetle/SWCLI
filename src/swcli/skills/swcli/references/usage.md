@@ -371,6 +371,56 @@ Use `document save` or `document save-as` explicitly to persist verified edits.
 When persistence matters, verify the saved copy after read-only reopen, using
 fresh document handles and the intended configuration scope.
 
+`document.units` and `document.units-set` cover document length display options.
+The Windows public CLI gate verified part and assembly edits, same-value no-ops,
+and saved-copy readback. Drawing and fractional display profiles need separate
+native acceptance before their write scope is extended.
+
+```powershell
+swcli document units --document d-ab12cd --json
+swcli document units-set --length-unit inch --decimal-places 4 --if-length-unit mm --if-decimal-places 2 --document d-ab12cd --lease l-ab12cd34ef56 --if-update-stamp 7 --json
+```
+
+`units` preserves all five native GetUnits fields, including the unit and
+fraction codes. The typed length names in this increment are `mm` and `inch`;
+other native length units remain visible as `other` with their exact code.
+`units-set` requires a length unit, decimal places, or both, and uses the existing
+session, document lease and update-stamp guards. Unrequested native format
+fields remain unchanged. Native SetUnits does not advance the tested document's
+update stamp. Use `--if-length-unit` and `--if-decimal-places` with the observed
+values to detect a prior display-option edit, in addition to the document lease
+and optional update-stamp check. Fractional display profiles require separate
+native proof before editing. A failed native setter may have changed the open
+document and is never automatically retried or rolled back. Save explicitly
+after a verified edit. These display settings keep all existing modeling and
+measurement arguments and results in their documented millimeter units.
+
+`document.annotation-options` and `document.annotation-option-set` cover seven
+annotation scalars. The a18 Windows public CLI gate verified changed-value
+save/reopen, reverse-arrow writes and same-value no-ops for parts, assemblies
+and drawings. This is a subset of Options → Document Properties; consult the
+running daemon's capabilities for the operations available on the current host.
+
+```powershell
+swcli document annotation-options --document d-ab12cd --json
+swcli document annotation-option-set arrow.edge_vertex dot --if-value closed --document d-ab12cd --lease l-ab12cd34ef56 --json
+swcli document annotation-option-set bent_leader.enabled true --if-value false --document d-ab12cd --lease l-ab12cd34ef56 --json
+swcli document annotation-option-set bent_leader.length_mm 10 --if-value 6.35 --document d-ab12cd --lease l-ab12cd34ef56 --json
+```
+
+Fields are `arrow.edge_vertex` and `arrow.face_surface` (`closed`/`dot`),
+`arrow.unattached` (`closed`/`none`), `bent_leader.enabled` (`true`/`false`),
+`bent_leader.length_mm` (positive finite millimeters), `zero.leading`
+(`standard`/`show`/`remove`), and `zero.trailing`
+(`show`/`remove`/`remove_only_on_zero`/`same_as_source`). Reads preserve both
+`value` and `native_value`; unknown native enums are returned as `other` with
+their original code. Writes always require `--if-value`, in addition to lease
+and optional stamp guards. An equal value does not invoke a native setter.
+Unrequested scalar options remain unchanged; a changed value marks the document
+for an explicit save. Partial failures report possible mutation and are never
+retried or rolled back. Annotation font and drafting standard writes remain
+outside this increment.
+
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented
 `export_ready` flag. Structure inspection and diagnosis add feature evidence.
