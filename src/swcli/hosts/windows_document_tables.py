@@ -1,0 +1,190 @@
+"""Protected table defaults; uncalibrated public writes fail before any setter."""
+
+from pathlib import Path
+from typing import Any
+
+from ..document_tables import TABLE_FIELDS, LINE_WEIGHTS, validate_table_options, validate_table_value
+from .native_trace import native_call
+from .windows import _com_value, _error
+from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
+from .windows_document_annotations import _edit_context, _verify_context, _writable_context
+from .windows_feature_inspection import _same
+
+# Internal native calibration is not public acceptance. No environment bypass.
+_CALIBRATED_PROFILES = frozenset()
+
+
+class DocumentTableConflict(RuntimeError):
+    """The complete table defaults no longer match the caller's snapshot."""
+
+
+class DocumentTableCalibrationRequired(RuntimeError):
+    """This document/version has no accepted public write evidence."""
+
+
+def _read_constants(path):
+    import pythoncom
+    wanted = {spec["symbol"] for spec in TABLE_FIELDS.values()} | {"swDetailingNoOptionSpecified"}
+    wanted |= {"swLW_" + name.upper() for name in LINE_WEIGHTS}
+    library = pythoncom.LoadTypeLib(str(path))
+    found = {}
+    for index in range(library.GetTypeInfoCount()):
+        info = library.GetTypeInfo(index)
+        attributes = info.GetTypeAttr()
+        if attributes.typekind != pythoncom.TKIND_ENUM:
+            continue
+        for offset in range(attributes.cVars):
+            descriptor = info.GetVarDesc(offset)
+            name = info.GetDocumentation(descriptor[0])[0]
+            if name in wanted:
+                if name in found or type(descriptor.value) is not int:
+                    raise RuntimeError("invalid or duplicate table enum in official swconst")
+                found[name] = descriptor.value
+    if set(found) != wanted or found["swDetailingNoOptionSpecified"] != 0 or any(
+            found["swLW_" + name.upper()] != code for name, code in LINE_WEIGHTS.items()):
+        raise RuntimeError("official swconst lacks the expected table enum catalog")
+    return found
+
+
+def _constants(app):
+    # Official GetExecutablePath returns the installation directory, without a
+    # trailing slash. Do not guess IDs or load a caller-supplied type library.
+    folder = native_call("document-tables", "ISldWorks.GetExecutablePath", lambda: app.GetExecutablePath())
+    if type(folder) is not str or not folder:
+        raise RuntimeError("native SOLIDWORKS installation path is unavailable")
+    path = Path(folder) / "swconst.tlb"
+    if not path.is_file():
+        raise RuntimeError("official installed swconst.tlb is unavailable")
+    return native_call("document-tables", "swconst.LoadTypeLib", lambda: _read_constants(path))
+
+
+def _identity(document):
+    values = (_com_value(document, "GetTitle"), _com_value(document, "GetPathName"))
+    if any(type(value) is not str for value in values) or not values[0]:
+        raise RuntimeError("native document identity is unreadable")
+    return values
+
+
+def _capture(app, document):
+    foreground = _com_value(app, "ActiveDoc")
+    return dict(state=_state(document), identity=_identity(document), foreground=foreground,
+                foreground_state=_state(foreground) if foreground is not None else None,
+                foreground_identity=_identity(foreground) if foreground is not None else None,
+                edit=_edit_context(document))
+
+
+def _verify(app, document, snapshot, *, state=None):
+    if _identity(document) != snapshot["identity"]:
+        raise RuntimeError("table operation changed document identity")
+    documents = _com_value(app, "GetDocuments")
+    if not isinstance(documents, (list, tuple)) or not any(_same(app, document, item) for item in documents):
+        raise RuntimeError("table document is no longer open")
+    foreground = snapshot["foreground"]
+    if not _same(app, foreground, _com_value(app, "ActiveDoc")):
+        raise RuntimeError("table operation changed the foreground document")
+    if foreground is not None and not _same(app, foreground, document) and (
+            _state(foreground) != snapshot["foreground_state"] or
+            _identity(foreground) != snapshot["foreground_identity"]):
+        raise RuntimeError("table operation changed the background document's foreground peer")
+    _verify_context(app, document, snapshot["edit"])
+    _verify_metadata_state(app, document, snapshot["state"] if state is None else state,
+                           foreground, changed=False)
+
+
+def _read_options(document, constants):
+    kind = _com_value(document, "GetType")
+    extension = _com_value(document, "Extension")
+    options = {}
+    for field, spec in TABLE_FIELDS.items():
+        if kind not in spec["types"]:
+            options[field] = {"unavailable": "document_type"}
+            continue
+        method = "GetUserPreference" + spec["kind"]
+        raw = native_call("document-tables", "IModelDocExtension." + method,
+                          lambda spec=spec, method=method: getattr(extension, method)(
+                              constants[spec["symbol"]], constants["swDetailingNoOptionSpecified"]))
+        expected = bool if spec["kind"] == "Toggle" else int
+        if type(raw) is not expected:
+            raise RuntimeError("native table field is unreadable: " + field)
+        value = raw if expected is bool else next((name for name, code in LINE_WEIGHTS.items() if code == raw), "other")
+        options[field] = {"value": value, "native_value": raw}
+    return options
+
+
+def read_document_table_options_windows(*, app: Any, document: Any) -> dict:
+    result = {"ok": False, "action": "document.table-options"}
+    try:
+        snapshot = _capture(app, document)
+        constants = _constants(app)
+        options = _read_options(document, constants)
+        _verify(app, document, snapshot)
+        result.update(ok=True, options=options)
+    except Exception as exc:
+        result["error"] = _error(exc)
+    return result
+
+
+def _edit_table_option(*, app, document, field, value, expected_options, calibration=False):
+    result = {"ok": False, "action": "document.table-option-set",
+              "mutation": {"attempted": False, "may_have_changed": False}}
+    try:
+        validate_table_value(field, value)
+        expected = validate_table_options(expected_options)
+        _require_writable(document)
+        snapshot = _capture(app, document)
+        spec = TABLE_FIELDS[field]
+        if snapshot["state"][0] not in spec["types"]:
+            raise ValueError("this table default is unavailable for the selected document type")
+        revision = _com_value(app, "RevisionNumber")
+        if not calibration and (revision, snapshot["state"][0]) not in _CALIBRATED_PROFILES:
+            raise DocumentTableCalibrationRequired("table default writes await native public acceptance for this version/type")
+        constants = _constants(app)
+        before = _read_options(document, constants)
+        result.update(field=field, before=before)
+        # Includes every readable raw scalar and explicit unavailable entries.
+        if before != expected:
+            raise DocumentTableConflict("document table defaults no longer match expected_options")
+        _verify(app, document, snapshot)
+        if type(before[field]["value"]) is type(value) and before[field]["value"] == value:
+            result.update(ok=True, options=before, changed=False)
+            return result
+        if not _writable_context(app, snapshot["edit"]):
+            raise ValueError("table default editing requires a normal drawing sheet or no active model sketch")
+        _require_writable(document)
+        native = value if spec["kind"] == "Toggle" else LINE_WEIGHTS[value]
+        extension = _com_value(document, "Extension")
+        method = "SetUserPreference" + spec["kind"]
+        result["mutation"] = {"attempted": True, "may_have_changed": True}
+        returned = native_call("document-tables", "IModelDocExtension." + method,
+                               lambda: getattr(extension, method)(constants[spec["symbol"]], 0, native))
+        if type(returned) is bool:
+            result["native_returned"] = returned
+        # Toggle documentation describes a state return; the baseline native
+        # annotation calibration observed success booleans. Until this exact
+        # field is proven, False remains a recorded, fail-closed outcome.
+        if returned is not True:
+            raise RuntimeError("native table setter did not return success")
+        post_setter = _state(document)
+        after = _read_options(document, constants)
+        _verify(app, document, snapshot, state=post_setter)
+        if after[field] != {"value": value, "native_value": native}:
+            raise RuntimeError("native table setter did not round-trip the requested value")
+        if any(after[key] != before[key] for key in TABLE_FIELDS if key != field):
+            raise RuntimeError("native table setter changed an unrequested field")
+        # Check type/configuration/foreground before marking dirty at most once.
+        if (post_setter[0], post_setter[3]) != (snapshot["state"][0], snapshot["state"][3]):
+            raise RuntimeError("table setter changed document type or configuration")
+        _verify_metadata_state(app, document, snapshot["state"], snapshot["foreground"], changed=True)
+        post_write = _state(document)
+        final = _read_options(document, constants)
+        if final != after:
+            raise RuntimeError("table defaults changed while marking the document for saving")
+        _verify(app, document, snapshot, state=post_write)
+        result.update(ok=True, options=after, changed=True)
+    except Exception as exc:
+        result["error"] = _error(exc)
+    return result
+
+
+def set_document_table_option_windows(*, app: Any, document: Any, field: str, value: Any, expected_options: dict) -> dict:
+    return _edit_table_option(app=app, document=document, field=field, value=value, expected_options=expected_options)

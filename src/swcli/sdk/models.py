@@ -731,8 +731,48 @@ class DocumentPropertyDeleteResult(_DocumentPropertyDeleteResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-class DocumentAnnotationOptionsParameters(TypedDict):
+class DocumentTableOptionsParameters(TypedDict):
     pass
+
+
+class _DocumentTableOptionsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.table-options']
+
+
+class DocumentTableOptionsResult(_DocumentTableOptionsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+
+
+class DocumentTableOptionSetParameters(TypedDict):
+    field: Literal['all.use_template_settings', 'bom.box_border', 'bom.grid_border', 'general.box_border', 'general.grid_border']
+    value: Union[str, bool]
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentTableOptionSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.table-option-set']
+
+
+class DocumentTableOptionSetResult(_DocumentTableOptionSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['all.use_template_settings', 'bom.box_border', 'bom.grid_border', 'general.box_border', 'general.grid_border']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_returned: bool
+
+
+DocumentAnnotationOptionsParameters = DocumentTableOptionsParameters
 
 
 class _DocumentAnnotationOptionsResultRequired(TypedDict):
@@ -771,7 +811,7 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentUnitsParameters = DocumentAnnotationOptionsParameters
+DocumentUnitsParameters = DocumentTableOptionsParameters
 
 
 class DocumentUnitsResultUnitsNativeUnits(TypedDict):
@@ -824,7 +864,7 @@ class DocumentUnitsSetResult(_DocumentUnitsSetResultRequired, total=False):
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentSummaryParameters = DocumentAnnotationOptionsParameters
+DocumentSummaryParameters = DocumentTableOptionsParameters
 
 
 class DocumentSummaryResultFields(TypedDict):
