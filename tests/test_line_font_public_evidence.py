@@ -5,6 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
+from unittest import mock
+from swcli.runtime_state import snapshot
 
 spec = importlib.util.spec_from_file_location("_line_font_public_test", Path(__file__).parents[1] / "scripts/ci/verify-line-font-public.py")
 public = importlib.util.module_from_spec(spec)
@@ -63,3 +65,22 @@ class LineFontPublicTraceTests(unittest.TestCase):
                         [{**row, "worker_pid": 101} if index == 1 else row for index, row in enumerate(rows)]):
             with self.subTest(case=len(invalid)), self.assertRaises(RuntimeError):
                 self.verify(invalid)
+
+
+class LineFontRuntimeContractTests(unittest.TestCase):
+    def test_status_uses_nested_current_health_contract(self):
+        native = dict(server_version="test", host_connected=True, recovery_required=False,
+                      host=dict(process_id=10, owned_by_daemon=True, visible=False))
+        runtime = snapshot(native)
+        gate = public.LineFontSmoke.__new__(public.LineFontSmoke)
+        gate.command = mock.Mock(return_value={"result": runtime})
+        self.assertEqual(gate.health(), native)
+        gate.command.assert_called_once_with("daemon", "status")
+
+    def test_disconnected_runtime_cannot_be_promoted_by_nested_health(self):
+        native = dict(host_connected=True, recovery_required=False, host=dict(process_id=10))
+        runtime = {**snapshot(native), "host_connected": False}
+        gate = public.LineFontSmoke.__new__(public.LineFontSmoke)
+        gate.command = mock.Mock(return_value={"result": runtime})
+        with self.assertRaises(RuntimeError):
+            gate.health()

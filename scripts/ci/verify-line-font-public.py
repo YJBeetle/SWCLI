@@ -31,6 +31,18 @@ OBSERVATION_CALLS = {
 }
 
 
+class LineFontSmoke(helpers.AnnotationSmoke):
+    def health(self):
+        runtime = self.command("daemon", "status")["result"]
+        status = runtime["health"]
+        require(runtime["daemon_running"] is True and runtime["daemon_reachable"] is True
+                and runtime["daemon_state"] == "ready" and runtime["host_connected"] is True
+                and status["host_connected"] is True and status["recovery_required"] is False,
+                "public line font gate requires a connected, unreplaced host")
+        require(type(status["host"]["process_id"]) is int, "native host PID unavailable")
+        return status
+
+
 class Trace:
     def __init__(self, path, gate):
         self.path, self.gate = path, gate
@@ -193,7 +205,7 @@ def main():
     directory.mkdir(parents=True)
     stdout_path, stderr_path = directory / "daemon.stdout.log", directory / "daemon.stderr.log"
     endpoint = "127.0.0.1:18495"
-    gate = helpers.AnnotationSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
+    gate = LineFontSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
     gate.record_path = directory / "line-font-public.json"
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
         daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--tray", "off", "--startup-timeout", "120"],

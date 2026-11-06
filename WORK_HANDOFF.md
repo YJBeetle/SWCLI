@@ -1,6 +1,6 @@
 # 线型 / 线宽默认设置交接
 
-当前状态：内部原生校准及独立原产物核验通过；已开放证实的精确范围，公开 CLI/daemon 验收待本次提交后 dispatch。**尚未 merge-ready，不自行合 main/发布。**
+当前状态：内部原生校准及独立原产物核验通过；已开放证实的精确范围，公开 CLI/daemon 验收运行中。**尚未 merge-ready，不自行合 main/发布。**
 
 ## 范围与接口
 
@@ -38,3 +38,17 @@
 - `line_font_public=false` 默认关闭，仅本分支手动，独立 `swcli-hosted-windows-line-font-public` 并发组；不扩 PR secrets，不进入默认 full/release。600s 请求 / 1800s group，首失败停止。
 - 内部校准成功不等于公开验收。公开 run/head/原 ZIP/digest/trace/save-reopen 证据待下一步回收；完成后才写精确 merge-ready commit。
 - 当前已推送：216ebec（实现）、6f531a5（并发隔离）、3ab8d21（首次交接）、497f23e（公开 gate 准备）。最终公开验收提交待补充。
+
+## 本次公开验收运行
+
+- 代码提交 `0addd65346a537a2eaefaf81c92257b4b7c30720` 已推送。
+- [42266835193](https://github.com/YJBeetle/SWCLI/actions/runs/42266835193)，head=`0addd65346a537a2eaefaf81c92257b4b7c30720`；line_font_public=true / line_font_calibration=false / native_full=false，其余默认。只触发这一必要公开验收，不因正常排队重发。
+- 最终相关便携测试 19 项通过，SDK generator/strict typing/8项 consumer 拒绝通过，门禁策略与摘要相关检查通过；未为消息重复全套测试。
+- 原始 native ZIP/metadata/expanded 与独立 audit JSON 仅在本地持久目录保留，远端已有 GitHub 原 artifact；推送仅含代码、测试与 hash/链接交接摘要。
+- 当前待回收公开结果，仍非 merge-ready。
+
+## 公开 gate 接线修复
+
+- 在 run 42266835193 仍清理 runner、未进入原生测试时，静态核实际 runtime-status 契约发现复用旧 helper 的 health 解析错误（当前状态的原始 health 在 `result.health`，不能从 result 顶层读取 recovery_required/host/server_version）。主动取消本线程 run，未取消其他运行；不是正常排队重发，也不算 SOLIDWORKS API 失败。
+- 新增线型专属 LineFontSmoke.health 解析当前状态封套，保留外层 ready/reachable/connected 与内层无 recovery、PID 的全部断言；新增两项实际 snapshot 契约测试，不修改共享 modeling/annotation helper。
+- 相关修复、测试通过后才触发新 head 的公开验证。
