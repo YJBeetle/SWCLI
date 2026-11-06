@@ -1,0 +1,92 @@
+[
+  {
+    "path": "docprops-calibration-performance.yml",
+    "sha256": "766c5e2db53ad89a4c64334683210df7bbd44d99ba6115c025d1330d3d9c0b64",
+    "bytes": 34553
+  },
+  {
+    "path": "docprops-coverage-ci.yml",
+    "sha256": "9b36dfe66b351d3000f412d63a3c56adc5fb90990f45f0c845bbd5fc019b2d96",
+    "bytes": 30651
+  },
+  {
+    "path": "docprops-detailing.yml",
+    "sha256": "7ab0976846af2f63c64d526bee88f879ba66450b05d2e441bb00415d393a663a",
+    "bytes": 30640
+  },
+  {
+    "path": "docprops-dimension-format.yml",
+    "sha256": "47d040a9d4cd2bde747dc6f9807b05a49adc1fd3ca68fd209fa20cb6815c2240",
+    "bytes": 32128
+  },
+  {
+    "path": "docprops-export-options.yml",
+    "sha256": "bec90023a815008874cb8b19e9babbbbe9df8c5b35f42c75905ef500b5d5d90e",
+    "bytes": 25274
+  },
+  {
+    "path": "docprops-font-scopes.yml",
+    "sha256": "bf2943ef171030ae478da11a82fd6bbda7f83720e8043400a1ad040c23464f98",
+    "bytes": 23036
+  },
+  {
+    "path": "docprops-line-style.yml",
+    "sha256": "0c22a70e7075a499d5ca583b1c5ffa8b995fea1eb946bd26bfb73bd71a60d7b9",
+    "bytes": 24877
+  },
+  {
+    "path": "docprops-table-defaults.yml",
+    "sha256": "7944468a3743fdfc0c294f124f9c077b2c97d7b93b96165c30c0445fbcb05221",
+    "bytes": 32205
+  },
+  {
+    "path": "docprops-tolerances.yml",
+    "sha256": "80b5c5374700c4821fc0afcfec07e46b874c15353db880422b5cc5849a3f139e",
+    "bytes": 24905
+  },
+  {
+    "path": "docprops-units-expanded.yml",
+    "sha256": "0dc4e952591c5627afd75c6e573f7f677065bd9991222b8bcc4002806f80dedb",
+    "bytes": 25696
+  },
+  {
+    "path": "remote-main.json",
+    "sha256": "e80315209597f2742d6311d334c7091c89bd2ed15557a2db0d4c4c26fff978fa",
+    "bytes": 138281
+  },
+  {
+    "path": "swcli-assembly-mates.yml",
+    "sha256": "dfece6e45e70de75638b024aa37faeae0f4e7d0de33e8b08b5333a9f01a8cfbe",
+    "bytes": 32218
+  },
+  {
+    "path": "swcli-revolve-feature.yml",
+    "sha256": "1cc4a5b5df4585d334281fd0880a346b85b45843668898b8bb292724ba8f1466",
+    "bytes": 26400
+  },
+  {
+    "path": "swcli-step-export-options.yml",
+    "sha256": "d01da17a675e1da8e6226fd2eeaf6c595985648befc95675ae1a5a6b8afb35b0",
+    "bytes": 26081
+  },
+  {
+    "path": "swcli-stl-export-options.yml",
+    "sha256": "cdeb5ad86169e6df56d898f38177821e7b7dc63be7e92eb724c2144363069043",
+    "bytes": 26261
+  },
+  {
+    "path": "swcli-topology-references.yml",
+    "sha256": "4f696348f89dfa85c5c32335d89907ed54f97a9cb627f333e10029b9aedc7cb8",
+    "bytes": 23815
+  },
+  {
+    "path": "truth-table.json",
+    "sha256": "0b0b7bbca2d2723309c390a270c40f3e02f62cb3012ed586a63bec1d37bb8808",
+    "bytes": 261194
+  },
+  {
+    "path": "validate-units-route.py",
+    "sha256": "d52610f58ec746689baa2dc52d577dcee80eda278306143d1a46e4f6e92b6131",
+    "bytes": 1584
+  }
+]

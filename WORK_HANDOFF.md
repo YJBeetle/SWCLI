@@ -97,3 +97,13 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - 当前可审查交付：技术提交`7f279206bd695437f527fd8fa40d3330d5366e4b`，13项定向便携测试通过；结构检查不构成原生校准通过，15路报告是固定时点证据，不是其他分支的实时状态。
 - 后续范围：由主对话读取本路报告、复核具体问题和决定单路滚动集成。本路不合他人分支、不改他人worktree、不重复baseline CAD dispatch；如需更新某个精确产品head的证据审阅，沿用只读来源核验。
 - VM仍暂停，DockerSW/MacSW、凭据保护、原断言及自动审批边界保持。持续授权不替代实际原生/public验收证据。
+
+## manual native scope窄审查（本轮，只读）
+
+- 报告：`docs/verification/docprops-manual-routing-narrow-2026-11-07.md`。原始15路workflow、精确SHA/行号/完整布尔组合、远端main元数据与hash：`artifacts/docprops-coverage-ci/manual-routing-narrow-20261107/`。
+- 线型a783b498：错误ref或manual tag，native_full=true + line_font_calibration/public=true，会job放行却跳过全部CAD入口，summary直接exit0。精确ci.yml行248、396/407、418/430/444、477起，交主对话协调owner修。
+- 公差ce147cba同类问题仍在快照内，已由主对话交原owner，不重复代修。
+- 单位在审查期间更新9d6b033；units-route及native needs/if已阻断旧路径。保存并执行其精确head的纯路由函数副本，未在他人树运行测试/写pycache。旧观察不冒充当前缺陷。
+- STEP 2c7108fa：own ref下full+targeted仍可忽略full而执行targeted；wrong ref/两targeted同时true会native job skipped，未复现零CAD native-job success。与线型风险分级区分。
+- 其余复用full job者：topology/revolve/STL有明确互斥throw；image-quality job条件排除混合scope。15路正常push-tag空输入均保留full CAD路径；manual-dispatch到tag带输入，与push tag区分。
+- GitHub只读核远端main=83c48301414801540a29aefca2d7d1f9f174d3c1；本地main ref仍78ebaf6。未来集成须保留83c4830的detailing和78ebaf6先前修复。本路不改main ref、不合分支、不dispatch、不轮询旧CI。以上只有静态/纯路由证据，没有新的原生验收结论。

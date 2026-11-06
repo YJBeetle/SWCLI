@@ -1,0 +1,558 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      media_path:
+        description: Google Drive path to the SOLIDWORKS ISO
+        required: true
+        default: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
+        type: string
+      assets_path:
+        description: Google Drive path to the private test runtime overlay
+        required: true
+        default: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack
+        type: string
+      cleanup_profile:
+        description: Disk cleanup level
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - conservative
+          - aggressive
+      vfs_cache_gib:
+        description: Maximum local rclone VFS cache size
+        required: true
+        default: "8"
+        type: choice
+        options:
+          - "6"
+          - "8"
+          - "12"
+      native_topology_targeted:
+        description: Run only bounded topology reference calibration on its development branch
+        required: false
+        default: false
+        type: boolean
+      native_full:
+        description: Run complete installed SOLIDWORKS functional verification
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  tag-policy:
+    name: Validate release tag before private native runtime
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.deleted }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Execute the policy from main, not from an untrusted tag target.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Require version match and main ancestry
+        run: python scripts/ci/tag-release.py check-tag
+
+  test:
+    name: Windows / Python ${{ matrix.python }}
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install SWCLI
+        id: portable_install
+        shell: powershell
+        run: |
+          python -m pip install --upgrade pip
+          if ("${{ matrix.python }}" -eq "3.14") {
+            python -m pip install --editable ".[mcp]"
+          } else {
+            python -m pip install --editable .
+          }
+
+      - name: Run unit tests
+        id: unit_tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Verify typed Python SDK
+        id: sdk_types
+        if: ${{ matrix.python == '3.14' }}
+        run: |
+          python -m pip install "mypy>=1.15,<2"
+          python scripts/ci/verify-sdk-types.py
+
+      - name: Parse Windows CI scripts
+        id: script_parser
+        if: ${{ matrix.python == '3.14' }}
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem scripts/ci/windows, examples -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object {
+                Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber): $($_.Message)"
+              }
+            }
+          }
+          if ($failed) { throw "PowerShell parser rejected one or more Windows CI scripts" }
+
+      - name: Verify installed commands and schemas
+        id: portable_resources
+        shell: powershell
+        run: |
+          swcli version --json
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI entry point failed" }
+          python scripts/ci/verify-installed.py
+
+      - name: Summarize portable checks
+        if: always()
+        continue-on-error: true
+        shell: powershell
+        run: |
+          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
+          python scripts/ci/summarize-tests.py `
+            --evidence-root "$env:RUNNER_TEMP\swcli-portable-no-cad-evidence" `
+            --output-dir "$env:RUNNER_TEMP\swcli-portable-summary" `
+            --host windows --scope "portable-checks-python-${{ matrix.python }}" `
+            --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+            --stage "install=${{ steps.portable_install.outcome }}" `
+            --stage "unit-tests=${{ steps.unit_tests.outcome }}" `
+            --stage "sdk-types=${{ steps.sdk_types.outcome }}" `
+            --stage "script-parser=${{ steps.script_parser.outcome }}" `
+            --stage "installed-resources=${{ steps.portable_resources.outcome }}"
+
+      - name: Upload portable summary
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-portable-summary-${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-portable-summary/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  package:
+    name: Build wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Build and inspect distributions
+        id: build_distributions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
+          python scripts/ci/verify-sdist.py dist/*.tar.gz
+
+      - name: Verify installed wheel and product skill
+        id: verify_distribution
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m pip install dist/*.whl
+          python -I scripts/ci/verify-installed.py
+
+      - name: Upload distributions
+        id: upload_distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize package checks
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          client_version="$(python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)")"
+          python scripts/ci/summarize-tests.py \
+            --evidence-root "$RUNNER_TEMP/swcli-package-no-cad-evidence" \
+            --output-dir "$RUNNER_TEMP/swcli-package-summary" \
+            --host linux-wine --scope portable-package \
+            --source-commit "$GITHUB_SHA" --client-version "$client_version" \
+            --stage "build=${{ steps.build_distributions.outcome }}" \
+            --stage "installed-resources=${{ steps.verify_distribution.outcome }}" \
+            --stage "distribution-upload=${{ steps.upload_distributions.outcome }}"
+
+      - name: Upload package summary separately from original distributions
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-package-summary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-package-summary/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  solidworks-e2e:
+    name: ${{ inputs.native_topology_targeted && 'Targeted topology reference verification' || 'Complete SOLIDWORKS functional verification' }}
+    needs: [test, package, tag-policy]
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && (((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references')) || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    runs-on: windows-2025
+    timeout-minutes: 120
+    concurrency:
+      group: ${{ github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      cancel-in-progress: false
+    env:
+      SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
+      SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Download built SWCLI distributions
+        id: native_distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-dist
+          path: ${{ runner.temp }}/swcli-dist
+          digest-mismatch: error
+
+      - name: Reject conflicting native modes before private inputs
+        if: ${{ inputs.native_full && inputs.native_topology_targeted }}
+        shell: powershell
+        run: throw "Choose native_full or native_topology_targeted, never both"
+
+      - name: Initialize private paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-hosted-media" >> $env:GITHUB_ENV
+          "PRIVATE_ROOT=$env:RUNNER_TEMP\swcli-private-runtime" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
+          "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+
+      - name: Measure disposable runner disk
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      # Installation snapshots are disabled until fresh-runner native core
+      # registration and equation behavior are proven equivalent to installation.
+      - name: Free disposable runner disk for installation
+        shell: powershell
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"${{ inputs.vfs_cache_gib || '8' }}" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'auto' }}" -MinFreeGiB $targetGiB
+
+      - name: Measure disk after runner cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-media-dependencies.ps1
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
+
+      - name: Prepare protected Google Drive configuration
+        id: private_config
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, [Convert]::FromBase64String($env:RCLONE_CONFIG_B64))
+          if (-not (rclone --config $env:RCLONE_CONFIG_FILE listremotes | Select-String -SimpleMatch "gdrive:" -Quiet)) {
+            throw "gdrive: remote is unavailable"
+          }
+
+      - name: Stream Google Drive through WinFsp
+        id: drive_mount
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
+        shell: powershell
+        run: |
+          scripts/ci/windows/probe-imdisk.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
+
+      - name: Fetch private smoke-test runtime
+        id: private_fetch
+        shell: powershell
+        run: |
+          $assets = "$env:PRIVATE_ROOT\assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          rclone --config $env:RCLONE_CONFIG_FILE copy "gdrive:$env:SW_ASSETS_PATH" $assets `
+            --include "/SolidWorks_Flexnet_Server/**" `
+            --include "/SOLIDWORKS Corp/SOLIDWORKS/**" `
+            --include "/sw2025_network_serials_licensing.reg" `
+            --exclude "*" `
+            --transfers 4 `
+            --checkers 8 `
+            --log-level NOTICE
+          foreach ($required in @(
+            "$assets\sw2025_network_serials_licensing.reg",
+            "$assets\SolidWorks_Flexnet_Server",
+            "$assets\SOLIDWORKS Corp\SOLIDWORKS"
+          )) {
+            if (-not (Test-Path -LiteralPath $required)) { throw "Missing private test input: $required" }
+          }
+
+      - name: Install native SOLIDWORKS
+        id: native_install
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-solidworks.ps1 `
+            -MediaRoot $env:SW_MEDIA_ROOT `
+            -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
+
+      - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
+        shell: powershell
+        run: |
+          scripts/ci/windows/prepare-test-runtime.ps1 `
+            -AssetsRoot "$env:PRIVATE_ROOT\assets" `
+            -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Install built SWCLI wheel
+        id: client_install
+        shell: powershell
+        run: |
+          $wheels = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\swcli-dist" -Filter *.whl -File)
+          if ($wheels.Count -ne 1) { throw "Expected exactly one SWCLI wheel from the package job" }
+          python --version
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          python -m pip install $wheels[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
+
+      - name: Prepare property fixtures for public CLI verification
+        if: ${{ !inputs.native_topology_targeted }}
+        id: property_fixtures
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-properties-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\properties-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
+
+      - name: Prepare annotation fixtures for public CLI verification
+        if: ${{ !inputs.native_topology_targeted }}
+        id: annotation_fixtures
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Annotation drawing template discovery failed" }
+          python -I scripts/ci/prepare-annotation-fixtures.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\annotation-fixtures" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
+
+      - name: Run real SOLIDWORKS modeling and export smoke test
+        if: ${{ !inputs.native_topology_targeted }}
+        id: native_tests
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
+
+      - name: Run targeted topology reference calibration and public proof
+        id: topology_targeted
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references' }}
+        timeout-minutes: 65
+        shell: powershell
+        run: |
+          python -I scripts/ci/run-topology-targeted.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\topology-targeted" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Targeted topology proof failed; retain original report, traces and native files" }
+
+      - name: Measure streamed data and remaining disk
+        if: always()
+        shell: powershell
+        run: |
+          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-smoke.json"
+          $cacheBytes = (Get-ChildItem $env:RCLONE_CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue |
+            Measure-Object Length -Sum).Sum
+          if ($null -eq $cacheBytes) { $cacheBytes = 0 }
+          "Rclone VFS cache: {0:N2} GiB" -f ($cacheBytes / 1GB) |
+            Tee-Object -FilePath "$env:PROBE_ROOT\cache-size.txt"
+
+      - name: Upload private installer logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-install-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}\swcli-private-runtime\install-logs
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove private test inputs and stop services
+        id: native_cleanup
+        if: always()
+        shell: powershell
+        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+
+      - name: Summarize public test evidence
+        if: always()
+        continue-on-error: true
+        shell: powershell
+        run: |
+          $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
+          python scripts/ci/summarize-tests.py `
+            --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
+            --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
+            --host windows --scope "${{ inputs.native_topology_targeted && 'windows-targeted-topology-references' || 'windows-installed-full' }}" `
+            --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+            --stage "distributions=${{ steps.native_distribution.outcome }}" `
+            --stage "media-tools=${{ steps.media_tools.outcome }}" `
+            --stage "private-config=${{ steps.private_config.outcome }}" `
+            --stage "drive-mount=${{ steps.drive_mount.outcome }}" `
+            --stage "iso-mount=${{ steps.iso_mount.outcome }}" `
+            --stage "private-fetch=${{ steps.private_fetch.outcome }}" `
+            --stage "solidworks-install=${{ steps.native_install.outcome }}" `
+            --stage "runtime-setup=${{ steps.runtime_setup.outcome }}" `
+            --stage "client-install=${{ steps.client_install.outcome }}" `
+            --stage "property-fixtures=${{ steps.property_fixtures.outcome }}" `
+            --stage "annotation-fixtures=${{ steps.annotation_fixtures.outcome }}" `
+            --stage "functional-tests=${{ steps.native_tests.outcome }}" `
+            --stage "topology-targeted=${{ steps.topology_targeted.outcome }}" `
+            --stage "cleanup=${{ steps.native_cleanup.outcome }}"
+
+      - name: Upload SWCLI-generated smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-windows-hosted-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\swcli-native-smoke
+            ${{ runner.temp }}\swcli-test-summary\summary.json
+            ${{ runner.temp }}\swcli-test-summary\summary.md
+            ${{ runner.temp }}\swcli-hosted-media\*.json
+            ${{ runner.temp }}\swcli-hosted-media\cache-size.txt
+            ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  release:
+    name: Publish original verified version-tag artifacts
+    needs: [tag-policy, test, package, solidworks-e2e]
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && needs.solidworks-e2e.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: swcli-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Download original distributions from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-dist
+          path: ${{ runner.temp }}/release-dist
+          digest-mismatch: error
+      - name: Download original native receipts from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: swcli-windows-hosted-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-native
+          digest-mismatch: error
+      - name: Verify source, original artifacts and full native proof; publish without replacing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          python scripts/ci/tag-release.py release \
+            --dist "${{ runner.temp }}/release-dist" \
+            --evidence "${{ runner.temp }}/release-native/swcli-native-smoke" \
+            --output "${{ runner.temp }}/release-assets" \
+            | tee "${{ runner.temp }}/release-public-verification.json"
+      - name: Retain publication and anonymous-download verification receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/release-assets
+            ${{ runner.temp }}/release-public-verification.json
+          if-no-files-found: warn
+          retention-days: 90
