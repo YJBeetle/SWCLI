@@ -42,7 +42,10 @@
 - Windows PowerShell syntax validation: pending ordinary push CI.
 - Native calibration: not dispatched yet. Parameters will be `native_full=false`, `table_defaults_calibration=true`, `table_defaults_head=<exact pushed implementation head>`.
 - Native limits: 600 seconds per bounded call, 1800 seconds per group. One owned host; part/assembly/drawing; first failure stops. Original report/native trace uploaded separately, `full_acceptance_eligible=false`.
-- Implementation commit/push/run links: pending final verification.
+- Implementation commit pushed: `df3fa41bac6073e308c93323c210a571228ce2a6`.
+- Ordinary push CI: https://github.com/YJBeetle/SWCLI/actions/runs/42261249216 (head `df3fa41`, pending).
+- First dispatch command was **not executed**: automatic approval review rejected private-runtime/artifact disclosure as insufficiently established. Upload scope is now narrowed to `swcli-native-smoke/table-defaults/` only: generated fixture documents, report and traces; no installer/runtime/config/credential paths. Review and targeted revalidation are in progress; no native call has run.
+- Remote ownership verified: public `YJBeetle/SWCLI`, authenticated account `YJBeetle`, permission ADMIN. Initial push review rejection was resolved by this read-only ownership check; the later push succeeded.
 
 ## Remaining integration/acceptance boundaries
 

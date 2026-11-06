@@ -644,7 +644,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: table-defaults-internal-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/swcli-native-smoke/
+          path: ${{ runner.temp }}/swcli-native-smoke/table-defaults/
           if-no-files-found: warn
           retention-days: 14
 

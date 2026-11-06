@@ -30,7 +30,10 @@ class TableCalibrationTests(unittest.TestCase):
         self.assertNotIn('verify-properties-calibration.py', job)
         self.assertIn('calibrate-table-defaults.ps1', job)
         self.assertIn('if: always()', job)
-        self.assertIn('swcli-native-smoke/', job)
+        self.assertIn('path: ${{ runner.temp }}/swcli-native-smoke/table-defaults/', job)
+        upload = job.split('      - name: Upload original calibration evidence', 1)[1].split('  release:', 1)[0]
+        for private in ('PRIVATE_ROOT', 'PROBE_ROOT', 'rclone', 'install-logs', 'vba-runtime'):
+            self.assertNotIn(private, upload)
         self.assertIn('ref: ${{ inputs.table_defaults_head }}', job)
         for job_name in ('test', 'package'):
             self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.table_defaults_calibration) }}",
