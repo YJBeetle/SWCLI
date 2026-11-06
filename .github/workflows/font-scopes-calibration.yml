@@ -7,6 +7,10 @@ on:
         type: boolean
         required: false
         default: false
+      font_scopes_profile:
+        type: string
+        required: false
+        default: internal
     secrets:
       RCLONE_CONFIG_B64:
         required: true
@@ -17,6 +21,12 @@ on:
         type: boolean
         required: false
         default: false
+      font_scopes_profile:
+        description: Font-only validation profile
+        type: choice
+        required: false
+        default: internal
+        options: [internal, public-notes]
 
 permissions:
   contents: read
@@ -46,13 +56,13 @@ jobs:
           }
 
   native:
-    name: Internal fonts native readback and persistence
+    name: ${{ inputs.font_scopes_profile == 'public-notes' && 'Public Notes CLI persistence and inheritance' || 'Internal fonts native readback and persistence' }}
     needs: portable
-    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-font-scopes' && inputs.calibrate_font_scopes && needs.portable.result == 'success' }}
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-font-scopes' && inputs.calibrate_font_scopes && contains(fromJSON('["internal","public-notes"]'), inputs.font_scopes_profile) && needs.portable.result == 'success' }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: swcli-font-scopes-${{ github.ref }}
+      group: swcli-font-scopes-${{ inputs.font_scopes_profile }}-${{ github.ref }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
@@ -181,9 +191,45 @@ jobs:
 
       - name: Calibrate font scopes once in one owned hidden host
         id: font_calibration
+        if: ${{ inputs.font_scopes_profile == 'internal' }}
         timeout-minutes: 31
         shell: powershell
         run: scripts/ci/windows/calibrate-font-scopes.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\font-scopes"
+
+      - name: Prepare owned Notes inheritance fixtures
+        if: ${{ inputs.font_scopes_profile == 'public-notes' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          $template = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Notes fixture template discovery failed" }
+          python -I scripts/ci/run-font-scopes-calibration.py --profile inheritance-seed `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\font-scopes-public\seed" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" --drawing-template $template
+          if ($LASTEXITCODE -ne 0) { throw "Notes inheritance fixture preparation failed; preserve original evidence" }
+
+      - name: Verify installed Notes public CLI and daemon
+        if: ${{ inputs.font_scopes_profile == 'public-notes' }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/verify-font-scopes-public.ps1 `
+            -OutputDirectory "$env:SWCLI_SMOKE_ROOT\font-scopes-public\public" `
+            -FixtureDirectory "$env:SWCLI_SMOKE_ROOT\font-scopes-public\seed\native" -Scope notes
+
+      - name: Observe persisted inherited and local Notes read-only
+        if: ${{ inputs.font_scopes_profile == 'public-notes' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          $template = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Notes observer template discovery failed" }
+          python -I scripts/ci/run-font-scopes-calibration.py --profile inheritance-observe `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\font-scopes-public\observer" `
+            --fixture-dir "$env:SWCLI_SMOKE_ROOT\font-scopes-public\seed\native" `
+            --gate-dir "$env:SWCLI_SMOKE_ROOT\font-scopes-public\public\gate" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" --drawing-template $template
+          if ($LASTEXITCODE -ne 0) { throw "Notes inheritance observation failed; preserve first failure" }
 
       - name: Remove private test inputs and stop services
         id: native_cleanup
@@ -195,7 +241,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: font-scopes-internal-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/swcli-native-smoke/font-scopes/
+          name: font-scopes-${{ inputs.font_scopes_profile }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ inputs.font_scopes_profile == 'public-notes' && format('{0}/swcli-native-smoke/font-scopes-public/', runner.temp) || format('{0}/swcli-native-smoke/font-scopes/', runner.temp) }}
           if-no-files-found: warn
           retention-days: 30

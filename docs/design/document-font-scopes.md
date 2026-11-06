@@ -83,3 +83,21 @@ PR 不触发。专属 concurrency 使用 `swcli-font-scopes-${{ github.ref }}`�
 只终止它自己创建的 Python worker；不搜索/终止本地 VM、其他 SOLIDWORKS 或用户文档。
 原始 report、trace、stdout、stderr、watchdog 保留 30 天并下载至本 worktree 持久目录。
 即使内部校准通过，也不是公共 CLI 端到端验收，不自动开放公开写入。
+
+
+## Notes 公开验收准备
+
+新增可选的 `font_scopes_profile=public-notes`，默认 `internal`。
+该 profile 的产品写入仍受 fail-closed 边界约束；当前尚未派发或宣称通过。
+为严格核对继承，只准备 Notes：自建一条 UseDoc、一条局部 20pt Note；
+源夹具保存只读重开后固定局部完整 17 字段/原生字体及 flag。
+公开 CLI 对 Notes 默认字体做单字段变化、完整 CAS、同值与冲突/readonly 拒绝、
+两种字号保存重开；之后独立 owned host 只读观察输出，继承条必须跟随文档样式/活动字号，
+局部条全快照和 UseDoc=false 必须不变。每个阶段独立固定 600/1800 秒，不在失败组内换宿主。
+
+官方 [InsertNote](https://help.solidworks.com/2016/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.imodeldoc2~insertnote.html)、
+[GetFirstAnnotation2](https://help.solidworks.com/2015/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~GetFirstAnnotation2.html)
+明确区分模型与工程图的枚举：工程图通过 IView.GetFirstAnnotation3，不能套用模型入口。
+[GetUseDocTextFormat](https://help.solidworks.com/2019/English/api/sldworksapi/SolidWorks.interop.sldworks~SolidWorks.interop.sldworks.IAnnotation~GetUseDocTextFormat.html)
+用于实际观察继承标志，不通过字体当前恰好相同来猜测。
+尺寸子类型联动、表格模板/单元格继承、富文本和视觉渲染不由这个 Notes profile 推广验收。

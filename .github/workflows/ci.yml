@@ -44,6 +44,12 @@ on:
         required: false
         default: false
         type: boolean
+      font_scopes_profile:
+        description: Font-only profile (public-notes requires prior reviewed native evidence)
+        type: choice
+        required: false
+        default: internal
+        options: [internal, public-notes]
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -492,6 +498,7 @@ jobs:
     uses: ./.github/workflows/font-scopes-calibration.yml
     with:
       calibrate_font_scopes: true
+      font_scopes_profile: ${{ inputs.font_scopes_profile || 'internal' }}
     secrets:
       RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
 

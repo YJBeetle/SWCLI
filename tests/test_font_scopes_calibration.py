@@ -21,6 +21,24 @@ class FontScopeCalibrationTests(unittest.TestCase):
         self.assertEqual(runner.timeout_reason(600, 600), "native-call-timeout")
         self.assertEqual(runner.timeout_reason(1800, 10), "group-timeout")
 
+    def test_worker_profiles_are_closed_and_observer_paths_are_required(self):
+        from types import SimpleNamespace
+        args = SimpleNamespace(profile="internal", swconst=Path("swconst.tlb"), drawing_template=Path("drawing.drwdot"),
+                               fixture_dir=None, gate_dir=None)
+        command = runner.worker_command(args, Path("output"))
+        self.assertTrue(command[2].endswith("verify-font-scopes-calibration.py"))
+        self.assertNotIn("--phase", command)
+        args.profile = "inheritance-seed"
+        self.assertEqual(runner.worker_command(args, Path("output"))[-2:], ["--phase", "seed"])
+        args.profile = "inheritance-observe"
+        with self.assertRaises(ValueError):
+            runner.worker_command(args, Path("output"))
+        args.fixture_dir, args.gate_dir = Path("fixture"), Path("gate")
+        self.assertIn("--gate-dir", runner.worker_command(args, Path("output")))
+        args.profile = "arbitrary-script.py"
+        with self.assertRaises(ValueError):
+            runner.worker_command(args, Path("output"))
+
     def test_native_timeout_kills_only_the_exact_child_once_and_preserves_trace(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
@@ -88,7 +106,7 @@ class FontScopeCalibrationTests(unittest.TestCase):
         self.assertNotIn("smoke-solidworks.ps1", text)
         self.assertIn("if: always()", text)
         self.assertIn("retention-days: 30", text)
-        self.assertIn("group: swcli-font-scopes-${{ github.ref }}", text)
+        self.assertIn("group: swcli-font-scopes-${{ inputs.font_scopes_profile }}-${{ github.ref }}", text)
         self.assertIn("cancel-in-progress: false", text)
         self.assertNotIn("group: swcli-hosted-windows-solidworks", text)
 

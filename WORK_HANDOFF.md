@@ -77,7 +77,7 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 几何修复提交 `64e26324b2afd801dd6520c600fcc7082397d839` 已推送；run `42266550762` 的 Windows 字体便携检查（含两个 PowerShell wrapper 解析）通过。
 - 补核官方 `swRebuildOnActivation_e` 时发现校准器恢复前景用了 0（swUserDecision，可能弹窗）；正确不重建选项为 1。
 - 已只取消本分支这个 run：取消前保存了步骤元数据，native 安装和字体步骤均未开始，当前处于 Free disposable runner disk。没有 API 重试、组内宿主重启或取消其他分支 run。
-- 后续将以修正为官方 no-rebuild=1 的新 head 做已授权的修复校准；此次预原生取消不能算作 CAD 测试成功/失败。
+- 已以官方 no-rebuild=1 的修正提交 `3f5434c593da2ae2c00c4a3b2ecd7e7a313af626` 派发替代 run [42266956658](https://github.com/YJBeetle/SWCLI/actions/runs/42266956658)，仍为 calibrate_font_scopes=true/native_full=false，40 项便携专项通过。此次预原生取消不能算作 CAD 测试成功/失败。
 - 官方依据：[swRebuildOnActivation_e](https://help.solidworks.com/2024/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swRebuildOnActivation_e.html)。
 
 ## 公开门禁准备（独立后续提交，未开放写入）
@@ -87,6 +87,10 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 公开门禁只调用安装后的 CLI，逐请求检查完整字体 getter/property/setter 顺序、600 秒预算、全量 CAS、lease/stamp/readonly 拒绝、同值无 mutation、背景身份、两种字号模式保存重开、源文件哈希和几何。
 - 公开门禁及 SDK/MCP 契约便携测试 11 项通过（提交 `eeb5995af3f730f88c338054aedf9d5410421307`）；这些不是公开原生验收。
 - 必须先独立核对当前内部运行 artifact/head/digest/trace/save-reopen，才考虑精确范围开放，再对新 head 跑必要公开门禁。当前没有开放公开写入。
+- 后续已准备明确 `public-notes` profile（默认仍 `internal`）：自建 UseDoc/20pt-local 两条 Notes 的 PRT/ASM/DRW 夹具 → 安装后 CLI/daemon → 新 owned host 只读观察已保存输出。各组均 600/1800，源/输出哈希、局部完整字体及继承标志必须保持。
+- `scripts/ci/verify-font-scopes-inheritance.py` 及五项便携测试已准备；模型用 GetFirstAnnotation2，工程图用 IView.GetFirstAnnotation3，符合官方 API 的不同枚举路径，不凭相同值推断继承。
+- 公开 profile 准备不是产品范围开放；只有后续独立核过内部原证据，才考虑 Notes 的精确范围；尺寸总字体子类型、表格模板/单元格继承仍保留未验收边界。
+- 当前字体专项合计 46 项通过；未重复无关完整套件。
 
 ## 未完成边界与依赖
 
