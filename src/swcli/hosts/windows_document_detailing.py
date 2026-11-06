@@ -138,9 +138,10 @@ def set_document_detailing_option_windows(
         if not _native_windows() or _com_value(app, "RevisionNumber") not in CALIBRATED_REVISIONS:
             raise ValueError("drawing detailing writes lack native calibration for this SOLIDWORKS revision")
         desired = {**before, field: value}
+        extension = _com_value(document, "Extension")
         result["mutation"] = {"attempted": True, "may_have_changed": True}
         returned = native_call("document-detailing", "IModelDocExtension.SetUserPreferenceToggle",
-                               lambda: _com_value(document, "Extension").SetUserPreferenceToggle(
+                               lambda: extension.SetUserPreferenceToggle(
                                    constants[DETAILING_FIELDS[field]],
                                    constants["swDetailingNoOptionSpecified"], value))
         # The official return description is ambiguous for false. Retain it and

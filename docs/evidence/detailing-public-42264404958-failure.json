@@ -1,0 +1,35 @@
+{
+  "run": "https://github.com/YJBeetle/SWCLI/actions/runs/42264404958",
+  "head": "732f7111bd3cf14c2da5c682ac23f029a956a7d1",
+  "artifact_id": 13527078689,
+  "artifact_sha256": "a281d33f8559a8717ae28fa763bf5661edc184d7009081d683e66abc60a34869",
+  "success": false,
+  "first_failure": "native trace ordering is invalid",
+  "first_failure_request": "34ce92cb-2aa1-467b-bad6-285185176a09",
+  "native_setter_attempts": 1,
+  "native_setter_return": true,
+  "nested_boundaries": [
+    [
+      "IModelDocExtension.SetUserPreferenceToggle",
+      "begin"
+    ],
+    [
+      "Extension",
+      "begin"
+    ],
+    [
+      "Extension",
+      "end"
+    ],
+    [
+      "IModelDocExtension.SetUserPreferenceToggle",
+      "end"
+    ],
+    [
+      "GetType",
+      "begin"
+    ]
+  ],
+  "secondary_failure": "public-detailing.json was not created before final checkpoint; journal and native trace retained",
+  "trace_sha256": "4440c28e4144e53044204ee32efdddaf20e0b59955b6aa923cc0a52a4bba4dce"
+}

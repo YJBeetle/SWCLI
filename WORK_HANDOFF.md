@@ -21,15 +21,19 @@
 ## 公开 CLI/daemon 验收
 
 - 已提交并推送公开候选 `732f7111bd3cf14c2da5c682ac23f029a956a7d1`；唯一公开 run：[42264404958](https://github.com/YJBeetle/SWCLI/actions/runs/42264404958)，已核对 head 一致。
-- 参数 `detailing_public_gate=true/detailing_calibration=false/native_full=false`，仅本分支 `ci.yml` 手动触发；当前等待结果，**尚未 merge-ready**。
-- 调度与 run 原数据：`artifacts/detailing/public-dispatch.json`、`run-42264404958.json`；没有重复 dispatch。
+- 参数 `detailing_public_gate=true/detailing_calibration=false/native_full=false`。该首轮公开 run **失败，尚未 merge-ready**。
+- 已下载并核对原 artifact `13527078689`，SHA256 `a281d33f8559a8717ae28fa763bf5661edc184d7009081d683e66abc60a34869` 与 GitHub digest 一致；原始 ZIP/解包位于 `artifacts/detailing/public-42264404958/`。
+- 第一真实失败可由原 trace 重现为 `native trace ordering is invalid`：请求 `34ce92cb-2aa1-467b-bad6-285185176a09` 的 setter trace 内嵌了 `Extension` getter。仅尝试 1 次 setter，成功返回 True；没有第二次 setter、重试或回滚。公开保存重开未执行，因此不能据此宣称公开验收通过。
+- 次要缺陷：最终报告未预建，导致 checkpoint 丢失汇总；原 journal/trace 已完整保留。核验摘要已版本化在 `docs/evidence/detailing-public-42264404958-failure.json`。
+- 针对性修复：在 setter trace 外读取 Extension，保持原严格顺序断言；在启动宿主前建立报告文件。新增真实 adapter instrumentation 与启动失败报告测试，1839 项完整回归（32 跳过）、相关 20 项通过。仅在此相关修复提交后启动一次新公开验证。
+- 首轮调度与 run 原数据：`artifacts/detailing/public-dispatch.json`、`run-42264404958.json`；没有重复 dispatch。
 - `detailing_public_gate=true` 与 `detailing_calibration` 互斥，默认 false，仅本分支手动运行；跳过通用 test/package/full-native/release，不进入其共享 concurrency。
 - `verify-detailing-public.py` 只走安装后的公开 CLI/daemon；SDK typed read/no-op 与真实 daemon 的 MCP bridge capabilities/no-op 契约一并检查。MCP stdio 仅由便携协议测试覆盖，不冒称真实 stdio CAD 验收。
 - 每个 native/request 600 秒，整组 1800 秒，首个真实失败停止并保留原结果、trace、保存文件、hash。
 
 ## 便携验证
 
-- 当前公开候选已通过：1837 项完整回归（32 环境跳过），相关 18 项，SDK generator/strict typing/8 个消费者拒绝检查。
+- 当前修复候选已通过：1839 项完整回归（32 环境跳过），相关 20 项，SDK generator/strict typing/8 个消费者拒绝检查。
 - 公开 gate 的四次持久化控制流、首失败停止、缺 trace/丢持久值拒绝测试通过；最终完整回归和 SDK 类型检查通过。
 - 原持久日志在 `artifacts/detailing/portable/`，最终候选使用 `unittest-public.log`、`associated-public.log`、`sdk-types-public.log`；该生成证据目录已加入本分支 `.gitignore`。
 
@@ -40,3 +44,7 @@
 - 新增独立 catalog/adapter、三组测试、设计与证据说明、内部/公开 gate 和 watchdog 脚本；沿用 annotations 的普通图纸 guard 和 custom-properties 的状态/可写保护。
 - 不依赖其他未验收分支；依赖官方 swconst、明确的 GB DRWDOT 与已有私有 Windows 安装设施。
 - 没有合并 main、发布、操作本地 Windows VM，也没有修改 DockerSW/MacSW。精确可合 commit 将在公开原产物核验后列出。
+
+## Windows 便携 CI
+
+首轮公开候选 `732f711` 的自动 CI [42264334066](https://github.com/YJBeetle/SWCLI/actions/runs/42264334066) 成功：Windows Python 3.9 / 3.14、SDK 类型、MCP 便携契约与 wheel 构建检查通过。它仅是便携/包证据，不替代公开原生 gate。

@@ -1,4 +1,5 @@
 """Public gate control flow is portable-tested; this supplies no native acceptance."""
+from contextlib import redirect_stderr
 from copy import deepcopy
 import importlib.util
 import io
@@ -119,6 +120,34 @@ class PublicDetailingGateTests(unittest.TestCase):
             finally:
                 self.smoke.cleanup()
         return contracts
+
+    def test_real_adapter_instrumentation_has_flat_complete_setter_boundaries(self):
+        from swcli.hosts.native_trace import trace_native_request
+        from tests.test_document_detailing import DetailingTests
+        adapter_case = DetailingTests()
+        adapter_case.setUp()
+        self.addCleanup(adapter_case.doCleanups)
+        stderr = io.StringIO()
+        request_id = "instrumented-adapter-regression"
+        with mock.patch.dict("os.environ", {"SWCLI_TRACE_NATIVE_CALLS": "1"}), redirect_stderr(stderr):
+            with trace_native_request(request_id, "document.detailing-option-set"):
+                result = adapter_case.edit()
+        self.assertTrue(result["ok"], result)
+        self.trace.write_text(stderr.getvalue())
+        proof = gate.DetailingTrace(self.trace).verify(request_id, "document.detailing-option-set", getters=6, setters=1)
+        self.assertEqual(proof["setters"], 1)
+
+    def test_startup_failure_keeps_the_original_durable_report(self):
+        output = self.directory / "startup-failure"
+        with mock.patch("sys.argv", ["verify-detailing-public.py", "--output-dir", str(output),
+                                     "--drawing-template", "C:/official/gb.drwdot"]), \
+                mock.patch.object(gate.subprocess, "Popen", side_effect=RuntimeError("first startup failure")):
+            result = gate.main()
+        self.assertEqual(result, 1)
+        report = json.loads((output / "public-detailing.json").read_text())
+        self.assertFalse(report["success"])
+        self.assertEqual(report["error"]["message"], "first startup failure")
+        self.assertEqual(report["cleanup_errors"], [])
 
     def test_public_gate_tests_both_values_with_four_independent_save_reopens(self):
         contracts = self.run_gate()

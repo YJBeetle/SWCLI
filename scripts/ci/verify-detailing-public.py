@@ -240,6 +240,10 @@ def main():
     gate = support.AnnotationSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
     gate.record_path = directory / "public-detailing.json"
     gate.record["success"] = False
+    # ModelingSmoke checkpoints atomically replace an existing file and retain
+    # its mode. Establish that durable failure record before starting a host.
+    with gate.record_path.open("x", encoding="utf-8") as stream:
+        json.dump(gate.record, stream)
     daemon = None
     startup = []
     with (directory / "daemon.stdout.log").open("wb") as stdout, trace_path.open("wb") as stderr:
