@@ -441,7 +441,19 @@ def document_line_font_set(context: OperationContext, values: Dict[str, Any]) ->
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = set_document_line_font_windows(app=context.app, document=context.entry.document, **values)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        # The adapter's receipt is the only source of mutation facts. A failed
+        # descriptor cannot erase it or replace an earlier native error.
+        result["ok"] = False
+        detail = {"type": type(exc).__name__, "message": str(exc)}
+        result["finalization_error"] = detail
+        if "error" not in result:
+            result["error"] = {"type": type(exc).__name__,
+                               "message": "line font document finalization failed: " + str(exc)}
+        result["session_id"] = context.session_id
+        return result
 
 
 @_register_handler

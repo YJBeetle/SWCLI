@@ -94,3 +94,16 @@
 - 修复：沿真实 cli.main -> daemon.main.run -> daemon.health 路径联测 health（不使用错误的 DaemonManager/status 假定）；启动任何进程前以 x 模式创建初始 summary，并测试原子 checkpoint 可保存首个失败；不放宽状态/几何/trace 断言。
 
 - 已保存原 job 日志 63876 字节，SHA256 `af8a37335d586d9126774387337bd3d049f4ce6e922d4beb69ad11c31aca660e`；明确 KeyError: health 是首错，27 项相关（含路由）测试通过，SDK 生成一致性及既有门禁/摘要策略测试通过。
+
+## 统筹 peer 两项产品阻断修复（待最终 head 原生验收）
+
+- 只读核查 peer 原报告和 repro，并在本分支当前源码运行原 `repro.py docprops-line-style`：handler describe 抛错现在返回 mutation 双true；同一 ActiveDoc 对象的 stamp/dirty/title/path 四项漂移均返回失败，保留 mutation，不恢复/回滚。
+- adapter 增加目标 title/path/access/仍打开保护；前台为不同peer时快照并复核 state(kind/config/stamp/dirty)、identity(title/path)、access 和 edit context；同目标前台仍允许合法目标 stamp/dirty 变化。未知/不可读状态 fail closed。
+- `document_line_font_set` 收尾异常不再抛掉 receipt：ok=false，保留原 mutation 与首 error，新增可选 `finalization_error: {type,message}`，session_id已知；不伪造无法取得的 post descriptor。已同步 result schema / SDK models。
+- 新增 `tests/test_line_font_postconditions.py` 通过生产 execute_operation + 实际 _worker_main + native_api_sequence + 结果校验/错误封套联测 native成功/首失败后describe故障；SDK/MCP bridge负例也保留 partial；全部无真实COM。
+- 34项相关测试通过（含route），SDK strict typing/generator/consumer拒绝通过；原 peer复现输出与source hash保存在本地 artifacts/line-font/internal-peer-fix/，不是原生验收。
+- 公开 gate 加逐次前台 descriptor完整比较，且记录状态观察 GetActiveConfiguration/Name。精确转换域不变，未放宽断言。
+- c377d4f 的 run 42278005133 在 portable 阶段因这些已mock实证的产品缺陷请求取消；最终产品修复会形成新head，完成测试后才发必要公开run。不将旧head结果或mock当作最终native验收。
+
+- 产品修复后一次完整便携回归：1853 tests，32 skips，全部通过；日志 `artifacts/line-font/postcondition-full-portable.log`。不是因统筹消息重复未改产品测试，而是 handler/schema/adapter实际变化后的回归。
+- 精确修复入口：operations.py document_line_font_set（约440行）；windows_document_line_font.py _capture_guard（76）/_verify_guard（84）；result_schemas.py 的 line-font-set finalization_error（约563）；tests/test_line_font_postconditions.py 为完整 worker/transport 故障注入。源码SHA256绑定在本地 source-hashes.json，可由下一提交复核。

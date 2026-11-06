@@ -75,3 +75,21 @@ refusal. This is internal calibration, not public CLI end-to-end write acceptanc
 
 The Line Font page explicitly excludes `swLineDEFAULT` for edge styles. Layer,
 custom and negative weight sentinels are not in this write subset.
+
+## Partial receipts and same-object foreground protection
+
+The adapter snapshots target title/path/access and confirms the live document
+remains open. A distinct foreground peer must preserve kind, configuration,
+update stamp, dirty flag, title/path, access and the existing sketch/sheet editing context. An unchanged
+ActiveDoc pointer alone is insufficient. Unreadable state fails closed. Detected
+drift is not restored or rolled back; a previously attempted setter retains its
+partial mutation receipt. When the target itself is foreground, its legitimate
+stamp/dirty changes remain allowed while identity/access/context stay protected.
+
+If document descriptor finalization fails after adapter return, the handler
+returns `ok=false`, preserves the original `mutation` and original `error` exactly,
+and adds optional typed `finalization_error: {type, message}`. It does not fabricate
+a post-operation document descriptor. The real worker error envelope, SDK and MCP
+bridge retain that partial result. Portable fault-injection evidence covers both
+native success and first business failure followed by descriptor failure; those
+mocks do not constitute native acceptance.

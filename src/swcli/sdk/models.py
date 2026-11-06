@@ -769,6 +769,7 @@ class DocumentLineFontSetResult(_DocumentLineFontSetResultRequired, total=False)
     options: Dict[str, JSONValue]
     changed: bool
     mutation: DrawingStandardViewsResultMutation
+    finalization_error: DocumentCreateResultError
 
 
 DocumentAnnotationOptionsParameters = DocumentLineFontParameters

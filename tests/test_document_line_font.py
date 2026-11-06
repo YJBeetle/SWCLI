@@ -1,5 +1,6 @@
 """Portable protection and failure proofs, not native acceptance."""
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 import test_document_annotations as fixtures
 from swcli.hosts import windows_document_line_font as adapter
@@ -16,6 +17,10 @@ class LineFontTests(unittest.TestCase):
         self.fx = fixtures.DocumentAnnotationTests()
         self.fx.setUp()
         self.fx.drawing_context()
+        self.fx.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Foreground")
+        self.fx.foreground.IsOpenedReadOnly = lambda: False
+        self.fx.foreground.IsOpenedViewOnly = lambda: False
+        self.fx.foreground.SketchManager = SimpleNamespace(ActiveSketch=None)
         self.ids = dict(zip(LINE_FONT_FIELDS.values(), (101, 102, 103, 104)))
         self.ids["swDetailingNoOptionSpecified"] = 0
         self.fx.native = {101: 0, 102: 1, 103: 1, 104: 0}

@@ -560,7 +560,7 @@ _RESULT_FIELDS = {
     "document.line-font": ({"options": LINE_FONT_SNAPSHOT}, ("session_id", "document", "options")),
     "document.line-font-set": (
         {"field": {"enum": list(LINE_FONT_FIELDS)}, "before": LINE_FONT_SNAPSHOT,
-         "options": LINE_FONT_SNAPSHOT, "changed": BOOL, "mutation": METADATA_MUTATION},
+         "options": LINE_FONT_SNAPSHOT, "changed": BOOL, "mutation": METADATA_MUTATION, "finalization_error": ERROR},
         ("session_id", "document", "field", "before", "options", "changed", "mutation"),
     ),
     "document.annotation-options": (

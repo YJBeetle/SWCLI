@@ -27,7 +27,7 @@ OBSERVATION_CALLS = {
     "GetDocuments", "GetEditSheet", "GetFirstView", "GetName", "GetName2", "GetPathName",
     "GetReferencedModelName", "GetSaveFlag", "GetSketch", "GetTemplateSketch", "GetTitle",
     "GetType", "GetUpdateStamp", "IsOpenedReadOnly", "IsOpenedViewOnly", "SketchManager",
-    "RevisionNumber",
+    "RevisionNumber", "GetActiveConfiguration", "Name",
 }
 
 
@@ -110,12 +110,19 @@ def run(gate, trace, template):
     foreground = gate.create()
     gate.command("document", "lease", "acquire", "--ttl-seconds", 600, document=document)
     source = gate.record["source"] = helpers.save_copy(gate, document, "source.SLDDRW", "SLDDRW")
+    foreground_snapshot = gate.record["foreground_initial"] = gate.command("document", "inspect", document=foreground)["document"]
+
+    def verify_foreground():
+        actual = gate.command("document", "inspect", document=foreground)["document"]
+        require(actual == foreground_snapshot, "line font operation changed foreground state or identity")
+        gate.record.setdefault("foreground_observations", []).append(actual)
 
     def read(document):
         result = gate.command("document", "line-font", document=document)
         validate_operation_result("document.line-font", result)
         trace.cli("document.line-font", getters=4, setters=0)
         gate.background(result, document)
+        verify_foreground()
         return result
 
     current = gate.record["initial"] = read(document)
@@ -141,6 +148,7 @@ def run(gate, trace, template):
             validate_operation_result("document.line-font-set", result)
             require(result["before"] == snapshot and result["options"] == {**snapshot, field: value}, "write changed an unrequested field")
             gate.background(result, document)
+        verify_foreground()
         return result
 
     gate.record["lease_refusal"] = edit(first, targets[first], current["options"], error="DocumentLeaseConflict", session=gate.session + "-contender")
@@ -169,11 +177,13 @@ def run(gate, trace, template):
     sdk_read = client.document.line_font(document_id=document, expected_update_stamp=current["document"]["update_stamp"])
     require(sdk_read.result["options"] == targets and sdk_read.result["document"] == current["document"], "SDK read differs or changed state")
     trace.verify(sdk_read.raw, "document.line-font", getters=4, setters=0)
+    verify_foreground()
     sdk_same = client.document.line_font_set(field=first, value=targets[first], expected_options=targets,
         document_id=document, expected_update_stamp=current["document"]["update_stamp"], lease_id=gate.leases[document])
     require(sdk_same.result["ok"] and not sdk_same.result["changed"]
             and sdk_same.result["document"] == current["document"] and sdk_same.result["options"] == targets, "typed SDK noop failed or changed state")
     trace.verify(sdk_same.raw, "document.line-font-set", getters=4, setters=0)
+    verify_foreground()
     bridge = DaemonBridge(endpoint=gate.endpoint, session_id=gate.session, timeout_seconds=600)
     mcp = bridge.call("execute", dict(operation="document.line-font-set", parameters=dict(field=first,
         value=targets[first], expected_options=targets), document_id=document,
@@ -182,6 +192,7 @@ def run(gate, trace, template):
     validate_operation_result("document.line-font-set", mcp["result"])
     require(mcp["result"]["document"] == current["document"] and mcp["result"]["options"] == targets, "MCP noop changed state")
     trace.verify(mcp, "document.line-font-set", getters=4, setters=0)
+    verify_foreground()
     gate.record["sdk_mcp_contract"] = dict(sdk_read=dict(sdk_read.raw), sdk_noop=dict(sdk_same.raw), mcp_bridge_noop=mcp,
                                           mcp_scope="live bridge execute contract; not stdio transport")
     gate.close(document)
@@ -189,6 +200,7 @@ def run(gate, trace, template):
     opened, fresh, foreground = helpers.open_background(gate, saved["host_path"], 3, read_only=True)
     require(fresh != document, "reopen reused retired ID")
     document = fresh
+    foreground_snapshot = gate.record["foreground_reopened"] = gate.command("document", "inspect", document=foreground)["document"]
     current = gate.record["reopened"] = read(document)
     require(current["options"] == targets and not current["document"]["modified"], "changed defaults did not persist")
     gate.record["readonly_refusal"] = edit(first, 1-targets[first], current["options"], error="ValueError", readonly=True)
