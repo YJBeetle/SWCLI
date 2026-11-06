@@ -1,5 +1,6 @@
 """Cross-surface outgoing contracts and adversarial evidence checks; no CAD."""
 import importlib.util
+from copy import deepcopy
 import json
 from pathlib import Path
 import tempfile
@@ -63,10 +64,18 @@ class AuditTests(unittest.TestCase):
                            host=dict(process_id=123, revision="33.0"), cases=[])
         for kind, suffix in (("part", "SLDPRT"), ("assembly", "SLDASM")):
             path = native / ("properties." + suffix)
-            path.write_bytes(kind.encode())
+            path.write_bytes(bytes.fromhex("d0cf11e0a1b11ae1") + bytes(504))
+            properties = [dict(name=n, type_code=code, raw_value=value, evaluated_value=value) for n,(code,value) in audit_module.FIXTURE.items()]
+            document = dict(document_id="d-ab12", active=False, current=False, modified=True)
+            reopened_document = dict(document_id="d-cd34", active=True, current=False, modified=False)
+            listing = dict(ok=True, scope="document", requested_name=None, properties=properties, document=document)
+            lookups = {r["name"]: dict(ok=True, requested_name=r["name"], properties=[r]) for r in properties}
             self.report["cases"].append(dict(kind=kind, success=True, file_sha256=audit_module.digest(path),
-                state_before={"stamp":0}, state_after={"stamp":0}, listing={"properties":[]}, reopened_properties={"properties":[]}))
-        self.calls = ["acquire-owned-host", "ExitApp", "WaitForOwnedProcess", "CloseProcessHandle", "CoUninitialize"]
+                state_before=[1 if kind=="part" else 2,0,True,"Default"], state_after=[1 if kind=="part" else 2,0,True,"Default"],
+                listing=listing, lookups=lookups, missing=dict(ok=True, requested_name="Absent property", properties=[]),
+                save=dict(ok=True), reopen=dict(ok=True, read_only=True, api_errors=0, api_warnings=0),
+                reopened_properties=dict(ok=True, properties=properties, document=reopened_document)))
+        self.calls = list(audit_module.PLAN)
         self.persist()
 
     def persist(self):
@@ -80,13 +89,38 @@ class AuditTests(unittest.TestCase):
 
     def test_complete_internal_evidence_never_becomes_public_acceptance(self):
         result = self.audit()
-        self.assertTrue(result["success"], result)
+        self.assertTrue(result["structure_complete"], result)
         self.assertFalse(result["full_acceptance_eligible"])
+        self.assertFalse(result["calibration_passed"])
+        self.assertFalse(result["source_provenance_verified"])
+        self.assertNotIn("success", result)
         self.assertEqual(len(result["originals"]), 5)
+
+    def test_empty_equals_empty_is_not_complete_evidence(self):
+        for case in self.report["cases"]:
+            case["listing"]["properties"] = []
+            case["reopened_properties"]["properties"] = []
+        self.persist()
+        self.assertFalse(self.audit()["structure_complete"])
+
+    def test_cleanup_without_save_and_reopen_is_not_complete_evidence(self):
+        self.calls = ["acquire-owned-host", "ExitApp", "WaitForOwnedProcess", "CloseProcessHandle", "CoUninitialize"]
+        self.persist()
+        self.assertFalse(self.audit()["structure_complete"])
+
+    def test_missing_query_shadow_or_fresh_readonly_identity_fails(self):
+        original = deepcopy(self.report)
+        changes = [lambda c: c["lookups"].pop("Quantity"),
+                   lambda c: c["listing"]["properties"][2].update(evaluated_value="configuration-only"),
+                   lambda c: c["reopen"].update(read_only=False),
+                   lambda c: c["reopened_properties"]["document"].update(document_id="d-ab12")]
+        for change in changes:
+            self.report = deepcopy(original); change(self.report["cases"][0]); self.persist()
+            self.assertFalse(self.audit()["structure_complete"])
 
     def test_tampered_saved_copy_fails(self):
         (self.root / "native/properties.SLDPRT").write_bytes(b"tampered")
-        self.assertFalse(self.audit()["success"])
+        self.assertFalse(self.audit()["structure_complete"])
 
     def test_unproven_host_exit_source_or_budget_never_passes(self):
         for target, key, value in [(self.driver,"source_head","b"*40), (self.driver,"platform","darwin"),
@@ -94,24 +128,24 @@ class AuditTests(unittest.TestCase):
                                    (self.report,"full_acceptance_eligible",True)]:
             with self.subTest(key=key):
                 old = target[key]; target[key] = value; self.persist()
-                self.assertFalse(self.audit()["success"])
+                self.assertFalse(self.audit()["structure_complete"])
                 target[key] = old
         self.calls.remove("WaitForOwnedProcess"); self.persist()
-        self.assertFalse(self.audit()["success"])
+        self.assertFalse(self.audit()["structure_complete"])
 
     def test_first_native_error_survives_cleanup_and_summary(self):
         path = self.root / "native/trace.jsonl"
         path.write_text(path.read_text().replace('"phase": "end"', '"phase": "error", "error": "first native failure"', 1))
         result = self.audit()
-        self.assertFalse(result["success"])
+        self.assertFalse(result["structure_complete"])
         self.assertEqual(result["first_failure"]["error"], "first native failure")
 
     def test_truncated_or_missing_original_trace_fails(self):
         path = self.root / "native/trace.jsonl"
         path.write_text(path.read_text() + '{"call":')
-        self.assertFalse(self.audit()["success"])
+        self.assertFalse(self.audit()["structure_complete"])
         path.unlink()
-        self.assertFalse(self.audit()["success"])
+        self.assertFalse(self.audit()["structure_complete"])
 
 
 
@@ -139,6 +173,34 @@ class DriverTests(unittest.TestCase):
                 self.assertEqual(receipt["failure"]["reason"], "timeout")
                 self.assertGreaterEqual(receipt["elapsed_seconds"], expected_time)
                 self.assertIn("unproven", receipt["failure"]["cleanup"])
+
+    def test_same_named_consecutive_calls_have_distinct_begin_sequences(self):
+        spec = importlib.util.spec_from_file_location("same_call_driver", ROOT / "scripts/ci/run-docprops-targeted.py")
+        driver = importlib.util.module_from_spec(spec); spec.loader.exec_module(driver)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/"trace.jsonl"
+            path.write_text('{"call":"same","phase":"begin"}\n')
+            first = driver.pending(path)
+            path.write_text(path.read_text()+'{"call":"same","phase":"end"}\n{"call":"same","phase":"begin"}\n')
+            second = driver.pending(path)
+            self.assertEqual((first,second), ((0,"same"),(2,"same")))
+            self.assertNotEqual(first,second)
+
+    def test_second_same_named_begin_resets_watchdog_budget(self):
+        spec = importlib.util.spec_from_file_location("timer_driver", ROOT / "scripts/ci/run-docprops-targeted.py")
+        driver = importlib.util.module_from_spec(spec); spec.loader.exec_module(driver)
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)/"evidence"
+            child = Mock(); child.poll.side_effect = [None,None,None,0]; child.wait.return_value = 0
+            argv = ["driver", "--output", str(output), "--expected-head", "a"*40, "--swconst", "official.tlb"]
+            with patch.object(driver.sys,"argv",argv), patch.object(driver.sys,"platform","win32"), \
+                 patch.object(driver.subprocess,"check_output",return_value="a"*40), \
+                 patch.object(driver.subprocess,"Popen",return_value=child), \
+                 patch.object(driver,"pending",side_effect=[(0,"same"),(2,"same"),(2,"same")]), \
+                 patch.object(driver.time,"sleep"), patch.object(driver.time,"monotonic",side_effect=[0,100,600,800,801]):
+                self.assertEqual(driver.main(),0)
+            child.terminate.assert_not_called(); child.kill.assert_not_called()
+            self.assertIsNone(json.loads((output/"driver.json").read_text())["failure"])
 
     def test_workflow_limits_branch_manual_opt_in_and_skips_full_gate(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()

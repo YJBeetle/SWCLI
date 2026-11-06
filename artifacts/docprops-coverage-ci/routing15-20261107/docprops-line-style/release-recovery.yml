@@ -1,0 +1,87 @@
+name: Recover verified release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Original version-tag CI run with passing Windows full gate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: swcli-release-recovery
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: publisher
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Require completed original tag run and passing native gate
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: |
+          python publisher/scripts/ci/recover-release.py inspect \
+            --source-run "$SOURCE_RUN" --context "$RUNNER_TEMP/recovery-context.json"
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.source.outputs.commit }}
+          path: release-source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download original same-run distributions
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.source.outputs.dist_id }}
+          run-id: ${{ inputs.source_run }}
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release-dist
+          digest-mismatch: error
+      - name: Download original successful native receipts
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.source.outputs.native_id }}
+          run-id: ${{ inputs.source_run }}
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release-native
+          digest-mismatch: error
+      - name: Publish original assets with explicit recovery provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          python publisher/scripts/ci/recover-release.py publish \
+            --context "$RUNNER_TEMP/recovery-context.json" \
+            --root release-source --dist "$RUNNER_TEMP/release-dist" \
+            --evidence "$RUNNER_TEMP/release-native/swcli-native-smoke" \
+            --output "$RUNNER_TEMP/release-assets" \
+            | tee "$RUNNER_TEMP/release-public-verification.json"
+      - name: Retain recovery publication receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-release-recovery-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/recovery-context.json
+            ${{ runner.temp }}/release-assets
+            ${{ runner.temp }}/release-public-verification.json
+          if-no-files-found: warn
+          retention-days: 90

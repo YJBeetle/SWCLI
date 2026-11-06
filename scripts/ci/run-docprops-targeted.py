@@ -12,12 +12,12 @@ def pending(path):
     active = None
     if not path.exists():
         return active
-    for line in path.read_text(encoding="utf-8").splitlines(keepends=True):
+    for sequence, line in enumerate(path.read_text(encoding="utf-8").splitlines(keepends=True)):
         if not line.endswith("\n"):
             break
         row = json.loads(line)
         if row["phase"] == "begin":
-            active = row["call"]
+            active = (sequence, row["call"])
         elif row["phase"] in ("end", "error"):
             active = None
     return active
@@ -54,7 +54,7 @@ def main():
                 if current != previous:
                     previous, call_started = current, now
                 if now - started >= 1800 or (current is not None and now - call_started >= 600):
-                    receipt["failure"] = dict(reason="timeout", active_call=current,
+                    receipt["failure"] = dict(reason="timeout", active_call=current[1] if current else None, active_begin_sequence=current[0] if current else None,
                                               cleanup="incomplete; child terminated, host exit unproven")
                     child.terminate()
                     break

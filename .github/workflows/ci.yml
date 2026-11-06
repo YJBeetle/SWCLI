@@ -687,7 +687,7 @@ jobs:
         run: |
           python scripts/ci/run-docprops-targeted.py --output "$env:RUNNER_TEMP\docprops-targeted" --expected-head $env:EXPECTED_HEAD --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Calibration failed; preserve originals, no retry" }
-      - name: Audit originals and saved copies
+      - name: Check evidence structure only (not native acceptance)
         if: always()
         shell: powershell
         run: |

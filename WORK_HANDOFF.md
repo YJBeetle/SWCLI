@@ -4,7 +4,7 @@
 - 分支：`codex/docprops-coverage-ci`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
 - 只读盘点 main、主集成树和另外9个工作树。盘点时主集成树存在未提交修改；没有修改、合并或验收它们。快照见 `docs/verification/docprops-worktree-inventory.json`。
 - 版本化矩阵 `docs/verification/docprops-capabilities-v1.json` 覆盖11个基线公共操作和15项独立分工；新分支全部未验收。`1593330` 仅本地未验收快照。
-- 新增固定计划 baseline-properties 的单次驱动、600秒 native/1800秒整体看门狗、严格原件审计器、可复用独立workflow模板。
+- 新增固定计划 baseline-properties 的单次驱动、600秒 native/1800秒整体看门狗、严格原件结构检查器、可复用独立workflow模板。
 - 现有 CI 新增默认关闭 `docprops_targeted` / `docprops_expected_head`；仅本分支手动运行；启用时跳过 test/package，禁止与 native_full 同时运行，沿用既有原生安装器。没有更改现有PR机密隔离规则。
 - 原始 report/trace/保存副本/stdout/stderr/driver 与 hash 审计保留90天；基础设施清理回执单列，不能冒充原生正常退出。内部校准始终 `full_acceptance_eligible=false`。
 - 没有修改产品功能/写入边界，没有操作Windows VM、SOLIDWORKS用户实例、DockerSW或MacSW，没有发布/合入main。
@@ -53,7 +53,7 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 本分支命令（内部工具，不是新增公共产品接口）：
 
 - `python scripts/ci/run-docprops-targeted.py --output DIR --expected-head SHA --swconst TLB`：固定 baseline-properties 计划，单次运行。
-- `python scripts/ci/audit-docprops-calibration.py --evidence DIR --expected-head SHA`：严格审计同一计划原件，不能用于其他分支格式。
+- `python scripts/ci/audit-docprops-calibration.py --evidence DIR --expected-head SHA`：检查同一计划原件结构，不能用于其他分支格式。
 - CI `ci.yml` 的 `docprops_targeted:boolean=false`、`docprops_expected_head:string`；实际分派同时明确 `native_full=false`。
 
 共享文件改动只有 `.github/workflows/ci.yml`：增加上述两个 input、test/package 的定向跳过条件、单个 branch-only job；原 full/release 条件和 PR secrets 隔离保持。独立新增文件是审计器、驱动、模板、便携测试、版本化矩阵、初始只读快照、说明文档、run记录和本交接。产品 `src/swcli/{cli,operation_schemas,result_schemas,sdk,mcp}` 均未修改。统筹合并时需要协调各分支 ci.yml input/job 与各自独立 profile+ref concurrency group，但本分支不合入其他分支。
@@ -74,3 +74,15 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - 本分支是验收矩阵/工具工作，产品没有变化。为避免只验证验收工具重复运行既有CAD，**不重新dispatch**。并发修复仅有便携接线证据；原生采集/审计链仍未经本次实跑，不能称已原生验收。后续由统筹在真正产品head的必要专用计划中复用模板。
 
 本次并发修复验证：`test_docprops_coverage_ci.py` 全部8项通过（含专属group、模板一致、默认full/release组保留断言），两个YAML解析及`git diff --check`通过。没有新dispatch。
+
+## 15路静态审查与审计假阳性修复（最新）
+
+- 主对话审查确认旧审计器可被空属性相等和仅清理trace骗过；旧正样本无效，不应解释为原生通过。
+- 已严格要求baseline五属性、所有查询/missing/空值/配置遮蔽、后台状态、fresh readonly reopen身份、完整固定调用顺序和保存文件外形/hash。输出降格为`evidence-structure-only`，去掉success，恒定`calibration_passed=false`和`source_provenance_verified=false`；driver自报head不作来源证明。
+- driver.pending使用begin行序号+call名称区分连续同名调用；驱动循环测试证实第二个同名begin重置600秒预算。
+- 本轮13项定向便携检查通过，含主对话要求的两项关键否定样本；没有新dispatch。旧的8项记录是历史测试数，不代表当前审计契约。
+- 15路CI审查报告：`docs/verification/docprops-routing-review-2026-11-07.md`。
+- 分层矩阵：`docs/verification/docprops-merge-evidence-v1.json`，包含internal/public/sourceSHA/artifact digest/portable/SDK/MCP和写门禁，均不自动标可发布。
+- 只读快照与原始GitHub运行/jobs/artifacts元数据及SHA256：`artifacts/docprops-coverage-ci/routing15-20261107/`。工作文件hash与HEAD分开记录；其他工作树持续变化，报告是时点快照。
+- 交统筹具体问题：线型复用full job却缺ref并发；表格独立job静态组复用前加ref；公差/线型/单位/STEP缺targeted与native_full互斥早拒；单位旧run仍使用旧共享group，不能把新配置追认给旧run。仅报告，不改其他worktree。
+- 尚无任何分路的原生原ZIP独立digest与公共验收通过证据；GitHub已有dist/portable/package artifact摘要单独标metadata-only，不能作为native。各路本地SDK/便携结论注明handoff claim，没有在本分支代跑其测试。

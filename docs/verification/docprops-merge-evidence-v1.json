@@ -1,0 +1,1346 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-06T17:32:17.327392+00:00",
+  "scope": "15-branch static routing and evidence review",
+  "independent_native_success_count": 0,
+  "source": "read-only local snapshots + original GitHub runs/jobs/artifacts metadata",
+  "rows": [
+    {
+      "name": "docprops-font-scopes",
+      "branch": "codex/docprops-font-scopes",
+      "source_sha": "a1860400953c85cf1cdbd6ca5229ae4c07c6c25d",
+      "source_dirty_paths": [
+        " M WORK_HANDOFF.md"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42262037827,
+        "run_source_sha": "a1860400953c85cf1cdbd6ca5229ae4c07c6c25d",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "font-scopes-calibration / portable",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "font-scopes-calibration / Internal fonts native readback and persistence",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Free disposable runner disk for installation"
+            ]
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1847; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "font-scopes-calibration / portable"
+        ]
+      },
+      "sdk": {
+        "status": "generator check claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-dimension-format",
+      "branch": "codex/docprops-dimension-format",
+      "source_sha": "989ce4e4029db38e6d43312d631bd7f244242ac9",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42260887789,
+        "run_source_sha": "4a2b4f461539cd4c5c80505a5172c2fcc3d071f2",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "dimension-format",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Install native SOLIDWORKS"
+            ]
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1834; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-tolerances",
+      "branch": "codex/docprops-tolerances",
+      "source_sha": "742fba951b7fe02dc3a2b634e16509154e932235",
+      "source_dirty_paths": [
+        " M WORK_HANDOFF.md",
+        "?? evidence/"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R3: native_full and targeted may both be true without early reject"
+      ],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42261066525,
+        "run_source_sha": "27dc93077791359ded7296abee240f06350db51d",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Windows / Python 3.9",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Internal document tolerance calibration",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Install native SOLIDWORKS"
+            ]
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [
+          {
+            "id": 13525560287,
+            "name": "swcli-portable-summary-3.9-42261066525-1",
+            "digest": "sha256:1b3678ad832fe65ea56c0180d5d8fa4c15e2bbe148172f50ce73059d0e47cfdd",
+            "bytes": 1072
+          },
+          {
+            "id": 13525346392,
+            "name": "swcli-dist",
+            "digest": "sha256:b5f2f02c1be1a68dde02a57c08190cfe313c58fe700bd43700514e1115e9f7cc",
+            "bytes": 1542925
+          },
+          {
+            "id": 13524453119,
+            "name": "swcli-package-summary-42261066525-1",
+            "digest": "sha256:ab757745b102b81fde629c8008a18659335006c805042f4cf073c5f88982761a",
+            "bytes": 1010
+          },
+          {
+            "id": 13524443773,
+            "name": "swcli-portable-summary-3.14-42261066525-1",
+            "digest": "sha256:2d2358428ba73e81763298af9fe91caf99d57e03738dde6ebd0631316a5fdf19",
+            "bytes": 1059
+          }
+        ],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1833; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "Windows / Python 3.9",
+          "Windows / Python 3.14",
+          "Build wheel"
+        ]
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-table-defaults",
+      "branch": "codex/docprops-table-defaults",
+      "source_sha": "8ca545c8edc707fedbf5669934aed247ab905b91",
+      "source_dirty_paths": [
+        " M WORK_HANDOFF.md"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R2: independent job fixed group; safe for current exact branch, add ref before reuse"
+      ],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42261481759,
+        "run_source_sha": "8ca545c8edc707fedbf5669934aed247ab905b91",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "table-defaults-calibration",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Free disposable runner disk for installation"
+            ]
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1834; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-detailing",
+      "branch": "codex/docprops-detailing",
+      "source_sha": "87f4df68e6f041fabaee11f65c59bd44302a1b2a",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42260661085,
+        "run_source_sha": "5c878c3b13f7811d50af94fca53a4d471cc5669c",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "detailing-calibration",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Install native SOLIDWORKS"
+            ]
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1832; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-line-style",
+      "branch": "codex/docprops-line-style",
+      "source_sha": "3ab8d214577e1b6afdfd9f8ca9cebdedd5d5741a",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R1: reused native job has profile-only fixed concurrency without ref",
+        "R3: native_full and targeted may both be true without early reject"
+      ],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42260712677,
+        "run_source_sha": "6f531a595a50bbadeeab2c0f005d89c0246c7ee5",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.9",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Internal drawing Line Font calibration",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Free disposable runner disk for installation"
+            ]
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [
+          {
+            "id": 13525545013,
+            "name": "swcli-portable-summary-3.14-42260712677-1",
+            "digest": "sha256:9cce7112904d8e292fe5fa8e2cf67574cdf3fb633474c3e7aafc28ba73a3b905",
+            "bytes": 1058
+          },
+          {
+            "id": 13525072175,
+            "name": "swcli-portable-summary-3.9-42260712677-1",
+            "digest": "sha256:3209245055c0cb0b9f88539551bf09451b2ba1261db9690b5b29d6a2ca5cbad7",
+            "bytes": 1072
+          },
+          {
+            "id": 13524866825,
+            "name": "swcli-dist",
+            "digest": "sha256:b7cddd68a270879e9831f84c6b7aa49068a57812acfe6a8ddee9961cd6395f40",
+            "bytes": 1539023
+          },
+          {
+            "id": 13524118350,
+            "name": "swcli-package-summary-42260712677-1",
+            "digest": "sha256:1a9f165d045c314b8546aa402267592b4343350ea8b767042117ce1100087eca",
+            "bytes": 1012
+          }
+        ],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "focused 12; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "Build wheel",
+          "Windows / Python 3.14",
+          "Windows / Python 3.9"
+        ]
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-coverage-ci",
+      "branch": "codex/docprops-coverage-ci",
+      "source_sha": "e4f534b3a95d67002251f25601a76780bf456f94",
+      "source_dirty_paths": [
+        "?? artifacts/docprops-coverage-ci/routing15-20261107/"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R5: old checker synthetic-empty false positives repaired; structure-only, never independent native proof"
+      ],
+      "internal_calibration": {
+        "status": "cancelled-no-CAD-evidence",
+        "independently_verified": false,
+        "run_id": 42260050176,
+        "run_source_sha": "7f7a4af80d6f731e9a625f6033b4ca496e876f94",
+        "run_status_at_listing": "completed",
+        "run_conclusion_at_listing": "cancelled",
+        "jobs_metadata": [
+          {
+            "name": "docprops-targeted",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "13 focused; independently run in this worktree",
+        "independently_rerun_here": true,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "baseline outgoing contracts checked; no new SDK",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "baseline outgoing request contract tested",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "tooling-only; no product write gate",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-units-expanded",
+      "branch": "codex/docprops-units-expanded",
+      "source_sha": "4f8912f7633bb0622fc80325877d1cdc89fed7da",
+      "source_dirty_paths": [
+        " M .github/workflows/ci.yml",
+        " M tests/test_unit_profile_calibration.py",
+        "?? evidence/units-profile/run-42260282974/"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R3: native_full and targeted may both be true without early reject",
+        "R4: active run predates profile+ref concurrency fix; current fix is not deployed to that run"
+      ],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42260282974,
+        "run_source_sha": "b5b935bc5d0b82b1f1bfdcdd5d524cf2d000ffeb",
+        "run_status_at_listing": "pending",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.9",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Bounded units read/CAS calibration",
+            "status": "pending",
+            "conclusion": null,
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [
+          {
+            "id": 13525280599,
+            "name": "swcli-package-summary-42260282974-1",
+            "digest": "sha256:462c07c09d5e0f17e44550ba62080c127a702c25760cc06ce40036f365db6f89",
+            "bytes": 1008
+          },
+          {
+            "id": 13525186424,
+            "name": "swcli-portable-summary-3.14-42260282974-1",
+            "digest": "sha256:3e8350d7838316de774a0ef3b67bde5053bed1216e9c8924e0f76561bda3791c",
+            "bytes": 1059
+          },
+          {
+            "id": 13525066652,
+            "name": "swcli-portable-summary-3.9-42260282974-1",
+            "digest": "sha256:e5064bea638db1f9450147f3874ba42548a4ce429810d4d446b10b45772058f3",
+            "bytes": 1072
+          },
+          {
+            "id": 13523863643,
+            "name": "swcli-dist",
+            "digest": "sha256:6b30d1369e80052f104f37040bf8033dcf72bd5b24519eb6d6d38f1de67cbe0c",
+            "bytes": 1549575
+          }
+        ],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "handoff portable claim; see snapshot",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "Build wheel",
+          "Windows / Python 3.14",
+          "Windows / Python 3.9"
+        ]
+      },
+      "sdk": {
+        "status": "handoff SDK claim; not rerun here",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-export-options",
+      "branch": "codex/docprops-export-options",
+      "source_sha": "818329afba7cafe4fed2ebe3a77e59a585f11320",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42261983700,
+        "run_source_sha": "e62fa65bbdb079eb6d8f4eff60276f3ce1017cd3",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.9",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Internal Image Quality GLB calibration",
+            "status": "queued",
+            "conclusion": null,
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [
+          {
+            "id": 13525113148,
+            "name": "swcli-portable-summary-3.14-42261983700-1",
+            "digest": "sha256:38778d471ceb8572dac23cd062c72997df319efff791c60f3c150b6e7773fd2a",
+            "bytes": 1059
+          },
+          {
+            "id": 13524804164,
+            "name": "swcli-portable-summary-3.9-42261983700-1",
+            "digest": "sha256:9078946b50dddeeda473256a08d8ccdad3d1f3838c5edac5bb181cfb9497ef39",
+            "bytes": 1072
+          },
+          {
+            "id": 13524464308,
+            "name": "swcli-package-summary-42261983700-1",
+            "digest": "sha256:e23db804fc41037221442e620a49e5848aea0d2b5a135ca446934fbe580cf27d",
+            "bytes": 1013
+          },
+          {
+            "id": 13524059835,
+            "name": "swcli-dist",
+            "digest": "sha256:11dc97ba22c46bd76212b7ac3e631d7969ddcca57b74164e19b02b520264f59c",
+            "bytes": 1561259
+          }
+        ],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1841; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "Build wheel",
+          "Windows / Python 3.9",
+          "Windows / Python 3.14"
+        ]
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "docprops-calibration-performance",
+      "branch": "codex/docprops-calibration-performance",
+      "source_sha": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+      "source_dirty_paths": [
+        " M WORK_HANDOFF.md",
+        "?? evidence/docprops-performance/dispatch-r2.json",
+        "?? evidence/docprops-performance/run-42261401694-status-latest.json"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42261401694,
+        "run_source_sha": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Internal owned standards-36 performance calibration",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Free disposable runner disk for installation"
+            ]
+          },
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Complete SOLIDWORKS functional verification",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Publish original verified version-tag artifacts",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python ${{ matrix.python }}",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "107 focused; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "no new product SDK",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "tooling-only; no product write gate",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "swcli-topology-references",
+      "branch": "codex/swcli-topology-references",
+      "source_sha": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "source_dirty_paths": [
+        " M .github/workflows/ci.yml",
+        " M .gitignore",
+        " M README.CN.md",
+        " M README.md",
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        " M src/swcli/sdk/_generated.py",
+        " M src/swcli/sdk/models.py",
+        " M tests/typing_sdk/accepted.py",
+        " M tests/typing_sdk/rejected.py",
+        "?? WORK_HANDOFF.md",
+        "?? docs/design/topology-references.md",
+        "?? scripts/ci/run-topology-targeted.py",
+        "?? scripts/ci/verify-topology-calibration.py",
+        "?? scripts/ci/verify-topology-references.py",
+        "?? src/swcli/daemon/topology_references.py",
+        "?? src/swcli/hosts/windows_topology_references.py",
+        "?? src/swcli/topology_references.py",
+        "?? tests/test_topology_calibration.py",
+        "?? tests/test_topology_references.py"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "no_run_captured",
+        "independently_verified": false,
+        "run_id": null,
+        "run_source_sha": null,
+        "run_status_at_listing": null,
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": []
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "not established in captured handoff",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "not independently verified",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "read-only proposal; no acceptance captured",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "swcli-assembly-mates",
+      "branch": "codex/swcli-assembly-mates",
+      "source_sha": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "source_dirty_paths": [
+        " M .github/workflows/ci.yml",
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        " M src/swcli/sdk/_generated.py",
+        " M src/swcli/sdk/models.py",
+        "?? WORK_HANDOFF.md",
+        "?? evidence/",
+        "?? scripts/ci/run-assembly-mates-calibration.py",
+        "?? scripts/ci/verify-assembly-mates-calibration.py",
+        "?? src/swcli/assembly_mates.py",
+        "?? src/swcli/hosts/windows_assembly_mates.py",
+        "?? tests/test_assembly_mates.py",
+        "?? tests/test_assembly_mates_calibration.py"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "no_run_captured",
+        "independently_verified": false,
+        "run_id": null,
+        "run_source_sha": null,
+        "run_status_at_listing": null,
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": []
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "14 focused; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "generated contract; no independent check",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "swcli-revolve-feature",
+      "branch": "codex/swcli-revolve-feature",
+      "source_sha": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "source_dirty_paths": [
+        " M .github/workflows/ci.yml",
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        " M src/swcli/sdk/_generated.py",
+        " M src/swcli/sdk/models.py",
+        " M src/swcli/skills/swcli/references/usage.md",
+        "?? WORK_HANDOFF.md",
+        "?? docs/design/revolve-feature.md",
+        "?? evidence/",
+        "?? scripts/ci/verify-revolve-calibration.py",
+        "?? src/swcli/hosts/windows_revolves.py",
+        "?? src/swcli/revolve_geometry.py",
+        "?? tests/test_revolve.py"
+      ],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "no_run_captured",
+        "independently_verified": false,
+        "run_id": null,
+        "run_source_sha": null,
+        "run_status_at_listing": null,
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": []
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "15 focused; handoff claim; full suite unresolved",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "swcli-stl-export-options",
+      "branch": "codex/swcli-stl-export-options",
+      "source_sha": "3664d4b99df98aa75d9df3aa8e252316ee602f53",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42262477609,
+        "run_source_sha": "3664d4b99df98aa75d9df3aa8e252316ee602f53",
+        "run_status_at_listing": "in_progress",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Build wheel",
+            "status": "completed",
+            "conclusion": "success",
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.9",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Run unit tests"
+            ]
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Run unit tests"
+            ]
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [
+          {
+            "id": 13526255238,
+            "name": "swcli-dist",
+            "digest": "sha256:27fd4a9048e8a16801050227bb05731c5b48df911531363528e3cfeb50115a51",
+            "bytes": 1548974
+          },
+          {
+            "id": 13525168076,
+            "name": "swcli-package-summary-42262477609-1",
+            "digest": "sha256:d6a2e1ca498fbff678740885f7f07dba1bfe46f705f7137180f62bb4227338a6",
+            "bytes": 1013
+          }
+        ],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1833; 32 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": [
+          "Build wheel"
+        ]
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    },
+    {
+      "name": "swcli-step-export-options",
+      "branch": "codex/swcli-step-export-options",
+      "source_sha": "ff7f66bab0403a5b4e3dd7f6f0155ad56595eeda",
+      "source_dirty_paths": [],
+      "source_pin": "working-file SHA256 snapshots; HEAD alone does not pin uncommitted changes",
+      "routing_findings": [
+        "R3: native_full and targeted may both be true without early reject"
+      ],
+      "internal_calibration": {
+        "status": "pending_or_in_progress_not_passed",
+        "independently_verified": false,
+        "run_id": 42262507658,
+        "run_source_sha": "ff7f66bab0403a5b4e3dd7f6f0155ad56595eeda",
+        "run_status_at_listing": "queued",
+        "run_conclusion_at_listing": null,
+        "jobs_metadata": [
+          {
+            "name": "Build wheel",
+            "status": "in_progress",
+            "conclusion": null,
+            "active_steps": [
+              "Set up job"
+            ]
+          },
+          {
+            "name": "Windows / Python 3.9",
+            "status": "queued",
+            "conclusion": null,
+            "active_steps": []
+          },
+          {
+            "name": "Windows / Python 3.14",
+            "status": "queued",
+            "conclusion": null,
+            "active_steps": []
+          },
+          {
+            "name": "Validate release tag before private native runtime",
+            "status": "completed",
+            "conclusion": "skipped",
+            "active_steps": []
+          }
+        ]
+      },
+      "public_acceptance": {
+        "status": "not_verified",
+        "native_cli": "not_verified",
+        "native_sdk": "not_verified",
+        "native_mcp": "not_verified"
+      },
+      "artifact_digest": {
+        "native_original_zip_sha256": null,
+        "independently_downloaded_and_verified": false,
+        "github_metadata": [],
+        "note": "Listed digests are GitHub metadata only. Existing dist/portable/package artifacts are not native proof."
+      },
+      "portable": {
+        "status": "1836; 26 skips; handoff claim",
+        "independently_rerun_here": false,
+        "github_completed_portable_jobs": []
+      },
+      "sdk": {
+        "status": "generator + strict types claimed",
+        "native_acceptance": "not_verified"
+      },
+      "mcp": {
+        "status": "contract/discovery only or handoff claim; not independently exercised here",
+        "native_acceptance": "not_verified"
+      },
+      "write_gate": "public candidate writes remain unaccepted; empty allowlist is not release eligibility",
+      "merge_ready": false,
+      "release_eligible": false,
+      "decision": "main coordinator must review source + complete per-scope evidence; no automatic promotion"
+    }
+  ],
+  "coverage_checker_current_patch": {
+    "scripts/ci/audit-docprops-calibration.py": "6afdfb7ae8b893e0da7ae7af14846c82b1de75b7a9d90d3fe1ec919fae9e27a0",
+    "scripts/ci/run-docprops-targeted.py": "98d87ab583d6328cc708b7e37af8a9055e4d702afb6f14522453f9d5ddf47369",
+    "tests/test_docprops_coverage_ci.py": "b7e4cf7008c9554668c77551b0cd418d0b463f3ec6685f8f4eff0618e8d50c59"
+  },
+  "coverage_checker_current_patch_note": "Own source snapshot predates these review fixes. Hashes pin the tested patch included with this report; source SHA is the containing git commit, not the old cancelled run."
+}

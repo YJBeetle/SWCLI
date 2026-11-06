@@ -45,7 +45,7 @@ run-docprops-targeted.py 只启动一次；native trace 调用600秒、整体180
 ## 原件和失败审计
 
 产物保留90天：native/report.json、native/trace.jsonl、原生保存副本、驱动stdout/stderr、
-driver.json 和 audit.json。审计记录各原件字节数/SHA256、实际宿主PID/版本、严格调用配对、
+driver.json 和 audit.json。结构检查记录各原件字节数/SHA256、报告自述的宿主PID/版本、严格调用配对（结构检查，不是原生调用真实性证明）、
 单次宿主获取、ExitApp/WaitForOwnedProcess/CloseProcessHandle/CoUninitialize 清理序列、
 两个样件的保存hash和只读重开值。audit永远 full_acceptance_eligible=false。
 trace首个error优先于后续清理错误；报告失败另保留原始traceback。
@@ -74,3 +74,14 @@ job steps=[]、artifact_count=0，日志端点404；原始API元数据及SHA256�
 保存只读重开和owned宿主清理；不是新增15项功能的原生/公共验收，也没有原生CLI/SDK/MCP调用。
 公共三入口覆盖来自便携参数传递测试。并发修复经接线测试后保留模板，
 因本分支没有新增产品变化，不为验证验收工具再次跑相同CAD计划。原生采集链仍未取得实跑证据。
+
+
+## 审查后降格（当前契约v2）
+
+本脚本现为结构完整性检查，输出 `structure_complete`，不再输出success。
+`calibration_passed=false`、`source_provenance_verified=false`、`full_acceptance_eligible=false`恒定。
+driver自报source_head与expected_head相等只是一致性检查；不能建立GitHub来源或原生真实性。
+必需五属性及各查询、missing/空值/配置遮蔽、后台身份、fresh readonly reopen ID、
+报告状态、对应fixture/save/read/reopen完整trace顺序、compound保存文件外形与hash。
+这些仍可由伪造报告满足，因此不能作为独立原生通过证据；须外部GitHub run/head、原ZIP digest
+及真实报告/trace/保存副本的独立审阅。13项便携测试仅核结构拒绝与看门狗，不dispatch baseline CAD。

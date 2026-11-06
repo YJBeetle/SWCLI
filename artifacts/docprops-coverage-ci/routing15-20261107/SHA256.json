@@ -1,0 +1,422 @@
+[
+  {
+    "path": "dispatch-runs.json",
+    "bytes": 201958,
+    "sha256": "084bb6bfde07ec1f3220f5b2789057a3146251cc8610e63ef23c50718410bae7"
+  },
+  {
+    "path": "docprops-calibration-performance/WORK_HANDOFF.md",
+    "bytes": 10777,
+    "sha256": "98f9b777a2552a5d270683ff9bf2feff92ba771e16d87ee32b07201416d46c87"
+  },
+  {
+    "path": "docprops-calibration-performance/ci.yml",
+    "bytes": 31381,
+    "sha256": "4cff69ed5a2ee88c2f370b0cdfaa521f119088c65f4612eedeb4efbb2ab0f419"
+  },
+  {
+    "path": "docprops-calibration-performance/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-coverage-ci/WORK_HANDOFF.md",
+    "bytes": 9272,
+    "sha256": "59b21ec10cd0bd14cc41e6b8aad082d014be9924fdb6350e26c8b605e3efda2b"
+  },
+  {
+    "path": "docprops-coverage-ci/ci.yml",
+    "bytes": 30630,
+    "sha256": "408d55a071b38ded6dff16122ba912612e945f27f38a09ea0481446b3066c76f"
+  },
+  {
+    "path": "docprops-coverage-ci/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-detailing/WORK_HANDOFF.md",
+    "bytes": 4149,
+    "sha256": "c02aead8eba3fede963af57b00ded4930fefe5d4d3e60fe63918fe9395c219f7"
+  },
+  {
+    "path": "docprops-detailing/ci.yml",
+    "bytes": 29981,
+    "sha256": "078d94319434887a65e62010ad795895824d0bb2115f244b8b10cde0a5ee5037"
+  },
+  {
+    "path": "docprops-detailing/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-dimension-format/WORK_HANDOFF.md",
+    "bytes": 3944,
+    "sha256": "670e61b15ac8f119eb7dd3ff5399949d4a1cc2219bb242d4d3ce90d46f5bd8b5"
+  },
+  {
+    "path": "docprops-dimension-format/ci.yml",
+    "bytes": 30117,
+    "sha256": "f6929186605017ca8079e660252c894f0004043094cb81c3615e143bf04f89ab"
+  },
+  {
+    "path": "docprops-dimension-format/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-export-options/WORK_HANDOFF.md",
+    "bytes": 7718,
+    "sha256": "40825137e0b913659e94a22a3828cb564b1c0d39344e0f59ba5f9cde494bf9db"
+  },
+  {
+    "path": "docprops-export-options/ci.yml",
+    "bytes": 23778,
+    "sha256": "80a055f259496d2adc3bbb915005e5e4f1e6f59770aaef76587c8ec7235a0aad"
+  },
+  {
+    "path": "docprops-export-options/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-font-scopes/WORK_HANDOFF.md",
+    "bytes": 6585,
+    "sha256": "c542cf78f3e831a0707c047516c7af79550404380c96b0e9b96648ba9be4f372"
+  },
+  {
+    "path": "docprops-font-scopes/ci.yml",
+    "bytes": 22727,
+    "sha256": "9ae7fab83b1604d3df2ff9208008fcce3c13833b6f54c21421211e63a4e60711"
+  },
+  {
+    "path": "docprops-font-scopes/font-scopes-calibration.yml",
+    "bytes": 8131,
+    "sha256": "54c6e243674bb0e29be633dd39eec2f14773d64201febad8415c54bdf776e812"
+  },
+  {
+    "path": "docprops-font-scopes/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-line-style/WORK_HANDOFF.md",
+    "bytes": 4760,
+    "sha256": "b6ef22eb607ca03d2e8a9f8d15a21ec48be45dcdfaeb9edd404453662e5efee6"
+  },
+  {
+    "path": "docprops-line-style/ci.yml",
+    "bytes": 23631,
+    "sha256": "1ecbd89452844201aaccb4ecba48d29ed8282dd1779ecdb82364b30ff18eebbe"
+  },
+  {
+    "path": "docprops-line-style/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-table-defaults/WORK_HANDOFF.md",
+    "bytes": 6042,
+    "sha256": "c140bd18972a99b881efd044addb36156c6a5247039dacbde68241f69c6a7c24"
+  },
+  {
+    "path": "docprops-table-defaults/ci.yml",
+    "bytes": 29626,
+    "sha256": "014afad73934a8833f597bcfbc03598459a52947906a8f3ddc8b1b1d4fe5bd69"
+  },
+  {
+    "path": "docprops-table-defaults/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-tolerances/WORK_HANDOFF.md",
+    "bytes": 6470,
+    "sha256": "f0570fc4ff95a6c2216eac505fbf7e78329a5cc8ead234dd947c618422910d41"
+  },
+  {
+    "path": "docprops-tolerances/ci.yml",
+    "bytes": 23894,
+    "sha256": "66dffff1e7e7f73c27738510443592887fc448ed32a0d2394845f45951ebc223"
+  },
+  {
+    "path": "docprops-tolerances/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "docprops-units-expanded/WORK_HANDOFF.md",
+    "bytes": 7909,
+    "sha256": "c4547ac817ee7cc8aec01425d2585f72a0c044eae9abcdb3f9ae5910c63ef5fc"
+  },
+  {
+    "path": "docprops-units-expanded/ci.yml",
+    "bytes": 23703,
+    "sha256": "5a04a06771d9608b85f563cbbaa8b4acf277e4c1b2ad0dab0d322a10589af8fc"
+  },
+  {
+    "path": "docprops-units-expanded/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "runs/42260050176/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42260050176/ci.yml",
+    "bytes": 30609,
+    "sha256": "b3713dfc8e638b22f46b9db28ace31b94e089f3d31a03bf2beaf4cd2fed823b4"
+  },
+  {
+    "path": "runs/42260050176/jobs.json",
+    "bytes": 5218,
+    "sha256": "21c1d30f8cfa519cf7437a3cccfcf999a0d4c5609cf9dcffd20cdf6f9e376b77"
+  },
+  {
+    "path": "runs/42260282974/artifacts.json",
+    "bytes": 2880,
+    "sha256": "74b59d4c48290218fa8047d044afb3a6165f4cb1c2ed3620bbbca43c18dc84ea"
+  },
+  {
+    "path": "runs/42260282974/ci.yml",
+    "bytes": 23572,
+    "sha256": "2d8a0401bdc965f536e996ea03e8909a4c2095b2e382686bfdd75272a306f8c4"
+  },
+  {
+    "path": "runs/42260282974/jobs.json",
+    "bytes": 10441,
+    "sha256": "b92946a79e1fbb8382e38893e474f87a9bcbdf77e6aaa54e2bb9e93c9993e4b6"
+  },
+  {
+    "path": "runs/42260661085/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42260661085/ci.yml",
+    "bytes": 29981,
+    "sha256": "078d94319434887a65e62010ad795895824d0bb2115f244b8b10cde0a5ee5037"
+  },
+  {
+    "path": "runs/42260661085/jobs.json",
+    "bytes": 8655,
+    "sha256": "0213f678353d204b04a664c2c2aa837086a327a4ec126e1168cea1444a984d3e"
+  },
+  {
+    "path": "runs/42260712677/artifacts.json",
+    "bytes": 2864,
+    "sha256": "553409b742932c5789cacb3ba10e394ed7e151c2f18d7309c1ea438d93226f87"
+  },
+  {
+    "path": "runs/42260712677/ci.yml",
+    "bytes": 23631,
+    "sha256": "1ecbd89452844201aaccb4ecba48d29ed8282dd1779ecdb82364b30ff18eebbe"
+  },
+  {
+    "path": "runs/42260712677/jobs.json",
+    "bytes": 14067,
+    "sha256": "add64ac072a8251d065d64b6a1459e507bc57138521196f56e10939b991993b1"
+  },
+  {
+    "path": "runs/42260887789/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42260887789/ci.yml",
+    "bytes": 30117,
+    "sha256": "f6929186605017ca8079e660252c894f0004043094cb81c3615e143bf04f89ab"
+  },
+  {
+    "path": "runs/42260887789/jobs.json",
+    "bytes": 8430,
+    "sha256": "ec839a48618a8b576c0e60e42dd41f7e957c2e2743fd52ae67e3f54238748e46"
+  },
+  {
+    "path": "runs/42261066525/artifacts.json",
+    "bytes": 2864,
+    "sha256": "1544fcb5ddf537a07555114a587fc759a8d541e3dcc26146c5f735c18d01d470"
+  },
+  {
+    "path": "runs/42261066525/ci.yml",
+    "bytes": 23894,
+    "sha256": "66dffff1e7e7f73c27738510443592887fc448ed32a0d2394845f45951ebc223"
+  },
+  {
+    "path": "runs/42261066525/jobs.json",
+    "bytes": 14376,
+    "sha256": "79d17e8fe33de2279f61f400f0ea8567223b04c0f1a7b6131147abdfcdcbbd5b"
+  },
+  {
+    "path": "runs/42261401694/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42261401694/ci.yml",
+    "bytes": 31381,
+    "sha256": "4cff69ed5a2ee88c2f370b0cdfaa521f119088c65f4612eedeb4efbb2ab0f419"
+  },
+  {
+    "path": "runs/42261401694/jobs.json",
+    "bytes": 8609,
+    "sha256": "26566c259645e964ee78cb36bce12122093833c9a7ec211194ee73904d58dfc0"
+  },
+  {
+    "path": "runs/42261481759/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42261481759/ci.yml",
+    "bytes": 29626,
+    "sha256": "014afad73934a8833f597bcfbc03598459a52947906a8f3ddc8b1b1d4fe5bd69"
+  },
+  {
+    "path": "runs/42261481759/jobs.json",
+    "bytes": 8172,
+    "sha256": "18bccb8cc053edaf7bb182a60119a5d7be33a09bf5e7e09972d12ac963cd918d"
+  },
+  {
+    "path": "runs/42261983700/artifacts.json",
+    "bytes": 2880,
+    "sha256": "9b9936211698d4e3cdd9ec56abc486c8a56a90a9a9c5c237c5470616de7e81be"
+  },
+  {
+    "path": "runs/42261983700/ci.yml",
+    "bytes": 23778,
+    "sha256": "80a055f259496d2adc3bbb915005e5e4f1e6f59770aaef76587c8ec7235a0aad"
+  },
+  {
+    "path": "runs/42261983700/jobs.json",
+    "bytes": 10444,
+    "sha256": "ee6ebf4a96803837b07677bc829a472c30d78e24fd19cd8ed75b7b54971bf9d9"
+  },
+  {
+    "path": "runs/42262037827/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42262037827/ci.yml",
+    "bytes": 22727,
+    "sha256": "9ae7fab83b1604d3df2ff9208008fcce3c13833b6f54c21421211e63a4e60711"
+  },
+  {
+    "path": "runs/42262037827/jobs.json",
+    "bytes": 10832,
+    "sha256": "47b1989b5dfb81e9998cc464136148af8789f384891a2b0cef3e49c820d28c6c"
+  },
+  {
+    "path": "runs/42262477609/artifacts.json",
+    "bytes": 1441,
+    "sha256": "15d9867f709f68f326ebb396b95103b83c2d56c0f0dafeb34329e0c5820b04c1"
+  },
+  {
+    "path": "runs/42262477609/ci.yml",
+    "bytes": 24158,
+    "sha256": "419ec234aa1d5a2e2d795a56de1b46739d47f7333af01dab38fe8eb2e0f76cc4"
+  },
+  {
+    "path": "runs/42262477609/jobs.json",
+    "bytes": 8607,
+    "sha256": "d783fbf76edd461f6c34c091118901d942168cc0d4817e1a889806337a30f2e7"
+  },
+  {
+    "path": "runs/42262507658/artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "runs/42262507658/ci.yml",
+    "bytes": 23608,
+    "sha256": "3755b3c0fdacfe7a2633309548a1bf3431c626af11d546268d36eb1bbd7cd4d0"
+  },
+  {
+    "path": "runs/42262507658/jobs.json",
+    "bytes": 3562,
+    "sha256": "577fca66ccaf27df3529cb3bcdb8b2b46d3310f997748b5e80cca0215106ff2e"
+  },
+  {
+    "path": "snapshot.json",
+    "bytes": 532323,
+    "sha256": "4b9703161256a7d5cb75aa652a1491ff77e296dc67852ad6f41cbb5e3f73c0fa"
+  },
+  {
+    "path": "swcli-assembly-mates/WORK_HANDOFF.md",
+    "bytes": 2635,
+    "sha256": "3fa68f09741ff5c86568eb02db7e907200c3ca3da55d4f1f8d7d63fe93cbe78d"
+  },
+  {
+    "path": "swcli-assembly-mates/ci.yml",
+    "bytes": 31128,
+    "sha256": "1bd4132bdc7fbe427b2025ed6c982f03d35d7d1cd71c0d3f57f9a5d5f313141e"
+  },
+  {
+    "path": "swcli-assembly-mates/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "swcli-revolve-feature/WORK_HANDOFF.md",
+    "bytes": 2558,
+    "sha256": "49a2b64a664c33f60a81d3b279c77c5c03363874a5d6bbfbf09f92fc83126be3"
+  },
+  {
+    "path": "swcli-revolve-feature/ci.yml",
+    "bytes": 23974,
+    "sha256": "8293db85e7f280c399adad3d012afbe64362e3e239781c3f89e5515657d7e317"
+  },
+  {
+    "path": "swcli-revolve-feature/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "swcli-step-export-options/WORK_HANDOFF.md",
+    "bytes": 4094,
+    "sha256": "d7d0577cfa7c5e350a04c0989c44b480c0fcbd6d6532f95ec711df76e8421313"
+  },
+  {
+    "path": "swcli-step-export-options/ci.yml",
+    "bytes": 23608,
+    "sha256": "3755b3c0fdacfe7a2633309548a1bf3431c626af11d546268d36eb1bbd7cd4d0"
+  },
+  {
+    "path": "swcli-step-export-options/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "swcli-stl-export-options/WORK_HANDOFF.md",
+    "bytes": 4316,
+    "sha256": "e50f0869dfec36f7e92de4cae540f22f269f589e7864c701883a612248c505e9"
+  },
+  {
+    "path": "swcli-stl-export-options/ci.yml",
+    "bytes": 24158,
+    "sha256": "419ec234aa1d5a2e2d795a56de1b46739d47f7333af01dab38fe8eb2e0f76cc4"
+  },
+  {
+    "path": "swcli-stl-export-options/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  },
+  {
+    "path": "swcli-topology-references/WORK_HANDOFF.md",
+    "bytes": 2258,
+    "sha256": "5a17451f424b07e878699ba51644a6832b9d45c0c36b3b3ab1ed30e72577079e"
+  },
+  {
+    "path": "swcli-topology-references/ci.yml",
+    "bytes": 23725,
+    "sha256": "5034ba5179c7fd68100e8c5c9e98b1c1513601e121db029d49d85de1fe9b0427"
+  },
+  {
+    "path": "swcli-topology-references/release-recovery.yml",
+    "bytes": 3062,
+    "sha256": "6032e450f692c829d6a6d31f931a186e63c883984a259b5a578ba6b2dc8aed22"
+  }
+]
