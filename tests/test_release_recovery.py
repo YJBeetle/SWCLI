@@ -19,7 +19,8 @@ class RecoveryTests(unittest.TestCase):
         self.run = {"id": 123, "repository": {"full_name": recovery.REPOSITORY}, "event": "push",
                     "path": ".github/workflows/ci.yml", "status": "completed", "conclusion": "cancelled",
                     "head_branch": "v0.2.1", "head_sha": "a" * 40, "run_attempt": 1}
-        self.jobs = [{"name": name, "conclusion": "success"} for name in recovery.JOBS]
+        self.jobs = [{"name": name, "conclusion": "success", "head_sha": "a" * 40,
+                      "started_at": "2026-11-06T14:58:31Z", "completed_at": "2026-11-06T16:00:41Z"} for name in recovery.JOBS]
         self.rows = [{"id": n, "name": name, "digest": "sha256:" + "b" * 64,
                       "expired": False, "size_in_bytes": 1234, "workflow_run": {"head_sha": "a" * 40}}
                      for n, name in ((1, "swcli-dist"), (2, "swcli-windows-hosted-123-1"))]
@@ -32,6 +33,22 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(context["run_attempt"], 1)
         self.assertEqual(context["artifacts"]["native"]["name"], "swcli-windows-hosted-123-1")
         self.assertEqual(context["commit"], "a" * 40)
+
+    def test_publish_only_rerun_uses_original_native_artifact(self):
+        self.run["run_attempt"] = 3
+        context = recovery.source_context(self.api, "123")
+        self.assertEqual(context["run_attempt"], 1)
+        self.assertEqual(context["workflow_attempt"], 3)
+        self.assertEqual(context["artifacts"]["native"]["id"], 2)
+
+    def test_old_success_cannot_replace_a_different_native_execution(self):
+        original = copy.deepcopy(self.jobs)
+        self.jobs[-1]["started_at"] = "2026-11-07T00:00:00Z"
+        self.api.api.side_effect = lambda path: ({"jobs": original} if "/attempts/" in path
+            else {"jobs": self.jobs} if "/jobs?" in path
+            else {"artifacts": self.rows} if "/artifacts?" in path else self.run)
+        with self.assertRaisesRegex(RuntimeError, "successful native execution"):
+            recovery.source_context(self.api, "123")
 
     def test_in_progress_or_wrong_workflow_never_recovers(self):
         for field, value in (("status", "in_progress"), ("event", "workflow_dispatch"),
