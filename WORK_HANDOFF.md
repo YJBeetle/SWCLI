@@ -10,6 +10,9 @@
 - 公开入口按已审计证据限于 SOLIDWORKS 33.5.0 和原生 Windows CPython 3.12.10 x64。可写 coarse/fine 和 edge 布尔。Double 仅开放两个实际测得的完整 native range + fine + custom 组合。其他 changed Double 在 setter 前拒绝。完整 CAS、lease、stamp、严格读回和副作用保护均继续生效。
 - 必要验收使用既有独立 public profile。关闭内部开关，覆盖 CLI 保存/重开、SDK 及 MCP 同后台句柄读取、trace 和清理。该验收单独记录，结果出具前仍无可合并验收结论。GLB 导出无有据修复，保留失败证据，当前不重复派发 GLB 校准。
 
+- 公开验收已派发一次。[Actions 运行](https://github.com/YJBeetle/SWCLI/actions/runs/42305767940) 对应 head `295e89fe3512744a13f23ac85aee14878a1bc5ce`。使用 `image_quality_public_acceptance=true` 和 `native_full=false`，独立 profile+ref 并发组。请求与返回保存在 `dispatch-public-quality-request.json` 和 `dispatch-public-quality-result.json`。完成后核对精确 head、原 ZIP digest、属性持久化、SDK/MCP、原生 trace 与清理。
+- 本地完整回归运行 1859 项，32 项跳过，其余通过。SDK 生成检查、strict mypy 和 9 项消费者拒绝检查通过。完整日志 `portable-public-quality-profile.log`。
+
 ## 当前继续处理状态（2026-11-07 06:03 Asia/Shanghai）
 
 - 用户经统筹明确继续处理实际失败，停止持续poll只约束监控方式，不停止当前功能；不新增字段/新计划，不发版，本路仍不合main。上一节“运行中”现为历史快照。
