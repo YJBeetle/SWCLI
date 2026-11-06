@@ -161,3 +161,18 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 旧几何诊断run `42277659656` / 3940938继续保留，最近观察在安装；本次新run由同一分支profile group串行等待旧运行，未取消旧run或其他人的run。两者目的不同：旧run保留重开几何actual定位首因，新run验证已实际修改的产品peer/回执保护。不得以旧head的任何绿灯作为P1已原生修复，也不能因新guard而跳过/放宽几何断言。最终merge-ready仍取决于新head严格内部与public原件审核。
 
 官方源复核：ISldWorks.GetDocuments返回本session打开文档数组（https://help.solidworks.com/2021/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetDocuments.html）；本组foreground快照沿用现有`_state`的IModelDoc2.GetActiveConfiguration，2025文档标注已由IConfigurationManager.ActiveConfiguration取代（https://help.solidworks.com/2025/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~GetActiveConfiguration.html）。本次不旁路改写旧A17/A18 helper、不在失败后切API重试；按既有兼容路径的实际native结果核验。
+
+## 本轮收口（覆盖此前继续迭代计划）
+
+按用户最新范围收口指令，本轮只取一次状态，不再持续sleep/轮询/无变化播报，不创建单CI automation，不新增审查代理、功能或计划，不为凑齐无限迭代。未rebase，不改main（统筹已保留的0e72beb detailing/revolve合入不受本分支影响）。现有授权无待审批/自动审批拒绝事项。
+
+一次快照：
+
+- 最终产品修复业务head `5f307d1f4fa908acbcc25b59f6be7c32c3ed24fa` 的唯一public run [42279525986](https://github.com/YJBeetle/SWCLI/actions/runs/42279525986) 仍in_progress，native job `128106109186` 正在Install native SOLIDWORKS，无已记录失败。快照已保存 `docs/evidence/units-profile/product-42279525986/closeout-snapshot.json`。不取消，不重复dispatch，后续由统筹分次快照跟进。
+- 旧诊断run [42277659656](https://github.com/YJBeetle/SWCLI/actions/runs/42277659656) / `3940938` 已failure，step=Calibrate bounded document unit profile，public CLI未执行。现已处理可用原件，不因本轮消息再触发任何运行。
+
+旧诊断原件：artifact ID `13535157052`，本地ZIP `evidence/units-profile/diagnostic-42277659656/original.zip`，SHA256 `016c5cb5b21f9ee659eb0a5f1506fe4bfc60786b3379625af1d02f476b96e8ba` 与GitHub artifact digest一致；解压原件在同目录original。失败report SHA256 `1a5269b9d0745e8c5b582aeaa2db2942516efea8c27ce97f646b5ce49b70f4c7`。原始report/artifact元数据/首因摘要/状态快照位于 `docs/evidence/units-profile/diagnostic-42277659656/`。
+
+首个真实失败是part拒写后对比 `unit observation changed geometry`。新增诊断完整记录：V/S/体数/质心z无差异，质心x由 `-7.058607893785837e-16` 到 `-1.102907483404037e-15` mm，delta=`-3.970466940254533e-16`；质心y由 `5.514537417020185e-16` 到 `6.286572655403011e-16` mm，delta=`7.720352383828262e-17`。解析容差检查通过，但原字典精确相等仍失败；cleanup_errors为空。只陈述返回测量差异，不能据此归因单位API造成物理几何变化，也不把它改称通过。精确断言未放宽，未重试/回滚/组内重启。
+
+收口结论：**目前无可合tip、无已完成public验收子集。** 旧内部read/CAS run42262804840/6c314f7的通过仅是旧源内部三fixture证据，不能替代修复后5f307d1公开验收。产品P1修复及独立mock/handler/worker/便携证据已落盘；最终public严格结果仍待统筹后续取证。九字段changed-write、scalar/system联动和写入持久性均未验收，白名单仍空。本轮就此停下，不新增迭代。

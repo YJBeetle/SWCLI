@@ -1,0 +1,38 @@
+{
+  "run_id": 42277659656,
+  "head": "39409386d628bc439f1be3197aed07ede23556c3",
+  "artifact_id": 13535157052,
+  "original_zip_sha256": "016c5cb5b21f9ee659eb0a5f1506fe4bfc60786b3379625af1d02f476b96e8ba",
+  "report_sha256": "1a5269b9d0745e8c5b582aeaa2db2942516efea8c27ce97f646b5ce49b70f4c7",
+  "failure": {
+    "type": "RuntimeError",
+    "message": "unit observation changed geometry",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 210, in worker\n    record_exact_geometry(case['geometry_before'],after_geometry,case,'comparison_after_refusal',persist,'unit observation changed geometry')\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 70, in record_exact_geometry\n    require(before==after,message)\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 22, in require\n    raise RuntimeError(message)\nRuntimeError: unit observation changed geometry\n"
+  },
+  "cleanup_errors": [],
+  "cases": [
+    {
+      "document_type": 1,
+      "comparison_after_refusal": {
+        "exact_equal": false,
+        "differences": {
+          "centroid_mm.x": {
+            "before": -7.058607893785837e-16,
+            "after": -1.102907483404037e-15,
+            "before_hex": "-0x1.96e6aaaaaaaacp-51",
+            "after_hex": "-0x1.3de4355555556p-50",
+            "delta": -3.970466940254533e-16
+          },
+          "centroid_mm.y": {
+            "before": 5.514537417020185e-16,
+            "after": 6.286572655403011e-16,
+            "before_hex": "0x1.3de4355555556p-51",
+            "after_hex": "0x1.6a65700000001p-51",
+            "delta": 7.720352383828262e-17
+          }
+        }
+      }
+    }
+  ],
+  "public_cli_executed": false
+}
