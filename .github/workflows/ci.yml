@@ -51,6 +51,12 @@ on:
         default: false
         type: boolean
 
+      units_public_acceptance:
+        description: After units calibration, run public CLI read/noop/CAS acceptance (no changed writes)
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -239,7 +245,7 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.units_calibration && 'Bounded units read/CAS calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.units_calibration && inputs.units_public_acceptance && 'Public units read/CAS acceptance' || inputs.units_calibration && 'Bounded units read/CAS calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
     if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
@@ -436,6 +442,17 @@ jobs:
             --drawing-template $drawingTemplate
           if ($LASTEXITCODE -ne 0) { throw "Units calibration failed; preserve original report and trace" }
 
+      - name: Verify public document unit profile CLI
+        id: units_public_acceptance
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.units_calibration && inputs.units_public_acceptance && github.ref == 'refs/heads/codex/docprops-units-expanded' }}
+        timeout-minutes: 32
+        shell: powershell
+        run: |
+          python -I scripts/ci/run-unit-profile-public.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\units-public-acceptance" `
+            --fixture-dir "$env:SWCLI_SMOKE_ROOT\units-calibration"
+          if ($LASTEXITCODE -ne 0) { throw "Public units CLI acceptance failed; preserve original evidence" }
+
       - name: Measure streamed data and remaining disk
         if: always()
         shell: powershell
@@ -471,7 +488,7 @@ jobs:
           python scripts/ci/summarize-tests.py `
             --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
             --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
-            --host windows --scope "${{ inputs.units_calibration && 'windows-units-read-cas-calibration' || 'windows-installed-full' }}" `
+            --host windows --scope "${{ inputs.units_calibration && inputs.units_public_acceptance && 'windows-units-public-read-cas' || inputs.units_calibration && 'windows-units-read-cas-calibration' || 'windows-installed-full' }}" `
             --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
             --stage "distributions=${{ steps.native_distribution.outcome }}" `
             --stage "media-tools=${{ steps.media_tools.outcome }}" `
@@ -486,6 +503,7 @@ jobs:
             --stage "annotation-fixtures=${{ steps.annotation_fixtures.outcome }}" `
             --stage "functional-tests=${{ steps.native_tests.outcome }}" `
             --stage "units-calibration=${{ steps.units_calibration.outcome }}" `
+            --stage "units-public-acceptance=${{ steps.units_public_acceptance.outcome }}" `
             --stage "cleanup=${{ steps.native_cleanup.outcome }}"
 
       - name: Upload SWCLI-generated smoke evidence

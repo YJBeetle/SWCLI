@@ -42,3 +42,12 @@ class UnitCalibrationTests(unittest.TestCase):
         # Full/tag/release keeps its existing global group; units gets profile+ref.
         self.assertEqual(workflow.count("format('swcli-units-read-cas-{0}', github.ref)"),1)
         self.assertIn('group: swcli-release-${{ github.ref }}',workflow)
+
+    def test_public_acceptance_requires_successful_manual_branch_calibration(self):
+        workflow=(ROOT/'.github/workflows/ci.yml').read_text()
+        self.assertIn('default: false',workflow.split('units_public_acceptance:',1)[1].split('permissions:',1)[0])
+        block=workflow.split('      - name: Verify public document unit profile CLI',1)[1].split('      - name:',1)[0]
+        self.assertIn("success() && github.event_name == 'workflow_dispatch' && inputs.units_calibration && inputs.units_public_acceptance && github.ref == 'refs/heads/codex/docprops-units-expanded'",block)
+        self.assertIn('timeout-minutes: 32',block)
+        self.assertIn('python -I scripts/ci/run-unit-profile-public.py',block)
+        self.assertLess(workflow.index('name: Calibrate bounded document unit profile'),workflow.index('name: Verify public document unit profile CLI'))

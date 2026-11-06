@@ -40,8 +40,8 @@ CI head/参数/run 链接、原始产物与首个真实失败将在触发后追�
 
 ## 集成接口清单（供主对话合并冲突）
 
-- operation `document.unit-profile`；CLI `sw-cli document unit-profile [--document-id ID] [--if-update-stamp N] --json`。返回 `unit_profile`：profile/document_type/values/native_units/linkage。
-- operation `document.unit-profile-set`；CLI `sw-cli document unit-profile-set FIELD VALUE --if-snapshot JSON --lease TOKEN --if-update-stamp N [--document-id ID] --json`。
+- operation `document.unit-profile`；CLI `sw-cli document unit-profile [--document ID] [--if-update-stamp N] --json`。返回 `unit_profile`：profile/document_type/values/native_units/linkage。
+- operation `document.unit-profile-set`；CLI `sw-cli document unit-profile-set FIELD VALUE --if-snapshot JSON --lease TOKEN --if-update-stamp N [--document ID] --json`。
 - set schema 参数：`field`、`value`、`expected_snapshot` 全部必填；操作上下文 `lease_id`、`expected_update_stamp` 必填。字段为 `system`、`linear.unit`、`linear.precision`、`angular.unit`、`angular.precision`、`mass_properties.length_unit`、`mass_properties.mass_unit`、`mass_properties.volume_unit`、`mass_properties.precision`。
 - set 结果保留 `field/before/unit_profile/changed/mutation`；失败时可附 `observed/native_return_value`，有 attempted/may_have_changed 的 partial mutation。无公开 calibration 参数。
 - 共享文件修改：`src/swcli/cli.py`、`daemon/operations.py`、`operation_schemas.py`、`result_schemas.py`、`sdk/models.py`、`sdk/_generated.py` 与 `.github/workflows/ci.yml`。`_operation` 的 lease_guarded 从仅 optional 扩为 optional/required，使本组必填 lease 真正进入 registry 守护；保留原 optional 语义。
@@ -76,3 +76,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 旧 run 普通取消202后仍pending，复核 native仍steps=[]/无runner，按同一精确取消授权调用force-cancel（官方用于普通cancel不响应情形）；最终已确认 `completed/cancelled`。最终run/job/check原件与force-cancel响应保存在旧run证据目录。
 
 替代校准仅 dispatch 一次：[42262804840](https://github.com/YJBeetle/SWCLI/actions/runs/42262804840)，head=`6c314f7d6466ccf4d7734c1127470c34e458258a`，参数=`units_calibration=true,native_full=false`。初始原件 `evidence/units-profile/replacement-run-initial.json`。旧run取消确认后才创建替代，不操作其他run。后续跟进该唯一替代的真实结果，并准备独立public CLI读/noop/CAS/lease/stamp/readonly/保存重开验收；写白名单不自动开放。
+
+## 公共 CLI 验收已落盘准备（尚未执行）
+
+- 新 `verify-document-unit-profile.py` 只调用已安装公共CLI；成功内部 native 报告/三类 fixture hash 为前置。覆盖三类文档读/raw9+5+linkage、后台身份、noop不dirty、lease/stamp/完整CAS拒绝、空domain零mutation回执、另存copy、fresh只读重开、原件/复制件hash不变。part独立V=12000/S=3800/质心(0,0,5) mm，原容差与完整before/after测量不变。
+- 新 `run-unit-profile-public.py` 启动一次独立隐藏daemon、提前PID清单/health新PID排他、每CLI请求600秒、整组1800秒看门狗、一次关闭与PID清单恢复核验。启动失败不会向未证明端点发送stop；无重启、无失败API重试。
+- workflow新增 `units_public_acceptance` 默认false；只有本分支 `workflow_dispatch + units_calibration + units_public_acceptance` 且前序校准成功才运行public step。full/release不改变。当前替代run来源6c314f7中没有该新开关，所以本次不会执行public准备代码。
+- 当前准备源与校准源的 `src/swcli/` 没有功能变化，新增内容限验收脚本/测试/默认关闭接线/交接。
+- 最新完整portable回归1851项通过（32 skipped）；随后增加公共开关接线与最终budget收口，相关33项通过，既有modeling接线12项通过（1 skipped）。原始输出 `public-preparation-portable.log`、`public-preparation-tests.log`。
+- 公共准备测试含完整三类型流程，以及noop被dirty、CAS忽略、拒写mutation、readonly联动漂移、源文件变化、几何漂移、磁盘错误覆盖首失败、已有host PID拒绝、一次宿主启停/启动超时不向未证明端点stop等负向场景。
+- 替代run `42262804840` 前置Windows3.9/3.14与package均通过，native job已从queued进入in_progress并初始化/准备安装。未取得native业务结论，未触发公共验收或其他run。待该同一run真实内部证据通过，再按新public head执行必要公共验收；不以内部绿灯止步，不在原生前宣称merge-ready。
