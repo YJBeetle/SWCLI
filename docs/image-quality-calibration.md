@@ -139,3 +139,16 @@ passed native acceptance. A cleanup failure clears every acceptance flag.
 At the user-requested closeout, run 42280265165 at c85ca5f remains in progress
 before CAD setup. Public writes remain closed and no merge-ready acceptance is
 claimed. Follow WORK_HANDOFF.md for the exact snapshot and preserved originals.
+
+
+Run 42280265165 subsequently failed the unchanged strict readback check: a
+single Double request for 0.06927710843373494 mm returned True and selected
+custom mode, but the native value became 0.07142857142857144 mm. The receipt
+preserved possible mutation and stopped before dirty marking, box or GLB.
+The arbitrary range interpolation was therefore an invalid exact test target.
+The corrected calibration requests the fixture's initial, independently
+observed native custom value after the preset stages, retaining the same
+readback, raw persistence, geometry and trace requirements. It does not infer
+a quantization grid or prove arbitrary in-range values are exactly writable.
+Public writes remain closed. Original failure ZIP and independent first-failure
+audit are preserved under run-42280265165 in the handoff artifact directory.

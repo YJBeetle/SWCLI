@@ -263,6 +263,21 @@ class ImageQualityTests(unittest.TestCase):
                 self.extension.SetUserPreferenceToggle.assert_called_once()
                 validate_operation_result("document.image-quality-set", result)
 
+    def test_native_quantized_double_is_a_partial_failure_without_dirty_or_second_setter(self):
+        # Exact native run 42280265165 counterexample, not a rounding allowance.
+        def quantize(preference, option, value):
+            self.native[32]=7.142857142857143e-05;self.native[44]=3;return True
+        self.extension.SetUserPreferenceDouble.side_effect=quantize
+        result=self.edit("shaded_deviation_mm",0.06927710843373494)
+        self.assertFalse(result["ok"],result)
+        self.assertEqual(result["error"]["message"],"native image quality setter did not read back the requested value")
+        self.assertEqual(result["observed_quality"]["shaded_mode"],"custom")
+        self.assertEqual(result["observed_quality"]["native"]["shaded_deviation_m"],7.142857142857143e-05)
+        self.assertEqual(result["mutation"],dict(attempted=True,may_have_changed=True))
+        self.extension.SetUserPreferenceDouble.assert_called_once_with(32,0,0.06927710843373494/1000)
+        self.extension.SetUserPreferenceInteger.assert_not_called();self.document.SetSaveFlag.assert_not_called()
+        validate_operation_result("document.image-quality-set",result)
+
     def test_custom_integer_is_rejected_before_native_and_double_requires_custom_readback(self):
         with self.assertRaises(ValueError):
             self.edit("shaded_mode", "custom")

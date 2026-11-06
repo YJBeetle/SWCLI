@@ -2,6 +2,16 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 当前继续处理状态（2026-11-07 06:03 Asia/Shanghai）
+
+- 用户经统筹明确继续处理实际失败，停止持续poll只约束监控方式，不停止当前功能；不新增字段/新计划，不发版，本路仍不合main。上一节“运行中”现为历史快照。
+- run **42280265165** / head **`c85ca5f524b3f2e4136241f9fd973d1c137fbf68`** 已completed/failure；原zip1055609 bytes，digest **`sha256:f533fef91c3ad2f1f0f1c47bc6c25c8c2aefa38fbd03ebd58139f128df25b048`** 已与GitHub metadata核对。原件/下载回执/独立audit保存在持久根`run-42280265165`，没有覆盖旧失败。
+- 首因：圆柱从fine的单Double请求`0.06927710843373494 mm`返回True，并真的成为custom，但读回`0.07142857142857144 mm`。严格目标检查正确拒绝，mutation双true保留；原trace独立核251个native leaf calls、仅1个Double setter、0次dirty、0次全局setter/重试。不是handler/schema/安装失败。此前圆柱coarse/fine raw另存重开与文件hash有效，box/GLB组尚未开始，cleanup通过；这不是完整属性验收。
+- 官方[Image Quality属性API](https://help.solidworks.com/2022/English/api/swconst/DP_ImageQuality.htm)只列Double偏差与range API；[UI说明](https://help.solidworks.com/2017/english/SolidWorks/sldworks/HIDD_OPTIONS_IMAGE_QUALITY_display.htm?format=P&value=)说明slider与偏差反比联动，没有据此可证实的精确量化网格。没有猜公式或放宽容差。
+- 最小相关修复仅改变校准输入：选择该fixture在首写前真实观察并独立保存重开的initial custom偏差，要求仍在current range且与fine值不同；每次新fixture只执行单Double。报告保存target来源，明确仅验证“此前观察的一个native值”，任意in-range精确数值仍未证明。此为新head的新完整组验证，不是对失败请求原生重试/回滚，也不补setter。backend仍全部公共关闭。
+- 新增原数值量化反例：即使返回True且custom也失败，observed/mutation保留、单Double/零dirty；fake模拟preset偏差联动及任意插值量化，证明gate使用真实先前观察值，完整严格断言保留。对应**32 tests OK**，diff-check通过。生产adapter/schema未修改，无无差异重跑。
+- 独立首错audit：`/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42280265165/independent-first-failure-audit.json`；audit_ok仅指离线核对通过，`image_quality_calibration_passed=false/public_acceptance_passed=false`保持。下一相关新head只派发一次，正常运行后记录run/head/链接即结束等待，不启动watch/sleep/automation。
+
 ## 当前收口状态（2026-11-07 03:42 Asia/Shanghai）
 
 - 按用户最新指令，本轮停止持续sleep/轮询与无变化播报；仅取一次状态后交统筹跟进。不创建单CI automation、不扩新计划、不新增审查代理、不rebase main。

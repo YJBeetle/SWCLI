@@ -44,6 +44,7 @@ class QualitySmoke(modeling.ModelingSmoke):
             expected_version=__version__, source_commit=os.environ.get("GITHUB_SHA"),
             export_staging_profile="not used by document-properties group" if document_properties else "plain filename in internal CI only; default exporter unchanged",
             python_version=sys.version,
+            deviation_write_scope="single previously observed native custom value per fixture; arbitrary in-range values unsupported by evidence",
             format_options_status="unsupported: no verified API mapping; same host defaults observed, not independently controlled")
 
     def command(self, *args, **kwargs):
@@ -236,9 +237,16 @@ def run(gate, trace, swconst):
                 bounds = current["quality"]["deviation_range"]
                 require(bounds["status"] == 0, "custom quality native range unavailable")
                 low, high = bounds["bounds_m"]
-                target = (low+(high-low)*0.25)*1000
-                if math.isclose(target, current["quality"]["shaded_deviation_mm"], rel_tol=1e-12, abs_tol=1e-12):
-                    target = (low+(high-low)*0.75)*1000
+                # Range membership does not prove exact representability:
+                # native 33.5.0 quantized the old arbitrary quartile request.
+                # Use this fixture's independently observed initial custom value,
+                # never infer a slider grid or retry the rejected value.
+                target = expected_baseline["shaded_deviation_mm"]
+                require(expected_baseline["shaded_mode"] == "custom"
+                    and low <= expected_baseline["native"]["shaded_deviation_m"] <= high,
+                    "fixture requires an observed native custom deviation in the current range")
+                row["deviation_target_evidence"] = dict(source="initial native custom snapshot",
+                    requested_mm=target, scope="one previously observed native value; arbitrary in-range values unproven")
                 require(target > 0 and not math.isclose(target, current["quality"]["shaded_deviation_mm"], rel_tol=1e-12, abs_tol=1e-12), "custom deviation must actually change")
                 row["deviation_write"] = current = edit(gate, document, current, "shaded_deviation_mm", target, trace)
                 require(current["quality"]["shaded_mode"] == "custom", "single deviation setter did not establish custom mode")

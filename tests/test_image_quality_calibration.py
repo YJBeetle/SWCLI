@@ -13,7 +13,7 @@ from unittest import mock
 
 from swcli import __version__
 from swcli.cli import _typed_operation
-from swcli.document_image_quality import exact_snapshot, quality_snapshot
+from swcli.document_image_quality import exact_snapshot, quality_snapshot, linked_changes
 from tests.test_document_image_quality import snapshot
 from tests.test_modeling_smoke import FakeCLI, mesh_fixture
 
@@ -72,9 +72,13 @@ class QualityCLI(FakeCLI):
                 if self.quality_defect == "native-first-failure":
                     return self.failure("RuntimeError", mutation=dict(attempted=True,may_have_changed=True))
                 raw=quality["native"]
-                if field == "shaded_mode": raw[field]={"coarse":1,"fine":2,"custom":3}[value]
+                if field == "shaded_mode":
+                    raw[field]={"coarse":1,"fine":2,"custom":3}[value]
+                    raw["shaded_deviation_m"]={"coarse":0.0005,"fine":0.0001}[value]
                 elif field == "shaded_deviation_mm":
                     raw["shaded_deviation_m"]=value/1000
+                    if self.quality_defect=="quantize-unobserved-deviation" and value != snapshot()["shaded_deviation_mm"]:
+                        raw["shaded_deviation_m"]=0.0003
                     raw["shaded_mode"]=3
                 else: raw[field]=value
                 document["quality"]=quality=quality_snapshot(raw,quality["deviation_range"])
@@ -82,9 +86,8 @@ class QualityCLI(FakeCLI):
                 self.native_calls.append("IModelDocExtension.SetUserPreference"+gate.IMAGE_QUALITY_FIELDS[field]["kind"])
                 self.getters(); self.getters()
             result=dict(base,field=field,before=before,quality=deepcopy(quality),changed=changed,
-                mutation=dict(attempted=changed,may_have_changed=changed),linked_changes=(
-                    [dict(field="shaded_mode",before=before["shaded_mode"],after="custom",reason="shaded-deviation-coupling")]
-                    if field=="shaded_deviation_mm" and before["shaded_mode"]!="custom" and changed else []),document=self.descriptor(document,args.session))
+                mutation=dict(attempted=changed,may_have_changed=changed),linked_changes=linked_changes(before,quality,field),
+                document=self.descriptor(document,args.session))
             if changed: result.update(native_return=True,observed_quality=deepcopy(quality))
             return result
         if action == "document" and sub in ("save-as","export"):
@@ -153,6 +156,16 @@ class CalibrationTests(unittest.TestCase):
             self.assertEqual([len(row["noops"]) for row in case["levels"]],[3,3,2])
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(all(event["request_timeout_seconds"]==600 for event in record["events"]))
+
+    def test_custom_target_is_observed_native_value_not_an_arbitrary_range_interpolation(self):
+        self.fake.quality_defect="quantize-unobserved-deviation"
+        self.run_gate(document_properties=True)
+        for case in self.record()["cases"]:
+            row=case["levels"][-1]
+            self.assertEqual(row["deviation_write"]["quality"]["shaded_deviation_mm"],case["initial"]["quality"]["shaded_deviation_mm"])
+            self.assertEqual(row["deviation_target_evidence"]["source"],"initial native custom snapshot")
+            self.assertNotEqual(row["deviation_write"]["before"]["shaded_deviation_mm"],row["deviation_target_evidence"]["requested_mm"])
+        self.assertIn("arbitrary in-range values unsupported",self.record()["deviation_write_scope"])
 
     def test_document_properties_is_a_separate_complete_group_without_glb_claims(self):
         self.run_gate(document_properties=True);record=self.record()
