@@ -45,8 +45,29 @@ def source_context(api, run_id):
         selected = [job for job in jobs if job["name"] == name]
         require(len(selected) == 1 and selected[0].get("conclusion") == "success",
                 "Original required job did not pass: " + name)
-    attempt = int(run["run_attempt"])
+    workflow_attempt = int(run["run_attempt"])
     rows = api.api("actions/runs/" + run_id + "/artifacts?per_page=100")["artifacts"]
+    # A publish-only rerun relabels inherited jobs with the new run_attempt
+    # (even their IDs change). Match the actual execution times in the original
+    # attempt, rather than guessing an artifact from the current attempt number.
+    native = next(job for job in jobs if job["name"] == JOBS[-1])
+    signature = lambda job: tuple(job.get(key) for key in ("head_sha", "started_at", "completed_at"))
+    require(all(signature(native)) and native["head_sha"] == commit, "Native execution identity missing")
+    candidates = []
+    prefix = "swcli-windows-hosted-" + run_id + "-"
+    for row in rows:
+        suffix = row["name"][len(prefix):] if row["name"].startswith(prefix) else ""
+        if suffix.isdigit() and 1 <= int(suffix) <= workflow_attempt:
+            candidates.append(int(suffix))
+    matching = []
+    for candidate in sorted(set(candidates)):
+        original = api.api("actions/runs/" + run_id + "/attempts/" + str(candidate) + "/jobs?per_page=100")["jobs"]
+        gates = [job for job in original if job["name"] == JOBS[-1]]
+        if (len(gates) == 1 and gates[0].get("conclusion") == "success"
+                and signature(gates[0]) == signature(native)):
+            matching.append(candidate)
+    require(len(matching) == 1, "Missing/ambiguous artifact for successful native execution")
+    attempt = matching[0]
     artifacts = {}
     for key, name in (("dist", "swcli-dist"), ("native", "swcli-windows-hosted-" + run_id + "-" + str(attempt))):
         selected = [row for row in rows if row["name"] == name]
@@ -57,7 +78,7 @@ def source_context(api, run_id):
                 and re.fullmatch(r"sha256:[0-9a-f]{64}", row.get("digest", "")),
                 "Original artifact source/digest is invalid: " + name)
         artifacts[key] = {field: row[field] for field in ("id", "name", "digest", "size_in_bytes")}
-    return {"repository": REPOSITORY, "run_id": run_id, "run_attempt": attempt,
+    return {"repository": REPOSITORY, "run_id": run_id, "run_attempt": attempt, "workflow_attempt": workflow_attempt,
             "tag": tag, "version": tag[1:], "commit": commit, "artifacts": artifacts}
 
 
@@ -87,6 +108,7 @@ def publish_original(context, root, dist, evidence, output, api, env):
         "version": context["version"], "commit": context["commit"],
         "prerelease": bool(re.search(r"(?:a|b|rc)[0-9]+", context["version"])),
         "run_id": context["run_id"], "run_attempt": context["run_attempt"],
+        "source_workflow_attempt": context["workflow_attempt"],
         "run_url": run_url + context["run_id"],
         "artifacts": [a["name"] for a in context["artifacts"].values()],
         "artifact_metadata": {a["name"]: a for a in context["artifacts"].values()},
