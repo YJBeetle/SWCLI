@@ -13,6 +13,8 @@
 - 操作/CLI：document.dimension-format（swcli document dimension-format）；document.dimension-format-set（swcli document dimension-format-set FIELD VALUE --if-format JSON）。
 - schema：reader空参数；setter的field=dual_display/dual_position/parentheses，value为严格布尔或位置枚举，expected_format是完整原生三字段（dual_position原生整数）；setter context的document_id/expected_update_stamp/lease_id均required。
 - 共享文件修改：.github/workflows/ci.yml（专属模式跳过test/package；原full/native发布门保留）、src/swcli/cli.py、daemon/operations.py、operation_schemas.py、result_schemas.py和生成的sdk/_generated.py、sdk/models.py。新增catalog/adapter/校准脚本/16项定向测试/说明文档。无新运行依赖。
-- 提交/推送：待记录。
-- CI：待通过便携测试/接线检查后，仅触发当前head的 `ci.yml`，`dimension_format_calibration=true`，`native_full=false`。原生600秒、组1800秒、首失败停止。
+- 实现提交 `4a2b4f461539cd4c5c80505a5172c2fcc3d071f2`（中文提交）已推送 origin/codex/docprops-dimension-format。
+- CI：仅手动触发一次 https://github.com/YJBeetle/SWCLI/actions/runs/42260887789 ，head=`4a2b4f461539cd4c5c80505a5172c2fcc3d071f2`，ci.yml，dimension_format_calibration=true、native_full=false，其余安装参数默认。初始状态in_progress（2026-11-07 01:21北京时间），并非通过。原生600秒、组1800秒、首失败停止；禁止无修复重跑。
+- CI artifacts：远端 dimension-format-42260887789-1；下载后原样保存到 ../evidence/native-42260887789/。当前尚未有完成证据。
+- 远端已核实为公开仓库 https://github.com/YJBeetle/SWCLI，当前身份ADMIN；初始导出审批因缺少远端信任信息被拒，经只读验证后本次提交/推送与校准触发获准。
 - 未完成边界：内部原生校准与安装后公开CLI验收严格区分；即使内部成功仍需公开入口全链路证据后另行开放写入，不合并、不发布。
