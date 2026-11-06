@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：公开42282493201/7962b58失败，原件digest/head及trace前缀、fixture SHA均已核；首因是gate超时包装将None传入min，在stale-stamp检查的CLI派发前崩溃，尺寸setter为零。最小修复与43项定向测试已过，准备一次必要相关公开验收。仍不merge-ready。
+当前状态：公开首轮42282493201原件已保全并定位超时包装None首因（尺寸setter为零）；最小修复3153b24已推送，43项定向测试通过。一次相关公开42301046570/head3153b24唯一快照in_progress，正常运行；仍不merge-ready。公开缺口继续留在当前系列任务内，按收口指令记录后结束本轮，无持续监看。
 
 ## 分支与范围
 
@@ -126,3 +126,11 @@
 - 最小修复仅在本gate包装将None解释为既有600秒默认值，再与600和组剩余时间取最小；保留1800秒组界限和15秒清理预留，不修改产品、几何/状态判据、失败行为或字段范围。
 - 两项新增回归经真实继承write路径验证None、显式300/900、组剩余50秒与过期拒绝；43项定向测试通过。同head7962b58的Windows便携CI42282468280已success。本次为相关修复后必要验收，不是原样重发；不重启失败组或重试CAD API。
 - 用户最新澄清系列能力一起完成再发版，本系列公开缺口保持当前任务内处理；不据此扩新字段/计划或派审查代理。正常新运行仅保存一次快照后结束，由统筹后续继续。
+
+## 超时修复后的必要公开运行交接
+
+- 精确产品head `3153b2415cb0713f57f15e4fb2acff1d7a5c32ba` 已推送。仅修本gate的None默认超时及两项回归，三字段/三类场景/几何与状态判据不变。
+- https://github.com/YJBeetle/SWCLI/actions/runs/42301046570 ：workflow_dispatch，head与修复一致，dimension_format_public=true、dimension_format_calibration=false、native_full=false。唯一快照in_progress，正常运行，无失败/成功结论，未重复dispatch。
+- 同head自动便携CI https://github.com/YJBeetle/SWCLI/actions/runs/42301024325 ，唯一快照in_progress；先前7962b58的Windows便携CI42282468280已success。当前43项定向通过，本修复不涉及产品runtime/schema。
+- 总状态 ../evidence/calibration-state.json；首轮原始artifact/digest/trace/fixture/生命周期审计 ../evidence/public-42282493201/。后续完成时仍需核新运行原件、精确head/digest及完整公开链后才能给可合范围。
+- 按用户收口规则，正常运行记录后结束，无sleep/watch/automation、无CAD失败重试/回滚/组内host重启、无代理或新功能计划。当前系列公开缺口不后置出任务，也不宣称已完成发版门槛；由统筹后续分次快照继续。
