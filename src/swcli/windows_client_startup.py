@@ -86,7 +86,7 @@ def _cleanup_start_task(folder, running, *, name, log, ready):
     return errors
 
 
-def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, attach_existing=False):
+def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, attach_existing=False, tray="auto"):
     import os
     import pythoncom
     import win32api
@@ -101,6 +101,10 @@ def start_resident_daemon(*, endpoint, startup_timeout_seconds, visible=False, a
     log.parent.mkdir(parents=True, exist_ok=True)
     arguments = [str(Path(__file__).with_name("client_bootstrap.py")), "--endpoint", endpoint,
                  "--startup-timeout", str(startup_timeout_seconds), "--log", str(log)]
+    from .windows_tray import validate_mode
+    validate_mode(tray)
+    if tray != "auto":
+        arguments.extend(("--tray", tray))
     if visible:
         arguments.append("--visible")
     if attach_existing:

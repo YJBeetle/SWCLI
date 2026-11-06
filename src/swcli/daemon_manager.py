@@ -72,8 +72,11 @@ class DaemonManager:
                 reachable=False, scope="client-host", error={"code": type(exc).__name__, "message": str(exc)},
             )}
 
-    def start(self, *, visible=False, attach_existing=False, startup_timeout_seconds=120):
+    def start(self, *, visible=False, attach_existing=False, startup_timeout_seconds=120, tray="auto"):
         from .daemon.main import is_local_daemon_unreachable_error, is_local_endpoint, start_daemon
+        from .windows_tray import validate_mode
+        validate_mode(tray)
+        tray_options = {"tray": tray} if tray != "auto" else {}
         startup_timeout_seconds = validate_timeout(startup_timeout_seconds, name="startup timeout", margin=30)
         try:
             health = self._call("daemon.health")
@@ -93,7 +96,7 @@ class DaemonManager:
             return failure("NonLocalEndpoint", "Start the remote daemon on its host; this manager only launches local hosts")
         delegated = os.environ.get(DELEGATED_ENV) == "1"
         if self.host_launcher and not delegated:
-            result = self._start_external(visible, attach_existing, startup_timeout_seconds)
+            result = self._start_external(visible, attach_existing, startup_timeout_seconds, **tray_options)
             if result.get("success"):
                 ready = self._call("daemon.health")
                 state = ready.get("result") or {}
@@ -104,13 +107,13 @@ class DaemonManager:
             return failure("HostLauncherRequired", "Configure SWCLI_DAEMON_UTILS with the host's absolute daemon utilities script; the client Python is not the daemon runtime")
         if delegated:
             return start_daemon(endpoint=self.endpoint, startup_timeout_seconds=startup_timeout_seconds,
-                                visible=visible, attach_existing=attach_existing)
+                                visible=visible, attach_existing=attach_existing, **tray_options)
         from .windows_client_startup import in_client_job, start_resident_daemon
         if in_client_job():
             return start_resident_daemon(endpoint=self.endpoint, startup_timeout_seconds=startup_timeout_seconds,
-                                         visible=visible, attach_existing=attach_existing)
+                                         visible=visible, attach_existing=attach_existing, **tray_options)
         return start_daemon(endpoint=self.endpoint, startup_timeout_seconds=startup_timeout_seconds,
-                            visible=visible, attach_existing=attach_existing)
+                            visible=visible, attach_existing=attach_existing, **tray_options)
 
     def forward_host_command(self, args):
         """Delegate host-only CLI commands after Python has parsed all options.
@@ -136,6 +139,8 @@ class DaemonManager:
             parameters = ["--endpoint", getattr(args, "daemon_endpoint", None) or self.endpoint,
                           "--startup-timeout", str(args.startup_timeout)]
         if action != "doctor":
+            if getattr(args, "tray", "auto") != "auto":
+                parameters.extend(("--tray", args.tray))
             if args.visible:
                 parameters.append("--visible")
             if args.attach_existing:
@@ -148,7 +153,7 @@ class DaemonManager:
         return subprocess.run([str(launcher), action, *parameters], env=environment,
                               start_new_session=sys.platform != "win32" and action == "restart").returncode
 
-    def _start_external(self, visible, attach_existing, timeout):
+    def _start_external(self, visible, attach_existing, timeout, tray="auto"):
         launcher = Path(self.host_launcher)
         if not launcher.is_absolute() or not launcher.is_file():
             return failure("InvalidHostLauncher", "SWCLI_DAEMON_UTILS must identify an existing absolute executable path")
@@ -160,6 +165,8 @@ class DaemonManager:
                 return failure("HostLauncherIsolationRequired", "This Windows client is inside a kill job; use its native manager or an independently managed host service")
         arguments = [str(launcher), "start", "--endpoint", self.endpoint,
                      "--startup-timeout", str(timeout), "--json"]
+        if tray != "auto":
+            arguments.extend(("--tray", tray))
         if visible:
             arguments.append("--visible")
         if attach_existing:

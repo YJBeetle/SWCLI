@@ -132,7 +132,36 @@ or window access stays unknown, not an empty list or hidden=false observation.
 observations come from the daemon host, never the client's PID namespace.
 Older daemons fall back to health with that limitation stated. Basic
 `daemon status --json` keeps its existing health response. This observes SW
-windows; a tray controller is a separate planned feature.
+windows; the notification icon is controlled independently through `tray`.
+
+### Windows notification icon
+
+`swcli daemon start`, `serve` and `restart` accept `--tray auto|on|off`.
+Omitting it means `auto`: show the icon on native Windows and keep it off under
+Wine. MCP `swcli_daemon_start` accepts the same `tray` values. This selects the
+daemon's notification icon, independently of `visible` for the SW window.
+An already-running daemon is reused without changing either setting.
+
+```powershell
+swcli daemon start --tray off --json
+```
+
+```json
+{"tray":"off"}
+```
+
+The native icon offers read-only runtime status, confirmed daemon stop, and
+hide-icon. Hiding the icon keeps the daemon, SW and documents running. The
+stop action uses the same open-document and attached-user-host protections as
+`swcli_daemon_stop`; it never force-closes documents or processes. A pending
+request blocks duplicate clicks. After a timeout the result remains unknown;
+inspect status before another stop.
+
+If the notification area is unavailable (for example, in a noninteractive
+service session), `auto` records a diagnostic on stderr and keeps the daemon
+available. Explicit `on` reports `TrayUnavailable` before starting SW. MacSW
+and DockerSW can pass `off`; their existing host UI remains responsible for
+lifecycle presentation. No tray interaction starts or restarts SW implicitly.
 
 ## Discover, execute and check results
 
@@ -141,7 +170,7 @@ The five stable MCP tools are:
 | Tool | Arguments and result |
 | --- | --- |
 | `status` | `{}`; read-only runtime snapshot, including unknown/stale fields. |
-| `daemon_start` | Optional `visible`, `attach_existing`, `startup_timeout_seconds`; explicit start or reuse of the configured local host. |
+| `daemon_start` | Optional `visible`, `tray`, `attach_existing`, `startup_timeout_seconds`; explicit start or reuse of the configured local host. |
 | `daemon_stop` | Optional stable `request_id`; explicit shared-endpoint shutdown with existing document/ownership guards. |
 | `capabilities` | `{}` for the small live operation/export summary; `{"operation":"document.properties"}` for that operation's exact input/result schemas and `x-swcli-context`. |
 | `execute` | `operation`, `parameters`, plus the existing optional `session_id`, `document_id`, `expected_update_stamp`, `lease_id`, `request_id` context. |
