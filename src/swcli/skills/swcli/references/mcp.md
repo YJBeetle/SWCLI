@@ -31,8 +31,8 @@ or shell banners into it. SWCLI protocol output stays on stdout; diagnostics
 use stderr.
 
 Initialization, tool discovery, status, capability queries and CAD calls never
-start SOLIDWORKS implicitly. Call `swcli_status`, explicitly call
-`swcli_daemon_start` if the task needs a host, then discover and execute CAD
+start SOLIDWORKS implicitly. Call `status`, explicitly call
+`daemon_start` if the task needs a host, then discover and execute CAD
 operations. There is no lazy startup or `--auto-start` option.
 
 Starting **both swclid and SOLIDWORKS** can take tens of seconds to several
@@ -112,7 +112,7 @@ host terminal instead of repeatedly creating hosts.
 At task completion, the agent can choose to keep the host ready or explicitly
 stop it, based on the user's stated preferences, resource needs and expected
 follow-up work. There is no rule requiring the agent to leave it running.
-MCP disconnect **does not stop swclid or SOLIDWORKS**. `swcli_daemon_stop` and `swcli daemon stop` send the same
+MCP disconnect **does not stop swclid or SOLIDWORKS**. `daemon_stop` and `swcli daemon stop` send the same
 `daemon.shutdown` request and use the same protections. The tool returns its
 structured result while keeping the MCP connection open; the CLI returns
 text/JSON plus an exit code and finishes. Shutdown is explicit, affects all clients on the endpoint, and keeps MCP connected. It
@@ -122,7 +122,7 @@ No native-operation retry, implicit restart or rollback is added.
 
 ### Runtime observations
 
-`swcli_status` and `swcli daemon status --details --json` use the same read-only
+`status` and `swcli daemon status --details --json` use the same read-only
 snapshot. It reports daemon running/reachable/state, SW running, known ownership,
 SW PID and window visibility, other processes, observation scope and probe errors.
 `user_sw_running:null` means process origin cannot be established; a visible
@@ -140,11 +140,11 @@ The five stable MCP tools are:
 
 | Tool | Arguments and result |
 | --- | --- |
-| `swcli_status` | `{}`; read-only runtime snapshot, including unknown/stale fields. |
-| `swcli_daemon_start` | Optional `visible`, `attach_existing`, `startup_timeout_seconds`; explicit start or reuse of the configured local host. |
-| `swcli_daemon_stop` | Optional stable `request_id`; explicit shared-endpoint shutdown with existing document/ownership guards. |
-| `swcli_capabilities` | `{}` for the small live operation/export summary; `{"operation":"document.properties"}` for that operation's exact input/result schemas and `x-swcli-context`. |
-| `swcli_execute` | `operation`, `parameters`, plus the existing optional `session_id`, `document_id`, `expected_update_stamp`, `lease_id`, `request_id` context. |
+| `status` | `{}`; read-only runtime snapshot, including unknown/stale fields. |
+| `daemon_start` | Optional `visible`, `attach_existing`, `startup_timeout_seconds`; explicit start or reuse of the configured local host. |
+| `daemon_stop` | Optional stable `request_id`; explicit shared-endpoint shutdown with existing document/ownership guards. |
+| `capabilities` | `{}` for the small live operation/export summary; `{"operation":"document.properties"}` for that operation's exact input/result schemas and `x-swcli-context`. |
+| `execute` | `operation`, `parameters`, plus the existing optional `session_id`, `document_id`, `expected_update_stamp`, `lease_id`, `request_id` context. |
 
 Read the live operation schema before executing. Do not load all schemas by
 default or infer support from this client's version. For example, after

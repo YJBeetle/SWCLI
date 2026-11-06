@@ -66,19 +66,19 @@ the six existing exports before image promotion. See the
 Install the optional MCP support with Python 3.10+ (`python -m pip install
 ".[mcp]"` from this checkout). Configure the AI client to run `swcli mcp serve`
 as a **stdio** server. Initialization, status and CAD calls never start SW
-implicitly. Call `swcli_daemon_start` explicitly when needed; startup of daemon
+implicitly. Call `daemon_start` explicitly when needed; startup of daemon
 and SW may take several minutes. Linux/macOS clients use the host daemon utilities
 configured by `--daemon-utils` or `SWCLI_DAEMON_UTILS`, rather than starting
 their own Python as a Windows daemon. Remote startup stays host-managed.
 Existing visible SW requires explicit attach. MCP disconnect leaves swclid/SW
-running; `swcli_daemon_stop` is explicit and respects open-document guards.
+running; `daemon_stop` is explicit and respects open-document guards.
 
 ```json
 {"mcpServers":{"swcli":{"command":"swcli","args":["mcp","serve"]}}}
 ```
 
-`swcli_status`, `swcli_daemon_start`, `swcli_daemon_stop`,
-`swcli_capabilities` and `swcli_execute` reuse the existing
+`status`, `daemon_start`, `daemon_stop`,
+`capabilities` and `execute` reuse the existing
 protocol, sessions, leases, CAS and native error handling. See the packaged
 [MCP agent guide](src/swcli/skills/swcli/references/mcp.md) for exact arguments,
 response envelopes and lifecycle. The base CLI keeps Python 3.9 compatibility;

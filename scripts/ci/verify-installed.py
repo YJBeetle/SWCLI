@@ -76,8 +76,11 @@ def main():
             or not api_guide.read_text(encoding="utf-8").startswith("# Official SOLIDWORKS API workflow\n")):
         raise RuntimeError("installed skill is missing its linked native API guide")
     mcp_guide = skill.joinpath("references").joinpath("mcp.md")
-    if "references/mcp.md" not in instructions or "swcli_execute" not in mcp_guide.read_text(encoding="utf-8"):
-        raise RuntimeError("installed skill is missing its linked MCP guide")
+    from swcli.mcp import tool_definitions
+    mcp_text = mcp_guide.read_text(encoding="utf-8")
+    if "references/mcp.md" not in instructions or any(
+            "`" + tool["name"] + "`" not in mcp_text for tool in tool_definitions()):
+        raise RuntimeError("installed skill is missing its linked MCP tool guide")
     print("Installed SWCLI CLI, schemas and product skill verified (no COM activation)")
 
 
