@@ -66,9 +66,18 @@ class DimensionTrace(annotations.NativeTrace):
         reads = [r["call"] for r in rows if r["phase"] == "begin" and r["stage"] == "document-dimension-format"
                  and r["call"].startswith("IModelDocExtension.GetUserPreference")]
         response = event["result"]
-        count = 4 if setters else 1 if response.get("ok") or response.get("error", {}).get("type") == "DocumentDimensionFormatConflict" or operation == "document.dimension-format" else 0
+        count = 4 if setters else 1 if response.get("ok") or "before" in response or operation == "document.dimension-format" else 0
         require(reads == cycle * count and len(changes) == setters and len(dirty) <= 1
                 and (mark_dirty is None or len(dirty) == mark_dirty), "native read/set/dirty lifecycle differs from public receipt")
+        observed = [r["call"] for r in rows if r["phase"] == "begin" and r["stage"] == "document-dimension-format"
+                    and r["call"].startswith("IModelDocExtension.")]
+        expected = cycle * count
+        if setters:
+            command = event["command"]
+            field = command[command.index("dimension-format-set") + 1]
+            setter = "IModelDocExtension.SetUserPreference" + ("Integer" if field == "dual_position" else "Toggle")
+            expected = cycle * 2 + [setter] + cycle * 2
+        require(observed == expected, "public native setter kind or read/write order is invalid")
         require(not any(r["call"].startswith("ISldWorks.SetUserPreference") for r in rows), "public edit reached a global preference setter")
         if response.get("ok"): require(not any(r["phase"] == "error" for r in rows), "successful request has native error")
         self.verified_requests.add(request)

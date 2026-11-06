@@ -86,6 +86,20 @@ class DimensionPublicTests(unittest.TestCase):
                        lambda rows: rows[1].update(operation="document.units")):
             with self.subTest(damage=damage), self.assertRaises(RuntimeError): self.proof(damage)
 
+    def test_public_trace_rejects_wrong_setter_kind_or_order(self):
+        def wrong_kind(rows):
+            for row in rows:
+                if row["call"] == "IModelDocExtension.SetUserPreferenceToggle":
+                    row["call"] = "IModelDocExtension.SetUserPreferenceDouble"
+        with self.assertRaises(RuntimeError): self.proof(wrong_kind)
+        def wrong_order(rows):
+            setter = [row for row in rows if row["call"] == "IModelDocExtension.SetUserPreferenceToggle"]
+            rows[:] = rows[:1] + setter + [row for row in rows[1:-1] if row not in setter] + rows[-1:]
+            # Preserve valid unique consecutive trace sequence numbers so the
+            # failed proof is specifically about the setter's operation order.
+            for index, row in enumerate(rows[1:-1]): row["sequence"] = index // 2 + 1
+        with self.assertRaises(RuntimeError): self.proof(wrong_order)
+
     def test_public_mode_precedes_unrelated_suites_and_stops_owned_daemon_once(self):
         wrapper = (ROOT / "scripts/ci/windows/smoke-solidworks.ps1").read_text()
         block = wrapper.split("    if ($DimensionFormatFixtureDirectory) {", 1)[1].split("    if ($VisibleSmoke)", 1)[0]

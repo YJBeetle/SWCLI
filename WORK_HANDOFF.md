@@ -1,37 +1,47 @@
 # 尺寸显示格式交接
 
-- 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI`
-- 分支：`codex/docprops-dimension-format`
-- 基线：`3bda2c00489dde6a3d1e4521c548f751b1d1c197`
-- 范围：`dual_display`、`dual_position`、`parentheses`，CLI/协议/SDK、完整值CAS、背景/readonly/lease/更新戳/身份与部分mutation保护。
-- 零显示沿用已有注解操作；单位转换与公差不涉及。
-- 原生写入 fail closed：`CALIBRATED_DOCUMENT_TYPES` 为空；内部 `_calibration` 仅适配器自有夹具入口，不能通过协议/CLI启用。
-- 当前详细契约与官方映射：`docs/dimension-format.md`。
-- 未操作本地 Windows VM、SOLIDWORKS、DockerSW 或 MacSW；仅只读查看 MacSW 中已有官方 SDK 头文件以核数字ID。
-- 便携测试：Python3.15 当前wheel安装后完整套件1834项通过、32项平台跳过（51.377秒）；最后补充原有dirty保护后定向16项通过；SDK生成检查、严格类型检查（mypy1.18.2）、安装资源检查、YAML解析、git diff --check均通过。最初未安装wheel导致隔离导入失败，安装后已消除。
-- 原始便携日志：工作树同级 ../evidence/portable-tests.log、dimension-focused-tests.log、wheel-build.log，不依赖tmp。
-- 操作/CLI：document.dimension-format（swcli document dimension-format）；document.dimension-format-set（swcli document dimension-format-set FIELD VALUE --if-format JSON）。
-- schema：reader空参数；setter的field=dual_display/dual_position/parentheses，value为严格布尔或位置枚举，expected_format是完整原生三字段（dual_position原生整数）；setter context的document_id/expected_update_stamp/lease_id均required。
-- 共享文件修改：.github/workflows/ci.yml（专属模式跳过test/package；原full/native发布门保留）、src/swcli/cli.py、daemon/operations.py、operation_schemas.py、result_schemas.py和生成的sdk/_generated.py、sdk/models.py。新增catalog/adapter/校准脚本/16项定向测试/说明文档。无新运行依赖。
-- 实现提交 `4a2b4f461539cd4c5c80505a5172c2fcc3d071f2`（中文提交）已推送 origin/codex/docprops-dimension-format。
-- CI：仅手动触发一次 https://github.com/YJBeetle/SWCLI/actions/runs/42260887789 ，head=`4a2b4f461539cd4c5c80505a5172c2fcc3d071f2`，ci.yml，dimension_format_calibration=true、native_full=false，其余安装参数默认。初始状态in_progress（2026-11-07 01:21北京时间），并非通过。原生600秒、组1800秒、首失败停止；禁止无修复重跑。
-- CI artifacts：远端 dimension-format-42260887789-1；下载后原样保存到 ../evidence/native-42260887789/。当前尚未有完成证据。
-- 远端已核实为公开仓库 https://github.com/YJBeetle/SWCLI，当前身份ADMIN；初始导出审批因缺少远端信任信息被拒，经只读验证后本次提交/推送与校准触发获准。
-- 未完成边界：内部原生校准与安装后公开CLI验收严格区分；即使内部成功仍需公开入口全链路证据后另行开放写入，不合并、不发布。
+当前状态：内部校准修复后运行中；公开CLI/daemon gate已准备，未触发；不merge-ready，公开写入白名单仍空。
 
-## Windows便携CI补充
+## 分支与范围
 
-- 同一实现head `4a2b4f461539cd4c5c80505a5172c2fcc3d071f2` 的推送CI通过：https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 。Windows/Python3.9、Windows/Python3.14、wheel构建均success；native/full/release均skipped。这不是原生验收。
-- 原始job快照：../evidence/portable-ci-42260858025.json。
-- 原生专属运行42260887789最近快照仍in_progress，处于runner磁盘准备，未到CAD校准。跟踪输出保存在 ../evidence/native-watch-42260887789.log（120秒间隔）。没有重复dispatch。
-- 原生未完成边界：需要完成后保存远端原始artifact、核report/supervisor/trace的第一个真实失败；仅有相关修复后再开验证。当前没有原生成功证据、没有安装后公开CLI写入验收证据；新写入继续fail closed。
+- 唯一工作树 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI`，分支 `codex/docprops-dimension-format`，基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
+- 实现提交 `4a2b4f461539cd4c5c80505a5172c2fcc3d071f2`；相关修复及公开gate准备提交 `f6bc6342362ca658b4db2d58bd3e749e5ace940c`，均已推送。
+- `document.dimension-format` / `swcli document dimension-format`：完整原生三字段只读快照。
+- `document.dimension-format-set` / `swcli document dimension-format-set FIELD VALUE --if-format JSON`：`field`=dual_display/dual_position/parentheses；value严格布尔或right/top/left/bottom；expected_format为完整三字段（dual_position原生整数）。
+- setter context中的document_id、expected_update_stamp、lease_id均required；完整值CAS、readonly/viewonly、身份/前台/配置/草图/图纸上下文与部分mutation保护。任何真正setter至多一次，无失败API重试/自动回滚。
+- 零显示沿用已有document.annotation-options / annotation-option-set；单位转换、公差、字体、尺寸子类型不涉及。未操作本地VM/SOLIDWORKS、DockerSW或MacSW；仅只读查MacSW内官方2025 SDK头文件以核ID。
+- 官方映射与边界见 `docs/dimension-format.md`。原生首轮同时核官方swconst.tlb：43/200 dual_display，14/200 dual_position（右1上2左3下4），48/0 parentheses。
 
-## 内部校准42260887789首失败（已保留原产物）
+## 共享文件与接口diff
 
-- 结论failure，非通过；host revision 33.5.0，part的API映射/readback、lease/stamp/CAS与受保护单位/注解检查均走到，但未通过几何比较，未到保存重开；assembly/drawing未运行。
-- 原始artifact ID13524834970，digest sha256:cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c，head4a2b4f461539cd4c5c80505a5172c2fcc3d071f2。下载ZIP和GitHub digest一致。
-- 持久证据 ../evidence/native-42260887789/original.zip、artifacts.json、integrity.json、extracted/dimension-format/report.json、trace.jsonl、source.SLDPRT、supervisor.json。原件未修改。
-- 第一真实失败：display writes changed geometry。volume11999.999999999998、area3799.9999999999995前后相同；centroid Y从5.514537417020185e-16变为8.271806125530278e-16 mm。当前不能据此宣称几何通过或完成验收。
-- 相关修复：把比较基线从“未保存/前台”移到“已保存/后台”，新增无写入重复测量及状态控制；保留原有逐值精确的写后/重开比较，不放宽容差。无写入控制若不稳定则在setter前失败。
-- 按最新统筹口径，已准备安装后公开CLI/daemon gate、确切host revision门禁、独立fixture摘要绑定、SDK/MCP上下文测试；公开模式默认关闭。当前白名单仍空，不标merge-ready，未运行公共验收。
-- 新增共享修改 scripts/ci/windows/smoke-solidworks.ps1：仅显式DimensionFormatFixtureDirectory时提前运行专属gate并验证owned daemon退出；默认full流程保持原路由。CI新增dimension_format_public默认false，与internal模式互斥。
+- src/swcli/cli.py、daemon/operations.py、operation_schemas.py、result_schemas.py及生成的sdk/_generated.py、sdk/models.py新增上述两操作。
+- `_operation` 的lease_guarded支持required（除原有optional）；新增setter确实执行lease校验。
+- `.github/workflows/ci.yml`：dimension_format_calibration与dimension_format_public默认false，互斥，仅本分支手动；专属模式跳过test/package；不进入默认full/release共享concurrency，不扩PR secrets。
+- scripts/ci/windows/smoke-solidworks.ps1：仅显式DimensionFormatFixtureDirectory时提前运行公开gate并核owned daemon退出；默认full流程保留。
+- 新增catalog/adapter、内部及公开gate、定向测试；无新运行依赖。读取保留未知位置，实际变更拒绝未知位置；公开写入同时要求经证据确认的文档类型与确切host revision，目前两集合均空。
+
+## 便携证据
+
+- 本机安装wheel后全套1834项通过、32项平台跳过；SDK生成检查、严格类型检查mypy1.18.2、安装资源检查通过。
+- 追加公开gate/host范围/trace顺序后定向24项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
+- 首版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 ，head4a2b4f4，Python3.9/3.14和wheel success。
+- 修复版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42264284837 ，headf6bc634，Python3.9/3.14和wheel success。full/native/release均skipped。这些不是原生或公开写入验收。
+- 原始日志在工作树同级 `../evidence/`：portable-tests.log、wheel-build.log、public-preparation-focused-tests.log、sdk-regression.log、mcp-regression.log、public-wrapper-regression.log及portable-ci-*.json，不依赖tmp。
+
+## 原生内部校准
+
+1. https://github.com/YJBeetle/SWCLI/actions/runs/42260887789 ，head4a2b4f461539cd4c5c80505a5172c2fcc3d071f2；dimension_format_calibration=true、native_full=false；failure。
+   - host revision33.5.0。part八步API/readback、lease/stamp/CAS和单位/注解/全局偏好检查走到，但几何比较失败，未到保存重开；assembly/drawing未运行，不能算任何类型通过。
+   - 第一真实失败 `display writes changed geometry`。体积11999.999999999998、面积3799.9999999999995完全相同，质心Y从5.514537417020185e-16变为8.271806125530278e-16 mm。
+   - 原始artifact ID13524834970，SHA256 `cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`，ZIP与GitHub digest/head匹配。完整原件 `../evidence/native-42260887789/original.zip`、artifacts.json、integrity.json及extracted目录；未修改。
+   - 相关修复把“未保存/前台”比较基线移到“已保存/后台”，增加无写入控制读和状态控制；保留原有写后/重开逐值精确比较，不放宽容差。若控制读不稳定，则在任何尺寸setter前失败。
+2. https://github.com/YJBeetle/SWCLI/actions/runs/42264996931 ，headf6bc6342362ca658b4db2d58bd3e749e5ace940c；dimension_format_calibration=true、dimension_format_public=false、native_full=false；目前in_progress。
+   - 这是相关修复后唯一一次必要验证，不是原样重跑。native600秒、组1800秒、首失败停止，无组内host重启。
+   - 跟踪日志 `../evidence/native-watch-42264996931.log`（180秒间隔）。完成后先保存原ZIP/元数据并核digest/head/report/supervisor/trace/save-reopen，再决定下一步。
+
+## 公开验收与未完成边界
+
+- 公开gate已准备：独立fixture准备报告/源摘要绑定、安装CLI驱动单个隐藏daemon；完整CAS/lease/stamp拒绝、两种布尔方向、所有位置、同值不置脏、保存重开、只读拒绝、单位/零显示与几何保持、逐请求native trace及worker身份/调用次数/顺序验证、源/副本/trace摘要。
+- 当前没有完整内部成功证据，也没有公开验收运行。不能开放白名单、不能宣称完成或merge-ready。
+- 内部完整通过并独立核产物后，仅开放已证实的文档类型和确切revision，并继续一次必要公开CLI/daemon验收；失败仍先保存原产物/首失败，只在相关修复后再验证。
+- 主对话统一审查集成；本分支不自行合main、不发布、不改DockerSW指针/分支/CI/镜像。
