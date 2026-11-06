@@ -136,3 +136,20 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 相关诊断修复提交`39409386d628bc439f1be3197aed07ede23556c3`已推送；仅触发一次有信息验证：[42277659656](https://github.com/YJBeetle/SWCLI/actions/runs/42277659656)，参数`units_calibration=true,units_public_acceptance=true,native_full=false`，精确head已核对，原始初始元数据在`docs/evidence/units-profile/diagnostic-42277659656/`。不是无差异重跑，原因是旧失败缺失重开actual；新head会保留该actual并继续使用原精确断言。公开gate仍需内部严格全通过才执行，若复现不会跳过或放宽几何比较。当前不具备可合资格。
 
 路由修复`9d6b033`的push CI `42275204523`已success，仅CI路由/测试差异、不改`src/swcli`。当前业务实现相对公共失败head仍无功能变化。已有授权覆盖正常提交/推送和本次有界验证，无待审批动作，也未遇自动审批拒绝；后续若涉及更改既有几何断言须明确协调，不能自行放宽。
+
+## 独立mock实证阻断：产品已修复（尚缺修复后精确head公开native）
+
+只读引用统筹的`docprops-coverage-ci/.../docprops-handler-peer-review-2026-11-07.md`与`artifacts/.../repro.py`，没有修改其他worktree。当前确实存在原handler描述符异常丢mutation及同ActiveDoc指针下peer自身变化漏检；不是原生现场故障，不将mock结论冒充native。
+
+产品最小修复：
+
+- 两个units-profile handler使用本组专属`_with_unit_profile_document`收尾。describe/registry收尾异常将ok设false，保留adapter的mutation/native_return_value/observed/before；若已有业务error保留其首次type/message，仅附加`document-descriptor-unavailable` warning，不伪造新鲜descriptor、不重试、不回滚。
+- adapter捕获前台peer自身`_state`（type/stamp/dirty/configuration）与title/path身份；每次guard校验同一ActiveDoc及peer这些值、打开catalog身份，同时核目标title/path与打开身份。前台就是target时允许setter合法stamp/dirty变化，不将目标当另一peer检查。漂移拒绝、partial回执保留，不恢复被改的peer。
+
+完整handler测试经真实`execute_operation`（lease/stamp预检），成功adapter及首业务失败后describe抛错均保持schema有效partial。真实`server._worker_main`不mock execute或result validator，验证相同两条路径的response.result仍有双true mutation和原错误；附reader收尾失败schema测试。
+
+统筹原独立repro脚本在当前修复源上再次只读执行：mutation_reached_response=true；stamp/dirty/title/path四个同指针peer探针全部ok=false、partial双true、peer改动保留。原始JSON `docs/evidence/units-profile/peer-product-fix/independent-repro.json`。
+
+完整portable1864项通过（32 skipped）；随后补充peer配置/关闭catalog、目标identity、dirty mark中peer变化、reader peer变化、前台就是target的stamp变化，相关45项通过；SDK generated/strict types/8负向typing也通过。记录同目录portable/targeted txt。这些是便携与mock证据，**不是修复后native验收**。
+
+当前诊断run `42277659656`来源`3940938`仍是旧产品源，不因本消息取消或重复；它仅用于现有几何首因诊断。产品修复提交推送后，最终精确head必须执行必要public gate；不能用旧head校准或mock已修复直接给merge-ready。现无待审批动作，changed-write域仍为空，未改任何几何断言。

@@ -19,6 +19,8 @@ class UnitProfileTests(unittest.TestCase):
 
     def setUp(self):
         legacy.DocumentUnitsTests.setUp(self)
+        self.peer_configuration=legacy.SimpleNamespace(Name='Foreground')
+        self.foreground.GetActiveConfiguration=lambda:self.peer_configuration
         self.raw = {f: (4 if f == 'system' else 2 if f == 'mass_properties.mass_unit' else 4 if f == 'mass_properties.volume_unit' else 3 if 'precision' in f else 0) for f in FIELDS}
         self.linkage = {n: False if family == 'Toggle' else 0 for n, (family, _) in LINKAGE.items()}
         self.document.Extension = mock.Mock()
@@ -191,5 +193,87 @@ class UnitProfileTests(unittest.TestCase):
         for v in (True,-1,9,'8'):
             with self.assertRaises(ValueError):target('linear.precision',v)
         with self.assertRaises(ValueError):validate_operation_request(op[0],dict(op[1],calibration=True))
+
+
+
+class UnitProfilePeerGuards(unittest.TestCase):
+    setUp=UnitProfileTests.setUp
+    apply_units=UnitProfileTests.apply_units
+    mark_modified=UnitProfileTests.mark_modified
+    set_native=UnitProfileTests.set_native
+    snap=UnitProfileTests.snap
+    edit=UnitProfileTests.edit
+    assert_no_write=UnitProfileTests.assert_no_write
+    def test_same_active_object_peer_drift_is_partial_without_rollback(self):
+        for member,new in (('GetUpdateStamp',999),('GetSaveFlag',True),('GetTitle','Other foreground'),('GetPathName','C:\\other.SLDPRT')):
+            with self.subTest(member=member):
+                self.setUp()
+                def change(*args):
+                    returned=self.set_native(*args)
+                    setattr(self.foreground,member,lambda:new)
+                    return returned
+                self.document.Extension.SetUserPreferenceInteger.side_effect=change
+                result=self.edit(calibration=True)
+                self.assertFalse(result['ok'],result)
+                self.assertEqual(result['mutation'],dict(attempted=True,may_have_changed=True))
+                self.assertIs(result['native_return_value'],True)
+                self.assertIs(self.app.ActiveDoc,self.foreground)
+                self.assertEqual(getattr(self.foreground,member)(),new)
+                self.document.Extension.SetUserPreferenceInteger.assert_called_once()
+                self.document.SetSaveFlag.assert_not_called()
+    def test_pre_read_peer_drift_never_reaches_setter(self):
+        def read():
+            self.foreground.GetUpdateStamp=lambda:999
+            return self.units
+        self.document.GetUnits=read
+        result=self.edit(calibration=True)
+        self.assertFalse(result['ok'],result)
+        self.assert_no_write()
+    def test_active_target_can_change_own_stamp_and_dirty_without_false_peer_refusal(self):
+        self.app.ActiveDoc=self.document
+        def change(*args):
+            returned=self.set_native(*args)
+            self.document.GetUpdateStamp=lambda:99
+            return returned
+        self.document.Extension.SetUserPreferenceInteger.side_effect=change
+        self.assertTrue(self.edit(calibration=True)['ok'])
+
+    def test_peer_configuration_catalog_and_target_identity_after_set_refuse(self):
+        for scenario in ('peer-config','closed-peer','target-identity'):
+            with self.subTest(scenario=scenario):
+                self.setUp()
+                def change(*args):
+                    returned=self.set_native(*args)
+                    if scenario=='peer-config':self.peer_configuration.Name='Other'
+                    elif scenario=='closed-peer':self.app.GetDocuments=lambda:(self.document,)
+                    else:self.document.GetPathName=lambda:'C:\\changed.SLDPRT'
+                    return returned
+                self.document.Extension.SetUserPreferenceInteger.side_effect=change
+                result=self.edit(calibration=True)
+                self.assertFalse(result['ok'],result)
+                self.assertEqual(result['mutation'],dict(attempted=True,may_have_changed=True))
+                self.document.Extension.SetUserPreferenceInteger.assert_called_once()
+                self.document.SetSaveFlag.assert_not_called()
+    def test_peer_drift_during_dirty_mark_remains_partial(self):
+        def mark():
+            self.mark_modified()
+            self.foreground.GetTitle=lambda:'Changed on dirty mark'
+        self.document.SetSaveFlag.side_effect=mark
+        result=self.edit(calibration=True)
+        self.assertFalse(result['ok'],result)
+        self.assertEqual(result['mutation'],dict(attempted=True,may_have_changed=True))
+        self.assertEqual(self.foreground.GetTitle(),'Changed on dirty mark')
+        self.document.Extension.SetUserPreferenceInteger.assert_called_once()
+        self.document.SetSaveFlag.assert_called_once()
+    def test_reader_rejects_same_pointer_peer_identity_drift_without_restoration(self):
+        def read():
+            self.foreground.GetTitle=lambda:'Changed during read'
+            return self.units
+        self.document.GetUnits=read
+        result=adapter.read_document_unit_profile_windows(app=self.app,document=self.document)
+        self.assertFalse(result['ok'],result)
+        self.assertIs(self.app.ActiveDoc,self.foreground)
+        self.assertEqual(self.foreground.GetTitle(),'Changed during read')
+        self.assert_no_write()
 
 if __name__=='__main__':unittest.main()

@@ -447,12 +447,28 @@ def document_annotation_option_set(context: OperationContext, values: Dict[str, 
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 
 
+def _with_unit_profile_document(result: Dict[str, Any], context: OperationContext) -> Dict[str, Any]:
+    # The adapter receipt is the mutation boundary. Descriptor failure must
+    # never turn a possibly changed document into an unqualified worker error.
+    try:
+        if context.documents is None or context.entry is None:
+            raise RuntimeError("document registry unavailable during unit profile finalization")
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as error:
+        result['ok']=False
+        result.setdefault('error',{'type':type(error).__name__,'message':str(error)})
+        result.setdefault('warnings',[]).append({'code':'document-descriptor-unavailable',
+            'message':type(error).__name__+': '+str(error)})
+        result['session_id']=context.session_id
+        return result
+
+
 @_register_handler
 def document_unit_profile(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = read_document_unit_profile_windows(app=context.app, document=context.entry.document)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_unit_profile_document(result, context)
 
 
 @_register_handler
@@ -461,7 +477,7 @@ def document_unit_profile_set(context: OperationContext, values: Dict[str, Any])
         raise RuntimeError("document registry is unavailable")
     result = set_document_unit_profile_windows(app=context.app, document=context.entry.document,
         field=values["field"], value=values["value"], expected_snapshot=values["expected_snapshot"])
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_unit_profile_document(result, context)
 
 
 @_register_handler

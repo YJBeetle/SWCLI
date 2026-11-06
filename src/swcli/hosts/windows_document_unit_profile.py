@@ -6,6 +6,7 @@ from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _state, _require_writable, _verify_metadata_state
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
+from .windows_feature_inspection import _same
 
 class DocumentUnitProfileConflict(RuntimeError):
     """The complete source profile differs from the caller's observation."""
@@ -28,16 +29,41 @@ def _read_snapshot(document, kind):
     return snapshot(kind, raw, units, linkage)
 
 
+def _identity(document):
+    identity=(_com_value(document,'GetTitle'),_com_value(document,'GetPathName'))
+    if any(type(value) is not str for value in identity) or not identity[0]:
+        raise RuntimeError('native unit document identity is unreadable')
+    return identity
+
+
+def _foreground_snapshot(app,document):
+    foreground=_com_value(app,'ActiveDoc')
+    peer=foreground is not None and not _same(app,foreground,document)
+    return dict(document=foreground,target_identity=_identity(document),
+                state=_state(foreground) if peer else None,
+                identity=_identity(foreground) if peer else None)
+
+
 def _guard(app, document, state, foreground, edit, *, writable):
+    active=foreground['document']
     _verify_context(app, document, edit)
-    _verify_metadata_state(app, document, state, foreground, changed=False)
+    _verify_metadata_state(app, document, state, active, changed=False)
+    if _identity(document)!=foreground['target_identity']:
+        raise RuntimeError('unit operation changed target document identity')
+    opened=_com_value(app,'GetDocuments')
+    if type(opened) not in (list,tuple) or not any(_same(app,document,item) for item in opened):
+        raise RuntimeError('unit target document is no longer open')
+    if foreground['state'] is not None:
+        if (not any(_same(app,active,item) for item in opened)
+                or _state(active)!=foreground['state'] or _identity(active)!=foreground['identity']):
+            raise RuntimeError('unit operation changed foreground peer state or identity')
     if writable: _require_writable(document)
 
 
 def read_document_unit_profile_windows(*, app: Any, document: Any):
     result = {"ok": False, "action": "document.unit-profile"}
     try:
-        state, foreground, edit = _state(document), _com_value(app, "ActiveDoc"), _edit_context(document)
+        state, foreground, edit = _state(document), _foreground_snapshot(app,document), _edit_context(document)
         value = _read_snapshot(document, state[0])
         _guard(app, document, state, foreground, edit, writable=False)
         result.update(ok=True, unit_profile=value)
@@ -51,7 +77,7 @@ def _edit(app, document, field, value, expected_snapshot, *, calibration=False):
         native_target = target(field, value)
         expected = validate_snapshot(expected_snapshot)
         _require_writable(document)
-        state, foreground, edit = _state(document), _com_value(app, "ActiveDoc"), _edit_context(document)
+        state, foreground, edit = _state(document), _foreground_snapshot(app,document), _edit_context(document)
         before = _read_snapshot(document, state[0]); result.update(field=field, before=before)
         if typed_key(before) != typed_key(expected): raise DocumentUnitProfileConflict("complete unit profile no longer matches expected snapshot")
         _guard(app, document, state, foreground, edit, writable=True)
