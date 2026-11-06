@@ -27,6 +27,10 @@ from swcli.hosts.windows_sketches import _features
 from swcli.hosts.windows_step_export import (
     read_step_constants, step_host_scope, verify_step_output, _read_native_enum_constants,
 )
+from swcli.hosts.windows_sketch_inspection import list_sketches_windows_with_handles, inspect_sketch_windows
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support.step_fixture_checks import verify_source_sketch, verify_wire_geometry
+
 from swcli.result_schemas import validate_operation_result
 
 spec = importlib.util.spec_from_file_location(
@@ -59,8 +63,8 @@ def read_wireframe(document):
             checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
             lengths.append(length)
     checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
-    # Box edge perimeter is 4*(40+30+10)=320mm. Included source rectangle adds
-    # 2*(40+30)=140mm; verify exact profile below in the case runner.
+    # Validate the independently observed source outline/construction profile
+    # and exact exported length vector separately in the case runner.
     return dict(segment_count=len(lengths), lengths_mm=sorted(lengths), total_length_mm=sum(lengths))
 
 
@@ -140,6 +144,11 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case.update(protocol=protocol, geometry=geometry, creation=made)
     checked(made["ok"] and document is not None, "box creation failed")
     case["source_geometry"] = call("measure-source", lambda: check_box(document))
+    listing, features = call("list-source-sketch", lambda: list_sketches_windows_with_handles(app=app, document=document))
+    checked(listing["ok"] and listing["count"] == len(features) == 1, "box fixture must have one source sketch")
+    case["source_sketch"] = call("inspect-source-sketch", lambda: inspect_sketch_windows(
+        app=app, document=document, sketch_feature=features[0], max_segments=16))
+    case["source_sketch_oracle"] = verify_source_sketch(case["source_sketch"])
     source_digest = hashlib.sha256(source.read_bytes()).hexdigest()
     registry = DocumentRegistry(app)
     entry = registry.register(document)
@@ -217,7 +226,9 @@ def verify_reopened_geometry(before, after, geometry):
                 checked(math.isclose(first["centroid_mm"][axis], second["centroid_mm"][axis], rel_tol=0, abs_tol=1e-9),
                         "box centroid differs after native save/reopen: " + axis)
     else:
-        checked(before["segment_count"] == after["segment_count"] >= 12,
+        verify_wire_geometry(before, geometry)
+        verify_wire_geometry(after, geometry)
+        checked(before["segment_count"] == after["segment_count"],
                 "wireframe topology changed after native save/reopen")
         checked(len(before["lengths_mm"]) == len(after["lengths_mm"]) == before["segment_count"],
                 "wireframe segment observation count changed")
@@ -225,10 +236,7 @@ def verify_reopened_geometry(before, after, geometry):
             checked(math.isfinite(first) and math.isfinite(second) and first > 0 and second > 0
                     and math.isclose(first, second, rel_tol=0, abs_tol=1e-9),
                     "wireframe segment differs after native save/reopen")
-        expected = 320 if geometry == "wireframe" else 460
-        for value in (before["total_length_mm"], after["total_length_mm"]):
-            checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=1e-7, abs_tol=1e-5),
-                    "analytic wireframe length differs after native save/reopen")
+
 
 
 def verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
@@ -251,9 +259,7 @@ def _verify_imported_geometry(app, target, output, name, geometry, call, case, l
         case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
     else:
         case["imported_geometry"] = call("read-imported-wireframe", lambda: read_wireframe(document))
-        expected = 320 if geometry == "wireframe" else 460
-        checked(math.isclose(case["imported_geometry"]["total_length_mm"], expected, rel_tol=1e-7, abs_tol=1e-5),
-                "wireframe/sketch analytic length differs")
+        verify_wire_geometry(case["imported_geometry"], geometry)
     imported_native = output / (name + "-imported.SLDPRT")
     case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
     checked(case["imported_save"]["ok"], "imported geometry save failed")

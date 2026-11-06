@@ -22,6 +22,9 @@ from swcli.result_schemas import validate_operation_result
 from swcli.sdk import Client
 from swcli.mcp import DaemonBridge
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support.step_fixture_checks import verify_source_sketch
+
 
 def checked(value, message):
     if not value:
@@ -146,6 +149,11 @@ def main(argv=None):
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         lease = cli("source-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
         documents[document] = lease
+        listing = cli("list-source-sketch", "sketch", "list", "--document", document, operation="sketch.list")
+        checked(listing["count"] == 1, "public box fixture must have one source sketch")
+        observed_sketch = cli("inspect-source-sketch", "sketch", "inspect", listing["sketches"][0]["sketch_id"],
+                              "--document", document, operation="sketch.inspect")
+        report["source_sketch_oracle"] = verify_source_sketch(observed_sketch)
         foreground = cli("create-foreground", "document", "create", "--type", "part")["document"]["document_id"]
         documents[foreground] = None
         for protocol in ("ap203", "ap214"):

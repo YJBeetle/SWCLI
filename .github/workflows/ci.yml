@@ -243,13 +243,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.native_step_targeted && 'Internal STEP export calibration' || inputs.native_step_public_targeted && 'Public STEP export acceptance' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'Internal STEP export calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'Public STEP export acceptance' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) || (github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) || (github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.native_step_targeted && format('swcli-step-export-internal-{0}', github.ref) || inputs.native_step_public_targeted && format('swcli-step-export-public-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && format('swcli-step-export-internal-{0}', github.ref) || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && format('swcli-step-export-public-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
@@ -393,7 +393,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
       - name: Prepare property fixtures for public CLI verification
-        if: ${{ !inputs.native_step_targeted && !inputs.native_step_public_targeted }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
         id: property_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -405,7 +405,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
-        if: ${{ !inputs.native_step_targeted && !inputs.native_step_public_targeted }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
         id: annotation_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -419,7 +419,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
-        if: ${{ !inputs.native_step_targeted && !inputs.native_step_public_targeted }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
         id: native_tests
         shell: powershell
         run: |
@@ -428,7 +428,7 @@ jobs:
 
       - name: Calibrate STEP protocol and geometry with save/reopen evidence
         id: step_calibration
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         env:
@@ -442,7 +442,7 @@ jobs:
 
       - name: Accept public STEP CLI daemon SDK and MCP contracts
         id: step_public
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         run: |
@@ -452,7 +452,7 @@ jobs:
 
       - name: Read back actual public STEP geometry and native save reopen
         id: step_public_readback
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         env:
@@ -499,7 +499,7 @@ jobs:
           python scripts/ci/summarize-tests.py `
             --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
             --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
-            --host windows --scope "${{ inputs.native_step_targeted && 'windows-step-internal-calibration' || inputs.native_step_public_targeted && 'windows-step-public-acceptance' || 'windows-installed-full' }}" `
+            --host windows --scope "${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'windows-step-internal-calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'windows-step-public-acceptance' || 'windows-installed-full' }}" `
             --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
             --stage "distributions=${{ steps.native_distribution.outcome }}" `
             --stage "media-tools=${{ steps.media_tools.outcome }}" `

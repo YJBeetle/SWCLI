@@ -157,3 +157,25 @@ class StepPublicGateTests(unittest.TestCase):
             with module.observer_import_preferences(app, constants, lambda name, fn: fn(), case):
                 self.fail("ignored setter must not import generated output")
         self.assertTrue(case["observer_import_preferences"]["restored"])
+
+    def test_fixture_oracle_includes_and_independently_checks_construction_diagonals(self):
+        module = script("verify-step-export-calibration.py")
+        corners = [(-20.0, -15.0, 0.0), (20.0, -15.0, 0.0), (20.0, 15.0, 0.0), (-20.0, 15.0, 0.0)]
+        pairs = [(corners[i], corners[(i+1) % 4], False) for i in range(4)]
+        pairs += [(corners[0], corners[2], True), (corners[1], corners[3], True)]
+        segments = [{"construction": construction, "geometry": {"kind": "line",
+            "start_mm": dict(zip("xyz", first)), "end_mm": dict(zip("xyz", second))}}
+            for first, second, construction in pairs]
+        source = {"ok": True, "editing": False, "geometry_complete": True, "segment_count": 6,
+                  "profile_segment_count": 4, "segments": segments}
+        checked = module.verify_source_sketch(source)
+        self.assertEqual(checked["source_total_length_mm"], 240.0)
+        lengths = [10.0] * 4 + [30.0] * 6 + [40.0] * 6 + [50.0] * 2
+        wire = {"segment_count": 18, "lengths_mm": lengths, "total_length_mm": 560.0}
+        module.verify_wire_geometry(wire, "wireframe-sketches")
+        for bad in ({"segment_count": 16, "lengths_mm": lengths[:-2], "total_length_mm": 460.0},
+                    {**wire, "segment_count": 19}, {**wire, "total_length_mm": 460.0}):
+            with self.assertRaises(RuntimeError):
+                module.verify_wire_geometry(bad, "wireframe-sketches")
+        with self.assertRaises(RuntimeError):
+            module.verify_source_sketch({**source, "segment_count": 4, "segments": segments[:4]})

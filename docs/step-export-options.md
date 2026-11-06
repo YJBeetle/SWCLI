@@ -97,3 +97,13 @@ The observer uses the official void `ISldWorks.SetUserPreferenceToggle`
 contract and verifies each effect through the complete boolean readback;
 production integer preference setters retain their separate boolean contract.
 [Toggle setter API](https://help.solidworks.com/2019/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isldworks~setuserpreferencetoggle.html).
+
+The acceptance fixture is a 40×30×10 mm box with a center-rectangle source
+sketch. Before export, independent sketch inspection requires four outline
+lines (30,30,40,40 mm) and two construction diagonals (50,50 mm). Wireframe
+requires exactly 12 box edges / 320 mm. Wireframe with sketches requires these
+edges plus all six sketch lines: exactly 18 segments / 560 mm. Readback checks
+the complete sorted length vector and native save/reopen with unchanged
+precision bounds. The previous 460 mm oracle omitted construction diagonals;
+its failed run and original ZIP remain recorded.
+[Rectangle construction lines](https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_DVE_SKETCH_RECTANGLES.htm).
