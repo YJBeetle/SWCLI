@@ -138,7 +138,7 @@ windows; the notification icon is controlled independently through `tray`.
 
 `swcli daemon start`, `serve` and `restart` accept `--tray auto|on|off`.
 Omitting it means `auto`: show the icon on native Windows and keep it off under
-Wine. MCP `swcli_daemon_start` accepts the same `tray` values. This selects the
+Wine. MCP `daemon_start` accepts the same `tray` values. This selects the
 daemon's notification icon, independently of `visible` for the SW window.
 An already-running daemon is reused without changing either setting.
 
@@ -153,7 +153,7 @@ swcli daemon start --tray off --json
 The native icon offers read-only runtime status, confirmed daemon stop, and
 hide-icon. Hiding the icon keeps the daemon, SW and documents running. The
 stop action uses the same open-document and attached-user-host protections as
-`swcli_daemon_stop`; it never force-closes documents or processes. A pending
+`daemon_stop`; it never force-closes documents or processes. A pending
 request blocks duplicate clicks. After a timeout the result remains unknown;
 inspect status before another stop.
 
