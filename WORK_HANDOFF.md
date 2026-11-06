@@ -118,3 +118,10 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - 既有测试覆盖和缺口、精确handler/helper/worker/guard行号均写报告。公差/字体owner已接修复不重复指派；detailing main保护不受旧分支结论外推。
 - STL/STEP export和配合handler直接返回adapter；旋转register_feature失败保留result，只做static排除同形_with_document点，不声称其他partial/peer路径已验收。
 - 全过程只在本worktree或隔离源码副本执行纯Python mock，不修改其他worktree、不用VM/COM、不dispatch、不扩产品白名单。交主对话按精确head协调owner修复。
+
+## 主集成基线更新（统筹通报，2026-11-07）
+
+- 主对话通报main已推进至`0e72beb15a2266a79fd9931c80a157531c9ab42f`，已合旋转`3922bee`，保留先前detailing和78ebaf6修复；新增统一无secret预检`scripts/ci/validate-native-profile.py`。后续增量审查以该基线及之后的精确提交为参照，不把本路旧315组/窄审查结果描述为当前main缺陷。
+- 主对话报告旋转原件已独立核验、组合1871项通过/32跳过、SDK及480组路由组合通过，release/tag-policy/permissions保留。本段是统筹提供的状态，本路未重新核验这些原件或代跑组合测试，不增加自己的原生验收声明。
+- 跨路mutation/peer报告已由统筹分发5个owner，各自修复。本路保留原精确head源码/JSON/stdout/hash，不代改owner、不要求现在rebase/重跑；主对话合并时统一整合。
+- 当前没有新CAD、dispatch、合并或待审批动作。原本路取消运行42260050176及结构检查边界不变；未来若复核owner修复，将单独固定新head和证据，不覆盖历史反例。
