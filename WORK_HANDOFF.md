@@ -17,7 +17,11 @@
 
 ## 提交和原生证据
 
-待本分支提交、推送、单次触发后补充 head、参数、run 链接与原产物。
+- 实现提交 / 校准 head：`5c878c3b13f7811d50af94fca53a4d471cc5669c`，已推送 `origin/codex/docprops-detailing`。
+- 唯一专属校准 run：[42260661085](https://github.com/YJBeetle/SWCLI/actions/runs/42260661085)。参数 `detailing_calibration=true`、`native_full=false`；workflow `ci.yml`，ref `codex/docprops-detailing`。
+- 已核对 run head 与实现提交一致。当前等待 Windows runner/执行；排队不算失败，不重复 dispatch。
+- 持久调度回执：`artifacts/detailing/dispatch.json`；run 元数据：`artifacts/detailing/run-42260661085.json`。
+- 原生结果和原产物待 run 完成后补充；当前只证明便携接线，公开变更写入仍关闭。
 
 ## 操作、共享改动和依赖
 
