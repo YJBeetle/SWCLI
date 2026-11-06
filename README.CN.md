@@ -41,7 +41,7 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 
 ## Typed Python SDK
 
-开发版提供 `from swcli.sdk import Client`，从同一协议 Schema 生成当前全部操作的方法和
+0.2.4 提供 `from swcli.sdk import Client`，从同一协议 Schema 生成当前全部操作的方法和
 TypedDict 输入／输出类型。SDK 复用 daemon、TLS 和 session／lease／CAS，不隐式启动、重试或
 清理文档。使用方法、错误回执和文件传输见随包 [SDK 指南](src/swcli/skills/swcli/references/sdk.md)。
 

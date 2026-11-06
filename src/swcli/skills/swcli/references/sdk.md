@@ -1,6 +1,6 @@
 # Typed Python SDK
 
-The development version provides `swcli.sdk` in the ordinary SWCLI package,
+SWCLI 0.2.4 provides `swcli.sdk` in the ordinary SWCLI package,
 without the optional MCP dependencies. It supports Python 3.9+. Start swclid
 explicitly on its execution host before using the SDK, for example with
 `swcli daemon start`. Constructing `Client` and discovering its Python methods

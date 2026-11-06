@@ -222,7 +222,7 @@ attach behavior remain until that work is deliberately resumed.
 - Batches/transactions with documented partial-result and recovery semantics.
 - A thin stdio MCP adapter reuses the same daemon protocol, with explicit
   lifecycle tools, host launcher selection, read-only runtime observations and
-  live schema discovery. The development Python SDK now generates typed
+  live schema discovery. The Python SDK (0.2.4) generates typed
   methods/results from the same operation catalog and reuses daemon transport;
   no route adds a second public COM/raw-Python execution surface.
 - [x] Bounded MCP artifact delivery (0.2.2): render/export content

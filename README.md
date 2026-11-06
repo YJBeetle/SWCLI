@@ -94,7 +94,7 @@ workspaces. See [TLS authentication and file transfer](src/swcli/skills/swcli/re
 
 ## Typed Python SDK
 
-Development builds include `from swcli.sdk import Client` with generated typed
+SWCLI 0.2.4 includes `from swcli.sdk import Client` with generated typed
 methods/results for all current protocol operations. It uses the existing daemon,
 TLS and session/lease/CAS rules, without implicit startup, retries or document
 cleanup. See the [SDK guide](src/swcli/skills/swcli/references/sdk.md) for typed
