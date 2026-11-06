@@ -202,7 +202,7 @@ def run(gate):
     gate.require_empty(after_case='revolve-negative-cases')
     gate.record['host_after']=gate.health()['host']
     require(gate.record['host_after']==host,'public revolve group replaced its owned host')
-    gate.record.update(success=True,state='completed',public_acceptance=True)
+    gate.record.update(success=True,state='completed')
 
 
 def worker(output):
@@ -243,7 +243,12 @@ def worker(output):
                 raise
         finally:
             runner.checkpoint()
-    require(gate.record['success'] and runner.record['success'],'public revolve acceptance was incomplete')
+    require(gate.record['success'] and runner.record['success'] and not gate.record['cleanup_errors']
+            and gate.checkpoint_error is None,'public revolve acceptance was incomplete')
+    gate.record['public_acceptance']=True
+    gate.checkpoint('revolve-public-completed')
+    if gate.checkpoint_error is not None:
+        raise gate.checkpoint_error
 
 
 def main(argv=None):

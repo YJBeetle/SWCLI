@@ -1523,11 +1523,15 @@ _RESULT_FIELDS["feature.revolve"] = (
         "mutation": _object({key: BOOL for key in ("attempted", "creation_returned", "may_have_changed")},
                             ("attempted", "creation_returned", "may_have_changed")),
         "cleanup_errors": _REVOLVE_CLEANUP,
-        "feature": _object({"name": STRING, "type": {"const": "Revolution"},
+        "feature": _object({"name": STRING, "type": STRING,
                             "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"}}),
-        "definition": _object({"cleanup_errors": _REVOLVE_CLEANUP, "angle_rad": NUMBER,
-                               "reverse": BOOL, "kind": INTEGER, "boss": BOOL, "thin": BOOL,
-                               "merge": BOOL, "axis_type": INTEGER, "contour_count": INTEGER, "axis_matches": BOOL}),
+        # Null native readbacks are failure evidence, not a reason to discard
+        # the first error/partial mutation. Success constraints remain strict.
+        "definition": _object({"cleanup_errors": _REVOLVE_CLEANUP,
+            **{key: {"anyOf": [schema, {"type": "null"}]} for key, schema in {
+                "angle_rad": NUMBER, "reverse": BOOL, "kind": INTEGER, "boss": BOOL,
+                "thin": BOOL, "merge": BOOL, "axis_type": INTEGER, "contour_count": INTEGER,
+                "axis_matches": BOOL}.items()}}),
         "model_to_sketch_transform": {"type": "array", "minItems": 16, "maxItems": 16, "items": NUMBER},
         "expected_metrics": _FEATURE_DEPTH_METRICS,
         "metrics": _FEATURE_DEPTH_METRICS,
@@ -1592,13 +1596,13 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     if name == "feature.revolve":
         schema["required"].extend(["sketch_id", "mutation", "cleanup_errors"])
         schema["then"]["properties"] = {
-            "feature": {"required": ["name", "type", "feature_id"]},
+            "feature": {"required": ["name", "type", "feature_id"], "properties": {"type": {"const": "Revolution"}}},
             "verified": {"const": True}, "cleanup_errors": {"maxItems": 0},
             "mutation": {"properties": {key: {"const": True} for key in
                          ("attempted", "creation_returned", "may_have_changed")}},
             "definition": {"required": ["cleanup_errors", "angle_rad", "reverse", "kind", "boss", "thin",
                                          "merge", "axis_type", "contour_count", "axis_matches"],
-                "properties": {"cleanup_errors": {"maxItems": 0}, "reverse": {"const": False},
+                "properties": {"cleanup_errors": {"maxItems": 0}, "angle_rad": NUMBER, "reverse": {"const": False},
                     "kind": {"const": 0}, "boss": {"const": True}, "thin": {"const": False},
                     "merge": {"const": True}, "axis_type": {"const": 10}, "contour_count": {"const": 0},
                     "axis_matches": {"const": True}}},

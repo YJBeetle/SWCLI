@@ -198,8 +198,12 @@ def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
             True, False, False))
         result["mutation"]["creation_returned"] = feature is not None
         _require(feature is not None, "RevolveCreationFailed", "native creation returned no feature; do not retry")
-        result["feature"] = dict(name=_com_value(feature, "Name"), type=_com_value(feature, "GetTypeName2"))
-        _require(result["feature"]["type"] == "Revolution", "RevolveDefinitionMismatch", "created feature is not a native revolution")
+        name = _com_value(feature, "Name")
+        kind = _com_value(feature, "GetTypeName2")
+        _require(isinstance(name, str) and bool(name.strip()) and isinstance(kind, str) and bool(kind.strip()),
+                 "RevolveFeatureMetadataUnavailable", "created feature metadata is unreadable; retain its exact handle")
+        result["feature"] = dict(name=name, type=kind)
+        _require(kind == "Revolution", "RevolveDefinitionMismatch", "created feature is not a native revolution")
         document.ClearSelection2(True)
         result["definition"] = {}
         call("read-definition", lambda: observe_revolve_definition(app, document, feature, axis, constants, result["definition"]))

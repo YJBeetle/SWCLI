@@ -215,6 +215,33 @@ class CandidateTests(unittest.TestCase):
             self.assertEqual(result['mutation'],dict(attempted=True,creation_returned=False,may_have_changed=True))
             self.create.assert_called_once()
 
+    def test_unreadable_created_metadata_retains_partial_state_in_a_valid_failure_result(self):
+        for name,kind in ((None,'Revolution'),('NativeUnexpected','Cut')):
+            with self.subTest(name=name,kind=kind):
+                self.document.GetBodies2.return_value=()
+                self.feature.Name=name;self.feature.GetTypeName2=kind
+                result,feature=self.call()
+                self.assertFalse(result['ok'])
+                self.assertIs(feature,self.feature)
+                self.assertTrue(all(result['mutation'].values()))
+                result['sketch_id']=VALUES['sketch_id']
+                validate_operation_result('feature.revolve',result)
+
+    def test_unavailable_definition_values_preserve_the_original_partial_failure(self):
+        for member in ('GetRevolutionAngle','ReverseDirection','Type','IsBossFeature','IsThinFeature','Merge','GetAxisType','GetContoursCount'):
+            with self.subTest(member=member):
+                before=getattr(self.definition,member)
+                setattr(self.definition,member,(lambda forward:None) if member=='GetRevolutionAngle' else None)
+                self.document.GetBodies2.return_value=()
+                result,feature=self.call()
+                setattr(self.definition,member,before)
+                self.assertFalse(result['ok'])
+                self.assertEqual(result['error']['type'],'RevolveDefinitionMismatch')
+                self.assertIs(feature,self.feature)
+                self.assertTrue(all(result['mutation'].values()))
+                result['sketch_id']=VALUES['sketch_id']
+                validate_operation_result('feature.revolve',result)
+
     def test_uncalibrated_origin_plane_frame_refuses_before_native_creation(self):
         c=math.sqrt(0.5)
         self.sketch.ModelToSketchTransform.ArrayData=[c,c,0,-c,c,0,0,0,1,0,0,0,1,0,0,0]

@@ -2201,21 +2201,21 @@ class FeatureRevolveResultMutation(TypedDict):
 
 class FeatureRevolveResultFeature(TypedDict, total=False):
     name: str
-    type: Literal['Revolution']
+    type: str
     feature_id: str
 
 
 class FeatureRevolveResultDefinition(TypedDict, total=False):
     cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
-    angle_rad: float
-    reverse: bool
-    kind: int
-    boss: bool
-    thin: bool
-    merge: bool
-    axis_type: int
-    contour_count: int
-    axis_matches: bool
+    angle_rad: Union[float, None]
+    reverse: Union[bool, None]
+    kind: Union[int, None]
+    boss: Union[bool, None]
+    thin: Union[bool, None]
+    merge: Union[bool, None]
+    axis_type: Union[int, None]
+    contour_count: Union[int, None]
+    axis_matches: Union[bool, None]
 
 
 class _FeatureRevolveResultRequired(TypedDict):
@@ -2248,12 +2248,6 @@ class FeatureFilletParameters(TypedDict):
     radius_mm: float
 
 
-class FeatureFilletResultFeature(TypedDict, total=False):
-    name: str
-    type: str
-    feature_id: str
-
-
 class FeatureFilletResultVerification(TypedDict, total=False):
     passed: bool
     radius_mm: float
@@ -2275,7 +2269,7 @@ class FeatureFilletResult(_FeatureFilletResultRequired, total=False):
     error: DocumentCreateResultError
     radius_mm: float
     mutation: FeatureRevolveResultMutation
-    feature: FeatureFilletResultFeature
+    feature: FeatureRevolveResultFeature
     verification: FeatureFilletResultVerification
     rebuilt: bool
     diagnostics: DocumentCreateResultDiagnostics
