@@ -558,16 +558,19 @@ _RESULT_FIELDS = {
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
     "document.image-quality": (
-        {"quality": quality_schema()}, ("session_id", "document", "quality"),
+        {"quality": quality_schema(), "finalization_error": ERROR}, ("session_id", "document", "quality"),
     ),
     "document.image-quality-set": (
         {"field": {"type": "string", "enum": list(IMAGE_QUALITY_FIELDS)}, "before": quality_schema(),
          "quality": quality_schema(), "observed_quality": quality_schema(), "changed": BOOL,
-         "mutation": METADATA_MUTATION, "native_return": {},
-         "linked_changes": {"type": "array", "maxItems": 1, "items": _object({
-             "field": {"type": "string", "enum": ["shaded_deviation_mm"]},
-             "before": NUMBER, "after": NUMBER,
-             "reason": {"const": "shaded-mode-coupling"}}, ("field", "before", "after", "reason"))}},
+         "mutation": METADATA_MUTATION, "native_return": {}, "finalization_error": ERROR,
+         "linked_changes": {"type": "array", "maxItems": 1, "items": {"oneOf": [
+             _object({"field": {"const": "shaded_deviation_mm"}, "before": NUMBER, "after": NUMBER,
+                      "reason": {"const": "shaded-mode-coupling"}}, ("field", "before", "after", "reason")),
+             _object({"field": {"const": "shaded_mode"},
+                      "before": {"enum": ["coarse", "fine", "custom"]}, "after": {"const": "custom"},
+                      "reason": {"const": "shaded-deviation-coupling"}}, ("field", "before", "after", "reason")),
+         ]}}},
         ("session_id", "document", "field", "before", "quality", "changed", "mutation", "linked_changes"),
     ),
     "document.annotation-options": (

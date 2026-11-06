@@ -34,6 +34,7 @@ from .operations import (
     OPERATIONS,
     UPDATE_STAMP_OPERATIONS,
     execute_operation,
+    preserve_image_quality_finalization_failure,
 )
 from .timeouts import validate_timeout
 
@@ -331,6 +332,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
+            result = None  # Never reuse an earlier request's partial receipt.
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -409,6 +411,10 @@ def _worker_main(
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
+                if request["operation"] in ("document.image-quality", "document.image-quality-set") and isinstance(result, dict):
+                    response["result"] = preserve_image_quality_finalization_failure(
+                        str(request["operation"]), result, exc,
+                        session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

@@ -74,6 +74,7 @@ from ..hosts.windows_rectangle_dimension_discovery import (
     discover_rectangle_dimensions_windows_with_handles,
 )
 from ..result_schemas import (
+    validate_operation_result,
     OperationResultInvalid,
     validate_dimension_discovery_observation,
     validate_rectangle_creation_observation,
@@ -430,12 +431,52 @@ def document_property_delete(context: OperationContext, values: Dict[str, Any]) 
     return _edit_document_property(context, values)
 
 
+def preserve_image_quality_finalization_failure(operation, result, exc, *, session_id):
+    """Preserve known mutation and first business error; no native retry/rollback."""
+    failed = dict(result)
+    fault = {"type": type(exc).__name__, "message": str(exc)}
+    first = failed.get("error")
+    if not (isinstance(first, dict) and type(first.get("type")) is str and type(first.get("message")) is str):
+        first = {"type": "DocumentImageQualityFinalizationFailed", "message": str(exc)}
+    failed.update(ok=False, action=operation, session_id=session_id, error=first, finalization_error=fault)
+    try:
+        validate_operation_result(operation, failed)
+        return failed
+    except Exception:
+        # An incomplete descriptor must not hide a valid adapter receipt.
+        failed.pop("document", None)
+    try:
+        validate_operation_result(operation, failed)
+        return failed
+    except Exception:
+        # If a late validator rejected other payload fields, retain only known
+        # serializable facts rather than publish an invalid success or erase the
+        # mutation in the worker's generic exception branch.
+        minimal = {key: failed[key] for key in ("ok", "action", "session_id", "error", "finalization_error")}
+        mutation = result.get("mutation")
+        if operation.endswith("-set") and isinstance(mutation, dict) and all(
+                type(mutation.get(key)) is bool for key in ("attempted", "may_have_changed")):
+            minimal["mutation"] = {key: mutation[key] for key in ("attempted", "may_have_changed")}
+        validate_operation_result(operation, minimal)
+        return minimal
+
+
+def _with_image_quality_document(context, result, operation):
+    payload = dict(result)
+    try:
+        _with_document(payload, context.documents, context.entry, session_id=context.session_id)
+        validate_operation_result(operation, payload)
+        return payload
+    except Exception as exc:
+        return preserve_image_quality_finalization_failure(operation, payload, exc, session_id=context.session_id)
+
+
 @_register_handler
 def document_image_quality(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = read_document_image_quality_windows(app=context.app, document=context.entry.document)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_image_quality_document(context, result, "document.image-quality")
 
 
 @_register_handler
@@ -443,7 +484,7 @@ def document_image_quality_set(context: OperationContext, values: Dict[str, Any]
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = set_document_image_quality_windows(app=context.app, document=context.entry.document, **values)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_image_quality_document(context, result, "document.image-quality-set")
 
 
 @_register_handler

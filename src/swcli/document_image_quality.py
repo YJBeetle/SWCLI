@@ -7,6 +7,7 @@ No application preferences, registry changes or automatic restoration are used.
 from math import isclose, isfinite
 
 SHADED_MODES = {"coarse": 1, "fine": 2, "custom": 3}
+WRITABLE_SHADED_MODES = {"coarse": 1, "fine": 2}
 IMAGE_QUALITY_FIELDS = {
     "shaded_mode": {"kind": "Integer", "symbol": "swImageQualityShaded", "preference": 44},
     "shaded_deviation_mm": {"kind": "Double", "symbol": "swImageQualityShadedDeviation", "preference": 32},
@@ -27,7 +28,7 @@ def finite_number(value, *, positive=False):
 
 def value_schema(field):
     if field == "shaded_mode":
-        return {"type": "string", "enum": list(SHADED_MODES)}
+        return {"type": "string", "enum": list(WRITABLE_SHADED_MODES)}
     if field == "shaded_deviation_mm":
         return {"type": "number", "exclusiveMinimum": 0}
     if field == "optimize_edge_length":
@@ -37,7 +38,7 @@ def value_schema(field):
 
 def validate_value(field, value):
     spec = value_schema(field)
-    valid = (type(value) is str and value in SHADED_MODES if spec["type"] == "string" else
+    valid = (type(value) is str and value in WRITABLE_SHADED_MODES if spec["type"] == "string" else
              type(value) is bool if spec["type"] == "boolean" else
              finite_number(value, positive=True) and finite_number(value / 1000.0, positive=True))
     if not valid:
@@ -113,18 +114,25 @@ def matches(field, actual, expected):
 
 
 def linked_changes(before, after, field):
-    """Only a shaded-mode change may alter its coupled deviation representation."""
+    """Report the documented preset/deviation coupling; other fields stay exact."""
     validate_quality(before); validate_quality(after)
     allowed = {field, "native"}
     if field == "shaded_mode":
         allowed.add("shaded_deviation_mm")
+    if field == "shaded_deviation_mm":
+        allowed.add("shaded_mode")
+        if not exact_snapshot(before, after) and after["shaded_mode"] != "custom":
+            raise RuntimeError("deviation setter did not select the native custom mode")
     if any(not exact_snapshot(before[key], after[key]) for key in before if key not in allowed):
         raise RuntimeError("image quality setter changed an unrequested field")
     raw_field = "shaded_deviation_m" if field == "shaded_deviation_mm" else field
-    raw_allowed = {raw_field, "shaded_deviation_m"} if field == "shaded_mode" else {raw_field}
+    raw_allowed = {"shaded_mode", "shaded_deviation_m"} if field in ("shaded_mode", "shaded_deviation_mm") else {raw_field}
     if any(not exact_snapshot(before["native"][key], after["native"][key]) for key in NATIVE_FIELDS if key not in raw_allowed):
         raise RuntimeError("image quality setter changed an unrequested native field")
     if field == "shaded_mode":
         return [{"field": key, "before": before[key], "after": after[key], "reason": "shaded-mode-coupling"}
                 for key in ("shaded_deviation_mm",) if not exact_snapshot(before[key], after[key])]
+    if field == "shaded_deviation_mm" and before["shaded_mode"] != after["shaded_mode"]:
+        return [{"field": "shaded_mode", "before": before["shaded_mode"], "after": after["shaded_mode"],
+                 "reason": "shaded-deviation-coupling"}]
     return []

@@ -769,6 +769,7 @@ class DocumentImageQualityResult(_DocumentImageQualityResultRequired, total=Fals
     warnings: List[DocumentCreateResultWarningsItem]
     error: DocumentCreateResultError
     quality: DocumentImageQualityResultQuality
+    finalization_error: DocumentCreateResultError
 
 
 class DocumentImageQualitySetParameters(TypedDict):
@@ -777,11 +778,18 @@ class DocumentImageQualitySetParameters(TypedDict):
     expected_quality: DocumentImageQualityResultQuality
 
 
-class DocumentImageQualitySetResultLinkedChangesItem(TypedDict):
+class DocumentImageQualitySetResultLinkedChangesItemVariant1(TypedDict):
     field: Literal['shaded_deviation_mm']
     before: float
     after: float
     reason: Literal['shaded-mode-coupling']
+
+
+class DocumentImageQualitySetResultLinkedChangesItemVariant2(TypedDict):
+    field: Literal['shaded_mode']
+    before: Literal['coarse', 'fine', 'custom']
+    after: Literal['custom']
+    reason: Literal['shaded-deviation-coupling']
 
 
 class _DocumentImageQualitySetResultRequired(TypedDict):
@@ -801,7 +809,8 @@ class DocumentImageQualitySetResult(_DocumentImageQualitySetResultRequired, tota
     changed: bool
     mutation: DrawingStandardViewsResultMutation
     native_return: JSONValue
-    linked_changes: List[DocumentImageQualitySetResultLinkedChangesItem]
+    finalization_error: DocumentCreateResultError
+    linked_changes: List[Union[DocumentImageQualitySetResultLinkedChangesItemVariant1, DocumentImageQualitySetResultLinkedChangesItemVariant2]]
 
 
 DocumentAnnotationOptionsParameters = DocumentImageQualityParameters

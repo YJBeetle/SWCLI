@@ -39,7 +39,9 @@ class ImageQualityTests(unittest.TestCase):
             IsOpenedViewOnly=lambda: False, SketchManager=SimpleNamespace(ActiveSketch=None),
             Extension=self.extension, SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)))
         self.foreground = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: False,
-            GetUpdateStamp=lambda: 8, GetTitle=lambda: "Foreground", GetPathName=lambda: "")
+            GetUpdateStamp=lambda: 8, GetTitle=lambda: "Foreground", GetPathName=lambda: "",
+            GetActiveConfiguration=lambda: SimpleNamespace(Name="ForegroundDefault"),
+            IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False)
         self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda: (self.document, self.foreground),
             IsSame=lambda a,b: int(a is b), ActivateDoc3=mock.Mock())
         self.registry = DocumentRegistry(self.app)
@@ -52,6 +54,8 @@ class ImageQualityTests(unittest.TestCase):
 
     def apply(self, preference, option, value):
         self.native[preference] = value
+        if preference == 32:
+            self.native[44] = 3
         return True
 
     def operation(self, name, params=None, **context):
@@ -103,11 +107,16 @@ class ImageQualityTests(unittest.TestCase):
                 self.app.ActivateDoc3.assert_not_called()
 
     def test_same_value_has_zero_setters_and_zero_dirty_mark(self):
-        for field in ("shaded_mode", "shaded_deviation_mm", "optimize_edge_length"):
+        for field in ("shaded_deviation_mm", "optimize_edge_length"):
             result = self.edit(field, snapshot()[field])
             self.assertTrue(result["ok"], result)
             self.assertFalse(result["changed"])
             validate_operation_result("document.image-quality-set", result)
+        self.native[44] = 2
+        expected = quality_snapshot({**snapshot()["native"], "shaded_mode": 2}, snapshot()["deviation_range"])
+        result = self.edit("shaded_mode", "fine", expected)
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["changed"])
         self.assert_no_mutation()
 
     def test_exact_complete_cas_rejects_nextafter_and_unrequested_member_drift(self):
@@ -141,8 +150,13 @@ class ImageQualityTests(unittest.TestCase):
             field="optimize_edge_length", value=True, expected_quality=snapshot())
         self.assertFalse(result["ok"]); self.assert_no_mutation()
         self.setUp(); self.native[44] = 1
-        self.assertFalse(self.edit("shaded_deviation_mm", 0.4, quality_snapshot({**snapshot()["native"], "shaded_mode":1}, snapshot()["deviation_range"]))["ok"])
-        self.assert_no_mutation()
+        result = self.edit("shaded_deviation_mm", 0.4, quality_snapshot({**snapshot()["native"], "shaded_mode":1}, snapshot()["deviation_range"]))
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["quality"]["shaded_mode"], "custom")
+        self.assertEqual(result["linked_changes"], [dict(field="shaded_mode", before="coarse", after="custom", reason="shaded-deviation-coupling")])
+        self.extension.SetUserPreferenceDouble.assert_called_once_with(32, 0, 0.0004)
+        self.extension.SetUserPreferenceInteger.assert_not_called()
+        validate_operation_result("document.image-quality-set", result)
         self.setUp()
         self.assertFalse(self.edit("shaded_deviation_mm", 2)["ok"]); self.assert_no_mutation()
         self.ranges.side_effect = lambda e: (1, self.native[32], float("nan"), float("nan"))
@@ -249,6 +263,163 @@ class ImageQualityTests(unittest.TestCase):
                 self.extension.SetUserPreferenceToggle.assert_called_once()
                 validate_operation_result("document.image-quality-set", result)
 
+    def test_custom_integer_is_rejected_before_native_and_double_requires_custom_readback(self):
+        with self.assertRaises(ValueError):
+            self.edit("shaded_mode", "custom")
+        self.assert_no_mutation()
+        self.extension.GetUserPreferenceInteger.assert_not_called()
+        self.native[44] = 2
+        expected = quality_snapshot({**snapshot()["native"], "shaded_mode": 2}, snapshot()["deviation_range"])
+        def ignores_mode(preference, option, value): self.native[preference] = value; return True
+        self.extension.SetUserPreferenceDouble.side_effect = ignores_mode
+        result = self.edit("shaded_deviation_mm", 0.4, expected)
+        self.assertFalse(result["ok"], result)
+        self.assertTrue(result["mutation"]["may_have_changed"])
+        self.extension.SetUserPreferenceDouble.assert_called_once()
+        self.extension.SetUserPreferenceInteger.assert_not_called()
+        self.document.SetSaveFlag.assert_not_called()
+
+    def test_foreground_same_handle_state_drift_is_partial_failure_in_every_phase(self):
+        defects = {
+            "stamp": ("GetUpdateStamp", lambda: 99),
+            "dirty": ("GetSaveFlag", lambda: True),
+            "title": ("GetTitle", lambda: "Changed"),
+            "path": ("GetPathName", lambda: "Changed.SLDPRT"),
+            "configuration": ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Changed")),
+            "read-only": ("IsOpenedReadOnly", lambda: True),
+            "view-only": ("IsOpenedViewOnly", lambda: True),
+        }
+        for phase in ("before", "setter", "readback", "dirty"):
+            for name, (attribute, replacement) in defects.items():
+                with self.subTest(phase=phase, defect=name):
+                    self.setUp()
+                    def defect(): setattr(self.foreground, attribute, replacement)
+                    if phase == "setter":
+                        def setter(*args): self.apply(*args); defect(); return True
+                        self.extension.SetUserPreferenceToggle.side_effect = setter
+                    elif phase == "dirty":
+                        def dirty(): self.modified = True; defect()
+                        self.document.SetSaveFlag.side_effect = dirty
+                    else:
+                        count = 0
+                        def read(preference, option):
+                            nonlocal count
+                            if preference == 255:
+                                count += 1
+                                if count == (1 if phase == "before" else 2): defect()
+                            return self.native[preference]
+                        self.extension.GetUserPreferenceToggle.side_effect = read
+                    result = self.edit()
+                    self.assertFalse(result["ok"], result)
+                    self.assertIn("foreground", result["error"]["message"])
+                    self.assertEqual(result["mutation"], dict(attempted=phase != "before", may_have_changed=phase != "before"))
+                    self.assertEqual(self.extension.SetUserPreferenceToggle.call_count, int(phase != "before"))
+                    self.assertEqual(self.document.SetSaveFlag.call_count, int(phase == "dirty"))
+                    self.assertIs(self.app.ActiveDoc, self.foreground)
+                    self.assertIs(getattr(self.foreground, attribute), replacement)
+                    self.app.ActivateDoc3.assert_not_called()
+                    validate_operation_result("document.image-quality-set", result)
+
+    def test_target_as_foreground_allows_its_expected_dirty_change(self):
+        self.app.ActiveDoc = self.document
+        result = self.edit()
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["document"]["modified"])
+        self.extension.SetUserPreferenceToggle.assert_called_once()
+        self.document.SetSaveFlag.assert_called_once()
+
+    def test_handler_finalization_preserves_success_and_first_business_failure_receipts(self):
+        from swcli.daemon import operations
+        context = SimpleNamespace(app=self.app, documents=self.registry, entry=self.entry, session_id="writer")
+        for business_error in (None, dict(type="NativeFirstFailure", message="original setter failure")):
+            with self.subTest(business_error=business_error):
+                receipt = dict(ok=business_error is None, action="mock", changed=True,
+                    mutation=dict(attempted=True, may_have_changed=True))
+                if business_error: receipt["error"] = business_error
+                with mock.patch.object(operations, "set_document_image_quality_windows", return_value=receipt) as setter, \
+                        mock.patch.object(self.registry, "describe", side_effect=RuntimeError("descriptor finalization")) as describe:
+                    result = operations.document_image_quality_set(context, {})
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["mutation"], receipt["mutation"])
+                self.assertEqual(result["error"], business_error or dict(type="DocumentImageQualityFinalizationFailed", message="descriptor finalization"))
+                self.assertEqual(result["finalization_error"]["message"], "descriptor finalization")
+                self.assertNotIn("document", result)
+                setter.assert_called_once(); describe.assert_called_once()
+                validate_operation_result("document.image-quality-set", result)
+                self.assertEqual(receipt["action"], "mock")
+
+    def run_quality_worker(self, *, native_failure=False, restore_failure=False):
+        from contextlib import contextmanager
+        from swcli.daemon import server
+        from swcli.hosts.native_sequence import NativeCommandRestoreFailed
+        self.app.GetProcessID = lambda: 1234
+        self.app.RevisionNumber = "33.5.0"
+        request = dict(request_id="quality-once", operation="document.image-quality-set",
+            parameters=dict(field="optimize_edge_length", value=True, expected_quality=snapshot()),
+            document_id=self.entry.document_id, expected_update_stamp=7, lease_id=self.lease, session_id="writer")
+        def setter(*args):
+            self.apply(*args)
+            if native_failure: raise RuntimeError("native first failure")
+            return True
+        self.extension.SetUserPreferenceToggle.side_effect = setter
+        original_describe = self.registry.describe
+        def describe(*args, **kwargs):
+            if self.native[210] and not restore_failure: raise RuntimeError("descriptor finalization")
+            return original_describe(*args, **kwargs)
+        @contextmanager
+        def sequence(*args, **kwargs):
+            yield
+            raise NativeCommandRestoreFailed(RuntimeError("restore finalization"), None)
+        pythoncom, com_client = mock.Mock(), mock.Mock()
+        responses, lifecycle = mock.Mock(), mock.Mock()
+        with mock.patch.dict("sys.modules", {"pythoncom": pythoncom,
+                "win32com": mock.Mock(client=com_client), "win32com.client": com_client}), \
+                mock.patch.object(server, "acquire_resident_app", return_value=(self.app, False)), \
+                mock.patch.object(server, "wait_windows_host_ready", return_value=0), \
+                mock.patch.object(server, "DocumentRegistry", return_value=self.registry), \
+                mock.patch.object(server, "_describe_app", return_value={"process_id":1234}), \
+                mock.patch.object(server, "_wait_for_worker_request", side_effect=[request, None]), \
+                mock.patch.object(self.registry, "describe", side_effect=describe):
+            if restore_failure:
+                with mock.patch.object(server, "native_api_sequence", sequence):
+                    server._worker_main(mock.Mock(), responses, lifecycle, False, 120, True)
+            else:
+                server._worker_main(mock.Mock(), responses, lifecycle, False, 120, True)
+        pythoncom.CoUninitialize.assert_called_once()
+        responses.put.assert_called_once()
+        return responses.put.call_args.args[0], lifecycle
+
+    def test_real_worker_handler_and_adapter_preserve_receipt_after_describe_failure(self):
+        for native_failure in (False, True):
+            with self.subTest(native_failure=native_failure):
+                self.setUp()
+                response, _ = self.run_quality_worker(native_failure=native_failure)
+                self.assertFalse(response["success"], response)
+                result = response["result"]
+                self.assertEqual(result["mutation"], dict(attempted=True, may_have_changed=True))
+                self.assertEqual(result["error"]["message"], "native first failure" if native_failure else "descriptor finalization")
+                self.assertEqual(result["finalization_error"]["message"], "descriptor finalization")
+                self.assertEqual(response["error"]["code"], result["error"]["type"])
+                validate_operation_result("document.image-quality-set", result)
+                self.extension.SetUserPreferenceToggle.assert_called_once()
+                self.assertEqual(self.document.SetSaveFlag.call_count, int(not native_failure))
+                self.app.ActivateDoc3.assert_not_called()
+
+    def test_worker_late_command_restore_failure_preserves_receipt_and_stops_host(self):
+        for native_failure in (False, True):
+            with self.subTest(native_failure=native_failure):
+                self.setUp()
+                response, lifecycle = self.run_quality_worker(native_failure=native_failure, restore_failure=True)
+                self.assertFalse(response["success"], response)
+                self.assertEqual(response["error"]["code"], "NativeCommandRestoreFailed")
+                result = response["result"]
+                self.assertEqual(result["mutation"], dict(attempted=True, may_have_changed=True))
+                self.assertEqual(result["finalization_error"]["type"], "NativeCommandRestoreFailed")
+                if native_failure: self.assertEqual(result["error"]["message"], "native first failure")
+                validate_operation_result("document.image-quality-set", result)
+                self.assertEqual(lifecycle.put.call_args.args[0]["event"], "host-disconnected")
+                self.extension.SetUserPreferenceToggle.assert_called_once()
+
     def test_request_schema_and_cli_reject_invalid_typed_and_nested_json(self):
         parameters = dict(field="optimize_edge_length", value=True, expected_quality=snapshot())
         spec = OPERATION_CATALOG["document.image-quality-set"]
@@ -294,7 +465,7 @@ class ImageQualityWireTests(unittest.TestCase):
                     expected_quality=snapshot(), expected_update_stamp=0, lease_id="l-ab12cd34ef56")
             wire.assert_called_once()
         with mock.patch("swcli.sdk.client.call_daemon") as wire:
-            for params in (dict(value=1), dict(expected_quality={}), dict(expected_update_stamp=None), dict(lease_id=None)):
+            for params in (dict(field="shaded_mode", value="custom"), dict(value=1), dict(expected_quality={}), dict(expected_update_stamp=None), dict(lease_id=None)):
                 arguments = dict(field="optimize_edge_length", value=True, expected_quality=snapshot(),
                     expected_update_stamp=0, lease_id="l-ab12cd34ef56")
                 arguments.update(params)

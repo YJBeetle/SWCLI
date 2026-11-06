@@ -73,14 +73,18 @@ class QualityCLI(FakeCLI):
                     return self.failure("RuntimeError", mutation=dict(attempted=True,may_have_changed=True))
                 raw=quality["native"]
                 if field == "shaded_mode": raw[field]={"coarse":1,"fine":2,"custom":3}[value]
-                elif field == "shaded_deviation_mm": raw["shaded_deviation_m"]=value/1000
+                elif field == "shaded_deviation_mm":
+                    raw["shaded_deviation_m"]=value/1000
+                    raw["shaded_mode"]=3
                 else: raw[field]=value
                 document["quality"]=quality=quality_snapshot(raw,quality["deviation_range"])
                 document["modified"]=True
                 self.native_calls.append("IModelDocExtension.SetUserPreference"+gate.IMAGE_QUALITY_FIELDS[field]["kind"])
                 self.getters(); self.getters()
             result=dict(base,field=field,before=before,quality=deepcopy(quality),changed=changed,
-                mutation=dict(attempted=changed,may_have_changed=changed),linked_changes=[],document=self.descriptor(document,args.session))
+                mutation=dict(attempted=changed,may_have_changed=changed),linked_changes=(
+                    [dict(field="shaded_mode",before=before["shaded_mode"],after="custom",reason="shaded-deviation-coupling")]
+                    if field=="shaded_deviation_mm" and before["shaded_mode"]!="custom" and changed else []),document=self.descriptor(document,args.session))
             if changed: result.update(native_return=True,observed_quality=deepcopy(quality))
             return result
         if action == "document" and sub in ("save-as","export"):
@@ -117,17 +121,19 @@ class CalibrationTests(unittest.TestCase):
         self.swconst=Path(temporary.name)/"swconst.tlb"; self.swconst.write_bytes(b"static")
         self.fake=QualityCLI(self.directory,self.trace)
 
-    def run_gate(self, *, document_properties=False):
+    def run_gate(self, *, document_properties=False, public_acceptance=False):
         def sdk(**kwargs):
             def read(**context):
                 quality=deepcopy(self.fake.documents[context["document_id"]]["quality"])
-                return SimpleNamespace(ok=True,raw=dict(result=dict(quality=quality)),require_result=lambda:dict(quality=quality))
+                result=dict(quality=quality,document=self.fake.descriptor(self.fake.documents[context["document_id"]],kwargs["session_id"]))
+                return SimpleNamespace(ok=True,raw=dict(result=result),require_result=lambda:result)
             return SimpleNamespace(document=SimpleNamespace(image_quality=read))
         with mock.patch.object(gate.modeling.subprocess,"run",side_effect=self.fake.run), \
                 mock.patch.object(gate,"constants",return_value={}), mock.patch.object(gate,"Client",side_effect=sdk), \
                 mock.patch.object(gate.importlib.metadata,"version",return_value="portable-fake"), \
+                mock.patch.dict(gate.os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION="", SWCLI_GLB_PLAIN_STAGING_CALIBRATION=""), \
                 mock.patch("sys.stdout",new=io.StringIO()):
-            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--document-properties"] if document_properties else [])])
+            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--document-properties"] if document_properties else []), *(["--public-acceptance"] if public_acceptance else [])])
 
     def record(self): return json.loads((self.directory/"image-quality.json").read_text())
 
@@ -143,6 +149,7 @@ class CalibrationTests(unittest.TestCase):
             self.assertEqual(case["baseline_reopened_quality"]["quality"],case["initial"]["quality"])
             self.assertTrue(Path(case["baseline_save"]["path"]).is_file())
             self.assertTrue(all(row["success"] and row["reopen"]["read_only"] for row in case["levels"]))
+            self.assertEqual([len(row["noops"]) for row in case["levels"]],[3,3,2])
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(all(event["request_timeout_seconds"]==600 for event in record["events"]))
 
@@ -159,6 +166,18 @@ class CalibrationTests(unittest.TestCase):
             self.assertNotIn("mesh",case["levels"][-1])
         self.assertFalse(any(call.command=="document" and call.document_command=="export" for call in self.fake.calls))
         self.assertEqual(self.fake.documents,{})
+
+    def test_public_entry_is_distinct_and_cannot_use_calibration_switches(self):
+        self.run_gate(document_properties=True,public_acceptance=True)
+        record=self.record()
+        self.assertEqual(record["profile"],"document-image-quality-public")
+        self.assertTrue(record["public_acceptance_passed"] and record["image_quality_writes_accepted"])
+        self.assertFalse(record["image_quality_calibration_passed"] or record["covers_glb_mesh"] or record["glb_control_proven"] or record["full_acceptance_eligible"])
+        for name in ("SWCLI_IMAGE_QUALITY_CALIBRATION","SWCLI_GLB_PLAIN_STAGING_CALIBRATION"):
+            with mock.patch.dict(gate.os.environ,{name:"1"}), mock.patch.object(gate.subprocess,"run") as native, mock.patch("sys.stderr",new=io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    gate.main(["--public-acceptance","--document-properties","--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace)])
+                native.assert_not_called()
 
     def test_first_failure_trace_and_lost_persistence_stop_without_retry_and_clean_once(self):
         for defect in ("native-first-failure","missing-trace","missing-native-getter","reopen-lost-value","global-setter","reordered-preferences"):
@@ -191,13 +210,20 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn("inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref)",concurrency)
         self.assertIn("|| 'swcli-hosted-windows-solidworks'",concurrency)
         self.assertIn("cancel-in-progress: false",concurrency)
+        self.assertIn("format('swcli-image-quality-public-{0}', github.ref)",concurrency)
+        public_setting=workflow.split("      image_quality_public_acceptance:",1)[1].split("permissions:",1)[0]
+        self.assertIn("default: false",public_setting)
+        self.assertIn("inputs.image_quality_public_acceptance && !inputs.native_full && !inputs.image_quality_calibration",guard)
         for name in ("Prepare property fixtures","Prepare annotation fixtures","Run real SOLIDWORKS modeling"):
             block=workflow.split("      - name: "+name,1)[1].split("      - name:",1)[0]
-            self.assertIn("if: ${{ !inputs.image_quality_calibration }}",block)
+            self.assertIn("if: ${{ !inputs.image_quality_calibration && !inputs.image_quality_public_acceptance }}",block)
         wrapper=(ROOT/"scripts/ci/windows/smoke-solidworks.ps1").read_text()
-        block=wrapper.split('    if ($ImageQualityCalibration) {\n        # Independent property',1)[1].split('    if ($VisibleSmoke)',1)[0]
+        block=wrapper.split('    if ($ImageQualityCalibration -or $ImageQualityPublicAcceptance) {\n        # Independent property',1)[1].split('    if ($VisibleSmoke)',1)[0]
         self.assertIn('return',block)
-        self.assertLess(block.index('--document-properties'),block.index('Internal image-quality document-properties group failed'))
-        self.assertLess(block.index('Internal image-quality document-properties group failed'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))
+        self.assertLess(block.index('--document-properties'),block.index('Image-quality document-properties group failed'))
+        self.assertLess(block.index('Image-quality document-properties group failed'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))
         self.assertIn('if ($LASTEXITCODE -ne 0)',block)
         self.assertNotIn('restart',block)
+        public_stop=block.split('        if ($ImageQualityPublicAcceptance) {',2)[-1].split('        & python',1)[0]
+        self.assertIn('return',public_stop)
+        self.assertLess(block.index('quality-public-stop'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))

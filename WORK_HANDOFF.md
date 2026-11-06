@@ -16,8 +16,8 @@
 - `document.image-quality` / CLI `document image-quality`：part-only 完整观察。
 - `document.image-quality-set` / CLI `document image-quality-set FIELD VALUE --if-quality JSON --if-update-stamp N --lease TOKEN [--document ID]`。
 - parameters：`field`, typed `value`, 完整 `expected_quality`；required context `expected_update_stamp`, `lease_id`，optional exact `document_id`。
-- 写字段 `shaded_mode`（coarse/fine/custom）、`shaded_deviation_mm`、`optimize_edge_length`。只读观察 `save_tessellation`, `apply_to_referenced_parts`。
-- 完整 quality 包含五个 normalized 字段、五成员 `native` 与 `deviation_range {status,bounds_m}`。CAS 精确全值；偏差写必须已有 custom mode 且实际 range 可用；每请求至多单 setter，首错停止，无重试/回滚。mode 仅可显式报告 deviation 联动；range/其他字段不能漂移。
+- 写字段 `shaded_mode`（只写coarse/fine；custom为只读分类，由Double偏差调用建立）、`shaded_deviation_mm`、`optimize_edge_length`。只读观察 `save_tessellation`, `apply_to_referenced_parts`。
+- 完整 quality 包含五个 normalized 字段、五成员 `native` 与 `deviation_range {status,bounds_m}`。CAS 精确全值；偏差写仅使用一个Double setter并要求原生custom分类联动读回，实际range必须可用；每请求至多单 setter，首错停止，无重试/回滚。允许显式mode→deviation和deviation→custom两类联动；range/其余字段不能漂移。
 - `mutation {attempted,may_have_changed}`、可序列化 `native_return`、`observed_quality` 保留部分修改。readback 成功后至多一次 dirty mark；noop 零 setter/dirty mark。
 - 新文件：`src/swcli/document_image_quality.py`、`hosts/windows_document_image_quality.py`；三份测试 `test_document_image_quality.py` / `test_glb_mesh.py` / `test_image_quality_calibration.py`；`scripts/ci/verify-image-quality.py` / `gate_support/glb_mesh.py`；`docs/image-quality-calibration.md`。
 - 共享文件：`cli.py`, `daemon/operations.py`, `operation_schemas.py`, `result_schemas.py`, `schemas/v1/capabilities.schema.json`（只新增标准 description 注解支持），generated SDK 两文件、typing fixtures、README、随包 skill/usage/sdk 文档、`.github/workflows/ci.yml` 与 `scripts/ci/windows/smoke-solidworks.ps1`。
@@ -96,3 +96,28 @@
 - 除已记录1845全回归、81focused外，GLB SaveAs3 trace及导出/原生trace相关 **53 tests OK**；最终导出validator/mesh-wrapper/分组接线 **31 tests OK**，`git diff --check`通过。
 - 新run先写 `properties-calibration/image-quality.json`，该组没有GLB导出，包含edge true/false分别单次请求并完整保存重开；通过后才进入 `calibration/image-quality.json` 的GLB实验。任一组首失败停止该组/后续步骤，整体35分钟上限不增；单组600/1800边界不变，同daemon/host不重启。
 - 独立审计器已预先按两个证据域分开，位于持久artifact根 `audit-image-quality-artifact.py`。仅当property报告完整通过、全部原文件/trace/raw persistence/kernel/cleanup独立复核通过，才允许将它作为**内部property证据**；即使后一GLB组失败也不能称整run通过或GLB通过，更不能替代后续独立公开验收。公共写入当前仍全部关闭，待原证据核完再开放精确范围。
+
+### 公开验收准备与授权状态
+
+- 用户最新统筹授权已收到；本分支没有待审批/授权阻塞，不需要常规推进重新确认。VM与DockerSW/MacSW边界保持。
+- 在等待当前精确head内部结果时，工作区已准备独立默认关闭 `image_quality_public_acceptance` 输入，仅本分支、与calibration/full互斥，独有`swcli-image-quality-public-${github.ref}`并发组。公开wrapper清除两个内部开关，只运行完整property组并保存独立public报告，不调用GLB实验；600/1800及35分钟上限不变。
+- `--public-acceptance` 拒绝任何内部开关残留，公开/内部pass字段分开；增加SDK exact后台文档身份核验。便携分组/接线22 tests OK（3 skipped）与actionlint已通过。**这些准备尚未提交/派发，backend公共写入仍全部关闭；不能将fake公共报告当真实验收。**
+- 只有当前原artifact按域独立审计通过，才填入已证实范围并提交/派发一次必要公开gate；当前不是merge-ready。
+
+### 第三轮：custom Integer setter被原生忽略，正确API路径收窄
+
+- run `42271766677` / head `2f095357e6b80d324dc3563c8754bf1406f55d1a` 已失败。原zip digest核对一致：`sha256:751f8b969d69abb593a29518d688db00562426f3b0b0554cd3705c749781f05a`（1049591 bytes），持久目录 `run-42271766677`。没有整run或属性组通过结论。
+- 属性组首先成功完成cylinder coarse/fine各自另存、fresh readonly/writable重开、完整raw/geometry/hash检查。coarse偏差0.12500000000000003 mm；fine偏差0.0576923076923077 mm。下一请求`shaded_mode=custom`只调用一次Integer setter(44,0,3)，返回True，但observed仍fine/native2、偏差原样，modified仍false；严格读回断言失败，mutation attempted/may_have_changed=true保留。未调用Double、edge-disable、未创建box；**GLB组根本没启动**，故普通暂存文件名假设仍未校准。
+- 根据已核官方2025 `swImageQualityShaded_e` 描述（Custom=3须用Double preference设置值）及以上原件，撤销可写Integer custom目标，CLI/请求schema/SDK运行时在COM前拒绝。读snapshot仍保留custom/3。
+- 正确候选路径：一个`SetUserPreferenceDouble(32,0,value_m)`，不预调用Integer custom，也不失败后补setter；要求requested偏差读回且mode实际成为custom。显式linked_changes记录`shaded-deviation-coupling`，其余range/readonly/context/geometry断言不变。该路径仍需下一原生证据，公共写入当前继续全关闭。
+- 原custom-mode noop改为COM前unsupported反例；coarse/fine仍逐字段零setter noop，custom阶段只验证两个可请求值的noop（偏差、edge），不会把不支持的枚举当noop成功。便携对应路径38 tests OK，含单Double建立custom/未建立即部分失败、拒绝Integer custom、SDK生成一致性。
+
+### 统筹 peer review 两个保护缺口已补（待精确head原生）
+
+- 读取统筹的 `docprops-handler-peer-review-2026-11-07.md`；其发现是精确旧head的便携故障注入，不称原生现场故障。
+- 保存并验证不同于target的foreground自身kind/stamp/dirty/config/path/title/read-only/view-only，检查贯穿读前、setter后、readback、dirty与最终读；保持同指针也不放行。任何漂移只报部分失败，不恢复前台或回滚。target本身就是前台时允许本次预期dirty变化。
+- image-quality两个handler收尾捕获describe/结果校验异常，将adapter receipt设失败且保留mutation/首次business error，另附`finalization_error`；worker晚期API-command恢复异常也保留已返回receipt，并继续原有host-disconnected机制。每request重置result，避免带入上一请求。其他operation行为不改。新增共享冲突面`daemon/server.py`，主对话合并时需独立检查。
+- 新增真实handler→worker→adapter便携测试（不mock execute_operation/结果validator）：成功与首次native失败后的describe异常、late command restore异常均保留mutation/首错；前台7种自身状态×4阶段漂移拒绝且零补偿/单setter。focused image-quality **22 tests OK**，含subtests；便携证据不是native验收。
+- 独立artifact审计器同步custom阶段两个合法noop，并拒绝overall failure且未进入后续GLB组的property成功冒称（避免wrapper终止/最后checkpoint故障误归因）。公共写仍全关闭；下一内部校准必须携带这些生产保护和单Double custom路径。
+
+- 最终本地回归 **1853 tests OK（32 skipped，46.703s）**，持久原日志`portable-tests-peer-finalization-fix.log`；focused58通过，SDK生成一致性/strict6源文件与9消费者拒绝、actionlint、diff-check通过。尚未把任何fake当native。

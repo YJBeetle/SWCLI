@@ -12,7 +12,7 @@ main integration, production host or local Windows VM is involved.
   field-specific typed value, complete `expected_quality`, required
   `expected_update_stamp` and `lease_id`. CLI uses `--if-quality`,
   `--if-update-stamp`, `--lease`. SDK methods and MCP `execute` share this schema.
-- Writable candidates: `shaded_mode` (native 1/2/3),
+- Writable candidates: `shaded_mode` (coarse/fine, native 1/2; custom=3 is observed only),
   `shaded_deviation_mm` (native meters), `optimize_edge_length` (boolean).
   Read-only observations: `save_tessellation`, `apply_to_referenced_parts`.
 - Snapshot: five normalized values, all five raw `native` members, and
@@ -22,9 +22,12 @@ main integration, production host or local Windows VM is involved.
 - CAS compares the complete snapshot exactly. JSON int/float equivalents are
   allowed, booleans are never numeric substitutes, nonfinite/duplicate/nested
   invalid JSON is rejected. Target readback/noop tolerance is 1e-12 mm.
-- Deviation requires a separately requested existing custom mode. Mode changes
-  may explicitly report linked deviation changes; native range changes and any
-  other unrequested member drift fail. No automatic second setter or rollback.
+- A custom deviation uses one Double setter. Its transition to observed custom
+  mode is a declared linked change; the readback must actually classify as custom.
+  The convenience preset setter accepts coarse/fine only: native Integer custom
+  returned True but stayed fine on 33.5.0, so that target is rejected before COM.
+  Preset changes may explicitly report linked deviation changes; native range
+  changes and all unrelated members still fail. No second setter or rollback.
 - Lease/stamp checks precede native access. The adapter preserves path/title,
   type, configuration, edit context, access mode and foreground. Setter false,
   exception or non-boolean results stop immediately with partial mutation
@@ -117,3 +120,11 @@ uses an ASCII staging basename with a single `.glb` extension, enabled only by
 hypothesis without changing the API, preferences or retry policy; it does not
 establish a cause. Default staging is unchanged. Rejected bytes are retained as
 an explicitly invalid CI diagnostic, never published as successful CAD output.
+
+
+The 33.5.0 Integer-custom failure is preserved in run 42271766677: coarse and
+fine had saved/reopened successfully; setting Integer 44 to 3 returned True but
+left both the raw mode (2) and deviation unchanged. The official enumeration
+explicitly directs custom values to `swImageQualityShadedDeviation`. The next
+single-Double calibration must prove its linked custom classification; neither
+the True return nor the documented route alone is accepted as native proof.

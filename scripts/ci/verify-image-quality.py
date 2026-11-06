@@ -1,4 +1,4 @@
-"""Internal installed image-quality/GLB calibration, never full public acceptance.
+"""Bounded installed image-quality calibration and opt-in public property gate.
 
 Uses public CLI and SDK on one already-owned hidden daemon. Each request has a
 600s budget, the complete group a hard external 1800s watchdog. First failure
@@ -29,16 +29,17 @@ from gate_support.glb_mesh import inspect_glb
 
 
 class QualitySmoke(modeling.ModelingSmoke):
-    def __init__(self, *, document_properties=False, **kwargs):
+    def __init__(self, *, document_properties=False, public_acceptance=False, **kwargs):
+        self.public_acceptance = public_acceptance
         self.document_properties = document_properties
         super().__init__(request_timeout_seconds=600, **kwargs)
         self.started = time.monotonic()
-        self.record.update(profile="document-image-quality-calibration" if document_properties else "image-quality-calibration",
-            covers_glb_mesh=not document_properties, evidence_kind="internal-installed-cli-sdk-calibration",
+        self.record.update(profile="document-image-quality-public" if public_acceptance else "document-image-quality-calibration" if document_properties else "image-quality-calibration",
+            covers_glb_mesh=not document_properties, evidence_kind="public-installed-cli-sdk-document-image-quality" if public_acceptance else "internal-installed-cli-sdk-calibration",
             full_acceptance_eligible=False, covers_full_modeling_suite=False,
-            group_timeout_seconds=1800, image_quality_writes_accepted=False, glb_control_proven=False,
+            group_timeout_seconds=1800, image_quality_writes_accepted=False, public_acceptance_passed=False, glb_control_proven=False,
             expected_version=__version__, source_commit=os.environ.get("GITHUB_SHA"),
-            export_staging_profile="plain filename in internal CI only; default exporter unchanged",
+            export_staging_profile="not used by document-properties group" if document_properties else "plain filename in internal CI only; default exporter unchanged",
             python_version=sys.version,
             format_options_status="unsupported: no verified API mapping; same host defaults observed, not independently controlled")
 
@@ -169,7 +170,11 @@ def run(gate, trace, swconst):
         sdk = Client(endpoint=gate.endpoint, session_id=gate.session+"-sdk", timeout_seconds=600)
         reply = sdk.document.image_quality(document_id=document, expected_update_stamp=current["document"]["update_stamp"])
         case["sdk_read"] = reply.raw
-        require(reply.ok and exact_snapshot(reply.require_result()["quality"], current["quality"]), "SDK quality mapping disagrees with public CLI")
+        require(reply.ok and exact_snapshot(reply.require_result()["quality"], current["quality"])
+                and reply.require_result()["document"]["document_id"] == document
+                and reply.require_result()["document"]["active"] is False
+                and reply.require_result()["document"]["current"] is False,
+                "SDK quality or exact background identity mapping disagrees with public CLI")
         require(current["quality"]["apply_to_referenced_parts"] is False and current["quality"]["shaded_mode"] != "other", "unsupported initial image quality profile")
         # Keep an immutable, independently reopened baseline before the first
         # preference setter. A first-call failure must leave native input evidence.
@@ -198,7 +203,8 @@ def run(gate, trace, swconst):
         trace.verify(gate, setters=0)
         for mode in ("coarse", "fine", "custom"):
             row = dict(mode=mode, success=False); case["levels"].append(row)
-            row["mode_write"] = current = edit(gate, document, current, "shaded_mode", mode, trace)
+            if mode != "custom":
+                row["mode_write"] = current = edit(gate, document, current, "shaded_mode", mode, trace)
             if mode == "custom":
                 bounds = current["quality"]["deviation_range"]
                 require(bounds["status"] == 0, "custom quality native range unavailable")
@@ -208,12 +214,15 @@ def run(gate, trace, swconst):
                     target = (low+(high-low)*0.75)*1000
                 require(target > 0 and not math.isclose(target, current["quality"]["shaded_deviation_mm"], rel_tol=1e-12, abs_tol=1e-12), "custom deviation must actually change")
                 row["deviation_write"] = current = edit(gate, document, current, "shaded_deviation_mm", target, trace)
+                require(current["quality"]["shaded_mode"] == "custom", "single deviation setter did not establish custom mode")
             if gate.document_properties and mode == "custom":
                 # An explicit second requested test value, never failure
                 # rollback: verify disabling independently after enabling.
                 row["edge_disable_write"] = current = edit(gate, document, current, "optimize_edge_length", False, trace)
             row["noops"] = []
             for field in IMAGE_QUALITY_FIELDS:
+                if field == "shaded_mode" and current["quality"]["shaded_mode"] == "custom":
+                    continue  # custom is an observation, never an Integer write target
                 current = edit(gate, document, current, field, current["quality"][field], trace)
                 row["noops"].append(current)
             expected = current["quality"]
@@ -255,7 +264,8 @@ def run(gate, trace, swconst):
     gate.record["host_after"] = gate.health()["host"]
     require(gate.record["host_after"] == gate.record["host"], "quality calibration host state changed")
     gate.record.update(state="completed", success=True,
-        image_quality_calibration_passed=True, image_quality_writes_accepted=False, glb_control_proven=False,
+        image_quality_calibration_passed=not gate.public_acceptance, public_acceptance_passed=gate.public_acceptance,
+        image_quality_writes_accepted=gate.public_acceptance, glb_control_proven=False,
         optimize_edge_length_verified_values=[True, False] if gate.document_properties else [True])
 
 
@@ -266,8 +276,12 @@ def main(argv=None):
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--endpoint", default=modeling.DEFAULT_ENDPOINT)
     parser.add_argument("--document-properties", action="store_true", help="independent document-properties evidence group; does not export or claim GLB meshes")
+    parser.add_argument("--public-acceptance", action="store_true", help="document-property public route, with calibration switches absent")
     parser.add_argument("--inside-watchdog", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.public_acceptance and (not args.document_properties or any(os.environ.get(name) == "1" for name in
+            ("SWCLI_IMAGE_QUALITY_CALIBRATION", "SWCLI_GLB_PLAIN_STAGING_CALIBRATION"))):
+        parser.error("public acceptance requires the document-properties profile and both calibration switches absent")
     if not args.inside_watchdog:
         # External watchdog also bounds a hung CLI, SDK, decoder, or cleanup.
         try:
@@ -277,7 +291,7 @@ def main(argv=None):
             (args.output_dir/"group-timeout.json").write_text(json.dumps(dict(success=False, first_failure="hard 1800-second group deadline", full_acceptance_eligible=False)))
             return 1
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    gate = QualitySmoke(directory=args.output_dir.resolve(), host_directory=str(args.output_dir.resolve()), endpoint=args.endpoint, document_properties=args.document_properties)
+    gate = QualitySmoke(directory=args.output_dir.resolve(), host_directory=str(args.output_dir.resolve()), endpoint=args.endpoint, document_properties=args.document_properties, public_acceptance=args.public_acceptance)
     gate.record_path = args.output_dir/"image-quality.json"
     with gate.record_path.open("x") as stream: json.dump(gate.record, stream)
     trace = Trace(args.native_trace)

@@ -8,6 +8,7 @@ from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _require_writable, _state as _metadata_state, _verify_metadata_state
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
+from .windows_feature_inspection import _same
 
 
 class DocumentImageQualityUnsupported(RuntimeError):
@@ -50,7 +51,15 @@ def _state(document):
     return _metadata_state(document) + identity
 
 
-def _verify(app, document, state, foreground, edit):
+def _verify_foreground(app, foreground, foreground_state):
+    if (foreground_state is not None
+            and (not _same(app, foreground, _com_value(app, "ActiveDoc"))
+                 or _state(foreground) != foreground_state)):
+        raise RuntimeError("foreground document state or identity changed during image quality operation")
+
+
+def _verify(app, document, state, foreground, edit, foreground_state):
+    _verify_foreground(app, foreground, foreground_state)
     _verify_context(app, document, edit)
     if _state(document)[4:] != state[4:]:
         raise RuntimeError("document identity or access mode changed during image quality operation")
@@ -59,20 +68,21 @@ def _verify(app, document, state, foreground, edit):
 
 def _baseline(app, document):
     foreground = _com_value(app, "ActiveDoc")
+    foreground_state = (_state(foreground) if foreground is not None and not _same(app, foreground, document) else None)
     edit = _edit_context(document)
     state = _state(document)
-    _verify(app, document, state, foreground, edit)
+    _verify(app, document, state, foreground, edit, foreground_state)
     if state[0] != 1:
         raise ValueError("the first image quality profile supports part documents only")
-    return state, foreground, edit
+    return state, foreground, edit, foreground_state
 
 
 def read_document_image_quality_windows(*, app: Any, document: Any) -> dict:
     result = {"ok": False, "action": "document.image-quality"}
     try:
-        state, foreground, edit = _baseline(app, document)
+        state, foreground, edit, foreground_state = _baseline(app, document)
         quality = _read_quality(document)
-        _verify(app, document, state, foreground, edit)
+        _verify(app, document, state, foreground, edit, foreground_state)
         result.update(ok=True, quality=quality)
     except Exception as exc:
         result["error"] = _error(exc)
@@ -86,11 +96,11 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
         if os.environ.get("SWCLI_IMAGE_QUALITY_CALIBRATION") != "1":
             raise DocumentImageQualityUnsupported(
                 "image quality writes require internal calibration; GLB tessellation control is unproven")
-        state, foreground, edit = _baseline(app, document)
+        state, foreground, edit, foreground_state = _baseline(app, document)
         _require_writable(document)
         before = _read_quality(document)
         result.update(field=field, before=before)
-        _verify(app, document, state, foreground, edit)
+        _verify(app, document, state, foreground, edit, foreground_state)
         if not exact_snapshot(before, expected_quality):
             raise DocumentImageQualityConflict("document image quality differs from the complete expected snapshot")
         if matches(field, before[field], value):
@@ -103,8 +113,6 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
         if field == "shaded_deviation_mm":
             bounds = before["deviation_range"]
             native = value / 1000.0
-            if before["shaded_mode"] != "custom":
-                raise ValueError("set shaded_mode to custom explicitly before changing its deviation")
             if bounds["status"] != 0 or not bounds["bounds_m"][0] <= native <= bounds["bounds_m"][1]:
                 raise ValueError("deviation is outside the observed native range or range is unavailable")
         else:
@@ -112,7 +120,7 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
         spec = IMAGE_QUALITY_FIELDS[field]
         extension = _com_value(document, "Extension")
         method = "SetUserPreference" + spec["kind"]
-        _verify(app, document, state, foreground, edit)
+        _verify(app, document, state, foreground, edit, foreground_state)
         _require_writable(document)
         result["mutation"] = {"attempted": True, "may_have_changed": True}
         returned = native_call("document-image-quality", "IModelDocExtension." + method,
@@ -127,24 +135,23 @@ def set_document_image_quality_windows(*, app: Any, document: Any, field: str, v
         if (post[0], post[3], post[4:]) != (state[0], state[3], state[4:]):
             raise RuntimeError("document identity or configuration changed during image quality setter")
         _require_writable(document)
-        _verify_context(app, document, edit)
-        _verify_metadata_state(app, document, post[:4], foreground, changed=False)
+        _verify(app, document, post, foreground, edit, foreground_state)
         after = _read_quality(document)
         result["observed_quality"] = after
-        _verify(app, document, post, foreground, edit)
+        _verify(app, document, post, foreground, edit, foreground_state)
         if not matches(field, after[field], value):
             raise RuntimeError("native image quality setter did not read back the requested value")
         changes = linked_changes(before, after, field)
         # Recheck writable/context before the sole possible dirty mutation.
-        _verify(app, document, post, foreground, edit)
+        _verify(app, document, post, foreground, edit, foreground_state)
         _require_writable(document)
         _verify_metadata_state(app, document, state[:4], foreground, changed=True)
         post_dirty = _state(document)
         if post_dirty[4:] != state[4:]:
             raise RuntimeError("document identity or access mode changed while marking image quality dirty")
-        _verify(app, document, post_dirty, foreground, edit)
+        _verify(app, document, post_dirty, foreground, edit, foreground_state)
         final = _read_quality(document)
-        _verify(app, document, post_dirty, foreground, edit)
+        _verify(app, document, post_dirty, foreground, edit, foreground_state)
         if not exact_snapshot(final, after):
             raise RuntimeError("image quality changed while marking the document for saving")
         result.update(ok=True, quality=after, changed=True, linked_changes=changes)
