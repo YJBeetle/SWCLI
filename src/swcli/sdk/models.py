@@ -771,6 +771,52 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
+DocumentDimensionFormatParameters = DocumentAnnotationOptionsParameters
+
+
+class DocumentDimensionFormatResultFormat(TypedDict):
+    dual_display: bool
+    dual_position: int
+    parentheses: bool
+
+
+class _DocumentDimensionFormatResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.dimension-format']
+
+
+class DocumentDimensionFormatResult(_DocumentDimensionFormatResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    format: DocumentDimensionFormatResultFormat
+
+
+class DocumentDimensionFormatSetParameters(TypedDict):
+    field: Literal['dual_display', 'dual_position', 'parentheses']
+    value: Union[str, bool]
+    expected_format: DocumentDimensionFormatResultFormat
+
+
+class _DocumentDimensionFormatSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.dimension-format-set']
+
+
+class DocumentDimensionFormatSetResult(_DocumentDimensionFormatSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['dual_display', 'dual_position', 'parentheses']
+    before: DocumentDimensionFormatResultFormat
+    format: DocumentDimensionFormatResultFormat
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_return: bool
+
+
 DocumentUnitsParameters = DocumentAnnotationOptionsParameters
 
 

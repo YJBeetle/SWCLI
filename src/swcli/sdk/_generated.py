@@ -244,6 +244,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentAnnotationOptionSetResult]", self._client._execute('document.annotation-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def dimension_format(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentDimensionFormatResult]:
+        """document.dimension-format; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentDimensionFormatResult]", self._client._execute('document.dimension-format', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def dimension_format_set(self, *, field: Literal['dual_display', 'dual_position', 'parentheses'], value: Union[str, bool], expected_format: models.DocumentDimensionFormatResultFormat, document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDimensionFormatSetResult]:
+        """document.dimension-format-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_format'] = expected_format
+        return cast("Response[models.DocumentDimensionFormatSetResult]", self._client._execute('document.dimension-format-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def units(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentUnitsResult]:
         """document.units; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

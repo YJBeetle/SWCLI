@@ -19,6 +19,7 @@ from .protocol import SCHEMA_NAMES, load_schema
 from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
+from .document_dimension_format import DIMENSION_FORMAT_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
 from .document_annotations import ANNOTATION_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -258,6 +259,16 @@ def build_parser() -> argparse.ArgumentParser:
     annotations_editor.add_argument("value", help="enum name, true/false, or millimeters according to field")
     annotations_editor.add_argument("--if-value", dest="expected_value", required=True, help="require this previous scalar value")
     annotations_editor.add_argument("--json", action="store_true", dest="as_json")
+    format_reader = document_commands.add_parser("dimension-format", help="read bounded native dimension display settings")
+    add_document_selector(format_reader)
+    format_reader.add_argument("--json", action="store_true", dest="as_json")
+    format_editor = document_commands.add_parser("dimension-format-set", help="guarded dimension display edit (native writes await acceptance)")
+    add_document_selector(format_editor)
+    add_lease_token(format_editor)
+    format_editor.add_argument("field", choices=tuple(DIMENSION_FORMAT_FIELDS))
+    format_editor.add_argument("value", help="true/false, or right/top/left/bottom")
+    format_editor.add_argument("--if-format", required=True, dest="expected_format", help="complete native format JSON from dimension-format")
+    format_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1328,6 +1339,18 @@ def _typed_operation(
             return ("document.annotation-option-set", {"field": args.field, "value": scalar(args.value),
                     "expected_value": scalar(args.expected_value)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
+        if command == "dimension-format":
+            return ("document.dimension-format", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "dimension-format-set":
+            value = args.value
+            if args.field != "dual_position":
+                if value not in ("true", "false"):
+                    raise ValueError("dimension display boolean must be true or false")
+                value = value == "true"
+            return ("document.dimension-format-set", {"field": args.field, "value": value,
+                    "expected_format": json.loads(args.expected_format)}, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "units":
             return ("document.units", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)
