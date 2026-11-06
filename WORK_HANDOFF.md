@@ -59,8 +59,11 @@ full_acceptance_eligible=false；不改变 PR secrets 规则或 release/tag 条�
 - workflow YAML/新增 Python AST 解析通过；git diff --check 通过。
 - 全套便携测试：1833 项通过，32 项跳过（macOS / Python 3.15.2，专用隔离 venv）；之后新增一项 watchdog 行为测试，最终公差相关15项通过。初次环境/接线失败已修正，不属于原生失败。
 - 原始便携日志与摘要保存在 `evidence/portable/`（持久本地证据，不纳入实现提交）。
-- 实现提交：待记录。
-- Windows CI：尚未 dispatch；仅在便携测试/接线通过后，对对应 head dispatch 一次必要校准；native_full=false。
+- 实现提交：`27dc93077791359ded7296abee240f06350db51d`（已推送；提交消息含 skip ci，避免重复 push CI）。
+- Windows CI：[run 42261066525](https://github.com/YJBeetle/SWCLI/actions/runs/42261066525)，**已且仅已 dispatch 一次，运行中**。
+- 精确测试 head：`27dc93077791359ded7296abee240f06350db51d`；ref=`codex/docprops-tolerances`；`calibrate_tolerances=true`、`native_full=false`、`cleanup_profile=auto`、`vfs_cache_gib=8`；media/assets 使用 workflow 既有默认值。
+- `evidence/dispatch-parameters.json` 与 `dispatch-submitted.json` 保存请求/head；初始状态保存为 `evidence/run-42261066525.initial.json`。未记录任何凭据。
+- 远端 origin 已验证为公开 `https://github.com/YJBeetle/SWCLI.git`，当前用户 ADMIN；初次网络审批要求核实目的地，核实后重试已获准并完成推送/dispatch。
 
 ## 待完成与验收边界
 
