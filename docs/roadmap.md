@@ -182,6 +182,15 @@ can explicitly pass `off`; MacSW should pass `off` and own its UI. Locking a Win
 Closing the tray must not stop the daemon or SW. Stop/exit actions must respect
 unsaved documents and attached user-host ownership.
 
+## Independent SOLIDWORKS instances (deferred, low priority)
+
+Keep independent visible/hidden multi-instance support on the backlog. It is not
+on the 0.2 release critical path: multiple SOLIDWORKS processes have a substantial
+memory cost, and most users should share one intentionally selected host.
+Do not enable an extra instance by default. Reliable isolation still needs
+separate Windows and Wine evidence; the current existing-host guard and explicit
+attach behavior remain until that work is deliberately resumed.
+
 ## Later protocol and integrations
 
 - Stable entity references with topology/revision validation and explicit stale
@@ -207,7 +216,22 @@ upper-layer application; this goal does not require designing it now.
 
 ## Release gate
 
-The current pre-release and its verification boundaries are recorded in
+Before the planned `0.2.0a1` release:
+
+1. Wait for the a18 document-annotations acceptance, then merge its verified
+   commit from `codex/a18-document-annotations` into `main`. Preserve that
+   accepted commit as an ancestor of the release candidate.
+2. Complete the breaking command rename to `swcli` in SWCLI, DockerSW and MacSW,
+   including launchers, installation paths, MCP configuration, current usage
+   docs and tests. The service remains named `swclid`; environment variables
+   retain `SWCLI_*`. No `sw-cli` compatibility executable/alias is provided.
+   Recheck the merged a18 code for legacy active command references.
+3. Only then freeze the version on the combined commit and perform final
+   acceptance of that source and its original CI packages under the existing
+   release policies. Earlier MCP-only/a18-only results are component evidence,
+   not acceptance of the final combined release candidate.
+
+The a13 pre-release and its historical verification boundaries are recorded in
 [v0.1.0a13 release notes](releases/v0.1.0a13.md). A pre-release does not imply a
 stable compatibility commitment.
 Runtime and distribution receipts remain distinct; the
