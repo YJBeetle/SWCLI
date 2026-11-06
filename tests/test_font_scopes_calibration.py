@@ -114,6 +114,30 @@ class FontScopeCalibrationTests(unittest.TestCase):
         self.assertNotIn("taskkill", text.lower())
         self.assertNotIn("retry", text.lower())
 
+    def test_geometry_comparison_uses_existing_gate_without_changing_its_tolerances(self):
+        spec = importlib.util.spec_from_file_location("_font_scope_native_calibration", ROOT / "scripts/ci/verify-font-scopes-calibration.py")
+        calibration = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(calibration)
+        before = {"solid_body_count": 1, "volume_mm3": 11999.999999999998,
+                  "surface_area_mm2": 3799.9999999999995,
+                  "centroid_mm": {"x": -7.058607893785837e-16, "y": 6.286572655403011e-16, "z": 5.0}}
+        from copy import deepcopy
+        observed = deepcopy(before)
+        observed["centroid_mm"]["y"] = 5.514537417020185e-16
+        calibration.same_geometry(before, observed)
+        for change in (lambda value: value.update(solid_body_count=2),
+                       lambda value: value.update(volume_mm3=12001),
+                       lambda value: value.update(surface_area_mm2=3801),
+                       lambda value: value["centroid_mm"].update(y=0.00001)):
+            invalid = deepcopy(before)
+            change(invalid)
+            with self.assertRaises(RuntimeError):
+                calibration.same_geometry(before, invalid)
+        self.assertIs(calibration.same_geometry, calibration._geometry_support.same_geometry)
+        source = (ROOT / "scripts/ci/verify-font-scopes-calibration.py").read_text()
+        self.assertIn('case["geometry_before"] = fixtures.part_geometry(document, call)', source)
+        self.assertIn('case["geometry_reopened_" + mode]', source)
+
     def test_calibration_has_no_general_write_enable_switch(self):
         text = (ROOT / "src/swcli/hosts/windows_document_font_scopes.py").read_text()
         public = text.split("def set_document_font_scope_windows(", 1)[1].split("def _calibrate_set_document_font_scope(", 1)[0]

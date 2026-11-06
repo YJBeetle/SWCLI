@@ -30,6 +30,11 @@ spec.loader.exec_module(fixtures)
 harness = fixtures.harness
 require = harness.checked
 
+_geometry_spec = importlib.util.spec_from_file_location("_font_scope_geometry_gate", Path(__file__).with_name("verify-document-annotations.py"))
+_geometry_support = importlib.util.module_from_spec(_geometry_spec)
+_geometry_spec.loader.exec_module(_geometry_support)
+same_geometry = _geometry_support.same_geometry
+
 
 def close(app, document, call):
     title = _com_value(document, "GetTitle")
@@ -71,6 +76,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         require(result["ok"], "font scope read failed: " + str(result.get("error")))
         return result
 
+    if profile_kind == "part":
+        case["geometry_before"] = fixtures.part_geometry(document, call)
+        same_geometry(case["fixture"]["geometry_reopened"], case["geometry_before"])
     current = case["initial"] = read()
     parameters = dict(scope="notes", field="bold", value=not current["fonts"]["notes"]["bold"], expected_fonts=current["fonts"])
     refused = case["public_write_refusal"] = operation("document.font-scope-set", parameters,
@@ -118,7 +126,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         case["millimeter_fonts"] = current["fonts"]
         if profile_kind == "part":
             case["geometry_changed"] = fixtures.part_geometry(document, call)
-            require(case["geometry_changed"] == case["fixture"]["geometry_reopened"], "font writes changed native geometry")
+            same_geometry(case["geometry_before"], case["geometry_changed"])
         for mode in ("millimeters", "points"):
             if mode == "points":
                 for scope in WRITABLE_FONT_SCOPES:
@@ -155,6 +163,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             current = read()
             require(current["fonts"] == expected, "complete font snapshots did not persist after reopen")
             require(all(current["fonts"][scope]["height_mode"] == mode for scope in WRITABLE_FONT_SCOPES), "font unit mode was lost")
+            if profile_kind == "part":
+                measured = case["geometry_reopened_" + mode] = fixtures.part_geometry(document, call)
+                same_geometry(case["geometry_before"], measured)
             case["reopened_" + mode] = current
             case["sha256_" + mode] = digest
             if mode == "points":

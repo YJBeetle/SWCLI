@@ -37,11 +37,13 @@ jobs:
       - name: Parse calibration PowerShell
         shell: powershell
         run: |
-          $tokens = $null
-          $errors = $null
-          [Management.Automation.Language.Parser]::ParseFile(
-            (Join-Path $pwd 'scripts/ci/windows/calibrate-font-scopes.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          foreach ($relative in @("scripts/ci/windows/calibrate-font-scopes.ps1", "scripts/ci/windows/verify-font-scopes-public.ps1")) {
+            $tokens = $null
+            $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path $pwd $relative), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          }
 
   native:
     name: Internal fonts native readback and persistence
