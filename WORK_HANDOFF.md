@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：前两轮内部校准失败，原始产物均已核验；数值观测器已改为完整精确盒形边界，待相关校准；公开CLI/daemon gate已准备但未触发；不merge-ready，写入白名单仍空。
+当前状态：前两轮内部校准失败，原始产物均已核验；精确盒形边界观测器修复后的内部运行42272595406进行中；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
 
 ## 分支与范围
 
@@ -58,3 +58,9 @@
 - 公共保存gate现在确保每个位置都真正经过setter、布尔值两个方向均经过setter，最终三个字段全部与源初值不同，防止保存默认值掩盖写入未持久化。
 - 34项定向测试覆盖真实控制组尾数差异、完整native假对象路径、缺失/重复/1e-12mm位移的边界拒绝、volume/area精确差分、解析错误、16种初始显示配置的完整setter和非默认保存目标。
 - 额外Windows便携CI https://github.com/YJBeetle/SWCLI/actions/runs/42265414686 （0f01cf7）及 https://github.com/YJBeetle/SWCLI/actions/runs/42267416339 （79ab4e2）均success；都不是原生/公开验收。
+
+## 精确边界修复的必要验证
+
+- 实现/观测器提交 `e08feb1f37fcf19fe06d630a029191645c7a8a87` 已推送；对应Windows/Python3.9、3.14、wheel CI https://github.com/YJBeetle/SWCLI/actions/runs/42271747465 全部success，native/full/release skipped。
+- 仅一次相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42272595406 ，head=e08feb1f37fcf19fe06d630a029191645c7a8a87，dimension_format_calibration=true、dimension_format_public=false、native_full=false，目前in_progress。
+- 低频跟踪 ../evidence/native-watch-42272595406.log；结构化总状态 ../evidence/calibration-state.json。尚无成功结论，未开放白名单、未触发公共验收。
