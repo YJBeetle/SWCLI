@@ -95,3 +95,18 @@
 - 最新完整便携回归 1858 项通过，26 平台跳过；本功能针对性 39 项通过。SDK generator / strict mypy / 8 负向消费场景与 actionlint 均通过；日志 `evidence/portable/reopen-fix-*`。
 - 专属 native/public gate 在启动 owned host 前逐文件核对已安装 wheel Python 字节与 Git 精确 commit，拒绝同版本旧安装/可编辑源目录/未知 head；只在独立 mate job 强制重装本次 wheel，默认 full/release 安装和并发未改。
 - 新 head 将只触发一次 internal 校准，公开 flag/精确 revision 集合继续为空；仍未完成保存关闭重开或公开链路验收。
+
+## 第三次内部校准（修复后的新 head）
+- 已 push 精确 head `ac9e54f9e533c60ae6af49476ca71aa94b9b0fe2`，唯一 internal dispatch [run 42279916240](https://github.com/YJBeetle/SWCLI/actions/runs/42279916240)，输入 mate=true/stage=internal/native_full=false。GitHub run head 已核验。
+- 包含此前本地 8a7095c 的标题消歧与虚拟组件/后台身份拒绝；未对前两次失败 head 原样重跑，也不取消其它 run。等待本次原工件审查；公开写入继续关闭。
+- 本次分发工件 `swcli-dist-13534737674.zip` 的 GitHub digest `85e40486ff4bef4676c8a845996ca41c8f3840d1024a41536803f278c34fd449` 已匹配，全部 83 个 Python 文件与 ac9e54f Git blob 完全一致；wheel SHA `e340542088cf848a98448c61514dfc219a33dbf065f86eeeb03de0234bba2bad`。
+- 云端 Windows Python 3.9 / 3.14 与 package 均成功，专属原生 job 128108237759 进入 runner 准备。默认 full/release skipped。
+- 等待时发现公开 gate 使用 `capabilities --operation` 与共享 ModelingSmoke 的无 ok 响应处理不兼容；本地准备改为 `capabilities --full` 并逐项比对两个新接口的 request/result schema。新增真实响应形态与契约偏移拒绝回归，当前本功能 41 项通过；该脚本修改不改变运行中的内部校准 head/adapter/断言。
+
+## 收口快照：停止持续跟进，交统筹后续分次快照
+- 按最新用户指令，仅完成当前实现/修复，不扩新功能、新计划或审查子代理；本轮停止持续 sleep/轮询，不建单 CI automation，不取消其它 run，也不为 main 已合入的 detailing/revolve 进行 rebase 或重跑。
+- 最后一次快照：run 42279916240、精确 head `ac9e54f9e533c60ae6af49476ca71aa94b9b0fe2`，Windows 3.9/3.14 与 package 全成功；native job 128108237759 正常 `in_progress`，当前 `Install native SOLIDWORKS`。链接 https://github.com/YJBeetle/SWCLI/actions/runs/42279916240 。本轮不再取快照。
+- 当前本地公开 gate 能力查询接线修复后的完整回归 1860 项通过、26 平台跳过；针对性 41 项通过，日志 `evidence/portable/public-capabilities-{tests,all-tests}.log`。该小修复与交接记录一并提交，未触发额外 native/public run；运行中 CI 仍是 ac9e54f，不冒称覆盖更新后的公开脚本。
+- 分发 ZIP/digest/83 个源码文件一致性已核，见前节；本次 native 原件尚未可用。前两次失败原 ZIP、digest、trace、首次错误及部分修改均保留。
+- 尚不可合/未验收缺口：本次内部四组＋组合的独立保存关闭重开证据待原件；公开 CLI→daemon→worker gate 尚未执行。公开写 flag 仍 false，revision 白名单为空，未提交发版/版本/指针改动。已有部分创建/求解/SaveAs 成功只作为诊断证据。
+- 完成/失败原件可用后由统筹继续按实际结果收口；不以本次正常安装状态或便携成功替代端到端验收。

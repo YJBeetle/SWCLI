@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from swcli.result_schemas import validate_operation_result
+from swcli.operation_schemas import OPERATION_CATALOG
 
 spec=importlib.util.spec_from_file_location('_mates_public_modeling',Path(__file__).with_name('verify-modeling.py'))
 modeling=importlib.util.module_from_spec(spec);spec.loader.exec_module(modeling)
@@ -189,9 +190,12 @@ def run(gate):
     gate.record.update(scope='public-assembly-standard-mates',full_acceptance_eligible=False)
     gate.record['host']=gate.health()['host']
     gate.require_empty()
+    capability=gate.command('capabilities','--full')
     for operation in ('assembly.mate-targets','assembly.add-mate'):
-        capability=gate.command('capabilities','--operation',operation)
-        require(capability['operations']==[operation],'running daemon did not publish exact mate operation')
+        require(capability['operations'].count(operation)==1
+                and capability['operation_schemas'].get(operation)==OPERATION_CATALOG[operation].parameters
+                and capability['operation_result_schemas'].get(operation)==OPERATION_CATALOG[operation].result,
+                'running daemon did not publish the exact mate request/result contracts')
     for kind in ('coincident','concentric'):
         for alignment in ('aligned','anti-aligned'):
             run_case(gate,kind,alignment)

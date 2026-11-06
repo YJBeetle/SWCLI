@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+from types import SimpleNamespace as NS
 
 from swcli.cli import build_parser, _typed_operation
 
@@ -120,7 +121,10 @@ class FakeGate:
                 diagnostics_before=dict(healthy=True,issues=[],issue_count=0,scanned_feature_count=3,truncated=False,limit=128),
                 diagnostics=dict(healthy=True,issues=[],issue_count=0,scanned_feature_count=3,truncated=False,limit=128),
                 mutation=dict(attempted=True,creation_returned=True,may_have_changed=True))
-        if arguments[0]=='capabilities':return {'operations':[arguments[2]]}
+        if arguments==('capabilities','--full'):
+            return dict(host_connected=True,operations=list(public.OPERATION_CATALOG),
+                operation_schemas={k:v.parameters for k,v in public.OPERATION_CATALOG.items()},
+                operation_result_schemas={k:v.result for k,v in public.OPERATION_CATALOG.items()})
         raise AssertionError('unexpected public command: '+repr(arguments))
 
 
@@ -137,6 +141,28 @@ class PublicMateGateTests(unittest.TestCase):
             assemblies={path.stem for path in Path(directory).glob('*.SLDASM')}
             self.assertTrue(parts and assemblies and parts.isdisjoint(assemblies))
             self.assertEqual(sum(args[:2]==('assembly','add-mate') for args,*_ in gate.commands),17)
+
+    def test_shared_command_accepts_real_capability_shape_without_operation_ok(self):
+        with tempfile.TemporaryDirectory() as directory:
+            gate=public.PublicMateSmoke(directory=Path(directory),host_directory=directory,endpoint='127.0.0.1:1',request_timeout_seconds=600)
+            payload=FakeGate(Path(directory)).command('capabilities','--full')
+            completed=NS(returncode=0,stdout=json.dumps(payload).encode(),stderr=b'')
+            with mock.patch.object(gate,'checkpoint'),mock.patch.object(public.modeling.subprocess,'run',return_value=completed):
+                self.assertEqual(gate.command('capabilities','--full'),payload)
+
+    def test_changed_capability_contract_refuses_before_fixture_creation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            gate=FakeGate(Path(directory));original=gate.command
+            def command(*args,**kwargs):
+                result=original(*args,**kwargs)
+                if args==('capabilities','--full'):
+                    result['operation_schemas']=copy.deepcopy(result['operation_schemas'])
+                    result['operation_schemas']['assembly.add-mate']['additionalProperties']=True
+                return result
+            gate.command=command
+            with self.assertRaisesRegex(RuntimeError,'exact mate request/result contracts'):public.run(gate)
+            self.assertFalse(gate.documents)
+            self.assertEqual(gate.mutations,0)
 
     def test_source_can_auto_unload_without_hiding_unrelated_documents(self):
         with tempfile.TemporaryDirectory() as directory:
