@@ -131,7 +131,8 @@ Current work:
    stay separate.
 
 Each increment needs request/result Schema, document/lease/stamp guards,
-portable failure tests, real Windows proof and the appropriate Wine gate.
+portable failure tests and real Windows proof. DockerSW/MacSW independently
+verify their Wine delivery; those gates are not SWCLI publication prerequisites.
 Partial mutation is not rollback; do not publish an automatic transaction
 guarantee without implementing and proving its recovery boundary.
 
@@ -226,18 +227,18 @@ upper-layer application; this goal does not require designing it now.
 
 ## Release gate
 
-Before the planned `0.2.0a1` release:
+Native Windows is the primary SWCLI runtime and release acceptance target.
+The combined 0.2.0a1 source has passed its installed Windows full gate and
+independent original-package/native-receipt audit. Version-tag publication
+retains its own same-run original artifacts and anonymous-download checks.
+DockerSW and MacSW have independent version/delivery cycles; a Wine-specific
+failure is investigated in that runtime and does not block SWCLI publication.
+A defect traced to SWCLI remains a SWCLI issue regardless of where it appears.
 
-The accepted a18 commit is included in the combined main history. Keep its
-original release and native evidence separate from the new MCP/manager changes.
-The integrated source passed portable tests; its final installed Windows gate
-and original CI wheel/sdist still need acceptance at the frozen version.
-
-The final Windows run also collects task and process inventories around startup
-refusals, owned shutdown and attached-user-host shutdown. Previous startup
-receipts proved the expected JSON and host ownership, but did not contain an
-independent final task inventory. Earlier MCP-only or a18-only results cannot
-replace acceptance of the combined candidate.
+The Windows lifecycle gate records task/process inventories around refusals,
+owned shutdown and attached-user-host shutdown. The current raw inventories
+and independent identity comparisons passed. Earlier startup evidence remains
+historical and is not relabeled with the new inventory proof.
 
 The a13 pre-release and its historical verification boundaries are recorded in
 [v0.1.0a13 release notes](releases/v0.1.0a13.md). A pre-release does not imply a
