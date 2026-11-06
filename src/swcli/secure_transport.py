@@ -6,6 +6,7 @@ import hmac
 import json
 import os
 import ssl
+from typing import Mapping, Optional
 
 AUTH_BYTES = 4096
 HANDSHAKE_SECONDS = 5
@@ -40,7 +41,7 @@ class ClientSecurity:
     server_name: str = ""
 
     @classmethod
-    def from_environment(cls, env=None):
+    def from_environment(cls, env: Optional[Mapping[str, str]] = None) -> "ClientSecurity":
         env = os.environ if env is None else env
         enabled = env.get("SWCLI_TLS", "").strip().lower()
         ca = env.get("SWCLI_TLS_CA_FILE")

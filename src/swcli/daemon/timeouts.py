@@ -4,7 +4,7 @@ import math
 import threading
 
 
-def validate_timeout(value, *, name, margin=0.0):
+def validate_timeout(value: object, *, name: str, margin: float = 0.0) -> float:
     message = f"{name} must be positive, finite and within platform timer limits"
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(message)

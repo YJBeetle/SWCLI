@@ -3,6 +3,10 @@
 import base64
 import hashlib
 import uuid
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Union
+
+from .secure_transport import ClientSecurity
 
 from .daemon.client import call_daemon, DEFAULT_ENDPOINT
 from .safe_workspace import CHUNK_BYTES, SafeWorkspace, file_hash, signature
@@ -15,8 +19,8 @@ class TransferError(RuntimeError):
 
 
 class FileTransferClient:
-    def __init__(self, root, *, endpoint=DEFAULT_ENDPOINT, session_id=None,
-                 timeout_seconds=600, connect_timeout_seconds=3):
+    def __init__(self, root: Optional[Union[str, Path]], *, endpoint: str = DEFAULT_ENDPOINT, session_id: Optional[str] = None,
+                 timeout_seconds: float = 600, connect_timeout_seconds: float = 3, security: Optional[ClientSecurity] = None) -> None:
         if not root:
             raise ValueError("Configure SWCLI_CLIENT_WORKSPACE or --client-workspace first")
         self.root = root
@@ -24,12 +28,14 @@ class FileTransferClient:
         self.session_id = session_id or "default"
         self.timeout_seconds = timeout_seconds
         self.connect_timeout_seconds = connect_timeout_seconds
+        self.security = security
 
     def rpc(self, name, parameters, *, request_id=None):
         from .result_schemas import validate_operation_result
+        options = {"security": self.security} if self.security is not None else {}
         result = call_daemon("workspace." + name, parameters, endpoint=self.endpoint,
             session_id=self.session_id, request_id=request_id or str(uuid.uuid4()),
-            timeout_seconds=self.timeout_seconds, connect_timeout_seconds=self.connect_timeout_seconds)
+            timeout_seconds=self.timeout_seconds, connect_timeout_seconds=self.connect_timeout_seconds, **options)
         if not result.get("success"):
             error = result.get("error", {})
             raise TransferError(error.get("code", "WorkspaceError") + ": " + error.get("message", "Workspace transfer failed"))
@@ -37,7 +43,8 @@ class FileTransferClient:
         validate_operation_result("workspace." + name, value)
         return value
 
-    def upload(self, source, destination, *, overwrite=False, request_id=None, resume_transfer=None, progress=None):
+    def upload(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
+               resume_transfer: Optional[str] = None, progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
         transfer_id = None
         with SafeWorkspace(self.root) as root, root.open_read(source) as stream:
             before = signature(stream)
@@ -87,7 +94,8 @@ class FileTransferClient:
                 error._swcli_transport_phase = getattr(exc, "_swcli_transport_phase", None)
                 raise error from exc
 
-    def download(self, source, destination, *, overwrite=False, request_id=None, progress=None):
+    def download(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
+                 progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
         record = self.rpc("download-begin", {"path": source}, request_id=request_id)
         transfer_id = record["transfer_id"]
         if record["state"] != "downloading":

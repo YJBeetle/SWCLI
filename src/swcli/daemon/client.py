@@ -39,6 +39,7 @@ def call_daemon(
     document_id: Optional[str] = None,
     expected_update_stamp: Optional[int] = None,
     lease_id: Optional[str] = None,
+    security: Optional[ClientSecurity] = None,
 ) -> Dict[str, Any]:
     """Submit one typed operation to swclid and return its protocol response."""
 
@@ -51,7 +52,8 @@ def call_daemon(
         )
 
     try:
-        security = ClientSecurity.from_environment()
+        if security is None:
+            security = ClientSecurity.from_environment()
     except Exception as exc:
         exc._swcli_transport_phase = "configuration"
         raise
