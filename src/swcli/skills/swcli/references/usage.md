@@ -698,7 +698,8 @@ exactly-once log. Unknown outcomes require inspection, not blind retries.
 `swcli document tolerances --document DOCUMENT_ID --json` reads the document's
 linear-dimension tolerance type and precision defaults, with native integer values.
 This does not inspect or edit individual model dimensions. `tolerance-set` is
-restricted to native revision 33.5.0, type none/basic and precision 0/3/8. It requires
+restricted to native Windows revision 33.5.0 (Wine is blocked), type none/basic and
+precision 0/3/8. It requires
 a document lease, update stamp, and the complete `expected_options` snapshot;
 old type must be none/basic and old precision follow_nominal/0/3/8. The public
 CLI/daemon acceptance gate is pending on this independent development branch.

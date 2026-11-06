@@ -29,7 +29,8 @@ class ToleranceTests(unittest.TestCase):
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda:setattr(self,"dirty",True)))
         self.foreground = SimpleNamespace(GetType=lambda:1, GetSaveFlag=lambda:False,
-            GetUpdateStamp=lambda:9, GetTitle=lambda:"Foreground", GetPathName=lambda:"")
+            GetUpdateStamp=lambda:9, GetTitle=lambda:"Foreground", GetPathName=lambda:"",
+            GetActiveConfiguration=lambda:SimpleNamespace(Name="Default"))
         self.app = SimpleNamespace(RevisionNumber=lambda:"33.5.0", ActiveDoc=self.foreground, GetDocuments=lambda:(self.document,self.foreground),
             IsSame=lambda a,b:int(a is b), ActivateDoc3=mock.Mock(), SetUserPreferenceIntegerValue=mock.Mock())
         self.registry=DocumentRegistry(self.app)
@@ -38,6 +39,8 @@ class ToleranceTests(unittest.TestCase):
         self.lease=self.registry.acquire_lease(self.entry,session_id="writer",ttl_seconds=600)["lease_id"]
         self.patch=mock.patch.object(adapter,"native_constants",return_value=self.codes)
         self.patch.start(); self.addCleanup(self.patch.stop)
+        native_guard=mock.patch.object(adapter,"_native_windows",return_value=True)
+        native_guard.start();self.addCleanup(native_guard.stop)
 
     def apply(self,p,o,v):
         self.native[p]=v

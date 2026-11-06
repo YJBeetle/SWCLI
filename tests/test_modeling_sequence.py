@@ -74,7 +74,8 @@ class ModelingSequenceTests(unittest.TestCase):
         workflow = (SCRIPT.parents[2] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         light, native = workflow.split("  solidworks-e2e:", 1)
         native_guard = native.split("runs-on:", 1)[0]
-        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.native_full", native_guard)
+        self.assertIn("needs.native-profile.result == 'success'", native_guard)
+        self.assertIn("needs.native-profile.outputs.profile == 'full'", native_guard)
         self.assertIn("needs.tag-policy.result == 'success'", native_guard)
         self.assertIn("startsWith(github.ref, 'refs/tags/v')", native_guard)
         self.assertIn("needs.test.result == 'success'", native_guard)
@@ -95,11 +96,13 @@ class ModelingSequenceTests(unittest.TestCase):
             self.assertNotIn(forbidden, light)
         # The explicitly authorized tolerance calibration is the sole exception:
         # default off, manual only and restricted to its independent branch.
-        self.assertEqual(light.count("calibrate_"), 1)
+        self.assertEqual(light.count("calibrate_tolerances:"), 1)
         self.assertEqual(light.count("accept_tolerances:"), 1)
         optin = light.split("      calibrate_tolerances:", 1)[1].split("      native_full:", 1)[0]
         self.assertIn("default: false", optin)
-        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances'", native_guard)
+        self.assertIn("github.ref == 'refs/heads/codex/docprops-tolerances'", native_guard)
+        self.assertIn("tolerance-profile.py", light)
+        self.assertNotIn("inputs.calibrate_tolerances", native_guard)
         for name in ("calibrate_fillet:", "calibrate_through_all:", "calibrate_properties:", "calibrate_polygon:"):
             self.assertNotIn(name, workflow)
         self.assertIn("-Hidden -Suite full -PropertyFixtureDirectory", native)

@@ -242,16 +242,42 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  native-profile:
+    name: Validate exclusive native dispatch profile
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      profile: ${{ steps.resolve.outputs.profile }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Reject mixed modes and invalid tolerance branches
+        id: resolve
+        env:
+          SWCLI_PROFILE_EVENT: ${{ github.event_name }}
+          SWCLI_PROFILE_REF: ${{ github.ref }}
+          SWCLI_PROFILE_FULL: ${{ inputs.native_full }}
+          SWCLI_PROFILE_CALIBRATE: ${{ inputs.calibrate_tolerances }}
+          SWCLI_PROFILE_ACCEPT: ${{ inputs.accept_tolerances }}
+        run: |
+          python scripts/ci/tolerance-profile.py --event "$SWCLI_PROFILE_EVENT" --ref "$SWCLI_PROFILE_REF" \
+            --native-full "$SWCLI_PROFILE_FULL" --calibrate "$SWCLI_PROFILE_CALIBRATE" \
+            --accept "$SWCLI_PROFILE_ACCEPT" --github-output "$GITHUB_OUTPUT"
+
   solidworks-e2e:
-    name: ${{ inputs.accept_tolerances && 'Public document tolerance acceptance' || inputs.calibrate_tolerances && 'Internal document tolerance calibration' || 'Complete SOLIDWORKS functional verification' }}
-    needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances') || (github.event_name == 'workflow_dispatch' && inputs.accept_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    name: ${{ needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || 'Complete SOLIDWORKS functional verification' }}
+    needs: [test, package, tag-policy, native-profile]
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && needs.native-profile.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-calibration' || needs.native-profile.outputs.profile == 'tolerances-public')))) || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success' && needs.native-profile.outputs.profile == 'full')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ (inputs.calibrate_tolerances || inputs.accept_tolerances) && format('swcli-tolerance-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ needs.native-profile.outputs.profile != 'full' && format('swcli-tolerance-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
+      SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
       SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
 
@@ -394,7 +420,7 @@ jobs:
 
       - name: Prepare property fixtures for public CLI verification
         id: property_fixtures
-        if: ${{ !inputs.calibrate_tolerances && !inputs.accept_tolerances }}
+        if: ${{ needs.native-profile.outputs.profile == 'full' }}
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -406,7 +432,7 @@ jobs:
 
       - name: Prepare annotation fixtures for public CLI verification
         id: annotation_fixtures
-        if: ${{ !inputs.calibrate_tolerances }}
+        if: ${{ needs.native-profile.outputs.profile == 'full' || needs.native-profile.outputs.profile == 'tolerances-public' }}
         timeout-minutes: 10
         shell: powershell
         run: |
@@ -420,7 +446,7 @@ jobs:
 
       - name: Calibrate document default tolerances internally
         id: tolerance_calibration
-        if: ${{ inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances' }}
+        if: ${{ needs.native-profile.outputs.profile == 'tolerances-calibration' }}
         timeout-minutes: 31
         shell: powershell
         env:
@@ -437,7 +463,7 @@ jobs:
 
       - name: Accept document default tolerances through public clients
         id: tolerance_acceptance
-        if: ${{ inputs.accept_tolerances && !inputs.calibrate_tolerances && github.ref == 'refs/heads/codex/docprops-tolerances' }}
+        if: ${{ needs.native-profile.outputs.profile == 'tolerances-public' }}
         timeout-minutes: 35
         shell: powershell
         run: |
@@ -445,7 +471,7 @@ jobs:
 
       - name: Run real SOLIDWORKS modeling and export smoke test
         id: native_tests
-        if: ${{ !inputs.calibrate_tolerances && !inputs.accept_tolerances }}
+        if: ${{ needs.native-profile.outputs.profile == 'full' }}
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
@@ -482,7 +508,7 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: |
-          if ("${{ inputs.calibrate_tolerances }}" -eq "true" -or "${{ inputs.accept_tolerances }}" -eq "true") {
+          if ($env:SWCLI_NATIVE_PROFILE -ne "full") {
             "Targeted document tolerance verification only; full_acceptance_eligible=false; see original report/trace artifacts." >> $env:GITHUB_STEP_SUMMARY
             exit 0
           }

@@ -5,7 +5,7 @@
 - 独立工作树：`/Users/YJBeetle/.codex/worktrees/docprops-tolerances/SWCLI`
 - 分支：`codex/docprops-tolerances`；起点 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
 - 仅 Dimensions > Linear 文档默认公差类型/精度；未访问 IDimension、IDimensionTolerance 或模型特征尺寸值。
-- **当前公开验收候选**：内部原生及独立artifact审计通过后，仅 revision33.5.0、类型none/basic、precision0/3/8及已证实旧值开放本分支写入；其余含noop拒绝。公开gate待完成，尚无merge-ready commit，不发布。历史关闭状态及失败保留在下文。
+- **当前公开验收候选**：内部原生及独立artifact审计通过后，仅 revision33.5.0、类型none/basic、precision0/3/8及已证实旧值开放本分支写入；其余含noop拒绝。公开gate待完成，统筹代码审查发现边界阻断，当前修复后须最终head重验，不发布。历史关闭状态及失败保留在下文。
 - 未使用本地 VM/SOLIDWORKS；未改 main、DockerSW、MacSW 或其他工作树；没有合入其他分支。
 
 ## 操作与契约
@@ -103,3 +103,19 @@ full_acceptance_eligible=false；不改变 PR secrets 规则或 release/tag 条�
 - 公开gate扩为每种文档三个保存重开profile：basic/0、basic/8、none/3；同时覆盖两种类型下各精度的内存往返、所有原源/前次副本hash、干净noop、只读拒绝、CLI/SDK/MCP bridge原始回执与trace。
 
 - 公开候选集成检查：1846项全套便携测试通过、32项跳过；SDK generator/strict typing/8项负例与installed resources通过；公差相关27项（含固定界限、版本/旧值拒绝、三个持久profile、首失败原回执及SDK/MCP转发）通过。当前即将对公开候选head只dispatch一次accept_tolerances=true，calibrate_tolerances/native_full=false。
+
+- 公开候选提交：`ce147cba0ba43d57408e6ec12a616aea6c1559d1`，已推送。
+- 公开验收：[run 42271130456](https://github.com/YJBeetle/SWCLI/actions/runs/42271130456)，测试head同上；accept_tolerances=true、calibrate_tolerances=false、native_full=false、cleanup_profile=auto、vfs_cache_gib=8。本公开head仅dispatch一次，尚未终态，不应合并。请求、内部门槛digest与回执在 `evidence/public-r1/`。
+
+- 统筹最新授权已收到：本分支提交推送、定向校准/公开gate继续自主推进，主对话负责合main。当前无未解决审批；先前origin目的地审批核实后已解决，不重复操作。用户仅批准质心≤1e-12 mm，其他几何/状态冻结要求仍有效；VM/DockerSW/MacSW/凭据边界不变。
+
+## 统筹三项阻断修复（旧ce147cb验收不代替新head）
+
+- 已确认旧公开artifact13532461445 / SHA4729536da9d26060a430127dc1e28393e74a64a2978cdc1b42805170c4ffdbdd真实通过，120请求、30setter、9副本与干净退出均经双方独立核对；旧源wheelfile也匹配ce147cb（distZIP SHA c0a07e2eb68820925923a84a1ffe5b9ff4c0cd7c59d5d8e9d53f32f1e9c7ff8c，wheel SHA0e08a192525811eac1ba755a44cfb05508c6e3c1da9b7d3d1392b7cea0d5d032）。
+- 修复native-only：与main83c4830 detailing相同，用ctypes.WinDLL(ntdll)检查wine_get_version；同revision Wine也拒写，未知探测失败关闭。增加平台/native/Wine/探测失败回归。
+- 修复CI模式：新无secret native-profile preflight穷举互斥，拒绝错误分支、full+专属、校准+公开；所有CAD步骤只按validated profile选择，private job要求profile job成功与明确白名单值，不能混合开关造成零CAD成功。新增实际CLI/48组合/真实step条件测试。
+- 修复最终描述失败：document_tolerance_set捕获_with_document失败，ok=false、保留原before/options/mutation与首业务错误，附第二观察错误，不伪造document；worker后续恢复/验证错误也保留本请求partial receipt，并在每请求前result=None，防串上次mutation。新增真实_worker_main双请求与恢复失败回归。
+- 同时补强原有身份约束：目标title/path、后台前台的state和identity全程固定，漂移在写前拒绝；写后漂移保留may_have_changed且不修补。没有放宽任何几何或状态断言。
+- 当前未宣称新产品head merge-ready；三项修复提交推送并跑一次最终head公开gate后再交接。主对话负责与main83c4830顺序集成，本线程不合main。
+
+- 最终审查修复便携集成：1858项全套测试通过、32项跳过；12项新增review回归包含worker恢复失败停止、后继请求绝不沿用旧mutation、48个event/ref/布尔参数组合及真实CLI/step条件。SDK generator/strict typing/8项拒绝、installed resources与YAML secret-free preflight依赖检查均通过。接下来冻结修复head，仍只对该head进行一次必要公开gate。

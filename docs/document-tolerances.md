@@ -9,9 +9,9 @@ IDimension、IDimensionTolerance、特征尺寸或应用级偏好。不改模型
 缺失即报错，不猜测编号。精度 -3 读为 `follow_nominal`；其他未支持特殊值保留为 `other`。
 
 内部原生校准与独立artifact审计已通过（run 42266358630 / head 252ad8b）。
-本分支仅为公开验收开放精确候选范围：native RevisionNumber=33.5.0；类型 none/basic；
+本分支仅为公开验收开放精确候选范围：原生 Windows 且 RevisionNumber=33.5.0；类型 none/basic；
 精度字符串 0/3/8。旧值必须为类型 none/basic、精度 follow_nominal/0/3/8，包含 no-op。
-其他原生版本/字段/旧值/目标值继续拒写。`write_enabled` 表示该宿主版本的候选写入开关，
+同 revision 的 Wine、未知宿主探测、其他版本/字段/旧值/目标值继续拒写。`write_enabled` 表示该宿主版本的候选写入开关，
 不替代只读、lease、CAS、编辑上下文等每次请求的校验。
 **公开 CLI/daemon 验收尚待完成，当前不算 merge-ready。**
 写入要求明确 document_id、有效 lease、expected_update_stamp 以及包含两个字段完整
@@ -50,3 +50,9 @@ trace，SDK typed与MCP bridge的读取/noop走同一daemon。MCP stdio本身由
 保留原解析体积/面积，并检查解析质心(0,0,5) mm。任何状态断言未放宽。
 内部ZIP SHA-256：89164b4642dc4c5d4167e1f97e30eab89945bf2583cdc804ce18708794b86285，
 已匹配GitHub digest；完整审计和首轮失败历史见 WORK_HANDOFF.md。
+
+统筹边界审查后的修复：原生宿主检查通过 ntdll 的 wine_get_version 导出区分 Wine；
+独立无secret CI profile preflight提前拒绝混合模式及专属开关错误分支，所有CAD步骤只依据
+已验证profile选择。写后最终文档描述失败、worker后续包装/恢复失败保留原mutation与首业务错误，
+且每请求清空局部result，防止沿用上次回执。目标身份和后台前台状态漂移也会拒绝/报部分失败。
+旧公开run42271130456仅证明ce147cb；上述产品边界修复须最终head重新公开验收。

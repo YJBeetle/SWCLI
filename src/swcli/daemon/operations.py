@@ -460,7 +460,18 @@ def document_tolerance_set(context: OperationContext, values: Dict[str, Any]) ->
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = set_document_tolerance_windows(app=context.app, document=context.entry.document, **values)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        observation_error = {"type": type(exc).__name__, "message": str(exc)}
+        original_error = result.get("error")
+        result.update(ok=False, session_id=context.session_id)
+        result.pop("document", None)  # Never fabricate current metadata after a failed observation.
+        result["error"] = (dict(original_error, document_observation_error=observation_error)
+                           if isinstance(original_error, dict) else
+                           {"type": "DocumentObservationFailed", "message": str(exc),
+                            "document_observation_error": observation_error})
+        return result
 
 
 @_register_handler

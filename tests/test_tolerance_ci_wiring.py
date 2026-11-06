@@ -18,15 +18,16 @@ class ToleranceCIWiringTests(unittest.TestCase):
         self.assertNotIn("pull_request:",source)
         job=source.split("  solidworks-e2e:",1)[1].split("  release:",1)[0]
         self.assertIn("refs/heads/codex/docprops-tolerances",job)
-        for ident in ("annotation_fixtures",):
-            self.assertIn("id: "+ident+"\n        if: ${{ !inputs.calibrate_tolerances }}",job)
+        self.assertIn("native-profile",job)
+        self.assertIn("needs.native-profile.result == 'success'",job)
+        self.assertNotIn("!inputs.calibrate_tolerances",job)
         gate=job.split("        id: tolerance_calibration",1)[1].split("      - name:",1)[0]
-        self.assertIn("refs/heads/codex/docprops-tolerances",gate)
+        self.assertIn("needs.native-profile.outputs.profile == 'tolerances-calibration'",gate)
         self.assertIn("verify-tolerance-calibration.py",gate)
         self.assertIn("$LASTEXITCODE -ne 0",gate)
         self.assertIn("timeout-minutes: 31",gate)
         summary=job.split("      - name: Summarize public test evidence",1)[1].split("      - name:",1)[0]
-        self.assertIn('if ("${{ inputs.calibrate_tolerances }}" -eq "true" -or "${{ inputs.accept_tolerances }}" -eq "true")',summary)
+        self.assertIn('if ($env:SWCLI_NATIVE_PROFILE -ne "full")',summary)
         self.assertLess(summary.index("exit 0"),summary.index("summarize-tests.py"))
         self.assertIn("full_acceptance_eligible=false",summary)
 

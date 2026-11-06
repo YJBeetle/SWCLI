@@ -80,6 +80,20 @@ def _error_response(
     }
 
 
+def _preserve_tolerance_receipt(response, operation, result, error):
+    if (operation != "document.tolerance-set" or not isinstance(result, dict)
+            or not isinstance(result.get("mutation"), dict)):
+        return response
+    partial = dict(result)
+    partial["ok"] = False
+    worker_error = {"type": type(error).__name__, "message": str(error)}
+    previous = partial.get("error")
+    partial["error"] = (dict(previous, worker_error=worker_error) if isinstance(previous, dict)
+                        else dict(worker_error, worker_error=worker_error))
+    response["result"] = partial
+    return response
+
+
 def _success_response(
     request_id: str, result: Any, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -331,6 +345,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
+            result = None
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -409,6 +424,7 @@ def _worker_main(
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
+                response = _preserve_tolerance_receipt(response, str(request["operation"]), result, exc)
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(
