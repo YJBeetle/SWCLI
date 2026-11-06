@@ -502,7 +502,7 @@ jobs:
     name: ${{ inputs.docprops_public && 'Public standard CLI daemon SDK MCP verification' || 'Internal owned standards-36 performance calibration' }}
     if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/codex/docprops-calibration-performance' && (inputs.docprops_calibration != inputs.docprops_public) && !inputs.native_full && inputs.docprops_expected_head == github.sha }}
     runs-on: windows-2025
-    timeout-minutes: ${{ inputs.docprops_public && 170 || 100 }}
+    timeout-minutes: ${{ inputs.docprops_public && 170 || 110 }}
     permissions:
       contents: read
       actions: read
@@ -674,30 +674,22 @@ jobs:
           python -m pip install $package
           if ($LASTEXITCODE -ne 0) { throw "Calibration source installation failed" }
 
-      - name: Calibrate one complete standards group on an owned host
+      - name: Prepare GB copies then calibrate original standards group on one owned host
         id: docprops_native
         if: ${{ !inputs.docprops_public }}
-        timeout-minutes: 35
+        timeout-minutes: 65
         shell: powershell
         env:
           DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
         run: |
-          $templateJson = & python -I scripts/ci/gate_support/document_property_templates.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS" --output "$env:PROBE_ROOT\docprops-template-selection.json"
-          if ($LASTEXITCODE -ne 0) {
-            try {
-              New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
-              Copy-Item -LiteralPath "$env:PROBE_ROOT\docprops-template-selection.json" -Destination "$env:SWCLI_SMOKE_ROOT\template-selection.json"
-            } catch { Write-Warning "Could not also preserve template selection receipt; original selector failure remains" }
-            throw "Exact installed GB template selection failed; no arbitrary fallback"
-          }
-          $templates = $templateJson | ConvertFrom-Json
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Explicit installed drawing template selection failed" }
           python -I scripts/ci/verify-document-properties-calibration.py `
             --expected-head "$env:DOC_PROPS_EXPECTED_HEAD" `
             --output-dir "$env:SWCLI_SMOKE_ROOT" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
-            --part-template $templates.part `
-            --assembly-template $templates.assembly `
-            --drawing-template $templates.drawing
+            --prepare-gb-inputs `
+            --drawing-template $drawingTemplate
           if ($LASTEXITCODE -ne 0) { throw "Internal standards calibration failed; retain originals; no retry" }
 
       - name: Verify public standard CLI daemon SDK MCP groups

@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -104,9 +105,10 @@ def arguments():
     parser.add_argument("--attach-pid", type=int, required=True)
     parser.add_argument("--owned-interface-stdin", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--isolated-host", action="store_true", help="Observe other SW process changes without requiring their survival; target guards remain strict")
-    parser.add_argument("--stage", choices=("read", "fonts", "display", "standards"), required=True)
+    parser.add_argument("--stage", choices=("read", "fonts", "display", "standards", "standards-prepare"), required=True)
     parser.add_argument("--output", help="New independent directory below C:\\Workspace")
     parser.add_argument("--swconst", help="Installed official swconst.tlb")
+    parser.add_argument("--prepared-inputs", help="Manifest of this owned run's independently prepared GB native copies")
     parser.add_argument("--part-template", help="Explicit installed PRTDOT for this diagnostic; no global preference change")
     parser.add_argument("--assembly-template", help="Explicit installed ASMDOT for this diagnostic; no global preference change")
     parser.add_argument("--drawing-template", default=r"C:\ProgramData\SOLIDWORKS\SOLIDWORKS 2025\templates\gb_a4.drwdot")
@@ -262,7 +264,7 @@ class Calibration:
         self.report_changed()
         wanted.update(name for spec in ANNOTATIONS.values() for name in spec[1:])
         self.report_changed()
-        if self.args.stage == "standards":
+        if self.args.stage in ("standards", "standards-prepare"):
             wanted.update(("swDetailingGeometricTolerance", "swDetailingDetailView",
                            "swDetailingAuxiliaryView", "swDetailingSectionView"))
             self.report_changed()
@@ -547,7 +549,20 @@ class Calibration:
         return {"path": str(path), "save": result, **evidence}
 
     def create(self, kind, label):
-        if kind == "drawing":
+        prepared = getattr(self, 'prepared_inputs', {}).get(kind) if label.endswith('-target') else None
+        if prepared is not None:
+            source = Path(prepared['path']).resolve()
+            require(source.is_file() and digest(source) == prepared['sha256'], 'prepared source changed before copy')
+            self.source_file(source, label + '-prepared-source')
+            copied = self.output / (self.prefix + '-' + label + '-input.' + SUFFIX[kind])
+            require(not copied.exists(), 'prepared input copy path reused')
+            shutil.copyfile(source, copied)
+            require(digest(copied) == prepared['sha256'], 'prepared input copy hash differs')
+            self.source_file(copied, label + '-prepared-copy')
+            self.report['cases'][-1]['prepared_input'] = prepared
+            self.report_changed()
+            creator = lambda: self.open_native(str(copied), app=self.app, read_only=False)
+        elif kind == "drawing":
             require(Path(self.args.drawing_template).is_file(), "explicit drawing template missing")
             template = self.args.drawing_template
             self.source_file(template, label + "-actual-drawing-template")
@@ -564,12 +579,13 @@ class Calibration:
         if document is not None:
             self.register(document, label)
         require(result.get("ok") is True and document is not None, "test creation failed: " + repr(result))
-        if kind == "part" and label.endswith("-target") and self.args.stage in ("fonts", "display", "standards"):
-            profile, sketch = self.call(label + ".rectangle", lambda: self.rectangle(app=self.app, document=document, plane="front", width_mm=40, height_mm=30))
-            require(profile.get("ok") is True and sketch is not None, "test rectangle failed")
-            boss, feature = self.call(label + ".extrude", lambda: self.extrude(app=self.app, document=document, sketch_feature=sketch, depth_mm=10, reverse=False))
-            require(boss.get("ok") is True and feature is not None, "test extrusion failed")
-            self.report["cases"][-1]["geometry_initial"] = self.geometry(document, label + ".geometry-before")
+        if kind == "part" and label.endswith("-target") and self.args.stage in ("fonts", "display", "standards", "standards-prepare"):
+            if prepared is None:
+                profile, sketch = self.call(label + ".rectangle", lambda: self.rectangle(app=self.app, document=document, plane="front", width_mm=40, height_mm=30))
+                require(profile.get("ok") is True and sketch is not None, "test rectangle failed")
+                boss, feature = self.call(label + ".extrude", lambda: self.extrude(app=self.app, document=document, sketch_feature=sketch, depth_mm=10, reverse=False))
+                require(boss.get("ok") is True and feature is not None, "test extrusion failed")
+            self.report["cases"][-1]["geometry_initial"] = self.geometry(document, label + ".geometry-before", reference=prepared["geometry_initial"] if prepared is not None else None)
             self.report_changed()
             self.persist()
         baseline = self.save_new(document, label + "-baseline", kind)
@@ -1223,6 +1239,63 @@ class Calibration:
                 "writable continuation changed fixed standard profile")
         return writable
 
+    def standard_transition(self, document, kind, front, case, transition, index, current, continue_writable):
+        label = kind + ".standard-" + str(index + 1) + "-" + transition["source_name"] + "-to-" + transition["target_name"]
+        row = {**transition, "plan_index": index + 1, "native_setter_calls": 0,
+               "mutation": {"attempted": False, "may_have_changed": False}}
+        case["writes"].append(row)
+        self.report_changed()
+        self.persist()
+        state = list(self.call(label + ".state-before-any-reads", lambda: self.native_state(document)))
+        context = self.writable(document, label)
+        before = self.standard_observe(document, kind, front, state, context, label + ".before")
+        row["before"], row["state_before"] = before, state
+        self.report_changed()
+        require(self.standard_key(before) == self.standard_key(current), "fixed defaults changed between planned transitions")
+        require(before["standard"]["native_value"] == transition["source"]
+                and transition["source"] != transition["target"], "planned standard source/target differs")
+        extension = self.get(document, "Extension", label)
+        self.mutation_guard(document, front, state, context, label + ".before-standard-set")
+        row["mutation"] = {"attempted": True, "may_have_changed": True}
+        self.report_changed()
+        row["native_setter_calls"] = 1
+        self.report_changed()
+        self.persist()
+        def set_once():
+            with self.standard_trace(self.prefix + "-" + label, "diagnostic.document-drafting-standard-set"):
+                return self.standard_native_call("document-drafting-standard-calibration",
+                    "IModelDocExtension.SetUserPreferenceInteger",
+                    lambda: extension.SetUserPreferenceInteger(self.constants["swDetailingDimensionStandard"],
+                        self.constants["swDetailingNoOptionSpecified"], transition["target"]))
+        row["native_return"] = self.call(label + ".SetUserPreferenceInteger.once", set_once)
+        self.report_changed()
+        self.persist()
+        require(row["native_return"] is True, "standard setter returned False/non-bool; no retry or rollback")
+        post_state = self.changed_context(document, front, state, context, label + ".post-setter")
+        row["state_after_setter"] = post_state
+        self.report_changed()
+        after = self.standard_observe(document, kind, front, post_state, context, label + ".after")
+        row["after"] = after
+        self.report_changed()
+        require(after["standard"]["native_value"] == transition["target"], "requested overall standard did not read back")
+        require(self.standard_key(after["observed_defaults"]["coverage"]) == self.standard_key(before["observed_defaults"]["coverage"]),
+                "fixed standard coverage manifest changed during a transition")
+        row["before_after_diff"] = self.standard_diff(before, after)
+        self.report_changed()
+        row["observed_defaults_diff"] = self.standard_diff(before["observed_defaults"], after["observed_defaults"])
+        self.report_changed()
+        final, final_state = self.standard_mark_dirty(document, kind, front, after, post_state, context, label)
+        row["final"], row["state_after_saveflag"] = final, final_state
+        self.report_changed()
+        row["after_final_diff"] = self.standard_diff(after, final)
+        self.report_changed()
+        document = self.standard_roundtrip(document, kind, front, final, final_state, context, row, label,
+                                           continue_writable)
+        row["success"] = True
+        self.report_changed()
+        self.persist()
+        return document, final
+
     def standards_stage(self, document, kind, front, case):
         state = list(self.call(kind + ".standards.initial-state-before-reads", lambda: self.native_state(document)))
         context = self.writable(document, kind + ".standards.initial")
@@ -1234,67 +1307,73 @@ class Calibration:
                 and case["initial"]["standard"] == self.constants["swDetailingStandardGB"]
                 and current["standard"]["native_value"] == self.constants["swDetailingStandardGB"]
                 and current["standard"]["value"] == "gb", "standard plan requires an unchanged GB7 template baseline")
+        prepared = getattr(self, 'prepared_inputs', {}).get(kind)
+        if prepared is not None:
+            require(self.standard_key(current) == self.standard_key(prepared['profile']),
+                    "prepared GB profile changed while opening/copying/creating geometry")
         for index, transition in enumerate(self.standard_plan):
-            label = kind + ".standard-" + str(index + 1) + "-" + transition["source_name"] + "-to-" + transition["target_name"]
-            row = {**transition, "plan_index": index + 1, "native_setter_calls": 0,
-                   "mutation": {"attempted": False, "may_have_changed": False}}
-            case["writes"].append(row)
-            self.report_changed()
-            self.persist()
-            state = list(self.call(label + ".state-before-any-reads", lambda: self.native_state(document)))
-            context = self.writable(document, label)
-            before = self.standard_observe(document, kind, front, state, context, label + ".before")
-            row["before"], row["state_before"] = before, state
-            self.report_changed()
-            require(self.standard_key(before) == self.standard_key(current), "fixed defaults changed between planned transitions")
-            require(before["standard"]["native_value"] == transition["source"]
-                    and transition["source"] != transition["target"], "planned standard source/target differs")
-            extension = self.get(document, "Extension", label)
-            self.mutation_guard(document, front, state, context, label + ".before-standard-set")
-            row["mutation"] = {"attempted": True, "may_have_changed": True}
-            self.report_changed()
-            row["native_setter_calls"] = 1
-            self.report_changed()
-            self.persist()
-            def set_once():
-                with self.standard_trace(self.prefix + "-" + label, "diagnostic.document-drafting-standard-set"):
-                    return self.standard_native_call("document-drafting-standard-calibration",
-                        "IModelDocExtension.SetUserPreferenceInteger",
-                        lambda: extension.SetUserPreferenceInteger(self.constants["swDetailingDimensionStandard"],
-                            self.constants["swDetailingNoOptionSpecified"], transition["target"]))
-            row["native_return"] = self.call(label + ".SetUserPreferenceInteger.once", set_once)
-            self.report_changed()
-            self.persist()
-            require(row["native_return"] is True, "standard setter returned False/non-bool; no retry or rollback")
-            post_state = self.changed_context(document, front, state, context, label + ".post-setter")
-            row["state_after_setter"] = post_state
-            self.report_changed()
-            after = self.standard_observe(document, kind, front, post_state, context, label + ".after")
-            row["after"] = after
-            self.report_changed()
-            require(after["standard"]["native_value"] == transition["target"], "requested overall standard did not read back")
-            require(self.standard_key(after["observed_defaults"]["coverage"]) == self.standard_key(before["observed_defaults"]["coverage"]),
-                    "fixed standard coverage manifest changed during a transition")
-            row["before_after_diff"] = self.standard_diff(before, after)
-            self.report_changed()
-            row["observed_defaults_diff"] = self.standard_diff(before["observed_defaults"], after["observed_defaults"])
-            self.report_changed()
-            final, final_state = self.standard_mark_dirty(document, kind, front, after, post_state, context, label)
-            row["final"], row["state_after_saveflag"] = final, final_state
-            self.report_changed()
-            row["after_final_diff"] = self.standard_diff(after, final)
-            self.report_changed()
-            document = self.standard_roundtrip(document, kind, front, final, final_state, context, row, label,
-                                               index + 1 < len(self.standard_plan))
-            row["success"] = True
-            self.report_changed()
-            current = final
-            self.persist()
+            document, current = self.standard_transition(document, kind, front, case, transition, index, current,
+                                                         index + 1 < len(self.standard_plan))
         case["successful_planned_transitions"] = len(self.standard_plan)
         self.report_changed()
         case["calibrated_scope_note"] = "only GB-to-each-named-and-back for this document type and fixed drafting-defaults-v1"
         self.report_changed()
         return document
+
+    def prepare_standards_stage(self, document, kind, front, case):
+        # A separate bounded fixture group. Its source->GB calls are recorded,
+        # saved and reopened; they never substitute for the standard-36 group.
+        state = list(self.call(kind + '.prepare.initial-state', lambda: self.native_state(document)))
+        context = self.writable(document, kind + '.prepare.initial')
+        current = self.standard_observe(document, kind, front, state, context, kind + '.prepare.initial')
+        case['standard_initial'] = current
+        self.report_changed()
+        self.persist()
+        source, name = current['standard']['native_value'], current['standard']['value']
+        require(type(source) is int and name in ('ansi', 'iso', 'din', 'jis', 'bsi', 'gost', 'gb')
+                and case['initial']['standard'] == source, 'fixture preparation needs an unchanged known named source')
+        if name != 'gb':
+            transition = {'source': source, 'target': self.constants['swDetailingStandardGB'],
+                          'source_name': name, 'target_name': 'gb'}
+            document, current = self.standard_transition(document, kind, front, case, transition, 0, current, False)
+            row = case['writes'][-1]
+        else:
+            label = kind + '.prepare-gb-noop'
+            row = {'plan_index': 1, 'source': source, 'target': source, 'source_name': 'gb', 'target_name': 'gb',
+                   'native_setter_calls': 0, 'native_return': None, 'mutation': {'attempted': False, 'may_have_changed': False},
+                   'before': current, 'after': current, 'final': current}
+            case['writes'].append(row)
+            self.report_changed()
+            self.persist()
+            document = self.standard_roundtrip(document, kind, front, current, state, context, row, label, False)
+            row['success'] = True
+            self.report_changed()
+        require(current['standard'] == {'value': 'gb', 'native_value': self.constants['swDetailingStandardGB']},
+                'prepared fixture did not retain GB7')
+        prepared = {'kind': kind, 'path': row['saved']['path'], 'sha256': row['saved']['sha256'],
+                    'profile': row['readonly_profile'], 'source_standard': name,
+                    'geometry_initial': case.get('geometry_initial')}
+        self.report.setdefault('prepared_native_inputs', {})[kind] = prepared
+        self.report_changed()
+        self.persist()
+        return document
+
+    def load_prepared_inputs(self):
+        path = Path(self.args.prepared_inputs).resolve()
+        workspace = Path(r'C:\Workspace').resolve()
+        require(workspace in path.parents and path.is_file() and not path.is_symlink(), 'prepared manifest must be an owned Workspace file')
+        self.source_file(path, 'prepared-GB-input-manifest')
+        manifest = json.loads(path.read_text(encoding='utf-8'))
+        require(manifest['format'] == 'owned-prepared-gb-v1' and type(manifest['attach_pid']) is int and manifest['attach_pid'] == self.args.attach_pid
+                and manifest['script_sha256'] == digest(Path(__file__))
+                and set(manifest['inputs']) == set(SUFFIX), 'prepared input provenance differs')
+        for kind, item in manifest['inputs'].items():
+            source = Path(item['path']).resolve()
+            require(item['kind'] == kind and (path.parent / 'standards-prepare') in source.parents and source.is_file() and not source.is_symlink()
+                    and source.suffix.upper() == '.' + SUFFIX[kind] and digest(source) == item['sha256']
+                    and item['profile']['standard'] == {'value': 'gb', 'native_value': self.constants['swDetailingStandardGB']},
+                    'prepared GB input identity/hash/profile differs')
+        self.prepared_inputs = manifest['inputs']
 
     def run_case(self, kind):
         row = {"kind": kind, "success": False, "writes": []}
@@ -1311,6 +1390,8 @@ class Calibration:
             document = self.font_stage(document, kind, front, row)
         elif self.args.stage == "display":
             document = self.display_stage(document, kind, front, row)
+        elif self.args.stage == "standards-prepare":
+            document = self.prepare_standards_stage(document, kind, front, row)
         elif self.args.stage == "standards":
             document = self.standards_stage(document, kind, front, row)
         else:
@@ -1418,7 +1499,7 @@ class Calibration:
         self.save_native, self.open_native = save_as_native_windows, open_windows_document_with_handle
         self.rectangle, self.extrude, self.measure = create_rectangle_sketch_windows_with_handle, extrude_sketch_windows_with_handle, measure_part_windows
         self.writable_context = _writable_context
-        if self.args.stage == "standards":
+        if self.args.stage in ("standards", "standards-prepare"):
             from swcli.hosts.windows_document_drafting_standard import _read_snapshot
             from swcli.hosts.native_trace import trace_native_request, native_call
             # Only this Python diagnostic process is affected; no SW setting or
@@ -1431,8 +1512,11 @@ class Calibration:
         pythoncom.CoInitialize()
         try:
             self.attach()
-            if self.args.stage == "standards":
+            if self.args.stage in ("standards", "standards-prepare"):
                 self.standard_catalog()
+            if getattr(self.args, 'prepared_inputs', None):
+                require(self.args.stage == 'standards', 'prepared inputs only serve the standard-36 group')
+                self.load_prepared_inputs()
             for kind in ("part", "assembly", "drawing"):
                 self.run_case(kind)
             self.report["success"] = True

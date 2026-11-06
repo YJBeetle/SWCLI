@@ -165,9 +165,10 @@ class DedicatedWorkflow(unittest.TestCase):
         self.assertIn('cancel-in-progress: false', job)
         self.assertIn('if: always()\n        shell: powershell\n        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1', job)
         self.assertIn('C:\\Workspace\\swcli-docprops-${{ github.run_id }}-${{ github.run_attempt }}', job)
-        self.assertIn('--part-template $templates.part', job)
-        self.assertIn('--assembly-template $templates.assembly', job)
-        self.assertIn('docprops-template-selection.json', job)
+        self.assertIn('--prepare-gb-inputs', job)
+        self.assertIn('--drawing-template $drawingTemplate', job)
+        self.assertIn('gate_support/drawing_template.py', job)
+        self.assertIn('timeout-minutes: 65', job)
         self.assertIn('-ProbeRoot $env:PROBE_ROOT -PrivateInputsOnly', job)
         cleanup = (ROOT / 'scripts/ci/windows/cleanup-hosted-solidworks.ps1').read_text()
         private_only = cleanup.split('if (-not $PrivateInputsOnly) {', 1)[1].split('$lmgrdPidPath', 1)[0]

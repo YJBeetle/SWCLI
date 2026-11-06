@@ -1,6 +1,7 @@
 """Branch-only owned Windows standards calibration; internal evidence, never acceptance.
 
-One new owned host; one standards group, 36 planned transitions, 600/1800s.
+One new owned host; optional separate GB fixture group then original standards
+group of 36 planned transitions. Each group retains its own 600/1800s limits.
 The hardened driver owns its worker. The STA owner pumps COM while it waits.
 No local VM, arbitrary host attachment, retries, rollback or whitelist edits.
 """
@@ -38,7 +39,7 @@ def source_context(expected_head, environ=None, checkout_head=None):
     return {'source_head': actual, 'event': env['GITHUB_EVENT_NAME'], 'ref': env['GITHUB_REF'],
             'run_id': env.get('GITHUB_RUN_ID'), 'run_attempt': env.get('GITHUB_RUN_ATTEMPT'),
             'full_acceptance_eligible': False, 'native_timeout_seconds': 600, 'group_timeout_seconds': 1800,
-            'group_design': 'one group: part/assembly/drawing, 12 transitions each, 36 total'}
+            'group_design': 'optional independent GB fixture preparation, then one original 36-transition group; each group 1800s'}
 
 
 def load_script(name, relative):
@@ -92,7 +93,7 @@ def owned_interface_packet(pythoncom, app, evidence, call):
                     raise
 
 
-def verify_complete_report(report, driver, pid):
+def verify_group_report(report, driver, pid, stage):
     checked(driver.get('success') is True and driver.get('worker_authorized') is True,
             'hardened worker did not complete successfully')
     checked(driver.get('host_termination_attempted') is False
@@ -109,8 +110,12 @@ def verify_complete_report(report, driver, pid):
     checked(report.get('native_timeout_seconds') == driver.get('native_timeout_seconds') == 600
             and report.get('group_timeout_seconds') == driver.get('group_timeout_seconds') == 1800,
             'calibration budgets changed')
-    checked(report.get('stage') == 'standards' and report.get('full_acceptance_eligible') is False,
+    checked(report.get('stage') == stage and report.get('full_acceptance_eligible') is False,
             'unexpected evidence scope')
+
+
+def verify_complete_report(report, driver, pid):
+    verify_group_report(report, driver, pid, 'standards')
     cases = report.get('cases', [])
     checked([case.get('kind') for case in cases] == ['part', 'assembly', 'drawing'], 'three ordered document types required')
     transitions = 0
@@ -130,7 +135,87 @@ def verify_complete_report(report, driver, pid):
     return transitions
 
 
-def run_owned(output, swconst, drawing_template, context, *, part_template, assembly_template):
+def verify_prepared_report(report, driver, pid):
+    verify_group_report(report, driver, pid, 'standards-prepare')
+    cases = report.get('cases', [])
+    checked([case.get('kind') for case in cases] == ['part', 'assembly', 'drawing'],
+            'three ordered fixture kinds required')
+    inputs = report.get('prepared_native_inputs', {})
+    checked(set(inputs) == {'part', 'assembly', 'drawing'}, 'three prepared inputs required')
+    setters = 0
+    for case in cases:
+        checked(case.get('success') is True and len(case.get('writes', [])) == 1, 'fixture preparation incomplete')
+        row = case['writes'][0]
+        source, target = row.get('source'), row.get('target')
+        count = row.get('native_setter_calls')
+        checked(type(source) is int and 1 <= source <= 7 and type(target) is int and target == 7
+                and row.get('target_name') == 'gb' and type(count) is int,
+                'fixture named source/GB target differs')
+        checked(row.get('success') is True and row.get('plan_index') == 1
+                and ((source != 7 and count == 1 and row.get('native_return') is True)
+                     or (source == 7 and count == 0 and row.get('native_return') is None
+                         and row.get('mutation') == {'attempted': False, 'may_have_changed': False})),
+                'fixture setter failed, repeated or unexpected no-op mutation')
+        profiles = [row.get(key) for key in ('final', 'saved_profile', 'readonly_profile')]
+        checked(all(type(profile) is dict and profile and profile.get('standard') == {'value': 'gb', 'native_value': 7}
+                    for profile in profiles)
+                and len({json.dumps(profile, sort_keys=True, allow_nan=False) for profile in profiles}) == 1,
+                'prepared GB save/readonly profile differs')
+        item = inputs[case['kind']]
+        checked(item.get('kind') == case['kind'] and item.get('path') == row.get('saved', {}).get('path')
+                and item.get('sha256') == row.get('saved', {}).get('sha256')
+                and re.fullmatch('[0-9a-f]{64}', item.get('sha256', '')) is not None
+                and item.get('profile') == profiles[-1], 'prepared input lineage differs')
+        if case['kind'] == 'part':
+            checked(case.get('geometry_initial') is not None
+                    and item.get('geometry_initial') == case['geometry_initial']
+                    and row.get('saved_geometry') is not None and row.get('reopened_geometry') is not None,
+                    'prepared part geometry evidence missing')
+        setters += count
+    return inputs, setters
+
+
+def run_groups(output, swconst, drawing_template, context, pid, packet, driver, pump, call, case,
+               *, part_template, assembly_template, prepare_gb_inputs):
+    def group(name, stage, prepared_inputs=None):
+        child_output = output / name
+        args = SimpleNamespace(output=str(child_output), source_root=str(ROOT),
+            script=str(ROOT / 'scripts/dev/calibrate-document-properties.py'),
+            python=driver.default_python(), attach_pid=pid, stage=stage, swconst=str(swconst),
+            drawing_template=str(drawing_template), part_template=str(part_template) if part_template else None,
+            assembly_template=str(assembly_template) if assembly_template else None,
+            prepared_inputs=str(prepared_inputs) if prepared_inputs else None,
+            font_typeface=None, isolated_host=True, owned_interface_data=packet)
+        code = call(name + '-driver', lambda: run_driver_with_pump(driver, args, pump))
+        receipt = json.loads((output / (name + '-driver') / 'driver.json').read_text(encoding='utf-8'))
+        case.setdefault('groups', []).append({'group': name, 'driver': receipt, 'context': context})
+        checked(code == 0, name + ' failed; retain original driver/report/trace; no retry')
+        native_report = json.loads((child_output / 'report.json').read_text(encoding='utf-8'))
+        return native_report, receipt
+
+    prepared_path = None
+    if prepare_gb_inputs:
+        preparation, receipt = group('standards-prepare', 'standards-prepare')
+        inputs, setters = verify_prepared_report(preparation, receipt, pid)
+        for item in inputs.values():
+            path = Path(item['path'])
+            checked(path.is_file() and not path.is_symlink()
+                    and (output / 'standards-prepare').resolve() in path.resolve().parents
+                    and hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256'],
+                    'prepared native input bytes/path differ')
+        prepared_path = output / 'prepared-inputs.json'
+        prepared_path.write_text(json.dumps({'format': 'owned-prepared-gb-v1', 'attach_pid': pid,
+            'script_sha256': preparation['script_sha256'], 'inputs': inputs}, indent=2) + '\n', encoding='utf-8')
+        case['fixture_preparation_setters'] = setters
+    native_report, receipt = group('standards-36', 'standards', prepared_path)
+    case['completed_transitions'] = verify_complete_report(native_report, receipt, pid)
+    case['group'] = 'standards-36'
+    case['expected_transitions'] = 36
+    case['driver'] = receipt
+    case['context'] = context
+
+
+def run_owned(output, swconst, drawing_template, context, *, part_template, assembly_template, prepare_gb_inputs=False):
     import pythoncom
     from swcli.hosts.windows import _com_value
     harness = load_script('_docprops_owned_harness', 'scripts/ci/verify-through-all-calibration.py')
@@ -147,19 +232,9 @@ def run_owned(output, swconst, drawing_template, context, *, part_template, asse
                 'owned host control/identity setup failed')
         binding = case['owned_interface'] = {}
         with owned_interface_packet(pythoncom, app, binding, call) as packet:
-            child_output = output / 'standards-36'
-            args = SimpleNamespace(output=str(child_output), source_root=str(ROOT),
-                                   script=str(ROOT / 'scripts/dev/calibrate-document-properties.py'),
-                                   python=driver.default_python(), attach_pid=pid, stage='standards',
-                                   swconst=str(swconst), drawing_template=str(drawing_template),
-                                   part_template=str(part_template), assembly_template=str(assembly_template),
-                                   font_typeface=None, isolated_host=True, owned_interface_data=packet)
-            code = call('standards-36-driver', lambda: run_driver_with_pump(driver, args, pythoncom.PumpWaitingMessages))
-            receipt = json.loads((output / 'standards-36-driver/driver.json').read_text(encoding='utf-8'))
-            case.update(context=context, driver=receipt, group='standards-36', expected_transitions=36)
-            checked(code == 0, 'standards group failed; retain original driver/report/trace; no retry')
-            native_report = json.loads((child_output / 'report.json').read_text(encoding='utf-8'))
-            case['completed_transitions'] = verify_complete_report(native_report, receipt, pid)
+            run_groups(output, swconst, drawing_template, context, pid, packet, driver,
+                       pythoncom.PumpWaitingMessages, call, case, part_template=part_template,
+                       assembly_template=assembly_template, prepare_gb_inputs=prepare_gb_inputs)
 
         case['success'] = True
 
@@ -190,25 +265,30 @@ def main(argv=None):
     parser.add_argument('--drawing-template', type=Path)
     parser.add_argument('--part-template', type=Path)
     parser.add_argument('--assembly-template', type=Path)
+    parser.add_argument('--prepare-gb-inputs', action='store_true')
     args = parser.parse_args(argv)
     context = source_context(args.expected_head)
     if args.check_context:
         print(json.dumps(context))
         return 0
-    checked(all(value is not None for value in (args.output_dir, args.swconst, args.drawing_template, args.part_template, args.assembly_template)),
-            'output, installed official TLB and explicit drawing template required')
+    checked(all(value is not None for value in (args.output_dir, args.swconst, args.drawing_template))
+            and (args.prepare_gb_inputs or (args.part_template is not None and args.assembly_template is not None)),
+            'output, installed TLB, drawing and explicit GB inputs or separate preparation required')
+    context['fixture_preparation_required'] = args.prepare_gb_inputs
     output = args.output_dir.resolve()
     workspace = Path(r'C:\Workspace').resolve()
     checked(workspace in output.parents and output != workspace, 'output must be below C:\\Workspace')
-    checked(all(path.is_file() and not path.is_symlink() for path in (args.swconst, args.drawing_template, args.part_template, args.assembly_template)), 'installed official inputs missing')
+    checked(all(path.is_file() and not path.is_symlink() for path in (args.swconst, args.drawing_template, args.part_template, args.assembly_template) if path is not None), 'installed official inputs missing')
     output.mkdir(parents=True, exist_ok=False)
     (output / 'context.json').write_text(json.dumps(context, indent=2) + '\n', encoding='utf-8')
-    (output / 'template-selection.json').write_text(json.dumps({'success': True, 'source': 'explicit-installed-GB',
-        'part': str(args.part_template.resolve()), 'assembly': str(args.assembly_template.resolve()),
+    (output / 'template-selection.json').write_text(json.dumps({'success': True, 'source': 'separate-owned-GB-preparation' if args.prepare_gb_inputs else 'explicit-installed-GB',
+        'part': str(args.part_template.resolve()) if args.part_template else None, 'assembly': str(args.assembly_template.resolve()) if args.assembly_template else None,
         'drawing': str(args.drawing_template.resolve())}, indent=2)+'\n', encoding='utf-8')
     try:
         return run_owned(output, args.swconst.resolve(), args.drawing_template.resolve(), context,
-                         part_template=args.part_template.resolve(), assembly_template=args.assembly_template.resolve())
+                         part_template=args.part_template.resolve() if args.part_template else None,
+                         assembly_template=args.assembly_template.resolve() if args.assembly_template else None,
+                         prepare_gb_inputs=args.prepare_gb_inputs)
     finally:
         manifest(output, context)
 

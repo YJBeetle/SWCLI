@@ -1,5 +1,17 @@
 # 文档属性校准性能：当前接管与验收边界
 
+## 当前汇总（2026-11-07，R4原件已核）
+
+- 工作分支当前已推送到 `22e47fca9632ff3cea0795b840dab0c4c638715c`；本路**尚未 merge-ready**，不合main/发布。
+- 当前无进行中的校准。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
+- R4 ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0` 与GitHub digest一致；唯一原件 template-selection.json SHA256 `8b23779be484396816795ea190c658e3105ffe8b17cab72c51afec3eda9b80a9`。详情 `evidence/docprops-performance/run-42274393189-audit.json`。
+- 相关修复正在完成：同一owned host先执行**独立fixture准备组1800秒**，记录已知named→GB最多每类一次或GB零setter、完整profile/保存/RO/hash/part几何；成功后复制这些本run生成文件，再执行**原单组36转换/216 profiles，仍1800秒**。两组worker分别授权、600原生上限不变；准备失败不启动主组，零失败重试/rollback/组内host重启。额外准备不计入36能力。
+- 准备/审计相关148项纳入完整回归；完整portable 2157项 / 75.483秒 / skipped32 通过，workflow actionlint exit0。此前2131完整portable（skip32）、host范围标准28、公开准备10、SDK strict types/25负向消费者已通过，均非原生/公开验收。
+- 公开状态：入口/workflow已准备且默认关闭；真实成功proof仍缺，转换与native-Windows revision名单均空。未触发公开CI。须原生全部成功并独立核验后才开放精准范围并跑公开CLI/daemon+SDK/MCP gate。
+- 共享src新增仅标准changed写的关闭host/revision门禁；无request/result/SDK/MCP字段变动。8个固定reader函数与ea45651 AST相同。本轮准备仅diag/driver/CI/auditor及测试，不改生产reader。
+- 待审批/自动审批拒绝：无。VM/DockerSW/MacSW及其他worktree未操作。
+
+
 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI`
 分支：`codex/docprops-calibration-performance`
 基线：`1593330e6e757073d44c5bb9a04dc06deca10966`（parent `3bda2c00489dde6a3d1e4521c548f751b1d1c197`），仅批次本地 checkpoint，不是已发布/已验收版本。
@@ -155,3 +167,16 @@ GitHub download-artifact v8输入签名已核实：[官方 action.yml](https://r
 新增 `CALIBRATED_DRAFTING_WINDOWS_REVISIONS=()` 与标准writer的精确原生Windows/revision门禁；转换tuple和revision清单当前均空。即便后来具备转换数据，Wine、非Win32、无法判定的ntdll/未测RevisionNumber仍拒绝changed写；完整CAS同值no-op维持0 setter。新增5项host scope故障测试，标准相关共28 tests通过，公开准备10 tests通过；RevisionNumber单层native trace验证通过，未嵌套调用。官方RevisionNumber方法已核实：[SOLIDWORKS官方接口文档](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~RevisionNumber.html)。
 
 这次src共享文件新增改动仅 `src/swcli/document_drafting_standard.py`（空revision数据）和 `src/swcli/hosts/windows_document_drafting_standard.py`（changed写前环境门禁），没有请求/result schema、SDK/MCP字段变化。8个固定reader/validator函数与正在运行的ea45651按AST逐项相同，持久指纹 `native-fixed-reader-parity.json`；不借旧校准证明新写gate。SDK生成、strict types及消费者正负类型检查已通过（`sdk-contract-types.log`）。R4仍固定ea45651；此补强不触发额外CI、不填白名单，后续必须以真实内部/公开证据收敛范围。
+
+
+### R4最终失败与下一次相关修复
+
+R4已完成failure，首因 `Expected one explicit installed GB part template, found 0; no arbitrary fallback`。该run没有启动native host、没有setter。artifact `13532064982` (351 bytes) 的ZIP与GitHub digest核对一致；原件、metadata、独立摘要在此工作树持久目录，未改原件。该失败说明英文runtime不提供既定GB part命名，不能把任意MBD模板直接称为GB。
+
+本次修复因此将输入制作显式列为独立准备组，而非降低主组GB7断言：准备组在同一owned host上新建自有模型，对已知named标准进行单次明确source→GB转换，或已是GB时零setter；每类保存和RO完整profile读回、文件hash、part单box V/S/centroid均校验。只把准备结果复制到新的主组目录，保留输入来源与不可变hash；主组仍要求GB7和全profile与准备结果一致，不重建part几何。
+
+准备组与标准36各有独立hardened worker/nonce/授权argv，均600 native/1800 group，不延长原36组。父STA、owned PID、marshal TABLESTRONG生命周期不变，无host重启；任一组失败立即停止，不retry/rollback。CI基础设施step预算65min仅容纳两组及startup/cleanup，不改变driver限制。`--prepared-inputs`纳入worker精确argv。离线auditor同时核准备0..3 setters/对应profile数量、源码/hash/PID/原始SDK叶调用和主组36/216，不能以准备成功代替主组或公开验收。
+
+内部参数新增 `--stage standards-prepare`、`--prepared-inputs <same-run manifest>`；owned CI新增显式 `--prepare-gb-inputs`。无公开operation/CLI/request/result/SDK/MCP字段变更。模板选择纯helper仍保留用于明确模板模式，但本CI改用已知安装GB drawing路径、独立制作part/assembly输入。下一次只在相关修复提交后，对该新head dispatch一次内部验证。
+
+本轮验证：完整portable 2157 tests / 75.483秒 / OK (skipped32)，原日志 `prepared-gb-full-tests.log`；actionlint v1.7.12 exit0，原日志 `prepared-gb-actionlint.log`；git diff --check通过。测试包含显式准备argv授权、同PID两组首次失败、未知source/False/noop/profile漂移、input hash/来源/geometry、离线原始SDK重复setter/漏getter，以及准备失败先因优先于主文件缺失。portable不是原生或公开验收。

@@ -99,6 +99,7 @@ def worker_config(args, script, source, driver):
     if getattr(args, 'isolated_host', False):
         script_args.append('--isolated-host')
     for flag, value in (('--swconst', args.swconst),
+                        ('--prepared-inputs', getattr(args, 'prepared_inputs', None)),
                         ('--part-template', getattr(args, 'part_template', None)),
                         ('--assembly-template', getattr(args, 'assembly_template', None)),
                         ('--drawing-template', args.drawing_template),
@@ -328,8 +329,9 @@ def main():
     parser.add_argument('--source-root', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--attach-pid', type=int, required=True)
-    parser.add_argument('--stage', choices=('read', 'fonts', 'display', 'standards'), required=True)
+    parser.add_argument('--stage', choices=('read', 'fonts', 'display', 'standards', 'standards-prepare'), required=True)
     parser.add_argument('--swconst')
+    parser.add_argument('--prepared-inputs')
     parser.add_argument('--part-template')
     parser.add_argument('--assembly-template')
     parser.add_argument('--drawing-template')

@@ -1,0 +1,199 @@
+..ss.........................................................SWCLI document.export: ok
+...............................................................................................................................................................................................................................................Modeling checkpoint failed at document-annotations-final: checkpoint failed
+Modeling checkpoint failed at document-annotations-final: checkpoint failed
+..................................................................................................Modeling gate: document.lease
+...........................................................................................................................................................................................................................................Modeling checkpoint failed at document-units-final: final evidence failed
+Modeling checkpoint failed at document-units-final: final evidence failed
+.....................Modeling gate: drawing-reopen-no-inspect.cleanup-check
+....Modeling gate: drawing-copy-reopen.cleanup-check
+...Modeling gate: drawing-copy-first.cleanup-check
+..................usage: python -m unittest [-h] --output-dir OUTPUT_DIR
+                          [--host-output-dir HOST_OUTPUT_DIR]
+                          --drawing-template DRAWING_TEMPLATE
+                          [--cli-command CLI_COMMAND] [--endpoint ENDPOINT]
+                          [--request-timeout REQUEST_TIMEOUT]
+python -m unittest: error: the following arguments are required: --drawing-template
+....s.....................................................................................................................................................................................................................................................................................................ss......sss......s........Modeling gate: document.create
+Modeling gate: document.lease
+Modeling gate: document.lease
+Modeling gate: document.close
+.Modeling gate: document.list
+.Modeling gate: document.create
+Modeling gate: document.lease
+Modeling gate: document.inspect
+....................Modeling gate: document.create
+Modeling gate: document.lease
+Modeling gate: document.lease
+Modeling gate: document.lease
+........Modeling gate: native-model.cleanup-check
+Modeling gate: polygon-model.cleanup-check
+Modeling gate: generated-assembly.cleanup-check
+Modeling gate: sample-exports.cleanup-check
+Modeling gate: reverse-cut.cleanup-check
+Modeling gate: through-all-cut.cleanup-check
+Modeling gate: through-all-cut.cleanup-check
+Modeling gate: feature-depth.cleanup-check
+Modeling gate: drawing-save-reopen.cleanup-check
+Modeling gate: drawing-save-as-reopen.cleanup-check
+Modeling gate: rejected-cut-then-sketch.cleanup-check
+...........Modeling gate: document.list
+Modeling gate: document.list
+Modeling gate: document.list
+Modeling gate: document.list
+Modeling gate: document.list
+...Modeling gate: document.create
+Modeling gate: document.lease
+Modeling gate: document.save-as
+Modeling gate: document.lease
+Modeling gate: document.save-as
+Modeling gate: document.lease
+Modeling gate: document.save-as
+......................................................................Modeling gate: native-model.cleanup-check
+Modeling gate: polygon-model.cleanup-check
+Modeling gate: native-model.cleanup-check
+...............Modeling checkpoint failed at properties-final: final evidence failed
+.Modeling checkpoint failed at properties-final: final evidence failed
+...........................................................................Runtime sets: drawing-copy-first starting
+Runtime sets: drawing-copy-first passed
+.Runtime sets: drawing-save starting
+Runtime sets: drawing-save passed
+.....Runtime sets: native-model starting
+..Runtime sets: native-model starting
+Runtime sets: native-model passed
+Runtime sets: assemblies starting
+Runtime sets: assemblies passed
+Runtime sets: exports starting
+Runtime sets: exports passed
+Runtime sets: drawing-save starting
+Runtime sets: drawing-save passed
+Runtime sets: drawing-save-as starting
+Runtime sets: drawing-save-as passed
+Runtime sets: continuation-front-diameter starting
+Runtime sets: continuation-front-diameter passed
+Runtime sets: center-front starting
+Runtime sets: center-front passed
+Runtime sets: rectangle-front starting
+Runtime sets: rectangle-front passed
+Runtime sets: geometry-top starting
+Runtime sets: geometry-top passed
+Runtime sets: geometry-right starting
+Runtime sets: geometry-right passed
+Runtime sets: toolbox starting
+Runtime sets: toolbox passed
+.Runtime sets: native-model starting
+Runtime sets: native-model passed
+Runtime sets: assemblies starting
+Runtime sets: assemblies passed
+Runtime sets: exports starting
+Runtime sets: exports passed
+Runtime sets: drawing-save starting
+Runtime sets: drawing-save passed
+Runtime sets: drawing-save-as starting
+Runtime sets: drawing-save-as passed
+Runtime sets: reverse-cut starting
+Runtime sets: reverse-cut passed
+Runtime sets: feature-depth starting
+Runtime sets: feature-depth passed
+Runtime sets: fillets starting
+Runtime sets: fillets passed
+Runtime sets: drawings starting
+Runtime sets: drawings passed
+Runtime sets: continuation-front-diameter starting
+Runtime sets: continuation-front-diameter passed
+Runtime sets: center-front starting
+Runtime sets: center-front passed
+Runtime sets: rectangle-front starting
+Runtime sets: rectangle-front passed
+Runtime sets: diameter-top starting
+Runtime sets: diameter-top passed
+Runtime sets: center-top starting
+Runtime sets: center-top passed
+Runtime sets: rectangle-top starting
+Runtime sets: rectangle-top passed
+Runtime sets: diameter-right starting
+Runtime sets: diameter-right passed
+Runtime sets: center-right starting
+Runtime sets: center-right passed
+Runtime sets: rectangle-right starting
+Runtime sets: rectangle-right passed
+Runtime sets: toolbox starting
+Runtime sets: toolbox passed
+........Runtime sets: native-model starting
+Runtime sets: native-model passed
+........Runtime sets: native-model starting
+Runtime sets: native-model passed
+.................................................................................................................Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox evidence checkpoint failed: ENOSPC fixture
+Toolbox evidence checkpoint failed: ENOSPC fixture
+Toolbox gate: document.close
+Toolbox evidence checkpoint failed: ENOSPC fixture
+Toolbox evidence checkpoint failed: ENOSPC fixture
+.......Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+Toolbox gate: document.list
+Toolbox gate: daemon.status
+.Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+Toolbox gate: document.list
+Toolbox gate: daemon.status
+Toolbox gate: daemon.status
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+Toolbox gate: daemon.status
+Toolbox gate: document.list
+Toolbox gate: document.open
+Toolbox gate: document.diagnose
+Toolbox gate: document.measure
+Toolbox gate: document.close
+.Toolbox evidence checkpoint failed: final write fixture
+.................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................sssss...............................................................................................................................................................................................................................................s....................s..................ssssssss..ssssss.......s.....s.......
+----------------------------------------------------------------------
+Ran 2157 tests in 75.483s
+
+OK (skipped=32)
