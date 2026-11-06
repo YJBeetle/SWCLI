@@ -1,4 +1,4 @@
-# STEP export options (internal calibration)
+# STEP export options
 
 `document.export` accepts `step_protocol` (`ap203`, `ap214`) together with
 `step_geometry` (`solid-surface`, `wireframe`, `wireframe-sketches`). Both are
@@ -7,12 +7,14 @@ fields/values are rejected before native export. Omitting both preserves the
 existing export behavior. These options currently support saved, rebuilt,
 writable parts outside sketch editing; assemblies remain fail closed.
 
-**Public option writes are not enabled:** the native revision allowlist is
-empty. Requests return `StepCalibrationRequired` on an isolated host, or
-`StepIsolationRequired` on visible/shared hosts. A successful internal targeted
-run is not public acceptance and does not change that allowlist.
+The development branch enables **native Windows SOLIDWORKS revision `33.5.0`
+only** for the separate public acceptance gate. Other revisions return
+`StepCalibrationRequired`; Wine/non-Windows returns `StepNativePlatformRequired`;
+visible/shared hosts return `StepIsolationRequired`. Internal evidence is
+complete, while public CLI/daemon/SDK/MCP acceptance remains pending. This
+branch is not yet merge-ready.
 
-CLI contract (currently returns the gate error):
+CLI contract:
 
 ```sh
 swcli document export part.STEP --document d-ab12cd \
@@ -54,11 +56,22 @@ stops on first failure, bounds native calls at 600 seconds and the group at
 1800 seconds. It records official type-library enums, complete preference
 snapshots, actual Part 21 `FILE_SCHEMA`, SHA256, analytic box or wireframe
 geometry after STEP import, and native save/read-only reopen comparisons.
-`public_gate` records the expected default rejection separately from the six
-internal combinations. Logs and original output files are retained in the
-uploaded artifact. This is diagnostic evidence with
+`public_gate` records the default rejection for uncalibrated revisions. On
+an already audited revision it records a skip, so internal calibration still
+performs only one export per combination; public proof uses its separate gate.
+Logs and original output files are retained in the uploaded artifact. This is diagnostic evidence with
 `full_acceptance_eligible=false`; public CLI/SDK/MCP native acceptance and any
-revision promotion remain separate work.
+revision promotion remain separate work. Internal run
+[42278790303](https://github.com/YJBeetle/SWCLI/actions/runs/42278790303), head
+`193ab6c64fac32c42783704f8e66a1804c751cc4`, passed all six combinations on
+revision `33.5.0`. Original artifact `13537145378` has SHA256
+`cf257c569e2d62ebb727c4a49041ab2a1b9c536b6f6d17e8b7208d5d3dc1b6cf`.
+Independent original-file audit verified actual AP203/AP214 headers, solid
+1-body/6-face/12-edge/8-vertex topology, wire vectors, zero-error imports and
+source/imported native readonly reopens, complete preference restoration and
+one owned hidden host with confirmed exit. This proves the generated-box
+fixture and exact option combinations; it does not prove assemblies, other
+revisions, Wine, AP242 or arbitrary CAD content.
 
 Official references:
 
@@ -78,7 +91,8 @@ writes, and reopens the saved source through the CLI. After this host exits,
 an independent observer group reads the exact SHA256-pinned public output
 files with `LoadFile4`, then saves and reopens imported native geometry. Each
 group owns one host with no failure retry or replacement. These prepared paths
-have not run yet; they do not enable the empty public revision allowlist.
+have not run yet. Enabling the exact internally audited revision permits this
+public gate to run; it does not constitute public acceptance.
 
 The independent observer explicitly scopes neutral-format import settings: it
 resolves `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`

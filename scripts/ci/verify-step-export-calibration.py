@@ -2,7 +2,7 @@
 
 One owned invisible host, no CAD rollback/retry/host replacement. Each native
 call has a 600-second watchdog; the complete group has an 1800-second deadline.
-The normal public revision allowlist stays empty until reviewed acceptance.
+Only independently audited native revisions may enter the public acceptance gate.
 """
 import argparse
 from contextlib import contextmanager
@@ -25,7 +25,7 @@ from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_box_part_windows_with_handle, create_part_windows_with_handle
 from swcli.hosts.windows_sketches import _features
 from swcli.hosts.windows_step_export import (
-    read_step_constants, step_host_scope, verify_step_output, _read_native_enum_constants,
+    read_step_constants, step_host_scope, verify_step_output, _read_native_enum_constants, VALIDATED_REVISIONS,
 )
 from swcli.hosts.windows_sketch_inspection import list_sketches_windows_with_handles, inspect_sketch_windows
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -161,13 +161,18 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     parameters = dict(output=str(target), step_protocol=protocol, step_geometry=geometry, strict=True)
     context = dict(documents=registry, session_id="step-calibration", document_id=entry.document_id,
                    expected_update_stamp=_com_value(document, "GetUpdateStamp"), lease_id=lease["lease_id"])
-    # Verify the public/default path cannot use this internal calibration scope.
-    with step_host_scope(app, isolated=True):
-        denied = call("public-fail-closed", lambda: execute_operation(app, "document.export", parameters, **context))
-    case["public_gate"] = denied
-    validate_operation_result("document.export", denied)
-    checked(not denied["ok"] and denied["error"]["type"] == "StepCalibrationRequired" and not target.exists(),
-            "uncalibrated public write was not blocked")
+    # On an uncalibrated revision prove fail-closed without mutation. Once an
+    # audited revision is enabled, avoid an extra public export in this group;
+    # its public path is accepted by the separate writer/readback profile.
+    if str(_com_value(app, "RevisionNumber")) in VALIDATED_REVISIONS:
+        case["public_gate"] = dict(skipped=True, reason="audited revision; separate public acceptance required")
+    else:
+        with step_host_scope(app, isolated=True):
+            denied = call("public-fail-closed", lambda: execute_operation(app, "document.export", parameters, **context))
+        case["public_gate"] = denied
+        validate_operation_result("document.export", denied)
+        checked(not denied["ok"] and denied["error"]["type"] == "StepCalibrationRequired" and not target.exists(),
+                "uncalibrated public write was not blocked")
     with step_host_scope(app, isolated=True, calibration=True):
         exported = call("internal-export-" + name, lambda: execute_operation(app, "document.export", parameters, **context))
     case["internal_export"] = exported

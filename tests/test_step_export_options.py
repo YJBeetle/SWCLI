@@ -288,6 +288,25 @@ class StepExportTests(unittest.TestCase):
         self.assertEqual(self.writes, [])
 
 
+    def test_only_exact_audited_native_revision_enters_public_preference_scope(self):
+        self.app.RevisionNumber = "33.5.0"
+        result = {}
+        with mock.patch.object(step, "_native_windows_runtime", return_value=True), \
+                step.step_host_scope(self.app, isolated=True):
+            with step.step_preferences(self.app, self.document, "ap214", "wireframe", result):
+                self.assertEqual(self.values, {999: 214, 777: 1})
+        self.assertTrue(result["step_preferences"]["restored"])
+        self.assertEqual(self.values, {999: 203, 777: 0})
+        self.writes.clear()
+        self.app.RevisionNumber = "33.5.1"
+        with step.step_host_scope(self.app, isolated=True):
+            with self.assertRaises(step.StepExportError) as raised:
+                with step.step_preferences(self.app, self.document, "ap214", "wireframe", {}):
+                    self.fail("nearby uncalibrated revision must not write")
+        self.assertEqual(raised.exception.code, "StepCalibrationRequired")
+        self.assertEqual(self.writes, [])
+
+
     def test_unsaved_source_rejected_before_preferences_or_native_save(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "part.step"

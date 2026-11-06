@@ -14,9 +14,10 @@ STEP_GEOMETRIES = {
     "wireframe": "swAcisOutputAs3DCurves",
     "wireframe-sketches": "swAcisOutputAs3DCurves_IncludeSketchEnts",
 }
-# Filled only after recorded native and public acceptance. Internal calibration
-# uses an explicitly scoped capability, never a protocol/environment parameter.
-VALIDATED_REVISIONS = frozenset()
+# Exact native-Windows revision proved by internal run 42278790303 (six modes).
+# Enabled for the separate public acceptance gate; see docs/step-export-options.md.
+# Calibration capability is never a protocol/environment parameter.
+VALIDATED_REVISIONS = frozenset({"33.5.0"})
 _HOST_SCOPE = ContextVar("swcli_step_host_scope", default=None)
 
 

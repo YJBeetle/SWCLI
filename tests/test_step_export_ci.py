@@ -83,7 +83,7 @@ class StepWorkflowTests(unittest.TestCase):
         self.assertNotIn("pull_request_target", text)
         self.assertIn("--export-report", job)
 
-    def test_watchdogs_and_evidence_do_not_enable_public_revision_allowlist(self):
+    def test_watchdogs_and_exact_audited_revision_scope(self):
         script = (ROOT / "scripts/ci/verify-step-export-calibration.py").read_text()
         self.assertIn("time.monotonic() - started >= 1800", script)
         self.assertIn('time.time() - active["time"] >= 600', script)
@@ -91,4 +91,4 @@ class StepWorkflowTests(unittest.TestCase):
         self.assertIn('"public-fail-closed"', script)
         self.assertIn('"reopen-imported-native"', script)
         from swcli.hosts.windows_step_export import VALIDATED_REVISIONS
-        self.assertEqual(VALIDATED_REVISIONS, frozenset())
+        self.assertEqual(VALIDATED_REVISIONS, frozenset({"33.5.0"}))

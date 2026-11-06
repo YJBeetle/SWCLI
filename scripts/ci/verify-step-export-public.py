@@ -192,7 +192,10 @@ def main(argv=None):
         del documents[document]
         reopened = cli("reopen-readonly", "document", "open", str(source), "--read-only", operation="document.open")
         document = reopened["document"]["document_id"]
-        documents[document] = None
+        documents[document] = None  # Retain cleanup ownership even if status validation fails.
+        checked(reopened["api_errors"] == reopened["api_warnings"] == 0
+                and reopened["read_only"] is True and reopened["document"]["modified"] is False,
+                "public source readonly reopen returned native errors/warnings or modified state")
         measured = cli("measure-reopened-source", "document", "measure", "--document", document, operation="document.measure")
         for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
             checked(math.isclose(measured["metrics"][key], expected, rel_tol=1e-7, abs_tol=1e-5),
