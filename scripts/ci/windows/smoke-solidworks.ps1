@@ -18,6 +18,140 @@ $stepPath = Join-Path $Workspace "swcli-box-100x50x20.STEP"
 $renderPath = Join-Path $Workspace "swcli-box-isometric-800x600.bmp"
 $genericPartPath = Join-Path $Workspace "runtime-sets\native-model\modeling\model.SLDPRT"
 
+function Save-LifecycleInventory {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $snapshot = [ordered]@{
+        schema_version = 1; name = $Name; observed_utc = [DateTime]::UtcNow.ToString("o")
+        evidence_file = "$Name-inventory.json"
+        task_scope = "\SWCLI-demand-*"; task_inventory_complete = $false
+        process_scope = @("SLDWORKS.exe", "sldworks_fs.exe", "sldbgproc.exe", "python.exe", "pythonw.exe", "swclid.exe")
+        process_inventory_complete = $false; tasks = @(); processes = @(); errors = @()
+    }
+    try {
+        $snapshot.tasks = @(
+            Get-ScheduledTask -TaskPath "\" -TaskName "SWCLI-demand-*" -ErrorAction Stop |
+                Sort-Object TaskPath, TaskName | ForEach-Object {
+                    [ordered]@{ task_name = $_.TaskName; task_path = $_.TaskPath; state = [string]$_.State }
+                }
+        )
+        $snapshot.task_inventory_complete = $true
+    }
+    catch {
+        # An empty wildcard result is a complete empty inventory, not an
+        # unavailable ScheduledTasks cmdlet or an access failure.
+        if ($_.FullyQualifiedErrorId -like "CmdletizationQuery_NotFound*") {
+            $snapshot.tasks = @()
+            $snapshot.task_inventory_complete = $true
+        }
+        else {
+            $snapshot.errors += [ordered]@{ stage = "scheduled_tasks"; message = $_.Exception.Message }
+        }
+    }
+    try {
+        $filter = ($snapshot.process_scope | ForEach-Object { "Name='$_'" }) -join " OR "
+        $snapshot.processes = @(
+            Get-CimInstance -ClassName Win32_Process -Filter $filter `
+                -Property Name, ProcessId, ParentProcessId, CreationDate -ErrorAction Stop |
+                Sort-Object ProcessId | ForEach-Object {
+                    if ($null -eq $_.CreationDate) { throw "Related process creation time is unavailable for PID $($_.ProcessId)" }
+                    [ordered]@{ process_id = [int]$_.ProcessId; parent_process_id = [int]$_.ParentProcessId
+                        name = $_.Name; created_utc = $_.CreationDate.ToUniversalTime().ToString("o") }
+                }
+        )
+        $snapshot.process_inventory_complete = $true
+    }
+    catch {
+        $snapshot.errors += [ordered]@{ stage = "related_processes"; message = $_.Exception.Message }
+    }
+    try {
+        ConvertTo-Json -InputObject $snapshot -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $Workspace $snapshot.evidence_file) -Encoding utf8 -ErrorAction Stop
+    }
+    catch {
+        $snapshot.errors += [ordered]@{ stage = "inventory_write"; message = $_.Exception.Message }
+        Write-Warning "Cannot persist $Name lifecycle inventory: $($_.Exception.Message)" -WarningAction Continue
+    }
+    return [pscustomobject]$snapshot
+}
+
+function Assert-NoNewLifecycleResources {
+    param(
+        [Parameter(Mandatory = $true)]$Before,
+        [Parameter(Mandatory = $true)]$After,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [ValidateRange(0.01, 10.0)][double]$SettleSeconds = 10
+    )
+    $existingTasks = @{}
+    foreach ($task in $Before.tasks) { $existingTasks["$($task.task_path)$($task.task_name)"] = $true }
+    $existingProcesses = @{}
+    foreach ($process in $Before.processes) {
+        $existingProcesses["$($process.process_id)|$($process.name)|$($process.created_utc)"] = $true
+    }
+    $originalAfter = $After.evidence_file
+    $observations = @($originalAfter)
+    $settleWait = [Diagnostics.Stopwatch]::StartNew()
+    $observation = 0
+    while ($true) {
+        $newTasks = @($After.tasks | Where-Object { -not $existingTasks.ContainsKey("$($_.task_path)$($_.task_name)") })
+        $newProcesses = @($After.processes | Where-Object {
+            -not $existingProcesses.ContainsKey("$($_.process_id)|$($_.name)|$($_.created_utc)")
+        })
+        $complete = $Before.task_inventory_complete -and $Before.process_inventory_complete -and
+            $After.task_inventory_complete -and $After.process_inventory_complete -and
+            @($Before.errors).Count -eq 0 -and @($After.errors).Count -eq 0
+        $passed = $complete -and $newTasks.Count -eq 0 -and $newProcesses.Count -eq 0
+        [ordered]@{ schema_version = 1; before = $Before.evidence_file; original_after = $originalAfter
+            after = $After.evidence_file; observations = $observations
+            settle_budget_seconds = $SettleSeconds; settle_elapsed_seconds = $settleWait.Elapsed.TotalSeconds
+            inventory_complete = [bool]$complete; new_tasks = $newTasks; new_processes = $newProcesses
+            passed = [bool]$passed } |
+            ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $Workspace "$Name-comparison.json") -Encoding utf8 -ErrorAction Stop
+        # Never turn a failed observation into an apparent empty inventory, or
+        # wait/retry until an access/read error disappears.
+        if (-not $complete) { throw "$Name lifecycle inventory is incomplete; see original inventory errors" }
+        if ($passed) { return }
+        if ($settleWait.Elapsed.TotalSeconds -ge $SettleSeconds) {
+            throw "$Name left new SWCLI demand tasks or related processes; see original inventory and comparison"
+        }
+        # A shutdown response can precede Python's process exit. Observe only OS
+        # state within the existing ten-second lifecycle window; never submit
+        # another startup/shutdown request. Keep the original after snapshot.
+        $remainingMilliseconds = [Math]::Ceiling(($SettleSeconds - $settleWait.Elapsed.TotalSeconds) * 1000)
+        Start-Sleep -Milliseconds ([int][Math]::Max(1, [Math]::Min(200, $remainingMilliseconds)))
+        $observation++
+        $After = Save-LifecycleInventory -Name ("{0}-settle-{1:D2}" -f $Name, $observation)
+        $observations += $After.evidence_file
+    }
+}
+
+function Invoke-AttachWithoutHostProbe {
+    $before = Save-LifecycleInventory -Name "attach-without-host-before"
+    $firstFailure = $null
+    try {
+        $missingHost = Invoke-SwCliJson -Name "attach-without-host" -AllowFailure -Arguments @(
+            "daemon", "start", "--attach-existing", "--json"
+        )
+        if ($missingHost.success -or $missingHost.error.code -ne "ExistingHostNotFound" -or
+            @(Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue).Count -ne 0) {
+            throw "attach-existing without a host created an owned instance or did not fail explicitly"
+        }
+    }
+    catch { $firstFailure = $_; throw }
+    finally {
+        $after = Save-LifecycleInventory -Name "attach-without-host-after"
+        try { Assert-NoNewLifecycleResources -Before $before -After $after -Name "attach-without-host" }
+        catch {
+            if ($null -eq $firstFailure) { throw }
+            try {
+                $_ | Out-String | Set-Content -LiteralPath (Join-Path $Workspace "attach-without-host-evidence-error.log") -Encoding utf8
+            } catch { Write-Warning "Cannot persist secondary lifecycle evidence error" -WarningAction Continue }
+            Write-Warning "Lifecycle evidence also failed; preserving original attach-without-host failure" -WarningAction Continue
+        }
+    }
+}
+
 function Save-DesktopDiagnostic {
     param([Parameter(Mandatory = $true)][string]$Name)
 
@@ -190,8 +324,14 @@ function Wait-DisconnectedHost {
     throw "swclid did not report host disconnect and finish worker teardown within 10 seconds"
 }
 
-Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue |
-    Stop-Process -Force -ErrorAction SilentlyContinue
+$lifecycleInitial = Save-LifecycleInventory -Name "lifecycle-initial"
+if (-not $lifecycleInitial.task_inventory_complete -or -not $lifecycleInitial.process_inventory_complete -or
+    @($lifecycleInitial.errors).Count -ne 0) {
+    throw "Initial lifecycle inventory is incomplete; refusing to start a test host"
+}
+if (@($lifecycleInitial.processes | Where-Object { $_.name -ieq "SLDWORKS.exe" }).Count -ne 0) {
+    throw "Lifecycle harness refuses a pre-existing SOLIDWORKS host; it was only observed and was not stopped"
+}
 Start-Sleep -Seconds 2
 Save-DesktopDiagnostic -Name "desktop-before-swclid"
 
@@ -242,6 +382,7 @@ Save-DesktopDiagnostic -Name "desktop-swclid-ready"
 $started = $true
 $attachedStarted = $false
 $externalPid = $null
+$smokeFailure = $null
 try {
     $doctor = Invoke-SwCliJson -Name "doctor-before" -Arguments @("doctor", "--json")
     if (-not $doctor.supported) {
@@ -268,6 +409,8 @@ try {
         if ($null -ne (Get-Process -Id $proof.host.process_id -ErrorAction SilentlyContinue)) {
             throw "Visible smoke did not stop its owned SOLIDWORKS process"
         }
+        $visibleFinal = Save-LifecycleInventory -Name "visible-stop-final"
+        Assert-NoNewLifecycleResources -Before $lifecycleInitial -After $visibleFinal -Name "visible-stop"
         return
     }
 
@@ -447,18 +590,16 @@ try {
     }
     $started = $false
 
+    $ownedStopFinal = Save-LifecycleInventory -Name "owned-stop-final"
+    Assert-NoNewLifecycleResources -Before $lifecycleInitial -After $ownedStopFinal -Name "owned-stop"
+
     # An explicitly attached instance belongs to the human, not the daemon.
-    $missingHost = Invoke-SwCliJson -Name "attach-without-host" -AllowFailure -Arguments @(
-        "daemon", "start", "--attach-existing", "--json"
-    )
-    if ($missingHost.success -or $missingHost.error.code -ne "ExistingHostNotFound" -or
-        @(Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue).Count -ne 0) {
-        throw "attach-existing without a host created an owned instance or did not fail explicitly"
-    }
+    Invoke-AttachWithoutHostProbe
 
     . (Join-Path $PSScriptRoot "start-external-host.ps1")
     $external = Start-ExternalTestHost
     $externalPid = $external.process_id
+    $attachedBefore = Save-LifecycleInventory -Name "attached-live-before"
     $attachedStarted = $true
     $attached = Invoke-SwCliJson -Name "attach-external-host" -Arguments @("daemon", "start", "--attach-existing", "--json")
     $attachedHost = $attached.result.health.host
@@ -477,8 +618,12 @@ try {
         throw "stopping an attached daemon changed the visible interactive COM host"
     }
 
+    $attachedLiveFinal = Save-LifecycleInventory -Name "attached-live-stop-final"
+    Assert-NoNewLifecycleResources -Before $attachedBefore -After $attachedLiveFinal -Name "attached-live-stop"
+
     $attachedStarted = $true
     Invoke-SwCliJson -Name "reattach-external-host" -Arguments @("daemon", "restart", "--attach-existing", "--json") | Out-Null
+    $restartReady = Save-LifecycleInventory -Name "attached-restart-ready"
     Stop-Process -Id $externalPid -Force -ErrorAction Stop
     Wait-DisconnectedHost -Name "attached-host-disconnected" | Out-Null
     $blockedShared = Invoke-SwCliJson -Name "list-after-attached-host-exit" -AllowFailure -Arguments @("document", "list", "--json")
@@ -491,6 +636,8 @@ try {
         throw "stopping an attached daemon after host exit did not succeed cleanly"
     }
     $attachedStarted = $false
+    $attachedFinal = Save-LifecycleInventory -Name "attached-disconnected-stop-final"
+    Assert-NoNewLifecycleResources -Before $lifecycleInitial -After $attachedFinal -Name "attached-disconnected-stop"
 
     foreach ($artifact in @($partPath, $genericPartPath, $stepPath, $renderPath)) {
         $item = Get-Item -LiteralPath $artifact
@@ -502,24 +649,45 @@ try {
     Save-DesktopDiagnostic -Name "desktop-after-export"
 }
 catch {
-    Save-DesktopDiagnostic -Name "desktop-smoke-failure"
-    throw
+    $smokeFailure = $_
+    try { Save-DesktopDiagnostic -Name "desktop-smoke-failure" }
+    catch { Write-Warning "Desktop evidence failed; preserving original smoke failure" -WarningAction Continue }
+    throw $smokeFailure
 }
 finally {
-    if ($attachedStarted) {
-        & python -m swcli daemon stop --json 2>&1 |
-            Set-Content -Path (Join-Path $Workspace "cleanup-attached-daemon-stop.log") -Encoding utf8
-    }
-    if ($null -ne $externalPid) {
-        Stop-Process -Id $externalPid -Force -ErrorAction SilentlyContinue
-    }
-    if ($started) {
-        & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
-            Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
-        & python -m swcli daemon stop --json 2>&1 |
-            Set-Content -Path (Join-Path $Workspace "cleanup-daemon-stop.log") -Encoding utf8
-        if (-not $daemon.HasExited) {
-            Stop-Process -Id $daemon.Id -Force -ErrorAction SilentlyContinue
+    $cleanupFailure = $null
+    try {
+        if ($attachedStarted) {
+            & python -m swcli daemon stop --json 2>&1 |
+                Set-Content -Path (Join-Path $Workspace "cleanup-attached-daemon-stop.log") -Encoding utf8
+        }
+        if ($null -ne $externalPid) {
+            Stop-Process -Id $externalPid -Force -ErrorAction SilentlyContinue
+        }
+        if ($started) {
+            & python -m swcli --request-timeout 10 document close --discard --json 2>&1 |
+                Set-Content -Path (Join-Path $Workspace "cleanup-close.log") -Encoding utf8
+            & python -m swcli daemon stop --json 2>&1 |
+                Set-Content -Path (Join-Path $Workspace "cleanup-daemon-stop.log") -Encoding utf8
+            if (-not $daemon.HasExited) {
+                Stop-Process -Id $daemon.Id -Force -ErrorAction SilentlyContinue
+            }
         }
     }
+    catch {
+        $cleanupFailure = $_
+        try { $_ | Out-String | Set-Content -LiteralPath (Join-Path $Workspace "cleanup-error.log") -Encoding utf8 }
+        catch { Write-Warning "Cannot persist cleanup error" -WarningAction Continue }
+    }
+    finally {
+        $finalInventory = Save-LifecycleInventory -Name "lifecycle-final"
+        try { Assert-NoNewLifecycleResources -Before $lifecycleInitial -After $finalInventory -Name "lifecycle-final" }
+        catch {
+            if ($null -eq $smokeFailure -and $null -eq $cleanupFailure) { throw }
+            try { $_ | Out-String | Set-Content -LiteralPath (Join-Path $Workspace "lifecycle-final-evidence-error.log") -Encoding utf8 }
+            catch { Write-Warning "Cannot persist final lifecycle evidence error" -WarningAction Continue }
+            Write-Warning "Final lifecycle evidence failed; preserving the original smoke/cleanup failure" -WarningAction Continue
+        }
+    }
+    if ($null -ne $cleanupFailure -and $null -eq $smokeFailure) { throw $cleanupFailure }
 }
