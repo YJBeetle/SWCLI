@@ -367,4 +367,9 @@ class TransferReviewRegressions(unittest.TestCase):
             self.assertEqual(caught.exception._swcli_transport_phase, "connect")
             with self.assertRaises(TransferError) as caught:
                 client.upload("missing", "target")
-            self.assertIsInstance(caught.exception.__cause__, OSError)
+            original = caught.exception.__cause__
+            self.assertIsNotNone(original)
+            # Windows uses pywintypes.error from CreateFile, not OSError.
+            code = getattr(original, "winerror", None) or getattr(original, "errno", None)
+            self.assertEqual(code, 2)
+            self.assertEqual(caught.exception.session_id, "review")
