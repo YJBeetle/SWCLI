@@ -20,7 +20,9 @@
 
 ## 公开 CLI/daemon 验收
 
-- 正在准备本分支独立公开 gate；**当前尚未 merge-ready**。待提交和唯一必要 dispatch 后补 head/run/参数。
+- 已提交并推送公开候选 `732f7111bd3cf14c2da5c682ac23f029a956a7d1`；唯一公开 run：[42264404958](https://github.com/YJBeetle/SWCLI/actions/runs/42264404958)，已核对 head 一致。
+- 参数 `detailing_public_gate=true/detailing_calibration=false/native_full=false`，仅本分支 `ci.yml` 手动触发；当前等待结果，**尚未 merge-ready**。
+- 调度与 run 原数据：`artifacts/detailing/public-dispatch.json`、`run-42264404958.json`；没有重复 dispatch。
 - `detailing_public_gate=true` 与 `detailing_calibration` 互斥，默认 false，仅本分支手动运行；跳过通用 test/package/full-native/release，不进入其共享 concurrency。
 - `verify-detailing-public.py` 只走安装后的公开 CLI/daemon；SDK typed read/no-op 与真实 daemon 的 MCP bridge capabilities/no-op 契约一并检查。MCP stdio 仅由便携协议测试覆盖，不冒称真实 stdio CAD 验收。
 - 每个 native/request 600 秒，整组 1800 秒，首个真实失败停止并保留原结果、trace、保存文件、hash。
