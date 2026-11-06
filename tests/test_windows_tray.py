@@ -206,6 +206,7 @@ class NativeNotificationAreaTests(unittest.TestCase):
     def test_real_icon_exists_then_is_removed_without_starting_a_daemon(self):
         import ctypes
         from ctypes import wintypes
+        import pywintypes
         import win32gui
         if tray.is_wine() or not win32gui.FindWindow("Shell_TrayWnd", None):
             self.skipTest("No native interactive Windows taskbar; desktop acceptance remains pending")
@@ -222,11 +223,23 @@ class NativeNotificationAreaTests(unittest.TestCase):
             controller.start()
             identifier = Identifier(ctypes.sizeof(Identifier), controller._view.hwnd, 1, GUID())
             rect = wintypes.RECT()
-            self.assertEqual(api(ctypes.byref(identifier), ctypes.byref(rect)), 0)
-            self.assertGreater(rect.right, rect.left)
+            location_result = api(ctypes.byref(identifier), ctypes.byref(rect))
+            if location_result == 0:
+                self.assertGreater(rect.right, rect.left)
+            # Explorer normally puts new icons in its collapsed overflow area.
+            # GetRect need not expose a usable rectangle until that area opens.
+            # NIM_MODIFY succeeds only for the existing registered identifier;
+            # do not promote an icon or alter the user's notification settings.
+            registered = (controller._view.hwnd, 1, win32gui.NIF_TIP, 0, 0,
+                          "SWCLI native notification icon verification")
+            win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, registered)
             controller.close()
             self.assertFalse(controller._thread.is_alive())
             self.assertNotEqual(api(ctypes.byref(identifier), ctypes.byref(rect)), 0)
+            with self.assertRaises(pywintypes.error):
+                win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, registered)
+            print(json.dumps({"event": "native.tray.registration", "registered": True,
+                              "location_hresult": location_result, "removed": True}))
         finally:
             controller.close()
         manager.status.assert_not_called(); manager.stop.assert_not_called()
