@@ -48,6 +48,14 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn('${{ runner.temp }}\\swcli-native-smoke',job)
         self.assertIn('cleanup-hosted-solidworks.ps1',job)
 
+    def test_private_calibration_refuses_before_host_when_public_writes_are_open(self):
+        calibration=load('verify-assembly-mates-calibration.py')
+        with mock.patch.object(calibration,'PUBLIC_MATE_WRITES_CALIBRATED',True), \
+             mock.patch.object(calibration,'verify_installed_package') as package:
+            with self.assertRaisesRegex(RuntimeError,'private calibration requires closed public writes'):
+                calibration.read_official_types(None,None)
+            package.assert_not_called()
+
     def test_catalog_must_be_complete_and_closes_only_known_clean_source_once(self):
         calibration=load('verify-assembly-mates-calibration.py')
         part=NS(GetTitle=lambda:'component',GetPathName=lambda:'source.SLDPRT',GetType=lambda:1,

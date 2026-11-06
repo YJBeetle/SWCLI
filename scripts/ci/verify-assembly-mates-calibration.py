@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 from swcli.hosts.native_trace import trace_native_request
+from swcli.assembly_mates import PUBLIC_MATE_WRITES_CALIBRATED
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon.operations import execute_operation
 from swcli.hosts.windows import _com_value
@@ -52,6 +53,8 @@ REQUIRED_MEMBERS = {
 
 
 def read_official_types(pythoncom, swconst):
+    checked(not PUBLIC_MATE_WRITES_CALIBRATED,
+            'private calibration requires closed public writes; use the independent public gate after promotion')
     package=verify_installed_package(Path(__file__).resolve().parents[2])
     library = pythoncom.LoadTypeLib(str(swconst))
     found = {}

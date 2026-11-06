@@ -31,7 +31,8 @@ SNAPSHOT = obj(dict(title=TEXT, path=dict(type="string"), configuration=TEXT, up
     mates=dict(type="array", items=MATE, maxItems=16)))
 TARGET = obj(dict(component=TEXT, face_index=INT))
 MUTATION = obj(dict(attempted=BOOL, creation_returned=BOOL, may_have_changed=BOOL))
-# Promotion requires recorded Windows native persistence plus independent public
-# client -> daemon -> worker evidence. Internal calibration is insufficient.
-PUBLIC_MATE_WRITES_CALIBRATED = False
-CALIBRATED_WINDOWS_REVISIONS = frozenset()
+# Native persistence receipt: docs/verification/assembly-mates-internal-success-2026-11-07.json.
+# This exact runtime is eligible for the independent public acceptance gate.
+# Merge/release readiness additionally requires that client -> daemon -> worker proof.
+PUBLIC_MATE_WRITES_CALIBRATED = True
+CALIBRATED_WINDOWS_REVISIONS = frozenset({"33.5.0"})

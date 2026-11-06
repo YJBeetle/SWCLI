@@ -110,3 +110,13 @@
 - 分发 ZIP/digest/83 个源码文件一致性已核，见前节；本次 native 原件尚未可用。前两次失败原 ZIP、digest、trace、首次错误及部分修改均保留。
 - 尚不可合/未验收缺口：本次内部四组＋组合的独立保存关闭重开证据待原件；公开 CLI→daemon→worker gate 尚未执行。公开写 flag 仍 false，revision 白名单为空，未提交发版/版本/指针改动。已有部分创建/求解/SaveAs 成功只作为诊断证据。
 - 完成/失败原件可用后由统筹继续按实际结果收口；不以本次正常安装状态或便携成功替代端到端验收。
+
+## 内部原件首层自验完成，准备必要公开 gate
+- 统筹通知 run 42279916240 已成功；已取完成快照，Windows 3.9/3.14/package/专属 native job 全 success，public stage 与默认 full/release 均 skipped。
+- 原 ZIP：`evidence/run-42279916240/swcli-assembly-mates-13535673155.zip`；GitHub digest `5d5a85844241e6db86d2074e832659340c3c30a7564b65aa0089db581d4095c7` 匹配，原解压目录 `evidence/run-42279916240/native-original/`。完整元数据已保存为 `completed-metadata.json`。
+- 精确校准 head ac9e54f，宿主 PID 5824 / revision 33.5.0；已安装的 83 个 Python 文件 hash 逐一匹配该 Git commit。四组两类×两种对齐＋aligned 重合后补 aligned 同心，共 5 次 CreateMate；23920 begin / 23920 end，无 error，无 watchdog/失败清理，原生组最大约 9.594 秒，总外层约 35.258 秒，cleanup_errors=[]。
+- 八份实际 PRT/ASM 的大小与 SHA 全匹配 report；四组关闭前后目录均为空，独立只读 reopen API errors/warnings 均 0，完整持久内容与保存前逐字段完全相等，18 个根特征诊断完整健康、NeedsRebuild2=0；重算几何残差满足阈值。同心最终 LockRotation=false。首层收据 `docs/verification/assembly-mates-internal-success-2026-11-07.json`。
+- 本候选仅晋级原生 Windows 33.5.0 和既定受限标准配合范围，为执行原计划必要公开 CLI→daemon→worker gate；其它 native revision / Wine / 未知运行时仍拒绝。公开链路尚未通过，不是 merge-ready，不发版、不后置本系列既定未完成点。
+- 内部脚本在 flag 已晋级时于获取宿主前拒绝运行，防止原来的“公开应拒绝”探针在晋级后额外写入；不改变已成功 ac9e54f 原件及断言。后续使用 public stage 一次必要 dispatch，不持续轮询，正常运行保存链接后结束等待，最终 review 由统筹本人负责。
+- 晋级候选提交前全量 1861 项通过（26 平台跳过），针对性 42 项通过；SDK generator / strict mypy / 8 负向消费类型场景通过。日志 `evidence/portable/promotion-{tests,all-tests,sdk}.log`。
+- 原始外层生命周期追踪另核实 acquire-owned-host / ExitApp / WaitForOwnedProcess 各仅一次且正常结束，未组内重启。

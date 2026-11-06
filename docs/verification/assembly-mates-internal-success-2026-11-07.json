@@ -1,0 +1,404 @@
+{
+  "run_id": 42279916240,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42279916240",
+  "head": "ac9e54f9e533c60ae6af49476ca71aa94b9b0fe2",
+  "artifact_id": 13535673155,
+  "artifact_sha256": "5d5a85844241e6db86d2074e832659340c3c30a7564b65aa0089db581d4095c7",
+  "github_digest_matched": true,
+  "host": {
+    "process_id": 5824,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "installed_python_files_match_source_commit": 83,
+  "type_library_sha256": {
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "native_trace_phase_counts": {
+    "begin": 23920,
+    "end": 23920
+  },
+  "native_create_count": 5,
+  "max_native_group_seconds": 9.594000000000051,
+  "outer_group_seconds": 35.25848078727722,
+  "no_native_retry": true,
+  "no_host_restart": true,
+  "no_rollback": true,
+  "cleanup_errors": [],
+  "cases": [
+    {
+      "kind": "coincident",
+      "alignment": "aligned",
+      "native_create_count": 2,
+      "reopened_mates": [
+        {
+          "name": "Coincident1",
+          "kind": "coincident",
+          "alignment": "aligned",
+          "error_code": 0,
+          "suppressed": false,
+          "components": [
+            "coincident-aligned-component-1",
+            "coincident-aligned-component-2"
+          ],
+          "references": [
+            [
+              "coincident-aligned-component-1",
+              {
+                "surface_kind": "plane",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "area_mm2": 28.274333882308138,
+                "sense": true
+              }
+            ],
+            [
+              "coincident-aligned-component-2",
+              {
+                "surface_kind": "plane",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "area_mm2": 28.274333882308138,
+                "sense": true
+              }
+            ]
+          ],
+          "distance_mm": 0.0,
+          "parallel_error": 0.0
+        },
+        {
+          "name": "Concentric1",
+          "kind": "concentric",
+          "alignment": "aligned",
+          "error_code": 0,
+          "suppressed": false,
+          "components": [
+            "coincident-aligned-component-1",
+            "coincident-aligned-component-2"
+          ],
+          "references": [
+            [
+              "coincident-aligned-component-1",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ],
+            [
+              "coincident-aligned-component-2",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ]
+          ],
+          "distance_mm": 0.0,
+          "parallel_error": 0.0,
+          "lock_rotation": false
+        }
+      ],
+      "all_close_catalogs_empty": true,
+      "saved_reopened_content_exactly_equal": true,
+      "reopened_diagnostics": {
+        "healthy": true,
+        "issues": [],
+        "issue_count": 0,
+        "scanned_feature_count": 18,
+        "truncated": false,
+        "limit": 128
+      },
+      "reopened_needs_rebuild": 0,
+      "files": [
+        {
+          "name": "coincident-aligned.SLDASM",
+          "size_bytes": 64069,
+          "sha256": "b535588ae3ff2e7656178cea139e974542b3fa1eb82aba2da2b8ee2c6459a081"
+        },
+        {
+          "name": "coincident-aligned-component.SLDPRT",
+          "size_bytes": 56914,
+          "sha256": "7a2867363b3e6022916cf039c0ddfab9f60df4dcf2e18064dac9a66dd8f629d8"
+        }
+      ]
+    },
+    {
+      "kind": "coincident",
+      "alignment": "anti-aligned",
+      "native_create_count": 1,
+      "reopened_mates": [
+        {
+          "name": "Coincident1",
+          "kind": "coincident",
+          "alignment": "anti-aligned",
+          "error_code": 0,
+          "suppressed": false,
+          "components": [
+            "coincident-anti-aligned-component-1",
+            "coincident-anti-aligned-component-2"
+          ],
+          "references": [
+            [
+              "coincident-anti-aligned-component-1",
+              {
+                "surface_kind": "plane",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "area_mm2": 28.274333882308138,
+                "sense": true
+              }
+            ],
+            [
+              "coincident-anti-aligned-component-2",
+              {
+                "surface_kind": "plane",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "area_mm2": 28.274333882308138,
+                "sense": true
+              }
+            ]
+          ],
+          "distance_mm": 8.881784197001252e-16,
+          "parallel_error": 0.0
+        }
+      ],
+      "all_close_catalogs_empty": true,
+      "saved_reopened_content_exactly_equal": true,
+      "reopened_diagnostics": {
+        "healthy": true,
+        "issues": [],
+        "issue_count": 0,
+        "scanned_feature_count": 18,
+        "truncated": false,
+        "limit": 128
+      },
+      "reopened_needs_rebuild": 0,
+      "files": [
+        {
+          "name": "coincident-anti-aligned.SLDASM",
+          "size_bytes": 49125,
+          "sha256": "227dfb84743024c4a09005af1f79e3a4bceabf822e07591ba0815eca7193c3f5"
+        },
+        {
+          "name": "coincident-anti-aligned-component.SLDPRT",
+          "size_bytes": 57178,
+          "sha256": "d53c81f16a3e5cae9eb4803b6f1ced75328874ec590ff88ea27435b4dde3302c"
+        }
+      ]
+    },
+    {
+      "kind": "concentric",
+      "alignment": "aligned",
+      "native_create_count": 1,
+      "reopened_mates": [
+        {
+          "name": "Concentric1",
+          "kind": "concentric",
+          "alignment": "aligned",
+          "error_code": 0,
+          "suppressed": false,
+          "components": [
+            "concentric-aligned-component-1",
+            "concentric-aligned-component-2"
+          ],
+          "references": [
+            [
+              "concentric-aligned-component-1",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ],
+            [
+              "concentric-aligned-component-2",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ]
+          ],
+          "distance_mm": 0.0,
+          "parallel_error": 0.0,
+          "lock_rotation": false
+        }
+      ],
+      "all_close_catalogs_empty": true,
+      "saved_reopened_content_exactly_equal": true,
+      "reopened_diagnostics": {
+        "healthy": true,
+        "issues": [],
+        "issue_count": 0,
+        "scanned_feature_count": 18,
+        "truncated": false,
+        "limit": 128
+      },
+      "reopened_needs_rebuild": 0,
+      "files": [
+        {
+          "name": "concentric-aligned.SLDASM",
+          "size_bytes": 65338,
+          "sha256": "75b8af89efd32a4ee2e271e4b19bcd17cb8fd9c4d93ef079145d1b2e743557e6"
+        },
+        {
+          "name": "concentric-aligned-component.SLDPRT",
+          "size_bytes": 56852,
+          "sha256": "9b6d73c3a85a5ae7df9bf0b24bdded7f6eb7bf760033b9921f5c7ce3f01bdf66"
+        }
+      ]
+    },
+    {
+      "kind": "concentric",
+      "alignment": "anti-aligned",
+      "native_create_count": 1,
+      "reopened_mates": [
+        {
+          "name": "Concentric1",
+          "kind": "concentric",
+          "alignment": "anti-aligned",
+          "error_code": 0,
+          "suppressed": false,
+          "components": [
+            "concentric-anti-aligned-component-1",
+            "concentric-anti-aligned-component-2"
+          ],
+          "references": [
+            [
+              "concentric-anti-aligned-component-1",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ],
+            [
+              "concentric-anti-aligned-component-2",
+              {
+                "surface_kind": "cylinder",
+                "parameters": [
+                  0.0,
+                  0.0,
+                  0.01,
+                  -0.0,
+                  -0.0,
+                  -1.0,
+                  0.003
+                ],
+                "area_mm2": 188.4955592153876,
+                "sense": false
+              }
+            ]
+          ],
+          "distance_mm": 0.0,
+          "parallel_error": 0.0,
+          "lock_rotation": false
+        }
+      ],
+      "all_close_catalogs_empty": true,
+      "saved_reopened_content_exactly_equal": true,
+      "reopened_diagnostics": {
+        "healthy": true,
+        "issues": [],
+        "issue_count": 0,
+        "scanned_feature_count": 18,
+        "truncated": false,
+        "limit": 128
+      },
+      "reopened_needs_rebuild": 0,
+      "files": [
+        {
+          "name": "concentric-anti-aligned.SLDASM",
+          "size_bytes": 57833,
+          "sha256": "741dcc21ba273059817d5aa8265fd93ca8ef07a479f3d18ff1641b844587269e"
+        },
+        {
+          "name": "concentric-anti-aligned-component.SLDPRT",
+          "size_bytes": 57420,
+          "sha256": "e40338d399dd441cc29488df5398fea5a17c3fd4d79eea1628826c92ccce1385"
+        }
+      ]
+    }
+  ],
+  "internal_acceptance": true,
+  "public_acceptance": false,
+  "merge_ready": false,
+  "remaining": "Independent installed public CLI -> daemon -> worker gate, including writable and readonly reopen",
+  "host_lifecycle_calls": {
+    "acquire_owned_host": 1,
+    "exit_app": 1,
+    "wait_for_owned_process": 1
+  }
+}

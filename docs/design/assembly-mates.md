@@ -1,9 +1,14 @@
-# 基础装配标准配合（开发分支，尚未开放写入）
+# 基础装配标准配合（开发分支，待公开验收）
 
 本分支提供 `assembly.mate-targets` 的受限当前态观察，以及
-`assembly.add-mate` 的完整写入链路。公开写入暂时返回
-`MateWriteNotCalibrated`，必须分别取得内部 Windows 原生校准和公开客户端验收，
-才可开放被证实的精确范围；运行时还须为原生 Windows，且匹配已校准的完整原生 revision；不从 Windows 证据开放 Wine 写入。便携测试不是原生 CAD 证据。
+`assembly.add-mate` 的完整写入链路。内部原生 Windows 校准
+[run 42279916240](https://github.com/YJBeetle/SWCLI/actions/runs/42279916240)
+已核对原 ZIP、digest、精确提交、四组配合＋组合场景及实际保存关闭重开内容，
+收据见 `docs/verification/assembly-mates-internal-success-2026-11-07.json`。
+
+为执行独立公开验收，当前候选仅允许原生 Windows revision `33.5.0` 的下述受限范围；
+其它 revision、Wine 或未知运行时继续拒绝写入。真实 CLI→daemon→worker gate
+尚未完成，内部校准不代表公开验收、可合并或可发版；便携测试不是原生 CAD 证据。
 
 ## 首批边界
 
@@ -74,7 +79,7 @@ daemon 临时激活精确目标，在既有 COM STA worker 执行。写前读取
   许可不属于公开参数，也不能作为公开功能验收。
 
 专用 workflow_dispatch 输入 `assembly_mates_calibration` 默认关闭，`assembly_mates_stage`
-默认 `internal`，公开链路另选 `public`；job 只允许
+默认 `internal`，公开链路另选 `public`。内部脚本要求公开写入仍关闭，晋级后拒绝在该脚本中执行原先的公开拒绝探针，避免额外创建配合；job 只允许
 `codex/swcli-assembly-mates` 分支，以功能和 `github.ref` 隔离 concurrency。
 PR 无法触发机密安装流程，默认 full/release 门禁保持原样。ZIP、report、trace、SLDPRT 与
 SLDASM 文件随独立 artifact 保留；本地交接记录见 `WORK_HANDOFF.md`。
