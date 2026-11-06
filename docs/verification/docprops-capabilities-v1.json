@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "baseline": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+  "scope": "portable-public-surface",
+  "public_operations": [
+    {
+      "operation": "document.summary",
+      "cli": [
+        "document",
+        "summary"
+      ],
+      "parameters": {},
+      "write": false,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.summary-set",
+      "cli": [
+        "document",
+        "summary-set",
+        "title",
+        "中文",
+        "--if-value",
+        ""
+      ],
+      "parameters": {
+        "field": "title",
+        "value": "中文",
+        "expected_value": ""
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.properties",
+      "cli": [
+        "document",
+        "properties",
+        "--name",
+        "测试",
+        "--configuration",
+        "默认"
+      ],
+      "parameters": {
+        "name": "测试",
+        "configuration": "默认"
+      },
+      "write": false,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.property-summary",
+      "cli": [
+        "document",
+        "property-summary",
+        "--name",
+        "测试"
+      ],
+      "parameters": {
+        "name": "测试"
+      },
+      "write": false,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.property-add",
+      "cli": [
+        "document",
+        "property-add",
+        "测试",
+        "0",
+        "--type",
+        "text"
+      ],
+      "parameters": {
+        "name": "测试",
+        "value": "0",
+        "type": "text"
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.property-set",
+      "cli": [
+        "document",
+        "property-set",
+        "测试",
+        "",
+        "--if-value",
+        "0"
+      ],
+      "parameters": {
+        "name": "测试",
+        "value": "",
+        "expected_value": "0"
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.property-delete",
+      "cli": [
+        "document",
+        "property-delete",
+        "测试",
+        "--if-value",
+        ""
+      ],
+      "parameters": {
+        "name": "测试",
+        "expected_value": ""
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.units",
+      "cli": [
+        "document",
+        "units"
+      ],
+      "parameters": {},
+      "write": false,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.units-set",
+      "cli": [
+        "document",
+        "units-set",
+        "--length-unit",
+        "inch",
+        "--decimal-places",
+        "0",
+        "--if-length-unit",
+        "mm",
+        "--if-decimal-places",
+        "2"
+      ],
+      "parameters": {
+        "length_unit": "inch",
+        "decimal_places": 0,
+        "expected_length_unit": "mm",
+        "expected_decimal_places": 2
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.annotation-options",
+      "cli": [
+        "document",
+        "annotation-options"
+      ],
+      "parameters": {},
+      "write": false,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    },
+    {
+      "operation": "document.annotation-option-set",
+      "cli": [
+        "document",
+        "annotation-option-set",
+        "bent_leader.enabled",
+        "false",
+        "--if-value",
+        "true"
+      ],
+      "parameters": {
+        "field": "bent_leader.enabled",
+        "value": false,
+        "expected_value": true
+      },
+      "write": true,
+      "native_evidence": "inherited-a18-record; not rerun by this matrix"
+    }
+  ],
+  "batch": [
+    {
+      "area": "units-expanded",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "dimension-format",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "tolerances",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "font-scopes",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "line-style",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "table-defaults",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "detailing",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "export-options",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "calibration-performance",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    },
+    {
+      "area": "coverage-ci",
+      "status": "unaccepted-independent-branch",
+      "native_evidence": null
+    }
+  ],
+  "integration_snapshot": {
+    "commit": "1593330e6e757073d44c5bb9a04dc06deca10966",
+    "status": "local-unaccepted",
+    "operations": [
+      "document.annotation-font",
+      "document.annotation-font-set",
+      "document.display-options",
+      "document.display-option-set",
+      "document.drafting-standard",
+      "document.drafting-standard-set"
+    ]
+  }
+}

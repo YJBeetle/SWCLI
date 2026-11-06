@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-07",
+  "baseline": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+  "local_unaccepted_snapshot": "1593330e6e757073d44c5bb9a04dc06deca10966",
+  "worktrees": [
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI",
+      "head": "1593330e6e757073d44c5bb9a04dc06deca10966",
+      "status": [
+        " M scripts/dev/calibrate-document-properties.py",
+        " M tests/test_document_properties_calibration.py",
+        "?? HANDOFF.md"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-coverage-ci/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        "?? .github/workflows/docprops-targeted.yml",
+        "?? scripts/ci/audit-docprops-calibration.py",
+        "?? scripts/ci/run-docprops-targeted.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-detailing/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        "?? src/swcli/document_detailing.py",
+        "?? src/swcli/hosts/windows_document_detailing.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-export-options/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        "?? HANDOFF.md",
+        "?? src/swcli/document_image_quality.py",
+        "?? src/swcli/hosts/windows_document_image_quality.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-font-scopes/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        "?? src/swcli/document_tables.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-tolerances/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        "?? src/swcli/document_tolerances.py",
+        "?? src/swcli/hosts/windows_document_tolerances.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        " M src/swcli/cli.py",
+        " M src/swcli/daemon/operations.py",
+        " M src/swcli/operation_schemas.py",
+        " M src/swcli/result_schemas.py",
+        " M src/swcli/sdk/_generated.py",
+        " M src/swcli/sdk/models.py",
+        "?? HANDOFF.md",
+        "?? src/swcli/document_unit_profile.py",
+        "?? src/swcli/document_unit_profile_schemas.py",
+        "?? src/swcli/hosts/windows_document_unit_profile.py",
+        "?? tests/test_document_unit_profile.py"
+      ],
+      "codegraph": false
+    },
+    {
+      "tree": "/Users/YJBeetle/.codex/worktrees/document-properties-batch/SWCLI",
+      "head": "3bda2c00489dde6a3d1e4521c548f751b1d1c197",
+      "status": [
+        "M  README.CN.md",
+        "M  README.md",
+        "A  docs/design/document-annotation-fonts.md",
+        "A  docs/design/document-display-options.md",
+        "A  docs/design/document-drafting-standard.md",
+        "A  docs/design/document-preferences-batch.md",
+        "A  docs/design/document-properties-coverage.md",
+        "M  docs/roadmap.md",
+        "A  docs/verification/document-properties-batch-native-2026-11-06.md",
+        "A  scripts/ci/verify-document-preferences.py",
+        "M  scripts/ci/windows/smoke-solidworks.ps1",
+        "A  scripts/dev/calibrate-document-properties.py",
+        "M  scripts/dev/generate-sdk.py",
+        "A  scripts/dev/run-document-properties-calibration.py",
+        "M  src/swcli/cli.py",
+        "M  src/swcli/daemon/operations.py",
+        "A  src/swcli/document_annotation_fonts.py",
+        "A  src/swcli/document_display_options.py",
+        "A  src/swcli/document_drafting_standard.py",
+        "A  src/swcli/document_preferences_schemas.py",
+        "M  src/swcli/hosts/windows_custom_properties.py",
+        "A  src/swcli/hosts/windows_document_annotation_fonts.py",
+        "A  src/swcli/hosts/windows_document_display_options.py",
+        "A  src/swcli/hosts/windows_document_drafting_standard.py",
+        "M  src/swcli/hosts/windows_document_units.py",
+        "M  src/swcli/operation_schemas.py",
+        "M  src/swcli/result_schemas.py",
+        "M  src/swcli/sdk/_generated.py",
+        "M  src/swcli/sdk/models.py",
+        "M  src/swcli/skills/swcli/SKILL.md",
+        "M  src/swcli/skills/swcli/references/usage.md",
+        "M  tests/test_annotation_ci_wiring.py",
+        "A  tests/test_cli_document_preferences.py",
+        "A  tests/test_document_annotation_fonts.py",
+        "A  tests/test_document_display_options.py",
+        "A  tests/test_document_drafting_standard.py",
+        "A  tests/test_document_preference_registration.py",
+        "A  tests/test_document_preference_write_boundaries.py",
+        "A  tests/test_document_preferences_gate.py",
+        "A  tests/test_document_preferences_operations.py",
+        "A  tests/test_document_preferences_schemas.py",
+        "A  tests/test_document_properties_calibration.py",
+        "A  tests/test_document_properties_calibration_watchdog.py",
+        "A  tests/test_sdk_document_preferences.py",
+        "M  tests/typing_sdk/accepted.py",
+        "M  tests/typing_sdk/rejected.py"
+      ],
+      "codegraph": false
+    }
+  ]
+}
