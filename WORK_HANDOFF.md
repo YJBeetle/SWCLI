@@ -99,3 +99,10 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - Report SHA256 `f04b79376ea8e5e5fd7569c7d20feb28ae6193215ee9dc29695c3bca5dbbd7f9`，harness trace `eb97a6e5fb77dae6d1f46f63122c9847d90dc965c16a319df92b87f8d5393afa`，native trace `d95c6b1ac3c577cb4a90772a83b7f47f51b618adabeab5880cf03bbd7812ef13`。
 - 只在分支开放通过审核的 raw pairs。装配体 toggle true→false，工程图 false→true，两类型适用边框 0→1，并各自允许目标值同值请求。零件、其他 revision 和未验证方向仍关闭。
 - 公开 CLI/daemon/SDK/MCP gate 将使用上述 pinned 原件，在独立 run 检查全量 CAS、lease/stamp、readonly、单 setter 和另存重开。零件先前精确几何失败仍是系列阻断，公开 gate 另验零件读取及写入被拒绝。
+
+
+## 公开验收已启动
+
+- 验收 head `c6614e0cd9a3ecae751587b53f0802486df4dfde`。本地 remote 和 local 预检均通过，相关测试共 37 项，其中 1 项 Windows 专属测试在 macOS 跳过。
+- [公开 run 42305463102](https://github.com/YJBeetle/SWCLI/actions/runs/42305463102) 单次启动，快照为 `in_progress`。参数为 `native_full=false`、`table_defaults_calibration=true`、mode `public`、类型参数 `assembly-drawing` 和上述精确 head。实际公开范围由 pinned 内部原件的 [2,3] 决定。快照和参数存于 ignored `run-42305463102/`。
+- 公开结果待原始 artifact 核验，系列还需解决零件精确几何验收。系列整组完成后再请用户确认发版。
