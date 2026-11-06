@@ -1,0 +1,27 @@
+[
+  {
+    "path": ".github/workflows/ci.yml",
+    "sha256": "70615128e18352e34a73ecf90613bcaf88fc5e8043806da706d5b508ad554635",
+    "bytes": 25258
+  },
+  {
+    "path": "copied-tests.log",
+    "sha256": "24ccc3666b7730f09296bad50a6959f4e8a304b45b25e4a10c594cadc5ac8389",
+    "bytes": 790
+  },
+  {
+    "path": "result.json",
+    "sha256": "0c257e401ef6d62112dd651357f57c868c6b8a7ef116b2db775a56fe5130034d",
+    "bytes": 12205
+  },
+  {
+    "path": "scripts/ci/validate-line-font-route.py",
+    "sha256": "39e970f1881ee0c0d3d1f182deb592cd3bdf454e5a410059eb703091b3a84db3",
+    "bytes": 1785
+  },
+  {
+    "path": "tests/test_line_font_route.py",
+    "sha256": "dee09de72a094f469a8b88cdb9d5bda3fd69d34c327f1552a7dd275fcd1727df",
+    "bytes": 4495
+  }
+]

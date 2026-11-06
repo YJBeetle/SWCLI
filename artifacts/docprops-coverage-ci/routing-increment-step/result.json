@@ -1,0 +1,19 @@
+{
+  "base_head": "2c7108fa5c6c22ebfc9a6c98bdb0a9f67acac58f",
+  "source_sha": null,
+  "status": "working-patch-only-until-exact-commit-matches",
+  "scope": "pure workflow expression test; no CAD",
+  "combinations": 3456,
+  "checks": [
+    "eligible job always has exactly one full/internal/public mode",
+    "full never ignored under mixed flags",
+    "wrong ref cannot enter targeted job",
+    "push tag uses full steps/name/group/scope",
+    "untrusted repository and failed dependencies rejected"
+  ],
+  "files": {
+    ".github/workflows/ci.yml": "0fbebe207de1afab9935299c533ac68af7550974a32260a37d7e69e8bd5db5bd",
+    "tests/test_step_export_ci.py": "5fecc07d1ea74bcb138dc63a46def4b411d5f4402012cbbce7daf597d5e680be"
+  },
+  "no_dispatch": true
+}

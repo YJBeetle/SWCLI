@@ -1,0 +1,22 @@
+[
+  {
+    "path": ".github/workflows/ci.yml",
+    "sha256": "0fbebe207de1afab9935299c533ac68af7550974a32260a37d7e69e8bd5db5bd",
+    "bytes": 26925
+  },
+  {
+    "path": "copied-routing-test.log",
+    "sha256": "41d431c561c54954eebef41104a6efd9c3f2c9cbb1ff6a2d76aa9ce6c9bcd957",
+    "bytes": 308
+  },
+  {
+    "path": "result.json",
+    "sha256": "b3618ea7ca138026a83df3f85b3ceba7238e458cb10770b2dd543a70cb37ae47",
+    "bytes": 749
+  },
+  {
+    "path": "tests/test_step_export_ci.py",
+    "sha256": "5fecc07d1ea74bcb138dc63a46def4b411d5f4402012cbbce7daf597d5e680be",
+    "bytes": 6121
+  }
+]

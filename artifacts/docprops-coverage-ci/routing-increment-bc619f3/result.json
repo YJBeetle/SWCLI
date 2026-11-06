@@ -1,0 +1,521 @@
+{
+  "source_sha": "bc619f372f9863c9654080e3a0492d994a3898e0",
+  "observed_at": "2026-11-06T19:02:42.089332+00:00",
+  "scope": "static and pure route validation; no CAD",
+  "status": "passed-routing-review",
+  "manual_and_default_cases": 56,
+  "owner_tests_passed": 4,
+  "cases": [
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "accepted",
+      "route": "line-font-public"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "accepted",
+      "route": "line-font-internal"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "full"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "full"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "full"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "full"
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/heads/codex/other",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "workflow_dispatch",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "tag-policy-controls-full"
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/tags/v-review",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "push",
+      "ref": "refs/heads/main",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": false,
+      "public": false,
+      "status": "accepted",
+      "route": "portable"
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": false,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": false,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": false,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": true,
+      "public": false,
+      "status": "rejected",
+      "route": null
+    },
+    {
+      "event": "pull_request",
+      "ref": "refs/heads/codex/docprops-line-style",
+      "native_full": true,
+      "internal": true,
+      "public": true,
+      "status": "rejected",
+      "route": null
+    }
+  ],
+  "checks": [
+    "56 combinations matched policy",
+    "portable route rejects invalid selectors before installation",
+    "native job requires portable test success",
+    "full/default/tag route retained"
+  ],
+  "no_dispatch": true
+}

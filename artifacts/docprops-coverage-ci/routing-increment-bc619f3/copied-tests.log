@@ -1,0 +1,9 @@
+test_all_manual_flags_across_allowed_and_wrong_branches (test_line_font_route.LineFontRouteTests.test_all_manual_flags_across_allowed_and_wrong_branches) ... ok
+test_cli_decodes_false_flags_and_rejects_invalid_combinations (test_line_font_route.LineFontRouteTests.test_cli_decodes_false_flags_and_rejects_invalid_combinations) ... ok
+test_tag_and_default_push_do_not_accept_manual_inputs (test_line_font_route.LineFontRouteTests.test_tag_and_default_push_do_not_accept_manual_inputs) ... ok
+test_workflow_checks_route_before_install_and_blocks_native_on_test_failure (test_line_font_route.LineFontRouteTests.test_workflow_checks_route_before_install_and_blocks_native_on_test_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.106s
+
+OK

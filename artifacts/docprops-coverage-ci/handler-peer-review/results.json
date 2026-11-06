@@ -1,0 +1,2095 @@
+[
+  {
+    "name": "docprops-line-style",
+    "head": "bc619f372f9863c9654080e3a0492d994a3898e0",
+    "scope": "portable fault injection, no CAD",
+    "exit_code": 0,
+    "source_files": [
+      {
+        "path": "src/swcli/daemon/operations.py",
+        "sha256": "21ef680d4664f198df2695f65e629bdca02ac42c80a3b4b7c7833104bec26445"
+      },
+      {
+        "path": "src/swcli/hosts/windows_document_line_font.py",
+        "sha256": "763f89e02e1ffc97ac73d9806ddd78ec4b19e10112061e6ebe3f834f1ad1e55f"
+      },
+      {
+        "path": "src/swcli/hosts/windows_custom_properties.py",
+        "sha256": "6c4054306a419f55e07da9ef95551a44b80bf3e520587135cd988f1284f076bd"
+      },
+      {
+        "path": "tests/test_document_line_font.py",
+        "sha256": "45c4b6af4d0568bb51a36003d13cdebf00d9b0291a92bed1cbe88713dd9678a7"
+      },
+      {
+        "path": "src/swcli/daemon/server.py",
+        "sha256": "9e821ad6411915ea55ba82f9787c3112c234fef3f57d0600a6f6d1633c7da7aa"
+      }
+    ],
+    "related_existing_tests": [
+      {
+        "name": "test_read_background_preserves_state_and_full_snapshot",
+        "line": 32
+      },
+      {
+        "name": "test_unrequested_drift_and_dirty_failure_are_partial_mutations",
+        "line": 116
+      },
+      {
+        "name": "test_context_drift_after_setter_reports_partial",
+        "line": 148
+      }
+    ],
+    "repro": {
+      "scope": "mock-only; not native acceptance",
+      "name": "docprops-line-style",
+      "post_adapter_descriptor_fault": {
+        "returned": null,
+        "exception": {
+          "type": "RuntimeError",
+          "message": "injected post-set document descriptor failure"
+        },
+        "adapter_called": 1,
+        "descriptor_called": 1,
+        "adapter_receipt": {
+          "ok": true,
+          "action": "mock",
+          "changed": true,
+          "mutation": {
+            "attempted": true,
+            "may_have_changed": true
+          }
+        },
+        "mutation_reached_response": false
+      },
+      "foreground_peer_probes": [
+        {
+          "member": "GetUpdateStamp",
+          "before": 8,
+          "after": 99999,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.line-font-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "visible_edges.style",
+            "before": {
+              "visible_edges.style": 0,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "options": {
+              "visible_edges.style": 1,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetSaveFlag",
+          "before": false,
+          "after": true,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.line-font-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "visible_edges.style",
+            "before": {
+              "visible_edges.style": 0,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "options": {
+              "visible_edges.style": 1,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetTitle",
+          "before": "Foreground",
+          "after": "Peer changed",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.line-font-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "visible_edges.style",
+            "before": {
+              "visible_edges.style": 0,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "options": {
+              "visible_edges.style": 1,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetPathName",
+          "before": "",
+          "after": "C:\\peer-changed.SLDPRT",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.line-font-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "visible_edges.style",
+            "before": {
+              "visible_edges.style": 0,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "options": {
+              "visible_edges.style": 1,
+              "visible_edges.weight": 1,
+              "hidden_edges.style": 1,
+              "hidden_edges.weight": 0
+            },
+            "changed": true
+          }
+        }
+      ]
+    },
+    "worker_execute_line": 377,
+    "worker_generic_error_line": 404,
+    "handler_line": 440,
+    "handler_end_line": 444,
+    "handler_finding": "confirmed mock fault: successful adapter result with attempted/may_have_changed is replaced by propagated descriptor exception; no result returned",
+    "peer_finding": "confirmed mock false-success for GetUpdateStamp,GetSaveFlag,GetTitle,GetPathName"
+  },
+  {
+    "name": "docprops-dimension-format",
+    "head": "441b45dc499de52f437a3e46ada3e62ab1694493",
+    "scope": "portable fault injection, no CAD",
+    "exit_code": 0,
+    "source_files": [
+      {
+        "path": "src/swcli/daemon/operations.py",
+        "sha256": "2fc1135e9c2b379ab09c799c51469a163a5d084c59d55e4c112efc15909612d4"
+      },
+      {
+        "path": "src/swcli/hosts/windows_dimension_format.py",
+        "sha256": "b6d5302578427560c5c4638348534831b4ace7a04bf7a5cc8ab508823a730abc"
+      },
+      {
+        "path": "src/swcli/hosts/windows_custom_properties.py",
+        "sha256": "6c4054306a419f55e07da9ef95551a44b80bf3e520587135cd988f1284f076bd"
+      },
+      {
+        "path": "tests/test_dimension_format.py",
+        "sha256": "c6d1e5753e1f9c0e2c3cee761773a3644c6402c345e476c07912e5c2d9b3e042"
+      },
+      {
+        "path": "src/swcli/daemon/server.py",
+        "sha256": "9e821ad6411915ea55ba82f9787c3112c234fef3f57d0600a6f6d1633c7da7aa"
+      }
+    ],
+    "related_existing_tests": [
+      {
+        "name": "test_background_read_retains_raw_unknown_position_and_never_sets",
+        "line": 45
+      },
+      {
+        "name": "test_public_mutation_is_closed_but_same_value_is_a_clean_noop",
+        "line": 66
+      },
+      {
+        "name": "test_native_failure_false_and_mismatch_are_partial_without_retry_or_rollback",
+        "line": 103
+      },
+      {
+        "name": "test_unrequested_display_units_or_zero_mutations_are_rejected",
+        "line": 114
+      },
+      {
+        "name": "test_dirty_marking_cannot_change_native_values_or_hide_read_state_mutation",
+        "line": 162
+      },
+      {
+        "name": "test_native_setter_cannot_clear_preexisting_dirty_state",
+        "line": 255
+      },
+      {
+        "name": "test_result_contract_rejects_falsified_mutation_lifecycle",
+        "line": 269
+      }
+    ],
+    "repro": {
+      "scope": "mock-only; not native acceptance",
+      "name": "docprops-dimension-format",
+      "post_adapter_descriptor_fault": {
+        "returned": null,
+        "exception": {
+          "type": "RuntimeError",
+          "message": "injected post-set document descriptor failure"
+        },
+        "adapter_called": 1,
+        "descriptor_called": 1,
+        "adapter_receipt": {
+          "ok": true,
+          "action": "mock",
+          "changed": true,
+          "mutation": {
+            "attempted": true,
+            "may_have_changed": true
+          }
+        },
+        "mutation_reached_response": false
+      },
+      "foreground_peer_probes": [
+        {
+          "member": "GetUpdateStamp",
+          "before": 8,
+          "after": 99999,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.dimension-format-set",
+            "field": "dual_display",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "before": {
+              "dual_display": false,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "native_return": true,
+            "format": {
+              "dual_display": true,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetSaveFlag",
+          "before": false,
+          "after": true,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.dimension-format-set",
+            "field": "dual_display",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "before": {
+              "dual_display": false,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "native_return": true,
+            "format": {
+              "dual_display": true,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetTitle",
+          "before": "Foreground",
+          "after": "Peer changed",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.dimension-format-set",
+            "field": "dual_display",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "before": {
+              "dual_display": false,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "native_return": true,
+            "format": {
+              "dual_display": true,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "changed": true
+          }
+        },
+        {
+          "member": "GetPathName",
+          "before": "",
+          "after": "C:\\peer-changed.SLDPRT",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.dimension-format-set",
+            "field": "dual_display",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "before": {
+              "dual_display": false,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "native_return": true,
+            "format": {
+              "dual_display": true,
+              "dual_position": 1,
+              "parentheses": false
+            },
+            "changed": true
+          }
+        }
+      ]
+    },
+    "worker_execute_line": 377,
+    "worker_generic_error_line": 404,
+    "handler_line": 459,
+    "handler_end_line": 463,
+    "handler_finding": "confirmed mock fault: successful adapter result with attempted/may_have_changed is replaced by propagated descriptor exception; no result returned",
+    "peer_finding": "confirmed mock false-success for GetUpdateStamp,GetSaveFlag,GetTitle,GetPathName"
+  },
+  {
+    "name": "docprops-table-defaults",
+    "head": "b4f79111dce508ac6947b1b19bdc80e2e315cd73",
+    "scope": "portable fault injection, no CAD",
+    "exit_code": 0,
+    "source_files": [
+      {
+        "path": "src/swcli/daemon/operations.py",
+        "sha256": "0701a5ed0e0fee0158fe0e06aa7618c3c279434b8919b058c57a96d3e43291b3"
+      },
+      {
+        "path": "src/swcli/hosts/windows_document_tables.py",
+        "sha256": "73953b3d564a8d17e9361a24f6d6c1f6647ff09243e250e7139347cd68c8beb4"
+      },
+      {
+        "path": "src/swcli/hosts/windows_custom_properties.py",
+        "sha256": "6c4054306a419f55e07da9ef95551a44b80bf3e520587135cd988f1284f076bd"
+      },
+      {
+        "path": "tests/test_document_tables.py",
+        "sha256": "0410c55f4edaaa86155c6af2a246c498abfa743540a77476ab79a901d173a86a"
+      },
+      {
+        "path": "src/swcli/daemon/server.py",
+        "sha256": "1ec84636d02a25869b91b05f2241fa6a855fec23e9ff091b3754ba423ccf74c9"
+      }
+    ],
+    "related_existing_tests": [
+      {
+        "name": "test_reads_background_without_activation_and_skips_general_on_models",
+        "line": 103
+      },
+      {
+        "name": "test_false_exception_and_side_effects_preserve_partial_mutation_without_retry",
+        "line": 178
+      },
+      {
+        "name": "test_installed_type_library_path_accepts_pywin32_property_or_method_without_retry",
+        "line": 251
+      }
+    ],
+    "repro": {
+      "scope": "mock-only; not native acceptance",
+      "name": "docprops-table-defaults",
+      "post_adapter_descriptor_fault": {
+        "returned": null,
+        "exception": {
+          "type": "RuntimeError",
+          "message": "injected post-set document descriptor failure"
+        },
+        "adapter_called": 1,
+        "descriptor_called": 1,
+        "adapter_receipt": {
+          "ok": true,
+          "action": "mock",
+          "changed": true,
+          "mutation": {
+            "attempted": true,
+            "may_have_changed": true
+          }
+        },
+        "mutation_reached_response": false
+      },
+      "foreground_peer_probes": [
+        {
+          "member": "GetUpdateStamp",
+          "before": 8,
+          "after": 99999,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": false,
+            "action": "document.table-option-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "bom.box_border",
+            "before": {
+              "all.use_template_settings": {
+                "value": false,
+                "native_value": false
+              },
+              "bom.box_border": {
+                "value": "normal",
+                "native_value": 1
+              },
+              "bom.grid_border": {
+                "value": "thin",
+                "native_value": 0
+              },
+              "general.box_border": {
+                "unavailable": "document_type"
+              },
+              "general.grid_border": {
+                "unavailable": "document_type"
+              }
+            },
+            "native_returned": true,
+            "error": {
+              "type": "RuntimeError",
+              "message": "table operation changed the background document's foreground peer"
+            },
+            "document": {
+              "title": "Target",
+              "path": "",
+              "type": 1,
+              "modified": false,
+              "update_stamp": 7,
+              "document_id": "d-nk7dcx",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetSaveFlag",
+          "before": false,
+          "after": true,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": false,
+            "action": "document.table-option-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "bom.box_border",
+            "before": {
+              "all.use_template_settings": {
+                "value": false,
+                "native_value": false
+              },
+              "bom.box_border": {
+                "value": "normal",
+                "native_value": 1
+              },
+              "bom.grid_border": {
+                "value": "thin",
+                "native_value": 0
+              },
+              "general.box_border": {
+                "unavailable": "document_type"
+              },
+              "general.grid_border": {
+                "unavailable": "document_type"
+              }
+            },
+            "native_returned": true,
+            "error": {
+              "type": "RuntimeError",
+              "message": "table operation changed the background document's foreground peer"
+            },
+            "document": {
+              "title": "Target",
+              "path": "",
+              "type": 1,
+              "modified": false,
+              "update_stamp": 7,
+              "document_id": "d-n3mp6v",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetTitle",
+          "before": "Peer",
+          "after": "Peer changed",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": false,
+            "action": "document.table-option-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "bom.box_border",
+            "before": {
+              "all.use_template_settings": {
+                "value": false,
+                "native_value": false
+              },
+              "bom.box_border": {
+                "value": "normal",
+                "native_value": 1
+              },
+              "bom.grid_border": {
+                "value": "thin",
+                "native_value": 0
+              },
+              "general.box_border": {
+                "unavailable": "document_type"
+              },
+              "general.grid_border": {
+                "unavailable": "document_type"
+              }
+            },
+            "native_returned": true,
+            "error": {
+              "type": "RuntimeError",
+              "message": "table operation changed the background document's foreground peer"
+            },
+            "document": {
+              "title": "Target",
+              "path": "",
+              "type": 1,
+              "modified": false,
+              "update_stamp": 7,
+              "document_id": "d-x6nnw5",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetPathName",
+          "before": "",
+          "after": "C:\\peer-changed.SLDPRT",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": false,
+            "action": "document.table-option-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "bom.box_border",
+            "before": {
+              "all.use_template_settings": {
+                "value": false,
+                "native_value": false
+              },
+              "bom.box_border": {
+                "value": "normal",
+                "native_value": 1
+              },
+              "bom.grid_border": {
+                "value": "thin",
+                "native_value": 0
+              },
+              "general.box_border": {
+                "unavailable": "document_type"
+              },
+              "general.grid_border": {
+                "unavailable": "document_type"
+              }
+            },
+            "native_returned": true,
+            "error": {
+              "type": "RuntimeError",
+              "message": "table operation changed the background document's foreground peer"
+            },
+            "document": {
+              "title": "Target",
+              "path": "",
+              "type": 1,
+              "modified": false,
+              "update_stamp": 7,
+              "document_id": "d-2373xq",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        }
+      ]
+    },
+    "worker_execute_line": 377,
+    "worker_generic_error_line": 404,
+    "handler_line": 440,
+    "handler_end_line": 444,
+    "handler_finding": "confirmed mock fault: successful adapter result with attempted/may_have_changed is replaced by propagated descriptor exception; no result returned",
+    "peer_finding": "four peer mutations detected with partial failure; no defect demonstrated"
+  },
+  {
+    "name": "docprops-units-expanded",
+    "head": "9d6b033a221082a515fc75bea3c53360df5a78cb",
+    "scope": "portable fault injection, no CAD",
+    "exit_code": 0,
+    "source_files": [
+      {
+        "path": "src/swcli/daemon/operations.py",
+        "sha256": "ca0b42226ada01baac98271cf6932a4e4ba646a38b77316eb3b6c5c8d75e77ef"
+      },
+      {
+        "path": "src/swcli/hosts/windows_document_unit_profile.py",
+        "sha256": "612a18a93cd83ae522336ce8a35913b44dc0f422cb712ddd7fa9ea3ca2f2ae92"
+      },
+      {
+        "path": "src/swcli/hosts/windows_custom_properties.py",
+        "sha256": "6c4054306a419f55e07da9ef95551a44b80bf3e520587135cd988f1284f076bd"
+      },
+      {
+        "path": "tests/test_document_unit_profile.py",
+        "sha256": "006f487e0c5fcbbaf5bd84c53e1f0f10531ff8be11868f5cd987af4e4eb46c2f"
+      },
+      {
+        "path": "src/swcli/daemon/server.py",
+        "sha256": "9e821ad6411915ea55ba82f9787c3112c234fef3f57d0600a6f6d1633c7da7aa"
+      }
+    ],
+    "related_existing_tests": [
+      {
+        "name": "test_read_background_unknown_and_raw_five",
+        "line": 47
+      },
+      {
+        "name": "test_false_and_exception_are_partial_no_retry",
+        "line": 120
+      },
+      {
+        "name": "test_linkage_drift_after_set_is_partial",
+        "line": 148
+      }
+    ],
+    "repro": {
+      "scope": "mock-only; not native acceptance",
+      "name": "docprops-units-expanded",
+      "post_adapter_descriptor_fault": {
+        "returned": null,
+        "exception": {
+          "type": "RuntimeError",
+          "message": "injected post-set document descriptor failure"
+        },
+        "adapter_called": 1,
+        "descriptor_called": 1,
+        "adapter_receipt": {
+          "ok": true,
+          "action": "mock",
+          "changed": true,
+          "mutation": {
+            "attempted": true,
+            "may_have_changed": true
+          }
+        },
+        "mutation_reached_response": false
+      },
+      "foreground_peer_probes": [
+        {
+          "member": "GetUpdateStamp",
+          "before": 8,
+          "after": 99999,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.unit-profile-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "linear.unit",
+            "before": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 0,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "native_return_value": true,
+            "observed": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "changed": true,
+            "unit_profile": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            }
+          }
+        },
+        {
+          "member": "GetSaveFlag",
+          "before": false,
+          "after": true,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.unit-profile-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "linear.unit",
+            "before": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 0,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "native_return_value": true,
+            "observed": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "changed": true,
+            "unit_profile": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            }
+          }
+        },
+        {
+          "member": "GetTitle",
+          "before": "Foreground",
+          "after": "Peer changed",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.unit-profile-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "linear.unit",
+            "before": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 0,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "native_return_value": true,
+            "observed": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "changed": true,
+            "unit_profile": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            }
+          }
+        },
+        {
+          "member": "GetPathName",
+          "before": "",
+          "after": "C:\\peer-changed.SLDPRT",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.unit-profile-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "linear.unit",
+            "before": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 0,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "native_return_value": true,
+            "observed": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            },
+            "changed": true,
+            "unit_profile": {
+              "profile": "document-units-v1",
+              "document_type": 1,
+              "values": {
+                "system": {
+                  "value": "custom",
+                  "native_value": 4
+                },
+                "linear.unit": {
+                  "value": "inch",
+                  "native_value": 3
+                },
+                "linear.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "angular.unit": {
+                  "value": "degrees",
+                  "native_value": 0
+                },
+                "angular.precision": {
+                  "value": 3,
+                  "native_value": 3
+                },
+                "mass_properties.length_unit": {
+                  "value": "mm",
+                  "native_value": 0
+                },
+                "mass_properties.mass_unit": {
+                  "value": "g",
+                  "native_value": 2
+                },
+                "mass_properties.volume_unit": {
+                  "value": "mm3",
+                  "native_value": 4
+                },
+                "mass_properties.precision": {
+                  "value": 3,
+                  "native_value": 3
+                }
+              },
+              "native_units": {
+                "length_unit": 3,
+                "fraction_base": 1,
+                "fraction_value": 8,
+                "significant_digits": 3,
+                "round_to_fraction": 0
+              },
+              "linkage": {
+                "swUnitsLinearDecimalDisplay": 0,
+                "swUnitsLinearFractionDenominator": 0,
+                "swUnitsLinearRoundToNearestFraction": false,
+                "swUnitsLinearFeetAndInchesFormat": false,
+                "swUnitsDualLinear": 0,
+                "swUnitsDualLinearDecimalDisplay": 0,
+                "swUnitsDualLinearDecimalPlaces": 0,
+                "swUnitsDualLinearFractionDenominator": 0,
+                "swUnitsDualLinearRoundToNearestFraction": false,
+                "swUnitsDualLinearFeetAndInchesFormat": false,
+                "swUnitsForce": 0,
+                "swUnitsForceDecimalPlaces": 0,
+                "swUnitsEnergyUnits": 0,
+                "swUnitsEnergyDecimalPlaces": 0,
+                "swUnitsPowerUnits": 0,
+                "swUnitsPowerDecimalPlaces": 0,
+                "swUnitsTimeUnits": 0,
+                "swUnitsTimeDecimalPlaces": 0,
+                "swUnitsDecimalRounding": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "worker_execute_line": 377,
+    "worker_generic_error_line": 404,
+    "handler_line": 459,
+    "handler_end_line": 464,
+    "handler_finding": "confirmed mock fault: successful adapter result with attempted/may_have_changed is replaced by propagated descriptor exception; no result returned",
+    "peer_finding": "confirmed mock false-success for GetUpdateStamp,GetSaveFlag,GetTitle,GetPathName"
+  },
+  {
+    "name": "docprops-export-options",
+    "head": "0f4ba7b3d629993731966bfc0a31275d7010fc83",
+    "scope": "portable fault injection, no CAD",
+    "exit_code": 0,
+    "source_files": [
+      {
+        "path": "src/swcli/daemon/operations.py",
+        "sha256": "dbe37196b43c1cacd43affad68bb335e7fd672aad508423281fadd387e094cdd"
+      },
+      {
+        "path": "src/swcli/hosts/windows_document_image_quality.py",
+        "sha256": "b4c9c64478730c57febbefc7c869fdd8cbec6f9e9b0a2374716dd22d4be124f3"
+      },
+      {
+        "path": "src/swcli/hosts/windows_custom_properties.py",
+        "sha256": "6c4054306a419f55e07da9ef95551a44b80bf3e520587135cd988f1284f076bd"
+      },
+      {
+        "path": "tests/test_document_image_quality.py",
+        "sha256": "0a94527bea898a113141b335a6f7ba8bbf3aaaac5d91718d3afa146e0e245de1"
+      },
+      {
+        "path": "src/swcli/daemon/server.py",
+        "sha256": "9e821ad6411915ea55ba82f9787c3112c234fef3f57d0600a6f6d1633c7da7aa"
+      }
+    ],
+    "related_existing_tests": [
+      {
+        "name": "test_read_background_complete_raw_snapshot_under_other_session",
+        "line": 72
+      },
+      {
+        "name": "test_context_access_and_state_drift_in_each_read_phase_stop_without_repair",
+        "line": 170
+      },
+      {
+        "name": "test_setter_configuration_drift_and_unrequested_changes_are_partial_failures",
+        "line": 193
+      },
+      {
+        "name": "test_native_invalid_range_or_preference_stops_observation_without_mutation",
+        "line": 222
+      },
+      {
+        "name": "test_dirty_mutation_identity_drift_or_failure_is_not_repaired",
+        "line": 237
+      },
+      {
+        "name": "test_sdk_forwards_exact_typed_payload_context_once_and_preserves_partial_failure",
+        "line": 274
+      }
+    ],
+    "repro": {
+      "scope": "mock-only; not native acceptance",
+      "name": "docprops-export-options",
+      "post_adapter_descriptor_fault": {
+        "returned": null,
+        "exception": {
+          "type": "RuntimeError",
+          "message": "injected post-set document descriptor failure"
+        },
+        "adapter_called": 1,
+        "descriptor_called": 1,
+        "adapter_receipt": {
+          "ok": true,
+          "action": "mock",
+          "changed": true,
+          "mutation": {
+            "attempted": true,
+            "may_have_changed": true
+          }
+        },
+        "mutation_reached_response": false
+      },
+      "foreground_peer_probes": [
+        {
+          "member": "GetUpdateStamp",
+          "before": 8,
+          "after": 99999,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.image-quality-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "optimize_edge_length",
+            "before": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": false,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": false,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "native_return": true,
+            "observed_quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "changed": true,
+            "linked_changes": [],
+            "document": {
+              "title": "Background",
+              "path": "",
+              "type": 1,
+              "modified": true,
+              "update_stamp": 7,
+              "document_id": "d-m022ey",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetSaveFlag",
+          "before": false,
+          "after": true,
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.image-quality-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "optimize_edge_length",
+            "before": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": false,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": false,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "native_return": true,
+            "observed_quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "changed": true,
+            "linked_changes": [],
+            "document": {
+              "title": "Background",
+              "path": "",
+              "type": 1,
+              "modified": true,
+              "update_stamp": 7,
+              "document_id": "d-cgs3wr",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetTitle",
+          "before": "Foreground",
+          "after": "Peer changed",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.image-quality-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "optimize_edge_length",
+            "before": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": false,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": false,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "native_return": true,
+            "observed_quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "changed": true,
+            "linked_changes": [],
+            "document": {
+              "title": "Background",
+              "path": "",
+              "type": 1,
+              "modified": true,
+              "update_stamp": 7,
+              "document_id": "d-qs68ns",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        },
+        {
+          "member": "GetPathName",
+          "before": "",
+          "after": "C:\\peer-changed.SLDPRT",
+          "active_pointer_preserved": true,
+          "adapter_or_handler_returned": {
+            "ok": true,
+            "action": "document.image-quality-set",
+            "mutation": {
+              "attempted": true,
+              "may_have_changed": true
+            },
+            "field": "optimize_edge_length",
+            "before": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": false,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": false,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "native_return": true,
+            "observed_quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "quality": {
+              "shaded_mode": "custom",
+              "shaded_deviation_mm": 0.2,
+              "optimize_edge_length": true,
+              "save_tessellation": true,
+              "apply_to_referenced_parts": false,
+              "native": {
+                "shaded_mode": 3,
+                "shaded_deviation_m": 0.0002,
+                "optimize_edge_length": true,
+                "save_tessellation": true,
+                "apply_to_referenced_parts": false
+              },
+              "deviation_range": {
+                "status": 0,
+                "bounds_m": [
+                  1e-05,
+                  0.001
+                ]
+              }
+            },
+            "changed": true,
+            "linked_changes": [],
+            "document": {
+              "title": "Background",
+              "path": "",
+              "type": 1,
+              "modified": true,
+              "update_stamp": 7,
+              "document_id": "d-zrgrd2",
+              "current": false,
+              "active": false
+            },
+            "session_id": "writer"
+          }
+        }
+      ]
+    },
+    "worker_execute_line": 377,
+    "worker_generic_error_line": 404,
+    "handler_line": 442,
+    "handler_end_line": 446,
+    "handler_finding": "confirmed mock fault: successful adapter result with attempted/may_have_changed is replaced by propagated descriptor exception; no result returned",
+    "peer_finding": "confirmed mock false-success for GetUpdateStamp,GetSaveFlag,GetTitle,GetPathName"
+  }
+]

@@ -107,3 +107,14 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - STEP 2c7108fa：own ref下full+targeted仍可忽略full而执行targeted；wrong ref/两targeted同时true会native job skipped，未复现零CAD native-job success。与线型风险分级区分。
 - 其余复用full job者：topology/revolve/STL有明确互斥throw；image-quality job条件排除混合scope。15路正常push-tag空输入均保留full CAD路径；manual-dispatch到tag带输入，与push tag区分。
 - GitHub只读核远端main=83c48301414801540a29aefca2d7d1f9f174d3c1；本地main ref仍78ebaf6。未来集成须保留83c4830的detailing和78ebaf6先前修复。本路不改main ref、不合分支、不dispatch、不轮询旧CI。以上只有静态/纯路由证据，没有新的原生验收结论。
+
+## 路由增量 + 跨路partial/peer缺陷（本轮）
+
+- 线型精确bc619f372f9863c9654080e3a0492d994a3898e0：56路由组合与4项复制测试通过，test前置拒绝与native needs.test成功依赖已核，旧零CAD空绿结论被此修复替代（仅路由范围）。
+- STEP工作区修复3456组路由组合通过，但HEAD仍2c7108f且修复未提交，已固定两文件hash，不宣称精确新head通过；owner计划随下个实质/public head提交，不重复CAD。报告`docs/verification/docprops-routing-increment-2026-11-07.md`。
+- 新只读缺陷报告：`docs/verification/docprops-handler-peer-review-2026-11-07.md`，持久实证`artifacts/docprops-coverage-ci/handler-peer-review/`。
+- 精确head mock证实line bc619f3、dimension441b45d、table b4f7911、units9d6b033、image-quality0f4ba7b五路handler在adapter返回mutation后describe抛错会传播异常、丢失回执；worker generic error静态链不携带该result。adapter成功为mock注入，不称native实证。
+- 真实adapter+Mock COM peer注入：线型/尺寸/单位/图像品质在另一个前台文档指针不变但stamp/dirty/title/path改变时各4例仍ok=true（16个mock假阳性）；表格4例正确ok=false且partial保留。表格已有foreground_state/identity保护，不重复报该peer缺陷。
+- 既有测试覆盖和缺口、精确handler/helper/worker/guard行号均写报告。公差/字体owner已接修复不重复指派；detailing main保护不受旧分支结论外推。
+- STL/STEP export和配合handler直接返回adapter；旋转register_feature失败保留result，只做static排除同形_with_document点，不声称其他partial/peer路径已验收。
+- 全过程只在本worktree或隔离源码副本执行纯Python mock，不修改其他worktree、不用VM/COM、不dispatch、不扩产品白名单。交主对话按精确head协调owner修复。

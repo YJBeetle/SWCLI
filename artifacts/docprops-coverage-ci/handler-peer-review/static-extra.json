@@ -1,0 +1,30 @@
+[
+  {
+    "name": "swcli-stl-export-options",
+    "head": "d8df4a874cc0c8460cf8615964420e7e9c20ff7b",
+    "path": "src/swcli/daemon/operations.py",
+    "sha256": "3119793d9b0e160daff9339e6d53ea59b555a6535016cf1326e23bab9bfb09a8",
+    "status": "static handler inspection only; no full-path fault injection"
+  },
+  {
+    "name": "swcli-step-export-options",
+    "head": "2c7108fa5c6c22ebfc9a6c98bdb0a9f67acac58f",
+    "path": "src/swcli/daemon/operations.py",
+    "sha256": "deaf3f4cdd85cd0ffdc82434c9c32e71fb98219ccb1a8dc37bd1b395a33a9990",
+    "status": "static handler inspection only; no full-path fault injection"
+  },
+  {
+    "name": "swcli-assembly-mates",
+    "head": "8a7095cee900ec5023e58c20561f292ced52863f",
+    "path": "src/swcli/daemon/operations.py",
+    "sha256": "4eadaaec61d5ccfb08a0a3510b84a33bc82ba854c08b2ac586d593afb999769a",
+    "status": "static handler inspection only; no full-path fault injection"
+  },
+  {
+    "name": "swcli-revolve-feature",
+    "head": "3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad",
+    "path": "src/swcli/daemon/operations.py",
+    "sha256": "c956963f7df80ce53ba13acb3b09076919aa75e7d78f19fa44a560b48438d023",
+    "status": "static handler inspection only; no full-path fault injection"
+  }
+]
