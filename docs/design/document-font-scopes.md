@@ -105,3 +105,8 @@ PR 不触发。专属 concurrency 使用 `swcli-font-scopes-${{ github.ref }}`�
 [GetUseDocTextFormat](https://help.solidworks.com/2019/English/api/sldworksapi/SolidWorks.interop.sldworks~SolidWorks.interop.sldworks.IAnnotation~GetUseDocTextFormat.html)
 用于实际观察继承标志，不通过字体当前恰好相同来猜测。
 尺寸子类型联动、表格模板/单元格继承、富文本和视觉渲染不由这个 Notes profile 推广验收。
+
+
+## 后置失败和前台保护
+
+字体 setter 的可信 mutation 回执跨 handler 最终 describe、worker 上下文恢复和结果验证保存；后置失败不会覆盖第一个业务错误。另一个前台文档的身份、dirty/stamp、配置、访问模式和编辑上下文在读取与写入边界核对。CI 手动入口先校验路由，非法或冲突的组合直接失败，字体专属路由与常规路由互斥。

@@ -15,6 +15,7 @@ from swcli.hosts.windows import _com_value
 from swcli.hosts.windows_custom_properties import _state
 from swcli.hosts.windows_documents import open_windows_document_with_handle
 from swcli.hosts.windows_native_files import save_as_native_windows
+from swcli.hosts.windows_feature_selections import _null_dispatch
 
 spec = importlib.util.spec_from_file_location('_font_notes_fixture_base', Path(__file__).with_name('prepare-annotation-fixtures.py'))
 fixtures = importlib.util.module_from_spec(spec)
@@ -96,6 +97,12 @@ def close(app, document, call):
     call('close-owned-Notes-document', lambda: app.CloseDoc(title))
 
 
+def set_inherited_format(annotation, call):
+    # pywin32 None becomes VT_NULL; this IDispatch parameter needs a typed null.
+    require(call('IAnnotation.SetTextFormat.UseDoc', lambda: annotation.SetTextFormat(0, True, _null_dispatch())) is True,
+            'generated inheriting Note setup failed')
+
+
 def seed(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template):
     raw = output / 'raw'
     raw.mkdir(exist_ok=True)
@@ -114,8 +121,7 @@ def seed(app, output, constants, plane, reverse, call, case, report, live, *, pr
         annotation = call('INote.GetAnnotation', lambda: _com_value(note, 'GetAnnotation'))
         require(annotation is not None, 'generated Note has no annotation')
         if label == 'inherited':
-            require(call('IAnnotation.SetTextFormat.UseDoc', lambda: annotation.SetTextFormat(0, True, None)) is True,
-                    'generated inheriting Note setup failed')
+            set_inherited_format(annotation, call)
         else:
             obj = call('IAnnotation.GetTextFormat.local-seed', lambda: annotation.GetTextFormat(0))
             require(call('IAnnotation.SetTextFormat.local', lambda: annotation.SetTextFormat(0, False, obj)) is True,

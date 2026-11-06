@@ -121,7 +121,8 @@ class FontScopeCalibrationTests(unittest.TestCase):
         self.assertEqual(job.count("secrets.RCLONE_CONFIG_B64"), 1)
         for name in ("test", "package"):
             block = text.split("  " + name + ":", 1)[1].split("    steps:", 1)[0]
-            self.assertIn("!(github.event_name == 'workflow_dispatch' && inputs.calibrate_font_scopes)", block)
+            self.assertIn("needs: dispatch-policy", block)
+            self.assertIn("needs.dispatch-policy.outputs.validation_profile == 'standard'", block)
 
     def test_wrapper_is_limited_to_disposable_github_runner_and_exact_branch(self):
         text = (ROOT / "scripts/ci/windows/calibrate-font-scopes.ps1").read_text()

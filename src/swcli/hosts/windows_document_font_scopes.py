@@ -16,6 +16,7 @@ from .native_trace import native_call
 from .windows import _com_value, _error, _discover_com_registration
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
+from .windows_feature_inspection import _same
 
 
 class DocumentFontScopeConflict(RuntimeError):
@@ -83,11 +84,39 @@ def _read_fonts(document, constants):
     return objects, fonts, native
 
 
-def _verify_identity(app, document, foreground, edit, state, identity, *, changed=False):
+def _other_foreground_snapshot(app, document, foreground):
+    if foreground is None or _same(app, document, foreground):
+        return None
+    access = (_com_value(foreground, "IsOpenedReadOnly"), _com_value(foreground, "IsOpenedViewOnly"))
+    if any(type(value) is not bool for value in access):
+        raise RuntimeError("foreground document access is unreadable")
+    return {
+        "state": _state(foreground),
+        "identity": (_com_value(foreground, "GetPathName"), _com_value(foreground, "GetTitle")),
+        "edit": _edit_context(foreground), "access": access,
+    }
+
+
+def _verify_other_foreground(app, foreground, snapshot):
+    if snapshot is None:
+        return
+    identity = (_com_value(foreground, "GetPathName"), _com_value(foreground, "GetTitle"))
+    if identity != snapshot["identity"]:
+        raise RuntimeError("foreground document identity changed during font operation")
+    if _state(foreground) != snapshot["state"]:
+        raise RuntimeError("foreground document state changed during font operation")
+    access = (_com_value(foreground, "IsOpenedReadOnly"), _com_value(foreground, "IsOpenedViewOnly"))
+    if access != snapshot["access"]:
+        raise RuntimeError("foreground document access changed during font operation")
+    _verify_context(app, foreground, snapshot["edit"])
+
+
+def _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot, *, changed=False):
     if (_com_value(document, "GetPathName"), _com_value(document, "GetTitle")) != identity:
         raise RuntimeError("document font operation changed document identity")
     _verify_context(app, document, edit)
     _verify_metadata_state(app, document, state, foreground, changed=changed)
+    _verify_other_foreground(app, foreground, foreground_snapshot)
 
 
 def read_document_font_scopes_windows(*, app, document):
@@ -95,8 +124,9 @@ def read_document_font_scopes_windows(*, app, document):
     try:
         foreground, edit, state = _com_value(app, "ActiveDoc"), _edit_context(document), _state(document)
         identity = (_com_value(document, "GetPathName"), _com_value(document, "GetTitle"))
+        foreground_snapshot = _other_foreground_snapshot(app, document, foreground)
         _, fonts, _ = _read_fonts(document, _installed_constants())
-        _verify_identity(app, document, foreground, edit, state, identity)
+        _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot)
         result.update(ok=True, fonts=fonts)
     except Exception as exc:
         result["error"] = _error(exc)
@@ -157,13 +187,14 @@ def _apply_document_font_scope(*, app, document, scope, field, value, expected_f
         _require_writable(document)
         state = _state(document)
         identity = (_com_value(document, "GetPathName"), _com_value(document, "GetTitle"))
+        foreground_snapshot = _other_foreground_snapshot(app, document, foreground)
         constants = _installed_constants()
-        _verify_identity(app, document, foreground, edit, state, identity)
+        _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot)
         objects, before, native_before = _read_fonts(document, constants)
         result.update(scope=scope, field=field, before=before)
         if before != expected_fonts:
             raise DocumentFontScopeConflict("document font scopes no longer match the complete expected snapshot")
-        _verify_identity(app, document, foreground, edit, state, identity)
+        _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot)
         if font_requested_value_matches(before[scope], field, value):
             result.update(ok=True, changed=False, fonts=before)
             return result
@@ -172,7 +203,7 @@ def _apply_document_font_scope(*, app, document, scope, field, value, expected_f
         member = FONT_MEMBERS[field]
         native_value = value / 1000.0 if field == "height_mm" else value
         _require_writable(document)
-        _verify_identity(app, document, foreground, edit, state, identity)
+        _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot)
         result["mutation"] = {"attempted": True, "may_have_changed": True}
         native_call("document-font-scopes", "ITextFormat." + member + ".set",
                     lambda: setattr(objects[scope], member, native_value))
@@ -180,7 +211,7 @@ def _apply_document_font_scope(*, app, document, scope, field, value, expected_f
         property_state = _state(document)
         if (property_state[0], property_state[3]) != (state[0], state[3]):
             raise RuntimeError("font property assignment changed the document configuration")
-        _verify_identity(app, document, foreground, edit, property_state, identity)
+        _verify_identity(app, document, foreground, edit, property_state, identity, foreground_snapshot)
         preference, option = FONT_SCOPES[scope]
         returned = native_call("document-font-scopes", "IModelDocExtension.SetUserPreferenceTextFormat",
                                lambda: document.Extension.SetUserPreferenceTextFormat(
@@ -190,19 +221,19 @@ def _apply_document_font_scope(*, app, document, scope, field, value, expected_f
         post = _state(document)
         _, after, native_after = _read_fonts(document, constants)
         result["observed_fonts"] = after
-        _verify_identity(app, document, foreground, edit, post, identity)
+        _verify_identity(app, document, foreground, edit, post, identity, foreground_snapshot)
         if not font_requested_value_matches(after[scope], field, value):
             raise RuntimeError("native font scope did not read back the requested value and mode")
         font_native_normalizations(native_before[scope], native_after[scope], member)
         if any(native_after[key] != native_before[key] for key in FONT_SCOPES if key != scope):
             raise RuntimeError("native font setter changed an unrequested scope")
         _require_writable(document)
-        _verify_identity(app, document, foreground, edit, state, identity, changed=True)
+        _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot, changed=True)
         post = _state(document)
         _, final, native_final = _read_fonts(document, constants)
         if final != after or native_final != native_after:
             raise RuntimeError("font scopes changed while marking the document for saving")
-        _verify_identity(app, document, foreground, edit, post, identity)
+        _verify_identity(app, document, foreground, edit, post, identity, foreground_snapshot)
         result.update(ok=True, changed=True, fonts=after)
     except Exception as exc:
         result["error"] = _error(exc)

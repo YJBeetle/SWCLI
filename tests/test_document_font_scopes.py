@@ -61,7 +61,10 @@ class FontScopeTests(unittest.TestCase):
             IsOpenedViewOnly=lambda: False, SketchManager=SimpleNamespace(ActiveSketch=None),
             Extension=self.extension, SetSaveFlag=Mock(side_effect=lambda: setattr(self, "modified", True)))
         self.front = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: False, GetUpdateStamp=lambda: 1,
-                                     GetTitle=lambda: "Foreground", GetPathName=lambda: "")
+                                     GetTitle=lambda: "Foreground", GetPathName=lambda: "",
+                                     GetActiveConfiguration=lambda: SimpleNamespace(Name="ForegroundDefault"),
+                                     SketchManager=SimpleNamespace(ActiveSketch=None),
+                                     IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False)
         self.app = SimpleNamespace(ActiveDoc=self.front, GetDocuments=lambda: (self.document, self.front),
                                    IsSame=lambda a, b: int(a is b), ActivateDoc3=Mock())
         self.registry = DocumentRegistry(self.app)
@@ -143,6 +146,85 @@ class FontScopeTests(unittest.TestCase):
                 self.assertFalse(adapter._native_windows_runtime())
             with patch.object(adapter.ctypes, "WinDLL", create=True, side_effect=OSError("unknown runtime")):
                 self.assertFalse(adapter._native_windows_runtime())
+
+    def test_post_write_descriptor_failure_preserves_mutation_and_first_error(self):
+        original = self.registry.describe
+        count = [0]
+        def describe(*args, **kwargs):
+            count[0] += 1
+            if count[0] == 2:
+                raise RuntimeError("final descriptor failed")
+            return original(*args, **kwargs)
+        self.app.RevisionNumber = lambda: "33.5.0"
+        with patch.object(adapter, "_native_windows_runtime", return_value=True), \
+                patch.object(self.registry, "describe", side_effect=describe):
+            result = self.edit()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["mutation"], dict(attempted=True, may_have_changed=True))
+        self.assertEqual(result["error"]["message"], "final descriptor failed")
+        self.assertTrue(self.native["notes"]["Bold"])
+        self.assertTrue(self.modified)
+        self.extension.SetUserPreferenceTextFormat.assert_called_once()
+        validate_operation_result("document.font-scope-set", result)
+        # A later metadata problem must preserve an earlier native rejection.
+        self.setUp()
+        self.extension.SetUserPreferenceTextFormat.side_effect = RuntimeError("first native failure")
+        original = self.registry.describe
+        count[0] = 0
+        def fail_again(*args, **kwargs):
+            count[0] += 1
+            if count[0] == 2:
+                raise RuntimeError("secondary metadata failure")
+            return original(*args, **kwargs)
+        with patch.object(self.registry, "describe", side_effect=fail_again):
+            result = self.edit(internal=True)
+        self.assertEqual(result["error"]["message"], "first native failure")
+        self.assertEqual(result["warnings"][0]["message"], "secondary metadata failure")
+        self.assertTrue(result["mutation"]["may_have_changed"])
+
+    def test_other_foreground_state_and_identity_changes_reject_success_without_rollback(self):
+        changes = (("GetSaveFlag", lambda: True), ("GetTitle", lambda: "Changed foreground"),
+                   ("GetUpdateStamp", lambda: 99), ("GetPathName", lambda: "changed.SLDPRT"),
+                   ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Other")),
+                   ("IsOpenedReadOnly", lambda: True))
+        for name, changed in changes:
+            with self.subTest(name=name):
+                self.setUp()
+                original = self.commit
+                def commit(*args):
+                    returned = original(*args)
+                    setattr(self.front, name, changed)
+                    return returned
+                self.extension.SetUserPreferenceTextFormat.side_effect = commit
+                result = self.edit(internal=True)
+                self.assertFalse(result["ok"], result)
+                self.assertTrue(result["mutation"]["may_have_changed"])
+                self.assertTrue(self.native["notes"]["Bold"])
+                self.assertEqual(getattr(self.front, name)(), changed())
+                self.app.ActivateDoc3.assert_not_called()
+                self.extension.SetUserPreferenceTextFormat.assert_called_once()
+
+    def test_foreground_change_during_read_or_noop_is_not_silent_success(self):
+        original = self.get_font
+        def getter(*args):
+            font = original(*args)
+            self.front.GetSaveFlag = lambda: True
+            return font
+        self.extension.GetUserPreferenceTextFormat.side_effect = getter
+        result = self.operation("document.font-scopes")
+        self.assertFalse(result["ok"])
+        self.assert_no_mutation()
+        self.front.GetSaveFlag = lambda: False
+        result = self.edit(value=False, internal=True)
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["mutation"]["attempted"])
+        self.assert_no_mutation()
+
+    def test_active_target_is_allowed_to_change_its_own_dirty_flag(self):
+        self.app.ActiveDoc = self.document
+        result = self.edit(internal=True)
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(self.modified)
 
     def test_public_notes_profile_uses_the_guarded_native_implementation(self):
         self.app.RevisionNumber = lambda: "33.5.0"

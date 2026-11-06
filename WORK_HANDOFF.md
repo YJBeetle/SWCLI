@@ -126,3 +126,24 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 修复完整回归暴露的 capabilities 封闭 schema 接线，未把 metadata 改成任意 x-* 或 COM 字典。
 - 继承探针采用既有 `_com_value` 兼容无参 COM method/property 两种绑定，未改变几何/状态/继承断言。
 - 下一步仅针对新 head 执行一次 `calibrate_font_scopes=true,font_scopes_profile=public-notes,native_full=false`。当前仍非 merge-ready。
+
+
+## 公开 Notes 门禁已派发
+
+- 实现提交 `e17d7bed8101aead914b952eccbe13928028f535` 已推送。
+- [Public run 42274572361](https://github.com/YJBeetle/SWCLI/actions/runs/42274572361)，精确 head 同上；只派发一次 `calibrate_font_scopes=true,font_scopes_profile=public-notes,native_full=false`。
+- 用户已直接批准精确 Notes profile 和这一次公开门禁；前述授权阻塞已解决，不再等待常规推进确认。
+- 全量便携 1,870 项通过/32 跳过，专项 51 项，SDK 生成、capability/CLI 检查、actionlint 通过。
+- 公共结果待核原 artifact/digest/trace/save-reopen/Notes UseDoc 与局部完整快照。当前仍非 merge-ready，不自行合 main/发布。
+
+
+## 公开首失败与审查修复
+
+- Run [42274572361](https://github.com/YJBeetle/SWCLI/actions/runs/42274572361)，head `e17d7bed8101aead914b952eccbe13928028f535`，在继承夹具 seed 首失败，公开 CLI 与 observer 均未运行。
+- 原 artifact `13532858844`，ZIP SHA-256 `4126e58df265cf01ca3dbd4143906be78a0a813be9e36c485a39fb38a008e2ff`，独立核对一致；原 ZIP、元数据及解包文件保存在 `artifacts/font-scopes/`。
+- `IAnnotation.SetTextFormat(0, True, None)` 返回 COM Type mismatch（参数 3）。改用仓库既有 `_null_dispatch()` 提供 `VT_DISPATCH` 类型的空指针；一次调用，False/异常即停止，没有 fallback 或 API 重试。
+- 审查修复一：字体 handler 最终 describe、worker 上下文恢复/结果验证失败时保留可信 mutation receipt 和第一个业务错误，另附后置错误；逐请求重置 result，防止前一请求回执泄漏。
+- 审查修复二：另一个前台文档的 dirty/stamp、path/title、configuration、访问模式和编辑上下文在每个边界完整核对；不激活或回滚文档。目标本身位于前台时允许自身合法 dirty 改变。
+- 审查修复三：CI 首先执行无机密 dispatch-policy；错误分支、font+native_full、未选择字体入口的 public-notes 都明确失败，合法请求只进入一个验证路由，避免全部跳过的绿色运行。
+- 字体专项 64 项通过；完整便携回归 1,883 项通过、32 项跳过、57.981 秒，日志 `artifacts/font-scopes/portable-postreview-final.log`；SDK 生成检查与 actionlint 通过。
+- 下一步在修复后的精确 head 执行 public-notes 门禁，当前仍非 merge-ready；首失败不能升级为公开验收。

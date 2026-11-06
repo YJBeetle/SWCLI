@@ -443,7 +443,20 @@ def document_font_scope_set(context: OperationContext, values: Dict[str, Any]) -
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     result = set_document_font_scope_windows(app=context.app, document=context.entry.document, **values)
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        # The native boundary has already supplied a trustworthy receipt. A
+        # descriptor getter must not erase it or replace the first native error.
+        result["ok"] = False
+        detail = {"type": type(exc).__name__, "message": str(exc)}
+        if "error" in result:
+            result.setdefault("warnings", []).append({
+                "code": "font-document-postflight-failed", "message": str(exc)})
+        else:
+            result["error"] = detail
+        result["session_id"] = context.session_id
+        return result
 
 
 @_register_handler

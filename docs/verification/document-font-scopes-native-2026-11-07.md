@@ -50,3 +50,15 @@
 - 组耗时 55.480 秒，cleanup 无错，600/1800 预算不变。审计 JSON、原 ZIP、解包文件与元数据均保存于本工作树 `artifacts/font-scopes/`。
 - 内部校准不含既有 Notes 的 UseDoc/局部覆盖或公开 CLI 链路，因此**不能作为公开验收**。
 - 已准备 public-notes 门禁及明确受限的 Notes 范围补丁；自动审批要求对新公开写入能力直接具名授权，用户随后直接批准了原生 Windows 33.5.0/PRT ASM DRW/Notes 七字段及一次公开门禁，才应用该补丁。原生校准实现与公开复用实现已核对 AST 等同，公开 gate 仍待新 head 的结果。
+
+
+## 公开首失败与审查修复
+
+- Run [42274572361](https://github.com/YJBeetle/SWCLI/actions/runs/42274572361)，head `e17d7bed8101aead914b952eccbe13928028f535`，在继承夹具 seed 首失败，公开 CLI 与 observer 均未运行。
+- 原 artifact `13532858844`，ZIP SHA-256 `4126e58df265cf01ca3dbd4143906be78a0a813be9e36c485a39fb38a008e2ff`，独立核对一致；原 ZIP、元数据及解包文件保存在 `artifacts/font-scopes/`。
+- `IAnnotation.SetTextFormat(0, True, None)` 返回 COM Type mismatch（参数 3）。改用仓库既有 `_null_dispatch()` 提供 `VT_DISPATCH` 类型的空指针；一次调用，False/异常即停止，没有 fallback 或 API 重试。
+- 审查修复一：字体 handler 最终 describe、worker 上下文恢复/结果验证失败时保留可信 mutation receipt 和第一个业务错误，另附后置错误；逐请求重置 result，防止前一请求回执泄漏。
+- 审查修复二：另一个前台文档的 dirty/stamp、path/title、configuration、访问模式和编辑上下文在每个边界完整核对；不激活或回滚文档。目标本身位于前台时允许自身合法 dirty 改变。
+- 审查修复三：CI 首先执行无机密 dispatch-policy；错误分支、font+native_full、未选择字体入口的 public-notes 都明确失败，合法请求只进入一个验证路由，避免全部跳过的绿色运行。
+- 字体专项 64 项通过；完整便携回归 1,883 项通过、32 项跳过、57.981 秒，日志 `artifacts/font-scopes/portable-postreview-final.log`；SDK 生成检查与 actionlint 通过。
+- 下一步在修复后的精确 head 执行 public-notes 门禁，当前仍非 merge-ready；首失败不能升级为公开验收。

@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import test_document_font_scopes as portable
 
@@ -38,6 +38,18 @@ class FontScopesInheritanceTests(unittest.TestCase):
             GetFirstView=lambda: SimpleNamespace(GetFirstAnnotation3=lambda: inherited, GetNextView=lambda: None),
             GetTitle=lambda: 'generated', GetUpdateStamp=lambda: 7, GetSaveFlag=lambda: False,
             GetActiveConfiguration=lambda: SimpleNamespace(Name='Default'))
+
+    def test_inherited_font_uses_typed_dispatch_null_once_without_retry(self):
+        pointer = object()
+        annotation = SimpleNamespace(SetTextFormat=Mock(return_value=True))
+        with patch.object(observer, '_null_dispatch', return_value=pointer):
+            observer.set_inherited_format(annotation, lambda name, function: function())
+        annotation.SetTextFormat.assert_called_once_with(0, True, pointer)
+        annotation.SetTextFormat.reset_mock()
+        annotation.SetTextFormat.return_value = False
+        with patch.object(observer, '_null_dispatch', return_value=pointer), self.assertRaises(RuntimeError):
+            observer.set_inherited_format(annotation, lambda name, function: function())
+        annotation.SetTextFormat.assert_called_once_with(0, True, pointer)
 
     def test_enumerates_models_and_drawing_views_using_distinct_official_paths(self):
         for kind in (1, 2, 3):
