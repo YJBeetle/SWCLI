@@ -1,39 +1,41 @@
 # 有界旋转凸台工作交接
 
-## Scope
-- 分支 codex/swcli-revolve-feature；基线 3bda2c00489dde6a3d1e4521c548f751b1d1c197。
-- 最小候选：空零件、单个草图局部轴对齐矩形、独立且共面直线轴、单方向实心旋转凸台。
-- 不支持任意曲线、切除、扫描/放样、多实体、已有实体合并。原生校准前公共写入 fail closed。
-- 不占用本地 VM，不修改 DockerSW/MacSW/main/版本。
+当前：内部原生校准与独立原始证据核验通过。公共范围已按实证开放，公开CLI/daemon验收待dispatch；merge-ready=false。
+
+## Scope / 实现
+- 唯一worktree：/Users/YJBeetle/.codex/worktrees/swcli-revolve-feature/SWCLI；分支codex/swcli-revolve-feature；基线3bda2c00489dde6a3d1e4521c548f751b1d1c197。
+- 仅原生Windows / SOLIDWORKS revision 33.5.0；Wine、其他版本或未知平台继续RevolveNotCalibrated。
+- 空零件、单配置、已注册未吸收2D中心矩形、三标准原点平面；截面[0,min_y,radius,max_y]，明确左边轴[0,min_y,0,max_y]，显式360度。无任意曲线/切除/薄壁/部分角/多实体/已有实体合并。
+- 保持CLI→daemon→COM worker，CLI/protocol/生成SDK/MCP共用契约。document/stamp必填、lease保护、完整轮廓CAS、只读/配置/选择保护、后台临时激活恢复。
+- 原生创建尝试前设置partial mutation；首错误与返回句柄保留，注册/释放错误单独记录；几何实体作用域退休；不重试或自动CAD回滚。
+- feature.list/inspect既有契约仍只观察拉伸；旋转创建结果返回原生定义/轴/角度/exact feature_id，保存重开通过原生特征树、吸收轮廓和质量属性验证。
 
 ## 文件/接口
-- 将新增 feature.revolve 的 CLI/protocol/SDK/MCP 契约和 COM worker 内部校准路径；不改变现有操作。
-- 新增明确手动 targeted CI 输入（默认 false），保留默认门禁和 PR 秘密隔离。
-- 现有共享文件的变更在本分支独立实现，统筹应按最终 diff 协调。
+- 新增src/swcli/revolve_geometry.py、hosts/windows_revolves.py；修改daemon/operations.py、operation_schemas.py、result_schemas.py、cli.py、SDK生成文件、使用说明。
+- 新增内部verify-revolve-calibration.py、公开verify-revolve-public.py与针对性/消费端类型测试。
+- CI仅本分支明确手动targeted输入，默认false；internal/public/full互斥，保留PR秘密隔离、原有完整/发布门禁。
+- targeted独立concurrency：swcli-revolve-calibration-${github.ref} / swcli-revolve-public-${github.ref}，cancel-in-progress=false。默认full/release仍swcli-hosted-windows-solidworks；不取消他人run、不因排队重复dispatch。
 
-## 测试与证据
-- 初始 status 干净；HEAD 为基线；无 .codegraph 目录。
-- 官方 API 已定位 FeatureRevolve2 / IRevolveFeatureData2，尚待类型库及实际读回。
-- 便携：待执行。内部校准：待执行。公开验收：未通过，不应发布。
+## 便携验证
+- 首提交：1834项全套通过、26项平台跳过；15项旋转针对性及8项SDK类型负例通过。
+- 公开开门提交预检：1841项全套通过、26项平台跳过；23项旋转针对性通过（含其后新增的一项未知平面拒绝测试）；生成SDK严格类型及10项消费端拒绝通过；YAML/并发接线、py_compile、diff --check通过。
+- 持久日志：evidence/revolve/*.log；本地Python3.15隔离venv执行，临时环境不作主证据。未使用本地VM。
 
-## Commit / CI
-- 尚无功能提交或 dispatch。
+## 内部原生证据（已核验）
+- commit/head 32812cb0cf296918def0a9e34cb5a89335abdd3a（feat: 新增有界旋转凸台候选与独立原生校准），已push。
+- Run https://github.com/YJBeetle/SWCLI/actions/runs/42262911836，attempt1，success。
+- 参数ci.yml / ref codex/swcli-revolve-feature / native_revolve_calibration=true / native_full=false，其余既有默认。
+- 官方TLB实读：swEndCondBlind=0、swThinWallOneDirection=0、swRevolveTypeOneDirection=0、swSelSKETCHSEGS=10；20参数FeatureRevolve2签名与定义成员核对通过。
+- swconst.tlb SHA256 95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6；sldworks.tlb 585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159。
+- Windows artifact13526809695，原始ZIP SHA256 69aca5b8480ed3f14547ba36e85a23730b042068c32854b6e87541fa1eeb3ac1；run/artifact/report head一致，独立72项内容检查通过。
+- front/top/right三原生Revolution：2π、精确轴、boss/nonthin/merge/one-direction、单圆柱体积/表面积/质心全部符合；保存后实际文件字节哈希与只读重开定义/轮廓/质量属性/干净状态一致。
+- front.SLDPRT SHA256 d6a6c91eb55ef77c74615e9954e6857224178ab974c6605f834809bcdc9523f6；top e3f6076063e46a8a9edf5ebdd4998bb685b0373a3a262215be0dd28939275c75；right f32999f56a9ac9bce5c8900a1c3eaf461ca2ec8187a8f67f0629eee4419583b8。
+- 轴穿越实际轮廓、非矩形、多实体在原生创建前拒绝且状态不变。单宿主、无重试/组内重启；100操作边界/1270原生trace边界全部闭合，整组22.877秒，600/1800未放宽。
+- 原始ZIP/metadata/independent-review.json/extracted实际模型保存在evidence/revolve/ci/42262911836/；trace-review.json位于其extracted目录。
+- distribution artifact13526180904 digest3ac6ee654d2d2ce23b4ec809bb8f0e0b6878bc77ae5cfd2791a6d67ef687f794；wheel核心5模块字节与git head完全一致。package/portable3.9/3.14原始ZIP及digest也均已独立核。
 
-## 未完成边界
-- 实现、便携验证、一次对应 head 的 Windows 原生校准，保存重开/输出证据。
-
-## 实现阶段更新
-- 已完成最小候选：矩形边为明确轴、显式整圈360°、空零件/单配置；标准平面刚体变换及圆柱体积/面积/质心解析断言。
-- 公共 feature.revolve 契约覆盖 CLI/protocol/SDK/MCP，但公开写入明确返回 RevolveNotCalibrated；结果契约不允许 ok=true；无绕过开关。
-- 内部候选读官方 TLB 枚举与签名、验证精确轴身份/定义、partial mutation/cleanup，校准保存重开3个平面；非法轴穿越和多实体拒绝。
-- 已新增手动 targeted CI 输入 native_revolve_calibration，默认false，仅当前分支可执行；与native_full互斥。默认门禁保留。
-- 根据统筹反馈：targeted concurrency 改为 swcli-revolve-calibration-${github.ref}，cancel-in-progress=false；默认full/release组仍为 swcli-hosted-windows-solidworks。不取消他人run、不为等待重复dispatch。
-- 正在安装独立临时便携测试环境（系统 Python 缺 jsonschema），尚未提交/push/dispatch；证据主目录 evidence/revolve。
-- 便携阶段：15项针对性测试及 SDK 严格类型通过。全套回归发现新增 x-swcli-write-gate 元数据不符合既有严格能力 schema，已改为现有 title + failure-only result 表达，避免扩大共享 capability 接口；必填 document/stamp 仍保留。
-
-## 便携阶段完成（2026-11-07）
-- 15 项旋转针对性测试通过；全套 1834 项通过、26 项平台条件跳过（本地 Python 3.15）。
-- SDK 生成一致性、严格实现类型和8项消费端拒绝通过；YAML解析、targeted并发接线与git diff --check通过。
-- 本地 venv 已 editable 安装，隔离 -I 子进程契约也通过。完整日志见 evidence/revolve/*.log（持久保留，不提交噪声日志）。
-- 公开范围仍未开放，merge-ready=false。内部校准后继续公开 CLI→daemon→COM 验收，不以候选/内部成功代替公开完成。
-- 准备中文功能提交并push自己分支；随后仅对该head dispatch一次 native_revolve_calibration=true/native_full=false。
+## 公开验收 / 未完成边界
+- 脚本只用公开CLI及现有daemon生命周期；独立单宿主、600秒请求/1800秒组，无组内重启/重试。
+- 计划三平面成功、lease/stamp/foreign sketch/完整值CAS拒绝、只读拒绝、轴穿越/非矩形/多实体拒绝、实际输出字节hash、只读重开特征树/吸收轮廓/质量属性/健康状态。
+- 待本次中文提交与push后，仅dispatch对应head一次：native_revolve_public=true、native_revolve_calibration=false、native_full=false。
+- 尚未形成公开原生通过证据，不能合入或宣布完成。通过后核原ZIP/head/digest/trace/save-reopen并给统筹精确可合commit；本对话不合main/改版本/发版，不修改DockerSW/MacSW/指针。

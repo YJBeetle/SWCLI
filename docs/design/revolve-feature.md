@@ -1,7 +1,8 @@
 # 有界旋转凸台：第一步候选与校准
 
-状态：公共写入 **关闭**。`feature.revolve` 当前只能返回
-`RevolveNotCalibrated`，`ok=true` 不符合结果契约。内部校准成功也不等于公开验收。
+状态：内部原生校准及独立原始产物核验通过，公共写入仅对原生 Windows / SOLIDWORKS
+`33.5.0` 开放以下范围；Wine、其他版本或不可辨认平台返回 `RevolveNotCalibrated`。
+公开 CLI/daemon 原生验收待执行，merge-ready=false。内部成功不等于公开验收。
 未改变版本、正式分支、发布门禁或默认完整验收集合。
 
 ## 最小范围
@@ -22,8 +23,8 @@ swcli feature revolve s-abcdef --document d-abcdef --if-update-stamp 12 \
 
 SDK 的 `client.feature.revolve`、协议与 MCP `execute` 使用同一契约。
 完整 `expected_profile_mm` 用作轮廓值 CAS；`document_id` 和
-`expected_update_stamp` 必填，沿用 daemon lease 检查。关闭的公共调用不会临时激活
-后台文档；也没有公共开关、环境变量或请求参数能绕过写入门禁。
+`expected_update_stamp` 必填，沿用 daemon lease 检查。公共写入在 daemon 里临时激活精确文档并恢复原前台和会话身份；没有公共开关、
+环境变量或请求参数能绕过平台/版本、完整几何值及单实体范围保护。
 
 ## 官方接口依据
 
@@ -57,5 +58,19 @@ PR 或普通 push 不能进入有秘密的原生任务；现有完整原生与�
 
 - 便携：`tests/test_revolve.py` 和全套 unit / SDK 检查；不能证明 COM 可用。
 - 内部校准：`scripts/ci/verify-revolve-calibration.py`，原始 report、trace、模型与 ZIP。
-- 公开验收：尚未完成。未来开门需真实客户端→daemon→COM worker 的原生保存重开证据，
-  包括 lease、stamp、后台身份与只读拒绝；本分支不会因为内部校准而自动开门。
+- 公开验收：尚未完成。`native_revolve_public=true,native_revolve_calibration=false,native_full=false`
+  使用独立 swcli-revolve-public-${github.ref} 并发组及同一600/1800预算；真实 CLI→daemon→COM worker
+  验证 lease、stamp、后台身份、只读拒绝、轮廓CAS、保存重开与实际字节哈希。
+
+## 已核验内部证据
+
+[Run 42262911836](https://github.com/YJBeetle/SWCLI/actions/runs/42262911836)，head
+`32812cb0cf296918def0a9e34cb5a89335abdd3a`，artifact 13526809695，原始ZIP SHA256
+`69aca5b8480ed3f14547ba36e85a23730b042068c32854b6e87541fa1eeb3ac1`。
+独立72项检查一致；三平面均保留原生Revolution定义、精确轴、2π角度、单圆柱的体积/面积/质心；
+保存重开字节哈希及只读干净状态一致。trace闭合，单宿主，整组22.877秒，无重试/组内重启。
+官方TLB实读：swEndCondBlind=0、swThinWallOneDirection=0、swRevolveTypeOneDirection=0、swSelSKETCHSEGS=10。
+原始ZIP、独立核验JSON与实际SLDPRT在 evidence/revolve/ci/42262911836/ 中持久保留。
+
+`feature.list/inspect` 仍按既有契约仅观察拉伸；此任务不扩张为任意特征编辑。
+旋转创建结果含已验证定义/轴/角度与exact feature_id，保存重开通过原生特征树、吸收轮廓及质量属性验证。

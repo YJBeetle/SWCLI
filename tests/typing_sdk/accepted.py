@@ -21,6 +21,9 @@ def workflows(client: Client) -> FileReceipt:
     client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0, "y": 0.0}, {"x": 1.0, "y": 0.0}, {"x": 0.0, "y": 1.0}])
     client.document.render(output="preview.bmp", include_content=True)
     client.feature.extrude(sketch_id="s-ab12cd", depth_mm=10.0)
+    client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0],
+                           axis_mm=[0.0, -5.0, 0.0, 15.0], angle_deg=360.0,
+                           document_id="d-ab12cd", expected_update_stamp=12)
     client.workspace.download_begin(path="models/part.SLDPRT")
     return client.files.download("models/part.SLDPRT", "received/part.SLDPRT")
 

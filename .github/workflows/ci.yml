@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      native_revolve_public:
+        description: Bounded revolve public CLI/daemon acceptance on codex/swcli-revolve-feature only
+        required: false
+        default: false
+        type: boolean
       native_revolve_calibration:
         description: Internal bounded revolve calibration on codex/swcli-revolve-feature only (not public acceptance)
         required: false
@@ -238,13 +243,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.native_revolve_calibration && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
@@ -255,9 +260,10 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Reject conflicting manual scopes
-        if: ${{ inputs.native_revolve_calibration && inputs.native_full }}
+        if: ${{ (inputs.native_revolve_calibration && inputs.native_full) || (inputs.native_revolve_public && (inputs.native_full || inputs.native_revolve_calibration)) }}
         shell: powershell
-        run: throw "Choose internal revolve calibration or full acceptance, never both"
+        run: |
+          throw "Choose exactly one native scope: full, internal revolve calibration, or public revolve acceptance"
 
       - name: Download built SWCLI distributions
         id: native_distribution
@@ -405,8 +411,18 @@ jobs:
             --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Revolve calibration failed; preserve original report and ZIP; no automatic retry" }
 
+      - name: Verify bounded revolve through public CLI and daemon
+        id: revolve_public
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_revolve_public && !inputs.native_revolve_calibration && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-revolve-feature' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-revolve-public.py --output-dir "$env:SWCLI_SMOKE_ROOT\revolve-public"
+          if ($LASTEXITCODE -ne 0) { throw "Public revolve acceptance failed; preserve original evidence; no automatic retry" }
+
       - name: Prepare property fixtures for public CLI verification
-        if: ${{ !inputs.native_revolve_calibration }}
+        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: property_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -418,7 +434,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
-        if: ${{ !inputs.native_revolve_calibration }}
+        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: annotation_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -432,7 +448,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
-        if: ${{ !inputs.native_revolve_calibration }}
+        if: ${{ !inputs.native_revolve_calibration && !inputs.native_revolve_public }}
         id: native_tests
         shell: powershell
         run: |
@@ -472,6 +488,10 @@ jobs:
         run: |
           if ("${{ inputs.native_revolve_calibration }}" -eq "true") {
             "Internal revolve calibration only; see revolve-calibration/report.json. Public acceptance is false."
+            exit 0
+          }
+          if ("${{ inputs.native_revolve_public }}" -eq "true") {
+            "Bounded revolve public acceptance only; see revolve-public/revolve-public.json; not complete full acceptance."
             exit 0
           }
           $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"

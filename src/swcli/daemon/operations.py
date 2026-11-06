@@ -1234,11 +1234,40 @@ def feature_revolve(context: OperationContext, values: Dict[str, Any]) -> Dict[s
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
     sketch = context.documents.resolve_sketch(context.entry, values["sketch_id"])
-    result, feature = create_revolve_windows_with_handle(
-        app=context.app, document=context.entry.document, sketch_feature=sketch,
-        expected_profile_mm=values["expected_profile_mm"], axis_mm=values["axis_mm"],
-        angle_deg=values["angle_deg"])
+    try:
+        result, feature = create_revolve_windows_with_handle(
+            app=context.app, document=context.entry.document, sketch_feature=sketch,
+            expected_profile_mm=values["expected_profile_mm"], axis_mm=values["axis_mm"],
+            angle_deg=values["angle_deg"])
+    except Exception:
+        # An unexpected adapter exception has no trustworthy write boundary.
+        if context.entry.entities is not None:
+            context.entry.entities.retire_scope()
+        raise
     result["sketch_id"] = values["sketch_id"]
+    if context.entry.entities is not None and (
+        result["mutation"]["may_have_changed"] or result.get("cleanup_errors")
+    ):
+        context.entry.entities.retire_scope()
+    if feature is not None:
+        try:
+            feature_id = context.documents.register_feature(context.entry, feature)
+            result.setdefault("feature", {})["feature_id"] = feature_id
+        except Exception as exc:
+            result["ok"] = False
+            result.setdefault("cleanup_errors", []).append(
+                {"stage": "register-created-feature", "error": str(exc)}
+            )
+            result.setdefault("error", {
+                "type": "FeatureRegistrationFailed",
+                "message": "revolve returned an object but its exact handle could not be registered",
+            })
+    elif result.get("ok"):
+        result["ok"] = False
+        result["error"] = {
+            "type": "FeatureCreationHandleUnavailable",
+            "message": "revolve cannot succeed without retaining the exact created feature",
+        }
     return result
 
 

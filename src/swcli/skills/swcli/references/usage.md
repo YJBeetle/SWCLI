@@ -693,12 +693,24 @@ terminal result, including failure; a genuinely new retry needs a new ID.
 This bounded in-memory cache is lost on daemon restart, not a durable
 exactly-once log. Unknown outcomes require inspection, not blind retries.
 
-### Bounded revolve candidate
+### Bounded revolve boss
 
-`feature.revolve` is an experimental contract whose public write gate is closed.
-It returns `RevolveNotCalibrated` without creating CAD geometry. Inspect the
-operation schema's title and failure-only result contract before use. The only internal candidate
-is a full 360-degree solid revolution of a center rectangle about its explicit
-left profile edge, in an empty single-configuration part. Complete rectangle
-bounds, explicit axis endpoints, document ID and expected update stamp are
-required. No CLI/SDK/MCP option enables uncalibrated native writes.
+`feature.revolve` supports only native Windows SOLIDWORKS revision `33.5.0`.
+Use an empty single-configuration part with a registered unabsorbed center
+rectangle on a standard origin plane. Supply complete expected bounds
+`[0,min_y,radius,max_y]`, explicit left-edge axis `[0,min_y,0,max_y]`, `angle_deg=360`,
+a document ID and expected update stamp. Writes obey document leases, verify
+native definition/axis and independent cylinder mass properties, preserve
+partial mutation and the first error, and restore the previous foreground.
+Wine, other revisions, other axes/profiles/angles and existing bodies fail closed.
+No request flag or environment variable enables an unsupported native write.
+
+```sh
+swcli feature revolve SKETCH_ID --document DOCUMENT_ID --if-update-stamp STAMP \
+  --expected-profile-mm 0 -5 10 15 --axis-mm 0 -5 0 15 --angle-deg 360 --json
+```
+
+The Python SDK uses `client.feature.revolve`; MCP uses generic `execute` with
+the same protocol parameters and context. Inspect operation schemas first.
+The existing `feature.list/inspect` scope remains part extrusions; revolve
+creation returns its exact feature handle and verified definition evidence.

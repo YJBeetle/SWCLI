@@ -3,6 +3,7 @@
 from copy import deepcopy
 import importlib.util
 import math
+import contextlib
 from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
@@ -60,8 +61,8 @@ class ContractTests(unittest.TestCase):
     def test_request_requires_document_stamp_and_complete_geometry(self):
         spec=OPERATION_CATALOG['feature.revolve']
         self.assertTrue(spec.lease_guarded)
-        self.assertFalse(spec.temporary_activation)
-        self.assertIn('public write gate closed',spec.parameters['title'])
+        self.assertTrue(spec.temporary_activation)
+        self.assertIn('native Windows SW 33.5.0',spec.parameters['title'])
         schema=Draft202012Validator(spec.parameters)
         self.assertTrue(schema.is_valid(VALUES))
         for context in ({},{'document_id':'d-ab12cd'},{'expected_update_stamp':1}):
@@ -85,7 +86,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(execute.call_args.args,('feature.revolve',VALUES))
         self.assertEqual(execute.call_args.kwargs['expected_update_stamp'],12)
 
-    def test_public_gate_does_not_observe_or_mutate_com_and_success_cannot_validate(self):
+    def test_unknown_native_scope_does_not_observe_or_mutate_com_or_fake_success(self):
         result,feature=worker.create_revolve_windows_with_handle(app=object(),document=object(),sketch_feature=object(),
             **{k:v for k,v in VALUES.items() if k!='sketch_id'})
         self.assertIsNone(feature)
@@ -118,6 +119,19 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(call.call_args.kwargs['document_id'],'d-ab12cd')
         for key in ('document_id','expected_update_stamp','lease_id'):
             self.assertIn(key,schema['properties'])
+
+
+class PlatformScopeTests(unittest.TestCase):
+    def test_only_the_exact_native_windows_revision_is_eligible(self):
+        app=NS(RevisionNumber='33.5.0')
+        with mock.patch('sys.platform','win32'),mock.patch('ctypes.WinDLL',create=True,return_value=NS()):
+            self.assertEqual(worker._native_constants(app),worker._CALIBRATED_CONSTANTS)
+            app.RevisionNumber='33.4.0'
+            self.assertIsNone(worker._native_constants(app))
+        with mock.patch('sys.platform','win32'),mock.patch('ctypes.WinDLL',create=True,return_value=NS(wine_get_version=object())):
+            self.assertIsNone(worker._native_constants(NS(RevisionNumber='33.5.0')))
+        with mock.patch('sys.platform','win32'),mock.patch('ctypes.WinDLL',create=True,side_effect=OSError('unknown platform')):
+            self.assertIsNone(worker._native_constants(app))
 
 
 class CandidateTests(unittest.TestCase):
@@ -165,6 +179,21 @@ class CandidateTests(unittest.TestCase):
         self.assertEqual(self.selected,[])
         self.definition.ReleaseSelectionAccess.assert_called_once()
 
+    def test_success_result_requires_independent_geometry_angle_and_exact_handle(self):
+        from test_result_schemas import DOCUMENT
+        from test_windows_features import DIAGNOSTICS
+        result,feature=self.call()
+        result.update(sketch_id=VALUES['sketch_id'],document=DOCUMENT,diagnostics=DIAGNOSTICS)
+        result['feature']['feature_id']='f-ab12cd'
+        result['definition'].update(kind=0,axis_type=10)
+        validate_operation_result('feature.revolve',result)
+        for mutate in (lambda r:r['definition'].update(angle_rad=math.pi),
+                       lambda r:r['metrics'].update(volume_mm3=1),
+                       lambda r:r['metrics']['centroid_mm'].update(z=2),
+                       lambda r:r['feature'].pop('feature_id')):
+            changed=deepcopy(result);mutate(changed)
+            with self.assertRaises(OperationResultInvalid):validate_operation_result('feature.revolve',changed)
+
     def test_partial_native_mutation_retains_first_error_and_handle_without_retry(self):
         self.definition.GetRevolutionAngle=lambda forward:math.pi
         self.definition.ReleaseSelectionAccess.side_effect=RuntimeError('second release error')
@@ -185,6 +214,16 @@ class CandidateTests(unittest.TestCase):
             self.assertIsNone(feature)
             self.assertEqual(result['mutation'],dict(attempted=True,creation_returned=False,may_have_changed=True))
             self.create.assert_called_once()
+
+    def test_uncalibrated_origin_plane_frame_refuses_before_native_creation(self):
+        c=math.sqrt(0.5)
+        self.sketch.ModelToSketchTransform.ArrayData=[c,c,0,-c,c,0,0,0,1,0,0,0,1,0,0,0]
+        result,feature=self.call()
+        self.assertEqual(result['error']['type'],'UnsupportedRevolvePlane')
+        self.assertFalse(any(result['mutation'].values()))
+        self.assertIsNone(feature)
+        self.create.assert_not_called()
+        self.assertEqual(self.selected,[])
 
     def test_readonly_multibody_and_profile_cas_refuse_before_selection(self):
         for field,value,error in (('IsOpenedReadOnly',True,'DocumentReadOnly'),
@@ -213,6 +252,14 @@ class DaemonGuardTests(unittest.TestCase):
         self.feature=object()
         patch=mock.patch.object(self.registry,'resolve_sketch',return_value=self.feature)
         self.resolve=patch.start();self.addCleanup(patch.stop)
+        @contextlib.contextmanager
+        def activation(entry):
+            previous=self.app.ActiveDoc
+            self.app.ActiveDoc=entry.document
+            try:yield []
+            finally:self.app.ActiveDoc=previous
+        patch=mock.patch.object(self.registry,'temporarily_activate',side_effect=activation)
+        self.activate=patch.start();self.addCleanup(patch.stop)
 
     def call(self,**context):
         from swcli.daemon.operations import execute_operation
@@ -228,6 +275,19 @@ class DaemonGuardTests(unittest.TestCase):
             with self.assertRaises(DocumentLeaseConflict):self.call()
         adapter.assert_not_called()
         self.app.ActivateDoc3.assert_not_called()
+
+    def test_partial_creation_and_registration_failure_keep_first_error_and_mutation(self):
+        partial=dict(ok=False,action='feature.revolve',mutation=dict(attempted=True,creation_returned=True,may_have_changed=True),
+                     cleanup_errors=[],feature=dict(name='Revolve',type='Revolution'),
+                     error=dict(type='FirstNativeFailure',message='original verification failed'))
+        with mock.patch.object(worker,'create_revolve_windows_with_handle',return_value=(partial,object())), \
+             mock.patch.object(self.registry,'register_feature',side_effect=RuntimeError('secondary registration failure')), \
+             mock.patch.object(self.entry.entities,'retire_scope') as retire:
+            result=self.call()
+        self.assertEqual(result['error'],dict(type='FirstNativeFailure',message='original verification failed'))
+        self.assertTrue(all(result['mutation'].values()))
+        self.assertEqual(result['cleanup_errors'],[dict(stage='register-created-feature',error='secondary registration failure')])
+        retire.assert_called_once()
 
     def test_closed_background_call_preserves_foreground_and_current_session(self):
         result=self.call()
@@ -257,6 +317,18 @@ class WiringTests(unittest.TestCase):
         summary=workflow.split('      - name: Summarize public test evidence',1)[1].split('      - name:',1)[0]
         self.assertIn('if: always()',summary)
         self.assertLess(summary.index('exit 0'),summary.index('--scope windows-installed-full'))
+
+    def test_public_ci_is_default_off_exact_branch_and_has_its_own_profile(self):
+        workflow=(ROOT/'.github/workflows/ci.yml').read_text()
+        declaration=workflow.split('      native_revolve_public:',1)[1].split('      native_revolve_calibration:',1)[0]
+        self.assertIn('default: false',declaration)
+        step=workflow.split('      - name: Verify bounded revolve through public CLI and daemon',1)[1].split('      - name:',1)[0]
+        for value in ("github.event_name == 'workflow_dispatch'",'inputs.native_revolve_public',
+                      '!inputs.native_revolve_calibration','!inputs.native_full',
+                      "github.ref == 'refs/heads/codex/swcli-revolve-feature'",'timeout-minutes: 31'):
+            self.assertIn(value,step)
+        self.assertIn("inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref)",workflow)
+        self.assertIn('not complete full acceptance',workflow)
 
     def test_calibration_retains_full_turn_oracles_and_fails_on_first_error_without_retry(self):
         script=(ROOT/'scripts/ci/verify-revolve-calibration.py').read_text()

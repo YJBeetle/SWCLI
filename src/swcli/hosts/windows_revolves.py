@@ -1,4 +1,4 @@
-"""Bounded revolve candidate on the owning COM STA; public writes fail closed.
+"""Bounded, calibrated native Windows revolve on the owning COM STA.
 
 Internal calibration uses the same candidate without creating a public bypass.
 No retries, rollback, save, implicit sketch edit or preference changes.
@@ -16,6 +16,36 @@ from .windows_feature_selections import _null_dispatch
 from .windows_measurements import measure_part_windows
 from .windows_rectangle_profiles import observe_rectangle_profile, _point_mm
 from .windows_sketches import _unabsorbed_profile
+
+
+
+# Official SW2025 SP5 TLB + native save/reopen calibration:
+# head 32812cb, run 42262911836, artifact 13526809695,
+# sha256:69aca5b8480ed3f14547ba36e85a23730b042068c32854b6e87541fa1eeb3ac1.
+_CALIBRATED_CONSTANTS = {"swEndCondBlind": 0, "swThinWallOneDirection": 0,
+                         "swRevolveTypeOneDirection": 0, "swSelSKETCHSEGS": 10}
+_CALIBRATED_FRAMES = (
+    (1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0),
+    (1,0,0,0,0,1,0,-1,0,0,0,0,1,0,0,0),
+    (0,0,1,0,1,0,-1,0,0,0,0,0,1,0,0,0),
+)
+
+
+def _native_constants(app):
+    """Exact tested native Windows revision only; unknown detection closes."""
+    import ctypes
+    import sys
+    if sys.platform != "win32":
+        return None
+    try:
+        library = ctypes.WinDLL("ntdll")
+        if getattr(library, "wine_get_version", None) is not None:
+            return None
+        if _com_value(app, "RevisionNumber") != "33.5.0":
+            return None
+    except (AttributeError, OSError):
+        return None
+    return dict(_CALIBRATED_CONSTANTS)
 
 
 def _require(condition, code, message):
@@ -71,17 +101,23 @@ def observe_revolve_definition(app, document, feature, axis, constants, evidence
 
 def create_revolve_windows_with_handle(*, app, document, sketch_feature,
         expected_profile_mm, axis_mm, angle_deg):
-    """Public adapter remains closed until separate public native acceptance."""
+    """Use only the version/platform and profile proven by native calibration."""
     validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg)
-    return (dict(ok=False, action="feature.revolve",
-        mutation=dict(attempted=False, creation_returned=False, may_have_changed=False),
-        cleanup_errors=[], error=dict(type="RevolveNotCalibrated",
-        message="bounded revolve public writes require native calibration and public acceptance")), None)
+    constants = _native_constants(app)
+    if constants is None:
+        return (dict(ok=False, action="feature.revolve",
+            mutation=dict(attempted=False, creation_returned=False, may_have_changed=False),
+            cleanup_errors=[], error=dict(type="RevolveNotCalibrated",
+            message="bounded revolve is calibrated only for native Windows SOLIDWORKS revision 33.5.0")), None)
+    return _calibrate_revolve_windows_with_handle(
+        app=app, document=document, sketch_feature=sketch_feature,
+        expected_profile_mm=expected_profile_mm, axis_mm=axis_mm, angle_deg=angle_deg,
+        constants=constants)
 
 
 def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
         expected_profile_mm, axis_mm, angle_deg, constants):
-    """Internal candidate only. Runtime constants come from the official TLB."""
+    """Shared private creation primitive; constants are official and calibrated."""
     result = dict(ok=False, action="feature.revolve", expected_profile_mm=list(expected_profile_mm),
                   axis_mm=list(axis_mm), angle_deg=angle_deg,
                   mutation=dict(attempted=False, creation_returned=False, may_have_changed=False), cleanup_errors=[])
@@ -136,6 +172,9 @@ def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
                             for q in wanted) for p in observed_axis),
                  "RevolveAxisMismatch", "axis endpoints do not match explicit edge intent")
         transform = list(_com_value(_com_value(sketch, "ModelToSketchTransform"), "ArrayData"))
+        _require(len(transform) == 16 and any(all(math.isclose(a, b, rel_tol=0, abs_tol=1e-12)
+                     for a, b in zip(transform, frame)) for frame in _CALIBRATED_FRAMES),
+                 "UnsupportedRevolvePlane", "only the three calibrated origin-plane frames are supported")
         expected = cylinder_expectation(expected_profile_mm, transform)
         result.update(model_to_sketch_transform=transform, expected_metrics=expected)
         ready, ready_edit, ready_foreground = _state(app, document)

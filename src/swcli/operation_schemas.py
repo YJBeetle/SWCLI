@@ -460,7 +460,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "angle_deg": _number(minimum=360, maximum=360),
         },
         required=("sketch_id", "expected_profile_mm", "axis_mm", "angle_deg"),
-        # Closed public gate does not temporarily activate or observe COM.
+        temporary_activation=True,
         document_id="required", expected_update_stamp="required", lease_id="optional",
     ),
     "feature.fillet": _operation(
@@ -517,7 +517,7 @@ for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
 
 OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
-    "SWCLI feature.revolve parameters (public write gate closed: RevolveNotCalibrated)"
+    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; 360 degrees)"
 )
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}

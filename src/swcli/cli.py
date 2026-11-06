@@ -540,7 +540,7 @@ def build_parser() -> argparse.ArgumentParser:
     fillet_parser.add_argument("--json", action="store_true", dest="as_json")
 
     revolve_parser = feature_commands.add_parser(
-        "revolve", help="bounded revolve contract (public native writes currently closed)"
+        "revolve", help="revolve a center rectangle 360 degrees about its explicit left edge (native Windows SW 33.5.0)"
     )
     revolve_parser.add_argument("sketch_id")
     revolve_parser.add_argument("--expected-profile-mm", type=float, nargs=4, required=True,

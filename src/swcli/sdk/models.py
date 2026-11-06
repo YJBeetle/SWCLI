@@ -2193,41 +2193,59 @@ class FeatureRevolveParameters(TypedDict):
     angle_deg: float
 
 
-class FeatureRevolveResultError(TypedDict):
-    type: Literal['RevolveNotCalibrated']
-    message: str
-
-
 class FeatureRevolveResultMutation(TypedDict):
-    attempted: Literal[False]
-    creation_returned: Literal[False]
-    may_have_changed: Literal[False]
+    attempted: bool
+    creation_returned: bool
+    may_have_changed: bool
+
+
+class FeatureRevolveResultFeature(TypedDict, total=False):
+    name: str
+    type: Literal['Revolution']
+    feature_id: str
+
+
+class FeatureRevolveResultDefinition(TypedDict, total=False):
+    cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
+    angle_rad: float
+    reverse: bool
+    kind: int
+    boss: bool
+    thin: bool
+    merge: bool
+    axis_type: int
+    contour_count: int
+    axis_matches: bool
 
 
 class _FeatureRevolveResultRequired(TypedDict):
-    ok: Literal[False]
+    ok: bool
     action: Literal['feature.revolve']
     sketch_id: str
     mutation: FeatureRevolveResultMutation
-    cleanup_errors: List[str]
+    cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
 
 
 class FeatureRevolveResult(_FeatureRevolveResultRequired, total=False):
     document: DocumentState
     session_id: str
     warnings: List[DocumentCreateResultWarningsItem]
-    error: FeatureRevolveResultError
+    error: DocumentCreateResultError
+    expected_profile_mm: List[float]
+    axis_mm: List[float]
+    angle_deg: float
+    feature: FeatureRevolveResultFeature
+    definition: FeatureRevolveResultDefinition
+    model_to_sketch_transform: List[float]
+    expected_metrics: FeatureSetDepthResultMeasurementBefore
+    metrics: FeatureSetDepthResultMeasurementBefore
+    diagnostics: DocumentCreateResultDiagnostics
+    verified: bool
 
 
 class FeatureFilletParameters(TypedDict):
     entity_id: str
     radius_mm: float
-
-
-class FeatureFilletResultMutation(TypedDict):
-    attempted: bool
-    creation_returned: bool
-    may_have_changed: bool
 
 
 class FeatureFilletResultFeature(TypedDict, total=False):
@@ -2256,7 +2274,7 @@ class FeatureFilletResult(_FeatureFilletResultRequired, total=False):
     warnings: List[DocumentCreateResultWarningsItem]
     error: DocumentCreateResultError
     radius_mm: float
-    mutation: FeatureFilletResultMutation
+    mutation: FeatureRevolveResultMutation
     feature: FeatureFilletResultFeature
     verification: FeatureFilletResultVerification
     rebuilt: bool

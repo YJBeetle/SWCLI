@@ -9,3 +9,8 @@
 - 公开验收：未完成，公共写入保持关闭。
 
 临时 venv 只用于执行；主证据不以 tmp 为存放地。没有使用本地 VM。
+
+内部run 42262911836成功且原始ZIP已独立72项核验；digest
+`69aca5b8480ed3f14547ba36e85a23730b042068c32854b6e87541fa1eeb3ac1`。
+三个实际SLDPRT和完整定义/重开/trace证据在 `ci/42262911836/`。
+公共范围仅原生Windows SW33.5.0，公开CLI/daemon原生验收待执行，merge-ready=false。
