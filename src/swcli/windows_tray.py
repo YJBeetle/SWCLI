@@ -7,6 +7,7 @@ not acquire GUI dependencies.
 
 import ctypes
 import json
+from importlib.resources import as_file, files
 import os
 import queue
 import sys
@@ -281,7 +282,11 @@ class Win32TrayView:
         win32gui.RegisterClass(window_class)
         try:
             self.hwnd = win32gui.CreateWindow(name, "SWCLI", 0, 0, 0, 0, 0, 0, 0, instance, None)
-            self.icon = win32gui.LoadIcon(None, win32con.IDI_APPLICATION)
+            icon_resource = files("swcli").joinpath("assets").joinpath("swcli.ico")
+            with as_file(icon_resource) as icon_path:
+                self.icon = win32gui.LoadImage(None, str(icon_path), win32con.IMAGE_ICON,
+                    win32api.GetSystemMetrics(win32con.SM_CXSMICON),
+                    win32api.GetSystemMetrics(win32con.SM_CYSMICON), win32con.LR_LOADFROMFILE)
             if closed.is_set():
                 return
             self._icon(win32gui.NIM_ADD)
@@ -290,4 +295,7 @@ class Win32TrayView:
         finally:
             if self.hwnd is not None:
                 win32gui.DestroyWindow(self.hwnd)
+            if getattr(self, "icon", None) is not None:
+                win32gui.DestroyIcon(self.icon)
+                self.icon = None
             win32gui.UnregisterClass(name, instance)

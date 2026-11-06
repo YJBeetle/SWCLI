@@ -36,6 +36,9 @@ def verify_console_version(command, installed_version):
 
 
 def main():
+    icon = files("swcli").joinpath("assets").joinpath("swcli.ico").read_bytes()
+    if not icon.startswith(b"\x00\x00\x01\x00"):
+        raise RuntimeError("installed Windows notification icon is missing or invalid")
     installed = distribution("swcli")
     installed_version = installed.version
     verify_console_version(console_entrypoint(installed), installed_version)
