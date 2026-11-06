@@ -19,4 +19,18 @@
 - 安装包资源检查通过（无 COM 激活）；workflow YAML 与校准脚本语法检查通过；git diff --check 通过。
 - 首次完整运行的 CI 接线断言失败已修复；isolated Python 未安装包的问题通过 editable 安装解决，最终完整运行通过。
 
-提交与唯一必要原生 CI 的链接/head/参数待推送后补充。
+## 操作 / schema / 共享文件
+
+- `document.line-font` → `swcli document line-font`；结果 `options` 是四字段完整 native integer map。
+- `document.line-font-set` → `swcli document line-font-set FIELD VALUE --if-options JSON`；输入 `field`、`value`、`expected_options`，context 沿用 document_id / expected_update_stamp / lease_id；回执 field / before / options / changed / mutation。
+- 四字段：visible_edges.style / visible_edges.weight / hidden_edges.style / hidden_edges.weight。
+- 共享修改：`src/swcli/operation_schemas.py`、`result_schemas.py`、`cli.py`、`daemon/operations.py`、生成 SDK `_generated.py` / `models.py`、`.github/workflows/ci.yml`；其余为线型专属新增文件。
+- 借用已有 annotation adapter 的 sheet/sketch 上下文保护函数，未扩大其字段范围；无其他未验收分支依赖。
+
+## 提交和原生 CI
+
+- 实现提交：`216ebec0f6e80231f566dce0c351d7ff140e29c9`，已推送。
+- 初次必要 dispatch：[42260403395](https://github.com/YJBeetle/SWCLI/actions/runs/42260403395)，head=上述提交；参数 line_font_calibration=true / native_full=false，其余默认。
+- 在 Windows portable jobs 仍进行、原生校准尚未开始时主动取消：检查发现共享 concurrency group 可能挤掉其他线程待运行作业。修为本范围独立并发组后才允许新校准；不是因排队重复 dispatch。未动其他线程 run。
+- 后续修复 head / run / 结果待补充；当前没有公开写入原生验收结论。
+
