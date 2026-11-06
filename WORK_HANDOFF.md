@@ -1,13 +1,13 @@
 # 文档属性校准性能：当前接管与验收边界
 
-## 当前汇总（2026-11-07，R5内部成功已保存/自验）
+## 当前汇总（2026-11-07，R5自验成功，必要公开gate已唯一触发）
 
-- 既有实现tip `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`，其后交接tip `26cef42deb8425aa7cd829e446ad2cf82affb0da`。本轮在既定范围登记真实校准数据并继续必要公开gate；未merge main、未发版，最终review由统筹本人执行，无审查子代理。
+- 当前代码tip `9a32b685908e83026fd51313eedd03a37b2a4e04`（真实校准范围/proof登记）；内部原生依赖tip `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`。未merge main、未发版，最终review由统筹本人执行，无审查子代理。
 - [R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865) 已success，exact head为上述实现tip；artifact `13538635862`，ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d` 与GitHub digest一致。
 - 原件76文件持久保留：`evidence/docprops-performance/run-42281734865-original.zip`、`run-42281734865-original/`；4项当时源码snapshot为 `run-42281734865-source/`。原件未改；完整metadata/audit已保存。独立首层自验：native_group_complete=true，first_failure=null，全部manifest文件hash/size及4源码Windows CRLF hash一致，owned清理成功。
 - 实际内部覆盖：独立准备组2 setter/15 profile，56.346s；随后原单组36 setter全部strict True、216固定profile、36保存RO完整，632.444s。两组同owned PID6592、revision `33.5.0`；主组hard1800/native600未改变，无retry/rollback/host重启。这是实测完成时间，不是跨机器加速倍数。
 - 仅登记 part/assembly/drawing × GB7↔ANSI1/ISO2/DIN3/JIS4/BSI5/GOST6 共36 tuple、`drafting-defaults-v1` 与原生Windows revision `33.5.0`；custom/unknown、任意named→named、Wine、未来revision不开放。成功proof `docs/calibration/docprops-performance-windows.json`，明确public_acceptance_verified=false/full_acceptance_eligible=false。
-- 公开依赖与真实artifact baseline复制预检通过；public gate尚未执行，不能标记merge-ready或标准公开验收完成。完整portable 2159项 / 68.168s / skipped32通过，SDK生成/strict6文件/25负向消费者通过；随后仅对此相关提交触发一次公开gate；正常运行只记录链接/状态后结束等待，后续由统筹分次快照。
+- 公开依赖与真实artifact baseline复制预检通过；必要公开gate [42300958960 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42300958960) 已唯一触发，固定代码tip `9a32b685908e83026fd51313eedd03a37b2a4e04`，最后快照 in_progress，尚无成功结果；不能标记merge-ready或标准公开验收完成。完整portable 2159项 / 68.168s / skipped32通过，SDK生成/strict6文件/25负向消费者通过；已仅对此相关提交触发一次公开gate；正常运行记录链接/状态后结束等待，后续由统筹分次快照。
 - 无新公开operation/CLI/request-result schema/SDK/MCP字段；生产adapter完整源码与R5逐字节一致，指纹 `run-42281734865-reader-parity.json`。本轮生产改动仅有限校准数据；协议/lease/stamp/fullCAS/保护/partial receipt不改。
 - 待审批/自动审批拒绝：无。无本地VM、DockerSW/MacSW或其他worktree操作，无新增功能/计划，不rebase统筹当前main，不重复dispatch、不持续轮询、不创建单任务automation。
 
@@ -212,3 +212,13 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 
 
 本轮登记验证完成：`native-proof-full-tests.log`：2159 tests / 68.168s / OK (skipped32)；`native-proof-sdk-types.log`：SDK生成无漂移、strict6文件、25负向消费者通过；标准门禁28 tests和公开入口12 tests通过，包含强制空名单负向、未测ANSI→ISO zero setter、proof/audit/run/artifact摘要对应、exact revision范围。git diff --check通过。生产adapter没有修改，只有 `document_drafting_standard.py` 的36 tuple与单revision数据登记。下一次公开dispatch默认关闭、需exacthead，仅1次；不会重复内部R5。
+
+
+### 公开R1唯一dispatch与本轮交接
+
+- 精确代码tip：`9a32b685908e83026fd51313eedd03a37b2a4e04`。登记commit包含真实R5 proof、36 tuple、唯一revision `33.5.0`、完整portable 2159/skip32和SDK strict证据。后续仅receipt/交接文档，不改变native/public源码。
+- [公开run 42300958960](https://github.com/YJBeetle/SWCLI/actions/runs/42300958960)，attempt1，2026-11-07 05:57:51 Asia/Shanghai唯一dispatch；参数 `docprops_calibration=false`、`docprops_public=true`、`docprops_expected_head=9a32b685908e83026fd51313eedd03a37b2a4e04`、`native_full=false`。
+- 唯一必要依赖是R5 run42281734865/artifact13538635862；依赖digest/head与完整内部coverage自验通过。公开CI下载精确artifact，以其三类GB baseline执行既有gate，不重复内部校准，不读写其他分支/CI/VM。
+- 最后单次快照状态：in_progress，active steps：Free disposable runner disk for installation；快照时间见 `dispatch-public-r1.json.handoff_snapshot_utc`，完整快照 `run-42300958960-handoff-snapshot.json`。按用户要求没有持续watch/sleep/轮询，没有automation。正常运行即记录后结束等待。
+- 当前**只内部通过，公开待结果，不是merge-ready**。三类各12转换、各独立1800组、同owned hidden daemon；真实lease/stamp/fullCAS/拒绝/noop/几何/saveRO/freshIDs与SDK/MCP读取都要以本次公开原件证明。系列未完成点不直接后置发版；代码逐条合并及全系列发版由统筹审查与统筹控制，本路不merge/tag/publish。
+- 原始ZIP绝对路径：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI/evidence/docprops-performance/run-42281734865-original.zip`；原件root同目录 `run-42281734865-original/`；独立自验同目录 `run-42281734865-audit.json`。GitHub digest/ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d`；manifest SHA256 `08abd8b8f8e690b9856121215ea1f4fd049058c2426edc806e6b7026d43b33b9`。原件未修改；不依赖临时目录。
