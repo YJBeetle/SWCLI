@@ -10,8 +10,10 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
 
+from swcli.hosts.native_trace import trace_native_request
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon.operations import execute_operation
 from swcli.hosts.windows import _com_value
@@ -184,6 +186,20 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case['creation']=result
     validate_operation_result('assembly.add-mate',result)
     checked(result['ok'] and result['mutation']['creation_returned'], 'native mate creation/solve failed: ' + str(result))
+    if kind == 'coincident' and alignment == 'aligned':
+        fresh=call(prefix+'.observe-before-complement',lambda:read_mate_targets_windows(app=app,document=document,components=names))
+        checked(fresh['ok'],'complement preflight observation failed')
+        complementary=[]
+        for component in fresh['snapshot']['components']:
+            candidates=[f for f in component['faces'] if f['surface_kind']=='cylinder']
+            checked(len(candidates)==1,'concentric complement target is ambiguous')
+            complementary.append(dict(component=component['name'],face_index=candidates[0]['index']))
+        second=call(prefix+'.create-concentric-complement',lambda:add_mate_windows(app=app,document=document,
+            kind='concentric',alignment='aligned',targets=complementary,expected_value=fresh['snapshot'],_calibration=True))
+        case['concentric_complement']=second
+        validate_operation_result('assembly.add-mate',second)
+        checked(second['ok'] and len(second['snapshot']['mates'])==2,
+                'two-standard-mate combination did not solve: '+str(second))
     path=output/(prefix+'.SLDASM')
     case['assembly_save']=call(prefix+'.save-assembly',lambda: save_as_native_windows(str(path),document=document))
     checked(case['assembly_save']['ok'], 'strict assembly save failed')
@@ -226,6 +242,12 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case['success']=True
 
 
+def traced_case(*args, **kwargs):
+    request_id = kwargs['profile_kind'] + '-' + args[3]
+    with trace_native_request(request_id, 'calibration.assembly-mates'):
+        return calibrate_case(*args, **kwargs)
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
@@ -233,9 +255,10 @@ def main(argv=None):
     args=parser.parse_args(argv)
     checked(args.swconst.is_file(),'official swconst.tlb is required')
     args.output_dir.mkdir()
+    os.environ["SWCLI_TRACE_NATIVE_CALLS"]="1"
     harness.read_constants=read_official_types
     return harness.run(args.output_dir.resolve(),args.swconst.resolve(),False,
-        case_runner=calibrate_case,case_plan=[(kind,alignment,False) for kind in KINDS for alignment in ALIGNMENTS],
+        case_runner=traced_case,case_plan=[(kind,alignment,False) for kind in KINDS for alignment in ALIGNMENTS],
         diagnostic_case='assembly-standard-mates-calibration')
 
 

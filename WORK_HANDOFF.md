@@ -55,3 +55,17 @@
 ## SDK 兼容性补充
 - 审查生成 diff 发现，若把新 operation 插在旧 schema 前，generator 的相同结构去重会删除旧导出 `FeatureFilletResultMutation`。已把两个新 operation 追加在既有 catalog 后，保留旧导出与既有 operation 顺序。
 - 新增真实旧类型的正向 mypy 消费测试；严格 SDK 与 27 项本功能测试通过。未修改 generator 的全局策略。
+
+## 首次原生失败与修复准备
+- 内部 run 42263284406 已失败：仅第一组目标面观察返回 `com_error (-2147352565, Invalid index)`；尚未执行 CreateMate，没有配合创建或保存重开成功证据。
+- 官方 swconst 枚举及必需 sldworks 成员检查通过；宿主 revision `33.5.0`。TLB SHA-256：swconst `95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6`，sldworks `585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159`。
+- 原始 ZIP：`evidence/run-42263284406/swcli-assembly-mates-13526653759.zip`，digest `8471e5b44b9fe789a0cf1f565766dbc06b093f758b1db4c899c8e7e8f1a71ad2` 匹配；原解压 report/trace/PRT 保留，宿主清理无错误。
+- 当前怀疑是嵌套面对象 IDispatch.GetTypeInfo 路径，不将猜测当作已证实根因。修复改从应用的官方类型库查 IID，在目标对象 QueryInterface，避免要求面对象提供 type info；新增拒绝 GetTypeInfo 的真实形态便携回归。
+- 首轮外层 trace 未逐 COM 调用记录，现为 owned case 启用 native_trace，并保留原 COM 异常 traceback；不放宽几何、身份、求解或保存断言。公开许可仍为空。
+- 最终修复避免对面对象或应用对象调用 GetTypeInfo：从该 COM 宿主真实 PID 的 OS image 路径定位同安装的 `sldworks.tlb`，再读取官方 IID 并 QI 目标。只读查询句柄按 finally 关闭，无其它安装搜索和猜测 GUID/IID。新增对应 PID/path/关闭句柄回归。
+- 同时把写入精确范围收紧为第一条标准配合，或已有 aligned 重合后补 aligned 同心（最多两条）；内部与公开 gate 均加入该实际组合的求解、关系及保存重开，未知其它组合在提交前拒绝。
+
+## 修复 head 提交前验证
+- 最新完整便携回归：1849 项通过、26 平台跳过（`evidence/portable/native-fix-all-tests.log`）；本功能 30 项通过，SDK 生成/严格类型与 8 负向消费场景通过，actionlint 通过。
+- 首失败可审查摘要：`docs/verification/assembly-mates-first-failure-2026-11-07.json`；仍无原生配合成功证据，未开放任何公开写入。
+- 下一次只对包含具体接口读取修复的新 head 调用 internal stage 一次，不对原失败 head 原样重跑，不取消其它任务。

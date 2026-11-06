@@ -124,10 +124,41 @@ def relation(first, second, kind):
 
 
 _INTERFACE_IIDS = {}
+_OFFICIAL_LIBRARIES = {}
 
 
-def _dispatch(native, interface):
-    """Query the exact dual interface found in this native object's type library.
+def _official_library(app):
+    """Load the installed library beside this exact COM host's executable.
+
+    Even an Automation object may legally report zero type-info entries. The
+    host PID and OS process handle identify the owning installation; this never
+    searches another installation or guesses a type-library GUID/IID.
+    """
+    from pathlib import Path
+    import pythoncom
+    import win32api
+    import win32con
+    import win32process
+    pid = integer(value(app, "GetProcessID"), "host process ID")
+    require(pid > 0, "native host process ID is unavailable")
+    handle = win32api.OpenProcess(win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, False, pid)
+    try:
+        executable = Path(win32process.GetModuleFileNameEx(handle, 0))
+    finally:
+        handle.Close()
+    require(executable.name.casefold() == "sldworks.exe", "host process image is not SOLIDWORKS")
+    path = executable.with_name("sldworks.tlb")
+    require(path.is_file(), "owning installation's official sldworks.tlb is unavailable")
+    stat = path.stat()
+    key = (pid, str(path), stat.st_mtime_ns, stat.st_size)
+    if key not in _OFFICIAL_LIBRARIES:
+        _OFFICIAL_LIBRARIES[key] = native_call("assembly-mates", "LoadTypeLib(owning-installation)",
+                                               lambda: pythoncom.LoadTypeLib(str(path)))
+    return _OFFICIAL_LIBRARIES[key]
+
+
+def _dispatch(native, interface, *, app):
+    """Query the exact dual interface from this host installation's official library.
 
     A returned IDispatch can expose IEntity or IMateFeatureData rather than its
     face/mate-specific interface. Never infer additional members from a Python
@@ -135,27 +166,31 @@ def _dispatch(native, interface):
     """
     import pythoncom
     from win32com.client import Dispatch
-    library, _ = native._oleobj_.GetTypeInfo().GetContainingTypeLib()
+    # Load by exact owning installation, without GetTypeInfo on either a face
+    # object or the application. Nested dispatch need not be self describing.
+    library = _official_library(app)
     attributes = library.GetLibAttr()
     key = (str(attributes[0]), attributes[3], attributes[4], interface)
     if key not in _INTERFACE_IIDS:
         matches = []
         for index in range(library.GetTypeInfoCount()):
-            info = library.GetTypeInfo(index)
+            info = native_call("assembly-mates", "TypeLib.GetTypeInfo", lambda: library.GetTypeInfo(index))
             if info.GetDocumentation(-1)[0] == interface:
                 attr = info.GetTypeAttr()
                 require(attr.typekind == pythoncom.TKIND_DISPATCH, "required interface is not Automation dispatch: " + interface)
                 matches.append(attr.iid)
         require(len(matches) == 1, "official type library does not identify exactly one " + interface)
         _INTERFACE_IIDS[key] = matches[0]
-    return Dispatch(native._oleobj_.QueryInterface(_INTERFACE_IIDS[key], pythoncom.IID_IDispatch))
+    queried = native_call("assembly-mates", "QueryInterface." + interface,
+                          lambda: native._oleobj_.QueryInterface(_INTERFACE_IIDS[key], pythoncom.IID_IDispatch))
+    return Dispatch(queried)
 
 
 def _face(app, assembly, source, component, native, index):
     mapped = native_call("assembly-mates", "Component2.GetCorresponding", lambda: component.GetCorresponding(native))
     require(mapped is not None, "native corresponding face is absent")
-    mapped = _dispatch(mapped, "IFace2")
-    require(_same(app, value(_dispatch(mapped, "IEntity"), "GetComponent"), component),
+    mapped = _dispatch(mapped, "IFace2", app=app)
+    require(_same(app, value(_dispatch(mapped, "IEntity", app=app), "GetComponent"), component),
             "mapped face does not belong to the exact component")
     original = _geometry(native)
     require(original["surface_kind"] in ("plane", "cylinder"), "only plane/cylinder fixtures are supported", "UnsupportedMateScope")
@@ -236,14 +271,14 @@ def feature_error(feature):
 def observe_mate(app, document, feature, components, natives, bindings):
     mate = value(feature, "GetSpecificFeature2")
     require(mate is not None, "mate feature has no native IMate2")
-    mate = _dispatch(mate, "IMate2")
+    mate = _dispatch(mate, "IMate2", app=app)
     kind = integer(value(mate, "Type"), "mate type")
     alignment = integer(value(mate, "Alignment"), "mate alignment")
     require(kind in KINDS.values() and alignment in ALIGNMENTS.values(), "unsupported native mate definition")
     require(value(mate, "GetMateEntityCount") == 2, "mate must have exactly two entities")
     matches = []
     for i in range(2):
-        entity = _dispatch(mate.MateEntity(i), "IMateEntity2")
+        entity = _dispatch(mate.MateEntity(i), "IMateEntity2", app=app)
         owner, reference = value(entity, "ReferenceComponent"), value(entity, "Reference")
         found = [(c, f) for c in range(2) for f in range(len(bindings[c]))
                  if _same(app, owner, natives[c]) and _same(app, reference, bindings[c][f])]
@@ -262,7 +297,7 @@ def observe_mate(app, document, feature, components, natives, bindings):
         references=[components[c]["faces"][f]["reference_sha256"] for c, f in matches],
         **relation(*[(components[c], components[c]["faces"][f]) for c, f in matches], kind_name))
     if kind_name == "concentric":
-        definition = _dispatch(value(feature, "GetDefinition"), "IConcentricMateFeatureData")
+        definition = _dispatch(value(feature, "GetDefinition"), "IConcentricMateFeatureData", app=app)
         observed["lock_rotation"] = boolean(value(definition, "LockRotation"), "concentric LockRotation")
     return observed
 
@@ -306,6 +341,9 @@ def read_mate_targets_windows(*, app, document, components):
         result["ok"] = True
     except Exception as exc:
         result["error"] = dict(type=getattr(exc, "code", type(exc).__name__), message=str(exc))
+        if not isinstance(exc, MateError):
+            import traceback
+            result["error"]["traceback"] = traceback.format_exc()
     return result
 
 
@@ -339,7 +377,11 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
         before, natives, bindings = snapshot(app, document, [t["component"] for t in targets])
         result["before"] = before
         require(before == expected_value, "complete mate target snapshot changed", "MateValueConflict")
-        require(len(before["mates"]) < 16, "mate count limit reached", "UnsupportedMateScope")
+        existing = before["mates"]
+        require(not existing or (len(existing) == 1 and existing[0]["kind"] == "coincident"
+                and existing[0]["alignment"] == "aligned" and kind == "concentric" and alignment == "aligned"),
+                "first batch supports a first mate, or aligned concentric after one aligned coincident",
+                "UnsupportedMateScope")
         faces = []
         for c, target in enumerate(targets):
             i = target["face_index"]
@@ -352,7 +394,7 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
                     for m in before["mates"]), "existing mate is not healthy", "MateSolveFailed")
         data = native_call("assembly-mates", "AssemblyDoc.CreateMateData", lambda: document.CreateMateData(KINDS[kind]))
         require(data is not None, "native mate definition is absent", "MateCreationFailed")
-        data = _dispatch(data, "ICoincidentMateFeatureData" if kind == "coincident" else "IConcentricMateFeatureData")
+        data = _dispatch(data, "ICoincidentMateFeatureData" if kind == "coincident" else "IConcentricMateFeatureData", app=app)
         import pythoncom
         from win32com.client import VARIANT
         data.EntitiesToMate = VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, faces)
@@ -403,6 +445,9 @@ def add_mate_windows(*, app, document, kind, alignment, targets, expected_value,
         result["ok"] = True
     except Exception as exc:
         result["error"] = {**_error(exc), "type": getattr(exc, "code", type(exc).__name__)}
+        if not isinstance(exc, MateError):
+            import traceback
+            result["error"]["traceback"] = traceback.format_exc()
     finally:
         if result["mutation"]["attempted"]:
             try:

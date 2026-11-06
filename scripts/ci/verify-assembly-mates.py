@@ -115,6 +115,20 @@ def run_case(gate,kind,alignment):
             made['mate']['error_code']==0 and not made['mate']['suppressed'],
             'public mate write did not verify its native solve/entities')
     case['creation']=made
+    if kind=='coincident' and alignment=='aligned':
+        fresh=read(gate,assembly,names)
+        gate.background(fresh,assembly)
+        complementary=[]
+        for component in fresh['snapshot']['components']:
+            candidates=[f for f in component['faces'] if f['surface_kind']=='cylinder']
+            require(len(candidates)==1,'concentric complement target is ambiguous')
+            complementary.append(dict(component=component['name'],face_index=candidates[0]['index']))
+        second=command_mate(gate,assembly,'concentric','aligned',complementary,fresh['snapshot'],lease=lease)
+        validate_operation_result('assembly.add-mate',second)
+        gate.background(second,assembly)
+        require(second['ok'] and len(second['snapshot']['mates'])==2 and second['mate']['lock_rotation'] is False,
+                'public two-standard-mate combination did not solve')
+        case['concentric_complement']=second
     saved=gate.directory/(prefix+'.SLDASM')
     case['save_as']=gate.write('document','save-as',str(saved),document=assembly)
     require(not case['save_as']['document']['modified'],'assembly SaveAs is not clean')

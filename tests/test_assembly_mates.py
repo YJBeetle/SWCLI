@@ -75,11 +75,14 @@ class Scene:
         entities=[NS(ReferenceComponent=face.GetComponent(), Reference=face) for face in data.EntitiesToMate]
         mate=NS(Type=0 if entities[0].Reference.GetSurface().IsPlane() else 1,
                 Alignment=data.MateAlignment, GetMateEntityCount=lambda: 2, MateEntity=lambda i: entities[i])
-        feature=NS(Name='Coincident1', GetTypeName2=lambda: 'MateCoincident' if mate.Type==0 else 'MateConcentric',
+        feature=NS(Name=('Coincident' if mate.Type==0 else 'Concentric')+str(len(getattr(self,'created_features',[]))+1), GetTypeName2=lambda: 'MateCoincident' if mate.Type==0 else 'MateConcentric',
                    GetSpecificFeature2=lambda: mate, GetDefinition=lambda: NS(LockRotation=self.lock_rotation), IsSuppressed2=lambda scope,names: (self.suppressed,),
                    GetNextSubFeature=lambda: None)
+        if self.doc.FirstFeature is None:self.created_features=[]
+        if self.created_features:self.created_features[-1].GetNextSubFeature=lambda:feature
+        self.created_features.append(feature)
         group=NS(Name='Mates', GetTypeName2=lambda: 'MateGroup', GetNextFeature=lambda: None,
-                 GetFirstSubFeature=lambda: feature)
+                 GetFirstSubFeature=lambda:self.created_features[0])
         self.doc.FirstFeature=group
         return feature
 
@@ -92,7 +95,7 @@ class MateTests(unittest.TestCase):
         self.scene=Scene()
         self.patches=[mock.patch.object(api, 'PUBLIC_MATE_WRITES_CALIBRATED', False),
                       mock.patch.object(api, '_native_windows', return_value=True),
-                      mock.patch.object(api, '_dispatch', side_effect=lambda native, interface: native),
+                      mock.patch.object(api, '_dispatch', side_effect=lambda native, interface, **context: native),
                       mock.patch.object(api, 'capture_verified_reference', side_effect=lambda a,e,f: f.token),
                       mock.patch.object(api, 'feature_error', side_effect=lambda f: self.scene.error_code),
                       mock.patch.object(api, '_running_command', return_value={'ui_active':False}),
@@ -159,6 +162,20 @@ class MateTests(unittest.TestCase):
             self.assertEqual(result['mate']['kind'],kind)
             self.assertEqual(result['mate']['distance_mm'],0)
             self.scene.doc.CreateMate.assert_called_once_with(self.scene.data)
+
+    def test_aligned_concentric_complements_one_aligned_coincident_and_stops_at_two(self):
+        self.assertTrue(self.add()['ok'])
+        self.expected=api.snapshot(self.scene.app,self.scene.doc,self.scene.names)[0]
+        targets=[dict(component=n,face_index=1) for n in self.scene.names]
+        second=self.add(kind='concentric',targets=targets)
+        self.assertTrue(second['ok'],second)
+        self.assertEqual(len(second['snapshot']['mates']),2)
+        self.expected=second['snapshot']
+        self.scene.doc.CreateMate.reset_mock()
+        refused=self.add(kind='concentric',targets=targets)
+        self.assertEqual(refused['error']['type'],'UnsupportedMateScope')
+        self.assertFalse(refused['mutation']['attempted'])
+        self.scene.doc.CreateMate.assert_not_called()
 
     def test_full_value_cas_rejects_each_snapshot_field_before_definition(self):
         for key, replacement in (('modified',False),('configuration','other'),('path','other'),('update_stamp',4),('mates',[{}])):
@@ -328,3 +345,43 @@ class ClientContractTests(unittest.TestCase):
             self.assertEqual(wire.call_args.kwargs['lease_id'],options['lease_id'])
             self.assertEqual(wire.call_args.kwargs['session_id'],'mates')
         self.scene.doc.CreateMate.assert_not_called()
+
+class DispatchInterfaceTests(unittest.TestCase):
+    def test_nested_object_need_not_implement_get_type_info(self):
+        raw=object()
+        target=NS(_oleobj_=NS(GetTypeInfo=mock.Mock(side_effect=RuntimeError('Invalid index')),
+                             QueryInterface=mock.Mock(return_value=raw)))
+        interface=NS(GetDocumentation=lambda memid:('IFace2',),
+                     GetTypeAttr=lambda:NS(typekind=4,iid='official-face-iid'))
+        library=NS(GetLibAttr=lambda:('official-library',0,0,33,0,0),
+                   GetTypeInfoCount=lambda:1,GetTypeInfo=lambda index:interface)
+        application_info=NS(GetContainingTypeLib=lambda:(library,0))
+        app=NS(_oleobj_=NS(GetTypeInfo=mock.Mock(return_value=application_info)))
+        modules={'pythoncom':NS(TKIND_DISPATCH=4,IID_IDispatch='dispatch-iid'),
+                 'win32com.client':NS(Dispatch=lambda native:native)}
+        with mock.patch.dict(sys.modules,modules),mock.patch.dict(api._INTERFACE_IIDS,{},clear=True), \
+             mock.patch.object(api,'_official_library',return_value=library) as resolve:
+            result=api._dispatch(target,'IFace2',app=app)
+        resolve.assert_called_once_with(app)
+        self.assertIs(result,raw)
+        target._oleobj_.GetTypeInfo.assert_not_called()
+        target._oleobj_.QueryInterface.assert_called_once_with('official-face-iid','dispatch-iid')
+        app._oleobj_.GetTypeInfo.assert_not_called()
+
+    def test_library_is_derived_from_exact_host_process_image_and_handle_is_closed(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'sldworks.tlb').write_bytes(b'official fixture library')
+            handle=NS(Close=mock.Mock());library=object()
+            open_process=mock.Mock(return_value=handle)
+            load=mock.Mock(return_value=library)
+            modules={'pythoncom':NS(LoadTypeLib=load),'win32api':NS(OpenProcess=open_process),
+                'win32con':NS(PROCESS_QUERY_INFORMATION=1,PROCESS_VM_READ=2),
+                'win32process':NS(GetModuleFileNameEx=lambda process,module:str(root/'SLDWORKS.exe'))}
+            with mock.patch.dict(sys.modules,modules),mock.patch.dict(api._OFFICIAL_LIBRARIES,{},clear=True):
+                result=api._official_library(NS(GetProcessID=lambda:77))
+            self.assertIs(result,library)
+            open_process.assert_called_once_with(3,False,77)
+            handle.Close.assert_called_once_with()
+            load.assert_called_once_with(str(root/'sldworks.tlb'))

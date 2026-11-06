@@ -1,0 +1,89 @@
+{
+  "run_id": 42263284406,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42263284406",
+  "head": "886131e9d033bc5b83e2285d119ee0e319a6fcf1",
+  "artifact_id": 13526653759,
+  "artifact_sha256": "8471e5b44b9fe789a0cf1f565766dbc06b093f758b1db4c899c8e7e8f1a71ad2",
+  "github_digest_matched": true,
+  "outcome": "failed-before-mate-creation",
+  "first_failure": {
+    "type": "com_error",
+    "message": "(-2147352565, 'Invalid index.', None, None)"
+  },
+  "official_type_library_preflight_passed": true,
+  "type_libraries": {
+    "enums": {
+      "swMateCOINCIDENT": 0,
+      "swMateCONCENTRIC": 1,
+      "swMateAlignALIGNED": 0,
+      "swMateAlignANTI_ALIGNED": 1,
+      "swComponentFullyResolved": 2,
+      "swComponentResolved": 3,
+      "swSolidBody": 0,
+      "swThisConfiguration": 1
+    },
+    "members": {
+      "IFeature": [
+        "GetErrorCode2",
+        "GetSpecificFeature2",
+        "IsSuppressed2"
+      ],
+      "IComponent2": [
+        "GetCorresponding",
+        "GetID",
+        "GetSuppression2",
+        "IsFixed",
+        "ReferencedConfiguration",
+        "Transform2"
+      ],
+      "IEntity": [
+        "GetComponent"
+      ],
+      "IAssemblyDoc": [
+        "CreateMate",
+        "CreateMateData",
+        "GetComponentCount",
+        "GetComponents",
+        "GetEditTarget",
+        "GetEditTargetComponent"
+      ],
+      "IMate2": [
+        "Alignment",
+        "GetMateEntityCount",
+        "MateEntity",
+        "Type"
+      ],
+      "IMateEntity2": [
+        "Reference",
+        "ReferenceComponent"
+      ],
+      "ICoincidentMateFeatureData": [
+        "EntitiesToMate",
+        "MateAlignment"
+      ],
+      "IConcentricMateFeatureData": [
+        "EntitiesToMate",
+        "LockRotation",
+        "MateAlignment"
+      ]
+    },
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "host": {
+    "process_id": 9108,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "native_mate_creation_attempted": false,
+  "saved_reopened_mates_verified": false,
+  "internal_acceptance": false,
+  "public_acceptance": false,
+  "generated_source_part": {
+    "name": "coincident-aligned.SLDPRT",
+    "size_bytes": 56901,
+    "sha256": "e2995768ec4d606be5d406f68dc383ad56db8f490e735238ba22a6caf726ec1c"
+  },
+  "cleanup_errors": [],
+  "root_cause": "unconfirmed; nested dispatch type-info path suspected; corrected and adding full native tracing"
+}

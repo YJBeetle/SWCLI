@@ -106,11 +106,11 @@ class FakeGate:
             if expected_error:raise RuntimeError('expected refusal was lost')
             self.mutations+=1
             if self.native_failure:raise RuntimeError('first native mate failure')
-            mate=dict(name='Mate1',kind=values['--kind'],alignment=values['--alignment'],error_code=0,suppressed=False,
+            mate=dict(name='Mate'+str(len(doc['snapshot']['mates'])+1),kind=values['--kind'],alignment=values['--alignment'],error_code=0,suppressed=False,
                 components=[t['component'] for t in targets],references=[snapshot['components'][c]['faces'][t['face_index']]['reference_sha256']
                     for c,t in enumerate(targets)],distance_mm=0,parallel_error=0)
             if values['--kind']=='concentric':mate['lock_rotation']=False
-            doc['snapshot']['mates']=[mate]
+            doc['snapshot']['mates'].append(mate)
             doc['snapshot']['update_stamp']+=1
             return dict(ok=True,action='assembly.add-mate',document=self.descriptor(document),before=snapshot,
                 snapshot=copy.deepcopy(doc['snapshot']),mate=mate,cleanup_errors=[],
@@ -124,11 +124,11 @@ class PublicMateGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             gate=FakeGate(Path(directory));public.run(gate)
             self.assertTrue(gate.record['success'])
-            self.assertEqual(gate.mutations,4)
+            self.assertEqual(gate.mutations,5)
             self.assertEqual(len(gate.record['cases']),4)
             self.assertTrue(all(len(case['reopens'])==2 for case in gate.record['cases']))
             self.assertFalse(gate.documents)
-            self.assertEqual(sum(args[:2]==('assembly','add-mate') for args,*_ in gate.commands),16)
+            self.assertEqual(sum(args[:2]==('assembly','add-mate') for args,*_ in gate.commands),17)
 
     def test_source_can_auto_unload_without_hiding_unrelated_documents(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -143,7 +143,7 @@ class PublicMateGateTests(unittest.TestCase):
                 gate=FakeGate(Path(directory));setattr(gate,member,True)
                 with self.assertRaises(RuntimeError):public.run_case(gate,'coincident','aligned')
                 self.assertFalse(gate.record['cases'][0]['success'])
-                self.assertEqual(gate.mutations,1)
+                self.assertEqual(gate.mutations,2)
 
     def test_first_public_native_failure_is_never_retried(self):
         with tempfile.TemporaryDirectory() as directory:
