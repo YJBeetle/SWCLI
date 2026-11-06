@@ -625,6 +625,9 @@ def document_export(
         "app": context.app,
         "document": context.entry.document if context.entry is not None else None,
     }
+    for name in ("step_protocol", "step_geometry"):
+        if name in values:
+            kwargs[name] = values[name]
     if "include_content" in values:
         kwargs["include_content"] = values["include_content"]
     return export_active_windows_document(str(values["output"]), **kwargs)

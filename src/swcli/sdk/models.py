@@ -1094,6 +1094,8 @@ class DocumentExportParameters(_DocumentExportParametersRequired, total=False):
     overwrite: bool
     strict: bool
     include_content: bool
+    step_protocol: Literal['ap203', 'ap214']
+    step_geometry: Literal['solid-surface', 'wireframe', 'wireframe-sketches']
 
 
 class _DocumentExportResultArtifactRequired(TypedDict):
@@ -1108,6 +1110,37 @@ class DocumentExportResultArtifact(_DocumentExportResultArtifactRequired, total=
     content: ArtifactContent
 
 
+class DocumentExportResultStepPreferencesBefore(TypedDict):
+    swStepAP: int
+    swStepExportPreference: int
+
+
+class _DocumentExportResultStepPreferencesRequired(TypedDict):
+    before: DocumentExportResultStepPreferencesBefore
+    requested: DocumentExportResultStepPreferencesBefore
+    restored: bool
+
+
+class DocumentExportResultStepPreferences(_DocumentExportResultStepPreferencesRequired, total=False):
+    after: DocumentExportResultStepPreferencesBefore
+
+
+class _DocumentExportResultPreferenceRestoreErrorsItemRequired(TypedDict):
+    type: str
+    message: str
+
+
+class DocumentExportResultPreferenceRestoreErrorsItem(_DocumentExportResultPreferenceRestoreErrorsItemRequired, total=False):
+    preference: str
+
+
+class DocumentExportResultStepOutput(TypedDict):
+    protocol: Literal['ap203', 'ap214']
+    geometry: Literal['solid-surface', 'wireframe', 'wireframe-sketches']
+    file_schema: str
+    entity_types: List[str]
+
+
 class _DocumentExportResultRequired(TypedDict):
     ok: bool
     action: Literal['document.export']
@@ -1120,6 +1153,10 @@ class DocumentExportResult(_DocumentExportResultRequired, total=False):
     error: DocumentCreateResultError
     output: str
     artifact: DocumentExportResultArtifact
+    mutation: DrawingStandardViewsResultMutation
+    step_preferences: DocumentExportResultStepPreferences
+    preference_restore_errors: List[DocumentExportResultPreferenceRestoreErrorsItem]
+    step_output: DocumentExportResultStepOutput
 
 
 class SketchListParameters(TypedDict, total=False):

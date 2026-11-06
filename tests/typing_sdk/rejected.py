@@ -10,3 +10,6 @@ wrong_type: str = client.document.inspect().require_result()["document"]["modifi
 client.feature.extrude(sketch_id="s-ab12cd", depth_mm="ten")  # E: arg-type
 client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0}])  # E: typeddict-item
 bad_empty_parameters: DocumentListParameters = {"unexpected": True}  # E: typeddict-unknown-key
+
+client.document.export(output="part.step", step_protocol="ap242")  # E: arg-type
+client.document.export(output="part.step", step_geometry="solid")  # E: arg-type

@@ -28,6 +28,7 @@ from ..hosts.com_errors import (
 from ..operation_schemas import OPERATION_CATALOG, validate_operation_request
 from ..result_schemas import validate_operation_result
 from ..hosts.windows_documents import supported_export_formats
+from ..hosts.windows_step_export import step_host_scope
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import (
     LEASE_TOKEN_OPERATIONS,
@@ -373,7 +374,8 @@ def _worker_main(
                     )
                     break
                 with trace_native_request(request_id, str(request["operation"])), \
-                        native_api_sequence(app, enabled=owned_by_daemon):
+                        native_api_sequence(app, enabled=owned_by_daemon), \
+                        step_host_scope(app, isolated=owned_by_daemon and not visible):
                     result = execute_operation(
                         app,
                         str(request["operation"]),
@@ -386,6 +388,7 @@ def _worker_main(
                         expected_update_stamp=request.get("expected_update_stamp"),
                         lease_id=request.get("lease_id"),
                     )
+                command_state_failed = bool(result.get("preference_restore_errors"))
                 validate_operation_result(str(request["operation"]), result)
                 duration_ms = (time.monotonic() - started_at) * 1000.0
                 if isinstance(result, dict) and not result.get("ok", True):
@@ -402,7 +405,7 @@ def _worker_main(
                         request_id, result, duration_ms=duration_ms
                     )
             except Exception as exc:
-                command_state_failed = isinstance(exc, NativeCommandRestoreFailed)
+                command_state_failed = command_state_failed or isinstance(exc, NativeCommandRestoreFailed)
                 response = _error_response(
                     request_id,
                     type(exc).__name__,

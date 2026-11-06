@@ -11,6 +11,8 @@ from uuid import uuid4
 from ..artifact_content import capture_content
 from .native_trace import native_call
 from .export_validation import export_file_valid
+from .windows_step_export import (StepExportError, step_preferences,
+                                  validate_step_options, verify_step_output)
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -726,6 +728,8 @@ def export_active_windows_document(
     app: Any = None,
     document: Any = None,
     include_content: bool = False,
+    step_protocol: Optional[str] = None,
+    step_geometry: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Export a selected document to a verified neutral or drawing format."""
 
@@ -738,6 +742,11 @@ def export_active_windows_document(
         "action": "document.export",
         "output": str(output_path),
     }
+    try:
+        validate_step_options(output, step_protocol, step_geometry)
+    except StepExportError as exc:
+        result["error"] = {"type": exc.code, "message": str(exc)}
+        return result
     if not output_path.parent.is_dir():
         result["error"] = {
             "type": "ParentDirectoryNotFound",
@@ -796,7 +805,7 @@ def export_active_windows_document(
             return result
 
         warnings = _export_source_warnings(before)
-        if strict and warnings:
+        if (strict or step_protocol is not None) and warnings:
             result["error"] = {
                 "type": "SourceNotClean",
                 "message": "source document is not ready for strict export",
@@ -809,19 +818,15 @@ def export_active_windows_document(
         )
         export_path = temporary_output_path
 
-        with _stl_single_file(
+        with step_preferences(app, document, step_protocol, step_geometry, result), _stl_single_file(
             app, export_format == "STL" and before["document"]["type"] == 2
         ):
             document.ClearSelection2(True)
             save_error = int(document.SaveAs3(str(export_path), 0, 1))
-        if save_error != 0 or not export_path.is_file():
-            result["error"] = {
-                "type": "ExportFailed",
-                "message": "SOLIDWORKS failed to export the active document",
-                "save_errors": save_error,
-            }
-            return result
-
+            if save_error != 0 or not export_path.is_file():
+                result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
+                                   "save_errors": save_error}
+                return result
         size_bytes = export_path.stat().st_size
         signature_valid = export_file_valid(export_format, export_path)
         if size_bytes <= 0 or not signature_valid:
@@ -835,9 +840,12 @@ def export_active_windows_document(
             }
             return result
 
+        if step_protocol is not None:
+            result["step_output"] = verify_step_output(export_path, step_protocol, step_geometry)
+
         after = _export_source_state(document)
         changes = _export_source_change_warnings(before, after)
-        if strict and changes:
+        if (strict or step_protocol is not None) and changes:
             result["error"] = {
                 "type": "SourceStateChanged",
                 "message": "export changed the source document state",
@@ -862,7 +870,7 @@ def export_active_windows_document(
             result["artifact"]["content"] = content
         result["ok"] = True
         return result
-    except _ExportPreferenceError as exc:
+    except (StepExportError, _ExportPreferenceError) as exc:
         result["error"] = {"type": exc.code, "message": str(exc)}
         return result
     except Exception as exc:

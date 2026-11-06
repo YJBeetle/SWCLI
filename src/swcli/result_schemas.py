@@ -695,7 +695,20 @@ _RESULT_FIELDS = {
         ),
     ),
     "document.export": (
-        {"output": STRING, "artifact": ARTIFACT},
+        {"output": STRING, "artifact": ARTIFACT,
+         "mutation": METADATA_MUTATION,
+         "step_preferences": _object({
+             "before": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
+             "requested": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
+             "after": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
+             "restored": BOOL,
+         }, ("before", "requested", "restored")),
+         "preference_restore_errors": {"type": "array", "minItems": 1, "items": _object(
+             {"preference": STRING, "type": STRING, "message": STRING}, ("type", "message"))},
+         "step_output": _object({"protocol": {"enum": ["ap203", "ap214"]},
+                                 "geometry": {"enum": ["solid-surface", "wireframe", "wireframe-sketches"]},
+                                 "file_schema": STRING, "entity_types": STRING_LIST},
+                                ("protocol", "geometry", "file_schema", "entity_types"))},
         ("output", "artifact"),
     ),
     "part.create-box": (
@@ -1896,6 +1909,14 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                     },
                 }
             )
+    if name == "document.export":
+        schema.setdefault("allOf", []).append({
+            "if": {"required": ["step_preferences"], "properties": {"ok": {"const": True}}},
+            "then": {"required": ["step_output"],
+                     "properties": {"step_preferences": {"required": ["after"],
+                                    "properties": {"restored": {"const": True}}}},
+                     "not": {"required": ["preference_restore_errors"]}},
+        })
     if name in ("document.render", "document.export"):
         schema["properties"]["artifact"] = deepcopy(ARTIFACT)
         artifact = schema["properties"]["artifact"]

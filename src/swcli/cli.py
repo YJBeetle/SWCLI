@@ -353,6 +353,8 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(export_parser)
     add_lease_token(export_parser)
     export_parser.add_argument("output")
+    export_parser.add_argument("--step-protocol", choices=("ap203", "ap214"))
+    export_parser.add_argument("--step-geometry", choices=("solid-surface", "wireframe", "wireframe-sketches"))
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
         "--strict",
@@ -1428,6 +1430,8 @@ def _typed_operation(
                     "output": args.output,
                     "overwrite": args.overwrite,
                     "strict": args.strict,
+                    **({"step_protocol": args.step_protocol} if args.step_protocol is not None else {}),
+                    **({"step_geometry": args.step_geometry} if args.step_geometry is not None else {}),
                 },
                 args.as_json,
                 args.document_id,

@@ -19,6 +19,8 @@ def workflows(client: Client) -> FileReceipt:
                               expected_update_stamp=0, lease_id="l-ab12cd34ef56")
     client.document.lease.renew(lease_id="l-ab12cd34ef56", ttl_seconds=60)
     client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0, "y": 0.0}, {"x": 1.0, "y": 0.0}, {"x": 0.0, "y": 1.0}])
+    client.document.export(output="part.STEP", step_protocol="ap214", step_geometry="solid-surface",
+                           document_id="d-ab12cd", lease_id="l-ab12cd34ef56", expected_update_stamp=0)
     client.document.render(output="preview.bmp", include_content=True)
     client.feature.extrude(sketch_id="s-ab12cd", depth_mm=10.0)
     client.workspace.download_begin(path="models/part.SLDPRT")

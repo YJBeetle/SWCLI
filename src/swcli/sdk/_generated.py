@@ -348,7 +348,7 @@ class DocumentOperations:
         return cast("Response[models.DocumentRenderResult]", self._client._execute('document.render', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
-    def export(self, *, output: str, overwrite: Union[bool, Unset] = UNSET, strict: Union[bool, Unset] = UNSET, include_content: Union[bool, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.DocumentExportResult]:
+    def export(self, *, output: str, overwrite: Union[bool, Unset] = UNSET, strict: Union[bool, Unset] = UNSET, include_content: Union[bool, Unset] = UNSET, step_protocol: Union[Literal['ap203', 'ap214'], Unset] = UNSET, step_geometry: Union[Literal['solid-surface', 'wireframe', 'wireframe-sketches'], Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.DocumentExportResult]:
         """document.export; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
         parameters['output'] = output
@@ -358,6 +358,10 @@ class DocumentOperations:
             parameters['strict'] = strict
         if include_content is not UNSET:
             parameters['include_content'] = include_content
+        if step_protocol is not UNSET:
+            parameters['step_protocol'] = step_protocol
+        if step_geometry is not UNSET:
+            parameters['step_geometry'] = step_geometry
         return cast("Response[models.DocumentExportResult]", self._client._execute('document.export', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 

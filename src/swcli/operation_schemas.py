@@ -293,8 +293,15 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "overwrite": _boolean(),
             "strict": _boolean(),
             "include_content": _boolean(),
+            "step_protocol": _string(enum=["ap203", "ap214"]),
+            "step_geometry": _string(enum=["solid-surface", "wireframe", "wireframe-sketches"]),
         },
         required=("output",),
+        parameter_conditions=[{
+            "if": {"anyOf": [{"required": ["step_protocol"]}, {"required": ["step_geometry"]}]},
+            "then": {"required": ["step_protocol", "step_geometry"],
+                     "properties": {"output": {"pattern": "\\.[sS][tT]([eE][pP]|[pP])$"}}},
+        }],
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
@@ -604,6 +611,11 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.export" and {"step_protocol", "step_geometry"}.intersection(parameters):
+        from .hosts.windows_step_export import validate_step_options
+        validate_step_options(parameters["output"], parameters.get("step_protocol"), parameters.get("step_geometry"))
+        if expected_update_stamp is None or lease_id is None:
+            raise ValueError("STEP options require expected_update_stamp and lease_id")
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)
