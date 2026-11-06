@@ -244,6 +244,62 @@ def run(output, swconst, sldworks):
                     and before == (_com_value(document,"GetUpdateStamp"), _com_value(document,"GetSaveFlag")),
                     "multibody rejection changed native state")
             close()
+            # Explicit internal post-creation fault control. This is an injected
+            # observation failure, never evidence of a real CAD kernel error.
+            from unittest import mock
+            from swcli.hosts import windows_revolves as revolve_worker
+            partial = report["partial_mutation_control"] = dict(
+                kind="injected-postcreation-observation-failure", success=False)
+            bounds = [0,-5,10,15]
+            sketch = new_rectangle("front", bounds)
+            injected = RuntimeError("injected post-creation observation failure")
+            with mock.patch.object(revolve_worker, "observe_revolve_definition", side_effect=injected):
+                partial["creation"], feature = candidate(sketch, bounds)
+            created = partial["creation"]
+            checked(created["ok"] is False and created["error"] == dict(type="RuntimeError", message=str(injected))
+                    and created["mutation"] == dict(attempted=True, creation_returned=True, may_have_changed=True)
+                    and not created["cleanup_errors"] and feature is not None,
+                    "post-creation fault did not retain its first error/partial mutation/handle")
+            features = [f for f in _features(document) if _com_value(f,"GetTypeName2")=="Revolution"]
+            checked(len(features)==1 and app.IsSame(feature,features[0])==1,
+                    "partial creation was rolled back or its exact returned object was lost")
+            measured = call("partial-preserved-measure", lambda: measure_part_windows(document=document))
+            checked(measured["ok"], "partial native model is not measurable")
+            partial["preserved_metrics"] = measured["metrics"]
+            verify_cylinder_metrics(measured["metrics"], created["expected_metrics"])
+            partial["preserved_diagnostics"] = _diagnose_features(document,500)
+            checked(partial["preserved_diagnostics"]["healthy"] and not partial["preserved_diagnostics"]["truncated"],
+                    "partial fault control changed native model health")
+            path = output / "partial-observation-failure.SLDPRT"
+            partial["save"] = call("save-partial-evidence", lambda: save_as_native_windows(str(path), document=document))
+            checked(partial["save"]["ok"], "partial native evidence could not be saved")
+            digest = partial["file_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+            close()
+            opened, document = call("reopen-partial-evidence", lambda: open_windows_document_with_handle(str(path), app=app, read_only=True))
+            partial["reopen"] = opened
+            checked(opened["ok"] and opened["api_errors"]==opened["api_warnings"]==0, "partial evidence reopen failed")
+            features = [f for f in _features(document) if _com_value(f,"GetTypeName2")=="Revolution"]
+            checked(len(features)==1, "partial saved output lost its editable native feature")
+            sub = _com_value(features[0],"GetFirstSubFeature")
+            sketches = []
+            for _ in range(100):
+                if sub is None:break
+                if _com_value(sub,"GetTypeName2")=="ProfileFeature":sketches.append(sub)
+                sub = _com_value(sub,"GetNextSubFeature")
+            else:raise RuntimeError("partial profile traversal exceeded limit")
+            checked(len(sketches)==1, "partial evidence lacks one absorbed profile")
+            profile = observe_rectangle_profile(_com_value(sketches[0],"GetSpecificFeature2"))
+            partial["reopened_definition"] = {}
+            call("partial-reopened-definition", lambda: observe_revolve_definition(app,document,features[0],profile.left_edge,
+                 report["typelib"]["constants"],partial["reopened_definition"]))
+            measured = call("partial-reopened-measure", lambda: measure_part_windows(document=document))
+            checked(measured["ok"], "partial reopened geometry unavailable")
+            partial["reopened_metrics"] = measured["metrics"]
+            verify_cylinder_metrics(measured["metrics"],created["expected_metrics"])
+            checked(_com_value(document,"GetSaveFlag") is False and hashlib.sha256(path.read_bytes()).hexdigest()==digest,
+                    "partial read-only persistence verification changed saved model bytes/state")
+            partial["success"] = True
+            close()
             report["success"] = True
         except BaseException as exc:
             report["failure"] = dict(type=type(exc).__name__, message=str(exc), traceback=traceback.format_exc())

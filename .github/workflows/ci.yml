@@ -411,6 +411,19 @@ jobs:
             --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Revolve calibration failed; preserve original report and ZIP; no automatic retry" }
 
+      - name: Verify native partial mutation with an internal observation fault
+        id: revolve_partial_control
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_revolve_public && !inputs.native_revolve_calibration && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-revolve-feature' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          python -I scripts/ci/verify-revolve-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\revolve-partial-control" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Internal partial mutation control failed; preserve first error; no native retry" }
+
       - name: Verify bounded revolve through public CLI and daemon
         id: revolve_public
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_revolve_public && !inputs.native_revolve_calibration && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-revolve-feature' }}

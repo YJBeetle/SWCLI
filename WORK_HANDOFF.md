@@ -50,8 +50,14 @@
 - 失效元数据测试首次失败已保留：evidence/revolve/metadata-first-failure.log。
 - 创建返回句柄但Name不可读时，原实现可能返回ok=true后被结果schema整体拒绝；意外非Revolution类型在失败结果中也会被过严的type常量拒绝，导致丢partial证据。
 - 已在工作树修复：不可读名称/类型立即报告RevolveFeatureMetadataUnavailable并保留句柄/partial；失败响应允许保留实际特征type，成功响应仍严格const Revolution且所有几何断言未放宽。24项针对性测试通过。
-- 修复尚未push；当前3dd23c8公开run继续执行，不取消、不重放CAD调用。其结果将按原head独立保留；最终代码修复后需对应head公开验收。
+- 修复已在29bd9e33ad15bb02dc651c74bd2de123d4c3cc1a提交并push；当前3dd23c8公开run继续执行，不取消、不重放CAD调用。其结果将按原head独立保留；最终代码修复后需对应head公开验收。
 - 同类定义读回无值(None)的8个边界也复现响应schema覆盖原始partial错误，首失败日志readback-first-failure.log已保留。失败分支允许这些无值读回作为证据，成功分支仍要求原生角度number、精确类型/轴/方向/凸台等常量及严格解析几何，不放宽任何成功断言；25项针对性测试通过。
 - 最终公开标记也已移到自有宿主成功停止/清理/证据checkpoint检查之后；关闭失败不能标记public_acceptance=true，且首错误与二次关闭错误分开保留。对应行为测试通过。
 - 修复预检完成：全套1845项通过、26项平台跳过；26项旋转针对性通过；SDK生成/严格类型/10项消费端拒绝通过；diff --check通过。
 - 当前3dd23c8原公开run仍继续执行，不能视作最终修复代码的验收。下一次dispatch是已复现缺陷修复后的新head必要验收，不是排队重试或同head重复触发。
+
+## 最终原生partial控制准备
+- 在既有内部校准脚本新增明确标记的 injected-postcreation-observation-failure：对真实创建返回的原生对象注入一次后续观察失败，核首错误/partial/精确句柄，立即独立测量保留模型并保存重开。
+- 不把该注入当作真实CAD内核故障。内部控制与公开CLI分别目录、分别自有宿主及600/1800预算，组内不重启；无公共调试开关或直接COM公共旁路。
+- 最终public targeted job会先运行此独立内部控制组，再运行公开CLI组；默认full/release仍不运行它。现有3dd23c8 run不改动、不取消。
+- 26项针对性、Python/YAML解析及接线检查通过；准备将此控制与失效读回修复作为最终head的必要验收，等现有公开结果确认后仅dispatch最终head一次。

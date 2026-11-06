@@ -356,12 +356,18 @@ class WiringTests(unittest.TestCase):
             self.assertIn(value,step)
         self.assertIn("inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref)",workflow)
         self.assertIn('not complete full acceptance',workflow)
+        control=workflow.split('      - name: Verify native partial mutation with an internal observation fault',1)[1].split('      - name:',1)[0]
+        for value in ('inputs.native_revolve_public','!inputs.native_revolve_calibration','!inputs.native_full',
+                      "github.ref == 'refs/heads/codex/swcli-revolve-feature'",'timeout-minutes: 31','revolve-partial-control'):
+            self.assertIn(value,control)
+        self.assertLess(workflow.index('Verify native partial mutation'),workflow.index('Verify bounded revolve through public CLI'))
 
     def test_calibration_retains_full_turn_oracles_and_fails_on_first_error_without_retry(self):
         script=(ROOT/'scripts/ci/verify-revolve-calibration.py').read_text()
         for text in ('threading.Timer(600, timeout)','child.wait(timeout=1800)',
                      'read_type_libraries','file_sha256','reopened_definition','verify_cylinder_metrics',
-                     'axis_crossing_rejection','multibody_rejection','public_acceptance=False'):
+                     'axis_crossing_rejection','multibody_rejection','public_acceptance=False',
+                     'injected-postcreation-observation-failure','partial-preserved-measure','reopen-partial-evidence'):
             self.assertIn(text,script)
 
 
