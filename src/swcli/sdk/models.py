@@ -1126,6 +1126,11 @@ class DocumentExportResultStlSourceState(_DocumentExportResultStlSourceStateRequ
     observation_error: DocumentCreateResultError
 
 
+class DocumentExportResultStlPreferencesSetterSnapshotsItem(TypedDict):
+    after_preference: str
+    values: Dict[str, JSONValue]
+
+
 class DocumentExportResultStlPreferencesSetterReturnsItem(TypedDict):
     phase: Literal['set', 'restore']
     preference: str
@@ -1134,6 +1139,8 @@ class DocumentExportResultStlPreferencesSetterReturnsItem(TypedDict):
 
 
 class DocumentExportResultStlPreferences(TypedDict, total=False):
+    execution_mode: Literal['internal-calibration', 'public-isolated']
+    calibrated_profile: str
     before: Dict[str, JSONValue]
     requested: Dict[str, JSONValue]
     readback: Dict[str, JSONValue]
@@ -1142,6 +1149,7 @@ class DocumentExportResultStlPreferences(TypedDict, total=False):
     mutation_attempted: bool
     restored: bool
     cleanup_errors: List[Dict[str, JSONValue]]
+    setter_snapshots: List[DocumentExportResultStlPreferencesSetterSnapshotsItem]
     setter_returns: List[DocumentExportResultStlPreferencesSetterReturnsItem]
 
 

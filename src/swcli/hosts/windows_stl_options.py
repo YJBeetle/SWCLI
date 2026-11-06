@@ -14,6 +14,7 @@ from .native_trace import native_call
 from .windows import _com_value
 
 _HOST = None
+_MODE = None
 _POISONED = False
 _CONSTANTS = None
 PREFERENCES = {
@@ -32,9 +33,16 @@ class StlOptionsError(RuntimeError):
 
 def configure_calibration_host(app, *, owned):
     """Worker-only registration; no protocol parameter can assert isolation."""
-    global _HOST
-    _HOST = (app if owned and os.environ.get("GITHUB_ACTIONS") == "true"
-             and os.environ.get("SWCLI_STL_CALIBRATION") == "1" else None)
+    global _HOST, _MODE
+    _HOST = _MODE = None
+    if not owned or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_OS") != "Windows":
+        return
+    internal = os.environ.get("SWCLI_STL_CALIBRATION") == "1"
+    public = os.environ.get("SWCLI_STL_EXCLUSIVE_RUNNER") == "1"
+    if internal == public:  # Neither mode or ambiguous double opt-in.
+        return
+    _HOST = app
+    _MODE = "internal-calibration" if internal else "public-isolated"
 
 
 def read_constants(path):
@@ -77,8 +85,32 @@ def require_isolation(app):
                            capture_output=True, text=True, check=True, timeout=10)
     rows = list(csv.reader(io.StringIO(probe.stdout)))
     pids = [int(row[1]) for row in rows if len(row) >= 2 and row[0].casefold() == "sldworks.exe"]
-    if pids != [int(_com_value(app, "GetProcessID"))] or bool(_com_value(app, "Visible")):
+    pid = _com_value(app, "GetProcessID")
+    visible = _com_value(app, "Visible")
+    if type(pid) is not int or pid <= 0 or pids != [pid] or visible is not False:
         raise StlOptionsError("StlIsolationUnavailable", "exactly one owned hidden SOLIDWORKS process is required")
+
+
+def qualify_public_profile(app, options, document_type, codes):
+    """Only retained-output-qualified exact tuples may enter public writes.
+
+    Until the independently audited qualification module exists, public mode
+    remains closed even on an explicit disposable isolated runner.
+    """
+    if _MODE != "public-isolated":
+        return None
+    try:
+        from ..stl_calibrated_profiles import QUALIFICATION, PROFILES, NATIVE_ENUMS
+    except ImportError as exc:
+        raise StlOptionsError("StlOptionsNotCalibrated", "no independently audited STL qualification is installed") from exc
+    if document_type != 1:
+        raise StlOptionsError("StlDocumentKindUncalibrated", "public STL options are qualified only for parts")
+    names = [name for name, candidate in PROFILES.items() if options == candidate]
+    if len(names) != 1:
+        raise StlOptionsError("StlOptionsProfileUncalibrated", "this exact STL option tuple has not passed native qualification")
+    if _com_value(app, "RevisionNumber") != QUALIFICATION["solidworks_revision"] or codes != NATIVE_ENUMS:
+        raise StlOptionsError("StlNativeVersionUncalibrated", "installed native revision/enum vector differs from qualified evidence")
+    return names[0]
 
 
 def _read(app, name, codes):
@@ -104,7 +136,7 @@ def _write(app, name, value, codes):
 
 
 @contextmanager
-def stl_preferences(app, options, evidence):
+def stl_preferences(app, options, evidence, *, document_type=1):
     """Snapshot all coupled values, set/read once, export once, restore/verify.
 
     Cleanup never replaces the first exception or native SaveAs return code.
@@ -126,6 +158,7 @@ def stl_preferences(app, options, evidence):
             raise StlOptionsError("StlIsolationUnavailable", "previous STL transaction abandoned unknown global preferences")
         require_isolation(app)
         codes = constants()
+        profile = qualify_public_profile(app, options, document_type, codes)
         before = {name: _read(app, name, codes) for name in PREFERENCES}
         wanted = dict(before)
         wanted.update(swSTLQuality=codes["swSTLQuality_Custom"],
@@ -134,8 +167,11 @@ def stl_preferences(app, options, evidence):
                       swSTLAngleTolerance=math.radians(options["angle_degrees"]),
                       swSTLBinaryFormat=options["encoding"] == "binary",
                       swSTLComponentsIntoOneFile=True, swSTLShowInfoOnSave=False, swSTLPreview=False)
-        evidence.update(before=before, requested=wanted, constants=codes, mutation_attempted=False,
-                        restored=False, cleanup_errors=[], setter_returns=[])
+        evidence.update(execution_mode=_MODE or "internal-calibration",
+                        before=before, requested=wanted, constants=codes, mutation_attempted=False,
+                        restored=False, cleanup_errors=[], setter_returns=[], setter_snapshots=[])
+        if profile is not None:
+            evidence["calibrated_profile"] = profile
         # Full-vector compare-and-set before any global preference mutation.
         if {name: _read(app, name, codes) for name in PREFERENCES} != before:
             raise StlOptionsError("ExportPreferenceConflict", "STL preference vector changed before mutation")
@@ -145,6 +181,8 @@ def stl_preferences(app, options, evidence):
                 status = _write(app, name, value, codes)
                 evidence["setter_returns"].append({"phase": "set", "preference": name,
                                                    "return_type": type(status).__name__, "value": status})
+                evidence["setter_snapshots"].append({"after_preference": name,
+                    "values": {field: _read(app, field, codes) for field in PREFERENCES}})
             evidence["readback"] = {name: _read(app, name, codes) for name in PREFERENCES}
             if evidence["readback"] != wanted:
                 raise StlOptionsError("ExportPreferenceReadbackFailed", "STL preferences did not retain the exact requested values")

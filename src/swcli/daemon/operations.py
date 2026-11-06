@@ -1322,7 +1322,7 @@ def execute_operation(
         lease_id=lease_id,
     )
     if operation == "document.export" and "stl_options" in values:
-        if documents is None or not document_id or expected_update_stamp is None or not lease_id:
+        if documents is None or not document_id or document_id == "active" or expected_update_stamp is None or not lease_id:
             raise ValueError("STL options require explicit document_id, expected_update_stamp and lease_id")
         from ..hosts.windows_stl_options import require_isolation
         require_isolation(app)

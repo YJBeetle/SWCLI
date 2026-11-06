@@ -50,6 +50,14 @@ def audit(directory, expected_head):
         require(result["ok"] is True and prefs["restored"] is True and not prefs["cleanup_errors"]
                 and prefs["before"] == prefs["after"] and prefs["readback"] == prefs["requested"],
                 "preference transaction is not exactly restored and retained")
+        returns = prefs.get("setter_returns", [])
+        require(len(returns) == 16 and Counter(row["phase"] for row in returns) == {"set": 8, "restore": 8},
+                "native setter return evidence is incomplete")
+        for row in returns:
+            toggle = row["preference"] in {"swSTLBinaryFormat", "swSTLComponentsIntoOneFile", "swSTLShowInfoOnSave", "swSTLPreview"}
+            require((row["return_type"] == "NoneType" and row["value"] is None) if toggle
+                    else (row["return_type"] == "bool" and row["value"] is True),
+                    "native setter did not obey its actual void/boolean signature")
         require(result["stl_source_state"]["unchanged"] is True
                 and result["stl_source_state"]["before"] == result["stl_source_state"]["after"],
                 "native source identity/state changed")
@@ -60,6 +68,8 @@ def audit(directory, expected_head):
         metrics = metrics_module.mesh_metrics(path, unit=case["options"]["unit"],
                                               expected_encoding=case["options"]["encoding"])
         require(metrics == case["mesh"], "independent retained-byte mesh analysis differs from original report")
+        require(metrics["max_wall_chord_error_mm"] <= case["options"]["deviation_mm"] + 0.001,
+                "retained curved mesh exceeds requested deviation")
         request = result["request_id"]
         trace = [r for r in records if r.get("request_id") == request]
         require(trace and all(r.get("operation") == "document.export" for r in trace),
@@ -73,7 +83,7 @@ def audit(directory, expected_head):
         require(len(save_calls) == 1, "export trace does not contain exactly one native save")
         setters = [r for r in trace if r["phase"] == "begin" and r.get("stage") == "stl-preferences-write"]
         reads = [r for r in trace if r["phase"] == "begin" and r.get("stage") == "stl-preferences-read"]
-        require(len(setters) == 16 and len(reads) == 32,
+        require(len(setters) == 16 and len(reads) == 96,
                 "full preference snapshot/CAS/set/readback/restore trace is incomplete")
         workers.update(r["worker_pid"] for r in trace)
         cases.append(dict(name=case["name"], request_id=request, **metrics,
@@ -87,6 +97,10 @@ def audit(directory, expected_head):
         require(by_name[name]["triangle_count"] > by_name["coarse"]["triangle_count"]
                 and by_name[name]["volume_relative_error"] < by_name["coarse"]["volume_relative_error"],
                 "retained output does not prove individual tolerance improvement: " + name)
+    for name in ("ascii-inch", "binary-meter"):
+        require(by_name[name]["triangle_count"] == by_name["fine"]["triangle_count"]
+                and abs(by_name[name]["volume_mm3"]-by_name["fine"]["volume_mm3"])/by_name["fine"]["volume_mm3"] < 1e-4,
+                "retained unit/encoding variant does not preserve scaled geometry")
     return dict(success=True, scope="independent-internal-stl-audit", source_commit=expected_head,
                 report_sha256=hashlib.sha256(report_path.read_bytes()).hexdigest(),
                 native_source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),

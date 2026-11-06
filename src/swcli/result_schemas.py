@@ -699,10 +699,15 @@ _RESULT_FIELDS = {
          "stl_source_state": _object({"before": {"type": "object"}, "after": {"type": "object"},
                                       "unchanged": BOOL, "observation_error": ERROR}, ("before", "unchanged")),
          "stl_preferences": _object({
+             "execution_mode": {"enum": ["internal-calibration", "public-isolated"]},
+             "calibrated_profile": STRING,
              "before": {"type": "object"}, "requested": {"type": "object"},
              "readback": {"type": "object"}, "after": {"type": "object"},
              "constants": {"type": "object"}, "mutation_attempted": BOOL, "restored": BOOL,
              "cleanup_errors": {"type": "array", "items": {"type": "object"}},
+             "setter_snapshots": {"type": "array", "items": _object({
+                 "after_preference": STRING, "values": {"type": "object"},
+             }, ("after_preference", "values"))},
              "setter_returns": {"type": "array", "items": _object({
                  "phase": {"enum": ["set", "restore"]}, "preference": STRING,
                  "return_type": {"enum": ["bool", "NoneType"]}, "value": {"type": ["boolean", "null"]},

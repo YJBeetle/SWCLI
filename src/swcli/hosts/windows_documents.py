@@ -835,7 +835,7 @@ def export_active_windows_document(
 
         if stl_options is not None:
             result["stl_preferences"] = evidence = {}
-            preference_scope = stl_preferences(app, stl_options, evidence)
+            preference_scope = stl_preferences(app, stl_options, evidence, document_type=before["document"]["type"])
         else:
             preference_scope = _stl_single_file(
                 app, export_format == "STL" and before["document"]["type"] == 2)

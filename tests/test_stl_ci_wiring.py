@@ -88,3 +88,28 @@ class StlEvidenceAuditTests(unittest.TestCase):
                 (root / "stl-calibration.json").write_text(json.dumps({**baseline, **changes}))
                 with self.subTest(changes=changes), self.assertRaisesRegex(RuntimeError, message):
                     module.audit(root, "expected-head")
+
+
+class StlPublicCIWiringTests(unittest.TestCase):
+    def test_public_mode_requires_manual_optin_exact_branch_and_distinct_concurrency(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        settings = workflow.split("      stl_options_public:", 1)[1].split("      stl_options_targeted:", 1)[0]
+        self.assertIn("default: false", settings)
+        native = workflow.split("  solidworks-e2e:", 1)[1].split("  release:", 1)[0]
+        step = native.split("      - name: Verify public STL options through installed CLI SDK MCP", 1)[1].split("      - name:", 1)[0]
+        for condition in ("github.event_name == 'workflow_dispatch'", "inputs.stl_options_public", "!inputs.native_full",
+                          "!inputs.stl_options_targeted", "github.ref == 'refs/heads/codex/swcli-stl-export-options'"):
+            self.assertIn(condition, step)
+        self.assertIn("--phase public", step)
+        self.assertIn("timeout-minutes: 30", step)
+        self.assertIn("format('swcli-stl-options-public-{0}', github.ref)", native)
+        self.assertIn("|| 'swcli-hosted-windows-solidworks'", native)
+        self.assertIn("cancel-in-progress: false", native)
+        self.assertIn("--scope windows-stl-options-public-isolated", native)
+        source = (ROOT / "scripts/ci/verify-stl-options.py").read_text()
+        self.assertIn('env.pop("SWCLI_STL_CALIBRATION", None)', source)
+        self.assertIn('env["SWCLI_STL_EXCLUSIVE_RUNNER"] = "1"', source)
+        for negative in ('"stale-stamp"', '"foreign-lease"', '"uncalibrated-profile"', '"read-only-source"'):
+            self.assertIn(negative, source)
+        self.assertIn('("sdk-fine", fine_options)', source)
+        self.assertIn('("mcp-fine", fine_options)', source)

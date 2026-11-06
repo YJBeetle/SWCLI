@@ -132,6 +132,22 @@ class StlPreferenceTransactionTests(unittest.TestCase):
         self.assertTrue(self.evidence["restored"])
         self.assertEqual(self.writes, 11)
 
+    def test_native_deviation_normalization_is_refused_before_export_and_restored(self):
+        original = self.app.SetUserPreferenceDoubleValue
+        def normalizes(code, value):
+            result = original(code, value)
+            if code == self.codes["swSTLDeviation"] and value == 0.0005:
+                self.state["swSTLDeviation"] = 0.0005335936864527374
+            return result
+        self.app.SetUserPreferenceDoubleValue = normalizes
+        with self.assertRaisesRegex(adapter.StlOptionsError, "exact requested"):
+            with adapter.stl_preferences(self.app, {**OPTIONS, "deviation_mm": 0.5}, self.evidence):
+                self.fail("a normalized value must never be exported as the requested value")
+        self.assertEqual(self.evidence["requested"]["swSTLDeviation"], 0.0005)
+        self.assertEqual(self.evidence["readback"]["swSTLDeviation"], 0.0005335936864527374)
+        self.assertTrue(self.evidence["restored"])
+        self.assertEqual(self.state, self.original)
+
     def test_mutex_contention_and_abandonment_never_write(self):
         for status in (258, 128):
             self.mutex.WaitForSingleObject.return_value = status
@@ -209,7 +225,7 @@ class StlExportFailureEvidenceTests(unittest.TestCase):
             doc.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
             return original(output, stl_options={**OPTIONS, "encoding": encoding}, **kwargs)
         @contextmanager
-        def transaction(app, options, evidence):
+        def transaction(app, options, evidence, **kwargs):
             evidence.update(mutation_attempted=True, restored=False, cleanup_errors=[])
             try:
                 yield
@@ -248,7 +264,7 @@ class StlIsolationTests(unittest.TestCase):
         for owned, github, optin, expected in ((False, "true", "1", False),
                 (True, "false", "1", False), (True, "true", "0", False), (True, "true", "1", True)):
             with self.subTest(owned=owned, github=github, optin=optin), mock.patch.dict(
-                    "os.environ", {"GITHUB_ACTIONS": github, "SWCLI_STL_CALIBRATION": optin}), mock.patch.object(adapter, "_HOST", None):
+                    "os.environ", {"GITHUB_ACTIONS": github, "RUNNER_OS": "Windows", "SWCLI_STL_CALIBRATION": optin}), mock.patch.object(adapter, "_HOST", None):
                 adapter.configure_calibration_host(app, owned=owned)
                 self.assertEqual(adapter._HOST is app, expected)
 
@@ -285,3 +301,38 @@ class StlNativeVoidContractTests(unittest.TestCase):
         app.SetUserPreferenceIntegerValue.return_value = None
         with self.assertRaises(adapter.StlOptionsError):
             adapter._write(app, "swSTLQuality", 3, codes)
+
+
+class StlPublicQualificationPolicyTests(unittest.TestCase):
+    def setUp(self):
+        self.codes = {"observed-enum": 1}
+        self.app = SimpleNamespace(RevisionNumber=lambda: "33.5.0")
+        self.qualifier = SimpleNamespace(QUALIFICATION={"solidworks_revision": "33.5.0"},
+            PROFILES={"proven-profile": OPTIONS}, NATIVE_ENUMS=self.codes)
+
+    def test_public_policy_refuses_unproven_tuple_document_kind_revision_and_enum_vector(self):
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.dict(
+                sys.modules, {"swcli.stl_calibrated_profiles": self.qualifier}):
+            self.assertEqual(adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes), "proven-profile")
+            for options, kind, codes in (({**OPTIONS, "deviation_mm": 0.2},1,self.codes),
+                    (OPTIONS,2,self.codes), (OPTIONS,1,{"observed-enum":2})):
+                with self.subTest(options=options, kind=kind, codes=codes), self.assertRaises(adapter.StlOptionsError):
+                    adapter.qualify_public_profile(self.app, options, kind, codes)
+            self.app.RevisionNumber = lambda: "34.0.0"
+            with self.assertRaises(adapter.StlOptionsError):
+                adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes)
+
+    def test_public_factory_requires_single_explicit_mode_and_owned_disposable_runner(self):
+        for internal, public, owned, expected in (("0","1",True,"public-isolated"),
+                ("1","1",True,None), ("0","1",False,None), ("0","0",True,None)):
+            with mock.patch.dict("os.environ", {"GITHUB_ACTIONS":"true", "RUNNER_OS":"Windows", "SWCLI_STL_CALIBRATION":internal,
+                    "SWCLI_STL_EXCLUSIVE_RUNNER":public}), mock.patch.object(adapter,"_HOST",None), mock.patch.object(adapter,"_MODE",None):
+                adapter.configure_calibration_host(self.app, owned=owned)
+                self.assertEqual(adapter._MODE, expected)
+                self.assertEqual(adapter._HOST is self.app, expected is not None)
+
+    def test_no_qualification_module_keeps_public_writes_closed(self):
+        with mock.patch.object(adapter, "_MODE", "public-isolated"), mock.patch.dict(
+                sys.modules, {"swcli.stl_calibrated_profiles": None}):
+            with self.assertRaisesRegex(adapter.StlOptionsError, "no independently audited"):
+                adapter.qualify_public_profile(self.app, OPTIONS, 1, self.codes)

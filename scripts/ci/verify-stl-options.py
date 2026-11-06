@@ -22,6 +22,13 @@ from swcli.result_schemas import validate_operation_result
 from swcli.hosts.export_validation import export_file_valid
 
 
+# Explicit calibration requests derived from retained native 33.5.0 readback,
+# run 42266554774; 0.5 mm itself was rejected and is not treated as success.
+COARSE_DEVIATION_MM = 0.5335936864527374
+FINE_DEVIATION_MM = 0.015392125570752039
+COARSE_ANGLE_DEGREES = 30
+FINE_ANGLE_DEGREES = 10
+
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
@@ -84,7 +91,8 @@ def main(argv=None):
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--phase", choices=("internal", "public"), default="internal")
     args = parser.parse_args(argv)
-    require(sys.platform == "win32" and os.environ.get("GITHUB_ACTIONS") == "true",
+    require(sys.platform == "win32" and os.environ.get("GITHUB_ACTIONS") == "true"
+            and os.environ.get("RUNNER_OS") == "Windows",
             "calibration requires a disposable GitHub Windows runner")
     root = args.output_dir.resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -239,18 +247,18 @@ def main(argv=None):
             front = call("document.create", {"type": "part"})["document"]["document_id"]
             lease(front)
             plan = [
-                ("coarse", dict(encoding="binary", unit="mm", deviation_mm=0.5, angle_degrees=30)),
-                ("deviation-fine", dict(encoding="binary", unit="mm", deviation_mm=0.01, angle_degrees=30)),
-                ("angle-fine", dict(encoding="binary", unit="mm", deviation_mm=0.5, angle_degrees=0.5)),
-                ("fine", dict(encoding="binary", unit="mm", deviation_mm=0.01, angle_degrees=0.5)),
-                ("ascii-inch", dict(encoding="ascii", unit="inch", deviation_mm=0.01, angle_degrees=0.5)),
-                ("binary-meter", dict(encoding="binary", unit="m", deviation_mm=0.01, angle_degrees=0.5)),
+                ("coarse", dict(encoding="binary", unit="mm", deviation_mm=COARSE_DEVIATION_MM, angle_degrees=COARSE_ANGLE_DEGREES)),
+                ("deviation-fine", dict(encoding="binary", unit="mm", deviation_mm=FINE_DEVIATION_MM, angle_degrees=COARSE_ANGLE_DEGREES)),
+                ("angle-fine", dict(encoding="binary", unit="mm", deviation_mm=COARSE_DEVIATION_MM, angle_degrees=FINE_ANGLE_DEGREES)),
+                ("fine", dict(encoding="binary", unit="mm", deviation_mm=FINE_DEVIATION_MM, angle_degrees=FINE_ANGLE_DEGREES)),
+                ("ascii-inch", dict(encoding="ascii", unit="inch", deviation_mm=FINE_DEVIATION_MM, angle_degrees=FINE_ANGLE_DEGREES)),
+                ("binary-meter", dict(encoding="binary", unit="m", deviation_mm=FINE_DEVIATION_MM, angle_degrees=FINE_ANGLE_DEGREES)),
             ]
             if args.phase == "public":
                 require("SWCLI_STL_CALIBRATION" not in env, "public gate must not enable internal calibration")
                 from swcli.stl_calibrated_profiles import QUALIFICATION
                 report["qualification"] = QUALIFICATION
-                fine_options = dict(encoding="binary", unit="mm", deviation_mm=0.01, angle_degrees=0.5)
+                fine_options = dict(encoding="binary", unit="mm", deviation_mm=FINE_DEVIATION_MM, angle_degrees=FINE_ANGLE_DEGREES)
                 plan.extend([("sdk-fine", fine_options), ("mcp-fine", fine_options)])
                 report["negative_guards"] = []
                 def refuse(label, *, options=None, stamp=None, session="stl-calibration", expected):
@@ -282,6 +290,11 @@ def main(argv=None):
                 if args.phase == "public":
                     require(result["stl_preferences"].get("execution_mode") == "public-isolated",
                             "public export used an internal or unqualified worker mode")
+                    catalog = call("document.list")
+                    case["post_export_catalog"] = catalog
+                    require([row["document_id"] for row in catalog["documents"] if row["active"]] == [front]
+                            and [row["document_id"] for row in catalog["documents"] if row["current"]] == [front],
+                            "public export did not restore exact foreground/session-current identity")
                 require(result["document"]["document_id"] == doc and result["document"]["active"] is False,
                         "STL export did not preserve background source/foreground identity")
                 prefs = result["stl_preferences"]
