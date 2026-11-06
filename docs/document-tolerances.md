@@ -9,11 +9,13 @@ IDimension、IDimensionTolerance、特征尺寸或应用级偏好。不改模型
 缺失即报错，不猜测编号。精度 -3 读为 `follow_nominal`；其他未支持特殊值保留为 `other`。
 
 内部原生校准与独立artifact审计已通过（run 42266358630 / head 252ad8b）。
-本分支仅为公开验收开放精确候选范围：原生 Windows 且 RevisionNumber=33.5.0；类型 none/basic；
+本分支已验收的精确写入范围：原生 Windows 且 RevisionNumber=33.5.0；类型 none/basic；
 精度字符串 0/3/8。旧值必须为类型 none/basic、精度 follow_nominal/0/3/8，包含 no-op。
-同 revision 的 Wine、未知宿主探测、其他版本/字段/旧值/目标值继续拒写。`write_enabled` 表示该宿主版本的候选写入开关，
+同 revision 的 Wine、未知宿主探测、其他版本/字段/旧值/目标值继续拒写。`write_enabled` 表示该宿主版本的写入开关，
 不替代只读、lease、CAS、编辑上下文等每次请求的校验。
-**公开 CLI/daemon 验收尚待完成，当前不算 merge-ready。**
+**最终公开 CLI/daemon 验收与原件审计已通过：
+[run 42277528349](https://github.com/YJBeetle/SWCLI/actions/runs/42277528349)，
+精确产品 head `59f29e8681346495831e80b417f8d4904f75b2a2`。此范围可交主对话集成；尚未合入 main 或发布。**
 写入要求明确 document_id、有效 lease、expected_update_stamp 以及包含两个字段完整
 语义值和原生整数的 expected_options；修改一个字段时也必须核对另一字段。
 原生 setter 至多调用一次；False、异常、回读不匹配或状态变化即停止，部分 mutation
@@ -55,4 +57,10 @@ trace，SDK typed与MCP bridge的读取/noop走同一daemon。MCP stdio本身由
 独立无secret CI profile preflight提前拒绝混合模式及专属开关错误分支，所有CAD步骤只依据
 已验证profile选择。写后最终文档描述失败、worker后续包装/恢复失败保留原mutation与首业务错误，
 且每请求清空局部result，防止沿用上次回执。目标身份和后台前台状态漂移也会拒绝/报部分失败。
-旧公开run42271130456仅证明ce147cb；上述产品边界修复须最终head重新公开验收。
+旧公开run42271130456仅证明ce147cb；最终run42277528349已在59f29e8验证上述修复。
+最终原件审计核对120个原生请求、30次偏好setter、9次保存/只读重开、原文件及先前副本摘要，
+并确认daemon干净退出。原生ZIP SHA-256为
+`e32f86cc732e7eb381cde26acea327f1c5549caa96c3a3bde9e24893374c29cc`，匹配GitHub digest。
+Windows Python 3.9/3.14、wheel及无secret profile preflight均通过。
+本地最终便携测试共1858项，结果OK（32项跳过）。验收范围限上述文档默认公差，
+不是完整建模或发布验收；Wine拒写为便携/结构回归证明，不声称真实Wine验收。

@@ -701,5 +701,7 @@ This does not inspect or edit individual model dimensions. `tolerance-set` is
 restricted to native Windows revision 33.5.0 (Wine is blocked), type none/basic and
 precision 0/3/8. It requires
 a document lease, update stamp, and the complete `expected_options` snapshot;
-old type must be none/basic and old precision follow_nominal/0/3/8. The public
-CLI/daemon acceptance gate is pending on this independent development branch.
+old type must be none/basic and old precision follow_nominal/0/3/8. The bounded public
+CLI/daemon acceptance gate passed in run 42277528349 at product head 59f29e8,
+including part/assembly/drawing save and read-only reopen. This does not establish
+full modeling or release acceptance; integration and release remain separate.
