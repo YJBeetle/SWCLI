@@ -1,0 +1,24 @@
+{
+  "scope": "portable only; no native acceptance",
+  "full_acceptance_eligible": false,
+  "unit_tests": {
+    "tests": 2101,
+    "skipped": 32,
+    "success": true
+  },
+  "targeted_tests": {
+    "tests": 107,
+    "success": true
+  },
+  "workflow_checks": {
+    "actionlint_version": "1.7.12",
+    "exit_code": 0,
+    "yaml_parse": true
+  },
+  "evidence_sha256": {
+    "actionlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "full-tests.log": "cd0312ef3f88674d22b474de3323dd524f32077ddea3ec122d8ab07b0da50ff1",
+    "portable-benchmark.json": "2d22195ec2ec8c5278f9675fcdf0c1da60ff4d9aaf4539697d98188469bcf533",
+    "targeted-tests.log": "6230ee9b5a47099c17a7b9a878ed55b2a47ebfa40878ee504de0970befe7cd3f"
+  }
+}

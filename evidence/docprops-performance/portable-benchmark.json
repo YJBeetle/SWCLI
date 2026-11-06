@@ -1,0 +1,35 @@
+{
+  "scope": "portable report CPU/count microbenchmark; trace fsync omitted; no COM",
+  "full_acceptance_eligible": false,
+  "windows_speedup_established": false,
+  "python": "3.14.10",
+  "platform": "macOS-15.8.1-arm64-arm-64bit-Mach-O",
+  "calibrator_sha256": "36d39fa65f0dafedab2e188af85e164276b679d599187ca28264b84624f4f526",
+  "identity_count_regression": {
+    "four_distinct_stable_documents": {
+      "previous": 16,
+      "current": 10
+    },
+    "proof": "portable permutations/fault tests, fresh native-identity simulation"
+  },
+  "results": [
+    {
+      "mode": "forced-precall-serialization",
+      "calls": 250,
+      "report_rows": 2000,
+      "report_bytes": 605840,
+      "report_json_dumps_calls": 250,
+      "wall_seconds": 2.288297999999486,
+      "unchanged_report_sha256": "b0e9f8b2382e91a16a7360150633371820ba9618db829644a1eb414187f1fe12"
+    },
+    {
+      "mode": "revision-checkpoint",
+      "calls": 250,
+      "report_rows": 2000,
+      "report_bytes": 605840,
+      "report_json_dumps_calls": 0,
+      "wall_seconds": 0.0005044169956818223,
+      "unchanged_report_sha256": "b0e9f8b2382e91a16a7360150633371820ba9618db829644a1eb414187f1fe12"
+    }
+  ]
+}

@@ -4,20 +4,26 @@ param(
     [string]$PrivateRoot,
 
     [Parameter(Mandatory = $true)]
-    [string]$ProbeRoot
+    [string]$ProbeRoot,
+
+    [switch]$PrivateInputsOnly
 )
 
 $ErrorActionPreference = "Continue"
-$daemonPidPath = if ($env:SWCLI_SMOKE_ROOT) {
-    Join-Path $env:SWCLI_SMOKE_ROOT "swclid.pid"
-} else {
-    $null
+# Owned diagnostics tear down only their captured host in Python.
+# PrivateInputsOnly must never terminate CAD/daemon processes by global name.
+if (-not $PrivateInputsOnly) {
+    $daemonPidPath = if ($env:SWCLI_SMOKE_ROOT) {
+        Join-Path $env:SWCLI_SMOKE_ROOT "swclid.pid"
+    } else {
+        $null
+    }
+    if ($daemonPidPath -and (Test-Path -LiteralPath $daemonPidPath)) {
+        $daemonPid = [int](Get-Content -LiteralPath $daemonPidPath -Raw)
+        & taskkill.exe /PID $daemonPid /T /F 2>$null | Out-Null
+    }
+    Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
-if ($daemonPidPath -and (Test-Path -LiteralPath $daemonPidPath)) {
-    $daemonPid = [int](Get-Content -LiteralPath $daemonPidPath -Raw)
-    & taskkill.exe /PID $daemonPid /T /F 2>$null | Out-Null
-}
-Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 $lmgrdPidPath = Join-Path $PrivateRoot "state\lmgrd.pid"
 if (Test-Path -LiteralPath $lmgrdPidPath) {

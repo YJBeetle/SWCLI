@@ -45,6 +45,17 @@ on:
         default: false
         type: boolean
 
+      docprops_calibration:
+        description: Dedicated branch internal standards-36 performance calibration only
+        required: false
+        default: false
+        type: boolean
+      docprops_expected_head:
+        description: Exact 40-character head for dedicated calibration (required when opted in)
+        required: false
+        default: ""
+        type: string
+
 permissions:
   contents: read
 
@@ -67,6 +78,7 @@ jobs:
         run: python scripts/ci/tag-release.py check-tag
 
   test:
+    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration }}
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
     timeout-minutes: 15
@@ -166,6 +178,7 @@ jobs:
           retention-days: 14
 
   package:
+    if: ${{ github.ref != 'refs/heads/codex/docprops-calibration-performance' && !inputs.docprops_calibration }}
     name: Build wheel
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -478,6 +491,198 @@ jobs:
             ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
           if-no-files-found: warn
           retention-days: 14
+
+
+  docprops-calibration:
+    name: Internal owned standards-36 performance calibration
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/codex/docprops-calibration-performance' && inputs.docprops_calibration && !inputs.native_full && inputs.docprops_expected_head == github.sha }}
+    runs-on: windows-2025
+    timeout-minutes: 100
+    concurrency:
+      group: swcli-hosted-windows-solidworks
+      cancel-in-progress: false
+    env:
+      SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
+      SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up dedicated calibration Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Validate manual branch and exact source before private inputs
+        shell: powershell
+        env:
+          DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
+        run: |
+          python scripts/ci/verify-document-properties-calibration.py --check-context --expected-head "$env:DOC_PROPS_EXPECTED_HEAD"
+          if ($LASTEXITCODE -ne 0) { throw "Dedicated calibration source context rejected" }
+
+      - name: Initialize private paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-hosted-media" >> $env:GITHUB_ENV
+          "PRIVATE_ROOT=$env:RUNNER_TEMP\swcli-private-runtime" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
+          "SWCLI_SMOKE_ROOT=C:\Workspace\swcli-docprops-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_ENV
+
+      - name: Measure disposable runner disk
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      # Installation snapshots are disabled until fresh-runner native core
+      # registration and equation behavior are proven equivalent to installation.
+      - name: Free disposable runner disk for installation
+        shell: powershell
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"${{ inputs.vfs_cache_gib || '8' }}" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "${{ inputs.cleanup_profile || 'auto' }}" -MinFreeGiB $targetGiB
+
+      - name: Measure disk after runner cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-media-dependencies.ps1
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
+
+      - name: Prepare protected Google Drive configuration
+        id: private_config
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, [Convert]::FromBase64String($env:RCLONE_CONFIG_B64))
+          if (-not (rclone --config $env:RCLONE_CONFIG_FILE listremotes | Select-String -SimpleMatch "gdrive:" -Quiet)) {
+            throw "gdrive: remote is unavailable"
+          }
+
+      - name: Stream Google Drive through WinFsp
+        id: drive_mount
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]${{ inputs.vfs_cache_gib || '8' }} * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
+        shell: powershell
+        run: |
+          scripts/ci/windows/probe-imdisk.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
+
+      - name: Fetch private smoke-test runtime
+        id: private_fetch
+        shell: powershell
+        run: |
+          $assets = "$env:PRIVATE_ROOT\assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          rclone --config $env:RCLONE_CONFIG_FILE copy "gdrive:$env:SW_ASSETS_PATH" $assets `
+            --include "/SolidWorks_Flexnet_Server/**" `
+            --include "/SOLIDWORKS Corp/SOLIDWORKS/**" `
+            --include "/sw2025_network_serials_licensing.reg" `
+            --exclude "*" `
+            --transfers 4 `
+            --checkers 8 `
+            --log-level NOTICE
+          foreach ($required in @(
+            "$assets\sw2025_network_serials_licensing.reg",
+            "$assets\SolidWorks_Flexnet_Server",
+            "$assets\SOLIDWORKS Corp\SOLIDWORKS"
+          )) {
+            if (-not (Test-Path -LiteralPath $required)) { throw "Missing private test input: $required" }
+          }
+
+      - name: Install native SOLIDWORKS
+        id: native_install
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-solidworks.ps1 `
+            -MediaRoot $env:SW_MEDIA_ROOT `
+            -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:PROBE_ROOT\vba-runtime.json"
+
+      - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
+        shell: powershell
+        run: |
+          scripts/ci/windows/prepare-test-runtime.ps1 `
+            -AssetsRoot "$env:PRIVATE_ROOT\assets" `
+            -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Install exact calibration source
+        shell: powershell
+        run: |
+          python -m pip install .
+          if ($LASTEXITCODE -ne 0) { throw "Calibration source installation failed" }
+
+      - name: Calibrate one complete standards group on an owned host
+        id: docprops_native
+        timeout-minutes: 35
+        shell: powershell
+        env:
+          DOC_PROPS_EXPECTED_HEAD: ${{ inputs.docprops_expected_head }}
+        run: |
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Official drawing template discovery failed" }
+          python -I scripts/ci/verify-document-properties-calibration.py `
+            --expected-head "$env:DOC_PROPS_EXPECTED_HEAD" `
+            --output-dir "$env:SWCLI_SMOKE_ROOT" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Internal standards calibration failed; retain originals; no retry" }
+
+      - name: Measure streamed data and remaining disk
+        if: always()
+        shell: powershell
+        run: |
+          scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-smoke.json"
+          $cacheBytes = (Get-ChildItem $env:RCLONE_CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue |
+            Measure-Object Length -Sum).Sum
+          if ($null -eq $cacheBytes) { $cacheBytes = 0 }
+          "Rclone VFS cache: {0:N2} GiB" -f ($cacheBytes / 1GB) |
+            Tee-Object -FilePath "$env:PROBE_ROOT\cache-size.txt"
+
+      - name: Remove private test inputs and stop services
+        id: native_cleanup
+        if: always()
+        shell: powershell
+        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT -PrivateInputsOnly
+
+      - name: Upload original internal calibration evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-docprops-performance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: C:\Workspace\swcli-docprops-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
 
 
   release:

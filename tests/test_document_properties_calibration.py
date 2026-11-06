@@ -1280,6 +1280,7 @@ class ReportPersistenceControl(unittest.TestCase):
                 self.assertEqual(len(replaced), 2)
                 self.assertEqual(json.loads(replaced[-1])["reads"]["getter-1"]["value"], 3)
                 c.report["mutation_intent"] = {"field": "grid.display", "target": True}
+                c.report_changed()
                 def native():
                     saved = json.loads((c.output / "report.json").read_text())
                     self.assertEqual(saved["mutation_intent"], c.report["mutation_intent"])
