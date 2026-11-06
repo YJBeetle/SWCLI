@@ -22,6 +22,7 @@ class LineFontPublicTraceTests(unittest.TestCase):
         self.operation = "document.line-font-set"
 
     def rows(self, calls, terminal="end"):
+        calls = ["CommandInProgress", "SldWorks.CommandInProgress.enter", "CommandInProgress"] + calls + ["SldWorks.CommandInProgress.restore", "CommandInProgress"]
         rows = []
         for sequence, call in enumerate([self.operation, *calls]):
             for phase in ("begin", "end"):
@@ -84,3 +85,34 @@ class LineFontRuntimeContractTests(unittest.TestCase):
         gate.command = mock.Mock(return_value={"result": runtime})
         with self.assertRaises(RuntimeError):
             gate.health()
+
+
+class LineFontOwnedWorkerIntegrationTests(unittest.TestCase):
+    def test_real_request_trace_and_owned_sequence_wrap_actual_operation(self):
+        from contextlib import redirect_stderr
+        from io import StringIO
+        import os
+        from swcli.hosts.native_trace import trace_native_request
+        from swcli.hosts.native_sequence import native_api_sequence
+        from test_document_line_font import LineFontTests
+        fixture = LineFontTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        fx = fixture.fx
+        fx.app.CommandInProgress = False
+        fx.app.RevisionNumber = "33.5.0"
+        stderr = StringIO()
+        with mock.patch.dict(os.environ, {"SWCLI_TRACE_NATIVE_CALLS": "1"}), redirect_stderr(stderr):
+            with trace_native_request("owned-request", "document.line-font-set"), native_api_sequence(fx.app, enabled=True):
+                result = fx.operation("document.line-font-set", dict(field="visible_edges.style", value=1,
+                                                                     expected_options=fixture.before))
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(fx.app.CommandInProgress)
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "stderr.log"
+            path.write_text(stderr.getvalue())
+            gate = SimpleNamespace(record={})
+            public.Trace(path, gate).verify(dict(request_id="owned-request"), "document.line-font-set", getters=12, setters=1)
+            self.assertEqual(gate.record["native_call_proofs"][0]["sequence_calls"],
+                ["CommandInProgress", "SldWorks.CommandInProgress.enter", "CommandInProgress",
+                 "SldWorks.CommandInProgress.restore", "CommandInProgress"])

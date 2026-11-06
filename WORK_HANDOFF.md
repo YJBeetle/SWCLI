@@ -52,3 +52,16 @@
 - 在 run 42266835193 仍清理 runner、未进入原生测试时，静态核实际 runtime-status 契约发现复用旧 helper 的 health 解析错误（当前状态的原始 health 在 `result.health`，不能从 result 顶层读取 recovery_required/host/server_version）。主动取消本线程 run，未取消其他运行；不是正常排队重发，也不算 SOLIDWORKS API 失败。
 - 新增线型专属 LineFontSmoke.health 解析当前状态封套，保留外层 ready/reachable/connected 与内层无 recovery、PID 的全部断言；新增两项实际 snapshot 契约测试，不修改共享 modeling/annotation helper。
 - 相关修复、测试通过后才触发新 head 的公开验证。
+
+- 接线修复提交：`36a262ad020738b9bb8e4bbc8c3cbd3a993716eb`，21 项相关便携测试通过。
+- 新的必要公开 run：[42269536427](https://github.com/YJBeetle/SWCLI/actions/runs/42269536427)，head=`36a262ad020738b9bb8e4bbc8c3cbd3a993716eb`；参数 line_font_public=true / line_font_calibration=false / native_full=false，其余默认。当前待结果。
+- 给统筹的共享 helper 提醒：本 worktree 的 `scripts/ci/verify-modeling.py:494` 基类 health 读取旧状态形状；当前 `src/swcli/runtime_state.py` 把原始健康放在 health 子键中。本分支仅通过 LineFontSmoke 覆盖修复，不改共享 helper。其他 gate 若直接复用旧 health，需要主对话独立审查。
+
+- 旧公开 run 42266835193 普通 cancel 后仍被 always() job 保持运行，已仅对该本线程 run 使用 force-cancel；最终 conclusion=cancelled。停止时仍在 runner 磁盘清理，未进入公开 native group；GitHub 未产生 native artifact。已保留 run metadata、无 native artifact 说明与 job-log HTTP 404 取证状态于本地（原 job 日志当前无法取得） `artifacts/line-font/internal-cancelled-public-42266835193/`。不将其冒充 SOLIDWORKS API 失败或验收。
+
+## Owned worker trace 边界修复
+
+- 对照 server.py 的真实执行边界又确认 gate 需核验 `native_api_sequence`：拥有的宿主会在每请求进入并恢复 CommandInProgress。原 parser 未识别这层合法且必须恢复的 scope，会误判；这是 gate 问题，不是 API 验收失败。
+- run 42269536427 仍在 runner 磁盘清理、未进入 native public group 时，仅强制取消本线程该已知必失败的 gate run，避免继续消耗安装资源；未动其他 run。
+- parser 现在严格要求完整 enter/read/restore/read 的固定边界，再分别核业务读写和状态观察；没有放宽状态/几何断言。
+- 新增便携联测使用真实 trace_native_request + native_api_sequence + execute_operation（COM mock）重现 worker 调用边界；22 项相关测试通过。adapter、公开精确转换域、SDK/MCP schema 均未变。

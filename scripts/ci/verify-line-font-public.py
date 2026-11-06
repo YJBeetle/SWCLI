@@ -61,6 +61,12 @@ class Trace:
         ends = Counter((row["sequence"], row["call"]) for row in rows if row["phase"] in ("end", "error"))
         require(begins == ends and all(n == 1 for n in begins.values()), "native call boundaries repeat or are incomplete")
         calls = [row["call"] for row in rows if row["phase"] == "begin" and row["sequence"] != 0]
+        entry = ["CommandInProgress", "SldWorks.CommandInProgress.enter", "CommandInProgress"]
+        restore = ["SldWorks.CommandInProgress.restore", "CommandInProgress"]
+        require(calls[:3] == entry and calls[-2:] == restore,
+                "owned worker command scope did not enter and restore exactly once")
+        sequence_calls = calls[:3] + calls[-2:]
+        calls = calls[3:-2]
         require(all(call in OBSERVATION_CALLS | {"IModelDocExtension.GetUserPreferenceInteger",
                     "IModelDocExtension.SetUserPreferenceInteger", "IModelDoc2.SetSaveFlag"} for call in calls),
                 "unexpected native method in public operation")
@@ -83,7 +89,7 @@ class Trace:
         require(calls == expected, "native line font call ordering differs")
         require(len({row["worker_pid"] for row in rows}) == 1, "worker changed within request")
         self.seen.add(request)
-        proof = dict(request_id=request, operation=operation, getters=getters, setters=setters, calls=calls, observation_calls=observation_calls)
+        proof = dict(request_id=request, operation=operation, getters=getters, setters=setters, calls=calls, observation_calls=observation_calls, sequence_calls=sequence_calls)
         self.gate.record.setdefault("native_call_proofs", []).append(proof)
 
     def cli(self, operation, **counts):
