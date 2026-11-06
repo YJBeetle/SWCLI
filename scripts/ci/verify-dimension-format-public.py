@@ -31,7 +31,8 @@ class DimensionSmoke(annotations.AnnotationSmoke):
         if not self.cleaning_up:
             remaining = 1800 - (time.monotonic() - self.group_started) - 15
             require(remaining > 0, "dimension display group exceeded 1800 seconds")
-            keywords["timeout_seconds"] = min(600, remaining, keywords.get("timeout_seconds", 600))
+            requested = keywords.get("timeout_seconds")
+            keywords["timeout_seconds"] = min(600, remaining, 600 if requested is None else requested)
         return super().command(*arguments, **keywords)
 
 

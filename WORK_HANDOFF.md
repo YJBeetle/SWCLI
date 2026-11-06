@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：内部原生42277961301成功并已核原件；最终产品候选7962b58含P1修复与原生Windows33.5.0三种文档受限范围。一次必要公开验收42282493201已提交，唯一状态快照queued；同head便携CI42282468280正在运行。当前不merge-ready。已记录run/head/链接，按收口要求结束本轮，无持续监看。
+当前状态：公开42282493201/7962b58失败，原件digest/head及trace前缀、fixture SHA均已核；首因是gate超时包装将None传入min，在stale-stamp检查的CLI派发前崩溃，尺寸setter为零。最小修复与43项定向测试已过，准备一次必要相关公开验收。仍不merge-ready。
 
 ## 分支与范围
 
@@ -117,3 +117,12 @@
 - 后续由统筹分次快照跟进：运行完成后先保存原ZIP、元数据并核head/digest、报告、逐请求trace、保存重开/源副本SHA、三类状态和part精确几何、worker/host不变、清理与600/1800秒边界；通过才有最终head已验收范围。已准备原计划gate，不因本轮结束永久搁置。
 - 当前无可宣称已通过公开写入验收的子集，不提供可合通过tip。开发候选开启仅为该次公开gate，不等于可发布。没有新dispatch计划、automation或本地watch；不合main、不发布、不rebase，保留统筹main0e72beb。
 - 总状态与运行参数保存在 ../evidence/calibration-state.json；内部成功原件见 ../evidence/native-42277961301/。本轮工作树文档提交仅补交接，不改变上述最终产品head。
+
+## 公开首轮首因与最小修复
+
+- 42282493201 head7962b58eb64669fdad0a4ada151ffe0bd779158b completed/failure。artifact13538195111，SHA256 `5d3cc268afc5a094588d856c43f89e10f409fb86e44aa901597ba45230e16b64` 与GitHub digest/head一致；原ZIP、元数据、integrity.json、audit.json、workflow-failure.log和完整解压原件保存在 ../evidence/public-42282493201/。
+- fixture准备三类成功，源SHA逐一核对一致；公开part初始读取、单位/注解、完整边/面几何及lease拒绝完成；writes=[]，原生trace中preference setter总计0。报告cleanup_errors=[]，trace前缀摘要独立匹配。尚未验证任何实际公开写入，不计为通过。
+- 首个真实失败：verify-modeling.ModelingSmoke.write显式将timeout_seconds=None传到本gate.command；min(600,remaining,None)抛TypeError，在stale-stamp CLI派发前停止。工作流traceback已核。
+- 最小修复仅在本gate包装将None解释为既有600秒默认值，再与600和组剩余时间取最小；保留1800秒组界限和15秒清理预留，不修改产品、几何/状态判据、失败行为或字段范围。
+- 两项新增回归经真实继承write路径验证None、显式300/900、组剩余50秒与过期拒绝；43项定向测试通过。同head7962b58的Windows便携CI42282468280已success。本次为相关修复后必要验收，不是原样重发；不重启失败组或重试CAD API。
+- 用户最新澄清系列能力一起完成再发版，本系列公开缺口保持当前任务内处理；不据此扩新字段/计划或派审查代理。正常新运行仅保存一次快照后结束，由统筹后续继续。

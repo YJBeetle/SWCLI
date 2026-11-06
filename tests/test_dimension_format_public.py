@@ -129,6 +129,37 @@ class DimensionPublicTests(unittest.TestCase):
             for index, row in enumerate(rows[1:-1]): row["sequence"] = index // 2 + 1
         with self.assertRaises(RuntimeError): self.proof(wrong_order)
 
+    def test_public_write_default_timeout_is_bounded_without_none_comparison(self):
+        # Exercise the inherited write() path used by stale-stamp and real
+        # edits: it explicitly forwards timeout_seconds=None to command().
+        for requested, now, expected in ((None, 110, 600), (300, 110, 300),
+                                         (900, 110, 600), (None, 1835, 50)):
+            with self.subTest(requested=requested, now=now):
+                gate = object.__new__(public.DimensionSmoke)
+                gate.cleaning_up = False
+                gate.group_started = 100
+                gate.request_timeout_seconds = 600
+                gate.leases = {"d-ab12cd": "l-ab12cd34ef56"}
+                gate.lease_deadlines = {"d-ab12cd": 99999}
+                with mock.patch.object(public.time, "monotonic", return_value=now), \
+                        mock.patch.object(public.annotations.AnnotationSmoke, "command", return_value={"ok": True}) as command:
+                    result = gate.write("document", "dimension-format-set", "dual_display", "true",
+                                        document="d-ab12cd", timeout_seconds=requested)
+                self.assertTrue(result["ok"])
+                command.assert_called_once()
+                self.assertEqual(command.call_args.kwargs["timeout_seconds"], expected)
+                self.assertEqual(command.call_args.kwargs["lease"], "l-ab12cd34ef56")
+
+    def test_public_group_deadline_stops_before_dispatch(self):
+        gate = object.__new__(public.DimensionSmoke)
+        gate.cleaning_up = False
+        gate.group_started = 100
+        with mock.patch.object(public.time, "monotonic", return_value=1886), \
+                mock.patch.object(public.annotations.AnnotationSmoke, "command") as command:
+            with self.assertRaisesRegex(RuntimeError, "1800 seconds"):
+                gate.command("document", "dimension-format")
+        command.assert_not_called()
+
     def test_public_mode_precedes_unrelated_suites_and_stops_owned_daemon_once(self):
         wrapper = (ROOT / "scripts/ci/windows/smoke-solidworks.ps1").read_text()
         block = wrapper.split("    if ($DimensionFormatFixtureDirectory) {", 1)[1].split("    if ($VisibleSmoke)", 1)[0]
