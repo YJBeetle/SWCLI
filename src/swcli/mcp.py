@@ -35,6 +35,7 @@ def tool_definitions() -> list[Dict[str, Any]]:
         ("status", "Observe daemon availability, SW ownership, user/other instances and window visibility without starting anything. Unknown and startup-cached observations are explicit.", {}),
         ("daemon_start", STARTUP_MESSAGE + " Explicitly start or reuse the selected local host. The host launcher owns Wine/Python selection. visible affects only a newly owned SW; attach_existing explicitly shares a user SW and preserves its window.", {
             "visible": {"type": "boolean", "default": False},
+            "tray": {"enum": ["auto", "on", "off"], "default": "auto", "description": "Daemon icon only: auto shows on native Windows and is off under Wine; independent of SW window visibility."},
             "attach_existing": {"type": "boolean", "default": False},
             "startup_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 600, "default": 120},
         }),

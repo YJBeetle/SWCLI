@@ -53,6 +53,9 @@ class MCPBridgeTests(unittest.TestCase):
         self.assertTrue(tools[0]["annotations"]["readOnlyHint"])
         self.assertFalse(tools[1]["annotations"]["readOnlyHint"])
         self.assertIn(STARTUP_MESSAGE,tools[1]["description"])
+        self.assertEqual(tools[1]["inputSchema"]["properties"]["tray"]["enum"],
+                         ["auto", "on", "off"])
+        self.assertEqual(tools[1]["inputSchema"]["properties"]["tray"]["default"], "auto")
         tools[-1]["inputSchema"]["properties"].clear()
         self.assertIn("document_id",tool_definitions()[-1]["inputSchema"]["properties"])
 
@@ -208,12 +211,15 @@ class MCPStdioIntegrationTests(unittest.IsolatedAsyncioTestCase):
             async with stdio_client(self.parameters(daemon),errlog=errors) as streams:
                 async with ClientSession(*streams,read_timeout_seconds=timedelta(seconds=15)) as session:
                     initialized=await session.initialize();self.assertEqual(initialized.serverInfo.name,"swcli")
-                    self.assertEqual([tool.name for tool in (await session.list_tools()).tools],
+                    discovered=(await session.list_tools()).tools
+                    self.assertEqual([tool.name for tool in discovered],
                                      ["status", "daemon_start", "daemon_stop", "capabilities", "execute"])
+                    self.assertEqual(discovered[1].inputSchema["properties"]["tray"]["enum"],
+                                     ["auto", "on", "off"])
                     self.assertNotIn("swcli_", initialized.instructions)
                     self.assertEqual(captured,[])
                     status=await session.call_tool("status",{});self.assertFalse(status.isError)
-                    started=await session.call_tool("daemon_start",{},progress_callback=progress)
+                    started=await session.call_tool("daemon_start",{"tray":"off"},progress_callback=progress)
                     self.assertTrue(started.structuredContent["result"]["already_running"])
                     self.assertTrue(any(message and "SOLIDWORKS" in message for message in messages))
                     capabilities=await session.call_tool("capabilities",{"operation":"document.summary"})

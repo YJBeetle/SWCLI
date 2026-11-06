@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--log", required=True)
     parser.add_argument("--visible", action="store_true")
     parser.add_argument("--attach-existing", action="store_true")
+    parser.add_argument("--tray", choices=("auto", "on", "off"), default="auto")
     args = parser.parse_args()
     # The Task Scheduler action has no dependency on an inherited PYTHONPATH.
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -25,6 +26,8 @@ def main():
         try:
             arguments = ["daemon", "serve", "--host", host, "--port", str(port),
                          "--startup-timeout", args.startup_timeout]
+            if args.tray != "auto":
+                arguments.extend(("--tray", args.tray))
             if args.visible:
                 arguments.append("--visible")
             if args.attach_existing:

@@ -67,6 +67,11 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   then save only when the task authorizes persistence. Unit, font and drafting
   settings under SOLIDWORKS Options > Document Properties need their own
   advertised operations or the official API workflow.
+- For document display units or annotation options, read the usage guide's
+  document-options section and request `document.units`/`document.units-set` or
+  `document.annotation-options`/`document.annotation-option-set` schemas. The
+  supported fields and document types are bounded; do not infer font or
+  overall drafting-standard support from these operations.
 - If feature observation/depth editing is advertised, use returned exact feature
   handles, not tree names. Inspection is read-only, not edit eligibility.
   `feature.set-depth` has narrow profile/scope/control guards; equal depth still

@@ -33,6 +33,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         help="explicitly allow an unauthenticated non-loopback listener",
     )
     serve.add_argument("--visible", action="store_true")
+    serve.add_argument("--tray", choices=("auto", "on", "off"), default="auto",
+                      help="notification icon: auto shows on native Windows, off on Wine")
     serve.add_argument(
         "--attach-existing",
         action="store_true",
@@ -48,6 +50,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     start = commands.add_parser("start", help="start the service in the background")
     start.add_argument("--endpoint", dest="daemon_endpoint")
     start.add_argument("--visible", action="store_true")
+    start.add_argument("--tray", choices=("auto", "on", "off"), default="auto",
+                      help="notification icon: auto shows on native Windows, off on Wine")
     start.add_argument(
         "--attach-existing",
         action="store_true",
@@ -61,6 +65,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     )
     restart.add_argument("--endpoint", dest="daemon_endpoint")
     restart.add_argument("--visible", action="store_true")
+    restart.add_argument("--tray", choices=("auto", "on", "off"), default="auto",
+                      help="notification icon: auto shows on native Windows, off on Wine")
     restart.add_argument(
         "--attach-existing",
         action="store_true",
@@ -291,8 +297,11 @@ def start_daemon(
     visible: bool = False,
     startup_timeout_seconds: float = 120.0,
     attach_existing: bool = False,
+    tray: str = "auto",
 ) -> Dict[str, Any]:
     """Idempotently start a detached local daemon and wait for readiness."""
+    from ..windows_tray import validate_mode
+    validate_mode(tray)
     failure = _startup_preflight(endpoint, startup_timeout_seconds)
     if failure is not None:
         return failure
@@ -342,6 +351,8 @@ def start_daemon(
         "--startup-timeout",
         str(startup_timeout_seconds),
     ]
+    if tray != "auto":
+        command.extend(("--tray", tray))
     if visible:
         command.append("--visible")
     if attach_existing:
@@ -428,9 +439,12 @@ def restart_daemon(
     visible: bool = False,
     startup_timeout_seconds: float = 120.0,
     attach_existing: bool = False,
+    tray: str = "auto",
 ) -> Dict[str, Any]:
     """Stop a reachable daemon, then explicitly start a fresh host session."""
 
+    from ..windows_tray import validate_mode
+    validate_mode(tray)
     failure = _startup_preflight(endpoint, startup_timeout_seconds)
     if failure is not None:
         return failure
@@ -478,6 +492,7 @@ def restart_daemon(
         visible=visible,
         startup_timeout_seconds=startup_timeout_seconds,
         attach_existing=attach_existing,
+        **({"tray": tray} if tray != "auto" else {}),
     )
 
 
@@ -503,6 +518,7 @@ def run(args: argparse.Namespace) -> int:
         require_remote_bind_opt_in(args.host, allow_remote=args.allow_remote)
         server = SwclidServer((args.host, args.port))
         manager = None
+        tray_controller = None
         exit_code = 0
 
         def report_startup_host(host: Dict[str, Any]) -> None:
@@ -524,6 +540,13 @@ def run(args: argparse.Namespace) -> int:
             )
 
         try:
+            from ..windows_tray import start_tray
+            try:
+                tray_controller = start_tray(getattr(args, "tray", "auto"),
+                                             endpoint=f"{args.host if args.host != '0.0.0.0' else '127.0.0.1'}:{args.port}",
+                                             host_platform=args.host_platform)
+            except RuntimeError as exc:
+                raise WorkerStartupError("TrayUnavailable", str(exc)) from exc
             manager = WorkerManager(
                 visible=args.visible,
                 startup_timeout_seconds=args.startup_timeout,
@@ -545,6 +568,8 @@ def run(args: argparse.Namespace) -> int:
                 ),
                 flush=True,
             )
+            if tray_controller is not None:
+                tray_controller.ready()
             server.serve_forever()
         except KeyboardInterrupt:
             pass
@@ -580,6 +605,8 @@ def run(args: argparse.Namespace) -> int:
             )
             exit_code = 1
         finally:
+            if tray_controller is not None:
+                tray_controller.close()
             server.server_close()
             if manager is not None:
                 manager.close()
@@ -598,6 +625,7 @@ def run(args: argparse.Namespace) -> int:
             visible=args.visible,
             startup_timeout_seconds=args.startup_timeout,
             attach_existing=args.attach_existing,
+            **({"tray": args.tray} if getattr(args, "tray", "auto") != "auto" else {}),
         )
     elif command == "status" and getattr(args, "details", False):
         from ..daemon_manager import DaemonManager
@@ -608,6 +636,7 @@ def run(args: argparse.Namespace) -> int:
             visible=args.visible,
             startup_timeout_seconds=args.startup_timeout,
             attach_existing=args.attach_existing,
+            **({"tray": args.tray} if getattr(args, "tray", "auto") != "auto" else {}),
         )
     else:
         operation = "daemon.health" if command == "status" else "daemon.shutdown"
