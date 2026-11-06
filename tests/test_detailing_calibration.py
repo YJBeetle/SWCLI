@@ -15,8 +15,17 @@ class DetailingCalibrationTests(unittest.TestCase):
         self.assertIsNone(watchdog.timeout_reason(0, 609, [begin]))
         self.assertIn("600-second", watchdog.timeout_reason(0, 611, [begin]))
         for phase in ("end", "error"):
-            self.assertIsNone(watchdog.timeout_reason(0, 611, [begin, {"call": "native-setter", "phase": phase}]))
+            self.assertIsNone(watchdog.timeout_reason(0, 611, [begin, {"call": "native-setter", "phase": phase, "time": 11}]))
         self.assertIn("1800-second", watchdog.timeout_reason(0, 1801, []))
+
+    def test_untraced_startup_or_registry_probe_cannot_use_the_group_budget(self):
+        spec = importlib.util.spec_from_file_location("detailing_idle_watchdog", ROOT / "scripts/ci/run-detailing-calibration.py")
+        watchdog = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(watchdog)
+        self.assertIn("600-second", watchdog.timeout_reason(0, 601, []))
+        records = [{"call": "completed-read", "phase": "end", "time": 20}]
+        self.assertIsNone(watchdog.timeout_reason(0, 620, records))
+        self.assertIn("600-second", watchdog.timeout_reason(0, 621, records))
 
     def test_no_wire_or_environment_override_can_enable_writes(self):
         from swcli.hosts.windows_document_detailing import CALIBRATED_REVISIONS

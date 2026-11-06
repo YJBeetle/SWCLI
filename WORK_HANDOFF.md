@@ -9,9 +9,9 @@
 
 ## 测试
 
-- 最终完整便携回归：1831 项，成功，32 项按环境跳过（本地 macOS/Python 3.15）。相关新增 12 项通过。
+- 最终完整便携回归：1832 项，成功，32 项按环境跳过（本地 macOS/Python 3.15）。相关新增 13 项通过。
 - SDK generator `--check` 通过；strict SDK 实现和 8 个消费者类型拒绝检查通过。CI YAML/分支 opt-in/发布隔离接线与 `git diff --check` 通过。
-- 持久日志：`artifacts/detailing/portable/unittest.log`、`sdk-types.log`（生成证据目录已加入本分支 `.gitignore`）。
+- 持久日志：`artifacts/detailing/portable/unittest-final.log`、`associated-final.log`、`sdk-types.log`（生成证据目录已加入本分支 `.gitignore`）。
 - 专属校准使用已有 CI 的 `workflow_dispatch` 输入 `detailing_calibration=true`，默认关闭，且仅本分支可运行；该模式跳过通用 test/package/full-native。
 - 原生调用 600 秒、组 1800 秒；独占宿主、首失败停、无 API 重试/自动回滚/组内重启。
 
@@ -31,3 +31,7 @@
 - `_operation` 的 `lease_guarded` 支持 `required` 和 `optional`；否则新增“必需 lease”操作虽有 schema 约束却不会进入 registry 校验。已有 optional 行为保持。
 - 新增独立 catalog/adapter、两组测试、设计说明、校准与 watchdog 脚本；沿用现有 annotations 的普通工程图上下文 guard 和 custom-properties 的状态/可写保护。
 - 不依赖其他未验收分支。Windows 校准依赖官方 swconst、明确的 GB DRWDOT、既有私有安装设施；不使用本地 VM。
+
+## 校准运行中的 watchdog 加固
+
+等待首个原生 run 时复核发现，registry/状态探测可能位于命名 trace 边界之间；补充 600 秒无新边界保护，防止它们继承更长的组预算。此修正只影响监控，不改变 adapter/字段/放行策略。补充测试后 1832 项完整便携回归通过（32 跳过），相关 13 项通过。原生 run 仍绑定原实现 `5c878c3`，不会把它描述为新 watchdog head 的原生验收；暂不额外 dispatch。

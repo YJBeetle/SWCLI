@@ -23,6 +23,11 @@ def timeout_reason(started, now, records):
             pending.pop(name, None)
     if any(now - began > 600 for began in pending.values()):
         return "native calibration call exceeded the 600-second budget"
+    # Some registry/state probes sit between named harness boundaries. They
+    # must not inherit the longer group budget if a COM call hangs there.
+    latest_boundary = max((record.get("time", started) for record in records), default=started)
+    if now - latest_boundary > 600:
+        return "untraced calibration work exceeded the 600-second budget"
     return None
 
 
