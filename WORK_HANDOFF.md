@@ -26,7 +26,7 @@
 
 已有 `ci.yml` 加默认关闭 `docprops_calibration` 与必需 exact `docprops_expected_head`，仅 `workflow_dispatch` + 本仓库 + 此分支 + `expected_head == github.sha == checkout HEAD` + `native_full=false` 才执行。校验在首个私有输入前；checkout `persist-credentials:false`。本分支 push/定向 dispatch 跳过无关 test/package/native full/release，避免占用无关完整 CI。
 
-复用现有安装/私有 runtime/同名 Windows concurrency。新增 `verify-document-properties-calibration.py` 复用 owned harness：仅新 host，require owned，捕获 process handle，设置本 owned 实例 UserControl=True（在 calibrator baseline 前），持有 STA 并 pump 等待 hardened driver。driver 在独立线程仅管自己 Popen worker，nonce/argv/exe/PID/-I -S 授权不变。finally 仍只 ExitApp owned + wait captured handle；cleanup 脚本新增显式 `-PrivateInputsOnly`，此路径不全局终止 SOLIDWORKS/daemon，仅清除私有输入/服务/挂载；原完整 CI 的默认行为未变。
+复用现有安装/私有 runtime；首 run 因同名全仓 concurrency 被排队替换取消，相关修复后改为本路专用 concurrency（见后节）。新增 `verify-document-properties-calibration.py` 复用 owned harness：仅新 host，require owned，捕获 process handle，设置本 owned 实例 UserControl=True（在 calibrator baseline 前），持有 STA 并 pump 等待 hardened driver。driver 在独立线程仅管自己 Popen worker，nonce/argv/exe/PID/-I -S 授权不变。finally 仍只 ExitApp owned + wait captured handle；cleanup 脚本新增显式 `-PrivateInputsOnly`，此路径不全局终止 SOLIDWORKS/daemon，仅清除私有输入/服务/挂载；原完整 CI 的默认行为未变。
 
 本次选择**原单组完整36转换**（part/assembly/drawing各12，含每次保存、RO重开及profile/几何断言），仍1800秒，不是拆组。wrapper 对报告进行再次完整性拒绝检查，R4样式30 setter/29 roundtrip、profile漂移、重复setter、cleanup失败均不能成功。新原件生成 source/head/run/attempt/hash manifest，公开 artifact 仅本run校准输出，不上传私有配置/安装日志。
 
@@ -56,3 +56,17 @@ R4 原生整组1800秒超时：30 setter True，29完整保存/只读重开；�
 - 依赖：继承批次 checkpoint 的 fixed drafting-defaults-v1 reader、hardened driver 与 owned harness。最终 workflow 共享冲突由主集成处理；本路不读写其他 worktree、不等待其他分支。
 
 - 实现已提交并推送：`81c32732a07ca0459c82955d2314e81ad2323857`；独立分支首次推送成功。提交标记 `[skip ci]` 避免无关 push CI。后续仅文档/receipt更新；实际绑定 head/run 见本目录持久 `evidence/docprops-performance/dispatch.json`（触发后生成）。
+
+### 第一次独立 Windows dispatch（已接受，正在等待，非失败）
+
+- 原生 source/head：`dabb91a3ba14c01013754307f9b73b334ee3188a`（实现提交 `81c32732a07ca0459c82955d2314e81ad2323857` + 交接文档）。
+- [run 42260761081](https://github.com/YJBeetle/SWCLI/actions/runs/42260761081)，attempt 1，job `128039761043`；2026-11-07 01:20:39 Asia/Shanghai 创建。首次查询 pending；未重复 dispatch。
+- 参数：`docprops_calibration=true`、`docprops_expected_head=dabb91a3ba14c01013754307f9b73b334ee3188a`、`native_full=false`；其余安装配置使用既有默认。
+- 仅 Internal owned standards-36 performance calibration 待执行，portable/package/full/tag/release 全部 skipped。专用 job 使用现有 `swcli-hosted-windows-solidworks` concurrency；排队不代表失败，不保证15路同时执行。
+- 当前无原生成功/失败产物；完整 Windows 36转换与本批公开验收仍未完成。
+
+### 首次运行结论与相关修复
+
+run 42260761081 / attempt 1 已 completed/cancelled，未分配 runner（runner_name空）、steps=[]，artifacts=[]，**零原生执行证据**。GitHub check annotation 原文：`Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists`。不能归为标准 setter 失败、原生超时或校准通过。原始 run/job/check/annotations/artifacts JSON 及 SHA256 已存 `evidence/docprops-performance/run-42260761081-*`。
+
+这证明全仓共享 concurrency 的单个 pending 槽会让独立线程互相取代。只修本路 job group 为 `swcli-docprops-performance-windows-${{ github.ref }}`，保留 cancel-in-progress=false；原完整 native job 的 group 不变。不同 hosted runner 不共享本地 owned host/runtime，实际并发仍受 GitHub 配额约束；不操作其他 run。接线回归/actionlint 再通过后才对新 head 发起新验证，不重试旧 head、不复跑原生 API。

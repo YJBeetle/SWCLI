@@ -1,0 +1,29 @@
+{
+  "repository": "YJBeetle/SWCLI",
+  "workflow": "ci.yml",
+  "branch": "codex/docprops-calibration-performance",
+  "head": "dabb91a3ba14c01013754307f9b73b334ee3188a",
+  "inputs": {
+    "docprops_calibration": "true",
+    "docprops_expected_head": "dabb91a3ba14c01013754307f9b73b334ee3188a",
+    "native_full": "false"
+  },
+  "requested_at_utc": "2026-11-06T17:20:37.012356+00:00",
+  "dispatch_attempts": 1,
+  "full_acceptance_eligible": false,
+  "status": "completed",
+  "dispatch_exit_code": 0,
+  "dispatch_stdout": "https://github.com/YJBeetle/SWCLI/actions/runs/42260761081\n",
+  "dispatch_stderr": "",
+  "run_id": 42260761081,
+  "run_attempt": 1,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42260761081",
+  "job_id": 128039761043,
+  "initial_run_status": "pending",
+  "unrelated_jobs": "all skipped",
+  "conclusion": "cancelled",
+  "native_started": false,
+  "runner_allocated": false,
+  "cancellation_reason": "Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists",
+  "artifacts": []
+}

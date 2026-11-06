@@ -499,7 +499,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 100
     concurrency:
-      group: swcli-hosted-windows-solidworks
+      group: swcli-docprops-performance-windows-${{ github.ref }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
