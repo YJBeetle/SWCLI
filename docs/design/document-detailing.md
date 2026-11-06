@@ -24,4 +24,6 @@ swcli document detailing-option-set auto_center_marks.part_holes true \
 
 公开验收使用默认关闭的 `workflow_dispatch` 输入 `detailing_public_gate=true`（与内部 `detailing_calibration` 互斥），仅本分支可运行，同样跳过 test/package/full-native/release。`verify-detailing-public.py` 不访问 COM，只用安装后的 CLI/daemon，真实 SDK 与 MCP bridge；检查逐值写入、no-op、lease/stamp/完整 CAS 拒绝、read-only 拒绝、四次独立保存重开、原文件 hash、无关注解标量、单宿主/worker，以及 request ID 对应的完整 native trace 顺序。stdio 的 MCP 协议契约由便携测试覆盖，不冒称为本 gate 的真实 stdio CAD 证据。
 
-内部校准不等于公开 CLI/daemon 验收；公开 gate 通过并核验原产物前，该范围仍未达到 merge-ready。此候选不属于完整文档属性页、完整建模 suite 或 release 验收。
+内部校准不等于公开 CLI/daemon 验收；公开 gate [42268599270](https://github.com/YJBeetle/SWCLI/actions/runs/42268599270) 已通过，原始 artifact/head/digest/trace/四个保存文件已独立核验；该两项标量范围达到 merge-ready，版本化回执见 `docs/evidence/detailing-public-42268599270.json`。此候选不属于完整文档属性页、完整建模 suite 或 release 验收。
+
+原生实测使用独占隐藏 Windows 宿主和空 GB A4 工程图，验收的是标量存储、保护与保存重开；没有验证实际新建模型视图时的自动标记效果。首轮公开 gate 的追踪嵌套/报告初始化失败保留在 `docs/evidence/detailing-public-42264404958-failure.json`，修复未放宽原顺序、状态或持久化断言。
