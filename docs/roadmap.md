@@ -191,8 +191,12 @@ unsaved documents and attached user-host ownership.
   lifecycle tools, host launcher selection, read-only runtime observations and
   live schema discovery. A typed Python SDK remains future work;
   neither route adds a second public COM/raw-Python execution surface.
-- Authenticated encrypted remote transport, workspace/file transfer and
-  artifact IDs/downloads before treating server paths as a remote product API.
+- [ ] MCP artifact delivery: return rendered images and exported files through
+  MCP, including artifact IDs, format/size metadata and bounded downloads.
+  The current adapter returns host paths and metadata only.
+- [ ] Secure remote connectivity and file transfer: add authenticated, encrypted
+  connections and explicit workspace uploads/downloads. Keep client and daemon
+  host paths distinct and remote lifecycle control explicit.
 - Extend the implemented minimal assembly/drawing creation toward editing,
   arbitrary views, sheets, dimensions and BOM only through separately verified slices.
 
