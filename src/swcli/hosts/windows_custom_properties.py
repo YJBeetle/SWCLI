@@ -94,12 +94,15 @@ def _state(document: Any) -> tuple:
     return kind, stamp, modified, configuration
 
 
-def _verify_metadata_state(app: Any, document: Any, before: tuple, foreground: Any, *, changed: bool) -> None:
+def _verify_metadata_state(app: Any, document: Any, before: tuple, foreground: Any, *, changed: bool,
+                           require_writable: bool = False) -> None:
     after = _state(document)
     stable = (after[0], after[3]) == (before[0], before[3]) if changed else after == before
     if not stable or not _same(app, foreground, _com_value(app, "ActiveDoc")):
         raise RuntimeError("document state or foreground changed during metadata operation")
     if changed and not after[2]:
+        if require_writable:
+            _require_writable(document)
         native_call("document-metadata", "IModelDoc2.SetSaveFlag", lambda: document.SetSaveFlag())
         final = _state(document)
         if not final[2] or (final[0], final[3]) != (before[0], before[3]) or not _same(

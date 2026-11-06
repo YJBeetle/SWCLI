@@ -96,26 +96,26 @@ function Start-Process {
                 self.assertEqual(result["calls"], ["1" if enabled else None])
                 self.assertEqual(result["failure"], "injected start failure" if fail else None)
 
-    def test_property_units_annotation_failures_stop_later_gates_without_restart(self):
+    def test_document_gate_failures_stop_later_profiles_without_restart(self):
         wrapper = WRAPPER.read_text(encoding="utf-8")
         code = wrapper.split('    if ($PropertyFixtureDirectory) {', 1)[1].split('    # Shared scripts own CAD coverage', 1)[0]
         code = 'if ($PropertyFixtureDirectory) {' + code
-        expected = ["verify-properties.py", "verify-document-units.py", "verify-document-annotations.py"]
-        for failing_index in (0, 1, 2, None):
+        expected = ["verify-properties.py", "verify-document-units.py", "verify-document-annotations.py"] + ["verify-document-preferences.py"] * 3
+        for failing_index in (*range(len(expected)), None):
             with self.subTest(failing_index=failing_index):
                 setup = """$global:Calls=@()
 $PropertyFixtureDirectory='fixture'
 $AnnotationFixtureDirectory='annotation-fixture'
 $Workspace=$PSScriptRoot
 $daemonStderr=Join-Path $Workspace 'swclid.stderr.log'
-$failedScript=FAILED_SCRIPT
+$failedIndex=FAILED_INDEX
 function python {
     $script=Split-Path -Leaf ([string]$args[1])
     $global:Calls += $script
     $global:LASTEXITCODE=0
-    if ($script -eq $failedScript) { $global:LASTEXITCODE=23 }
+    if ($null -ne $failedIndex -and $global:Calls.Count -eq ($failedIndex + 1)) { $global:LASTEXITCODE=23 }
 }
-""".replace("FAILED_SCRIPT", "$null" if failing_index is None else "'" + expected[failing_index] + "'")
+""".replace("FAILED_INDEX", "$null" if failing_index is None else str(failing_index))
                 result = self.execute(code, setup)
                 self.assertEqual(result["calls"], expected if failing_index is None else expected[:failing_index + 1])
                 self.assertEqual(result["failure"] is None, failing_index is None)

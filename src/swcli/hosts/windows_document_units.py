@@ -19,8 +19,13 @@ class DocumentUnitsConflict(RuntimeError):
 
 
 def _read_units(document: Any) -> dict:
-    values = native_call("document-units", "IModelDoc2.GetUnits",
-                         lambda: _com_value(document, "GetUnits"))
+    # Keep this one native boundary flat: _com_value has its own trace, so
+    # calling it inside native_call would create overlapping begin/end pairs.
+    def read_native():
+        member = getattr(document, "GetUnits")
+        return member() if callable(member) else member
+
+    values = native_call("document-units", "IModelDoc2.GetUnits", read_native)
     if (not isinstance(values, (tuple, list)) or len(values) != 5
             or any(type(value) is not int or not -32768 <= value <= 32767 for value in values)):
         raise RuntimeError("native document length units are unreadable")

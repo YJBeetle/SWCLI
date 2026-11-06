@@ -3,6 +3,44 @@
 This is the project's execution roadmap, not a promise of release dates or
 protocol stability. Capabilities and the installed version are authoritative.
 
+## Current execution order
+
+The API comparison is a capability-gap inventory, not a commitment to wrap every
+SOLIDWORKS API or a release schedule. The user's current priority is to complete
+Document Properties in verified field groups, then strengthen foundational
+modeling and assemblies before explosion/animation and motion studies.
+
+| Order | Scope | Execution boundary |
+| --- | --- | --- |
+| 1 | Document Properties | Current font, grid/virtual-sharp/plane-display and finite drafting-standard batch; then remaining units, dimensions, tables and other page groups. Track the [page inventory](design/document-properties-coverage.md) and [current contract](design/document-preferences-batch.md). A bounded field group does not complete the whole page. |
+| 2 | Foundational modeling | Broaden sketches, constraints, driving dimensions and native feature creation/editing, preserving exact handles, geometry, state and native save/reopen proof. |
+| 3 | Assemblies and manufacturing drawings | Component placement/state and guarded mate creation/editing/solver results, followed by manufacturing annotations, tables and delivery workflows. |
+| 4 | Assembly presentation and motion | Editable explosion/collapse steps, animation, then motion-study setup, solve and results as separate capabilities. |
+| 5 | Specialist engineering | Sheet metal, weldments, DimXpert, Simulation and PDM need individual designs and acceptance; they have no near-term date commitment. |
+
+For every group, record code implementation, portable checks, native acceptance
+and publication separately. Protocol-operation counts are snapshots, not a
+percentage of the official API or a count of fully accepted features. Current
+work is isolated on a 0.2.4 baseline; existing remote security and workspace
+transfer behavior is retained. Windows is the primary development acceptance
+host. DockerSW/Wine follow-up is a separate host result and must not be inferred
+from Windows success; this batch does not change DockerSW/MacSW releases.
+
+## Explicit export options (requested)
+
+- [ ] Add format-specific, typed parameters to `document.export` and expose them
+  consistently through CLI, MCP and Typed SDK. The first practical request is
+  GLB export for downstream Blender rendering: inspect the native Save As →
+  GLB → Options controls and establish which have supported API equivalents.
+- [ ] Verify mesh-quality/tessellation control using curved native samples and
+  exported triangle counts plus geometric error. Document image-quality settings
+  and GLB-specific export options are separate control domains until runtime
+  evidence establishes their relationship; no current CLI quality flag exists.
+- [ ] Reject options unsupported by the chosen format. Any application-wide
+  preferences require an explicit concurrency/state design and observed native
+  restoration before they can become a per-export option. Preserve the current
+  default export behavior when no options are provided.
+
 ## v0.1.0a4: first reusable part-modeling loop
 
 Implemented and covered by portable tests and native Windows smoke:
@@ -178,8 +216,12 @@ verified parts, assemblies and drawings, including changed values, no-ops,
 lease/CAS refusals and saved-copy readback. The accepted source and original
 artifacts are recorded in [the final Windows receipt](verification/a18-final-windows-2026-11-06.md).
 See [the bounded contract](design/document-annotation-options.md).
-Annotation text format and overall drafting standard remain later increments
-because changing them can propagate to subtype settings.
+The current isolated document-properties batch implements overall annotation font,
+ten display fields and finite drafting-standard transitions. Native calibration
+and installed public acceptance are in progress; related defaults are observed
+through an explicit finite profile rather than claiming whole-page coverage.
+See [the batch contract](design/document-preferences-batch.md) and
+[the remaining page inventory](design/document-properties-coverage.md).
 [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
 ## MCP tool names (0.2.1)

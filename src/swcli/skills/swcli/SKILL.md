@@ -76,6 +76,12 @@ retry writes or refresh leases/CAS implicitly.
   `document.annotation-options`/`document.annotation-option-set` schemas. The
   supported fields and document types are bounded; do not infer font or
   overall drafting-standard support from these operations.
+- For an advertised `document.annotation-font`, `document.display-options` or
+  `document.drafting-standard` pair, request its own schema and read the guide's
+  bounded preference contract. New setters require an explicit lease, fresh
+  update stamp and exact field/full-snapshot CAS. Only overall annotation font
+  and a finite standard observation profile are covered; unknown/custom
+  standards, subtype fonts and unobserved page settings remain separate work.
 - If feature observation/depth editing is advertised, use returned exact feature
   handles, not tree names. Inspection is read-only, not edit eligibility.
   `feature.set-depth` has narrow profile/scope/control guards; equal depth still
