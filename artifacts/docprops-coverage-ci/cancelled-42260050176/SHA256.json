@@ -1,0 +1,32 @@
+[
+  {
+    "path": "annotations.json",
+    "bytes": 350,
+    "sha256": "95e0afbc57e10d2afe87ee940ddc732da246f8d75cef3538de68d476f769014f"
+  },
+  {
+    "path": "artifacts.json",
+    "bytes": 32,
+    "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c"
+  },
+  {
+    "path": "check.json",
+    "bytes": 3045,
+    "sha256": "47a21a64af6d930c22d750c097bee7b123398137156549ce0bcd83927bb3d2e7"
+  },
+  {
+    "path": "jobs.json",
+    "bytes": 5218,
+    "sha256": "21c1d30f8cfa519cf7437a3cccfcf999a0d4c5609cf9dcffd20cdf6f9e376b77"
+  },
+  {
+    "path": "logs-request.json",
+    "bytes": 768,
+    "sha256": "bd448847b1df38bc2f95bbb75228f64c63a4b10d730f9fc24fdbf0269c2e1073"
+  },
+  {
+    "path": "run.json",
+    "bytes": 11677,
+    "sha256": "9107016ca89248f767b8892e04c16117f5d35426fb4d467f3f664a5ba322bdae"
+  }
+]

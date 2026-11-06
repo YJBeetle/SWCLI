@@ -27,7 +27,9 @@ installed CLI/SDK/MCP 的实际结果、原生状态及保存重开证据，三�
 可独立复用模板在 `scripts/ci/templates/docprops-targeted.yml`。使用已有 CI workflow ID
 让尚未合入默认分支的校准入口也能按 ref 分派。
 安装部分沿用已有 hosted Windows 流程；不调用完整基础CI或完整功能门禁。
-并发沿用 hosted SOLIDWORKS 组，排队是正常状态，不保证十作业同时运行。
+专属校准并发组为 `swcli-docprops-baseline-properties-${{ github.ref }}`，
+`cancel-in-progress=false`；默认 full/release 并发组保持。不同profile/分支不得共享此组，
+避免等待任务互相替换。GitHub实际配额仍可能排队，不保证十作业同时运行。
 
 本版唯一允许计划是 baseline-properties：新建一个 owned 隐藏宿主，零件和装配属性样件，
 保存副本、只读重开。使用既有脚本，不添加或重试写入 API。
@@ -60,3 +62,15 @@ trace首个error优先于后续清理错误；报告失败另保留原始traceba
 STL和STEP使用格式专属结构，GLB/image-quality仍由原分工负责；涉及全局偏好的出口须
 证明宿主独占、会话隔离、保存原值、设置读回、单次业务调用和finally恢复核验，保留首次业务失败。
 这些是待验证条件，不代表已核实官方API支持或已完成原生验收。
+
+
+## 唯一运行取消与本次边界
+
+42260050176 在旧共享组等待时 cancelled，annotation明确记录：
+`Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists`。
+job steps=[]、artifact_count=0，日志端点404；原始API元数据及SHA256保存在
+`artifacts/docprops-coverage-ci/cancelled-42260050176/`。它没有运行CAD，不能判为CAD失败。
+本计划实际仅测基线 `document.properties` 零件/装配读取、中文/空值/配置遮蔽、后台状态、
+保存只读重开和owned宿主清理；不是新增15项功能的原生/公共验收，也没有原生CLI/SDK/MCP调用。
+公共三入口覆盖来自便携参数传递测试。并发修复经接线测试后保留模板，
+因本分支没有新增产品变化，不为验证验收工具再次跑相同CAD计划。原生采集链仍未取得实跑证据。

@@ -10,8 +10,8 @@
     "docprops_expected_head": "7f7a4af80d6f731e9a625f6033b4ca496e876f94",
     "native_full": false
   },
-  "status": "pending",
-  "conclusion": null,
+  "status": "completed",
+  "conclusion": "cancelled",
   "run_attempt": 1,
   "scope": "internal-calibration",
   "full_acceptance_eligible": false,
@@ -25,7 +25,14 @@
     "annotation_wiring_skipped": 2
   },
   "notes": [
-    "Original native artifacts are not yet available; no native acceptance claim.",
-    "No unrelated full CI or another branch run was dispatched."
-  ]
+    "Cancelled while waiting for shared concurrency group; no job steps, no CAD result.",
+    "No native artifact exists (artifact list empty); logs endpoint returns HTTP 404.",
+    "Concurrency fixed for future branch profile runs; no new product change justifies another CAD run."
+  ],
+  "updated_at": "2026-11-06T17:20:41Z",
+  "cancellation_reason": "Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists",
+  "native_steps_executed": 0,
+  "artifact_count": 0,
+  "cancellation_evidence": "cancelled-42260050176/",
+  "redispatch": false
 }

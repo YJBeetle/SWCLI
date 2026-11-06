@@ -26,9 +26,9 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - 代码提交：`7f7a4af80d6f731e9a625f6033b4ca496e876f94`，已推送 origin。
 - [CI 42260050176](https://github.com/YJBeetle/SWCLI/actions/runs/42260050176)，attempt 1，workflow_dispatch。
 - 参数：`docprops_targeted=true`、`docprops_expected_head=7f7a4af80d6f731e9a625f6033b4ca496e876f94`、`native_full=false`。
-- GitHub已核head匹配；基础test/package、完整原生与发布job均 skipped，仅docprops-targeted等待共享并发队列。
-- 当前状态 pending，无原生报告/trace/保存副本可审计，不能标为原生通过。运行记录：`artifacts/docprops-coverage-ci/run.json`。
-- 后续只跟踪此run；完成/失败后先保存原始artifact ZIP并核SHA256，再提取审计，不因排队重复触发。
+- GitHub已核head匹配；基础test/package、完整原生与发布job均 skipped，docprops-targeted曾等待共享并发队列，现已cancelled。
+- 最终状态 cancelled（并发等待被替换，steps=[]），无原生报告/trace/保存副本可审计，不能标为原生通过。运行记录：`artifacts/docprops-coverage-ci/run.json`。
+- 已保存取消run/jobs/check/annotations/artifacts原始元数据及SHA256；没有原始artifact ZIP可下载，不重复触发。
 
 ## 统筹读取的契约与合并信息（15对话更新）
 
@@ -56,10 +56,21 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - `python scripts/ci/audit-docprops-calibration.py --evidence DIR --expected-head SHA`：严格审计同一计划原件，不能用于其他分支格式。
 - CI `ci.yml` 的 `docprops_targeted:boolean=false`、`docprops_expected_head:string`；实际分派同时明确 `native_full=false`。
 
-共享文件改动只有 `.github/workflows/ci.yml`：增加上述两个 input、test/package 的定向跳过条件、单个 branch-only job；原 full/release 条件和 PR secrets 隔离保持。独立新增文件是审计器、驱动、模板、便携测试、版本化矩阵、初始只读快照、说明文档、run记录和本交接。产品 `src/swcli/{cli,operation_schemas,result_schemas,sdk,mcp}` 均未修改。统筹合并时需要协调各分支 ci.yml input/job 与共同 concurrency group，但本分支不合入其他分支。
+共享文件改动只有 `.github/workflows/ci.yml`：增加上述两个 input、test/package 的定向跳过条件、单个 branch-only job；原 full/release 条件和 PR secrets 隔离保持。独立新增文件是审计器、驱动、模板、便携测试、版本化矩阵、初始只读快照、说明文档、run记录和本交接。产品 `src/swcli/{cli,operation_schemas,result_schemas,sdk,mcp}` 均未修改。统筹合并时需要协调各分支 ci.yml input/job 与各自独立 profile+ref concurrency group，但本分支不合入其他分支。
 
 依赖：已存在的 `verify-properties-calibration.py` / `verify-through-all-calibration.py` 与 hosted Windows 安装脚本；不依赖任何未验收产品分支。模板只适用当前固定properties报告契约，其他14个分工必须提供自己的计划、报告语义与专用审计器。原生读写API沿用既有基线，本分支没有新COM API映射或未经核实的官方能力声明。
 
 已按主对话提供索引补齐15项负责人映射，但未重新读取/评定其他分支代码。新增稳定引用、配合、旋转、STL和STEP全部保持未验收。GLB/image-quality仍属于docprops-export-options；STL/STEP需要各自格式类型结构，不能据其参数推定GLB支持。若使用宿主全局偏好，验收清单额外要求独占/会话隔离、原偏好保存、精确读回、单次导出、finally恢复并核验以及保留首次业务失败；本模板不自动提供这些产品能力。
 
-当前唯一校准仍为42260050176（head 7f7a4af），pending并发排队。排队不算失败，不重复dispatch；后续文档提交不替代校准head。代码提交后的9878762仅记录交接与run信息。
+唯一校准42260050176（head 7f7a4af）最终cancelled，未执行CAD；后续文档提交不替代校准head。代码提交后的9878762仅记录交接与run信息。
+
+## 取消事实、修复和停止重复CAD校准
+
+- GitHub最终记录：run completed/cancelled，更新时间 `2026-11-06T17:20:41Z`（北京时间11月7日01:20:41）。此前交接里的pending是过期快照，现已更正。
+- check annotation首因：`Canceling since a higher priority waiting request for swcli-hosted-windows-solidworks exists`。不是推定CAD错误；job steps为空，artifacts为0，job日志端点HTTP404。
+- 原始run/jobs/check/annotations/artifacts API响应及日志请求结果：`artifacts/docprops-coverage-ci/cancelled-42260050176/`，`SHA256.json`核每个元数据原件；`run.json`同步最终状态。
+- 只修改专属docprops-targeted job与其模板的并发组为 `swcli-docprops-baseline-properties-${{ github.ref }}`，保留 `cancel-in-progress=false`；默认完整原生的 `swcli-hosted-windows-solidworks` 与release组原样保留。接线测试新增回归断言。
+- 实际计划只运行已有 `verify-properties-calibration.py`，覆盖基线document.properties的零件/装配读、Unicode/空值/配置遮蔽、后台状态、保存只读重开、单owned宿主及退出。样件准备会使用既有Add3，但不新增产品写功能。不运行真实公共CLI/SDK/MCP原生通路，不覆盖其余分支产品。
+- 本分支是验收矩阵/工具工作，产品没有变化。为避免只验证验收工具重复运行既有CAD，**不重新dispatch**。并发修复仅有便携接线证据；原生采集/审计链仍未经本次实跑，不能称已原生验收。后续由统筹在真正产品head的必要专用计划中复用模板。
+
+本次并发修复验证：`test_docprops_coverage_ci.py` 全部8项通过（含专属group、模板一致、默认full/release组保留断言），两个YAML解析及`git diff --check`通过。没有新dispatch。

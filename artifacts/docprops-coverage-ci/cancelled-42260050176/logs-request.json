@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "stdout": "HTTP/1.1 404 The specified blob does not exist.\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Expose-Headers: x-ms-request-id,Server,x-ms-version,x-ms-error-code,Content-Length,Date,Transfer-Encoding\r\nContent-Length: 215\r\nContent-Type: application/xml\r\nDate: Fri, 06 Nov 2026 17:27:54 GMT\r\nServer: Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0\r\nX-Ms-Error-Code: BlobNotFound\r\nX-Ms-Request-Id: 417a35f8-201e-0055-4314-6e3089000000\r\nX-Ms-Version: 2025-11-05\r\n\r\n﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><Error><Code>BlobNotFound</Code><Message>The specified blob does not exist.\nRequestId:417a35f8-201e-0055-4314-6e3089000000\nTime:2026-11-06T17:27:55.1551124Z</Message></Error>",
+  "stderr": "gh: HTTP 404\n"
+}

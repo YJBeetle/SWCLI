@@ -18,7 +18,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: swcli-hosted-windows-solidworks
+      group: swcli-docprops-baseline-properties-${{ github.ref }}
       cancel-in-progress: false
     env:
       EXPECTED_HEAD: ${{ inputs.expected_head }}

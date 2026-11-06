@@ -149,6 +149,16 @@ class DriverTests(unittest.TestCase):
         self.assertIn("  test:\n    if: ${{ !inputs.docprops_targeted }}", text)
         self.assertIn("  package:\n    if: ${{ !inputs.docprops_targeted }}", text)
         self.assertLess(targeted.index("Head mismatch"), targeted.index("secrets.RCLONE_CONFIG_B64"))
+        self.assertIn("group: swcli-docprops-baseline-properties-${{ github.ref }}", targeted)
+        self.assertIn("cancel-in-progress: false", targeted)
+        self.assertNotIn("group: swcli-hosted-windows-solidworks", targeted)
+        full = text.split("  solidworks-e2e:\n")[1].split("  release:\n")[0]
+        release = text.split("  release:\n")[1].split("  docprops-targeted:\n")[0]
+        self.assertIn("group: swcli-hosted-windows-solidworks", full)
+        self.assertIn("group: swcli-release-${{ github.ref }}", release)
+        template = (ROOT / "scripts/ci/templates/docprops-targeted.yml").read_text()
+        self.assertIn("group: swcli-docprops-baseline-properties-${{ github.ref }}", template)
+        self.assertIn("cancel-in-progress: false", template)
         self.assertNotIn("smoke-solidworks.ps1", targeted)
         self.assertNotIn("pull_request", text)
 
