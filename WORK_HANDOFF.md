@@ -1,6 +1,14 @@
 # STL export options handoff
 
-## Native Windows / Wine guard correction — new-head public gate dispatched / pending
+## STL lane closed after public acceptance and integration
+
+- Public run [42302254750](https://github.com/YJBeetle/SWCLI/actions/runs/42302254750) completed successfully at `f22b7a1d7a2963a62d432879a53233a999995ceb`. The coordinator independently audited the original evidence and byte-compared 96 installed wheel package files. The local retained-byte and trace audit passed on the same head.
+- The coordinator merged the STL correction into [`main` at `6c1dab8`](https://github.com/YJBeetle/SWCLI/commit/6c1dab885d3eca7df91f2c395b2c65f05bccd3fb). GitHub records `f22b7a1` as the merge's second parent. The coordinator reported that the combined suite ran 2003 tests with 33 skips and that SDK validation passed.
+- Original native artifact `13545532008` is preserved at `evidence/ci/original-42302254750-native.zip` with SHA256 `dbed6adca425dbc853e4b263606aa5bd51e639ff7033f73dd91b30855d437564`. Original distribution artifact `13544477442` is preserved at `evidence/ci/original-42302254750-dist.zip` with SHA256 `6e37ebf7b913a1a451a4ec34f7989298ea0d6008535bdf473afa43171f474a44`. Both match GitHub's digest and archive length.
+- The artifact and independent audit records are `evidence/ci/original-artifact-audit-42302254750.json` and `evidence/ci/independent-public-audit-42302254750.json`. The independent audit SHA256 is `5505dc2f78e6e44ef45989091d354e4299df1de99593f06bccb55acdbd9d60cf`. The final run metadata and unpacked native evidence are in `evidence/ci/run-42302254750-final.json` and `evidence/ci/run-42302254750/`.
+- The accepted scope covers the six exact STL profiles for parts on the explicitly isolated native SOLIDWORKS 33.5.0 Windows runner. Release awaits completion of the whole series and final user confirmation. Earlier runs and original evidence remain in the history below.
+
+## History: Native Windows / Wine guard correction and dispatch
 
 - Coordinator found that the previous implementation trusted `GITHUB_ACTIONS`/`RUNNER_OS` labels and a matching tasklist/revision without checking the actual worker platform. The old run and all originals remain genuine evidence for its exact old head, but do **not** accept this correction or clear the merge blocker.
 - Minimal runtime correction: require actual `sys.platform == "win32"`; query the already loaded `ntdll.dll` with Windows APIs, require its known `NtClose` export to resolve, then reject a present `wine_get_version` export. Only an absent Wine export with explicit `ERROR_PROC_NOT_FOUND` (127) is accepted. Missing DLL/API, exception, or any other/unknown result refuses writes. Environment labels alone never establish the platform.
@@ -13,7 +21,7 @@
 - Coordinator personally reviewed the `f22b7a1` correction and reported no new code blocker; their 29 associated tests were OK (1 environment skip). This review does not replace the new head's required public evidence. Per coordinator, record the run and end local waiting. Overall series completion and the user's final release confirmation remain required before publishing.
 - New matching-head public acceptance is required before integration. No continuous polling, rerun of the old successful head, main/release action or broader support claim.
 
-## Current status / bounded public acceptance self-check (2026-11-07 05:58:03 +08:00)
+## History: First bounded public acceptance self-check (2026-11-07 05:58:03 +08:00)
 - **Exact native-tested code tip / merge candidate:** `2bc0504fd3889d920c091961a26b31c61e03e67d` on `codex/swcli-stl-export-options`. Later commits change only Markdown handoff/acceptance documentation; implementation is byte-identical to that public-tested tip. Coordinator owns final review/integration.
 - **Public gate PASSED and original self-check PASSED:** [42279951554](https://github.com/YJBeetle/SWCLI/actions/runs/42279951554), exact head `2bc0504fd3889d920c091961a26b31c61e03e67d`, `workflow_dispatch`, inputs `stl_options_public=true`, `stl_options_targeted=false`, `native_full=false`. Final run metadata saved; no new dispatch/polling/review agents.
 - **Original native artifact:** ID `13535874490`, `swcli-windows-hosted-42279951554-1`, `evidence/ci/original-42279951554-native.zip`, SHA256 **`54a228101376c5ec081100045460b8a474aedee3b5490f3fedf9175112644085`**. Original dist artifact ID `13534677967`, `evidence/ci/original-42279951554-dist.zip`, SHA256 **`19352cf06e0f74d18760d7e014ebe8c63c04aace4c088216334bbd2cd5fb02b9`**. Both match GitHub digest. Thirteen installed wheel CLI/SDK/MCP/catalog/worker/data files byte-match exact git head.
