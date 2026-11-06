@@ -45,4 +45,10 @@
 
 ## 提交与 CI
 
-首次实现将以中文提交推送本分支。只触发一次对应精确 head 的必要校准；run/head/参数和状态将在派发后补录。当前尚无 dispatch、原生通过或公开验收结论。
+- 实现提交：`ffc67ef2304b904752c96e1a66f328e5ba204e66`，已推送。
+- 首次 dispatch：[42261706856](https://github.com/YJBeetle/SWCLI/actions/runs/42261706856)，精确 head `ffc67ef2304b904752c96e1a66f328e5ba204e66`，参数 `image_quality_calibration=true`, `native_full=false`（其他输入默认值）。
+- 派发后统筹报告共享 `swcli-hosted-windows-solidworks` pending 互相替换的实际冲突。初次观察时 run 仅在 portable/package 阶段，尚未进入 native job；为避免影响其他分支，**仅取消自己的这个run**。不是原生/CAD失败，不取消他人run。
+- 相关接线修复：仅 targeted group 改为 `swcli-image-quality-${github.ref}`，`cancel-in-progress=false`；默认 full/release group 保持原值。补 portable wiring test + actionlint。初次run使用旧workflow，不能冒称该run已经被后续修复隔离。
+- 修正head校准将另记录一次，不因排队重复dispatch。当前没有原生通过或公开验收结论。
+- 原始派发请求、返回、首次run状态保存在 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/dispatch-request.json`, `dispatch-result.json`, `run-42261706856-initial.json`。
+

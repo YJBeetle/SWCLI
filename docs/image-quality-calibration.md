@@ -60,7 +60,9 @@ Image Quality API readback is not evidence that GLB tessellation changed.
 ## Targeted Windows calibration
 
 Manual CI input `image_quality_calibration=true`, `native_full=false` works only
-on `codex/docprops-export-options`. It reuses the installation job, skips
+on `codex/docprops-export-options`. Targeted concurrency uses its own profile +
+`github.ref` with cancellation disabled; full/release retain the original group.
+It reuses the installation job, skips
 property/annotation fixtures and visible/full modeling suites, and invokes one
 owned hidden daemon. It never enables PR-secret workflows. Per request: 600 s;
 whole calibration: external hard 1800 s watchdog, including SDK/decode/cleanup.

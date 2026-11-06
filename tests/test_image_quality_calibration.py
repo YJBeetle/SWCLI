@@ -162,6 +162,10 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/codex/docprops-export-options'",guard)
         self.assertIn("inputs.image_quality_calibration && !inputs.native_full",guard)
         self.assertNotIn("pull_request:",workflow)
+        concurrency=workflow.split("  solidworks-e2e:",1)[1].split("    env:",1)[0]
+        self.assertIn("inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref)",concurrency)
+        self.assertIn("|| 'swcli-hosted-windows-solidworks'",concurrency)
+        self.assertIn("cancel-in-progress: false",concurrency)
         for name in ("Prepare property fixtures","Prepare annotation fixtures","Run real SOLIDWORKS modeling"):
             block=workflow.split("      - name: "+name,1)[1].split("      - name:",1)[0]
             self.assertIn("if: ${{ !inputs.image_quality_calibration }}",block)
