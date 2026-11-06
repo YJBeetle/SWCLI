@@ -12,6 +12,7 @@ from .cut_termination import cut_termination_fields, cut_termination_conditions,
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECIMAL_PLACES_MAX
+from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_VALUES, LINE_FONT_SNAPSHOT, validate_edit as validate_line_font_edit
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
@@ -204,6 +205,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         "document.property-delete",
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.line-font": _operation("document.line-font", **_DOCUMENT_READ_CONTEXT),
+    "document.line-font-set": _operation(
+        "document.line-font-set",
+        {"field": _string(enum=list(LINE_FONT_FIELDS)), "value": _integer(),
+         "expected_options": LINE_FONT_SNAPSHOT},
+        required=("field", "value", "expected_options"),
+        parameter_conditions=[{"if": {"properties": {"field": {"const": field}}},
+                               "then": {"properties": {"value": {"enum": values}}}}
+                              for field, values in LINE_FONT_VALUES.items()],
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -604,6 +616,8 @@ def validate_operation_request(
         resolve_cut_termination(parameters)
     for name, value in parameters.items():
         _validate_parameter(name, value, properties[name])
+    if operation == "document.line-font-set":
+        validate_line_font_edit(parameters["field"], parameters["value"], parameters["expected_options"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

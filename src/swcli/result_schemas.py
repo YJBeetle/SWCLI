@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
+from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_SNAPSHOT
 from .document_annotations import ANNOTATION_FIELDS
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
@@ -556,6 +557,12 @@ _RESULT_FIELDS = {
     ),
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.line-font": ({"options": LINE_FONT_SNAPSHOT}, ("session_id", "document", "options")),
+    "document.line-font-set": (
+        {"field": {"enum": list(LINE_FONT_FIELDS)}, "before": LINE_FONT_SNAPSHOT,
+         "options": LINE_FONT_SNAPSHOT, "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
     "document.annotation-options": (
         {"options": DOCUMENT_ANNOTATION_OPTIONS},
         ("session_id", "document", "options"),
@@ -2719,6 +2726,13 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "document.line-font-set" and result["ok"] is True:
+        before, after, field = result["before"], result["options"], result["field"]
+        changed = before[field] != after[field]
+        if (changed != result["changed"] or result["mutation"] != {"attempted": changed, "may_have_changed": changed}
+                or any(before[k] != after[k] for k in LINE_FONT_FIELDS if k != field)
+                or (changed and result["document"]["modified"] is not True)):
+            raise OperationResultInvalid(name + ": inconsistent line font mutation")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

@@ -20,6 +20,7 @@ from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
+from .document_line_font import LINE_FONT_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
@@ -248,6 +249,16 @@ def build_parser() -> argparse.ArgumentParser:
         else:
             editor.add_argument("--if-value", dest="expected_value", help="require this raw value")
         editor.add_argument("--json", action="store_true", dest="as_json")
+    line_reader = document_commands.add_parser("line-font", help="read four drawing Line Font defaults")
+    add_document_selector(line_reader)
+    line_reader.add_argument("--json", action="store_true", dest="as_json")
+    line_writer = document_commands.add_parser("line-font-set", help="guarded Line Font write (native acceptance pending)")
+    add_document_selector(line_writer)
+    add_lease_token(line_writer)
+    line_writer.add_argument("field", choices=tuple(LINE_FONT_FIELDS))
+    line_writer.add_argument("value", type=int)
+    line_writer.add_argument("--if-options", required=True, help="complete native integer snapshot as JSON")
+    line_writer.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1312,6 +1323,12 @@ def _typed_operation(
                 args.expected_update_stamp,
                 None,
             )
+        if command == "line-font":
+            return ("document.line-font", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "line-font-set":
+            return ("document.line-font-set", {"field": args.field, "value": args.value,
+                    "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

@@ -731,8 +731,47 @@ class DocumentPropertyDeleteResult(_DocumentPropertyDeleteResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-class DocumentAnnotationOptionsParameters(TypedDict):
+class DocumentLineFontParameters(TypedDict):
     pass
+
+
+class _DocumentLineFontResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.line-font']
+
+
+class DocumentLineFontResult(_DocumentLineFontResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+
+
+class DocumentLineFontSetParameters(TypedDict):
+    field: Literal['visible_edges.style', 'visible_edges.weight', 'hidden_edges.style', 'hidden_edges.weight']
+    value: int
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentLineFontSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.line-font-set']
+
+
+class DocumentLineFontSetResult(_DocumentLineFontSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['visible_edges.style', 'visible_edges.weight', 'hidden_edges.style', 'hidden_edges.weight']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+
+
+DocumentAnnotationOptionsParameters = DocumentLineFontParameters
 
 
 class _DocumentAnnotationOptionsResultRequired(TypedDict):
@@ -771,7 +810,7 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentUnitsParameters = DocumentAnnotationOptionsParameters
+DocumentUnitsParameters = DocumentLineFontParameters
 
 
 class DocumentUnitsResultUnitsNativeUnits(TypedDict):
@@ -824,7 +863,7 @@ class DocumentUnitsSetResult(_DocumentUnitsSetResultRequired, total=False):
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentSummaryParameters = DocumentAnnotationOptionsParameters
+DocumentSummaryParameters = DocumentLineFontParameters
 
 
 class DocumentSummaryResultFields(TypedDict):

@@ -229,6 +229,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentPropertyDeleteResult]", self._client._execute('document.property-delete', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def line_font(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentLineFontResult]:
+        """document.line-font; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentLineFontResult]", self._client._execute('document.line-font', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def line_font_set(self, *, field: Literal['visible_edges.style', 'visible_edges.weight', 'hidden_edges.style', 'hidden_edges.weight'], value: int, expected_options: Dict[str, JSONValue], document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.DocumentLineFontSetResult]:
+        """document.line-font-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_options'] = expected_options
+        return cast("Response[models.DocumentLineFontSetResult]", self._client._execute('document.line-font-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def annotation_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationOptionsResult]:
         """document.annotation-options; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
