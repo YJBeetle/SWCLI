@@ -63,6 +63,26 @@ class TopologyCalibrationTests(unittest.TestCase):
                 run.assert_not_called()
             self.assertFalse((root/"new").exists())
 
+    def test_owned_fixture_save_never_attaches_or_reinitializes_the_sta(self):
+        com = SimpleNamespace(VT_BYREF=0x4000, VT_I4=3,
+            CoInitialize=mock.Mock(side_effect=AssertionError("unowned COM initialization")),
+            CoUninitialize=mock.Mock(side_effect=AssertionError("unowned COM teardown")))
+        client = SimpleNamespace(VARIANT=lambda kind, value: SimpleNamespace(value=value),
+            GetActiveObject=mock.Mock(side_effect=AssertionError("unowned ROT attachment")))
+        package = SimpleNamespace(client=client)
+        app = object()
+        document = SimpleNamespace(GetTitle=lambda: "owned", GetPathName=lambda: r"C:\owned.SLDPRT",
+            GetType=lambda: 1, GetSaveFlag=lambda: False, GetUpdateStamp=lambda: 12,
+            Save3=mock.Mock(return_value=True))
+        with mock.patch.dict("sys.modules", {"pythoncom": com, "win32com": package, "win32com.client": client}), \
+             mock.patch("sys.platform", "win32"):
+            saved = calibration.save_owned_document(app, document)
+        self.assertTrue(saved["ok"], saved)
+        self.assertTrue(saved["api_saved"])
+        self.assertEqual(document.Save3.call_count, 1)
+        client.GetActiveObject.assert_not_called()
+        com.CoInitialize.assert_not_called(); com.CoUninitialize.assert_not_called()
+
     def test_internal_failure_stops_before_starting_public_host_and_preserves_receipt(self):
         import json
         with tempfile.TemporaryDirectory() as temporary:

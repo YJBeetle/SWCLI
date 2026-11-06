@@ -81,6 +81,11 @@ def type_library_evidence(path):
             "methods": found}
 
 
+def save_owned_document(app, document):
+    """Keep the existing host/STA; never enter the helper's ROT/COM owner path."""
+    return save_active_windows_document(app=app, document=document)
+
+
 def calibrate_case(app, output, constants, plane, reverse, original_call, case, report, live, *, profile_kind):
     def call(name, function):
         # A hung native call leaves the flushed original harness report/trace.
@@ -129,7 +134,7 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
     checked(call("rebuild-unchanged-fixture", lambda: _com_value(document, "EditRebuild3")), "rebuild failed")
     for ref in references.values():
         operation("entity.reference-resolve", {"reference": ref})
-    case["save_before_reopen"] = call("save-before-reopen", lambda: save_active_windows_document(document=document))
+    case["save_before_reopen"] = call("save-before-reopen", lambda: save_owned_document(app, document))
     checked(case["save_before_reopen"]["ok"], "save before reopen failed")
     before_hash = hashlib.sha256(path.read_bytes()).hexdigest()
     title = _com_value(document, "GetTitle")
@@ -176,7 +181,7 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
         checked(len(candidates) == 2, "notch must split the positive-Y side into exactly two faces")
     mutated = [operation("entity.reference-create", {"kind": "face", "entity_id": face["entity_id"]})
                for face in candidates]
-    saved = call("save-mutated-content", lambda: save_active_windows_document(document=document))
+    saved = call("save-mutated-content", lambda: save_owned_document(app, document))
     checked(saved["ok"], "mutated native content save failed")
     copy = output / (profile_kind + "-mutated-content.SLDPRT")
     shutil.copyfile(path, copy)
@@ -200,7 +205,7 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
     case["merged_metrics"] = measure
     checked(measure["ok"] and measure["metrics"]["solid_body_count"] == 1
             and abs(measure["metrics"]["volume_mm3"] - 12000) < 1e-5, "deleted cut did not restore actual box content")
-    saved = call("save-deleted-content", lambda: save_active_windows_document(document=document))
+    saved = call("save-deleted-content", lambda: save_owned_document(app, document))
     checked(saved["ok"], "deleted native content save failed")
     title = _com_value(document, "GetTitle")
     cut = profile = None

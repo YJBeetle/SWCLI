@@ -41,3 +41,23 @@
 - 修复限于校准脚本：不依赖运行对象 ITypeInfo，按官方 Type Libraries 文档直接 `pythoncom.LoadTypeLib` 读取同安装目录的 `sldworks.tlb`，记录实际路径与文件 SHA256；缺失文件在启动 host 前拒绝。签名/状态断言、600/1800、独立 host 及 secret/concurrency 门禁均不放宽，无 native fallback/retry。
 - 修复针对性与 CI 接线检查：21 tests PASS（含缺失真实类型库在 host 前拒绝）；持久日志 `.task-evidence/portable-typelib-fix/targeted.log`。仅此确切修复提交后才允许新 head 一次必要 dispatch，未重跑首个失败 head。
 - merge-ready：否。
+
+## 阶段 6：类型库入口修复已推送并一次 dispatch
+- 修复提交：`fa01d65c16e83732b8c02319be355a03550d78f5`（fix: 直接读取安装类型库完成原生签名校准），本分支已 push；未修改公开操作/SDK 契约或 CAD 实现。
+- 新 run：<https://github.com/YJBeetle/SWCLI/actions/runs/42268048904>，已读回 head 精确匹配修复提交；`native_topology_targeted=true` / `native_full=false`，其余默认。此 head dispatch 一次，首失败 head 未重跑。
+- 便携修复日志：`.task-evidence/portable-typelib-fix/targeted.log`（21 tests PASS）；原生首失败结构化摘要 `.task-evidence/ci-42262912751/first-failure.json`。
+- 新 run 仍在前置任务，原生接口/拓扑/public 保存重开仍待证实，merge-ready 仍为否。
+
+## 阶段 7：授权与当前待办（统筹最新口径）
+- 当前没有待授权/待审批动作；指定 worktree 写入、中文提交/push、本分支定向 dispatch 均已按既有授权执行，自动审批未拒绝。不占用本地 VM，不修改 DockerSW/MacSW/正式分支，不自行合 main/发布。
+- 修复 run `42268048904` 的 Windows Python 3.9 / 3.14 与 Build wheel 全部 success；Targeted job 已完成磁盘准备，当前在安装 native SOLIDWORKS，尚未产生该 head 的原生校准结论。
+- 同一 run 原始 swcli-dist artifact ID `13527601916`，ZIP SHA256=`ee695c37763b9b5e29a93fc8fbcf398d4bfa6b9201ee12032e17ee35e156a6fd`，已核 GitHub digest、head=`fa01d65c16e83732b8c02319be355a03550d78f5` 及 wheel 内 9 个关键源码逐字节匹配；原 ZIP、metadata 与 proof 在 `.task-evidence/ci-42268048904/`。
+- 后续：等待同一 run 的内部＋公开组结束；独立核原 native ZIP/digest/head/trace/save-reopen/实际输出后再提供可合提交。当前仍非 merge-ready，不等其它路，也不因普通推进再请求确认。
+
+## 阶段 8：实际签名与初始引用读回通过；夹具保存入口修复
+- 修复 run `42268048904` 最终 failure；原生原 ZIP artifact ID `13532305425`，SHA256=`c6ead8c9c858cf491c27258f2601ef01023be0a03f40c984889b903a75535a43`，GitHub digest/head 已核，原 ZIP/metadata/report/trace 完整保存在 `.task-evidence/ci-42268048904/`。
+- 已证实精确内部范围（不是公开验收）：SOLIDWORKS 2025 revision `33.5.0`；实际 `C:\Program Files\SOLIDWORKS\sldworks.tlb` SHA256=`585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159`，IModelDocExtension GetPersistReference3 参数 1、GetObjectByPersistReference3 参数 2（第二参 BYREF I4）、DeleteSelection2 参数 1，全部严格通过。6 faces/12 edges 的已保存单体 box 上，face/edge capture、即时 resolve、原生 rebuild 后 resolve 均 ok 且 native_status=0。
+- 首失败在校准脚本的保存入口：调用 `save_active_windows_document(document=document)` 漏传已拥有的 `app`，helper 进入 ROT 查找并返回 HostNotRunning / Operation unavailable，保存 API 未执行；之后清理 CloseDoc/ExitApp/WaitForOwnedProcess 错误原样保留为次要 cleanup_errors。最终 runner cleanup 另已 success。此失败不等于保存重开通过，公开组未启动。
+- 纠正：新增本脚本 `save_owned_document(app, document)`，所有三处保存都明确传入同一 app/document，不进入 ROT/COM 初始化/退出分支；产品 daemon 本来已正确传 app，公开实现未改。没有 native fallback/retry，没有放宽任何保存、退出或几何断言。
+- 回归：22 targeted/CI wiring tests PASS；新测试运行真实 save helper 并使 ROT / CoInitialize / CoUninitialize 路径一旦进入即失败，确认 Save3 仅调用一次且同一 owning STA 保留。日志 `.task-evidence/portable-owned-save-fix/targeted.log`。
+- 仍未完成：保存重开、hole 删除/notch 分裂合并、公开 CLI/SDK/MCP native gate；merge-ready 否。下一次仅在该确切修复提交后对新 head dispatch 一次，首两个失败 head 均不重跑。
