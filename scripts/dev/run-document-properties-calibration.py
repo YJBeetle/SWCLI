@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import threading
 import time
 from uuid import uuid4
 
@@ -31,6 +32,7 @@ identity = {
     'executable': normal(sys.executable),
     'base_executable': normal(getattr(sys, '_base_executable', sys.executable)),
     'source_root': config['source_root'], 'script_args': config['script_args'],
+    'owned_interface_size': config.get('owned_interface_size', 0),
     'site_packages': config['site_packages'], 'attach_pid': config['attach_pid'],
     'preauthorization_imports': sorted(name for name in sys.modules
         if name in ('runpy', 'pythoncom', 'swcli', 'win32com') or name.startswith(('swcli.', 'win32com.'))),
@@ -54,13 +56,22 @@ expected_grant = {'protocol': 'swcli-docprops-worker-v1',
 canonical = lambda value: json.dumps(value, sort_keys=True, allow_nan=False, separators=(',', ':'))
 if canonical(authorization) != canonical(expected_grant):
     raise SystemExit('worker authorization does not match this process; script not executed')
+owned_interface = None
+packet_size = config.get('owned_interface_size', 0)
+if packet_size:
+    if type(packet_size) is not int or not 0 < packet_size <= 65536:
+        raise SystemExit('invalid owned interface size; script not executed')
+    owned_interface = sys.stdin.buffer.read(packet_size + 1)
+    if len(owned_interface) != packet_size:
+        raise SystemExit('owned interface transfer incomplete; script not executed')
 import site
 for directory in config['site_packages']:
     site.addsitedir(directory)
 sys.path.insert(0, str(Path(config['source_root']) / 'src'))
 sys.argv = config['script_args']
 import runpy
-runpy.run_path(sys.argv[0], run_name='__main__')
+runpy.run_path(sys.argv[0], run_name='__main__',
+               init_globals={'_SWCLI_OWNED_INTERFACE': owned_interface} if packet_size else None)
 '''
 
 
@@ -80,6 +91,11 @@ def driver_site_packages():
 def worker_config(args, script, source, driver):
     script_args = [str(script), '--attach-pid', str(args.attach_pid), '--stage', args.stage,
                    '--output', str(Path(args.output).resolve())]
+    packet = getattr(args, 'owned_interface_data', None)
+    if packet is not None:
+        if type(packet) is not bytes or not 0 < len(packet) <= 65536 or not getattr(args, 'isolated_host', False):
+            raise ValueError('owned interface requires bounded bytes and explicit isolation')
+        script_args.append('--owned-interface-stdin')
     if getattr(args, 'isolated_host', False):
         script_args.append('--isolated-host')
     for flag, value in (('--swconst', args.swconst), ('--drawing-template', args.drawing_template),
@@ -88,6 +104,7 @@ def worker_config(args, script, source, driver):
             script_args += [flag, value]
     return {'nonce': uuid4().hex, 'source_root': normal_path(source), 'script_args': script_args,
             'site_packages': driver_site_packages(), 'attach_pid': args.attach_pid,
+            'owned_interface_size': 0 if packet is None else len(packet),
             'identity_file': str(driver / 'worker-identity.json'),
             'authorization_file': str(driver / 'worker-authorized.json')}
 
@@ -97,6 +114,7 @@ def expected_identity(config, child_pid, executable):
             'pid': child_pid, 'parent_pid': os.getpid(),
             'executable': normal_path(executable), 'base_executable': normal_path(executable),
             'source_root': config['source_root'], 'script_args': config['script_args'],
+            'owned_interface_size': config.get('owned_interface_size', 0),
             'site_packages': config['site_packages'], 'attach_pid': config['attach_pid'],
             'preauthorization_imports': []}
 
@@ -220,17 +238,34 @@ def run(args):
                'child_executable': executable, 'driver_venv_prefix': normal_path(sys.prefix),
                'driver_site_packages': config['site_packages']}
     with (driver / 'stdout.log').open('wb') as stdout, (driver / 'stderr.log').open('wb') as stderr:
-        child = subprocess.Popen(command, stdout=stdout, stderr=stderr)
+        packet = getattr(args, 'owned_interface_data', None)
+        child = subprocess.Popen(command, stdout=stdout, stderr=stderr,
+                                 stdin=subprocess.PIPE if packet is not None else subprocess.DEVNULL, bufsize=0)
+        transfer_done, transfer_errors = threading.Event(), []
+        def transfer_owned_interface():
+            try:
+                if child.stdin.write(packet) != len(packet):
+                    raise OSError('short owned interface pipe write; no retry')
+                child.stdin.close()
+                transfer_done.set()
+            except OSError as error:
+                transfer_errors.append(type(error).__name__)  # never log capability bytes
+        writer = None
         receipt['child_python_pid'] = child.pid
         failure = None
         try:
             receipt['worker_identity'] = authorize_worker(config, child, executable)
             receipt['worker_authorized'] = True
+            if packet is not None:
+                writer = threading.Thread(target=transfer_owned_interface, daemon=True)
+                writer.start()
         except (OSError, ValueError, TypeError, KeyError) as error:
             failure = 'worker-authorization-failed: ' + str(error)
         while failure is None and child.poll() is None:
             now = time.monotonic()
             try:
+                if transfer_errors:
+                    raise ValueError('owned interface pipe transfer failed: ' + transfer_errors[0])
                 progress.consume(output / 'trace.jsonl', now)
                 failure = progress.limit_failure(now)
             except (OSError, ValueError, KeyError) as error:
@@ -244,6 +279,17 @@ def run(args):
             child.kill()
             receipt['child_termination_attempted'] = True
         receipt['child_exit_code'] = child.wait(timeout=10)
+        if packet is not None:
+            if writer is not None:
+                writer.join(timeout=1)
+            if not transfer_done.is_set() and failure is None:
+                failure = 'owned-interface-transfer-incomplete'
+            receipt['owned_interface_transfer_completed'] = transfer_done.is_set()
+            try:
+                child.stdin.close()
+            except OSError as error:
+                if failure is None:
+                    failure = 'owned-interface-pipe-close-failed: ' + type(error).__name__
     receipt['elapsed_seconds'] = time.monotonic() - started
     receipt['failure'] = failure
     receipt['trace_complete_records'] = progress.complete_records

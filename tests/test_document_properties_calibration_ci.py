@@ -78,14 +78,15 @@ class CompleteInternalEvidence(unittest.TestCase):
         row = {'success': True, 'plan_index': 1, 'native_setter_calls': 1, 'native_return': True,
                'saved': {'path': 'fixture.SLDPRT', 'sha256': 'abc'},
                'final': {'typed': False}, 'saved_profile': {'typed': False}, 'readonly_profile': {'typed': False}}
-        report = {'success': True, 'cleanup_errors': [], 'remaining_registered_test_documents': [],
+        report = {'owned_interface_binding': {'source': 'parent-owned-COM-marshal', 'unmarshal_attempted': True, 'identity_verified': True},
+                  'success': True, 'cleanup_errors': [], 'remaining_registered_test_documents': [],
                   'actual_attach_pid': 3140, 'manual_host_still_running': True, 'stage': 'standards',
                   'full_acceptance_eligible': False, 'native_timeout_seconds': 600, 'group_timeout_seconds': 1800,
                   'cases': []}
         for kind in ('part', 'assembly', 'drawing'):
             writes = [{**copy.deepcopy(row), 'plan_index': index} for index in range(1, 13)]
             report['cases'].append({'kind': kind, 'success': True, 'successful_planned_transitions': 12, 'writes': writes})
-        driver = {'success': True, 'worker_authorized': True, 'attach_pid': 3140,
+        driver = {'owned_interface_transfer_completed': True, 'success': True, 'worker_authorized': True, 'attach_pid': 3140,
                   'host_termination_attempted': False, 'automatic_retry': False, 'automatic_rollback': False,
                   'native_timeout_seconds': 600, 'group_timeout_seconds': 1800}
         return report, driver

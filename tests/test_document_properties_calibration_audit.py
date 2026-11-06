@@ -18,6 +18,8 @@ class OfflineEvidenceAudit(unittest.TestCase):
     def fixture(self, root, partial=False):
         report, driver = ci_tests.CompleteInternalEvidence().reports()
         driver['elapsed_seconds'] = 100
+        driver.update(child_python_pid=3141, worker_identity={'pid': 3141})
+        report.update(python_process_id=3141, script_sha256=hashlib.sha256((ROOT / audit.SOURCES[0]).read_bytes()).hexdigest())
         context = {'source_head': 'a' * 40, 'run_id': '123', 'run_attempt': '1', 'full_acceptance_eligible': False,
                    'native_timeout_seconds': 600, 'group_timeout_seconds': 1800}
         if partial:
@@ -28,7 +30,7 @@ class OfflineEvidenceAudit(unittest.TestCase):
             report['failure'] = {'message': 'first real native failure'}
             driver['success'] = False
         files = {'context.json': context, 'report.json': {'success': not partial, 'cleanup_errors': [],
-                 'host': {'process_id': 3140}}, 'standards-36/report.json': report,
+                 'host': {'process_id': 3140}, 'cases': [{'owned_interface': {'marshaled': True, 'released': True}}]}, 'standards-36/report.json': report,
                  'standards-36-driver/driver.json': driver}
         for relative, value in files.items():
             path = root / relative
@@ -44,6 +46,9 @@ class OfflineEvidenceAudit(unittest.TestCase):
                  'begin_trace_seconds': 1, 'checkpoint_seconds': 1, 'native_seconds': 1,
                  'native_started': True, 'native_completed': True}])
         trace.write_text('\n'.join(json.dumps(row) for row in records)+'\n')
+        (root / 'trace.jsonl').write_text('\n'.join(json.dumps({'call': label, 'phase': phase})
+            for label in ('owned-interface.CoReleaseMarshalData', 'ExitApp', 'WaitForOwnedProcess', 'CloseProcessHandle', 'CoUninitialize')
+            for phase in ('begin', 'end'))+'\n')
         self.remanifest(root, context)
         return context
 
@@ -113,7 +118,14 @@ class OfflineEvidenceAudit(unittest.TestCase):
             manifest = json.loads(path.read_text())
             relative = audit.SOURCES[0]
             crlf = (ROOT / relative).read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
-            manifest['sources'][relative] = hashlib.sha256(crlf).hexdigest()
+            source_hash = hashlib.sha256(crlf).hexdigest()
+            report_path = root / 'standards-36/report.json'
+            report = json.loads(report_path.read_text())
+            report['script_sha256'] = source_hash
+            report_path.write_text(json.dumps(report))
+            self.remanifest(root, json.loads((root / 'context.json').read_text()))
+            manifest = json.loads(path.read_text())
+            manifest['sources'][relative] = source_hash
             path.write_text(json.dumps(manifest))
             result = audit.audit(root, 'a' * 40, ROOT)
             self.assertEqual(result['source_byte_forms_verified_locally'][relative], 'git-CRLF')

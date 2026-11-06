@@ -6,6 +6,7 @@ No local VM, arbitrary host attachment, retries, rollback or whitelist edits.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -58,12 +59,49 @@ def run_driver_with_pump(driver, args, pump):
         return future.result()
 
 
+@contextmanager
+def owned_interface_packet(pythoncom, app, evidence, call):
+    # CoMarshalInterface(MSHCTX_LOCAL, TABLESTRONG): same-machine process
+    # transfer. The original STA releases the strong table packet exactly once,
+    # including authorization failure or worker termination. Not a ROT fallback.
+    stream = pythoncom.CreateStreamOnHGlobal()
+    marshaled = primary_failed = False
+    evidence.update(marshaled=False, released=False)
+    try:
+        call('owned-interface.CoMarshalInterface', lambda: pythoncom.CoMarshalInterface(
+            stream, pythoncom.IID_IDispatch, app._oleobj_, pythoncom.MSHCTX_LOCAL,
+            pythoncom.MSHLFLAGS_TABLESTRONG))
+        marshaled = evidence['marshaled'] = True
+        stream.Seek(0, 0)
+        packet = stream.Read(65537)
+        checked(type(packet) is bytes and 0 < len(packet) <= 65536, 'owned interface packet exceeds bound')
+        evidence['transfer_bytes'] = len(packet)  # never retain bytes or their repr
+        yield packet
+    except BaseException:
+        primary_failed = True
+        raise
+    finally:
+        if marshaled:
+            try:
+                stream.Seek(0, 0)
+                call('owned-interface.CoReleaseMarshalData', lambda: pythoncom.CoReleaseMarshalData(stream))
+                evidence['released'] = True
+            except BaseException as error:
+                evidence['release_failure'] = {'type': type(error).__name__, 'message': str(error)}
+                if not primary_failed:
+                    raise
+
+
 def verify_complete_report(report, driver, pid):
     checked(driver.get('success') is True and driver.get('worker_authorized') is True,
             'hardened worker did not complete successfully')
     checked(driver.get('host_termination_attempted') is False
             and driver.get('automatic_retry') is False and driver.get('automatic_rollback') is False,
             'unexpected driver lifecycle policy')
+    binding = report.get('owned_interface_binding', {})
+    checked(binding.get('source') == 'parent-owned-COM-marshal'
+            and binding.get('unmarshal_attempted') is True and binding.get('identity_verified') is True
+            and driver.get('owned_interface_transfer_completed') is True, 'owned interface binding/transfer incomplete')
     checked(report.get('success') is True and report.get('cleanup_errors') == []
             and report.get('remaining_registered_test_documents') == [], 'incomplete native report/cleanup')
     checked(report.get('actual_attach_pid') == pid == driver.get('attach_pid')
@@ -107,18 +145,21 @@ def run_owned(output, swconst, drawing_template, context):
         call('owned-host-user-control', lambda: setattr(app, 'UserControl', True))
         checked(_com_value(app, 'UserControl') is True and _com_value(app, 'GetProcessID') == pid,
                 'owned host control/identity setup failed')
-        child_output = output / 'standards-36'
-        args = SimpleNamespace(output=str(child_output), source_root=str(ROOT),
-                               script=str(ROOT / 'scripts/dev/calibrate-document-properties.py'),
-                               python=driver.default_python(), attach_pid=pid, stage='standards',
-                               swconst=str(swconst), drawing_template=str(drawing_template),
-                               font_typeface=None, isolated_host=True)
-        code = call('standards-36-driver', lambda: run_driver_with_pump(driver, args, pythoncom.PumpWaitingMessages))
-        receipt = json.loads((output / 'standards-36-driver/driver.json').read_text(encoding='utf-8'))
-        case.update(context=context, driver=receipt, group='standards-36', expected_transitions=36)
-        checked(code == 0, 'standards group failed; retain original driver/report/trace; no retry')
-        native_report = json.loads((child_output / 'report.json').read_text(encoding='utf-8'))
-        case['completed_transitions'] = verify_complete_report(native_report, receipt, pid)
+        binding = case['owned_interface'] = {}
+        with owned_interface_packet(pythoncom, app, binding, call) as packet:
+            child_output = output / 'standards-36'
+            args = SimpleNamespace(output=str(child_output), source_root=str(ROOT),
+                                   script=str(ROOT / 'scripts/dev/calibrate-document-properties.py'),
+                                   python=driver.default_python(), attach_pid=pid, stage='standards',
+                                   swconst=str(swconst), drawing_template=str(drawing_template),
+                                   font_typeface=None, isolated_host=True, owned_interface_data=packet)
+            code = call('standards-36-driver', lambda: run_driver_with_pump(driver, args, pythoncom.PumpWaitingMessages))
+            receipt = json.loads((output / 'standards-36-driver/driver.json').read_text(encoding='utf-8'))
+            case.update(context=context, driver=receipt, group='standards-36', expected_transitions=36)
+            checked(code == 0, 'standards group failed; retain original driver/report/trace; no retry')
+            native_report = json.loads((child_output / 'report.json').read_text(encoding='utf-8'))
+            case['completed_transitions'] = verify_complete_report(native_report, receipt, pid)
+
         case['success'] = True
 
     return harness.run(output, swconst, True, case_runner=case_runner,

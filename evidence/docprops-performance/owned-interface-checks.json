@@ -1,0 +1,17 @@
+{
+  "scope": "portable and independently audited failure; not native acceptance",
+  "portable_tests": 2115,
+  "portable_skipped": 32,
+  "targeted_tests": 121,
+  "full_acceptance_eligible": false,
+  "original_run": 42261401694,
+  "original_head": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+  "sha256": {
+    "full-tests-owned-interface.log": "a04f1462c09dc71123d5ed80b75916d6c9c6231fdcded23c17e89d608ef49341",
+    "owned-interface-tests.log": "9f7a929121ec7ff1f3fdef17ffaa4d31e40c7705c1ec8cd45fd21c4a79252e33",
+    "owned-interface-portable-benchmark.json": "c09219feea4af02e43ddabd2075709d8c05f0027715c565a5a75e7e4480f3dc6",
+    "run-42261401694-original.zip": "e057d905a1e0887d89d429eed7319455a7e5608c060b584eef231436ce90cb40",
+    "run-42261401694-artifacts.json": "a02351de2ff9e31c635ec196f06deebeab36ec705bb107c588b7530b08581087",
+    "run-42261401694-audit.json": "1af7ca6d5168a79dbfbc92311fe116648d41fe617a914cf74e14b7e8c8887445"
+  }
+}

@@ -84,3 +84,25 @@ run 42260761081 / attempt 1 已 completed/cancelled，未分配 runner（runner_
 新增独立 `scripts/dev/audit-document-properties-calibration.py`（不在正在运行的1c57948原生源码中）：对下载原件 manifest/source/head/run/hash 做完整核对；报告计数必须与 trace 的36次 setter 和216次固定profile读取交叉一致；分开汇总 wrapper/begin trace/checkpoint/function body。缺失/篡改/额外原件、source/head漂移、不完整trace或29轮回读不能升格成功。新增5项 portable synthetic fault tests通过（含 Windows Git LF/CRLF 的明确预期源码字节哈希比对；原件字节不作归一化），原件 `offline-audit-tests.log`。这不改原生实现/白名单，不重新触发正在运行的校准。
 
 最新主统筹要求已接收：内部校准后继续对应公开CLI/daemon/SDK/MCP契约验收；只有独立核原artifact/head/digest/trace/save-reopen且公开验证完成的精确范围才可merge-ready。本路当前仍在安装准备，不宣称完成；不得因本路只是性能优化而把空白名单/内部诊断当公共验收。
+
+### R2 实际失败与独立核原件（不是性能/标准写失败）
+
+[run 42261401694](https://github.com/YJBeetle/SWCLI/actions/runs/42261401694) attempt1 已 failure；安装与 runtime 成功。标准组只运行0.673秒，**0 cases、0 setter**。首真实原因是 `ROT exact PID moniker must match exactly once; no object bound`：owned SW PID 6608 / revision 33.5.0，仅枚举到 GUID moniker，缺少 `SolidWorks_PID_6608`，binding_attempted=false。没有回退绑定 GUID、没有 GetActiveObject 或 native retry。
+
+- 原 artifact ID `13526632475`，ZIP SHA256 `e057d905a1e0887d89d429eed7319455a7e5608c060b584eef231436ce90cb40`，与 GitHub digest 相同，metadata head=`1c57948b7a22fb930bce5f5f3c0ef6b303a66034`。
+- 原件持久保留在本 worktree `evidence/docprops-performance/run-42261401694-original.zip` 和 `run-42261401694-original/`（仅忽略 Git 索引，不删除、不依赖/tmp）。对应4文件 source snapshot `run-42261401694-source/` 由精确 git head 导出。
+- `run-42261401694-audit.json`：全部原件hash和head/run/worker验证通过；Windows源码确为 git-CRLF，明确比对预期字节哈希，不归一化原件；native_group_complete=false，public_whitelist_updates=[]。原metadata/audit/首因摘要入Git；原ZIP和提取文件原样留存。
+
+### R2 相关修复：只为 owned CI 使用显式 COM 接口传递
+
+原手动 PID/ROT 路径不放宽。新 owned-only 路径使用父 STA 已确认 owned 的接口 `CoMarshalInterface(IID_IDispatch, MSHCTX_LOCAL, MSHLFLAGS_TABLESTRONG)`，只在 hardened worker 身份授权成功后经该 Popen 私有 stdin 发送，child 单次 `CoUnmarshalInterface` 后仍严格核 native PID。capability bytes 不写 argv/config/report/trace/文件/日志。nonce/exe/argv/size/parentPID 授权、-I -S、原生600/组1800和单个Popen终止规则保留；管道短写不重试，错误 fail closed。
+
+父 STA 持续 pump；TABLESTRONG packet 在原 STA 的 finally 单次 CoReleaseMarshalData，不管 worker 拒绝/退出/被 watchdog 终止。次生释放错误不覆盖原 worker 原因，也不能成功；完整报告额外要求 owned binding/PID/传输成功，独立audit要求marshal释放及ExitApp/WaitForOwnedProcess/handle/COM清理的完整trace。不是任意 ROT moniker 回退，也不新增公共API。
+
+官方依据（已核实接口签名、LOCAL跨进程与TABLESTRONG释放规则）：
+- [Microsoft CoMarshalInterface](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-comarshalinterface)
+- [Microsoft MSHLFLAGS](https://learn.microsoft.com/en-us/windows/win32/api/wtypesbase/ne-wtypesbase-mshlflags)
+- [Microsoft CoReleaseMarshalData（须原 apartment）](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coreleasemarshaldata)
+- [pywin32 官方 PythonCOM.cpp 签名](https://github.com/mhammond/pywin32/blob/main/com/win32com/src/PythonCOM.cpp)
+
+本修复关联121 tests通过（含9项新的owned/管道故障），完整便携2115 tests / 70.291秒 / skipped32，均OK。新增独立 `owned-interface-portable-benchmark.json` 仍证实250→0 dumps、字节相同；不是原生性能结论。仅相关修复提交后再对新head启动一次新验证。当前尚未得到标准36内部校准、公开CLI/daemon/SDK/MCP验收或merge-ready证据。

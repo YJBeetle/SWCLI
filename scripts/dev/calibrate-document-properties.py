@@ -102,6 +102,7 @@ def process_ids():
 def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--attach-pid", type=int, required=True)
+    parser.add_argument("--owned-interface-stdin", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--isolated-host", action="store_true", help="Observe other SW process changes without requiring their survival; target guards remain strict")
     parser.add_argument("--stage", choices=("read", "fonts", "display", "standards"), required=True)
     parser.add_argument("--output", help="New independent directory below C:\\Workspace")
@@ -115,7 +116,14 @@ def arguments():
 
 
 class Calibration:
-    def __init__(self, args):
+    def __init__(self, args, *, owned_interface=None):
+        owned_mode = getattr(args, "owned_interface_stdin", False)
+        require(type(owned_mode) is bool, "invalid owned-interface mode")
+        require((owned_mode and getattr(args, "isolated_host", False)
+                 and type(owned_interface) is bytes and 0 < len(owned_interface) <= 65536)
+                or (not owned_mode and owned_interface is None),
+                "owned interface requires an authorized in-memory packet and isolated host")
+        self._owned_interface_data = owned_interface
         self.args, self.started = args, time.monotonic()
         self.prefix = "swcli-docprops-" + args.stage + "-" + uuid4().hex[:12]
         self.output = Path(args.output or (str(Path(r"C:\Workspace\SWCLI-tests") / self.prefix))).resolve()
@@ -417,11 +425,42 @@ class Calibration:
         self.persist()
         return app
 
+    def attach_owned_interface(self):
+        # This packet is injected only after the hardened worker grant and is
+        # received over its private stdin. Never persist/log the COM capability.
+        packet, self._owned_interface_data = self._owned_interface_data, None
+        require(type(packet) is bytes and 0 < len(packet) <= 65536, "owned interface packet missing")
+        self.report["owned_interface_binding"] = {"source": "parent-owned-COM-marshal",
+            "unmarshal_attempted": False, "identity_verified": False}
+        self.report_changed()
+        self.persist()
+        stream = self.pythoncom.CreateStreamOnHGlobal()
+        stream.Write(packet)
+        packet = None
+        stream.Seek(0, 0)
+        evidence = self.report["owned_interface_binding"]
+        evidence["unmarshal_attempted"] = True
+        self.report_changed()
+        self.persist()
+        dispatch = self.call("owned-interface.CoUnmarshalInterface.once",
+                             lambda: self.pythoncom.CoUnmarshalInterface(stream, self.pythoncom.IID_IDispatch))
+        app = self.call("owned-interface.Dispatch.existing", lambda: self.client.Dispatch(dispatch))
+        pid = self.get(app, "GetProcessID", "owned-interface-readonly")
+        self.report["actual_attach_pid"] = pid
+        self.report_changed()
+        self.persist()
+        require(type(pid) is int and pid == self.args.attach_pid, "owned interface host PID mismatch; stop without mutation")
+        evidence["identity_verified"] = True
+        self.report_changed()
+        self.persist()
+        return app
+
     def attach(self):
         self.report["existing_process_ids"] = self.call("snapshot-processes-before", process_ids)
         self.report_changed()
         require(self.args.attach_pid in self.report["existing_process_ids"], "specified manual SW PID is not running")
-        self.app = self.attach_rot()
+        self.app = (self.attach_owned_interface() if getattr(self.args, "owned_interface_stdin", False)
+                    else self.attach_rot())
         self.export_constants()
         self.report["revision"] = self.get(self.app, "RevisionNumber", "attach-readonly")
         self.report_changed()
@@ -1415,7 +1454,7 @@ def main():
     args = arguments()
     if sys.platform != "win32":
         raise SystemExit("native execution requires Windows; --help is portable")
-    calibration = Calibration(args)
+    calibration = Calibration(args, owned_interface=globals().pop("_SWCLI_OWNED_INTERFACE", None))
     code = calibration.run()
     print(json.dumps({"success": calibration.report["success"], "report": str(calibration.output / "report.json"),
                       "failure": calibration.report.get("failure"), "cleanup_errors": calibration.report["cleanup_errors"]}))

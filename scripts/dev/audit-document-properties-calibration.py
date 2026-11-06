@@ -116,7 +116,7 @@ def audit(artifact_root, expected_head, source_root=None):
                         if hashlib.sha256(data).hexdigest() == manifest['sources'][relative]]
             checked(matching, 'source bytes differ: ' + relative)
             source_byte_forms[relative] = matching[0]
-    required = {'report.json', 'context.json', 'standards-36/report.json',
+    required = {'report.json', 'trace.jsonl', 'context.json', 'standards-36/report.json',
                 'standards-36/trace.jsonl', 'standards-36-driver/driver.json'}
     checked(required <= listed, 'mandatory original evidence missing')
     context = load_json(root / 'context.json')
@@ -125,6 +125,11 @@ def audit(artifact_root, expected_head, source_root=None):
     harness = load_json(root / 'report.json')
     report = load_json(root / 'standards-36/report.json')
     driver = load_json(root / 'standards-36-driver/driver.json')
+    checked(report['script_sha256'] == manifest['sources'][SOURCES[0]], 'report/calibrator source hash mismatch')
+    worker_pid = driver['child_python_pid']
+    checked(type(worker_pid) is int and worker_pid > 0
+            and report['python_process_id'] == worker_pid == driver['worker_identity']['pid'],
+            'authorized worker/report PID mismatch')
     trace = trace_summary(root / 'standards-36/trace.jsonl')
     spec = importlib.util.spec_from_file_location('_docprops_offline_complete_check', ROOT / SOURCES[2])
     verifier = importlib.util.module_from_spec(spec)
@@ -133,6 +138,14 @@ def audit(artifact_root, expected_head, source_root=None):
     try:
         transitions = verifier.verify_complete_report(report, driver, harness['host']['process_id'])
         checked(harness['success'] is True and harness['cleanup_errors'] == [], 'owned harness/cleanup failed')
+        owner = harness['cases'][0]['owned_interface']
+        checked(owner['marshaled'] is True and owner['released'] is True, 'owned marshal table cleanup incomplete')
+        parent_phases = {}
+        for line in (root / 'trace.jsonl').read_text(encoding='utf-8').splitlines():
+            row = json.loads(line)
+            parent_phases.setdefault(row['call'], []).append(row['phase'])
+        for label in ('owned-interface.CoReleaseMarshalData', 'ExitApp', 'WaitForOwnedProcess', 'CloseProcessHandle', 'CoUninitialize'):
+            checked(parent_phases.get(label) == ['begin', 'end'], 'owned cleanup trace incomplete: ' + label)
         checked(not trace['error_records'] and trace['unfinished_call'] is None, 'trace incomplete or failed')
         checked(trace['categories'].get('standard_setter', {}).get('calls') == 36, 'trace does not prove 36 single setters')
         checked(trace['categories'].get('fixed_profile_reader', {}).get('calls') == 216,
@@ -151,7 +164,7 @@ def audit(artifact_root, expected_head, source_root=None):
             'complete_saved_readonly_transitions': sum(row.get('success') is True and bool(row.get('saved'))
                                                      and 'readonly_profile' in row for row in rows),
         }
-    return {'audit_success': True, 'all_original_hashes_verified': True, 'source_head': expected_head,
+    return {'audit_success': True, 'auditor_sha256': digest(Path(__file__)), 'all_original_hashes_verified': True, 'source_head': expected_head,
             'run_id': manifest['run_id'], 'run_attempt': manifest['run_attempt'], 'source_hashes': manifest['sources'],
             'source_byte_forms_verified_locally': source_byte_forms,
             'manifest_sha256': digest(root / 'manifest.json'), 'native_group_complete': complete,

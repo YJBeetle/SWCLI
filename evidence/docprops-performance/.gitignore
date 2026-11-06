@@ -1,0 +1,5 @@
+# Immutable downloaded originals stay in this persistent worktree; index hashes instead.
+run-*-original.zip
+run-*-original/
+run-*-source/
+run-*-status-latest.json
