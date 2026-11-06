@@ -45,6 +45,12 @@ on:
         default: false
         type: boolean
 
+      units_calibration:
+        description: Run only bounded units read/CAS calibration (no write acceptance)
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -233,9 +239,9 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: Complete SOLIDWORKS functional verification
+    name: ${{ inputs.units_calibration && 'Bounded units read/CAS calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -383,6 +389,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
       - name: Prepare property fixtures for public CLI verification
+        if: ${{ !inputs.units_calibration }}
         id: property_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -394,6 +401,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
+        if: ${{ !inputs.units_calibration }}
         id: annotation_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -407,11 +415,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
+        if: ${{ !inputs.units_calibration }}
         id: native_tests
         shell: powershell
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
+
+      - name: Calibrate bounded document unit profile
+        id: units_calibration
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded' }}
+        timeout-minutes: 32
+        shell: powershell
+        run: |
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Units drawing template discovery failed" }
+          python -I scripts/ci/calibrate-document-unit-profile.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\units-calibration" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Units calibration failed; preserve original report and trace" }
 
       - name: Measure streamed data and remaining disk
         if: always()
@@ -448,7 +471,7 @@ jobs:
           python scripts/ci/summarize-tests.py `
             --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
             --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
-            --host windows --scope windows-installed-full `
+            --host windows --scope "${{ inputs.units_calibration && 'windows-units-read-cas-calibration' || 'windows-installed-full' }}" `
             --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
             --stage "distributions=${{ steps.native_distribution.outcome }}" `
             --stage "media-tools=${{ steps.media_tools.outcome }}" `
@@ -462,6 +485,7 @@ jobs:
             --stage "property-fixtures=${{ steps.property_fixtures.outcome }}" `
             --stage "annotation-fixtures=${{ steps.annotation_fixtures.outcome }}" `
             --stage "functional-tests=${{ steps.native_tests.outcome }}" `
+            --stage "units-calibration=${{ steps.units_calibration.outcome }}" `
             --stage "cleanup=${{ steps.native_cleanup.outcome }}"
 
       - name: Upload SWCLI-generated smoke evidence

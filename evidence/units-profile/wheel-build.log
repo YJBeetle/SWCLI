@@ -1,0 +1,16 @@
+Processing ./.
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: swcli
+  Building wheel for swcli (pyproject.toml): started
+  Building wheel for swcli (pyproject.toml): finished with status 'done'
+  Created wheel for swcli: filename=swcli-0.2.4-py3-none-any.whl size=374797 sha256=f4b4be1b0eafb45379320bcf907d1d3560d9892901f51bd39c73daa0531c4910
+  Stored in directory: /private/var/folders/3z/4z3_dg7j0y14qn26trnkw9k00000gn/T/pip-ephem-wheel-cache-47nfscar/wheels/75/17/3f/bf93c677dbad6cf4631400ebaf25486da3bf6764e52ef0e837
+Successfully built swcli
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: /private/tmp/swcli-a14-test-env/bin/python -m pip install --upgrade pip

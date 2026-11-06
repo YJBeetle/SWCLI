@@ -28,6 +28,7 @@ from ..hosts.windows_custom_properties import (
 )
 from ..hosts.windows_document_summary import read_document_summary_windows, set_document_summary_windows
 from ..hosts.windows_document_units import read_document_units_windows, set_document_units_windows
+from ..hosts.windows_document_unit_profile import read_document_unit_profile_windows, set_document_unit_profile_windows
 from ..hosts.windows_document_annotations import (
     read_document_annotation_options_windows, set_document_annotation_option_windows,
 )
@@ -443,6 +444,23 @@ def document_annotation_option_set(context: OperationContext, values: Dict[str, 
         app=context.app, document=context.entry.document, field=values["field"],
         value=values["value"], expected_value=values["expected_value"],
     )
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_unit_profile(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_unit_profile_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_unit_profile_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_unit_profile_windows(app=context.app, document=context.entry.document,
+        field=values["field"], value=values["value"], expected_snapshot=values["expected_snapshot"])
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 
 

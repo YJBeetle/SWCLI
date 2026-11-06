@@ -10,6 +10,8 @@ from typing import Any, Dict
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_annotations import ANNOTATION_FIELDS
+from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS, validate_snapshot as validate_unit_profile, typed_key as unit_profile_key, verify_scalar_after
+from .document_unit_profile_schemas import UNIT_PROFILE_SCHEMA
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
@@ -564,6 +566,16 @@ _RESULT_FIELDS = {
         {"field": {"enum": list(ANNOTATION_FIELDS)}, "before": DOCUMENT_ANNOTATION_OPTIONS,
          "options": DOCUMENT_ANNOTATION_OPTIONS, "changed": BOOL, "mutation": METADATA_MUTATION},
         ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
+    "document.unit-profile": (
+        {"unit_profile": UNIT_PROFILE_SCHEMA}, ("session_id", "document", "unit_profile"),
+    ),
+    "document.unit-profile-set": (
+        {"field": {"enum": list(UNIT_PROFILE_FIELDS)}, "before": UNIT_PROFILE_SCHEMA,
+         "unit_profile": UNIT_PROFILE_SCHEMA, "observed": UNIT_PROFILE_SCHEMA,
+         "native_return_value": {"type": ["boolean", "integer", "null"]},
+         "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "field", "before", "unit_profile", "changed", "mutation"),
     ),
     "document.units": (
         {"units": DOCUMENT_LENGTH_UNITS},
@@ -2719,6 +2731,24 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name in ("document.unit-profile", "document.unit-profile-set"):
+        try:
+            for field in ("before", "unit_profile", "observed"):
+                if field in result: validate_unit_profile(result[field])
+            if result.get("ok") is True:
+                if result["unit_profile"]["document_type"] != result["document"]["type"]:
+                    raise ValueError("unit profile document type differs")
+                if name.endswith("-set"):
+                    before, after = result["before"], result["unit_profile"]
+                    changed = unit_profile_key(before) != unit_profile_key(after)
+                    if result["changed"] is not changed or result["mutation"] != {"attempted": changed, "may_have_changed": changed}:
+                        raise ValueError("unit profile mutation receipt differs")
+                    if changed:
+                        if result.get("native_return_value") is not True or result["document"]["modified"] is not True:
+                            raise ValueError("unit profile change lacks native success/dirty evidence")
+                        verify_scalar_after(before, after, result["field"], after["values"][result["field"]]["native_value"])
+        except (ValueError, RuntimeError, KeyError, TypeError) as error:
+            raise OperationResultInvalid(name + ": " + str(error)) from error
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

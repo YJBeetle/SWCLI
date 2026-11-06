@@ -20,6 +20,7 @@ from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
+from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
@@ -258,6 +259,16 @@ def build_parser() -> argparse.ArgumentParser:
     annotations_editor.add_argument("value", help="enum name, true/false, or millimeters according to field")
     annotations_editor.add_argument("--if-value", dest="expected_value", required=True, help="require this previous scalar value")
     annotations_editor.add_argument("--json", action="store_true", dest="as_json")
+    unit_profile_parser = document_commands.add_parser("unit-profile", help="read nine document unit preferences and finite linkage observations")
+    add_document_selector(unit_profile_parser)
+    unit_profile_parser.add_argument("--json", action="store_true", dest="as_json")
+    unit_profile_editor = document_commands.add_parser("unit-profile-set", help="set one unit preference only in an independently calibrated write domain")
+    add_document_selector(unit_profile_editor)
+    add_lease_token(unit_profile_editor)
+    unit_profile_editor.add_argument("field", choices=tuple(UNIT_PROFILE_FIELDS))
+    unit_profile_editor.add_argument("value", help="named unit or integer precision")
+    unit_profile_editor.add_argument("--if-snapshot", dest="expected_snapshot", required=True, help="complete unit_profile JSON from a fresh read")
+    unit_profile_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1328,6 +1339,14 @@ def _typed_operation(
             return ("document.annotation-option-set", {"field": args.field, "value": scalar(args.value),
                     "expected_value": scalar(args.expected_value)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
+        if command == "unit-profile":
+            return ("document.unit-profile", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "unit-profile-set":
+            value = args.value if "enum" in UNIT_PROFILE_FIELDS[args.field] else int(args.value)
+            return ("document.unit-profile-set", {"field": args.field, "value": value,
+                    "expected_snapshot": json.loads(args.expected_snapshot)}, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "units":
             return ("document.units", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

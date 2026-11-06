@@ -244,6 +244,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentAnnotationOptionSetResult]", self._client._execute('document.annotation-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def unit_profile(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentUnitProfileResult]:
+        """document.unit-profile; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentUnitProfileResult]", self._client._execute('document.unit-profile', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def unit_profile_set(self, *, field: Literal['system', 'linear.unit', 'linear.precision', 'angular.unit', 'angular.precision', 'mass_properties.length_unit', 'mass_properties.mass_unit', 'mass_properties.volume_unit', 'mass_properties.precision'], value: Union[str, int], expected_snapshot: models.DocumentUnitProfileResultUnitProfile, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentUnitProfileSetResult]:
+        """document.unit-profile-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_snapshot'] = expected_snapshot
+        return cast("Response[models.DocumentUnitProfileSetResult]", self._client._execute('document.unit-profile-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def units(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentUnitsResult]:
         """document.units; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
