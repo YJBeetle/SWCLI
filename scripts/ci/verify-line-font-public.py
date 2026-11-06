@@ -22,6 +22,15 @@ spec.loader.exec_module(helpers)
 require = helpers.require
 
 
+OBSERVATION_CALLS = {
+    "ActiveDoc", "ActiveDrawingView", "ActiveSketch", "Extension", "GetCurrentSheet",
+    "GetDocuments", "GetEditSheet", "GetFirstView", "GetName", "GetName2", "GetPathName",
+    "GetReferencedModelName", "GetSaveFlag", "GetSketch", "GetTemplateSketch", "GetTitle",
+    "GetType", "GetUpdateStamp", "IsOpenedReadOnly", "IsOpenedViewOnly", "SketchManager",
+    "RevisionNumber",
+}
+
+
 class Trace:
     def __init__(self, path, gate):
         self.path, self.gate = path, gate
@@ -40,6 +49,11 @@ class Trace:
         ends = Counter((row["sequence"], row["call"]) for row in rows if row["phase"] in ("end", "error"))
         require(begins == ends and all(n == 1 for n in begins.values()), "native call boundaries repeat or are incomplete")
         calls = [row["call"] for row in rows if row["phase"] == "begin" and row["sequence"] != 0]
+        require(all(call in OBSERVATION_CALLS | {"IModelDocExtension.GetUserPreferenceInteger",
+                    "IModelDocExtension.SetUserPreferenceInteger", "IModelDoc2.SetSaveFlag"} for call in calls),
+                "unexpected native method in public operation")
+        observation_calls = [call for call in calls if call in OBSERVATION_CALLS]
+        calls = [call for call in calls if call not in OBSERVATION_CALLS]
         getter = "IModelDocExtension.GetUserPreferenceInteger"
         setter = "IModelDocExtension.SetUserPreferenceInteger"
         require(calls.count(getter) == getters and calls.count(setter) == setters,
@@ -57,7 +71,7 @@ class Trace:
         require(calls == expected, "native line font call ordering differs")
         require(len({row["worker_pid"] for row in rows}) == 1, "worker changed within request")
         self.seen.add(request)
-        proof = dict(request_id=request, operation=operation, getters=getters, setters=setters, calls=calls)
+        proof = dict(request_id=request, operation=operation, getters=getters, setters=setters, calls=calls, observation_calls=observation_calls)
         self.gate.record.setdefault("native_call_proofs", []).append(proof)
 
     def cli(self, operation, **counts):
@@ -135,17 +149,20 @@ def run(gate, trace, template):
 
     client = Client(endpoint=gate.endpoint, session_id=gate.session, timeout_seconds=600)
     sdk_read = client.document.line_font(document_id=document, expected_update_stamp=current["document"]["update_stamp"])
-    require(sdk_read.result["options"] == targets, "SDK read differs")
+    require(sdk_read.result["options"] == targets and sdk_read.result["document"] == current["document"], "SDK read differs or changed state")
     trace.verify(sdk_read.raw, "document.line-font", getters=4, setters=0)
     sdk_same = client.document.line_font_set(field=first, value=targets[first], expected_options=targets,
         document_id=document, expected_update_stamp=current["document"]["update_stamp"], lease_id=gate.leases[document])
-    require(sdk_same.result["ok"] and not sdk_same.result["changed"], "typed SDK noop failed")
+    require(sdk_same.result["ok"] and not sdk_same.result["changed"]
+            and sdk_same.result["document"] == current["document"] and sdk_same.result["options"] == targets, "typed SDK noop failed or changed state")
     trace.verify(sdk_same.raw, "document.line-font-set", getters=4, setters=0)
     bridge = DaemonBridge(endpoint=gate.endpoint, session_id=gate.session, timeout_seconds=600)
     mcp = bridge.call("execute", dict(operation="document.line-font-set", parameters=dict(field=first,
         value=targets[first], expected_options=targets), document_id=document,
         expected_update_stamp=current["document"]["update_stamp"], lease_id=gate.leases[document]))
     require(mcp["success"] and mcp["result"]["ok"] and not mcp["result"]["changed"], "MCP bridge noop failed")
+    validate_operation_result("document.line-font-set", mcp["result"])
+    require(mcp["result"]["document"] == current["document"] and mcp["result"]["options"] == targets, "MCP noop changed state")
     trace.verify(mcp, "document.line-font-set", getters=4, setters=0)
     gate.record["sdk_mcp_contract"] = dict(sdk_read=dict(sdk_read.raw), sdk_noop=dict(sdk_same.raw), mcp_bridge_noop=mcp,
                                           mcp_scope="live bridge execute contract; not stdio transport")
@@ -181,18 +198,22 @@ def main():
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
         daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--tray", "off", "--startup-timeout", "120"],
             stdout=out, stderr=err, env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})
+        ready = False
         try:
             deadline = time.monotonic() + 180
             while '"action": "daemon.serve"' not in stdout_path.read_text():
                 require(daemon.poll() is None and time.monotonic() < deadline, "owned daemon startup failed")
                 time.sleep(0.2)
+            ready = True
             run(gate, Trace(stderr_path, gate), str(args.drawing_template))
         except BaseException as exc:
             gate.record.update(success=False, state="failed", error=dict(type=type(exc).__name__, message=str(exc)))
             raise
         finally:
-            gate.cleanup()
+            if ready:
+                gate.cleanup()
             try:
+                require(ready, "own daemon never reported ready; stop is not sent to an unverified endpoint")
                 stopped = subprocess.run([sys.executable, "-I", "-m", "swcli", "--endpoint", endpoint, "--request-timeout", "600",
                     "daemon", "stop", "--json"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=610)
                 gate.record["daemon_stop"] = dict(returncode=stopped.returncode, stdout=stopped.stdout.decode("utf-8"), stderr=stopped.stderr.decode("utf-8"))

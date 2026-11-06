@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon.operations import execute_operation
-from swcli.document_line_font import LINE_FONT_FIELDS
+from swcli.document_line_font import LINE_FONT_FIELDS, CALIBRATED_LINE_FONT_REVISION
 from swcli.hosts import windows_document_line_font as adapter
 from swcli.hosts.windows import _com_value
 from swcli.hosts.windows_drawings import create_drawing_windows_with_handle
@@ -78,13 +78,18 @@ def calibrate(app, output, constants, plane, reverse, original_call, case, repor
             return result
         case["initial"] = call("public-background-read", read)
         observed = case["initial"]["options"]
-        rejected = call("prove-public-write-closed", lambda: execute_operation(app, "document.line-font-set",
-            dict(field="visible_edges.style", value=1, expected_options=observed), documents=registry,
-            session_id="line-font", document_id=entry.document_id, lease_id=lease["lease_id"],
-            expected_update_stamp=_com_value(document, "GetUpdateStamp")))
-        case["public_write_rejection"] = rejected
-        checked(not rejected["ok"] and rejected["error"]["type"] == "DocumentLineFontUncalibrated"
-                and not rejected["mutation"]["attempted"], "public write gate was bypassed")
+        # Historical closed-gate proof lives in the original artifact. Once the
+        # exact revision is calibrated, do not make a public mutation here.
+        if report["host"]["revision"] != CALIBRATED_LINE_FONT_REVISION:
+            rejected = call("prove-public-write-closed", lambda: execute_operation(app, "document.line-font-set",
+                dict(field="visible_edges.style", value=1, expected_options=observed), documents=registry,
+                session_id="line-font", document_id=entry.document_id, lease_id=lease["lease_id"],
+                expected_update_stamp=_com_value(document, "GetUpdateStamp")))
+            case["public_write_rejection"] = rejected
+            checked(not rejected["ok"] and rejected["error"]["type"] == "DocumentLineFontUncalibrated"
+                    and not rejected["mutation"]["attempted"], "public write gate was bypassed")
+        else:
+            case["public_gate"] = "calibrated revision; public acceptance is a separate gate"
         for field in LINE_FONT_FIELDS:
             expected_stamp = _com_value(document, "GetUpdateStamp")
             registry.require_lease(entry, session_id="line-font", lease_id=lease["lease_id"])

@@ -36,7 +36,7 @@ class LineFontTests(unittest.TestCase):
         self.assertEqual(result["options"], self.before)
         self.fx.assert_no_setters()
 
-    def test_public_set_is_closed_and_cannot_accept_calibration_parameter(self):
+    def test_uncalibrated_revision_is_closed_and_protocol_cannot_accept_bypass(self):
         result = self.fx.operation("document.line-font-set", dict(field="visible_edges.style", value=1,
                                                                   expected_options=self.before))
         self.assertFalse(result["ok"], result)
@@ -46,6 +46,23 @@ class LineFontTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_operation_request("document.line-font-set", dict(field="visible_edges.style", value=1,
                 expected_options=self.before, _internal_calibration=True))
+        self.fx.assert_no_setters()
+
+    def test_public_exact_calibrated_conversion_is_allowed(self):
+        self.fx.app.RevisionNumber = "33.5.0"
+        result = self.fx.operation("document.line-font-set", dict(field="visible_edges.style", value=1,
+                                                                  expected_options=self.before))
+        self.assertTrue(result["ok"], result)
+        validate_operation_result("document.line-font-set", result)
+        self.fx.extension.SetUserPreferenceInteger.assert_called_once_with(101, 0, 1)
+
+    def test_uncalibrated_reverse_conversion_stays_closed(self):
+        self.fx.app.RevisionNumber = "33.5.0"
+        self.fx.native[101] = 1
+        result = adapter.set_document_line_font_windows(app=self.fx.app, document=self.fx.document,
+            field="visible_edges.style", value=0, expected_options={**self.before, "visible_edges.style": 1})
+        self.assertFalse(result["ok"], result)
+        self.assertEqual(result["error"]["type"], "DocumentLineFontUncalibrated")
         self.fx.assert_no_setters()
 
     def test_lease_and_stamp_guard_before_native_read(self):

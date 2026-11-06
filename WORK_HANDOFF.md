@@ -1,48 +1,40 @@
 # 线型 / 线宽默认设置交接
 
-- 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI`
-- 分支：`codex/docprops-line-style`；起点 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
-- 初始 git status 干净；无 `.codegraph`，已读取适用 AGENTS 指令。
-- 范围：drawing 文档级可见边/隐藏边的 style / weight 四字段；独立 operation、CLI、SDK、MCP schemas。
-- 原生 API 已核官方 Line Font 文档：IModelDocExtension 整数偏好，NoOptionSpecified；ID 在 Windows 从官方 swconst.tlb 按名称读取。
-- 完整四字段 native integer CAS；沿用 lease、expected_update_stamp、readonly/viewonly、背景/文档上下文保护；单 setter、部分 mutation 回执；无重试/回滚。
-- 公开写入 fail closed (`DocumentLineFontUncalibrated`)；内部 adapter 校准能力不通过协议开放。未获得公开原生端到端证据前不得宣称写入已验收。
-- 排除零件/装配、自定义厚度、线宽表、端帽、实体覆盖、全局选项、网格/基准面与注释箭头。
-- 原生校准：CI / workflow_dispatch / 本分支 / line_font_calibration=true / native_full=false；600s stage、1800s group，首失败停止。校准保留 report/trace/process log 和 fixture，不作为公开验收。
-- 无本地 VM 操作、无 main 合并、无发布；DockerSW / MacSW 未修改。
+当前状态：内部原生校准及独立原产物核验通过；已开放证实的精确范围，公开 CLI/daemon 验收待本次提交后 dispatch。**尚未 merge-ready，不自行合 main/发布。**
+
+## 范围与接口
+
+- 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI`；分支 `codex/docprops-line-style`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。初始 git status 干净，无 .codegraph；未动其他 worktree、VM、DockerSW 或 MacSW。
+- `document.line-font` / `swcli document line-font`：四字段 native integer map `options`。
+- `document.line-font-set` / `swcli document line-font-set FIELD VALUE --if-options JSON`：`field`、`value`、完整 `expected_options`；沿用 document_id、expected_update_stamp、lease_id；回执 field / before / options / changed / mutation。
+- 仅 drawing 文档默认值：visible_edges.style / visible_edges.weight / hidden_edges.style / hidden_edges.weight。无任意 COM 字典或偏好 ID。
+- 官方 IModelDocExtension Get/SetUserPreferenceInteger + swDetailingNoOptionSpecified；ID 从官方已安装 swconst.tlb 按名解析，固定标准安装路径；依据见 `docs/design/document-line-font.md`。
+- 精确写入域：revision **33.5.0**，visible style 0→1，visible weight 1→0，hidden style 1→0，hidden weight 0→1；0/1 noop 无 setter。其他版本、逆转换、weight 2、自定义厚度、端帽、实体/层覆盖、全局选项、parts/assemblies 继续拒绝。
+- 完整四字段 CAS；lease/stamp、readonly/viewonly、背景/文档 sheet/sketch 身份保护、单 setter、部分 mutation 回执，无 retry/rollback/restart。annotation helper 仅复用上下文保护；不混入箭头/网格/基准面字段。
+
+## 共享文件
+
+`src/swcli/operation_schemas.py`、`result_schemas.py`、`cli.py`、`daemon/operations.py`、生成 SDK `_generated.py` / `models.py`、`.github/workflows/ci.yml`。其余为线型专属文件；无其他未验收分支依赖。主对话统一处理集成冲突。
 
 ## 便携验证
 
-- 完整 unittest：1831 项，全部通过，32 项按环境跳过；原始日志 `artifacts/line-font/portable-tests.log`。
-- 新增 12 项保护/失败测试通过。
-- SDK 生成一致性、严格类型检查及 8 项消费者类型拒绝测试通过。
-- 安装包资源检查通过（无 COM 激活）；workflow YAML 与校准脚本语法检查通过；git diff --check 通过。
-- 首次完整运行的 CI 接线断言失败已修复；isolated Python 未安装包的问题通过 editable 安装解决，最终完整运行通过。
+- 完整 unittest 1831 项通过，32 skip（最初实现）；Windows 3.9 / 3.14 在内部 run 的 portable jobs 均成功。
+- SDK 生成一致性、strict types / 8 项 consumer 拒绝及 installed resources 通过。
+- 续作新增公开证据拒绝测试、精确域保护测试；最终相关结果见 `artifacts/line-font/public-gate-portable.log`。不因统筹消息重复全套测试。
 
-## 操作 / schema / 共享文件
+## 内部原生证据（已独立核）
 
-- `document.line-font` → `swcli document line-font`；结果 `options` 是四字段完整 native integer map。
-- `document.line-font-set` → `swcli document line-font-set FIELD VALUE --if-options JSON`；输入 `field`、`value`、`expected_options`，context 沿用 document_id / expected_update_stamp / lease_id；回执 field / before / options / changed / mutation。
-- 四字段：visible_edges.style / visible_edges.weight / hidden_edges.style / hidden_edges.weight。
-- 共享修改：`src/swcli/operation_schemas.py`、`result_schemas.py`、`cli.py`、`daemon/operations.py`、生成 SDK `_generated.py` / `models.py`、`.github/workflows/ci.yml`；其余为线型专属新增文件。
-- 借用已有 annotation adapter 的 sheet/sketch 上下文保护函数，未扩大其字段范围；无其他未验收分支依赖。
+- [42260712677](https://github.com/YJBeetle/SWCLI/actions/runs/42260712677)，head `6f531a595a50bbadeeab2c0f005d89c0246c7ee5`；conclusion success；参数 line_font_calibration=true / native_full=false，其余默认。
+- 原 artifact id `13526587857`，name `swcli-windows-hosted-42260712677-1`；SHA256 `5d8152062aea15f32d40c10f0947f36bceb0458702387fff0f2ef09b5ecc64e9` 与 GitHub digest 一致。
+- 原 ZIP、GitHub artifact/run metadata 仅在本地持久保留（未复制推送），保存在 `artifacts/line-font/internal-42260712677/`；expanded 原产物也在本地持久保留。独立核验 `artifacts/line-font/internal-audit.json`，脚本 `scripts/ci/audit-line-font-calibration.py`。
+- 每字段 1 setter / 12 preference getter，读取顺序完整；已知状态保护 getter 单独显式核验并保留，未知调用/全局 setter 均拒绝。背景文档、保存重开、只读拒绝、owned host 清理均通过。
+- fixture SHA256 `92cae239235e0a5193ef0ff9577c48913cde3dc3137f5d8a30601c559cc08d98`；report `879d12f4821198e5d61fda9ebefb2e6c407dc93a95036a01fe43de1bb185ee6e`；trace `9bae5562b290c1b6865d14c768b68debae85d5bab23aa7d62833d059187a14e4`；process log `f17c814825db46044a9101cef0e054312b5949b648e3a494ff8cda8dae91248b`。
+- 初次 run 42260403395 在 native 前因发现共享 concurrency 风险主动取消；仅修复后启动上述 run，未动其他 run。
 
-## 提交和原生 CI
+## 公开 gate 与剩余边界
 
-- 实现提交：`216ebec0f6e80231f566dce0c351d7ff140e29c9`，已推送。
-- 初次必要 dispatch：[42260403395](https://github.com/YJBeetle/SWCLI/actions/runs/42260403395)，head=上述提交；参数 line_font_calibration=true / native_full=false，其余默认。
-- 在 Windows portable jobs 仍进行、原生校准尚未开始时主动取消：检查发现共享 concurrency group 可能挤掉其他线程待运行作业。修为本范围独立并发组后才允许新校准；不是因排队重复 dispatch。未动其他线程 run。
-- 并发隔离修复提交：`6f531a595a50bbadeeab2c0f005d89c0246c7ee5`，已推送；接线测试 12 项（1 skip）与摘要策略测试 22 项通过，日志 `artifacts/line-font/workflow-checks.log`。
-- 修复后必要 dispatch：[42260712677](https://github.com/YJBeetle/SWCLI/actions/runs/42260712677)，head=`6f531a595a50bbadeeab2c0f005d89c0246c7ee5`；line_font_calibration=true / native_full=false；media_path、assets_path、cleanup_profile、vfs_cache_gib 均 workflow 默认。独立并发组 `swcli-hosted-windows-line-font-calibration`，不会替换其他分支 pending 作业。
-- 当前 run 进行中：Build wheel 已通过，Windows 3.9 / 3.14 便携 jobs 正运行；尚无原生校准完成证据。不因等待再次 dispatch。
-- 后续只需跟踪此 run：若失败先下载 `swcli-windows-hosted-42260712677-*` 原产物，查看 line-font-calibration/report.json、trace.jsonl、process.log 与第一真实失败；如果未到原生阶段则读取失败 portable job。必要相关修复后才新验证。
-- 未完成边界：Windows 原生内部校准结果待回收；即使内部校准通过，公开 CLI 写入端到端验收仍缺，本分支公开 setter 保持 fail closed。不得将该 run 当成完整原生基础门禁或公开验收。
-- 交接记录后续文档提交不改变上述待校准代码 head；主对话可统一读取并处理集成。
-
-## 公开验收续作（统筹授权后）
-
-- 已准备 `scripts/ci/verify-line-font-public.py`：installed public CLI + 独立隐藏 daemon，完整 CAS/lease/stamp/readonly 拒绝、每字段单次修改、noop、source hash、save/reopen/fresh ID、SDK typed read/noop 及 MCP live bridge execute noop。MCP stdio transport 不在该 gate 的证据范围。
-- 新开关 `line_font_public=false` 默认关闭，只允许本分支手动；专属 `swcli-hosted-windows-line-font-public` 并发组，不进入默认 full/release 流程。
-- 已准备 `scripts/ci/audit-line-font-calibration.py` 对原产物独立核验：内部结果、四字段值变化、12 getter / 1 setter 顺序、save/reopen、fixture/report/trace/process-log SHA256。
-- 对应 16 项线型/证据检查便携测试通过，日志 `artifacts/line-font/public-gate-portable.log`；未重复全套检查。公开门禁仍关闭，只有拿到原生内部证据后才能开放已证实的精确 transition 并触发公共验收。
-- 现有原生作业仍在 disposable runner 磁盘清理阶段，未产生原生校准结果；不重复 dispatch。
+- `scripts/ci/verify-line-font-public.py`：public CLI + 独立隐藏 daemon，lease/stamp/完整 CAS/readonly 拒绝、单次四字段变化、noop、源 hash、save/reopen/fresh ID、完整结果/状态比较，native 每 request trace。
+- SDK typed read/noop + MCP live bridge execute/noop 包含；不宣称 MCP stdio transport 验收。
+- `line_font_public=false` 默认关闭，仅本分支手动，独立 `swcli-hosted-windows-line-font-public` 并发组；不扩 PR secrets，不进入默认 full/release。600s 请求 / 1800s group，首失败停止。
+- 内部校准成功不等于公开验收。公开 run/head/原 ZIP/digest/trace/save-reopen 证据待下一步回收；完成后才写精确 merge-ready commit。
+- 当前已推送：216ebec（实现）、6f531a5（并发隔离）、3ab8d21（首次交接）、497f23e（公开 gate 准备）。最终公开验收提交待补充。

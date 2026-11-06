@@ -1,7 +1,8 @@
-"""Drawing document Line Font defaults, with a closed public write gate."""
+"""Drawing Line Font defaults restricted to independently calibrated conversions."""
 
 from pathlib import Path
-from ..document_line_font import LINE_FONT_FIELDS, validate_edit
+from ..document_line_font import (LINE_FONT_FIELDS, validate_edit, CALIBRATED_LINE_FONT_REVISION,
+                                  CALIBRATED_LINE_FONT_TRANSITIONS)
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
@@ -88,7 +89,15 @@ def set_document_line_font_windows(*, app, document, field, value, expected_opti
         _verify_context(app, document, context)
         _verify_metadata_state(app, document, state, foreground, changed=False)
         if not _internal_calibration:
-            raise DocumentLineFontUncalibrated("public line font writes require recorded native acceptance")
+            try:
+                revision = _com_value(app, "RevisionNumber")
+            except Exception as exc:
+                raise DocumentLineFontUncalibrated("host revision is unavailable") from exc
+            if (revision != CALIBRATED_LINE_FONT_REVISION
+                    or (before[field] != value and (before[field], value) != CALIBRATED_LINE_FONT_TRANSITIONS[field])):
+                raise DocumentLineFontUncalibrated("line font revision or conversion lacks recorded native calibration")
+            _verify_context(app, document, context)
+            _verify_metadata_state(app, document, state, foreground, changed=False)
         if not _writable_context(app, context):
             raise ValueError("line font editing requires a normal drawing sheet")
         if before[field] == value:

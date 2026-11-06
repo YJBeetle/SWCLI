@@ -43,6 +43,10 @@ class LineFontPublicTraceTests(unittest.TestCase):
         self.verify(self.rows(["IModelDocExtension.GetUserPreferenceInteger"] * 4))
         self.assertEqual(self.gate.record["native_call_proofs"][0]["setters"], 0)
 
+    def test_state_observation_getters_are_preserved_separately(self):
+        self.verify(self.rows(["GetType", "GetSaveFlag"] + ["IModelDocExtension.GetUserPreferenceInteger"]*4))
+        self.assertEqual(self.gate.record["native_call_proofs"][0]["observation_calls"], ["GetType", "GetSaveFlag"])
+
     def test_single_mutation_requires_three_complete_snapshots_in_order(self):
         getter = "IModelDocExtension.GetUserPreferenceInteger"
         setter = "IModelDocExtension.SetUserPreferenceInteger"

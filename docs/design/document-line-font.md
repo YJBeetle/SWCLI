@@ -1,4 +1,4 @@
-# Drawing Line Font defaults (internal calibration pending)
+# Drawing Line Font defaults (internal evidence audited; public acceptance pending)
 
 The independent `document.line-font` read and `document.line-font-set` guarded write
 surface cover four **drawing document defaults** only:
@@ -6,9 +6,9 @@ surface cover four **drawing document defaults** only:
 | Field | Official preference | Bounded write values |
 | --- | --- | --- |
 | visible_edges.style | swLineFontVisibleEdgesStyle | 0 continuous, 1 hidden |
-| visible_edges.weight | swLineFontVisibleEdgesThickness | 0 thin, 1 normal, 2 thick |
+| visible_edges.weight | swLineFontVisibleEdgesThickness | 0 thin, 1 normal |
 | hidden_edges.style | swLineFontHiddenEdgesStyle | 0 continuous, 1 hidden |
-| hidden_edges.weight | swLineFontHiddenEdgesThickness | 0 thin, 1 normal, 2 thick |
+| hidden_edges.weight | swLineFontHiddenEdgesThickness | 0 thin, 1 normal |
 
 SOLIDWORKS's documented API is `IModelDocExtension.GetUserPreferenceInteger` /
 `SetUserPreferenceInteger`, with `swDetailingNoOptionSpecified`. Preference IDs
@@ -19,11 +19,21 @@ No arbitrary preference IDs or global `ISldWorks` settings are accepted.
 
 ## Protection and current gate
 
-Public writes always return `DocumentLineFontUncalibrated` without invoking a
-setter, including no-op requests. Internal calibration explicitly opts into the
-adapter only; there is no protocol parameter, environment variable, or CLI flag
-to bypass the gate. Passing portable tests or internal calibration does not open
-this gate or establish public acceptance.
+Internal evidence from [run 42260712677](https://github.com/YJBeetle/SWCLI/actions/runs/42260712677)
+was independently audited against head `6f531a595a50bbadeeab2c0f005d89c0246c7ee5`,
+original artifact digest, per-request trace, and saved/reopened fixture digest.
+Public writes are limited to exact host revision **33.5.0** and these conversions:
+visible style 0→1, visible weight 1→0, hidden style 1→0, hidden weight 0→1.
+Same-value 0/1 requests are observations with no setter. Reverse conversions,
+other versions, weight 2, custom and layer sentinels remain closed. The adapter's
+internal calibration flag is not a protocol or CLI parameter.
+
+Public CLI/daemon save/reopen validation remains a separate gate; internal
+calibration does not establish public acceptance. Dispatch `line_font_public=true`
+on this branch only, with `line_font_calibration=false`, `native_full=false`.
+It has an independent concurrency group and skips unrelated full gates.
+SDK typed read/noop and MCP live bridge execute/noop are included; MCP stdio
+transport is not claimed by this gate.
 
 Requests use selected document identity, expected update stamp, and existing
 lease ownership rules. The complete `expected_options` snapshot contains all
@@ -35,7 +45,7 @@ changed receipts, with no retry or rollback. Readback must match the requested
 field and preserve all other covered fields.
 
 Example read: `swcli document line-font --document DOCUMENT_ID --json`.
-The closed write command accepts `FIELD VALUE --if-options '{...}'` plus the
+The guarded write command accepts `FIELD VALUE --if-options '{...}'` plus the
 usual document/lease/update-stamp options. The Python SDK and MCP catalog expose
 the same schemas.
 
@@ -54,7 +64,7 @@ native stage and 1800s group budgets, no restart/retry/rollback. Original report
 trace, process log and saved fixture are uploaded by the existing evidence step.
 The fixture uses one owned host, a background drawing, a separate foreground
 part, four single-field changes, public write refusal, save/reopen and readonly
-refusal. This is internal calibration, not public CLI end-to-end write acceptance.
+refusal. This is internal calibration, not public CLI end-to-end write acceptance. The original closed-gate proof is retained in the historical artifact; subsequent internal runs do not invoke a public mutation on an already calibrated revision.
 
 ## Official API references
 

@@ -7,6 +7,15 @@ from pathlib import Path
 from swcli.document_line_font import LINE_FONT_FIELDS
 
 
+OBSERVATION_CALLS = {
+    "ActiveDoc", "ActiveDrawingView", "ActiveSketch", "Extension", "GetCurrentSheet",
+    "GetDocuments", "GetEditSheet", "GetFirstView", "GetName", "GetName2", "GetPathName",
+    "GetReferencedModelName", "GetSaveFlag", "GetSketch", "GetTemplateSketch", "GetTitle",
+    "GetType", "GetUpdateStamp", "IsOpenedReadOnly", "IsOpenedViewOnly", "SketchManager",
+    "RevisionNumber",
+}
+
+
 def audit(root):
     report_path, = root.rglob("line-font-calibration/report.json")
     folder = report_path.parent
@@ -50,13 +59,17 @@ def audit(root):
         require(begins == ends and all(n == 1 for n in begins.values()) and not any(row["phase"] == "error" for row in rows), "native calls failed/repeated/incomplete")
         calls = [row["call"] for row in rows if row["phase"] == "begin" and row["sequence"] != 0]
         getter, setter = "IModelDocExtension.GetUserPreferenceInteger", "IModelDocExtension.SetUserPreferenceInteger"
+        require(all(call in OBSERVATION_CALLS | {getter, setter, "IModelDoc2.SetSaveFlag"} for call in calls),
+                "unrecognized native method in internal operation")
+        observations = [call for call in calls if call in OBSERVATION_CALLS]
+        calls = [call for call in calls if call not in OBSERVATION_CALLS]
         require(calls.count(getter) == 12 and calls.count(setter) == 1 and calls.count("IModelDoc2.SetSaveFlag") <= 1,
                 "internal getter/setter counts differ")
         expected = [getter]*4 + [setter] + [getter]*4
         if "IModelDoc2.SetSaveFlag" in calls:
             expected.append("IModelDoc2.SetSaveFlag")
         require(calls == expected + [getter]*4, "native write order differs or global mutation was called")
-        proofs.append(dict(field=field, request_id=rows[0]["request_id"], calls=calls))
+        proofs.append(dict(field=field, request_id=rows[0]["request_id"], calls=calls, observation_calls=observations))
     return dict(success=True, evidence_kind="independent-internal-artifact-audit", public_acceptance=False,
                 host=report["host"], transitions=transitions, fixture_sha256=case["file_sha256"], native_call_proofs=proofs,
                 report_sha256=hashlib.sha256(report_path.read_bytes()).hexdigest(),
