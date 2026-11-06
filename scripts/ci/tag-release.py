@@ -253,7 +253,21 @@ class GitHub:
         if payload is not None:
             args += ["--method", "POST", "--input", "-"]
         result = subprocess.run(args, input=None if payload is None else json.dumps(payload).encode(),
-                                capture_output=True, check=True)
+                                capture_output=True)
+        if result.returncode:
+            # Log only GitHub's structured error, never request bodies or tokens.
+            try:
+                response = json.loads(result.stdout)
+                detail = {key: response[key] for key in ("message", "errors", "status") if key in response}
+            except (ValueError, TypeError):
+                detail = {"message": "GitHub returned no structured error"}
+            message = json.dumps(detail, ensure_ascii=False)
+            for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"):
+                secret = os.environ.get(name)
+                if secret:
+                    message = message.replace(secret, "[REDACTED]")
+            raise RuntimeError("GitHub API " + path + " failed (exit " + str(result.returncode)
+                               + "): " + message[:4096])
         return result.stdout if binary else json.loads(result.stdout)
 
     def release(self, tag):

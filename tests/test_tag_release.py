@@ -331,3 +331,13 @@ class ArtifactSourceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GitHubFailureTests(unittest.TestCase):
+    def test_structured_api_error_is_visible_without_request_secrets(self):
+        result = subprocess.CompletedProcess([], 1, b'{"message":"Resource not accessible by integration","status":"403"}', b'private stderr')
+        with patch.object(release.subprocess, "run", return_value=result):
+            with self.assertRaisesRegex(RuntimeError, "Resource not accessible by integration") as caught:
+                release.GitHub().api("releases", {"private": "secret"})
+        self.assertNotIn("private", str(caught.exception))
+        self.assertIn("403", str(caught.exception))
