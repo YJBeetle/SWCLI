@@ -96,6 +96,27 @@ def verify_deleted_fixture_state(entity, status, constants):
             and entity is None, "deleted owned cylinder must read back exact Invalid=1 and NULL")
 
 
+def notch_split_faces(faces):
+    """Identify the generated box's original +Y plane, excluding the notch back.
+
+    Both the original y=15 side and the notch's y=9 back face have +Y normals.
+    Plane offset identifies the owned fixture side; it never resolves a stored
+    reference or substitutes geometry for native identity.
+    """
+    matches = []
+    for face in faces:
+        if face["surface_kind"] != "plane":
+            continue
+        plane = face["surface_geometry"]["plane"]
+        if (all(abs(a - b) < 1e-9 for a, b in zip(plane["outward_normal"], (0, 1, 0)))
+                and abs(plane["point_mm"][1] - 15) < 1e-5):
+            matches.append(face)
+    checked(len(matches) == 2, "notch must split the positive-Y side into exactly two faces")
+    checked(all(abs(face["area_mm2"] - 170) < 1e-5 for face in matches),
+            "notch split side faces must each retain 170 mm2")
+    return matches
+
+
 def calibrate_case(app, output, constants, plane, reverse, original_call, case, report, live, *, profile_kind):
     def call(name, function):
         # A hung native call leaves the flushed original harness report/trace.
@@ -186,9 +207,7 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
         candidates = [face for face in listed["entities"] if face["surface_kind"] == "cylinder"]
         checked(len(candidates) == 1, "hole requires one exact cylindrical face")
     else:
-        candidates = [face for face in listed["entities"] if face["surface_kind"] == "plane"
-            and abs(face["surface_geometry"]["plane"]["outward_normal"][1] - 1) < 1e-9]
-        checked(len(candidates) == 2, "notch must split the positive-Y side into exactly two faces")
+        candidates = notch_split_faces(listed["entities"])
     mutated = [operation("entity.reference-create", {"kind": "face", "entity_id": face["entity_id"]})
                for face in candidates]
     saved = call("save-mutated-content", lambda: save_owned_document(app, document))

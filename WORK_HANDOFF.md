@@ -74,3 +74,26 @@
 - 新的有界夹具校准按实际 owning source 修正为 **恰为 Invalid=1 且 NULL**，额外增加保存后、唯一一次删除前同一 raw reference 恰为 OK=0 / 非空、且与当前唯一 native cylinder `IsSame=1` 的独立证明；再要求实际 box 体积、native save/reopen 和失效继续成立。此处不采用任意非零白名单，不改产品只接受 integer 0 + 完整双射的门禁，不放宽几何/保存/退出/时间断言。Deleted=4 与 Suppressed=2 继续明确列为原生未观察状态。
 - 23 targeted/wiring tests PASS；新增 fixture 精确状态回归会拒绝 0、2、4、3、5、7、bool/float、对象仍存在等；日志 `.task-evidence/portable-invalidation-fix/targeted.log`。原 `Deleted=4` 失败仍保留在原 run；后续只对这一确切校准修正提交的新 head dispatch 一次。
 - 产品代码未因三次校准失败改变；目前仍非 merge-ready。
+
+## 阶段 11：精确失效夹具校准提交与对应 run
+- 提交：`806620e45c0c55e92bfc41a594cffa015b1956e9`（fix: 按原生读回精确校准拓扑引用失效状态），已 push；最终 23 targeted/wiring checks PASS，日志 `.task-evidence/portable-invalidation-fix/targeted-final.log`。
+- 唯一该 head dispatch：<https://github.com/YJBeetle/SWCLI/actions/runs/42278901394>，head 已核；targeted=true / native_full=false，默认安装参数。原三个 run/head 各自只 dispatch 一次，首错误与原 ZIP 均保留。
+- 本地回执 `.task-evidence/dispatch/invalidation-fix-request.json`。继续等待该 run 的内部/公开组，不将历史部分成功当作整体验收；无待审批动作、merge-ready 仍为否。
+
+## 本轮收口快照：停止轮询，待统筹后续分次核验
+- 按用户最新指令，本轮只收口已做范围；不扩功能/计划，不新增审查子代理，不创建单个 CI 的自动定时，不再持续 sleep/轮询或无变化播报。不取消其他 run，不重复 dispatch，不为新 main rebase/重跑。
+- 仅取最后一次状态：run <https://github.com/YJBeetle/SWCLI/actions/runs/42278901394>，测试源 head **`806620e45c0c55e92bfc41a594cffa015b1956e9`**；Build wheel、Windows Python 3.9 / 3.14 均 success；Targeted topology reference verification **in_progress，当前 Install native SOLIDWORKS**。此快照之后本轮停止查询。
+- 快照原数据：`.task-evidence/dispatch/final-snapshot.json`；唯一 dispatch 参数/回执 `.task-evidence/dispatch/invalidation-fix-request.json`。代码与三次确切校准修正均已推送；当前产品提交链为 `74eeb7d` → `fa01d65` → `c097909` → `806620e`，最后三次只改校准/回归/文档，未改变公共产品身份门禁。
+- **当前不是 merge-ready。** 最新 run 的原 native ZIP/digest、内部 hole 完整失效/最终重开、notch split/merge 与实际输出，以及公开 CLI/daemon/SDK/MCP native 组仍未核验，不把内部部分成功、便携、安装或 CI 运行中当成公共验收。
+- 历史已证实的精确内部子集见阶段 8/10：官方真实类型库和 enums；单体 40×30×10 box（6 faces/12 edges）face/edge capture→resolve→rebuild→save/close/reopen→resolve；加穿孔后旧 topology census 拒绝；删除 cylinder 原生返回 Invalid=1/NULL（原先 Deleted=4 预期失败原件保留）。这些证据来自 `c097909` 及前一 run 的相同产品实现，尚不提供整套公开验收通过结论。
+- 功能/接口差异：只读 `entity.reference-create` / `entity.reference-resolve`，显式 saved-path/configuration scope，完整 face/edge 双射，无几何最近重绑定；CLI 文件输入、生成 SDK、MCP capabilities/execute 沿现有 daemon/COM worker 路由。短 ID registry 未修改，无新增写入旁路，未知/非 OK native 状态仍拒绝。
+- 已保留的原始 native ZIP/hash：42262912751=`0638ab1d99e71c5da1ff9dd9b682f13a6925dcbb368e6e581acbe206c10e5bfd`；42268048904=`c6ead8c9c858cf491c27258f2601ef01023be0a03f40c984889b903a75535a43`；42273663491=`197bf7346d0c74259d5b0e0e1805f590054b33ebca789f0221342f8e2931aa30`。各 run 目录内原 metadata/report/trace/first-failure.json 完整保留，未覆盖。
+- 后续仅需统筹在当前 run 完成后读取一次状态并下载其原件，按 `.task-evidence/audit-native.py` 与原报告核验；已通过精确子集再由统筹本人 review/决定合 main 与发版。未完成项如实保留，不为凑齐无限迭代。本路无待授权/待审批动作。
+
+## 阶段 12：按用户继续处理实际失败——notch 原平面识别修复
+- 当前首因来自已结束 run <https://github.com/YJBeetle/SWCLI/actions/runs/42278901394>（head `806620e45c0c55e92bfc41a594cffa015b1956e9`）：内部 notch fixture 的选择器只用 +Y 法向，把 y=9、面积60 mm² 的槽底面与 y=15、各170 mm² 的两块原侧面一起计入，候选数3触发“必须恰好2个侧面”断言。
+- 原 native ZIP artifact ID `13535707278`，SHA256=`8cc92f634ecebe8b9a61478a36b2c683c5b9ddad2876c0c33d8f4df195f2490b`，GitHub digest/head 已核。原 ZIP/metadata/report/trace 与结构化首因在 `.task-evidence/ci-42278901394/`，不覆盖历史原件。
+- 同一 run 的 hole 内部场景已完整成功：删除前同一引用0/非空/IsSame=1→删除后Invalid=1/NULL，实际体积、保存、只读重开、持续失效和最终文件哈希均已独立核验；`hole.SLDPRT` SHA256=`f87dbf5747a96118203a490a778453a1a1f657aa1ecf3e4dd7aae8dad72bcbea`。这仍不是公共 CLI/SDK/MCP 验收，公开组因 notch 首失败未启动。
+- 最小修复只在 calibration fixture：`notch_split_faces` 用 +Y 精确方向及原侧面 y=15 的平面偏移选择生成夹具，保留恰好2面的断言，并增加各170 mm²断言。槽底面 y=9 被排除；不使用最近几何、不修改持久引用解析/公开接口，不放宽任何原断言，不新增功能/字段/计划。
+- 验证：24 targeted/CI wiring tests PASS；使用该原始 report 的真实10面列表离线复核，旧选择器确为3，新选择器恰为原两面。日志 `.task-evidence/portable-notch-fix/targeted.log`；原件离线复核不运行任何 CAD，也不重试原生操作。
+- 用户明确继续当前系列实际失败处理；无待授权动作。只在此确切修复提交后对新 head 一次必要 targeted CI，正常运行即记录链接并结束本轮，不持续盯守。review 和最终合 main 由统筹本人负责，正式发布前用户确认。当前仍非 merge-ready：notch merge/save-reopen 与公开 native gate 尚待新证据。

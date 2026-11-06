@@ -91,6 +91,26 @@ class TopologyCalibrationTests(unittest.TestCase):
                  self.assertRaisesRegex(RuntimeError, "exact Invalid=1 and NULL"):
                 calibration.verify_deleted_fixture_state(entity, status, calibration.ENUMS)
 
+    def test_notch_side_identity_excludes_parallel_back_plane_without_weakening_count(self):
+        from copy import deepcopy
+        def plane(token, y, area):
+            return {"entity_id": token, "surface_kind": "plane", "area_mm2": area,
+                    "surface_geometry": {"plane": {"outward_normal": [0, 1, 0],
+                                                   "point_mm": [-20, y, 10]}}}
+        # Exact native failure evidence: two original-side fragments and a
+        # third +Y face at the back of the notch. Enumeration order is irrelevant.
+        first, second, back = plane("left", 15, 170), plane("right", 15, 170), plane("back", 9, 60)
+        self.assertEqual(calibration.notch_split_faces([back, second, first]), [second, first])
+        self.assertEqual(calibration.notch_split_faces([first, back, second]), [first, second])
+        for faces in ([first, back], [first, second, deepcopy(first)],
+                      [first, plane("wrong-area", 15, 60)]):
+            with self.assertRaises(RuntimeError):
+                calibration.notch_split_faces(faces)
+        tilted = deepcopy(second)
+        tilted["surface_geometry"]["plane"]["outward_normal"][0] = 0.01
+        with self.assertRaises(RuntimeError):
+            calibration.notch_split_faces([first, tilted, back])
+
     def test_internal_failure_stops_before_starting_public_host_and_preserves_receipt(self):
         import json
         with tempfile.TemporaryDirectory() as temporary:
