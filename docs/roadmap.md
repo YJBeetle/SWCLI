@@ -196,9 +196,15 @@ The Windows notification icon and `--tray auto|on|off` are implemented on the
 next-version branch. Omitted `auto` shows on native Windows and is off under
 Wine; an explicit value wins. The icon is independent of SW visibility, and
 hiding it keeps the host/documents alive. Status and confirmed stop reuse the
-normal daemon protocol and document/ownership guards. Portable control tests
-pass; native notification-area creation/removal and desktop interaction still
-need Windows evidence before release.
+normal daemon protocol and document/ownership guards. Portable and official MCP
+SDK control tests, isolated wheel installation, and native Windows registration
+and removal have passed. Real native menu status, stop cancellation and hiding
+were checked with a diagnostic manager; the actual MCP/daemon test attached the
+existing user SW, retained it across client exit and icon-window hiding, then
+stopped the test daemon and removed its icon without closing that SW. See
+[the native evidence and limits](verification/0.2.1-windows-tray-2026-11-06.md).
+An owned SW shutdown, a new CAD regression matrix and Wine consumer validation
+were not part of this slice. This is development evidence, not a release claim.
 
 ## Independent SOLIDWORKS instances (deferred, low priority)
 

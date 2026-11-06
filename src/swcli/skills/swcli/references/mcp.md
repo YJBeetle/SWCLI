@@ -141,6 +141,9 @@ Omitting it means `auto`: show the icon on native Windows and keep it off under
 Wine. MCP `daemon_start` accepts the same `tray` values. This selects the
 daemon's notification icon, independently of `visible` for the SW window.
 An already-running daemon is reused without changing either setting.
+Windows chooses whether the registered icon appears directly on the taskbar or
+under **Show hidden icons**. `on` does not override the user's icon placement
+settings; open the notification overflow area if the icon is not visible.
 
 ```powershell
 swcli daemon start --tray off --json

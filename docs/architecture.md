@@ -564,6 +564,12 @@ cuts and rejections before the native call do not take this cleanup path.
 
 ## Windows notification area
 
+Windows owns the icon's placement in the main notification area or its collapsed
+overflow. A registered icon may have no usable `Shell_NotifyIconGetRect` location
+until the overflow opens. Native registration tests verify successful modification
+of the existing identifier and refusal after deletion; they do not promote icons
+or change the user's taskbar settings.
+
 A native Windows daemon can own one notification icon on a separate window
 message thread. `--tray auto` (the default) enables it on native Windows and
 disables it under Wine; explicit on/off is forwarded through CLI, MCP manager,
