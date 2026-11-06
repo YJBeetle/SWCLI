@@ -1,6 +1,6 @@
 # 默认字体范围原生验证记录
 
-状态：**尚未验收、尚非 merge-ready，仅用户明确批准的精确 Notes 原生 profile 开放，其他写入保持 fail closed**。
+状态：**精确 Notes 子集的内部与公开 CLI/继承门禁通过，原始产物已独立核验；交统筹最终 review。尺寸/表格公开写入仍关闭，系列尚不能据此宣称完成或发版。**
 
 ## 首轮：42262037827
 
@@ -67,3 +67,28 @@
 ## 本批收口快照
 
 修复实现 head `15d32ceea38b123c3cd3503b34d86663a65f5f3c` 已推送；[公开 run 42279469524](https://github.com/YJBeetle/SWCLI/actions/runs/42279469524) 精确匹配该 head。最后一次快照为 in_progress，dispatch-policy 与 Windows 字体便携检查通过，当前在 runner 磁盘清理，CAD/公开 CLI/observer 均尚未开始。按用户收口指令停止本地持续监看，保存 `artifacts/font-scopes/run-42279469524-handoff-snapshot.json`；不取消远程运行、不重复派发。公开验收仍待完成原件，当前尚非 merge-ready。
+
+
+## 修复后公开 Notes 验收通过：42279469524
+
+- [Run](https://github.com/YJBeetle/SWCLI/actions/runs/42279469524)，精确实现 head `15d32ceea38b123c3cd3503b34d86663a65f5f3c`，整体 success。后续文档提交未改变该实现。
+- 原 artifact ID `13537375331`，ZIP SHA-256 `67fec36badcdfd5cb9d29218efbad91aa601aad4d4a6ca9e24fe35b86ef942c3`，下载后独立计算与 GitHub 服务端 digest 一致。
+- 原 ZIP：`artifacts/font-scopes/run-42279469524-original.zip`；安全解包：`artifacts/font-scopes/run-42279469524-original/`；完整运行/产物元数据：同前缀 `-final.json`、`-artifacts.json`。
+- 独立审计：`artifacts/font-scopes/run-42279469524-audit.json`；可复核脚本：`artifacts/font-scopes/audit-public-notes-original.py`。原 ZIP 和解包后的原报告/日志/保存文件未改写。
+- 真实安装的 `swcli.exe` 经公开 daemon 路径执行 120 个唯一字体请求：45 次读取、21 次变化写入、21 次同值、33 次 CAS/lease/stamp/readonly 拒绝。原始 stdout 与报告结果一致，逐 request 对应完整原生 trace；每次变化恰为 1 属性 setter + 1 文档 setter + 3 轮四范围完整字体读取，同值/拒绝没有 setter。
+- 每类 PRT/ASM/DRW 七字段均通过；完整四范围 CAS、非目标范围与字段保护、背景 active/current=false、脏标志与 mutation 语义保持。公开组首尾同一 owned hidden host，worker PID 9088；SOLIDWORKS revision 33.5.0，宿主 process_id 6376。
+- 三类文档各毫米/磅值六份保存文件，大小/SHA-256 与原记录一致；只读重开的完整四范围字体及模式与写后一致。PRT 五份原始 geometry metrics 逐位完全相同（实体数 1、体积 11999.999999999998 mm³、面积 3799.9999999999995 mm²），没有新增公差。
+- seed 用宿主 7056，自建每类一条 UseDoc=true 和一条 local=false/20pt Note。独立 observer 用新宿主 5768，只读打开六份公开输出；UseDoc=true 的 typeface/四样式/模式/活动字号跟随文档 Notes 默认；local=false 的完整归一化 17 字段、原生 17 字段和 flag 均与 seed 精确相同。
+- seed 27.113 秒、公开 CLI 147.449 秒、observer 10.287 秒；同步请求 600 秒/组 1800 秒。各组 cleanup_errors=[]，三个 case 均空文档收尾，daemon.stop success，无 cleanup-error 文件。无 API 重试、回滚或组内宿主重启。
+- 最终便携：运行 1,883 项，OK（32 skipped），57.981 秒；字体专项 64 项通过；SDK、actionlint 及当前 run 的 Windows 专项/PS 解析通过。
+
+通过范围仅为 **原生 Windows、SOLIDWORKS 33.5.0、PRT/ASM/DRW、Notes 的 typeface/height_mm/height_points/bold/italic/underline/strikeout**。尺寸/表格尚无公开 gate 与对象继承验收，其写入仍关闭；annotations 仍只读保护。Wine/macOS/其他版本、尺寸子类型、表格模板/单元格、富文本、替代字体和视觉输出均不在本次通过声明中。Notes 精确子集可交统筹最终 review/合并；不能把它提升为整个系列完成或提前发版。
+
+| 归档文件 | 字节 | SHA-256 |
+| --- | ---: | --- |
+| `notes-height_mm.SLDPRT` | 49001 | `c6a9026104eb2f4b656d792273195e02c3c7392d2b34e18f44c32d8da953e506` |
+| `notes-height_points.SLDPRT` | 48422 | `a9c4b9ac20ce89ae52a7ef62eec0a41238654631c47008806293fadd7477b6c2` |
+| `notes-height_mm.SLDASM` | 32359 | `62cde69f2ff4dd74729229898b40fa2ec6def6e695845f899b35891078b6df71` |
+| `notes-height_points.SLDASM` | 32139 | `01b176f758fe2217404a096535227be7c52fd7ca7b5c5db1436bd9e412934d26` |
+| `notes-height_mm.SLDDRW` | 28332 | `54a4c6f67be0c36ee7b8f0ef0e3f1a3fafb022b70de10c44bc17c4aa19bb2228` |
+| `notes-height_points.SLDDRW` | 27733 | `d26ccfb866b203488ee8d6a36594ea1d2fe51e199eaf0c0743ef4cf545d2196d` |

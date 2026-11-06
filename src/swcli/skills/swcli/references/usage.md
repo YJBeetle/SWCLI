@@ -709,6 +709,8 @@ SOLIDWORKS revision `33.5.0`, for part/assembly/drawing documents. Wine, unknown
 runtimes, other revisions and `dimensions`/`tables` writes return
 `DocumentFontScopeNotCalibrated` without mutation. Query the operation schema's
 `x-swcli-font-write-profiles` for the exact range and internal native evidence.
-Public CLI/Notes-object inheritance acceptance remains pending its dedicated
-gate. Never infer subtype inheritance, table-template behavior or persistence
-from portable tests alone. Saving remains a separate explicitly authorized step.
+The dedicated public CLI gate and independent saved-output Notes inheritance
+observer passed for this exact profile (run 42279469524, implementation 15d32ce).
+See docs/verification/document-font-scopes-native-2026-11-07.md for original
+artifact digests and limits. Never infer subtype inheritance or table-template
+behavior from this profile. Saving remains a separate explicitly authorized step.

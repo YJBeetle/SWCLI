@@ -1,10 +1,10 @@
 # 文档默认字体范围（开发分支）
 
 本分支基线为 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。
-状态：便携契约与保护测试通过；原生校准、对象继承及公开验收尚未完成。
+状态：便携契约与保护测试、内部原生校准、精确 Notes 子集的公开 CLI/保存重开/对象继承验收通过；其余范围不据此推广。
 用户已批准精确范围：`document.font-scope-set` 只对原生 Windows、SOLIDWORKS `33.5.0`、
 PRT/ASM/DRW 的 `notes` 七字段开放；Wine、其他版本、dimensions/tables 继续 fail closed。
-内部原生证据 run `42266956658` 已独立核验；公开 CLI/Notes 对象继承门禁仍待本轮验证。
+内部原生 run `42266956658` 与公开 CLI/Notes 继承 run `42279469524` 的原 ZIP/head/digest/trace/保存文件已独立核验；精确通过实现 head 为 `15d32ceea38b123c3cd3503b34d86663a65f5f3c`。
 不由环境变量或 JSON 参数打开额外范围。
 内部校准使用独立的 Python 入口，保留相同 dispatcher 的文档身份、lease、stamp 与完整值 CAS。
 
@@ -89,10 +89,10 @@ PR 不触发。专属 concurrency 使用 `swcli-font-scopes-${{ github.ref }}`�
 即使内部校准通过，也不是公共 CLI 端到端验收，不自动开放公开写入。
 
 
-## Notes 公开验收准备
+## Notes 公开验收
 
 新增可选的 `font_scopes_profile=public-notes`，默认 `internal`。
-该 profile 只验证上述已批准 Notes 范围；尚未宣称公开门禁通过。
+该 profile 只验证上述已批准 Notes 范围；run `42279469524` 通过，并已独立核对原件。完整证据和限制见 `docs/verification/document-font-scopes-native-2026-11-07.md`。
 为严格核对继承，只准备 Notes：自建一条 UseDoc、一条局部 20pt Note；
 源夹具保存只读重开后固定局部完整 17 字段/原生字体及 flag。
 公开 CLI 对 Notes 默认字体做单字段变化、完整 CAS、同值与冲突/readonly 拒绝、
