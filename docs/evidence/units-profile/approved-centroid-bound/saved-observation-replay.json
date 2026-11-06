@@ -1,0 +1,47 @@
+[
+  {
+    "source_report": "docs/evidence/units-profile/diagnostic-42277659656/report-failed.json",
+    "source_report_sha256": "1a5269b9d0745e8c5b582aeaa2db2942516efea8c27ce97f646b5ce49b70f4c7",
+    "scope": "offline saved-observation replay only; old run remains failed, not new native proof",
+    "comparison": {
+      "exact_equal": false,
+      "centroid_absolute_limit_mm": 1e-12,
+      "accepted_under_units_centroid_bound": true,
+      "differences": {
+        "centroid_mm.x": {
+          "before": -7.058607893785837e-16,
+          "after": -1.102907483404037e-15,
+          "before_hex": "-0x1.96e6aaaaaaaacp-51",
+          "after_hex": "-0x1.3de4355555556p-50",
+          "delta": -3.970466940254533e-16
+        },
+        "centroid_mm.y": {
+          "before": 5.514537417020185e-16,
+          "after": 6.286572655403011e-16,
+          "before_hex": "0x1.3de4355555556p-51",
+          "after_hex": "0x1.6a65700000001p-51",
+          "delta": 7.720352383828262e-17
+        }
+      }
+    }
+  },
+  {
+    "source_report": "docs/evidence/units-profile/product-42279525986/report.json",
+    "source_report_sha256": "f14265571820322d9e4ad104520bdd027154d18c389c8195e6d2568b7eaa2e1f",
+    "scope": "offline saved-observation replay only; old run remains failed, not new native proof",
+    "comparison": {
+      "exact_equal": false,
+      "centroid_absolute_limit_mm": 1e-12,
+      "accepted_under_units_centroid_bound": true,
+      "differences": {
+        "centroid_mm.y": {
+          "before": 5.514537417020185e-16,
+          "after": 8.271806125530278e-16,
+          "before_hex": "0x1.3de4355555556p-51",
+          "after_hex": "0x1.dcd6500000001p-51",
+          "delta": 2.7572687085100926e-16
+        }
+      }
+    }
+  }
+]

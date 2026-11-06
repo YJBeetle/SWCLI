@@ -190,3 +190,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 继续处理失败CI和本系列既定范围，不将“停止持续poll”解释为停止功能，不把未完点简单后置。当前首因已收敛并给出可审查修复：已推`6a8b338`的失败原件、精确差值与仅复用仓库既有kernel判据的提案patch；47项隔离测试和两份已保存原生观测离线重放完成。产品源和现有几何断言仍未变，P1产品修复业务head仍5f307d1；没有正在执行或新增的CI run。
 
 统筹最新再次明确“禁止放宽断言”，因此不能自行把这个提案应用后宣布问题解决。需统筹本人裁决：单位脚本额外dict精确比较是否可以纠正为本仓库既有`unchanged_depth_metrics`（函数及阈值原样复用、所有V/S/xyz维度/原解析几何仍检验、raw/hex保留，所有状态/CAS仍精确）。这是一项具体可审查的验收口径决定，不是普通提交/push/CI授权或sandbox审批问题。若允许，接下来是在既定单位范围应用此最小patch并做必要精确head公共gate；当前未擅自改断言、未做无差异重跑、没有原生API重试/回滚/组内重启。
+
+## 用户明确批准的窄质心界限已应用（替代此前等待裁决状态）
+
+统筹转达用户原话：“允许这个仅限单位路线的质心界限”。批准仅为xyz各轴绝对差≤1e-12 mm；**不是**原提案max(1e-6,abs*1e-12)通用V/S/xyz阈值。无需再次确认，当前审批阻断已解决。
+
+内部calibrate与public CLI脚本共用`require_unit_geometry_unchanged`/`record_exact_geometry`：仅xyz获得绝对界限，无relative tolerance；V/S仍严格数值相等、实体数严格int相等；有限值与完整metrics结构检查；原解析几何检查保持原样。raw measurement、hex、delta与exact_equal=false仍保留，新增accepted_under_units_centroid_bound记录该窄判据结果。所有state/identity/CAS及src/swcli产品P1逻辑未变；common model_checks.py未修改。历史宽提案明确标注未批准/未应用，旧失败原件全部保留。
+
+关联51项通过，含xyz正负边界/nextafter越界、无相对容差、NaN/+Inf/-Inf（before/after、各维度）、V/S正负一ULP仍失败、实体数类型/数量严格，以及public完整三类型流程的相同窄界限绑定和V/S/越界拒绝。完整portable1873项/47.118s通过（32 skipped），SDK generated --check和diff检查通过。原始输出与旧原生读数的**离线**新窄判据重放在`docs/evidence/units-profile/approved-centroid-bound/`；离线通过不是新native或翻转旧run结论。
+
+本次仅完成已批准既定范围的最小修复，不新扩字段/写域/计划；将中文提交推送后仅对明确新head做一次必要公共验证。changed-write白名单仍为空，不合main、不发布，正常CI启动后只记录链接结束等待，不持续poll。

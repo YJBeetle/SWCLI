@@ -114,7 +114,9 @@ def run(gate,fixtures,prior_pids):
         require(final['document']==observed['document'] and typed_key(final['unit_profile'])==typed_key(observed['unit_profile']) and hashlib.sha256(copy.read_bytes()).hexdigest()==copy_digest and hashlib.sha256(path.read_bytes()).hexdigest()==digest,'readonly public verification modified profile/state/files')
         if kind==1:
             case['geometry_reopened']=geometry(gate,fresh)
-            require(case['geometry_reopened']==case['geometry_before'],'public units sequence changed geometric measurements')
+            evidence.record_exact_geometry(case['geometry_before'],case['geometry_reopened'],case,
+                'comparison_reopened',lambda:gate.checkpoint('public-unit-geometry-comparison'),
+                'public units sequence changed geometric measurements')
         gate.close(fresh);gate.close(reopened_foreground);gate.close(foreground);gate.require_empty(after_case=suffix)
         case['success']=True;gate.checkpoint('unit-profile-'+suffix+'-verified')
     require(gate.health()['host']==host,'public CLI acceptance replaced its host')

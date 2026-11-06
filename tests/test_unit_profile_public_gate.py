@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -49,6 +50,16 @@ class ProfileCLI(UnitsCLI):
             result['metrics']=dict(solid_body_count=1,volume_mm3=12000,surface_area_mm2=3800,centroid_mm=dict(x=0,y=0,z=5))
             result.update(action='document.measure',session_id=args.session,scope='sum-of-solid-bodies',coordinate_system='part-model',method='native-body-mass-properties',bodies=[dict(index=0,volume_mm3=12000,surface_area_mm2=3800,centroid_mm=dict(x=0,y=0,z=5))])
             if self.units_defect=='geometry-drift':result['metrics']['centroid_mm']['x']=0.001
+            override=getattr(self,'measurement_override',None)
+            if override is not None and self.documents[args.document_id]['read_only']:
+                field,value=override
+                if field in 'xyz':
+                    result['metrics']['centroid_mm'][field]=value
+                    result['bodies'][0]['centroid_mm'][field]=value
+                else:
+                    result['metrics'][field]=value
+                    result['bodies'][0][field]=value
+
         return result
 
 class UnitPublicGateTests(unittest.TestCase):
@@ -107,3 +118,27 @@ class UnitPublicGateTests(unittest.TestCase):
         self.prior.write_text('[123]')
         with self.assertRaises(RuntimeError):self.execute()
         self.assertFalse(any(getattr(c,'document_command',None)=='open' for c in self.fake.calls))
+
+    def test_public_path_uses_same_approved_centroid_bound(self):
+        for axis,baseline in (('x',0.0),('y',0.0),('z',5.0)):
+            for sign in (-1,1):
+                with self.subTest(axis=axis,sign=sign):
+                    self.setUp()
+                    value=baseline+sign*1e-12
+                    if abs(value-baseline)>1e-12:value=math.nextafter(value,baseline)
+                    self.fake.measurement_override=(axis,value)
+                    self.execute()
+                    result=json.loads((self.output/'public-unit-profile.json').read_text())
+                    comparison=result['unit_cases'][0]['comparison_reopened']
+                    self.assertTrue(result['success'])
+                    self.assertFalse(comparison['exact_equal'])
+                    self.assertTrue(comparison['accepted_under_units_centroid_bound'])
+                    self.assertEqual(comparison['centroid_absolute_limit_mm'],1e-12)
+    def test_public_path_rejects_over_bound_and_volume_area_one_ulp(self):
+        for field,value in (('x',math.nextafter(1e-12,math.inf)),('volume_mm3',math.nextafter(12000.0,math.inf)),('surface_area_mm2',math.nextafter(3800.0,math.inf))):
+            with self.subTest(field=field):
+                self.setUp();self.fake.measurement_override=(field,value)
+                with self.assertRaises(RuntimeError):self.execute()
+                result=json.loads((self.output/'public-unit-profile.json').read_text())
+                self.assertFalse(result['success'])
+                self.assertFalse(result['unit_cases'][0]['comparison_reopened']['accepted_under_units_centroid_bound'])

@@ -1,3 +1,5 @@
+> 历史提案，未获批准且未应用。用户后续仅批准单位路线质心绝对1e-12 mm；V/S/体数保持严格相等。下述通用max(1e-6, abs*1e-12)提案不得应用。当前实现见WORK_HANDOFF最新记录。
+
 # 单位几何比较口径的最小变更提案（待统筹确认，未应用）
 
 业务产品源仍为`5f307d1`，没有新字段或新写域。当前精确head的run42279525986在内部前置失败，public CLI未执行。原始ZIP artifact ID13536485767，SHA256 `c2dc13ce277eee306cce349b5b9a28fd3348b7a8a8dfdf5d9718002d86f278eb`，与GitHub digest匹配。完整原件本地`evidence/units-profile/product-42279525986/original.zip`，失败report在本目录product-42279525986。

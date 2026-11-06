@@ -21,3 +21,8 @@
 - [SetUserPreferenceInteger](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~SetUserPreferenceInteger.html)：文档 Extension 整数 setter，bool 返回。
 
 DP 页面 energy precision 标成 Toggle，与既有 swconst Integer 导出不一致；当前遵循 TLB 读取并在原生阶段校准，不对失败换 API 重试。
+
+
+## 已批准的单位路线几何复测界限
+
+仅本单位内部校准与public CLI两条路径共用：质心x/y/z逐轴绝对差≤1e-12 mm，不使用相对容差；体积、面积、实体数严格相等并拒绝非有限值。原解析V/S/质心判据不变。raw/hex/delta及exact_equal原样保存，accepted_under_units_centroid_bound单独记录，不把数值非精确相等伪装成精确相等。所有state/identity/lease/stamp/完整profile CAS仍精确；其他路线与通用kernel判据未修改。旧失败原件不翻绿，最终验收依新head实际结果。

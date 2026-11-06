@@ -77,3 +77,53 @@ class UnitCalibrationTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'analytic box mismatch'):
             calibration.record_geometry(lambda:result,case,'observed',lambda:saved.append(deepcopy(case)))
         self.assertEqual(saved[0]['observed_measurement'],result)
+
+    def test_approved_centroid_bound_is_absolute_inclusive_and_units_only(self):
+        import math
+        from copy import deepcopy
+        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=0.0))
+        for axis in 'xyz':
+            for sign in (-1,1):
+                for delta in (0.0,1e-12,math.nextafter(1e-12,math.inf)):
+                    with self.subTest(axis=axis,sign=sign,delta=delta):
+                        after=deepcopy(before);after['centroid_mm'][axis]=sign*delta
+                        if delta<=1e-12:calibration.require_unit_geometry_unchanged(before,after,'geometry changed')
+                        else:
+                            with self.assertRaises(RuntimeError):calibration.require_unit_geometry_unchanged(before,after,'geometry changed')
+        after=deepcopy(before);before['centroid_mm']['x']=1e6;after['centroid_mm']['x']=1e6+1e-9
+        with self.assertRaises(RuntimeError):calibration.require_unit_geometry_unchanged(before,after,'no relative tolerance')
+    def test_volume_area_and_entity_count_remain_exact(self):
+        import math
+        from copy import deepcopy
+        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+        for field in ('volume_mm3','surface_area_mm2'):
+            for direction in (math.inf,-math.inf):
+                after=deepcopy(before);after[field]=math.nextafter(before[field],direction)
+                with self.subTest(field=field,direction=direction),self.assertRaises(RuntimeError):
+                    calibration.require_unit_geometry_unchanged(before,after,'one ULP must fail')
+        for count in (2,True,1.0):
+            after=deepcopy(before);after['solid_body_count']=count
+            with self.assertRaises(RuntimeError):calibration.require_unit_geometry_unchanged(before,after,'count must be exact int')
+    def test_nonfinite_metrics_rejected_on_either_side(self):
+        from copy import deepcopy
+        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+        for side in ('before','after'):
+            for field in ('volume_mm3','surface_area_mm2','x','y','z'):
+                for value in (float('nan'),float('inf'),-float('inf')):
+                    left,right=deepcopy(before),deepcopy(before)
+                    target=left if side=='before' else right
+                    if field in 'xyz':target['centroid_mm'][field]=value
+                    else:target[field]=value
+                    with self.subTest(side=side,field=field,value=value),self.assertRaises(RuntimeError):
+                        calibration.require_unit_geometry_unchanged(left,right,'nonfinite must fail')
+    def test_approved_centroid_delta_keeps_raw_hex_and_exact_false(self):
+        from copy import deepcopy
+        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+        after=deepcopy(before);after['centroid_mm']['x']=1e-12
+        case={};saved=[]
+        calibration.record_exact_geometry(before,after,case,'comparison',lambda:saved.append(deepcopy(case)),'geometry changed')
+        self.assertFalse(case['comparison']['exact_equal'])
+        self.assertTrue(case['comparison']['accepted_under_units_centroid_bound'])
+        self.assertEqual(case['comparison']['differences']['centroid_mm.x']['after_hex'],(1e-12).hex())
+        self.assertFalse(saved[0]['comparison']['accepted_under_units_centroid_bound'])
+        self.assertTrue(saved[-1]['comparison']['accepted_under_units_centroid_bound'])

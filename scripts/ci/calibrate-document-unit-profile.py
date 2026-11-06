@@ -57,17 +57,44 @@ def record_geometry(measure,case,label,persist):
     return metrics
 
 
+# Explicit user approval: units route only; no relative tolerance or V/S allowance.
+UNIT_CENTROID_ABSOLUTE_LIMIT_MM=1e-12
+
+
+def require_unit_geometry_unchanged(before,after,message):
+    fields={'solid_body_count','volume_mm3','surface_area_mm2','centroid_mm'}
+    require(type(before) is dict and type(after) is dict and set(before)==fields and set(after)==fields,message+': incomplete metrics')
+    require(type(before['solid_body_count']) is int and type(after['solid_body_count']) is int
+            and before['solid_body_count']==after['solid_body_count'],message+': solid body count differs')
+    for field in ('volume_mm3','surface_area_mm2'):
+        left,right=before[field],after[field]
+        require(type(left) in (int,float) and type(right) in (int,float)
+                and math.isfinite(left) and math.isfinite(right) and left==right,
+                message+': '+field+' differs')
+    require(type(before['centroid_mm']) is dict and type(after['centroid_mm']) is dict
+            and set(before['centroid_mm'])==set(after['centroid_mm'])==set('xyz'),message+': incomplete centroid')
+    for axis in 'xyz':
+        left,right=before['centroid_mm'][axis],after['centroid_mm'][axis]
+        require(type(left) in (int,float) and type(right) in (int,float)
+                and math.isfinite(left) and math.isfinite(right)
+                and abs(right-left)<=UNIT_CENTROID_ABSOLUTE_LIMIT_MM,
+                message+': centroid_mm.'+axis+' exceeds approved absolute bound')
+
+
 def record_exact_geometry(before,after,case,label,persist,message):
     def scalars(metrics):
         return {**{k:metrics[k] for k in ('solid_body_count','volume_mm3','surface_area_mm2')},
                 **{'centroid_mm.'+k:v for k,v in metrics['centroid_mm'].items()}}
     left,right=scalars(before),scalars(after)
-    case[label]=dict(exact_equal=before==after,differences={
+    case[label]=dict(exact_equal=before==after,centroid_absolute_limit_mm=UNIT_CENTROID_ABSOLUTE_LIMIT_MM,accepted_under_units_centroid_bound=False,differences={
         k:dict(before=left[k],after=right[k],before_hex=float(left[k]).hex(),after_hex=float(right[k]).hex(),delta=right[k]-left[k])
         for k in left if left[k]!=right[k]})
     persist()
-    # Preserve the original exact equality assertion; no tolerance substitution.
-    require(before==after,message)
+    # Raw exact non-equality stays visible; only the approved centroid axes
+    # receive an absolute bound. Volume, area and count remain exact.
+    require_unit_geometry_unchanged(before,after,message)
+    case[label]['accepted_under_units_centroid_bound']=True
+    persist()
 
 
 def supervise(args):
