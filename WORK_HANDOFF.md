@@ -110,3 +110,5 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 原始report SHA256 `46fc0ccfa42a7ccf0ac98d31675b79b24ddde808f3319ff3363bb0239c5a2bca`。5170 begin/end边界完整匹配、无error事件、最长10.234秒、全组39.437秒、cleanup_errors空。part/assembly源MMGS，drawing源IPS。三类noop零mutation/不dirty，拒写均明确ValueError且zero-mutation；before/after-refusal/readonly-reopened完整snapshot精确一致，原始native文件hash与报告一致。part V约12000、S约3800、质心约(0,0,5) mm，原始严格容差与精确重开比较通过。
 
 这仅证明此三fixture的内部读取/CAS/拒写范围；没有changed-write证据，不开放任何写白名单。已按用户延续授权继续公共验收，无待审批动作，也未遇自动审批拒绝。本轮公共准备关联34项与SDK generated --check通过，将对明确新head仅执行一次`units_calibration=true,units_public_acceptance=true,native_full=false`公共profile，仍不合main/不发布。
+
+公共CLI gate仅手动触发一次：[42273356741](https://github.com/YJBeetle/SWCLI/actions/runs/42273356741)，head=`ca892d83eab6baca0f456050d501ee141cb20133`，参数=`units_calibration=true,units_public_acceptance=true,native_full=false`。精确head已核对，初始原件位于`docs/evidence/units-profile/public-42273356741/run-initial.json`。这不是新的写能力校准；只验证现有公开读/noop/CAS拒写入口。当前无待审批动作，未遇自动审批拒绝；不操作VM、不触碰DockerSW/MacSW、不合main。待公共原件结果后才能提交该精确只读/保护能力的merge-ready清单。
