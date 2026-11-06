@@ -1511,6 +1511,19 @@ _RESULT_FIELDS["feature.fillet"] = (
 )
 
 
+
+_RESULT_FIELDS["feature.revolve"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "mutation": _object({key: {"const": False} for key in
+                             ("attempted", "creation_returned", "may_have_changed")},
+                            ("attempted", "creation_returned", "may_have_changed")),
+        "cleanup_errors": {"type": "array", "maxItems": 0, "items": STRING},
+    },
+    (),
+)
+
+
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
@@ -1561,6 +1574,11 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "then": {"required": list(success_required), "not": {"required": ["error"]}},
         "else": {"required": ["error"]},
     }
+    if name == "feature.revolve":
+        schema["properties"]["ok"] = {"const": False}
+        schema["required"].extend(["sketch_id", "mutation", "cleanup_errors"])
+        schema["properties"]["error"] = _object(
+            {"type": {"const": "RevolveNotCalibrated"}, "message": STRING}, ("type", "message"))
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {

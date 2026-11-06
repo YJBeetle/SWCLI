@@ -1228,6 +1228,21 @@ def _bind_created_feature(
 
 
 @_register_handler
+def feature_revolve(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from ..hosts.windows_revolves import create_revolve_windows_with_handle
+
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    sketch = context.documents.resolve_sketch(context.entry, values["sketch_id"])
+    result, feature = create_revolve_windows_with_handle(
+        app=context.app, document=context.entry.document, sketch_feature=sketch,
+        expected_profile_mm=values["expected_profile_mm"], axis_mm=values["axis_mm"],
+        angle_deg=values["angle_deg"])
+    result["sketch_id"] = values["sketch_id"]
+    return result
+
+
+@_register_handler
 def feature_extrude(
     context: OperationContext, values: Dict[str, Any]
 ) -> Dict[str, Any]:

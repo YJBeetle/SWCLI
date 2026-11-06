@@ -2186,6 +2186,39 @@ class DimensionSetResult(_DimensionSetResultRequired, total=False):
     final_state: DimensionDiscoverDiameterResultObservationBefore
 
 
+class FeatureRevolveParameters(TypedDict):
+    sketch_id: str
+    expected_profile_mm: List[float]
+    axis_mm: List[float]
+    angle_deg: float
+
+
+class FeatureRevolveResultError(TypedDict):
+    type: Literal['RevolveNotCalibrated']
+    message: str
+
+
+class FeatureRevolveResultMutation(TypedDict):
+    attempted: Literal[False]
+    creation_returned: Literal[False]
+    may_have_changed: Literal[False]
+
+
+class _FeatureRevolveResultRequired(TypedDict):
+    ok: Literal[False]
+    action: Literal['feature.revolve']
+    sketch_id: str
+    mutation: FeatureRevolveResultMutation
+    cleanup_errors: List[str]
+
+
+class FeatureRevolveResult(_FeatureRevolveResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: FeatureRevolveResultError
+
+
 class FeatureFilletParameters(TypedDict):
     entity_id: str
     radius_mm: float

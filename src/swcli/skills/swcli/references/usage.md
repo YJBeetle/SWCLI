@@ -692,3 +692,13 @@ Request IDs protect nearby transport retries: reuse the same explicit
 terminal result, including failure; a genuinely new retry needs a new ID.
 This bounded in-memory cache is lost on daemon restart, not a durable
 exactly-once log. Unknown outcomes require inspection, not blind retries.
+
+### Bounded revolve candidate
+
+`feature.revolve` is an experimental contract whose public write gate is closed.
+It returns `RevolveNotCalibrated` without creating CAD geometry. Inspect the
+operation schema's title and failure-only result contract before use. The only internal candidate
+is a full 360-degree solid revolution of a center rectangle about its explicit
+left profile edge, in an empty single-configuration part. Complete rectangle
+bounds, explicit axis endpoints, document ID and expected update stamp are
+required. No CLI/SDK/MCP option enables uncalibrated native writes.
