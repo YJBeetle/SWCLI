@@ -2,10 +2,10 @@
 
 ## 当前汇总（2026-11-07，R4原件已核）
 
-- 工作分支当前已推送到 `22e47fca9632ff3cea0795b840dab0c4c638715c`；本路**尚未 merge-ready**，不合main/发布。
-- 当前无进行中的校准。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
+- 工作分支实现已推送到 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`；本路**尚未 merge-ready**，不合main/发布。
+- 当前唯一进行中：[R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，固定head `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`，尚无原生结果。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
 - R4 ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0` 与GitHub digest一致；唯一原件 template-selection.json SHA256 `8b23779be484396816795ea190c658e3105ffe8b17cab72c51afec3eda9b80a9`。详情 `evidence/docprops-performance/run-42274393189-audit.json`。
-- 相关修复正在完成：同一owned host先执行**独立fixture准备组1800秒**，记录已知named→GB最多每类一次或GB零setter、完整profile/保存/RO/hash/part几何；成功后复制这些本run生成文件，再执行**原单组36转换/216 profiles，仍1800秒**。两组worker分别授权、600原生上限不变；准备失败不启动主组，零失败重试/rollback/组内host重启。额外准备不计入36能力。
+- 相关修复已提交并触发一次R5：同一owned host先执行**独立fixture准备组1800秒**，记录已知named→GB最多每类一次或GB零setter、完整profile/保存/RO/hash/part几何；成功后复制这些本run生成文件，再执行**原单组36转换/216 profiles，仍1800秒**。两组worker分别授权、600原生上限不变；准备失败不启动主组，零失败重试/rollback/组内host重启。额外准备不计入36能力。
 - 准备/审计相关148项纳入完整回归；完整portable 2157项 / 75.483秒 / skipped32 通过，workflow actionlint exit0。此前2131完整portable（skip32）、host范围标准28、公开准备10、SDK strict types/25负向消费者已通过，均非原生/公开验收。
 - 公开状态：入口/workflow已准备且默认关闭；真实成功proof仍缺，转换与native-Windows revision名单均空。未触发公开CI。须原生全部成功并独立核验后才开放精准范围并跑公开CLI/daemon+SDK/MCP gate。
 - 共享src新增仅标准changed写的关闭host/revision门禁；无request/result/SDK/MCP字段变动。8个固定reader函数与ea45651 AST相同。本轮准备仅diag/driver/CI/auditor及测试，不改生产reader。
@@ -180,3 +180,8 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 内部参数新增 `--stage standards-prepare`、`--prepared-inputs <same-run manifest>`；owned CI新增显式 `--prepare-gb-inputs`。无公开operation/CLI/request/result/SDK/MCP字段变更。模板选择纯helper仍保留用于明确模板模式，但本CI改用已知安装GB drawing路径、独立制作part/assembly输入。下一次只在相关修复提交后，对该新head dispatch一次内部验证。
 
 本轮验证：完整portable 2157 tests / 75.483秒 / OK (skipped32)，原日志 `prepared-gb-full-tests.log`；actionlint v1.7.12 exit0，原日志 `prepared-gb-actionlint.log`；git diff --check通过。测试包含显式准备argv授权、同PID两组首次失败、未知source/False/noop/profile漂移、input hash/来源/geometry、离线原始SDK重复setter/漏getter，以及准备失败先因优先于主文件缺失。portable不是原生或公开验收。
+
+
+### R5已受理（同head唯一dispatch）
+
+相关实现 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa` 已push。本head于2026-11-07 03:40:44 Asia/Shanghai只dispatch一次：[42281734865](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，attempt1。参数 `docprops_calibration=true`、`docprops_public=false`、`docprops_expected_head=cd624d95ea2a8f05553e39d6344b0c1f065b89aa`、`native_full=false`。持久回执 `dispatch-r5.json`，只读watch每3min核该run；不重发正常排队run。该运行采用独立准备1800+原单组36/216 1800；尚无成功原件，仍非merge-ready/非公开验收，白名单不变。

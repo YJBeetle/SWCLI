@@ -1,0 +1,24 @@
+{
+  "repository": "YJBeetle/SWCLI",
+  "workflow": "ci.yml",
+  "branch": "codex/docprops-calibration-performance",
+  "head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+  "inputs": {
+    "docprops_calibration": "true",
+    "docprops_public": "false",
+    "docprops_expected_head": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa",
+    "native_full": "false"
+  },
+  "requested_at_utc": "2026-11-06T19:40:44.497228+00:00",
+  "dispatch_attempts_for_head": 1,
+  "previous_run": 42274393189,
+  "reason_for_new_validation": "separate owned GB input preparation after audited missing GB part template; original 36 group remains 1800 seconds",
+  "full_acceptance_eligible": false,
+  "status": "dispatch-accepted",
+  "dispatch_exit_code": 0,
+  "dispatch_stdout": "https://github.com/YJBeetle/SWCLI/actions/runs/42281734865\n",
+  "dispatch_stderr": "",
+  "run_id": 42281734865,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42281734865",
+  "run_attempt": 1
+}
