@@ -38,3 +38,15 @@
 发现恢复前景的选项 0 会请求用户决定；已改为 no-rebuild=1。
 为避免已知的隐藏宿主弹窗风险，仅取消了这个尚未开始安装/原生测试的本分支 run，保存取消前步骤元数据。
 这不是 CAD API 失败或通过，不计为原生校准结果，不涉及其他分支或本地 VM。
+
+
+## 修正内部校准通过：42266956658
+
+- [Run](https://github.com/YJBeetle/SWCLI/actions/runs/42266956658)，head `3f5434c593da2ae2c00c4a3b2ecd7e7a313af626`，整体 success。
+- Artifact `13529107224`，原 ZIP SHA-256 `615b979b4adb667cade7bf3448a7c3c898392d1638b862904debba8bfca37eca`，独立重算一致。
+- PRT/ASM/DRW 各 21 次变化写入，63 次 request 均独立匹配 1 ITextFormat 属性 setter、1 文档 setter、12 scoped getters；CAS、其他字段/范围、背景身份与 mutation 语义保持。
+- 三类文档分别毫米/磅值保存重开；完整快照和模式一致，六份最终归档文件的 SHA-256 与当时保存记录一致，源夹具 hash 未变。
+- PRT 写前/改变后/两种重开都采用经用户批准的同一既有几何 helper；没有对 ASM/DRW 外推物理几何结论。
+- 组耗时 55.480 秒，cleanup 无错，600/1800 预算不变。审计 JSON、原 ZIP、解包文件与元数据均保存于本工作树 `artifacts/font-scopes/`。
+- 内部校准不含既有 Notes 的 UseDoc/局部覆盖或公开 CLI 链路，因此**不能作为公开验收**。
+- 已准备 public-notes 门禁及明确受限的 Notes 范围补丁；自动审批要求对新公开写入能力直接具名授权，补丁尚未应用。

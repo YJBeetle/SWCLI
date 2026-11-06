@@ -80,6 +80,18 @@ Python SDK 已生成 `document.font_scopes` / `document.font_scope_set`。
 - 已以官方 no-rebuild=1 的修正提交 `3f5434c593da2ae2c00c4a3b2ecd7e7a313af626` 派发替代 run [42266956658](https://github.com/YJBeetle/SWCLI/actions/runs/42266956658)，仍为 calibrate_font_scopes=true/native_full=false，40 项便携专项通过。此次预原生取消不能算作 CAD 测试成功/失败。
 - 官方依据：[swRebuildOnActivation_e](https://help.solidworks.com/2024/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swRebuildOnActivation_e.html)。
 
+## 修正内部校准通过：42266956658
+
+- [Run](https://github.com/YJBeetle/SWCLI/actions/runs/42266956658)，head `3f5434c593da2ae2c00c4a3b2ecd7e7a313af626`，整体 success。
+- 原 artifact ID `13529107224`，ZIP SHA-256 `615b979b4adb667cade7bf3448a7c3c898392d1638b862904debba8bfca37eca`，下载重算与 GitHub digest 一致。
+- 三类各 21 次变化写入，合计 63 次；独立核对全部对应 request、1 属性 setter、1 文档 setter、12 scoped getters，无 native error/重复调用，CAS/其他范围及字段/背景身份均保持。
+- 三类分别毫米与磅值保存只读重开；独立核对完整四范围快照、模式、六个最终归档文件的大小/哈希，原源夹具 hash 保持。
+- PRT 同一打开实例写前/改变后/两种模式重开均通过用户批准的既有几何标准；ASM/DRW 未外推物理几何。
+- 内部组 55.480 秒、无 cleanup error，600/1800 固定预算。JSON 审计和所有原文件存于 `artifacts/font-scopes/run-42266956658-*`。
+- **这仅是内部校准通过，尚非公开 CLI 或 Notes 对象继承验收。**
+- 准备只开放原生 Windows 33.5.0 的 Notes、三文档类型、七字段；尺寸/表格写入及 Wine/其他版本仍关闭。自动审批要求该公开写能力直接具名授权，当前产品源码仍关闭。
+- 可审阅补丁 `artifacts/font-scopes/notes-public-enable.patch`（193 行），已做 AST/git-apply 检查但未应用，等待用户对精确范围及一次 public-notes 门禁的确认。
+
 ## 公开门禁准备（独立后续提交，未开放写入）
 
 - 主对话要求内部校准后继续公开 CLI/daemon 链路，不能以空白名单宣称完成。
