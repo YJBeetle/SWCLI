@@ -86,3 +86,5 @@ CI链接/head/最终状态和持久产物将在本节续记。未取得报告前
 - 只读快照与原始GitHub运行/jobs/artifacts元数据及SHA256：`artifacts/docprops-coverage-ci/routing15-20261107/`。工作文件hash与HEAD分开记录；其他工作树持续变化，报告是时点快照。
 - 交统筹具体问题：线型复用full job却缺ref并发；表格独立job静态组复用前加ref；公差/线型/单位/STEP缺targeted与native_full互斥早拒；单位旧run仍使用旧共享group，不能把新配置追认给旧run。仅报告，不改其他worktree。
 - 尚无任何分路的原生原ZIP独立digest与公共验收通过证据；GitHub已有dist/portable/package artifact摘要单独标metadata-only，不能作为native。各路本地SDK/便携结论注明handoff claim，没有在本分支代跑其测试。
+
+本轮技术提交：`7f279206bd695437f527fd8fa40d3330d5366e4b`（已推送）；包括结构检查降格/否定测试、begin序号计时和15路路由/证据报告。13项测试通过；无新增native dispatch，旧取消run不变。
