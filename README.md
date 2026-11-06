@@ -92,6 +92,8 @@ For larger files, SWCLI 0.2.3 adds `swcli transfer upload|download` and
 optional MCP `upload_file` / `download_file` tools for explicitly configured
 workspaces. See [TLS authentication and file transfer](src/swcli/skills/swcli/references/remote-files.md).
 
+The development branch adds bounded read-only face/edge persistence with `entity reference-create` / `entity reference-resolve`. Saved path/configuration scope and complete native topology correspondence are required; existing short-ID expiry remains. See [scope and native calibration boundaries](docs/design/topology-references.md).
+
 ## Typed Python SDK
 
 SWCLI 0.2.4 includes `from swcli.sdk import Client` with generated typed

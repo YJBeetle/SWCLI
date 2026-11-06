@@ -498,7 +498,17 @@ def build_parser() -> argparse.ArgumentParser:
         "inspect", help="read an exact live entity; changed scope requires rediscovery"
     )
     entity_inspect_parser.add_argument("entity_id")
-    for entity_subparser in (entity_list_parser, entity_inspect_parser):
+    entity_reference_create = entity_commands.add_parser(
+        "reference-create", help="capture a saved-path/configuration scoped topology reference")
+    entity_reference_create.add_argument("entity_id")
+    entity_reference_resolve = entity_commands.add_parser(
+        "reference-resolve", help="resolve only with an exact complete topology bijection")
+    reference_input = entity_reference_resolve.add_mutually_exclusive_group(required=True)
+    reference_input.add_argument("--reference")
+    reference_input.add_argument("--reference-file", help="client JSON file containing a reference-create result")
+    add_document_selector(entity_reference_resolve)
+    entity_reference_resolve.add_argument("--json", action="store_true", dest="as_json")
+    for entity_subparser in (entity_list_parser, entity_inspect_parser, entity_reference_create):
         entity_subparser.add_argument("--kind", choices=("face", "edge"), default="face")
         add_document_selector(entity_subparser)
         entity_subparser.add_argument("--json", action="store_true", dest="as_json")
@@ -1103,6 +1113,20 @@ def _typed_operation(
             None,
         )
     if args.command == "entity":
+        if args.entity_command == "reference-resolve":
+            reference = args.reference
+            if args.reference_file:
+                from .topology_references import MAX_TOKEN_CHARS
+                with open(args.reference_file, "rb") as stream:
+                    raw = stream.read(MAX_TOKEN_CHARS * 2 + 1)
+                if len(raw) > MAX_TOKEN_CHARS * 2:
+                    raise ValueError("reference JSON file exceeds the client size limit")
+                saved = json.loads(raw)
+                if isinstance(saved, dict) and isinstance(saved.get("result"), dict):
+                    saved = saved["result"]
+                reference = saved.get("reference") if isinstance(saved, dict) else saved
+            return ("entity.reference-resolve", {"reference": reference}, args.as_json,
+                    args.document_id, args.expected_update_stamp, None)
         parameters = (
             {key: getattr(args, key) for key in ("max_faces", "max_edges")
              if getattr(args, key) is not None}

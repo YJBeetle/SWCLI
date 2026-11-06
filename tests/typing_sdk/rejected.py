@@ -10,3 +10,6 @@ wrong_type: str = client.document.inspect().require_result()["document"]["modifi
 client.feature.extrude(sketch_id="s-ab12cd", depth_mm="ten")  # E: arg-type
 client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0}])  # E: typeddict-item
 bad_empty_parameters: DocumentListParameters = {"unexpected": True}  # E: typeddict-unknown-key
+client.entity.reference_create(entity_id="e-ab12cd", kind="vertex")  # E: arg-type
+client.entity.reference_resolve(reference=42)  # E: arg-type
+client.entity.reference_resolve(reference="swref1.token", lease_id="l-ab12cd34ef56")  # E: call-arg

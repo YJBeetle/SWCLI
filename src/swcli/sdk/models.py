@@ -1395,6 +1395,63 @@ class EntityInspectResult(_EntityInspectResultRequired, total=False):
     entity: Union[EntityListResultEntitiesItemVariant1, EntityListResultEntitiesItemVariant2, EntityListResultEntitiesItemVariant3, EntityListResultEntitiesItemVariant4, EntityListResultEntitiesItemVariant5, EntityListResultEntitiesItemVariant6]
 
 
+EntityReferenceCreateParameters = EntityInspectParameters
+
+
+class EntityReferenceCreateResultReferenceScope(TypedDict):
+    document_path: str
+    configuration: str
+
+
+class _EntityReferenceCreateResultRequired(TypedDict):
+    ok: bool
+    action: Literal['entity.reference-create']
+
+
+class EntityReferenceCreateResult(_EntityReferenceCreateResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    reference_scope: EntityReferenceCreateResultReferenceScope
+    topology_policy: Literal['complete-face-edge-bijection']
+    kind: Literal['face', 'edge']
+    captured_update_stamp: int
+    face_count: int
+    edge_count: int
+    observation: FeatureListResultObservation
+    native_status: int
+    reference: str
+    entity_id: str
+
+
+class EntityReferenceResolveParameters(TypedDict):
+    reference: str
+
+
+class _EntityReferenceResolveResultRequired(TypedDict):
+    ok: bool
+    action: Literal['entity.reference-resolve']
+
+
+class EntityReferenceResolveResult(_EntityReferenceResolveResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    reference_scope: EntityReferenceCreateResultReferenceScope
+    topology_policy: Literal['complete-face-edge-bijection']
+    kind: Literal['face', 'edge']
+    captured_update_stamp: int
+    face_count: int
+    edge_count: int
+    observation: FeatureListResultObservation
+    native_status: int
+    entity: Union[EntityListResultEntitiesItemVariant1, EntityListResultEntitiesItemVariant2, EntityListResultEntitiesItemVariant3, EntityListResultEntitiesItemVariant4, EntityListResultEntitiesItemVariant5, EntityListResultEntitiesItemVariant6]
+    resolution: Literal['resolved']
+    topology_verified: Literal[True]
+
+
 class FeatureInspectParameters(TypedDict):
     feature_id: str
 

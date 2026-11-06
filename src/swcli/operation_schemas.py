@@ -17,6 +17,7 @@ from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
 from .polygon_geometry import validate_polygon
+from .topology_references import TOKEN_SCHEMA, decode_reference
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CONTEXT_FIELDS = ("document_id", "expected_update_stamp", "lease_id")
@@ -331,6 +332,16 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         required=("entity_id",),
         **_DOCUMENT_READ_CONTEXT,
     ),
+    "entity.reference-create": _operation(
+        "entity.reference-create",
+        {"entity_id": _string(pattern="^e-[a-z0-9]{6}$"),
+         "kind": _string(enum=["face", "edge"])},
+        required=("entity_id",), **_DOCUMENT_READ_CONTEXT,
+    ),
+    "entity.reference-resolve": _operation(
+        "entity.reference-resolve", {"reference": TOKEN_SCHEMA},
+        required=("reference",), **_DOCUMENT_READ_CONTEXT,
+    ),
     "feature.inspect": _operation(
         "feature.inspect",
         {"feature_id": _string(pattern="^f-[a-z0-9]{6}$")},
@@ -617,6 +628,8 @@ def validate_operation_request(
                 raise ValueError("drawing creation requires explicit template and projection")
         elif "projection" in parameters:
             raise ValueError("projection is only supported for drawing creation")
+    if operation == "entity.reference-resolve":
+        decode_reference(parameters["reference"])
     if operation == "entity.list":
         kind = parameters.get("kind", "face")
         wrong_limit = "max_faces" if kind == "edge" else "max_edges"

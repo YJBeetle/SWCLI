@@ -30,7 +30,7 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 
 SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常驻 daemon 生命周期、原生 Windows 探测、文档打开/检查/保存/关闭、重建诊断、确定性 BMP 渲染、经过验证的 STEP/GLB/PDF/DWG 导出，以及可复用的原生零件建模闭环。公开的类型化命令只通过 daemon 执行，不提供直接调用 COM 的后备模式。
 
-目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、稳定实体引用、事务仍属于后续工作。MCP stdio 适配器复用现有 daemon 与操作 Schema。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
+目前建模词汇仍有意保持精简。通用草图编辑、更多特征及编辑、通用稳定实体引用、事务仍属于后续工作。MCP stdio 适配器复用现有 daemon 与操作 Schema。daemon 已通过能力发现发布每个受支持操作实际用于请求校验的 JSON Schema。自 `v0.1.0a4` 起还发布 `operation_result_schemas`，并在 worker 返回结果前校验输出契约。a4 新增未保存零件创建、经过验证的矩形与圆草图、定深拉伸与切除、原生体积/面积观测及新文件名零件另存为。自 `v0.1.0a5` 起支持单圆驱动直径的创建、修改，以及原生保存重开后的尺寸发现。`v0.1.0a6` 新增显式矩形中心固定、驱动宽高创建和修改，以及保存后的宽高对发现；这不代表通用尺寸编辑或草图完全定义。
 
 **v0.1.0a7** 还提供只读 `feature list` 和 `feature inspect`，返回准确的短特征句柄。
 成功的拉伸和切除创建也会直接从原生创建返回对象提供 `.feature.feature_id`。
@@ -38,6 +38,8 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 门禁均已通过，包括原生保存重开、原有六项导出和镜像晋升。设计与验证边界见
 [特征深度计划](docs/design/feature-depth-editing.md) 和
 [运行时验证记录](docs/verification/a7-depth-runtime-2026-10-10.md)。
+
+开发分支新增只读、已保存路径/配置限定的 face/edge 持久引用：`entity reference-create` / `entity reference-resolve`。它要求完整拓扑可唯一对应，保留原短 ID 失效规则；不承诺任意修改后继续稳定。见[范围与原生校准边界](docs/design/topology-references.md)。
 
 ## Typed Python SDK
 

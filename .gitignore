@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 build/
 dist/
+
+# Persistent local calibration evidence (never release input).
+/.task-evidence/
