@@ -39,6 +39,18 @@ class TableCalibrationTests(unittest.TestCase):
             self.assertIn("if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.table_defaults_calibration) }}",
                           source.split('  ' + job_name + ':', 1)[1].split('    steps:', 1)[0])
 
+    def test_public_mode_pins_internal_artifact_before_private_inputs_and_uses_own_concurrency(self):
+        source = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = source.split('  table-defaults-calibration:', 1)[1].split('  release:', 1)[0]
+        self.assertLess(job.index('verify-table-defaults-proof.py remote'), job.index('Prepare protected Google Drive'))
+        self.assertLess(job.index('verify-table-defaults-proof.py local'), job.index('Install native SOLIDWORKS'))
+        self.assertIn('digest-mismatch: error', job)
+        self.assertIn('actions: read', job)
+        self.assertIn('accept-table-defaults.ps1', job)
+        self.assertIn("inputs.table_defaults_mode == 'public'", job)
+        self.assertNotIn('swcli-hosted-windows-solidworks', job)
+        self.assertNotIn('swcli-release-', job)
+
     def test_wrapper_has_native_and_group_limits_and_one_process_start(self):
         source = (ROOT / 'scripts/ci/windows/calibrate-table-defaults.ps1').read_text()
         self.assertEqual(source.count('Start-Process '), 1)

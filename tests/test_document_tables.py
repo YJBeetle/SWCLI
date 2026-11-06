@@ -3,6 +3,8 @@
 from copy import deepcopy
 import json
 from types import SimpleNamespace
+from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -10,7 +12,7 @@ from jsonschema import Draft202012Validator
 from swcli.cli import build_parser, _typed_operation
 from swcli.daemon.documents import DocumentRegistry, DocumentLeaseConflict
 from swcli.daemon.operations import execute_operation, DocumentUpdateConflict
-from swcli.document_tables import TABLE_FIELDS, TABLE_OPTIONS_SCHEMA
+from swcli.document_tables import TABLE_FIELDS, TABLE_OPTIONS_SCHEMA, LINE_WEIGHTS
 from swcli.hosts import windows_document_tables as adapter
 from swcli.operation_schemas import OPERATION_CATALOG, validate_operation_request
 from swcli.result_schemas import validate_operation_result, OperationResultInvalid
@@ -65,7 +67,11 @@ class DocumentTableTests(unittest.TestCase):
     def edit(self, field="bom.box_border", value="thick", expected=None, *, calibrated=True, session="writer", stamp=7, lease=None):
         if expected is None:
             expected = adapter._read_options(self.document, self.constants)
-        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", {("33.5.0", self.kind)} if calibrated else set()):
+        profiles = {("33.5.0", self.kind): {
+            field: [(before, after) for before in ((False, True) if spec["kind"] == "Toggle" else LINE_WEIGHTS.values())
+                    for after in ((False, True) if spec["kind"] == "Toggle" else (0, 1, 2))]
+            for field, spec in TABLE_FIELDS.items()}}
+        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profiles if calibrated else {}):
             result = execute_operation(self.app, "document.table-option-set",
                 dict(field=field, value=value, expected_options=expected), documents=self.documents,
                 session_id=session, document_id=self.entry.document_id, expected_update_stamp=stamp,
@@ -241,6 +247,34 @@ class DocumentTableTests(unittest.TestCase):
         self.assertTrue(as_json)
         self.assertTrue(OPERATION_CATALOG[operation].lease_guarded)
         self.assertFalse(OPERATION_CATALOG[operation].temporary_activation)
+
+    def test_installed_type_library_path_accepts_pywin32_property_or_method_without_retry(self):
+        self.constants_patch.stop()
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            (folder / "swconst.tlb").write_bytes(b"owned portable stub")
+            for member in (str(folder), mock.Mock(spec=(), return_value=str(folder))):
+                with self.subTest(callable=callable(member)), mock.patch.object(adapter, "_read_constants", return_value={"verified": 1}) as read:
+                    self.app.GetExecutablePath = member
+                    self.assertEqual(adapter._constants(self.app), {"verified": 1})
+                    read.assert_called_once_with(folder / "swconst.tlb")
+                    if callable(member): member.assert_called_once_with()
+
+    def test_exact_profile_refuses_unproved_direction_value_and_revision(self):
+        expected = self.read()["options"]
+        profile = {("33.5.0", 1): {"bom.box_border": [(1, 2), (2, 2)]}}
+        context = dict(app=self.app, document=self.document, field="bom.box_border", expected_options=expected)
+        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profile):
+            self.assertEqual(adapter.set_document_table_option_windows(**context, value="thin")["error"]["type"],
+                             "DocumentTableCalibrationRequired")
+            self.app.RevisionNumber = lambda: "33.5.1"
+            self.assertEqual(adapter.set_document_table_option_windows(**context, value="thick")["error"]["type"],
+                             "DocumentTableCalibrationRequired")
+            self.app.RevisionNumber = lambda: "33.5.0"
+            expected["bom.box_border"] = {"value": "thin", "native_value": 0}
+            self.assertEqual(adapter.set_document_table_option_windows(**context, value="thick")["error"]["type"],
+                             "DocumentTableCalibrationRequired")
+        self.no_setters()
 
     def test_result_rejects_false_applicability_and_lifecycle_claims(self):
         observed = self.read()

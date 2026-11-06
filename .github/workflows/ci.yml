@@ -45,10 +45,18 @@ on:
         default: false
         type: boolean
       table_defaults_calibration:
-        description: Run only bounded table-default internal calibration on its own branch
+        description: Run only bounded table-default internal/public verification on its own branch
         required: false
         default: false
         type: boolean
+      table_defaults_mode:
+        description: Internal calibration or public CLI/daemon acceptance using audited internal proof
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - public
       table_defaults_head:
         description: Exact table-default branch head (required for calibration)
         required: false
@@ -494,6 +502,9 @@ jobs:
 
   table-defaults-calibration:
     if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-table-defaults' && inputs.table_defaults_calibration && inputs.table_defaults_head == github.sha }}
+    permissions:
+      contents: read
+      actions: read
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -510,6 +521,36 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
+      - name: Install candidate SWCLI
+        shell: powershell
+        run: |
+          python -m pip install .
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate installation failed' }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw 'Installed resources are invalid' }
+      - name: Check pinned internal run and original artifact provenance
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -I scripts/ci/verify-table-defaults-proof.py remote --env-output $env:GITHUB_ENV
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned internal proof preflight failed before private runtime setup' }
+      - name: Download the pinned original internal calibration artifact
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.TABLE_INTERNAL_RUN }}
+          name: ${{ env.TABLE_INTERNAL_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/table-defaults-internal-proof
+          digest-mismatch: error
+      - name: Independently audit internal reports traces and native fixture hashes
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-table-defaults-proof.py local --directory "$env:RUNNER_TEMP\table-defaults-internal-proof"
+          if ($LASTEXITCODE -ne 0) { throw 'Original internal artifact audit failed before native acceptance' }
       - name: Initialize private paths
         shell: powershell
         run: |
@@ -621,20 +662,20 @@ jobs:
             -AssetsRoot "$env:PRIVATE_ROOT\assets" `
             -StateDirectory "$env:PRIVATE_ROOT\state"
 
-      - name: Install candidate SWCLI
-        shell: powershell
-        run: |
-          python -m pip install .
-          if ($LASTEXITCODE -ne 0) { throw 'Candidate installation failed' }
-          python -I scripts/ci/verify-installed.py
-          if ($LASTEXITCODE -ne 0) { throw 'Installed resources are invalid' }
       - name: Calibrate only bounded table defaults
+        if: ${{ inputs.table_defaults_mode != 'public' }}
         timeout-minutes: 31
         shell: powershell
         run: |
           $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
           if ($LASTEXITCODE -ne 0) { throw 'Drawing template discovery failed' }
           scripts/ci/windows/calibrate-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults" -DrawingTemplate $drawingTemplate
+      - name: Accept only proven table defaults through public CLI daemon SDK and MCP
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/accept-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults\public" -FixtureDirectory "$env:RUNNER_TEMP\table-defaults-internal-proof\calibration" -InternalReportSha256 $env:TABLE_INTERNAL_REPORT_SHA256 -InternalHead $env:TABLE_INTERNAL_HEAD -InternalRun $env:TABLE_INTERNAL_RUN
       - name: Remove private inputs and stop disposable services
         if: always()
         shell: powershell
@@ -643,7 +684,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: table-defaults-internal-${{ github.run_id }}-${{ github.run_attempt }}
+          name: table-defaults-${{ inputs.table_defaults_mode || 'internal' }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/swcli-native-smoke/table-defaults/
           if-no-files-found: warn
           retention-days: 14

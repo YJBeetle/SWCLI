@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from ..document_tables import TABLE_FIELDS, LINE_WEIGHTS, validate_table_options, validate_table_value
+from ..document_table_profiles import PROFILES as _CALIBRATED_PROFILES
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
@@ -11,7 +12,6 @@ from .windows_document_annotations import _edit_context, _verify_context, _writa
 from .windows_feature_inspection import _same
 
 # Internal native calibration is not public acceptance. No environment bypass.
-_CALIBRATED_PROFILES = frozenset()
 
 
 class DocumentTableConflict(RuntimeError):
@@ -49,7 +49,7 @@ def _read_constants(path):
 def _constants(app):
     # Official GetExecutablePath returns the installation directory, without a
     # trailing slash. Do not guess IDs or load a caller-supplied type library.
-    folder = native_call("document-tables", "ISldWorks.GetExecutablePath", lambda: app.GetExecutablePath())
+    folder = _com_value(app, "GetExecutablePath")
     if type(folder) is not str or not folder:
         raise RuntimeError("native SOLIDWORKS installation path is unavailable")
     path = Path(folder) / "swconst.tlb"
@@ -136,7 +136,9 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
         if snapshot["state"][0] not in spec["types"]:
             raise ValueError("this table default is unavailable for the selected document type")
         revision = _com_value(app, "RevisionNumber")
-        if not calibration and (revision, snapshot["state"][0]) not in _CALIBRATED_PROFILES:
+        native = value if spec["kind"] == "Toggle" else LINE_WEIGHTS[value]
+        transition = (expected[field]["native_value"], native)
+        if not calibration and transition not in _CALIBRATED_PROFILES.get((revision, snapshot["state"][0]), {}).get(field, ()):
             raise DocumentTableCalibrationRequired("table default writes await native public acceptance for this version/type")
         constants = _constants(app)
         before = _read_options(document, constants)
@@ -151,7 +153,6 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
         if not _writable_context(app, snapshot["edit"]):
             raise ValueError("table default editing requires a normal drawing sheet or no active model sketch")
         _require_writable(document)
-        native = value if spec["kind"] == "Toggle" else LINE_WEIGHTS[value]
         extension = _com_value(document, "Extension")
         method = "SetUserPreference" + spec["kind"]
         result["mutation"] = {"attempted": True, "may_have_changed": True}
