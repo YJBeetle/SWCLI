@@ -176,3 +176,11 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 首个真实失败是part拒写后对比 `unit observation changed geometry`。新增诊断完整记录：V/S/体数/质心z无差异，质心x由 `-7.058607893785837e-16` 到 `-1.102907483404037e-15` mm，delta=`-3.970466940254533e-16`；质心y由 `5.514537417020185e-16` 到 `6.286572655403011e-16` mm，delta=`7.720352383828262e-17`。解析容差检查通过，但原字典精确相等仍失败；cleanup_errors为空。只陈述返回测量差异，不能据此归因单位API造成物理几何变化，也不把它改称通过。精确断言未放宽，未重试/回滚/组内重启。
 
 收口结论：**目前无可合tip、无已完成public验收子集。** 旧内部read/CAS run42262804840/6c314f7的通过仅是旧源内部三fixture证据，不能替代修复后5f307d1公开验收。产品P1修复及独立mock/handler/worker/便携证据已落盘；最终public严格结果仍待统筹后续取证。九字段changed-write、scalar/system联动和写入持久性均未验收，白名单仍空。本轮就此停下，不新增迭代。
+
+## 继续系列后的最新首因与待统筹决定（未后置）
+
+已保存并核对`42279525986 / 5f307d1`失败原件。artifact ID13536485767，ZIP SHA256 `c2dc13ce277eee306cce349b5b9a28fd3348b7a8a8dfdf5d9718002d86f278eb`与GitHub digest匹配，本地`evidence/units-profile/product-42279525986/original.zip`；run/job/artifact与原始report在`docs/evidence/units-profile/product-42279525986/`。首因仍为part重开几何dict精确比较；仅质心y delta2.7572687085100926e-16 mm，V/S/体数/x,z精确一致。public未执行，P1产品修复尚未取得公开验收，不给可合tip。
+
+未扩新字段/功能，未把未完点后置，未新dispatch或持续poll。发现本仓库已有冻结的`unchanged_depth_metrics`处理独立kernel浮点观测；已准备可审查最小patch（未应用产品），复用原函数阈值、保留全维度、原解析几何、raw/hex及所有状态/CAS精确断言。隔离快照47项测试通过，两份失败原始数值的离线重放保留exact_equal=false且满足既有kernel判据。这不是native通过。
+
+详见`docs/evidence/units-profile/kernel-comparison-proposal.md`、同名.patch、proposal-tests.txt及proposal-replay.json。因原指令“不放宽几何或状态断言”，该接受范围调整需统筹明确确认，当前未擅自应用或重跑。本系列继续推进的具体阻断是这个比较口径决定，而不是以收口简单后置。没有sandbox自动审批拒绝；这是原用户验收约束的实质变更待确认。

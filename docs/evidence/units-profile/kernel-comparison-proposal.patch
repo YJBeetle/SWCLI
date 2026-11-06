@@ -1,0 +1,113 @@
+--- a/scripts/ci/calibrate-document-unit-profile.py
++++ b/scripts/ci/calibrate-document-unit-profile.py
+@@ -4,6 +4,7 @@
+ retries, rollback or host replacement. Parent bounds call/group to 600/1800s.
+ """
+ import argparse
++import importlib.util
+ from contextlib import ExitStack
+ import hashlib
+ import json
+@@ -17,6 +18,10 @@
+ from unittest.mock import patch
+ 
+ 
++# Proposed policy reuse: this patch is not applied to the production branch.
++_spec=importlib.util.spec_from_file_location('_units_kernel_checks',Path(__file__).with_name('gate_support')/'model_checks.py')
++_kernel_checks=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_kernel_checks)
++
+ def require(condition, message):
+     if not condition:
+         raise RuntimeError(message)
+@@ -62,12 +67,16 @@
+         return {**{k:metrics[k] for k in ('solid_body_count','volume_mm3','surface_area_mm2')},
+                 **{'centroid_mm.'+k:v for k,v in metrics['centroid_mm'].items()}}
+     left,right=scalars(before),scalars(after)
+-    case[label]=dict(exact_equal=before==after,differences={
++    case[label]=dict(exact_equal=before==after,comparison_policy='existing-kernel-invariance-v1',within_kernel_tolerance=False,differences={
+         k:dict(before=left[k],after=right[k],before_hex=float(left[k]).hex(),after_hex=float(right[k]).hex(),delta=right[k]-left[k])
+         for k in left if left[k]!=right[k]})
+     persist()
+-    # Preserve the original exact equality assertion; no tolerance substitution.
+-    require(before==after,message)
++    try:
++        _kernel_checks.unchanged_depth_metrics(before,after)
++    except RuntimeError as error:
++        raise RuntimeError(message+': '+str(error)) from error
++    case[label]['within_kernel_tolerance']=True
++    persist()
+ 
+ 
+ def supervise(args):
+--- a/scripts/ci/verify-document-unit-profile.py
++++ b/scripts/ci/verify-document-unit-profile.py
+@@ -114,7 +114,7 @@
+         require(final['document']==observed['document'] and typed_key(final['unit_profile'])==typed_key(observed['unit_profile']) and hashlib.sha256(copy.read_bytes()).hexdigest()==copy_digest and hashlib.sha256(path.read_bytes()).hexdigest()==digest,'readonly public verification modified profile/state/files')
+         if kind==1:
+             case['geometry_reopened']=geometry(gate,fresh)
+-            require(case['geometry_reopened']==case['geometry_before'],'public units sequence changed geometric measurements')
++            modeling.unchanged_depth_metrics(case['geometry_before'],case['geometry_reopened'])
+         gate.close(fresh);gate.close(reopened_foreground);gate.close(foreground);gate.require_empty(after_case=suffix)
+         case['success']=True;gate.checkpoint('unit-profile-'+suffix+'-verified')
+     require(gate.health()['host']==host,'public CLI acceptance replaced its host')
+--- a/tests/test_unit_profile_calibration.py
++++ b/tests/test_unit_profile_calibration.py
+@@ -58,15 +58,15 @@
+         for error in ('com_error','RuntimeError','DocumentUnitProfileConflict'):
+             with self.assertRaises(RuntimeError):calibration.require_closed_refusal(dict(ok=False,mutation=dict(attempted=False,may_have_changed=False),error=dict(type=error)))
+ 
+-    def test_geometry_mismatch_records_actuals_before_unchanged_exact_assertion(self):
++    def test_kernel_ulp_drift_records_actuals_without_falsely_claiming_exact_equality(self):
+         import math
+         from copy import deepcopy
+         before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+         after=deepcopy(before);after['volume_mm3']=math.nextafter(before['volume_mm3'],math.inf)
+         case={};saved=[]
+         observed=calibration.record_geometry(lambda:dict(ok=True,metrics=after),case,'reopened',lambda:saved.append(deepcopy(case)))
+-        with self.assertRaisesRegex(RuntimeError,'reopened geometry changed'):
+-            calibration.record_exact_geometry(before,observed,case,'comparison',lambda:saved.append(deepcopy(case)),'reopened geometry changed')
++        calibration.record_exact_geometry(before,observed,case,'comparison',lambda:saved.append(deepcopy(case)),'reopened geometry changed')
++        self.assertTrue(case['comparison']['within_kernel_tolerance'])
+         self.assertEqual(saved[-1]['reopened'],after)
+         self.assertFalse(saved[-1]['comparison']['exact_equal'])
+         self.assertEqual(saved[-1]['comparison']['differences']['volume_mm3']['after_hex'],after['volume_mm3'].hex())
+@@ -77,3 +77,20 @@
+         with self.assertRaisesRegex(RuntimeError,'analytic box mismatch'):
+             calibration.record_geometry(lambda:result,case,'observed',lambda:saved.append(deepcopy(case)))
+         self.assertEqual(saved[0]['observed_measurement'],result)
++
++    def test_proposed_kernel_comparison_rejects_drift_in_every_metric(self):
++        from copy import deepcopy
++        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
++        for field in ('solid_body_count','volume_mm3','surface_area_mm2','x','y','z'):
++            after=deepcopy(before)
++            if field in 'xyz':after['centroid_mm'][field]+=2e-6
++            elif field=='solid_body_count':after[field]+=1
++            else:after[field]+=2e-6
++            with self.subTest(field=field),self.assertRaises(RuntimeError):
++                calibration.record_exact_geometry(before,after,{},'comparison',lambda:None,'geometry changed')
++    def test_frozen_kernel_comparison_rejects_nonfinite_inputs(self):
++        from copy import deepcopy
++        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
++        for value in (float('nan'),float('inf')):
++            after=deepcopy(before);after['centroid_mm']['x']=value
++            with self.assertRaises(RuntimeError):calibration.record_exact_geometry(before,after,{},'comparison',lambda:None,'geometry changed')
+--- a/tests/test_unit_profile_public_gate.py
++++ b/tests/test_unit_profile_public_gate.py
+@@ -49,6 +49,7 @@
+             result['metrics']=dict(solid_body_count=1,volume_mm3=12000,surface_area_mm2=3800,centroid_mm=dict(x=0,y=0,z=5))
+             result.update(action='document.measure',session_id=args.session,scope='sum-of-solid-bodies',coordinate_system='part-model',method='native-body-mass-properties',bodies=[dict(index=0,volume_mm3=12000,surface_area_mm2=3800,centroid_mm=dict(x=0,y=0,z=5))])
+             if self.units_defect=='geometry-drift':result['metrics']['centroid_mm']['x']=0.001
++            if self.units_defect=='small-geometric-drift' and self.documents[args.document_id]['read_only']:result['metrics']['centroid_mm']['x']=2e-6
+         return result
+ 
+ class UnitPublicGateTests(unittest.TestCase):
+@@ -74,7 +75,7 @@
+         self.assertEqual([c['document_type'] for c in result['unit_cases']],[1,2,3])
+         self.assertEqual(self.fake.documents,{})
+     def test_first_failure_preserved_and_stops_next_fixture(self):
+-        for defect in ('noop-dirty','cas-ignored','mutation','readonly-drift','source-changed','geometry-drift'):
++        for defect in ('noop-dirty','cas-ignored','mutation','readonly-drift','source-changed','geometry-drift','small-geometric-drift'):
+             with self.subTest(defect=defect):
+                 self.setUp();self.fake.units_defect=defect
+                 with self.assertRaises((RuntimeError,ValueError)):self.execute()
