@@ -181,6 +181,15 @@ Annotation text format and overall drafting standard remain later increments
 because changing them can propagate to subtype settings.
 [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
+## MCP tool names (0.2.1 development)
+
+The MCP server remains named `swcli`. Its five tools are `status`,
+`daemon_start`, `daemon_stop`, `capabilities` and `execute`. The client/daemon
+protocol, operation names and lifecycle protections stay the same. The stdio
+SDK contract and packaged skill describe these current names. This work is
+independent of the frozen 0.2.0a1 release candidate; Windows tray development
+resumes after the naming update.
+
 ## Resident host visibility (planned)
 
 Add an optional Windows tray status/controller after the MCP lifecycle is

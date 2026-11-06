@@ -23,10 +23,10 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
 
 ## Working rules
 
-- With MCP, first call `swcli_status`; explicitly use `swcli_daemon_start` if a
-  host is needed, then `swcli_capabilities`. Daemon and SW startup takes time;
+- With MCP, first call `status`; explicitly use `daemon_start` if a
+  host is needed, then `capabilities`. Daemon and SW startup takes time;
   wait for readiness and inspect status after a timeout before another start. Request the
-  selected operation schema before `swcli_execute`. With the CLI, first run
+  selected operation schema before `execute`. With the CLI, first run
   `swcli version --json`, `swcli daemon status --details --json` and
   `swcli capabilities --json`. Read the capability summary, then
   request `capabilities --operation NAME --json` for the needed request/result
@@ -95,7 +95,7 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
 - Treat remote paths as paths on the execution host. A remote connection does
   not upload local files, and `--allow-remote` does not provide authentication.
 - At task completion, choose whether to keep the host ready or explicitly call
-  `swcli_daemon_stop` using the user's stated preferences and expected follow-up
+  `daemon_stop` using the user's stated preferences and expected follow-up
   work. MCP disconnect leaves the host running. Stopping affects all clients
   on that endpoint and does not authorize discarding or closing unrelated work.
 - MCP and CLI CAD/status calls do not start SW implicitly. Explicit MCP
