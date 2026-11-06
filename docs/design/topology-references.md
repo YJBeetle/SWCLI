@@ -68,6 +68,8 @@ Tokens are opaque caller data, not signatures or authorization credentials.
 
 Primary references:
 
+- [Type Libraries](https://help.solidworks.com/2022/english/api/sldworksapiprogguide/overview/type_libraries.htm): load installed `sldworks.tlb` and `swconst.tlb` directly; a running IDispatch need not expose ITypeInfo.
+
 - [Persistent Reference IDs](https://help.solidworks.com/2025/English/api/sldworksapiprogguide/Overview/Persistent_Reference_IDs.htm): model-local IDs can persist across sessions.
 - [GetPersistReference3](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~GetPersistReference3.html): byte representations may change; they are not identity comparisons.
 - [GetObjectByPersistReference3](https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~GetObjectByPersistReference3.html): object and BYREF status; suppressed/deleted apply to topology.

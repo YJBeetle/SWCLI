@@ -22,3 +22,22 @@
 - 内部原生脚本：`verify-topology-calibration.py`（实际 swconst 与 IModelDocExtension 签名；hole 删除、notch 面分裂/合并；重建、保存重开、体积及 SHA256）。公开脚本：`verify-topology-references.py`（CLI/SDK/MCP、后台/lease/CAS/另文档、face/edge 保存只读重开、公开 cut 后拒绝与实际输出体积）。`run-topology-targeted.py` 分开记录内部和公开，均非 full release evidence。
 - CI：新增默认 false 的 `native_topology_targeted`；仅本分支 workflow_dispatch 且 native_full=false；test/package 前提保留；专属 `swcli-topology-targeted-${github.ref}` concurrency、cancel-in-progress=false；默认 full/release group 仍为 swcli-hosted-windows-solidworks。600s 原生/请求、1800s 每组，无组内重启和失败 CAD 重试；不取消他人 run、不为排队重复 dispatch。
 - 提交：本阶段功能提交（精确 SHA 在提交/dispatch 后补记）。CI run/head/参数与原生证据：尚未产生。**未达到 merge-ready，不声明 Windows 原生或公开验收通过。**
+
+## 阶段 3：已推送并首次 dispatch
+- 功能提交/测试源 head：`74eeb7d4bfa9c600b9f1abe5d84aa3c64c53f5ee`（feat: 增加有界实体持久引用与拓扑变化检测），已 push `origin/codex/swcli-topology-references`。
+- 唯一手动 targeted dispatch：<https://github.com/YJBeetle/SWCLI/actions/runs/42262912751>，run head 已读回匹配上述 SHA；参数 `native_topology_targeted=true`、`native_full=false`，其余媒体/清理参数保留 workflow 默认；未向其他分支触发，不为排队重复 dispatch。
+- 本地回执：`.task-evidence/dispatch/request.json`。当前 run queued，portable/package/installed Windows 内部校准、公开验收与原始 artifact ZIP/digest/trace/save-reopen 仍待核验。
+- merge-ready：否。不会把 queued 或便携成功表述为原生通过，也不自行合 main/发布。
+
+## 阶段 4：CI 便携/构建已通过，原生安装准备中
+- 同一 run `42262912751` 的 Windows Python 3.9 / 3.14 和 Build wheel 均 success；Targeted topology reference verification 已启动，尚在 disposable runner 磁盘准备阶段，未产生原生结论。
+- 已独立下载原 `swcli-dist` artifact（ID `13525796665`），GitHub head=`74eeb7d4bfa9c600b9f1abe5d84aa3c64c53f5ee`；原 ZIP SHA-256=`8d5b047d7036d352fc81dac5907be9c08457a0b03100a9b8edc788e0879edd4e` 与 API digest 一致；wheel 内 9 个关键源文件与该提交逐字节一致。
+- 包原始证据：`.task-evidence/ci-42262912751/swcli-dist.zip`、`swcli-dist.metadata.json`、`distribution-proof.json`。已准备独立 `.task-evidence/audit-native.py`，待原生原 ZIP 上传后核验内部报告/官方类型库/公开 trace/保存重开/实际文件哈希；目前仍非 merge-ready。
+
+## 阶段 5：首失败已留证，修复类型库读取入口后才能重跑
+- 首次 run `42262912751` 最终 failure；安装、wheel、Windows portable 均 success，内部校准在创建任何模型前的 `app._oleobj_.GetTypeInfo()` 返回 `com_error(-2147319765, Element not found)`。这不是 persistent API 或 CAD 读写校准结论；公开组未启动，cleanup_errors=[]。
+- 原生原 ZIP artifact ID `13528136038`，SHA-256=`0638ab1d99e71c5da1ff9dd9b682f13a6925dcbb368e6e581acbe206c10e5bfd`；已与 GitHub digest/head 匹配，完整保留于 `.task-evidence/ci-42262912751/native.zip`。解压原 report/trace 位于 `native/swcli-native-smoke/topology-targeted/internal/`；原始错误与 traceback 未替换。
+- 首次真实 swconst 已证实：OK=0 / Invalid=1 / Suppressed=2 / Deleted=4 / swDelete_Absorbed=2 / Blind=0 / ThroughAll=1 / ThisConfiguration=1。尚未证实接口签名、创建/解析、分裂/合并、删除状态及保存重开。
+- 修复限于校准脚本：不依赖运行对象 ITypeInfo，按官方 Type Libraries 文档直接 `pythoncom.LoadTypeLib` 读取同安装目录的 `sldworks.tlb`，记录实际路径与文件 SHA256；缺失文件在启动 host 前拒绝。签名/状态断言、600/1800、独立 host 及 secret/concurrency 门禁均不放宽，无 native fallback/retry。
+- 修复针对性与 CI 接线检查：21 tests PASS（含缺失真实类型库在 host 前拒绝）；持久日志 `.task-evidence/portable-typelib-fix/targeted.log`。仅此确切修复提交后才允许新 head 一次必要 dispatch，未重跑首个失败 head。
+- merge-ready：否。

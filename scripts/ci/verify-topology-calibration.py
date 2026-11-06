@@ -31,6 +31,7 @@ harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 checked = harness.checked
 NATIVE_TIMEOUT = 600
+TYPE_LIBRARY_PATH = None
 ENUMS = {"swPersistReferencedObject_Ok": 0, "swPersistReferencedObject_Invalid": 1,
          "swPersistReferencedObject_Suppressed": 2, "swPersistReferencedObject_Deleted": 4,
          "swDelete_Absorbed": 2, "swEndCondBlind": 0, "swEndCondThroughAll": 1,
@@ -55,8 +56,12 @@ def read_constants(pythoncom, path):
     return found
 
 
-def type_library_evidence(app):
-    library, _ = app._oleobj_.GetTypeInfo().GetContainingTypeLib()
+def type_library_evidence(path):
+    import pythoncom
+    # Load the official installed file directly. SOLIDWORKS' running IDispatch
+    # can expose no ITypeInfo; this is not a failed-CAD-call fallback/retry.
+    path = Path(path)
+    library = pythoncom.LoadTypeLib(str(path))
     wanted = {"GetPersistReference3": 1, "GetObjectByPersistReference3": 2, "DeleteSelection2": 1}
     found = {}
     for index in range(library.GetTypeInfoCount()):
@@ -71,7 +76,8 @@ def type_library_evidence(app):
                                    "argument_count": len(descriptor[2])}
     checked(set(found) == set(wanted) and all(found[name]["argument_count"] == count
             for name, count in wanted.items()), "official IModelDocExtension signatures differ: " + repr(found))
-    return {"library": library.GetDocumentation(-1), "attributes": repr(tuple(library.GetLibAttr())),
+    return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "library": library.GetDocumentation(-1), "attributes": repr(tuple(library.GetLibAttr())),
             "methods": found}
 
 
@@ -86,7 +92,8 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
         finally:
             timer.cancel()
     case.update(profile_kind=profile_kind, success=False, native_timeout_seconds=600)
-    report.setdefault("type_library", call("read-official-api-signatures", lambda: type_library_evidence(app)))
+    if "type_library" not in report:
+        report["type_library"] = call("read-official-api-signatures", lambda: type_library_evidence(TYPE_LIBRARY_PATH))
     made, document = call("create-part", lambda: create_part_windows_with_handle(app=app))
     live["document"] = document
     checked(made["ok"] and document is not None, "part creation failed")
@@ -222,8 +229,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
+    parser.add_argument("--sldworks", type=Path, help="official sldworks.tlb; defaults to swconst.tlb sibling")
     args = parser.parse_args(argv)
     checked(args.swconst.is_file(), "official swconst type library is required")
+    sldworks = args.sldworks or args.swconst.with_name("sldworks.tlb")
+    checked(sldworks.is_file(), "official installed sldworks.tlb is required")
+    global TYPE_LIBRARY_PATH
+    TYPE_LIBRARY_PATH = sldworks.resolve()
     args.output_dir.mkdir()
     harness.read_constants = read_constants
     return harness.run(args.output_dir.resolve(), args.swconst.resolve(), False,

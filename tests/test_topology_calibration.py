@@ -40,12 +40,28 @@ class TopologyCalibrationTests(unittest.TestCase):
             GetNames=lambda n: (wanted[n][0],))
         library = SimpleNamespace(GetTypeInfoCount=lambda: 1, GetTypeInfo=lambda n: info,
             GetDocumentation=lambda n: ("official SOLIDWORKS",), GetLibAttr=lambda: ("test-guid",))
-        dispatch = SimpleNamespace(GetTypeInfo=lambda: SimpleNamespace(GetContainingTypeLib=lambda: (library, 0)))
-        result = calibration.type_library_evidence(SimpleNamespace(_oleobj_=dispatch))
-        self.assertEqual(set(result["methods"]), {name for name, _ in wanted})
-        wanted[1] = (wanted[1][0], 1)
-        with self.assertRaisesRegex(RuntimeError, "signatures differ"):
-            calibration.type_library_evidence(SimpleNamespace(_oleobj_=dispatch))
+        com = SimpleNamespace(LoadTypeLib=mock.Mock(return_value=library))
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict("sys.modules", {"pythoncom": com}):
+            path = Path(temporary)/"sldworks.tlb"
+            path.write_bytes(b"owned official type library fixture")
+            result = calibration.type_library_evidence(path)
+            self.assertEqual(set(result["methods"]), {name for name, _ in wanted})
+            self.assertEqual(result["path"], str(path))
+            self.assertEqual(len(result["sha256"]), 64)
+            com.LoadTypeLib.assert_called_once_with(str(path))
+            wanted[1] = (wanted[1][0], 1)
+            with self.assertRaisesRegex(RuntimeError, "signatures differ"):
+                calibration.type_library_evidence(path)
+
+    def test_missing_official_sldworks_library_fails_before_any_owned_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            constants = root/"swconst.tlb"; constants.write_bytes(b"test placeholder")
+            with mock.patch.object(calibration.harness, "run") as run:
+                with self.assertRaisesRegex(RuntimeError, "sldworks.tlb is required"):
+                    calibration.main(["--swconst", str(constants), "--output-dir", str(root/"new")])
+                run.assert_not_called()
+            self.assertFalse((root/"new").exists())
 
     def test_internal_failure_stops_before_starting_public_host_and_preserves_receipt(self):
         import json
