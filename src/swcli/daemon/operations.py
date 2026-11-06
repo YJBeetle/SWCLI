@@ -594,6 +594,8 @@ def document_render(
         "app": context.app,
         "document": context.entry.document if context.entry is not None else None,
     }
+    if "include_content" in values:
+        kwargs["include_content"] = values["include_content"]
     return render_active_windows_document(str(values["output"]), **kwargs)
 
 
@@ -623,6 +625,8 @@ def document_export(
         "app": context.app,
         "document": context.entry.document if context.entry is not None else None,
     }
+    if "include_content" in values:
+        kwargs["include_content"] = values["include_content"]
     return export_active_windows_document(str(values["output"]), **kwargs)
 
 

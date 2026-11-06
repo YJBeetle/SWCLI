@@ -45,7 +45,7 @@ def tool_definitions() -> list[Dict[str, Any]]:
         ("capabilities", "Discover running daemon operations; pass operation for its exact request/result schemas and x-swcli-context. Does not start SW; query status and explicitly start first if needed.", {
             "operation": {"type": "string", "minLength": 1},
         }),
-        ("execute", "Execute one advertised SWCLI operation with exact parameters and session/document/lease/CAS context. Read its schema first. Does not start or recover SW. Writes/save/close require task authority. Host paths, native errors and partial-state rules are preserved. Use the explicit daemon tools for lifecycle.", execute),
+        ("execute", "Execute one advertised SWCLI operation with exact parameters and session/document/lease/CAS context. Read its schema first. Does not start or recover SW. Writes/save/close require task authority. Host paths, native errors and partial-state rules are preserved. Render/export automatically request inline content when supported; parameters.include_content=false keeps metadata only. Up to 8 MiB is attached as PNG preview or a file resource; check artifact.content.status separately from CAD success. Use the explicit daemon tools for lifecycle.", execute),
     )
     return [{
         "name": name, "description": description,
@@ -97,6 +97,18 @@ class DaemonBridge:
                         raise ValueError("use daemon_stop for explicit global shutdown")
                 from .cli import translate_parameter_paths
                 translate_parameter_paths(parameters)
+                if (name == "execute" and operation in ("document.render", "document.export")
+                        and "include_content" not in parameters):
+                    capability = call_daemon("daemon.capabilities", {"operation": operation},
+                        endpoint=self.endpoint, timeout_seconds=10,
+                        connect_timeout_seconds=self.connect_timeout_seconds,
+                        request_id=str(uuid.uuid4()), session_id=self.session_id)
+                    self.response_validator.validate(capability)
+                    if not capability.get("success"):
+                        return capability
+                    advertised = capability.get("result", {}).get("operation_schemas", {}).get(operation, {})
+                    if "include_content" in advertised.get("properties", {}):
+                        parameters["include_content"] = True
                 submitted = True
                 result = call_daemon(
                     operation, parameters, endpoint=self.endpoint,
@@ -141,8 +153,11 @@ def create_server(bridge: DaemonBridge):
         if name == "daemon_start" and token is not None:
             message = "Daemon/SW startup finished; inspect the returned readiness." if payload.get("success") else "Startup failed; inspect the error and status before another start."
             await server.request_context.session.send_progress_notification(token, 1, 1, message)
-        return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
-                                    structuredContent=payload, isError=not payload.get("success", False))
+        from .mcp_artifacts import tool_result
+        operation = arguments.get("operation") if name == "execute" else None
+        if arguments.get("parameters", {}).get("include_content") is False:
+            operation = None
+        return tool_result(payload, operation)
     return server
 
 

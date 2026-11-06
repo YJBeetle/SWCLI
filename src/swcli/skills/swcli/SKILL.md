@@ -95,6 +95,11 @@ uses stdio and reuses the existing daemon; it is not an HTTP listener.
   guide's drawing workflow. It needs an explicit A4 DRWDOT, projection and a
   saved clean source/configuration. Do not infer drawing creation from PDF/DWG
   export support or save/modify the source to bypass a refusal.
+- For MCP previews or file delivery, use `execute` with `document.render` or
+  `document.export`. Check both CAD success and `artifact.content.status`;
+  consume the returned image/resource block, not a client-side host path.
+  See the [MCP artifact guide](references/mcp.md#rendered-images-and-exported-file-content)
+  for size limits and metadata-only mode.
 - For CI acceptance use `document export --strict`. Do not suppress source
   saving/rebuilding problems just to obtain a green pipeline.
 - Treat remote paths as paths on the execution host. A remote connection does

@@ -26,7 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Keep the base CLI on Python 3.9; the optional MCP SDK requires 3.10+.
-mcp = ["mcp>=1.30,<2"]
+mcp = ["mcp>=1.30,<2", "Pillow>=10.4"]
 
 [project.scripts]
 swcli = "swcli.cli:main"

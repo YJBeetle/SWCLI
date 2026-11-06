@@ -84,6 +84,11 @@ protocol, sessions, leases, CAS and native error handling. See the packaged
 response envelopes and lifecycle. The base CLI keeps Python 3.9 compatibility;
 this is not an HTTP listener or a new raw-COM execution surface.
 
+In the development version, MCP render/export results can include a PNG preview
+or the original exported file as an embedded resource (up to 8 MiB). Content is
+transferred by the daemon, so its output path need not exist on the MCP client's
+machine. The MCP guide describes attachment status and metadata-only mode.
+
 ## Installation
 
 The a11 pre-release adds A4 drawing creation and standard three-view insertion.

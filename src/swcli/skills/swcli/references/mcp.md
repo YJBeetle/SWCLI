@@ -94,7 +94,8 @@ An already-ready daemon is reused without changing visibility. Remote endpoints
 are connection-only for startup: start the daemon on its host. A loopback
 address may be a tunnel; configure the intended local launcher only when it
 really manages that endpoint. Endpoint configuration does not add authentication,
-encryption or file transfer. Keep the trusted boundary/tunnel and host path rules.
+encryption or arbitrary workspace uploads/downloads. Keep the trusted boundary/tunnel
+and host path rules; bounded export content uses that existing connection.
 
 If the user has a visible SOLIDWORKS instance, default startup currently refuses
 to create another host. `attach_existing:true` explicitly shares that instance
@@ -195,8 +196,9 @@ outside `parameters`. Zero is a valid update stamp. IDs shown here are examples;
 use fresh IDs returned by the daemon. There is no arbitrary COM/Python tool.
 `daemon.shutdown` is reserved for the explicit lifecycle tool or CLI command.
 
-Forwarded CAD tools return the **complete SWCLI protocol response** in `structuredContent`,
-and the same JSON in a text content block. Manager lifecycle/status tools use
+Forwarded CAD tools return the SWCLI protocol response in `structuredContent`,
+and the same metadata JSON in a text content block. Inline binary content is
+placed in MCP content blocks instead of being duplicated in that JSON. Manager lifecycle/status tools use
 the same `success` and `result`/`error` fields with a request ID, without claiming
 a daemon protocol envelope when no daemon is available. Check `isError` and
 `structuredContent.success`; the operation payload is under `.result`, and
@@ -215,5 +217,50 @@ another's documents. Concurrent daemon startup is arbitrated by the existing
 endpoint binding before a COM worker is acquired.
 
 After modeling, verify native state/geometry and inspect an authorized render
-or export through the usage guide. The initial adapter returns artifact paths
-and metadata; it does not embed images or download remote artifacts through MCP.
+or export through the usage guide. MCP attachment behavior is described below.
+
+
+## Rendered images and exported file content
+
+For `document.render` and `document.export`, `execute` negotiates the live
+operation schema and requests `parameters.include_content=true` when supported.
+The daemon captures the verified temporary output before publishing the file;
+the MCP client does not open `artifact.path`. This works across separate host
+filesystems and runtimes through the existing daemon connection. There is no
+arbitrary-file read tool or new transport/listener.
+
+- Rendering still writes a verified BMP on the daemon host. MCP returns a PNG
+  `ImageContent` preview; `artifact.media_type` describes the original BMP and
+  `artifact.content.preview_media_type` describes the preview.
+- CAD exports return the original bytes in an `EmbeddedResource` with
+  `BlobResourceContents`. The opaque `swcli-artifact://…/filename` URI labels
+  that embedded content; it is not a host path or a separate download endpoint.
+- Check `artifact.content.status`: `attached` means the MCP content block is
+  present; `too_large` means the original file was saved but exceeds the 8 MiB
+  raw-byte limit; `unavailable` includes a delivery error; `unsupported` means
+  the daemon supplied metadata only. Original size and SHA-256 identify the
+  daemon's file bytes; PNG previews have a separate preview size/hash. Base64
+  is omitted from JSON/text metadata.
+
+CAD success and delivery status are separate. If the export succeeded but its
+attachment is unavailable or too large, retain the successful result and host
+path; do not repeat the export just to recover a missing attachment. General
+workspace transfer, larger downloads and authenticated remote connections are
+separate features. Use `parameters.include_content=false` for metadata-only
+render/export results. Other operations and the five MCP tools stay unchanged.
+Document/session/lease/CAS requirements still come from the live schema.
+
+Example `execute` arguments (replace example context with current daemon IDs):
+
+```json
+{
+  "operation": "document.render",
+  "parameters": {
+    "output": "C:\\Workspace\\preview.bmp",
+    "width": 1024,
+    "height": 768,
+    "view": "isometric"
+  },
+  "document_id": "d-ab12cd"
+}
+```

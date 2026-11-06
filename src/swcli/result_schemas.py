@@ -7,6 +7,7 @@ from math import isclose, dist
 from .polygon_geometry import TOLERANCE_MM, validate_polygon
 from typing import Any, Dict
 
+from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_annotations import ANNOTATION_FIELDS
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
@@ -126,6 +127,23 @@ PIXEL_SIZE = _object(
     {"width": INTEGER, "height": INTEGER, "unit": {"const": "pixel"}},
     ("width", "height", "unit"),
 )
+ARTIFACT_CONTENT = _object(
+    {"status": {"enum": ["ready", "attached", "too_large", "unavailable", "unsupported"]},
+     "limit_bytes": {"const": MAX_ARTIFACT_BYTES},
+     "data_base64": {"type": "string", "maxLength": MAX_BASE64_CHARS},
+     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+     "media_type": STRING, "preview_media_type": STRING, "uri": STRING,
+     "preview_size_bytes": {"type": "integer", "minimum": 1, "maximum": MAX_ARTIFACT_BYTES},
+     "preview_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+     "error": _object({"code": STRING, "message": STRING}, ("code", "message"))},
+    ("status", "limit_bytes"),
+)
+ARTIFACT_CONTENT["allOf"] = [
+    {"if": {"properties": {"status": {"const": "ready"}}},
+     "then": {"required": ["data_base64", "sha256"]}},
+    {"if": {"properties": {"status": {"const": "attached"}}},
+     "then": {"required": ["sha256"]}},
+]
 ARTIFACT = _object(
     {
         "kind": STRING,
@@ -133,6 +151,7 @@ ARTIFACT = _object(
         "size_bytes": {"type": "integer", "minimum": 1},
         "format": {"enum": ["STEP", "STP", "GLB", "STL", "3MF", "AMF", "PDF", "DWG"]},
         "media_type": STRING,
+        "content": ARTIFACT_CONTENT,
     },
     ("kind", "path", "size_bytes"),
 )

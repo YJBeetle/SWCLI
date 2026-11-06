@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+from ..artifact_content import capture_content
 from .native_trace import native_call
 from .export_validation import export_file_valid
 from .windows import PROG_ID, _com_value, _describe_document, _error
@@ -588,6 +589,7 @@ def render_active_windows_document(
     overwrite: bool = False,
     app: Any = None,
     document: Any = None,
+    include_content: bool = False,
 ) -> Dict[str, Any]:
     """Render a selected SOLIDWORKS view to a verified bitmap artifact."""
 
@@ -682,6 +684,7 @@ def render_active_windows_document(
             return result
 
         size_bytes = render_path.stat().st_size
+        content = capture_content(render_path, size_bytes) if include_content else None
         render_path.replace(output_path)
         temporary_output_path = None
 
@@ -691,6 +694,8 @@ def render_active_windows_document(
             "path": str(output_path),
             "size_bytes": size_bytes,
         }
+        if content is not None:
+            result["artifact"]["content"] = content
         result["ok"] = True
         return result
     except Exception as exc:
@@ -720,6 +725,7 @@ def export_active_windows_document(
     strict: bool = False,
     app: Any = None,
     document: Any = None,
+    include_content: bool = False,
 ) -> Dict[str, Any]:
     """Export a selected document to a verified neutral or drawing format."""
 
@@ -840,6 +846,7 @@ def export_active_windows_document(
             return result
         warnings.extend(changes)
 
+        content = capture_content(export_path, size_bytes) if include_content else None
         export_path.replace(output_path)
         temporary_output_path = None
 
@@ -851,6 +858,8 @@ def export_active_windows_document(
         }
         if warnings:
             result["warnings"] = warnings
+        if content is not None:
+            result["artifact"]["content"] = content
         result["ok"] = True
         return result
     except _ExportPreferenceError as exc:

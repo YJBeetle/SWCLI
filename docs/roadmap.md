@@ -224,9 +224,12 @@ attach behavior remain until that work is deliberately resumed.
   lifecycle tools, host launcher selection, read-only runtime observations and
   live schema discovery. A typed Python SDK remains future work;
   neither route adds a second public COM/raw-Python execution surface.
-- [ ] MCP artifact delivery: return rendered images and exported files through
-  MCP, including artifact IDs, format/size metadata and bounded downloads.
-  The current adapter returns host paths and metadata only.
+- [x] Bounded MCP artifact delivery (0.2.2 development): render/export content
+  travels through the existing daemon response, returning PNG previews or
+  original exported bytes as embedded resources, with an 8 MiB raw-byte limit
+  and size/hash/delivery status. Portable capture tests and official SDK
+  stdio/TCP delivery tests pass; this is not a new native Windows full-run claim.
+  Larger workspace uploads/downloads remain separate work.
 - [ ] Secure remote connectivity and file transfer: add authenticated, encrypted
   connections and explicit workspace uploads/downloads. Keep client and daemon
   host paths distinct and remote lifecycle control explicit.

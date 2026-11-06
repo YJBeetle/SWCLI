@@ -12,3 +12,9 @@ These changes are on the development branch, separate from the frozen
 `v0.2.1` release. Windows validation attached an existing user SW and preserved
 its process/window; the daemon and COM worker ran as `pythonw.exe` and the
 custom icon registered successfully. No new SW or document edit was needed.
+
+- MCP `execute` returns PNG previews for render results and original CAD export
+  bytes as embedded resources. `include_content` is negotiated with the daemon;
+  metadata-only mode and older-daemon fallback preserve the original operation.
+  The raw-byte limit is 8 MiB; size/hash and delivery status are explicit.
+  CAD success is retained when an attachment cannot be delivered.

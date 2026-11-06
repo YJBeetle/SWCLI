@@ -57,6 +57,9 @@ SWCLI 目前处于 pre-alpha 阶段，但已实现带版本的本地协议、常
 操作与错误处理；详细配置和返回结构见随包 [MCP 指南](src/swcli/skills/swcli/references/mcp.md)。
 基础 CLI 仍支持 Python 3.9，MCP 入口没有 HTTP 监听，也不提供任意 COM/Python 执行接口。
 
+开发版 MCP 支持直接返回渲染 PNG 预览、导出文件的原始二进制资源（单文件不超过 8 MiB）。
+内容由 daemon 通过现有连接回传，不要求 MCP 客户端能访问宿主输出路径；附件状态及仅返回元数据的方式见 MCP 指南。
+
 ## 安装
 
 a11 预发行版新增 A4 工程图创建与标准三视图插入，发布提交已通过 Windows
