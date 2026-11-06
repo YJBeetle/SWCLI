@@ -176,7 +176,7 @@ active/background四组上下文中确认：`GetEditSheet=true`，`ActiveDrawing
 区分sheet和format编辑模式。
 
 修复后不简单跳过工程图检查：可变更profile必须是sheet模式、没有活动模型view，
-current sheet/首view/pseudoSketch/ActiveSketch/templateSketch均非空、名字非空、引用模型名为空，
+current sheet/首view/pseudoSketch/ActiveSketch均非空、名字非空、引用模型名为空，
 ActiveSketch与pseudoSketch相同且不是templateSketch。只读不按可变更profile拒绝，
 但所有读/写阶段均保存并核对sheet/view/sketch/template身份、mode、名称和引用模型名。
 format/view/foreign sketch等不支持上下文在setter前失败；不调用EditSheet来修复上下文。
@@ -236,3 +236,33 @@ EditTemplate（void返回不当作bool），通过GetEditSheet=false确认format
 目标，包括readonly拒绝探针也使用可写目标，避免请求先被schema拒绝而未测到readonly。
 未知`other`初值仍在首次setter前失败。实际hosted open→白名单两态的完整证明
 仍待修正版最终CI，原失败不重跑、不伪装成功。
+
+## 第二次最终CI的无格式图纸上下文
+
+[42125076559](https://github.com/YJBeetle/SWCLI/actions/runs/42125076559)
+已越过初值门禁。part/assembly完成，drawing的open→closed请求在setter前被
+`_writable_context`拒绝，mutation两flag false，7次偏好getter、0setter/0标脏。
+后续完整矩阵仍未执行，整体failed。原native artifact `13462389224`，ZIP SHA-256
+`7ffd5dab343bf5f431528db13fbedfc973d4857c9ecc0e69c82d1f545632231c`。
+原件保留`/private/tmp/a18-failure-42125076559`。
+
+对该CI原始24519字节SLDDRW（SHA-256
+`1048ec31d968763a4e07abeb1a47af57d16c9f980140fa28a7eed6b5335a15be`）
+执行一次只读VM对照探针，与旧GB baseline分别active/background比较。
+CI图纸format_path=`*.drt`且无可用图纸格式；唯一不满足旧profile的条件是
+`template_sketch_nonnull`。active/GetActiveSketch2/pseudo sketch仍全部非空且身份相同，
+mode=true、active view为空、引用模型名为空，sheet/view名字均非空。
+84次原始观测前后状态、图纸、foreground、selection保持；源/副本hash不变，
+0偏好setter/0编辑模式调用/0Save，自有SW8800正常退出，cleanup=[]，前后SW进程为空。
+诊断结束后不再使用VM，避免与另一agent并用冲突。
+
+- 原件：`/private/tmp/a18-ci-context-42125076559-j73d/evidence`
+- report SHA-256：`62434aa6a5c2138fe777bc73e7e0311cd0054579f31b7c75a10944020c7ad60b`
+- trace SHA-256：`bc37d97c2e8db3c985432517a00adbd3bcce98638565b87a659d7cf91918944e`
+- 独立审计 SHA-256：`3964901c11d7e516eaae6207b5564e8bddd941b8aec0c2cd3a1a02b7bc07e4cd`
+
+最小修复只移除template sketch必须存在的要求，保留其前后身份/空值稳定检查。
+普通sheet不依赖图纸格式存在，仍须模式true、无active model view、非空且匹配的
+active/pseudo sketch、无引用模型及完整稳定上下文。format缺失不能绕过mode/view/
+foreign sketch保护；五类负例零写，known open前值CAS和同值不写回归已过。
+此只读诊断不替代实际写入和两轮保存重开，仍待修正后完整CI。

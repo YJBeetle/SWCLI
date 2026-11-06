@@ -122,7 +122,6 @@ class DocumentAnnotationTests(unittest.TestCase):
             lambda: setattr(self, "sheet", None),
             lambda: setattr(self, "sheet_view", None),
             lambda: setattr(self, "sheet_sketch", None),
-            lambda: setattr(self, "template_sketch", None),
             lambda: (setattr(self, "sheet_sketch", None),
                      setattr(self.document.SketchManager, "ActiveSketch", None)),
             lambda: setattr(self, "edit_sheet", 1),
@@ -149,6 +148,43 @@ class DocumentAnnotationTests(unittest.TestCase):
         self.assertFalse(self.edit_sheet)
         self.assertIs(self.document.SketchManager.ActiveSketch, self.template_sketch)
         self.assert_no_setters()
+
+    def test_normal_formatless_drawing_accepts_known_open_prevalue_and_preserves_absence(self):
+        self.drawing_context()
+        self.template_sketch = None
+        self.native[38] = self.native[40] = 0
+        observed = self.operation("document.annotation-options")
+        self.assertTrue(observed["ok"], observed)
+        self.assertEqual(observed["options"]["arrow.edge_vertex"]["value"], "open")
+        changed = self.edit("arrow.edge_vertex", "closed", "open")
+        self.assertTrue(changed["ok"], changed)
+        self.extension.SetUserPreferenceInteger.assert_called_once_with(38, 0, 1)
+        self.document.SetSaveFlag.assert_called_once()
+        self.assertIsNone(self.template_sketch)
+        self.assertTrue(self.edit_sheet)
+        self.extension.SetUserPreferenceInteger.reset_mock()
+        self.document.SetSaveFlag.reset_mock()
+        same = self.edit("arrow.edge_vertex", "closed", "closed")
+        self.assertTrue(same["ok"], same)
+        self.assertFalse(same["changed"])
+        self.assert_no_setters()
+
+    def test_missing_format_does_not_bypass_edit_mode_view_or_sketch_guards(self):
+        for defect in (lambda: setattr(self, "edit_sheet", False),
+                       lambda: setattr(self.document, "ActiveDrawingView", object()),
+                       lambda: setattr(self.document.SketchManager, "ActiveSketch", object()),
+                       lambda: (setattr(self, "sheet_sketch", None),
+                                setattr(self.document.SketchManager, "ActiveSketch", None)),
+                       lambda: setattr(self, "view_model", "part.SLDPRT")):
+            with self.subTest(defect=defect):
+                self.setUp()
+                self.drawing_context()
+                self.template_sketch = None
+                defect()
+                result = self.edit("zero.leading", "show", "standard")
+                self.assertFalse(result["ok"], result)
+                self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+                self.assert_no_setters()
 
     def test_drawing_context_drift_during_each_read_phase_is_not_repaired(self):
         for phase in (1, 2, 3):
