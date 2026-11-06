@@ -132,3 +132,7 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 相关诊断修复：每次测量先持久记录完整native测量，再运行原V/S/三轴质心解析检查；精确比较前记录before/after、逐字段差值和float.hex。保留原`before==after`、原rel_tol=1e-7/abs_tol=1e-5不变。新增测试确认一ULP也仍然失败并已持久保存actual，解析检查失败同样保留原测量。
 
 关联36项通过，完整portable1858项/51.485s通过（32 skipped），记录`geometry-diagnostic-tests.txt`与`geometry-diagnostic-portable.txt`。这仅修复证据缺口，不宣称原几何差异已解决；计划仅对此相关修复head做一次有信息的新验证。若复现则按原件协调，不自动降级容差。无待审批动作，仍无merge-ready tip，写域为空。
+
+相关诊断修复提交`39409386d628bc439f1be3197aed07ede23556c3`已推送；仅触发一次有信息验证：[42277659656](https://github.com/YJBeetle/SWCLI/actions/runs/42277659656)，参数`units_calibration=true,units_public_acceptance=true,native_full=false`，精确head已核对，原始初始元数据在`docs/evidence/units-profile/diagnostic-42277659656/`。不是无差异重跑，原因是旧失败缺失重开actual；新head会保留该actual并继续使用原精确断言。公开gate仍需内部严格全通过才执行，若复现不会跳过或放宽几何比较。当前不具备可合资格。
+
+路由修复`9d6b033`的push CI `42275204523`已success，仅CI路由/测试差异、不改`src/swcli`。当前业务实现相对公共失败head仍无功能变化。已有授权覆盖正常提交/推送和本次有界验证，无待审批动作，也未遇自动审批拒绝；后续若涉及更改既有几何断言须明确协调，不能自行放宽。
