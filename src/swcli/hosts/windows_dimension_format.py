@@ -1,5 +1,8 @@
 """Document-only dimension display operations, with complete-value CAS."""
 
+import ctypes
+import sys
+
 from ..document_dimension_format import (
     DIMENSION_FORMAT_FIELDS, CALIBRATED_DOCUMENT_TYPES, CALIBRATED_HOST_REVISIONS, POSITIONS, native_value, validate_format,
 )
@@ -17,6 +20,17 @@ class DocumentDimensionFormatConflict(RuntimeError):
 
 class DimensionFormatNotCalibrated(RuntimeError):
     """New native display writes remain closed until public acceptance."""
+
+
+def _native_windows():
+    # Windows evidence does not enable this path on Wine. Use the same ntdll
+    # export distinction as windows_tray, but fail closed if detection fails.
+    if sys.platform != "win32":
+        return False
+    try:
+        return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+    except Exception:
+        return False
 
 
 def _read_format(document):
@@ -84,7 +98,8 @@ def set_dimension_format_windows(*, app, document, field, value, expected_format
         if not _writable_context(app, edit):
             raise ValueError("dimension display editing requires a normal sheet or no active model sketch")
         if not _calibration and (state[0] not in CALIBRATED_DOCUMENT_TYPES
-                or _com_value(app, "RevisionNumber") not in CALIBRATED_HOST_REVISIONS):
+                or _com_value(app, "RevisionNumber") not in CALIBRATED_HOST_REVISIONS
+                or not _native_windows()):
             raise DimensionFormatNotCalibrated("dimension display writes lack installed public acceptance; native setter disabled")
         # Preserve independently owned units and existing annotation/zero fields.
         units, annotations = _read_units(document), _read_options(document)

@@ -102,7 +102,7 @@ def edit(gate, document, before, field, value, trace, *, expected=None, error=No
     if session is None:
         result = gate.write(*arguments, document=document, expected_error=error)
     else:
-        result = gate.command(*arguments, document=document, session=session, expected_error=error, lease="l-deadbeef")
+        result = gate.command(*arguments, document=document, session=session, expected_error=error, lease="l-deadbeef0000")
     validate_operation_result("document.dimension-format-set", result)
     desired = POSITIONS[value] if field == "dual_position" else value
     changed = not error and desired != before["format"][field]
@@ -139,7 +139,8 @@ def run(gate, fixtures, trace):
     health = gate.health()
     host = gate.record["host"] = health["host"]
     require(health["server_version"] == __version__ and host["owned_by_daemon"] is True
-            and host["shared_interactive"] is False and host["visible"] is False, "wrong public daemon/host")
+            and host["shared_interactive"] is False and host["visible"] is False
+            and host["platform"] == "windows", "wrong public daemon/host")
     gate.require_empty()
     info = gate.command("capabilities", "--full")
     gate.record["capabilities"] = info

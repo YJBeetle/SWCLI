@@ -198,7 +198,8 @@ class DimensionFormatTests(unittest.TestCase):
     def test_public_write_requires_exact_calibrated_host_revision(self):
         self.app.RevisionNumber = "33.test"
         with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
-                mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})):
+                mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})), \
+                mock.patch.object(adapter, "_native_windows", return_value=True):
             result = self.public(True, self.values())
             self.assertTrue(result["ok"], result)
             self.extension.SetUserPreferenceToggle.assert_called_once_with(43, 200, True)
@@ -206,6 +207,27 @@ class DimensionFormatTests(unittest.TestCase):
         self.app.RevisionNumber = "34.0"
         with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
                 mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})):
+            result = self.public(True, self.values())
+        self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
+        self.fixture.assert_no_setters()
+
+    def test_native_windows_detection_fails_closed_for_wine_and_load_errors(self):
+        from types import SimpleNamespace
+        with mock.patch.object(adapter.sys, "platform", "win32"), \
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace()):
+            self.assertTrue(adapter._native_windows())
+        with mock.patch.object(adapter.sys, "platform", "win32"), \
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace(wine_get_version=object())):
+            self.assertFalse(adapter._native_windows())
+        with mock.patch.object(adapter.sys, "platform", "win32"), \
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True, side_effect=OSError("unavailable")):
+            self.assertFalse(adapter._native_windows())
+
+    def test_native_windows_evidence_does_not_enable_wine_or_unknown_platform(self):
+        self.app.RevisionNumber = "33.test"
+        with mock.patch.object(adapter, "CALIBRATED_DOCUMENT_TYPES", frozenset({1})), \
+                mock.patch.object(adapter, "CALIBRATED_HOST_REVISIONS", frozenset({"33.test"})), \
+                mock.patch.object(adapter, "_native_windows", return_value=False):
             result = self.public(True, self.values())
         self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
         self.fixture.assert_no_setters()

@@ -86,6 +86,19 @@ class DimensionPublicTests(unittest.TestCase):
                        lambda rows: rows[1].update(operation="document.units")):
             with self.subTest(damage=damage), self.assertRaises(RuntimeError): self.proof(damage)
 
+    def test_public_lease_refusal_reaches_daemon_with_a_valid_wire_token(self):
+        from jsonschema import Draft202012Validator
+        from swcli.protocol import load_schema
+        refusal = dict(ok=False, action="document.dimension-format-set", error=dict(type="DocumentLeaseConflict", message="held by writer"))
+        gate = SimpleNamespace(command=mock.Mock(return_value=refusal))
+        before = dict(format=dict(dual_display=False, dual_position=1, parentheses=False),
+                      document=dict(update_stamp=0))
+        public.edit(gate, "d-ab12cd", before, "dual_display", True, mock.Mock(),
+                    error="DocumentLeaseConflict", session="contender")
+        token = gate.command.call_args.kwargs["lease"]
+        Draft202012Validator(load_schema("request")["properties"]["lease_id"]).validate(token)
+        self.assertEqual(gate.command.call_args.kwargs["expected_error"], "DocumentLeaseConflict")
+
     def test_public_trace_rejects_wrong_setter_kind_or_order(self):
         def wrong_kind(rows):
             for row in rows:

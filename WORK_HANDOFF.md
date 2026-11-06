@@ -18,12 +18,12 @@
 - `_operation` 的lease_guarded支持required（除原有optional）；新增setter确实执行lease校验。
 - `.github/workflows/ci.yml`：dimension_format_calibration与dimension_format_public默认false，互斥，仅本分支手动；专属模式跳过test/package；不进入默认full/release共享concurrency，不扩PR secrets。
 - scripts/ci/windows/smoke-solidworks.ps1：仅显式DimensionFormatFixtureDirectory时提前运行公开gate并核owned daemon退出；默认full流程保留。
-- 新增catalog/adapter、内部及公开gate、定向测试；无新运行依赖。读取保留未知位置，实际变更拒绝未知位置；公开写入同时要求经证据确认的文档类型与确切host revision，目前两集合均空。
+- 新增catalog/adapter、内部及公开gate、定向测试；无新运行依赖。读取保留未知位置，实际变更拒绝未知位置；公开写入同时要求经证据确认的文档类型与确切host revision，同时要求原生Windows（Wine/检测失败拒绝），目前两集合均空。
 
 ## 便携证据
 
 - 本机安装wheel后全套1834项通过、32项平台跳过；SDK生成检查、严格类型检查mypy1.18.2、安装资源检查通过。
-- 追加公开gate/host范围/trace顺序后定向24项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
+- 追加公开gate/host范围/trace顺序后定向27项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
 - 首版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 ，head4a2b4f4，Python3.9/3.14和wheel success。
 - 修复版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42264284837 ，headf6bc634，Python3.9/3.14和wheel success。full/native/release均skipped。这些不是原生或公开写入验收。
 - 原始日志在工作树同级 `../evidence/`：portable-tests.log、wheel-build.log、public-preparation-focused-tests.log、sdk-regression.log、mcp-regression.log、public-wrapper-regression.log及portable-ci-*.json，不依赖tmp。
@@ -45,3 +45,5 @@
 - 当前没有完整内部成功证据，也没有公开验收运行。不能开放白名单、不能宣称完成或merge-ready。
 - 内部完整通过并独立核产物后，仅开放已证实的文档类型和确切revision，并继续一次必要公开CLI/daemon验收；失败仍先保存原产物/首失败，只在相关修复后再验证。
 - 主对话统一审查集成；本分支不自行合main、不发布、不改DockerSW指针/分支/CI/镜像。
+
+- 后续公开gate准备补充：争用lease token按请求schema编码；公开变更增加原生Windows/非Wine检测，检测失败即拒绝。内部运行42264996931仍使用已记录的f6bc634 head，未重发。
