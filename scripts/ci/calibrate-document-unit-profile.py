@@ -41,6 +41,35 @@ def require_closed_refusal(result):
             'unproved write escaped closed domain or failed unexpectedly')
 
 
+def record_geometry(measure,case,label,persist):
+    result=measure()
+    case[label+'_measurement']=result
+    persist()
+    require(result['ok'],'part measurement failed')
+    metrics=result['metrics']
+    case[label]=metrics
+    persist()
+    for key,value in (('volume_mm3',12000),('surface_area_mm2',3800)):
+        require(math.isclose(metrics[key],value,rel_tol=1e-7,abs_tol=1e-5),'analytic box mismatch: '+key)
+    require(metrics['solid_body_count']==1,'box body count differs')
+    for axis,value in zip(('x','y','z'),(0,0,5)):
+        require(math.isclose(metrics['centroid_mm'][axis],value,rel_tol=1e-7,abs_tol=1e-5),'analytic box centroid mismatch: '+axis)
+    return metrics
+
+
+def record_exact_geometry(before,after,case,label,persist,message):
+    def scalars(metrics):
+        return {**{k:metrics[k] for k in ('solid_body_count','volume_mm3','surface_area_mm2')},
+                **{'centroid_mm.'+k:v for k,v in metrics['centroid_mm'].items()}}
+    left,right=scalars(before),scalars(after)
+    case[label]=dict(exact_equal=before==after,differences={
+        k:dict(before=left[k],after=right[k],before_hex=float(left[k]).hex(),after_hex=float(right[k]).hex(),delta=right[k]-left[k])
+        for k in left if left[k]!=right[k]})
+    persist()
+    # Preserve the original exact equality assertion; no tolerance substitution.
+    require(before==after,message)
+
+
 def supervise(args):
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -102,16 +131,8 @@ def worker(args):
         except BaseException as error:
             event('error',error_type=type(error).__name__,error=str(error));raise
         event('end');return result
-    def geometry(document):
-        result=call('measure-part-mm',lambda:measure_part_windows(document=document))
-        require(result['ok'],'part measurement failed')
-        metrics=result['metrics']
-        for key,value in (('volume_mm3',12000),('surface_area_mm2',3800)):
-            require(math.isclose(metrics[key],value,rel_tol=1e-7,abs_tol=1e-5),'analytic box mismatch: '+key)
-        require(metrics['solid_body_count']==1,'box body count differs')
-        for axis,value in zip(('x','y','z'),(0,0,5)):
-            require(math.isclose(metrics['centroid_mm'][axis],value,rel_tol=1e-7,abs_tol=1e-5),'analytic box centroid mismatch: '+axis)
-        return metrics
+    def geometry(document,case,label):
+        return record_geometry(lambda:call('measure-part-mm',lambda:measure_part_windows(document=document)),case,label,persist)
     app=handle=None;owned=False
     pythoncom.CoInitialize()
     try:
@@ -161,7 +182,7 @@ def worker(args):
                     case['sketch']=sketch_result;require(sketch_result['ok'] and sketch is not None and not sketch_result.get('warnings'),'box sketch failed')
                     boss,feature=call('box-extrusion-mm',lambda:extrude_sketch_windows_with_handle(app=app,document=document,sketch_feature=sketch,depth_mm=10))
                     case['boss']=boss;require(boss['ok'] and feature is not None and not boss.get('warnings'),'box extrusion failed')
-                    case['geometry_before']=geometry(document)
+                    case['geometry_before']=geometry(document,case,'geometry_before')
                 # Save before observing so no read may hide preexisting dirtiness.
                 path=output/('units.'+suffix)
                 case['save']=call('save-own-fixture',lambda:save_as_native_windows(str(path),document=document));persist()
@@ -184,7 +205,9 @@ def worker(args):
                 require_closed_refusal(refused)
                 again=case['after_refusal']=call('read-after-refusal',lambda:operation('document.unit-profile'));persist()
                 require(again['ok'] and again['unit_profile']==before and again['document']==read['document'],'refusal changed profile or state')
-                if kind==1:require(geometry(document)==case['geometry_before'],'unit observation changed geometry')
+                if kind==1:
+                    after_geometry=geometry(document,case,'geometry_after_refusal')
+                    record_exact_geometry(case['geometry_before'],after_geometry,case,'comparison_after_refusal',persist,'unit observation changed geometry')
                 for target in (front,document):
                     title=_com_value(target,'GetTitle');require(sum(_com_value(d,'GetTitle')==title for d in (_com_value(app,'GetDocuments') or ()))==1,'close title is not unique')
                     call('close-owned-unique-document',lambda:app.CloseDoc(title))
@@ -195,7 +218,9 @@ def worker(args):
                 require(result['ok'] and result['unit_profile']==before,'saved profile did not persist exactly')
                 ro_refusal=case['readonly_refusal']=call('readonly-write-refusal',lambda:adapter.set_document_unit_profile_windows(app=app,document=reopened,field='linear.precision',value=value,expected_snapshot=before));persist()
                 require(not ro_refusal['ok'] and ro_refusal['mutation']==dict(attempted=False,may_have_changed=False),'readonly write was not refused')
-                if kind==1:require(geometry(reopened)==case['geometry_before'],'reopened geometry changed')
+                if kind==1:
+                    reopened_geometry=geometry(reopened,case,'geometry_reopened')
+                    record_exact_geometry(case['geometry_before'],reopened_geometry,case,'comparison_reopened',persist,'reopened geometry changed')
                 require(not _com_value(reopened,'GetSaveFlag') and hashlib.sha256(path.read_bytes()).hexdigest()==digest,'readonly observation modified file/state')
                 call('close-reopened-owned-document',lambda:app.CloseDoc(_com_value(reopened,'GetTitle')))
                 require(_com_value(app,'GetDocumentCount')==0,'reopened fixture remains')

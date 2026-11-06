@@ -120,3 +120,15 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 新增无secrets的`units-route`轻量manual-only前置job（独立Python3.14），调用`validate-units-route.py`：拒绝full与targeted混用、拒绝public缺少calibration、拒绝targeted错误ref。native job对manual事件要求该前置success；push/tag原路径仍按原条件运行，full/release原group和PR secrets边界不变。24组ref/开关真值表、非manual拒绝/默认tag路径、真实workflow前置依赖测试通过；关联34项与既有modeling接线12项（1 skipped）也通过，YAML/diff检查通过。
 
 当前唯一公共run `42273356741` 参数合法且来源`ca892d8`，不取消，不因这个CI-only路由修复无信息重跑CAD。其结果证明对应合法profile的业务源；可合tip须包含本路由修复并列明此差异。当前公共native仍在准备安装，暂无公共业务结论。无待审批动作。
+
+## 公共run首失败：几何精确比较，公开步骤尚未运行
+
+`42273356741` / head `ca892d83eab6baca0f456050d501ee141cb20133` 最终failure。失败step为内部`Calibrate bounded document unit profile`，首个真实失败 `RuntimeError: reopened geometry changed`（part第一例）；公开CLI step未执行。不是route问题，也不是secrets/安装失败。清理成功，无API重试或组内重启。
+
+原始ZIP持久位于`evidence/units-profile/public-42273356741/original.zip`，SHA256 `af2b1a72555eb1bdafd0f27b683b691d7ca2c21e42a7174c4c363e3cbfb20e1f`，与GitHub artifact digest一致。原始run/job/artifact元数据、失败report与首因摘要在`docs/evidence/units-profile/public-42273356741/`。保留旧成功内部run证据，但不以其替代本次失败。
+
+原实现对重开几何先做原解析容差检查（均已通过）再做原字典精确相等；后者失败。然而报告只存before，遗漏了重开actual，无法判断差异大小/具体字段，更不能直接声称ULP或几何不变。没有放宽任何断言。
+
+相关诊断修复：每次测量先持久记录完整native测量，再运行原V/S/三轴质心解析检查；精确比较前记录before/after、逐字段差值和float.hex。保留原`before==after`、原rel_tol=1e-7/abs_tol=1e-5不变。新增测试确认一ULP也仍然失败并已持久保存actual，解析检查失败同样保留原测量。
+
+关联36项通过，完整portable1858项/51.485s通过（32 skipped），记录`geometry-diagnostic-tests.txt`与`geometry-diagnostic-portable.txt`。这仅修复证据缺口，不宣称原几何差异已解决；计划仅对此相关修复head做一次有信息的新验证。若复现则按原件协调，不自动降级容差。无待审批动作，仍无merge-ready tip，写域为空。

@@ -57,3 +57,23 @@ class UnitCalibrationTests(unittest.TestCase):
             calibration.require_closed_refusal(dict(ok=False,mutation=dict(attempted=False,may_have_changed=False),error=dict(type=error)))
         for error in ('com_error','RuntimeError','DocumentUnitProfileConflict'):
             with self.assertRaises(RuntimeError):calibration.require_closed_refusal(dict(ok=False,mutation=dict(attempted=False,may_have_changed=False),error=dict(type=error)))
+
+    def test_geometry_mismatch_records_actuals_before_unchanged_exact_assertion(self):
+        import math
+        from copy import deepcopy
+        before=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+        after=deepcopy(before);after['volume_mm3']=math.nextafter(before['volume_mm3'],math.inf)
+        case={};saved=[]
+        observed=calibration.record_geometry(lambda:dict(ok=True,metrics=after),case,'reopened',lambda:saved.append(deepcopy(case)))
+        with self.assertRaisesRegex(RuntimeError,'reopened geometry changed'):
+            calibration.record_exact_geometry(before,observed,case,'comparison',lambda:saved.append(deepcopy(case)),'reopened geometry changed')
+        self.assertEqual(saved[-1]['reopened'],after)
+        self.assertFalse(saved[-1]['comparison']['exact_equal'])
+        self.assertEqual(saved[-1]['comparison']['differences']['volume_mm3']['after_hex'],after['volume_mm3'].hex())
+    def test_analytic_geometry_failure_keeps_complete_native_measurement(self):
+        from copy import deepcopy
+        result=dict(ok=True,metrics=dict(solid_body_count=1,volume_mm3=13000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0,y=0,z=5)))
+        case={};saved=[]
+        with self.assertRaisesRegex(RuntimeError,'analytic box mismatch'):
+            calibration.record_geometry(lambda:result,case,'observed',lambda:saved.append(deepcopy(case)))
+        self.assertEqual(saved[0]['observed_measurement'],result)

@@ -1,0 +1,14 @@
+{
+  "run_id": 42273356741,
+  "head": "ca892d83eab6baca0f456050d501ee141cb20133",
+  "original_zip_sha256": "af2b1a72555eb1bdafd0f27b683b691d7ca2c21e42a7174c4c363e3cbfb20e1f",
+  "report_sha256": "e1afec0c456d5a2c337df3e5f3bdfcbd8ff006ecc1b1b2ff3d3c4d9448632634",
+  "failure": {
+    "type": "RuntimeError",
+    "message": "reopened geometry changed",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 198, in worker\n    if kind==1:require(geometry(reopened)==case['geometry_before'],'reopened geometry changed')\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 22, in require\n    raise RuntimeError(message)\nRuntimeError: reopened geometry changed\n"
+  },
+  "cleanup_errors": [],
+  "public_cli_executed": false,
+  "limitation": "reopened geometry measurement was not persisted; exact differing fields cannot be inferred"
+}
