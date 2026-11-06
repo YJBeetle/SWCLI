@@ -86,6 +86,16 @@ def save_owned_document(app, document):
     return save_active_windows_document(app=app, document=document)
 
 
+def verify_deleted_fixture_state(entity, status, constants):
+    """Exact SW2025 SP5 owned-hole observation, not a generic nonzero allowance.
+
+    Run 42273663491 observed Invalid=1/NULL after deleting the generated cut.
+    It did not observe the Deleted=4 native enumerator; do not claim that state.
+    """
+    checked(type(status) is int and status == constants["swPersistReferencedObject_Invalid"]
+            and entity is None, "deleted owned cylinder must read back exact Invalid=1 and NULL")
+
+
 def calibrate_case(app, output, constants, plane, reverse, original_call, case, report, live, *, profile_kind):
     def call(name, function):
         # A hung native call leaves the flushed original harness report/trace.
@@ -186,6 +196,29 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
     copy = output / (profile_kind + "-mutated-content.SLDPRT")
     shutil.copyfile(path, copy)
     case["mutated_file_sha256"] = hashlib.sha256(copy.read_bytes()).hexdigest()
+    if profile_kind == "hole":
+        payload = decode_reference(mutated[0]["reference"])
+        raw = _unb64(payload["faces"][payload["target_index"]])
+        before_entity, before_status = call("read-cylinder-native-state-before-deletion",
+            lambda: _resolve_native(_com_value(document, "Extension"), raw))
+        case["predelete_native_state"] = {"status": before_status, "object_present": before_entity is not None}
+        checked(type(before_status) is int and before_status == constants["swPersistReferencedObject_Ok"]
+                and before_entity is not None, "saved cylinder reference was not OK before deletion")
+        # Verify the same native reference is still live after saving, before the
+        # one owned deletion. Invalid bytes alone would not prove invalidation.
+        before_list = operation("entity.list", {"kind": "face"})
+        before_candidates = [face for face in before_list["entities"] if face["surface_kind"] == "cylinder"]
+        checked(len(before_candidates) == 1, "saved fixture lost its unique cylinder before deletion")
+        before_binding = entry.entities.resolve(before_candidates[0]["entity_id"], kind="face",
+            configuration=before_list["observation"]["after"]["configuration"],
+            update_stamp=before_list["observation"]["after"]["update_stamp"])
+        identity = call("verify-cylinder-native-identity-before-deletion",
+            lambda: app.IsSame(before_entity, before_binding.binding.face))
+        case["predelete_native_state"] = {"status": before_status,
+            "object_present": before_entity is not None, "identity_same": identity}
+        checked(type(before_status) is int and before_status == constants["swPersistReferencedObject_Ok"]
+                and before_entity is not None and type(identity) is int and identity == 1,
+                "saved cylinder reference was not exact OK before deletion")
     checked(call("select-owned-cut-for-deletion", lambda: cut.Select2(False, 0)), "owned cut selection failed")
     case["mutation"] = {"attempted": True, "may_have_changed": True}
     checked(call("delete-owned-cut-and-profile", lambda: _com_value(document, "Extension").DeleteSelection2(
@@ -196,9 +229,10 @@ def calibrate_case(app, output, constants, plane, reverse, original_call, case, 
         payload = decode_reference(mutated[0]["reference"])
         raw = _unb64(payload["faces"][payload["target_index"]])
         resolved, status = call("read-deleted-cylinder-native-state", lambda: _resolve_native(_com_value(document, "Extension"), raw))
-        case["deleted_native_state"] = {"status": status, "object_present": resolved is not None}
-        checked(type(status) is int and status & constants["swPersistReferencedObject_Deleted"],
-                "deleted cylinder did not return documented deleted state")
+        case["deleted_native_state"] = {"status": status, "object_present": resolved is not None,
+            "native_state_name": "swPersistReferencedObject_Invalid"}
+        verify_deleted_fixture_state(resolved, status, constants)
+        report["unobserved_native_states"] = ["swPersistReferencedObject_Deleted", "swPersistReferencedObject_Suppressed"]
     for ref in mutated:
         operation("entity.reference-resolve", {"reference": ref["reference"]}, good=False)
     measure = call("measure-merged-box", lambda: measure_part_windows(document=document))

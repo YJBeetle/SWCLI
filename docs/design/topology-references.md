@@ -92,3 +92,17 @@ The targeted concurrency group is unique to this profile and `github.ref`;
 `cancel-in-progress` stays false. The default full/release concurrency group,
 package/test prerequisites, PR secret boundary and tag publication gate remain.
 A conflicting full+targeted selection fails before private input preparation.
+
+## Observed native invalidation boundary
+
+Run [42273663491](https://github.com/YJBeetle/SWCLI/actions/runs/42273663491)
+(head `c097909fe0d929a853adce37fb2b98ceb83e6c24`) observed the generated
+cylindrical face reference become **Invalid=1 with no object** after deleting its
+owned cut. The original calibration's expectation of Deleted=4 failed and its
+ZIP/trace/report remain retained. The subsequent fixture checks exact OK/native
+identity immediately before the one deletion, then exact Invalid=1/NULL after,
+followed by native volume, save/reopen and invalidation checks. This is an exact
+observed fixture expectation, not a blanket acceptance of arbitrary nonzero
+states. Deleted=4 and Suppressed=2 are official enum values but remain unobserved
+native states in this calibration. Public resolution continues to accept only
+integer zero and an exact complete census bijection.

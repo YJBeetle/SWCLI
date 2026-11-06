@@ -61,3 +61,16 @@
 - 纠正：新增本脚本 `save_owned_document(app, document)`，所有三处保存都明确传入同一 app/document，不进入 ROT/COM 初始化/退出分支；产品 daemon 本来已正确传 app，公开实现未改。没有 native fallback/retry，没有放宽任何保存、退出或几何断言。
 - 回归：22 targeted/CI wiring tests PASS；新测试运行真实 save helper 并使 ROT / CoInitialize / CoUninitialize 路径一旦进入即失败，确认 Save3 仅调用一次且同一 owning STA 保留。日志 `.task-evidence/portable-owned-save-fix/targeted.log`。
 - 仍未完成：保存重开、hole 删除/notch 分裂合并、公开 CLI/SDK/MCP native gate；merge-ready 否。下一次仅在该确切修复提交后对新 head dispatch 一次，首两个失败 head 均不重跑。
+
+## 阶段 9：保存所有权修复已推送，新 head 一次校准
+- 提交：`c097909fe0d929a853adce37fb2b98ceb83e6c24`（fix: 保持原生校准保存操作的宿主所有权），已 push 本分支；修复仅校准夹具保存调用，产品公开实现/SDK 不改，22 tests PASS。
+- 唯一对应 head dispatch：<https://github.com/YJBeetle/SWCLI/actions/runs/42273663491>，已读回 head 匹配；targeted=true / native_full=false，默认媒体/清理参数。前两次失败的 run/head/ZIP/错误均保留，不原样重跑，不取消他人 run。
+- 本地回执：`.task-evidence/dispatch/owned-save-fix-request.json`。无待审批动作，继续跟进同一 run；保存重开/拓扑变更和公开验收完成前仍非 merge-ready。
+
+## 阶段 10：保存重开通过；实际删除失效状态校准
+- run `42273663491` 最终在内部圆柱面删除状态断言失败。原 native ZIP artifact ID `13534426132`，SHA256=`197bf7346d0c74259d5b0e0e1805f590054b33ebca789f0221342f8e2931aa30`，GitHub digest/head=`c097909fe0d929a853adce37fb2b98ceb83e6c24` 已核。原 ZIP/report/trace 保存 `.task-evidence/ci-42273663491/`，cleanup_errors=[]。
+- 本次额外已证实的内部范围：face/edge 基线 save、close/reopen（api errors/warnings=0）、重新解析成功；创建 hole 后原 reference 被拒绝；实际单体穿孔体积 `11717.256661176916 mm³`；mutated content 已保存；owned cut 删除返回成功。公开组未启动，notch 尚未执行，仍不能声明整体或公开验收通过。
+- 首失败详情：删除圆柱面后 `GetObjectByPersistReference3` 实际返回 **Invalid=1 / NULL**；原先自设的 Deleted=4 预期失败，原始错误不抹去。官方 enum 的 Deleted=4 值确实存在，但“删除这个 fixture 一定返回该 bit”未被 API 文档保证，也未被实测支持。
+- 新的有界夹具校准按实际 owning source 修正为 **恰为 Invalid=1 且 NULL**，额外增加保存后、唯一一次删除前同一 raw reference 恰为 OK=0 / 非空、且与当前唯一 native cylinder `IsSame=1` 的独立证明；再要求实际 box 体积、native save/reopen 和失效继续成立。此处不采用任意非零白名单，不改产品只接受 integer 0 + 完整双射的门禁，不放宽几何/保存/退出/时间断言。Deleted=4 与 Suppressed=2 继续明确列为原生未观察状态。
+- 23 targeted/wiring tests PASS；新增 fixture 精确状态回归会拒绝 0、2、4、3、5、7、bool/float、对象仍存在等；日志 `.task-evidence/portable-invalidation-fix/targeted.log`。原 `Deleted=4` 失败仍保留在原 run；后续只对这一确切校准修正提交的新 head dispatch 一次。
+- 产品代码未因三次校准失败改变；目前仍非 merge-ready。

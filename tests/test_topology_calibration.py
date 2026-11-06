@@ -83,6 +83,14 @@ class TopologyCalibrationTests(unittest.TestCase):
         client.GetActiveObject.assert_not_called()
         com.CoInitialize.assert_not_called(); com.CoUninitialize.assert_not_called()
 
+    def test_deleted_owned_fixture_requires_exact_observed_invalid_null_state(self):
+        calibration.verify_deleted_fixture_state(None, 1, calibration.ENUMS)
+        for entity, status in ((object(), 1), (None, 0), (None, 2), (None, 4), (None, 3),
+                               (None, 5), (None, 7), (None, True), (None, 1.0), (None, None)):
+            with self.subTest(entity_present=entity is not None, status=status), \
+                 self.assertRaisesRegex(RuntimeError, "exact Invalid=1 and NULL"):
+                calibration.verify_deleted_fixture_state(entity, status, calibration.ENUMS)
+
     def test_internal_failure_stops_before_starting_public_host_and_preserves_receipt(self):
         import json
         with tempfile.TemporaryDirectory() as temporary:
