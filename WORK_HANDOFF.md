@@ -80,3 +80,12 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 新 Windows 真子进程测试 `tests/test_table_defaults_process_exit.py`：复制生产 wrapper，仅用无 CAD Python 子脚本替代 worker，分别验证 exit 0/7、实际回执与 wrapper 成败、带空格路径和 stdout。普通 CI 执行；定向原生 job 也在 private runtime 准备前执行该测试，避免包装器退化再消耗安装环境。本地 macOS 无 Windows PowerShell，此项明确 skip，待 CI 确认。
 - 本地 focused table tests 22 tests / 1 Windows skip，以及 table/modeling-sequence/annotation-wiring 相关 38 tests / 4 platform skips 通过；workflow YAML 与 preflight 顺序验证通过。产品 API/字段、精确几何/CAS/状态断言及 600/1800 秒限制均未修改；profiles/pin 仍空。
 - 最新用户澄清：既定系列能力需一起完成后发版，part/public 未完成点仍为阻断，不因收口改成后置；不扩字段/新计划、不派审查代理。仅对这次 wrapper 首因做相关修复；后续定向 run 一次 dispatch 后保存状态，不持续轮询。
+
+
+## Wrapper 修复 head 与必要验收 run
+
+- 产品/包装器修复已推送 `50db73af937cd78aa9adcd8c4bfdd5467c956533`：“fix: 保留表格校准进程句柄并记录真实退出码”。此后文档提交不改变该验收 head。
+- 对实际 wrapper 首因修复只 dispatch 一次 [42301331238](https://github.com/YJBeetle/SWCLI/actions/runs/42301331238)，exact head `50db73af937cd78aa9adcd8c4bfdd5467c956533`；`native_full=false`、`table_defaults_calibration=true`、mode `internal`、document types `assembly-drawing`、head 参数同 SHA。
+- 单次 API 快照状态 **in_progress**；snapshot 与原始 dispatch inputs 保存在 `docs/verification/table-defaults-evidence/run-42301331238/`。未启动 watcher/持续 poll 或 automation；不取消他人 CI，完成原件可用后再推进。无原生 API retry/rollback/host replacement。
+- 先执行实际 Windows plain-child exit 0/7 regression，再准备 private runtime，再执行既有 `[2,3]` CAD plan。Windows 进程回执修复仍待该 CI 证实；前轮 CAD report 审核通过不能代替新 wrapper 成功或公开验收。
+- 既定系列仍未完成：part 精确几何失败保持阻断；`PROFILES`/`INTERNAL_PROOF` 空；真实公开 CLI/daemon/SDK/MCP native gate 尚未执行。相关能力不改成“后置交付”，系列整组完成后才进入发版确认；本路不 merge/main/release。
