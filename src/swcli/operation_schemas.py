@@ -458,6 +458,20 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
     ),
+    "feature.revolve": _operation(
+        "feature.revolve",
+        {
+            "sketch_id": _string(pattern="^s-[a-z0-9]{6}$"),
+            "expected_profile_mm": {"type": "array", "minItems": 4, "maxItems": 4,
+                                    "items": _number(minimum=-1e6, maximum=1e6)},
+            "axis_mm": {"type": "array", "minItems": 4, "maxItems": 4,
+                        "items": _number(minimum=-1e6, maximum=1e6)},
+            "angle_deg": _number(minimum=360, maximum=360),
+        },
+        required=("sketch_id", "expected_profile_mm", "axis_mm", "angle_deg"),
+        temporary_activation=True,
+        document_id="required", expected_update_stamp="required", lease_id="optional",
+    ),
     "feature.fillet": _operation(
         "feature.fillet",
         {
@@ -510,6 +524,10 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
 from .workspace import definitions as workspace_definitions
 for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
+
+OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
+    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; 360 degrees)"
+)
 
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)
@@ -620,6 +638,9 @@ def validate_operation_request(
         validate_detailing_options(parameters["expected_options"])
     if operation == "document.units-set" and not {"length_unit", "decimal_places"}.intersection(parameters):
         raise ValueError("document.units-set requires length_unit or decimal_places")
+    if operation == "feature.revolve":
+        from .revolve_geometry import validate_revolve_intent
+        validate_revolve_intent(parameters["expected_profile_mm"], parameters["axis_mm"], parameters["angle_deg"])
     if operation == "sketch.polygon":
         validate_polygon(parameters["vertices_mm"])
     if operation == "document.create":

@@ -2226,21 +2226,66 @@ class DimensionSetResult(_DimensionSetResultRequired, total=False):
     final_state: DimensionDiscoverDiameterResultObservationBefore
 
 
-class FeatureFilletParameters(TypedDict):
-    entity_id: str
-    radius_mm: float
+class FeatureRevolveParameters(TypedDict):
+    sketch_id: str
+    expected_profile_mm: List[float]
+    axis_mm: List[float]
+    angle_deg: float
 
 
-class FeatureFilletResultMutation(TypedDict):
+class FeatureRevolveResultMutation(TypedDict):
     attempted: bool
     creation_returned: bool
     may_have_changed: bool
 
 
-class FeatureFilletResultFeature(TypedDict, total=False):
+class FeatureRevolveResultFeature(TypedDict, total=False):
     name: str
     type: str
     feature_id: str
+
+
+class FeatureRevolveResultDefinition(TypedDict, total=False):
+    cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
+    angle_rad: Union[float, None]
+    reverse: Union[bool, None]
+    kind: Union[int, None]
+    boss: Union[bool, None]
+    thin: Union[bool, None]
+    merge: Union[bool, None]
+    axis_type: Union[int, None]
+    contour_count: Union[int, None]
+    axis_matches: Union[bool, None]
+
+
+class _FeatureRevolveResultRequired(TypedDict):
+    ok: bool
+    action: Literal['feature.revolve']
+    sketch_id: str
+    mutation: FeatureRevolveResultMutation
+    cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
+
+
+class FeatureRevolveResult(_FeatureRevolveResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    expected_profile_mm: List[float]
+    axis_mm: List[float]
+    angle_deg: float
+    feature: FeatureRevolveResultFeature
+    definition: FeatureRevolveResultDefinition
+    model_to_sketch_transform: List[float]
+    expected_metrics: FeatureSetDepthResultMeasurementBefore
+    metrics: FeatureSetDepthResultMeasurementBefore
+    diagnostics: DocumentCreateResultDiagnostics
+    verified: bool
+
+
+class FeatureFilletParameters(TypedDict):
+    entity_id: str
+    radius_mm: float
 
 
 class FeatureFilletResultVerification(TypedDict, total=False):
@@ -2263,8 +2308,8 @@ class FeatureFilletResult(_FeatureFilletResultRequired, total=False):
     warnings: List[DocumentCreateResultWarningsItem]
     error: DocumentCreateResultError
     radius_mm: float
-    mutation: FeatureFilletResultMutation
-    feature: FeatureFilletResultFeature
+    mutation: FeatureRevolveResultMutation
+    feature: FeatureRevolveResultFeature
     verification: FeatureFilletResultVerification
     rebuilt: bool
     diagnostics: DocumentCreateResultDiagnostics

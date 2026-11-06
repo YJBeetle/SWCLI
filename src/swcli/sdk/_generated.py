@@ -440,6 +440,16 @@ class FeatureOperations:
         return cast("Response[models.FeatureSetDepthResult]", self._client._execute('feature.set-depth', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def revolve(self, *, sketch_id: str, expected_profile_mm: List[float], axis_mm: List[float], angle_deg: float, document_id: str, expected_update_stamp: int, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.FeatureRevolveResult]:
+        """feature.revolve; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['sketch_id'] = sketch_id
+        parameters['expected_profile_mm'] = expected_profile_mm
+        parameters['axis_mm'] = axis_mm
+        parameters['angle_deg'] = angle_deg
+        return cast("Response[models.FeatureRevolveResult]", self._client._execute('feature.revolve', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def fillet(self, *, entity_id: str, radius_mm: float, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.FeatureFilletResult]:
         """feature.fillet; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

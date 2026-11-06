@@ -10,3 +10,5 @@ wrong_type: str = client.document.inspect().require_result()["document"]["modifi
 client.feature.extrude(sketch_id="s-ab12cd", depth_mm="ten")  # E: arg-type
 client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0}])  # E: typeddict-item
 bad_empty_parameters: DocumentListParameters = {"unexpected": True}  # E: typeddict-unknown-key
+client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0], axis_mm=[0.0, -5.0, 0.0, 15.0], angle_deg=360.0)  # E: call-arg
+client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0], axis_mm="y-axis", angle_deg=360.0, document_id="d-ab12cd", expected_update_stamp=12)  # E: arg-type

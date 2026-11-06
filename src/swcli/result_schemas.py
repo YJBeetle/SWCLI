@@ -1521,6 +1521,38 @@ _RESULT_FIELDS["feature.fillet"] = (
 )
 
 
+
+_REVOLVE_CLEANUP = {"type": "array", "items": _object({"stage": STRING, "error": STRING}, ("stage", "error"))}
+_REVOLVE_COORDINATES = {"type": "array", "minItems": 4, "maxItems": 4, "items": NUMBER}
+_RESULT_FIELDS["feature.revolve"] = (
+    {
+        "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
+        "expected_profile_mm": _REVOLVE_COORDINATES,
+        "axis_mm": _REVOLVE_COORDINATES,
+        "angle_deg": {"type": "number", "minimum": 360, "maximum": 360},
+        "mutation": _object({key: BOOL for key in ("attempted", "creation_returned", "may_have_changed")},
+                            ("attempted", "creation_returned", "may_have_changed")),
+        "cleanup_errors": _REVOLVE_CLEANUP,
+        "feature": _object({"name": STRING, "type": STRING,
+                            "feature_id": {"type": "string", "pattern": "^f-[a-z0-9]{6}$"}}),
+        # Null native readbacks are failure evidence, not a reason to discard
+        # the first error/partial mutation. Success constraints remain strict.
+        "definition": _object({"cleanup_errors": _REVOLVE_CLEANUP,
+            **{key: {"anyOf": [schema, {"type": "null"}]} for key, schema in {
+                "angle_rad": NUMBER, "reverse": BOOL, "kind": INTEGER, "boss": BOOL,
+                "thin": BOOL, "merge": BOOL, "axis_type": INTEGER, "contour_count": INTEGER,
+                "axis_matches": BOOL}.items()}}),
+        "model_to_sketch_transform": {"type": "array", "minItems": 16, "maxItems": 16, "items": NUMBER},
+        "expected_metrics": _FEATURE_DEPTH_METRICS,
+        "metrics": _FEATURE_DEPTH_METRICS,
+        "diagnostics": DIAGNOSTICS,
+        "verified": BOOL,
+    },
+    ("document", "sketch_id", "expected_profile_mm", "axis_mm", "angle_deg", "mutation", "cleanup_errors",
+     "feature", "definition", "model_to_sketch_transform", "expected_metrics", "metrics", "diagnostics", "verified"),
+)
+
+
 def operation_result_schema(name: str) -> Dict[str, Any]:
     """Describe response.result; dispatch failures can instead have no result."""
 
@@ -1571,6 +1603,22 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "then": {"required": list(success_required), "not": {"required": ["error"]}},
         "else": {"required": ["error"]},
     }
+    if name == "feature.revolve":
+        schema["required"].extend(["sketch_id", "mutation", "cleanup_errors"])
+        schema["then"]["properties"] = {
+            "feature": {"required": ["name", "type", "feature_id"], "properties": {"type": {"const": "Revolution"}}},
+            "verified": {"const": True}, "cleanup_errors": {"maxItems": 0},
+            "mutation": {"properties": {key: {"const": True} for key in
+                         ("attempted", "creation_returned", "may_have_changed")}},
+            "definition": {"required": ["cleanup_errors", "angle_rad", "reverse", "kind", "boss", "thin",
+                                         "merge", "axis_type", "contour_count", "axis_matches"],
+                "properties": {"cleanup_errors": {"maxItems": 0}, "angle_rad": NUMBER, "reverse": {"const": False},
+                    "kind": {"const": 0}, "boss": {"const": True}, "thin": {"const": False},
+                    "merge": {"const": True}, "axis_type": {"const": 10}, "contour_count": {"const": 0},
+                    "axis_matches": {"const": True}}},
+            "diagnostics": {"properties": {"healthy": {"const": True}, "truncated": {"const": False},
+                                            "issue_count": {"const": 0}, "issues": {"maxItems": 0}}},
+        }
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {
@@ -2795,6 +2843,22 @@ def validate_operation_result(name: str, result: Any) -> None:
     if name == "document.create" and result["ok"] is True and result["document"]["type"] == 3:
         if "sheet" not in result or result.get("cleanup_errors"):
             raise OperationResultInvalid("document.create: drawing requires sheet evidence and clean completion")
+    if (name == "feature.revolve" and result["ok"] is False
+            and result["error"]["type"] == "RevolveNotCalibrated"
+            and any(result["mutation"].values())):
+        raise OperationResultInvalid("feature.revolve: unsupported native scope cannot report a mutation")
+    if name == "feature.revolve" and result["ok"] is True:
+        from .revolve_geometry import validate_revolve_intent, cylinder_expectation, verify_cylinder_metrics
+        try:
+            validate_revolve_intent(result["expected_profile_mm"], result["axis_mm"], result["angle_deg"])
+            expected = cylinder_expectation(result["expected_profile_mm"], result["model_to_sketch_transform"])
+            verify_cylinder_metrics(result["metrics"], expected)
+            verify_cylinder_metrics(result["expected_metrics"], expected)
+            if result["document"]["type"] != 1 or not isclose(result["definition"]["angle_rad"],
+                    2 * 3.141592653589793, rel_tol=0, abs_tol=1e-12):
+                raise ValueError("native revolve angle/document evidence is inconsistent")
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            raise OperationResultInvalid("feature.revolve: " + str(exc)) from exc
     if name == "feature.fillet" and result["ok"] is True:
         if (not isclose(result["radius_mm"], result["verification"]["radius_mm"],
                         rel_tol=0, abs_tol=1e-9)

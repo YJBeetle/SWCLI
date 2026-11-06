@@ -1,0 +1,158 @@
+{
+  "success": true,
+  "merge_ready_code_head": "3922bee798b0b5b33dc6aa7a4bf34b01dc0e79ad",
+  "run_id": 42273047248,
+  "artifact_id": 13533039600,
+  "artifact_sha256": "13c3a4695603e33875acb9a64c639baec056c48bdb7416b75b65664b89a29365",
+  "independent_checks": {
+    "internal": 85,
+    "public": 84
+  },
+  "internal_trace": {
+    "owned_hosts": 1,
+    "boundaries": 120,
+    "native_boundaries": 1510,
+    "elapsed_seconds": 22.683677911758423,
+    "creations": 4,
+    "injected_observation_errors": 1,
+    "unclosed_calls": 0
+  },
+  "public_trace": {
+    "native_boundaries": 34228,
+    "creations": 3,
+    "unclosed_calls": 0
+  },
+  "host": {
+    "revision": "33.5.0",
+    "process_id": 5988
+  },
+  "library_hashes": {
+    "C:\\Program Files\\SOLIDWORKS\\swconst.tlb": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "partial_control": {
+    "kind": "injected-postcreation-observation-failure",
+    "first_error": {
+      "type": "RuntimeError",
+      "message": "injected post-creation observation failure"
+    },
+    "mutation": {
+      "attempted": true,
+      "creation_returned": true,
+      "may_have_changed": true
+    },
+    "file_sha256": "707d7b14060610bf5543dee31adfca1fa794683df802e9f33f8e75984c57cb1f",
+    "metrics": {
+      "solid_body_count": 1,
+      "volume_mm3": 6283.185307179588,
+      "surface_area_mm2": 1884.955592153876,
+      "centroid_mm": {
+        "x": 3.623377695830909e-32,
+        "y": 5.0,
+        "z": 1.949085916259687e-16
+      }
+    },
+    "reopened_metrics": {
+      "solid_body_count": 1,
+      "volume_mm3": 6283.185307179587,
+      "surface_area_mm2": 1884.955592153876,
+      "centroid_mm": {
+        "x": 3.6233776958309097e-32,
+        "y": 4.999999999999999,
+        "z": 1.9490859162596874e-16
+      }
+    }
+  },
+  "public_files": [
+    {
+      "plane": "front",
+      "sha256": "3f23304871651a33a8ece12a0b75bba6d7efb2340e30d244fd97059bb6577461",
+      "metrics": {
+        "centroid_mm": {
+          "x": 3.6233776958309097e-32,
+          "y": 4.999999999999999,
+          "z": 1.9490859162596874e-16
+        },
+        "solid_body_count": 1,
+        "surface_area_mm2": 1884.955592153876,
+        "volume_mm3": 6283.185307179587
+      }
+    },
+    {
+      "plane": "top",
+      "sha256": "81c0498c0e3480a7b53106d91718b7d72bd1095e59e4b60149f707c4ae281e4a",
+      "metrics": {
+        "centroid_mm": {
+          "x": 2.0746572187513448e-16,
+          "y": 2.536364387081637e-32,
+          "z": -12.0
+        },
+        "solid_body_count": 1,
+        "surface_area_mm2": 1099.557428756428,
+        "volume_mm3": 2770.884720466198
+      }
+    },
+    {
+      "plane": "right",
+      "sha256": "a3cc51bf22d2512af0a3980a6ae173f1c57aad4c726708ddcdd2d09f85824763",
+      "metrics": {
+        "centroid_mm": {
+          "x": 1.449351078332364e-32,
+          "y": -1.9999999999999987,
+          "z": -5.3686446667208733e-17
+        },
+        "solid_body_count": 1,
+        "surface_area_mm2": 703.7167544041137,
+        "volume_mm3": 1206.3715789784806
+      }
+    }
+  ],
+  "runtime_public": true,
+  "runtime_cleanup": true,
+  "status": "integrated-and-locally-verified; not-released",
+  "integration_base": "83c48301414801540a29aefca2d7d1f9f174d3c1",
+  "public_run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42273047248",
+  "independent_code_review": "no blocking issue; 26 portable tests passed",
+  "independent_public_audit": {
+    "requests": 137,
+    "native_boundaries": 34228,
+    "worker_pid": 5416,
+    "public_host_pid": 2640,
+    "creation_calls": 3,
+    "refused_requests_without_creation": 16,
+    "cleanup_errors": [],
+    "daemon_exit_code": 0,
+    "before_after_native_processes_empty": true,
+    "report_sha256": "6331b4a4ab672ce05a0d8de0c6c2d16c72ede4e2b07cc9d4f3e719c1e5a90de0",
+    "trace_sha256": "4f9ae4202e272eb41615657ac6dcfa2e30b71ab73ec0768e8b64c788da84066a"
+  },
+  "main_preservation": {
+    "unchanged_other_agent_files": 10,
+    "existing_operation_handlers_ast_unchanged": true,
+    "exact_revolve_implementation_and_gate_files": 4,
+    "release_tag_policy_permissions_semantically_unchanged": true
+  },
+  "routing_validation": {
+    "test_count": 4,
+    "event_ref_flag_combinations": 480,
+    "secret_free_before_private_jobs": true,
+    "independent_review_passed": true
+  },
+  "limitations": [
+    "Only native Windows SOLIDWORKS33.5.0",
+    "Empty single-configuration part, registered bounded rectangle on three standard planes, explicit left-edge axis, 360-degree boss",
+    "Not arbitrary revolve/cut/thin/partial angle/multibody",
+    "Not Wine or full release acceptance; no tag or release created"
+  ],
+  "integration_portable": {
+    "tests": 1871,
+    "skipped": 32,
+    "success": true,
+    "log_sha256": "aecd1455ea7206b08954eba8682838a4057840ada8290c57abb96b3d079ef8a2"
+  },
+  "sdk": {
+    "success": true,
+    "consumer_refusals": 10,
+    "log_sha256": "95bd9bebbd80bbc040ba5e97d0db2c729dc17669571482639be1f82507aa1ee3"
+  }
+}
