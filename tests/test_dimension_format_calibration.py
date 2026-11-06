@@ -2,6 +2,10 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest import mock
+import test_dimension_format as fixtures
+from swcli.daemon.documents import DocumentRegistry
+from swcli.daemon.operations import execute_operation
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("dimension_calibration_test", ROOT / "scripts/ci/verify-dimension-format-calibration.py")
@@ -18,6 +22,30 @@ class DimensionCalibrationTests(unittest.TestCase):
         self.assertIn('case["geometry_control"] == case["geometry_before"]', script)
         self.assertIn('case["geometry_after"] == case["geometry_before"]', script)
         self.assertIn('geometry(doc, case.setdefault("geometry_native_samples", []))) == case["geometry_before"]', script)
+
+    def test_native_save_route_keeps_the_same_document_id_and_owned_lease(self):
+        fixture = fixtures.DimensionFormatTests(); fixture.setUp()
+        fixture.app.ActiveDoc = fixture.document
+        registry = DocumentRegistry(fixture.app)
+        entry = registry.register(fixture.document)
+        lease = registry.acquire_lease(entry, session_id="display-writer", ttl_seconds=600)
+        def saved(output, *, document):
+            document.GetPathName = lambda: output
+            document.GetTitle = lambda: "saved"
+            fixture.fixture.modified = False
+            return dict(ok=True, action="document.save-as")
+        with mock.patch("swcli.daemon.operations.save_as_native_windows", side_effect=saved) as native:
+            result = calibration.save_registered_copy(fixture.app, fixture.document, registry, entry,
+                lease["lease_id"], Path("/tmp/dimension-routing-only.SLDPRT"))
+        self.assertTrue(result["ok"], result)
+        native.assert_called_once()
+        self.assertIs(registry.resolve(entry.document_id), entry)
+        registry.require_lease(entry, session_id="display-writer", lease_id=lease["lease_id"])
+        observed = execute_operation(fixture.app, "document.dimension-format", {}, documents=registry,
+            document_id=entry.document_id, session_id="display-reader", expected_update_stamp=7)
+        self.assertTrue(observed["ok"], observed)
+        self.assertEqual(observed["document"]["document_id"], entry.document_id)
+        self.assertTrue(observed["document"]["path"].endswith("dimension-routing-only.SLDPRT"))
 
     def test_watchdog_enforces_native_and_group_limits_without_restart(self):
         rows = [{"call": "setter", "phase": "begin", "time": 100}]

@@ -79,6 +79,14 @@ def geometry(document, samples):
     return observe_native(document, result["metrics"], sample["boundary_observation"])
 
 
+def save_registered_copy(app, document, registry, entry, lease_id, path):
+    # Use the existing authorized save route: its finally refreshes the native
+    # filename key before sync, retaining the exact document ID and lease.
+    return execute_operation(app, "document.save-as", {"output": str(path)}, documents=registry,
+        document_id=entry.document_id, session_id="display-writer", lease_id=lease_id,
+        expected_update_stamp=_com_value(document, "GetUpdateStamp"))
+
+
 def calibrate(app, output, const, plane, reverse, call, case, report, live, *, profile_kind, template):
     kind, suffix = KINDS[profile_kind]
     case.update(kind=profile_kind, success=False, internal_calibration_only=True, writes=[])
@@ -187,7 +195,8 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
             call("close-foreground", lambda: app.CloseDoc(_com_value(foreground, "GetTitle")))
             foreground = None
     saved_path = output / ("saved." + suffix)
-    case["save_copy"] = call("save-copy", lambda: save_as_native_windows(str(saved_path), document=doc))
+    case["save_copy"] = call("save-copy", lambda: save_registered_copy(
+        app, doc, registry, entry, lease["lease_id"], saved_path))
     checked(case["save_copy"]["ok"] and not _com_value(doc, "GetSaveFlag"), "display save-copy failed")
     digest = hashlib.sha256(saved_path.read_bytes()).hexdigest()
     clean = call("clean-read", read)

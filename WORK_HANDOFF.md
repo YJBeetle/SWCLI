@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：前两轮内部校准失败，原始产物均已核验；精确盒形边界观测器修复后的内部运行42272595406进行中；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
+当前状态：前两轮内部校准失败，原始产物均已核验；第三轮内部42272595406已失败：几何和尺寸写入通过，但校准SaveAs未刷新注册表；最小保存路由修复待校准；公开CLI/daemon gate未触发；不merge-ready，写入白名单仍空。
 
 ## 分支与范围
 
@@ -23,7 +23,7 @@
 ## 便携证据
 
 - 本机安装wheel后全套1834项通过、32项平台跳过；SDK生成检查、严格类型检查mypy1.18.2、安装资源检查通过。
-- 追加公开gate/host范围/trace顺序后定向35项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
+- 追加公开gate/host范围/trace顺序后定向36项通过；SDK回归11项通过，MCP18项通过（2平台/可选包跳过），wrapper回归4项通过（2因本机无PowerShell跳过）。
 - 首版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42260858025 ，head4a2b4f4，Python3.9/3.14和wheel success。
 - 修复版Windows CI https://github.com/YJBeetle/SWCLI/actions/runs/42264284837 ，headf6bc634，Python3.9/3.14和wheel success。full/native/release均skipped。这些不是原生或公开写入验收。
 - 原始日志在工作树同级 `../evidence/`：portable-tests.log、wheel-build.log、public-preparation-focused-tests.log、sdk-regression.log、mcp-regression.log、public-wrapper-regression.log及portable-ci-*.json，不依赖tmp。
@@ -62,10 +62,18 @@
 ## 精确边界修复的必要验证
 
 - 实现/观测器提交 `e08feb1f37fcf19fe06d630a029191645c7a8a87` 已推送；对应Windows/Python3.9、3.14、wheel CI https://github.com/YJBeetle/SWCLI/actions/runs/42271747465 全部success，native/full/release skipped。
-- 仅一次相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42272595406 ，head=e08feb1f37fcf19fe06d630a029191645c7a8a87，dimension_format_calibration=true、dimension_format_public=false、native_full=false，目前in_progress。
+- 仅一次相关内部运行 https://github.com/YJBeetle/SWCLI/actions/runs/42272595406 ，head=e08feb1f37fcf19fe06d630a029191645c7a8a87，dimension_format_calibration=true、dimension_format_public=false、native_full=false，failure。
 - 低频跟踪 ../evidence/native-watch-42272595406.log；结构化总状态 ../evidence/calibration-state.json。尚无成功结论，未开放白名单、未触发公共验收。
 
 ## 当前授权与身份保护补充
 
 - 当前无待审批动作。既有实现、中文提交/推送到YJBeetle/SWCLI及定向Windows校准/公开gate授权继续有效；独立核验后可在开发分支开放确切范围，合main仍由主对话办理。此前远端信任审批问题已核公开仓库与ADMIN权限后解决，不重复操作，不绕过自动审批。
 - 公开候选进一步在任何偏好读取前拒绝不可读标题/路径/Extension；正向原生调用顺序不变，新增定向用例通过。当前仍未开放写入，不影响运行中的e08feb1校准head。
+
+## 第三轮首失败与最小保存路由修复
+
+- 42272595406 completed/failure，artifact ID13531958597，SHA256 `efaa5f32970de1c5b0cc38739ad8523ca30732bd5abde7d9a5ba3c881f151193`，head e08feb1f37fcf19fe06d630a029191645c7a8a87，ZIP与GitHub digest/head完全一致。原件 `../evidence/native-42272595406/` 保留。
+- 新oracle实际8顶点/12直线边/6平面和无写入控制、写后精确边界全部通过，raw质量属性及native边界原始数组完整记录。part八步尺寸API/readback/保护检查通过，save_copy api_saved=true、errors=0、warnings=null，保存文件实际51565字节；source原SHA一致。
+- 第一真实失败是随后的clean-read `DocumentNotFound`：校准脚本直接调用底层SaveAs，绕过现有document.save-as处理器的refresh_key，原路径绑定被注册表正确拒绝。未完成same-value、重开/只读；assembly/drawing未运行。不能把这些阶段性结果当验收通过。
+- 最小修复：校准save-copy通过已有execute_operation(document.save-as)路由，显式document_id/lease/stamp，沿用handler的finally refresh_key；不忽略路径身份检查、不重绑/重获lease、不改注册表实现。新增测试证明SaveAs后同一ID与原lease仍有效且可继续document.dimension-format。
+- 当前定向36项通过。公开写入名单仍空，公开gate未触发。下一次只在该相关修复与Windows检查通过后执行必要内部验证。
