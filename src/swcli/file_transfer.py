@@ -43,7 +43,29 @@ class FileTransferClient:
         validate_operation_result("workspace." + name, value)
         return value
 
+    def _invoke(self, operation, *args, **kwargs):
+        try:
+            return operation(*args, **kwargs)
+        except TransferError as exc:
+            if exc.session_id is None:
+                exc.session_id = self.session_id
+            raise
+        except Exception as exc:
+            error = TransferError(str(exc), session_id=self.session_id)
+            error._swcli_transport_phase = getattr(exc, "_swcli_transport_phase", None)
+            raise error from exc
+
     def upload(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
+               resume_transfer: Optional[str] = None, progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
+        return self._invoke(self._upload, source, destination, overwrite=overwrite, request_id=request_id,
+                            resume_transfer=resume_transfer, progress=progress)
+
+    def download(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
+                 progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
+        return self._invoke(self._download, source, destination, overwrite=overwrite, request_id=request_id,
+                            progress=progress)
+
+    def _upload(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
                resume_transfer: Optional[str] = None, progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
         transfer_id = None
         with SafeWorkspace(self.root) as root, root.open_read(source) as stream:
@@ -94,9 +116,14 @@ class FileTransferClient:
                 error._swcli_transport_phase = getattr(exc, "_swcli_transport_phase", None)
                 raise error from exc
 
-    def download(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
+    def _download(self, source: str, destination: str, *, overwrite: bool = False, request_id: Optional[str] = None,
                  progress: Optional[Callable[[int, int], None]] = None) -> Dict[str, Any]:
-        record = self.rpc("download-begin", {"path": source}, request_id=request_id)
+        try:
+            record = self.rpc("download-begin", {"path": source}, request_id=request_id)
+        except Exception as exc:
+            error = TransferError(str(exc), session_id=self.session_id)
+            error._swcli_transport_phase = getattr(exc, "_swcli_transport_phase", None)
+            raise error from exc
         transfer_id = record["transfer_id"]
         if record["state"] != "downloading":
             raise TransferError("Download handle is no longer active", transfer_id=transfer_id, session_id=self.session_id)

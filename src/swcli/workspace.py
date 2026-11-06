@@ -55,6 +55,7 @@ class WorkspaceStore:
         self.max_bytes = int(max_bytes)
         self.clock = clock
         self.lock = threading.RLock()
+        self.idle = threading.Condition(self.lock)
         self.transfers = OrderedDict()
         self.closed = False
 
@@ -70,7 +71,7 @@ class WorkspaceStore:
     def _expire(self):
         now = self.clock()
         for key, record in list(self.transfers.items()):
-            if now - record["used"] > TRANSFER_TTL:
+            if not record.get("hashing") and now - record["used"] > TRANSFER_TTL:
                 self._dispose(record)
                 del self.transfers[key]
         completed = [key for key, record in self.transfers.items() if record["state"] not in ("uploading", "downloading")]
@@ -86,6 +87,10 @@ class WorkspaceStore:
         record = self.transfers.get(transfer_id)
         if record is None or record["session"] != session or record["direction"] != direction:
             raise ValueError("Unknown or expired workspace transfer in this session")
+        while record.get("hashing"):
+            self.idle.wait()
+        if self.closed:
+            raise RuntimeError("Workspace is closed")
         record["used"] = self.clock()
         return record
 
@@ -146,7 +151,7 @@ class WorkspaceStore:
             elif name == "upload-commit":
                 if record["offset"] != record["size_bytes"]:
                     raise ValueError("Workspace upload is incomplete")
-                if signature(stream)[2] != record["size_bytes"] or file_hash(stream) != record["sha256"]:
+                if signature(stream)[2] != record["size_bytes"] or self._hash(stream, record) != record["sha256"]:
                     record["state"] = "failed"
                     raise ValueError("Workspace upload size or SHA256 mismatch")
                 resource.publish()
@@ -178,6 +183,8 @@ class WorkspaceStore:
             if existing["session"] == session and existing["request_id"] == request_id:
                 if existing["fingerprint"] != fingerprint:
                     raise ValueError("Workspace request ID was reused with different parameters")
+                while existing.get("hashing"):
+                    self.idle.wait()
                 existing["used"] = self.clock()
                 return self._receipt(existing)
         limit = 4 if direction == "upload" else 8
@@ -196,9 +203,7 @@ class WorkspaceStore:
                 size = identity[2]
                 if size > self.max_bytes:
                     raise ValueError("Workspace file exceeds the configured maximum")
-                digest = file_hash(resource)
-                if signature(resource) != identity:
-                    raise ValueError("Workspace source changed while hashing")
+                digest = ""
             except BaseException:
                 resource.close()
                 raise
@@ -207,11 +212,35 @@ class WorkspaceStore:
                       request_id=request_id, fingerprint=fingerprint, used=self.clock(), resource=resource,
                       signature=identity)
         self.transfers[record["transfer_id"]] = record
+        if direction == "download":
+            try:
+                record["sha256"] = self._hash(resource, record)
+                if signature(resource) != identity:
+                    raise ValueError("Workspace source changed while hashing")
+            except BaseException:
+                self._dispose(record)
+                self.transfers.pop(record["transfer_id"], None)
+                raise
         return self._receipt(record)
+
+    def _hash(self, stream, record):
+        # Reserve the transfer slot and pin its resource while other transfers
+        # continue. Operations on this same transfer wait on the condition.
+        record["hashing"] = True
+        self.lock.release()
+        try:
+            return file_hash(stream)
+        finally:
+            self.lock.acquire()
+            record["hashing"] = False
+            record["used"] = self.clock()
+            self.idle.notify_all()
 
     def close(self):
         with self.lock:
             self.closed = True
+            while any(r.get("hashing") for r in self.transfers.values()):
+                self.idle.wait()
             errors = []
             for record in self.transfers.values():
                 try:

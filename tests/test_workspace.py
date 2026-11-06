@@ -315,3 +315,56 @@ class FileTransferSocketTests(unittest.TestCase):
         with source.open("rb") as a, (self.local / "mcp-return.bin").open("rb") as b:
             self.assertEqual(file_hash(a), file_hash(b))
         self.manager.call.assert_not_called()
+
+
+class TransferReviewRegressions(unittest.TestCase):
+    def test_hash_does_not_block_unrelated_transfer_and_close_waits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "source").write_bytes(b"abc")
+            store = WorkspaceStore(directory)
+            entered, proceed, completed, closed = (threading.Event() for _ in range(4))
+            failures = []
+            def digest(stream):
+                entered.set()
+                if not proceed.wait(5):
+                    raise RuntimeError("test hash barrier timed out")
+                return hashlib.sha256(b"abc").hexdigest()
+            def begin():
+                try: store.execute(request("download-begin", {"path": "source"}))
+                except Exception as exc: failures.append(exc)
+            def independent():
+                try:
+                    store.execute(request("upload-begin", {"path": "out", "size_bytes": 0,
+                        "sha256": hashlib.sha256(b"").hexdigest()}))
+                    completed.set()
+                except Exception as exc: failures.append(exc)
+            def close():
+                store.close(); closed.set()
+            with patch("swcli.workspace.file_hash", digest):
+                a = threading.Thread(target=begin); a.start()
+                self.assertTrue(entered.wait(2))
+                b = threading.Thread(target=independent); b.start()
+                try:
+                    self.assertTrue(completed.wait(2))
+                    c = threading.Thread(target=close); c.start()
+                    self.assertFalse(closed.wait(.05))
+                finally:
+                    proceed.set(); a.join(5); b.join(5)
+                c.join(5)
+            self.assertTrue(closed.is_set())
+            self.assertEqual(failures, [])
+
+    def test_initial_download_and_upload_errors_have_transfer_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            client = FileTransferClient(directory, session_id="review")
+            cause = ConnectionRefusedError("offline")
+            cause._swcli_transport_phase = "connect"
+            with patch.object(client, "rpc", side_effect=cause):
+                with self.assertRaises(TransferError) as caught:
+                    client.download("source", "target")
+            self.assertIs(caught.exception.__cause__, cause)
+            self.assertEqual(caught.exception.session_id, "review")
+            self.assertEqual(caught.exception._swcli_transport_phase, "connect")
+            with self.assertRaises(TransferError) as caught:
+                client.upload("missing", "target")
+            self.assertIsInstance(caught.exception.__cause__, OSError)
