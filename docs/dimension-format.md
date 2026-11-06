@@ -1,4 +1,4 @@
-# 尺寸显示格式（内部校准阶段）
+# 尺寸显示格式（公开验收候选）
 
 本批限定选项 → 文档属性 → 尺寸中的三项：
 
@@ -19,7 +19,7 @@ swcli document dimension-format-set dual_position top --document d-ab12cd --leas
 
 读取 `format` 为完整的原生三字段快照；未知位置整数保留原值用于完整 CAS。setter 每次最多改变一项，要求显式 `document_id`、`expected_update_stamp`、`lease_id` 和 `expected_format`。公开字段不接受内部校准开关。文档身份、前台、活动配置/草图/图纸上下文、readonly/viewonly 均受保护。真正写入前再次观察完整快照；写入后精确读取全部三字段，同时保护原有单位元组与注解/零显示配置。setter 失败保留 `mutation.attempted/may_have_changed`，不重试、不回滚。
 
-**原生写入默认关闭。** `CALIBRATED_DOCUMENT_TYPES` 为空：实际变更返回 `DimensionFormatNotCalibrated`；CAS 成功的同值调用不触碰 setter、不置脏。内部适配器校准不是安装后公开 CLI 验收，不能据此开放写入或宣称验收完成。
+**当前仅为开发分支的公开验收候选。** 内部运行42277961301支持原生Windows、SOLIDWORKS revision `33.5.0`、part/assembly/drawing三种文档，候选白名单仅包含该范围；其他环境实际变更返回 `DimensionFormatNotCalibrated`。CAS 成功的同值调用不触碰 setter、不置脏。内部校准不能代替安装后公开CLI/daemon验收，公开gate完整通过前不可据此合并或宣称完成。
 
 Windows 手动 CI：现有 `ci.yml` 的 `dimension_format_calibration=true`，仅 `codex/docprops-dimension-format` 可运行；默认 false，不接收 PR 事件，不触发完整 native suite。内部校准在独立隐藏 host 中顺序运行 part/assembly/drawing，核安装 `swconst.tlb`，验证背景读写、全部位置、true/false、保存重开、单位/零显示/全局偏好不变及零件几何。单个原生操作600秒、整组1800秒、首失败停止，无失败 API 重试/自动回滚/组内重启。原始报告、trace、stdout/stderr、原生文件由专属 artifact 保留。
 
@@ -36,7 +36,7 @@ Windows 手动 CI：现有 `ci.yml` 的 `dimension_format_calibration=true`，�
 
 新增默认关闭的 `dimension_format_public` 手动模式；与内部校准互斥，不进入默认full/release共享concurrency。独立fixture准备报告与源文件摘要绑定后，通过安装的CLI驱动一个隐藏daemon，在同一worker中核三种文档的CAS拒绝、每项写入/同值、只读拒绝、保存重开、单位/零显示不变及几何。每个尺寸操作request_id与完整native trace边界关联，记录整个trace前缀摘要；SDK/MCP上下文另有定向契约测试。公开写入需同时匹配经过证据确认的文档类型与确切SOLIDWORKS revision；未知位置只能读取或同值观察。
 
-首次内部运行42260887789失败，原始artifact摘要`cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`已核。首失败为前后台/保存转换两侧的质心逐位比较不等，尚未保存重开，不能算原生通过。修复将基线放到保存/后台转换之后并增加无写入控制读；仍保留精确相等的写后和重开比较，不放宽几何或状态断言。当前公开文档类型及revision白名单仍空。
+首次内部运行42260887789失败，原始artifact摘要`cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`已核。首失败为前后台/保存转换两侧的质心逐位比较不等，尚未保存重开，不能算原生通过。修复将基线放到保存/后台转换之后并增加无写入控制读；仍保留精确相等的写后和重开比较，不放宽几何或状态断言。当次运行时公开文档类型及revision白名单仍空。
 
 Windows证据不会开启Wine：真正公开变更还要求原生Windows运行环境，ntdll出现Wine导出或检测失败均fail closed；内部夹具入口不属于公开协议。公开争用lease测试使用符合12字符wire schema的token，确保拒绝发生在daemon授权层。
 
@@ -48,4 +48,6 @@ Windows证据不会开启Wine：真正公开变更还要求原生Windows运行�
 
 Oracle核对的官方API：[GetVertices](https://help.solidworks.com/2019/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IBody2~GetVertices.html)、[IVertex.GetPoint](https://help.solidworks.com/2019/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IVertex~GetPoint.html)、[IEdge.GetStartVertex](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetStartVertex.html)、[ICurveParamData.StartPoint与Sense语义](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~StartPoint.html)。端点仅作此直线盒形夹具的无向几何比较，不重新定义公开trim、闭合或持久实体身份。
 
-收口快照（2026-11-07）：内部运行42277961301在head6445c1375586d33eca13db0ffa0ee697c64ced89完成part/assembly/drawing校准，原产物SHA256 `b5bc069911527c77312c79dd3cba34c5ee6ddd5d8eb399eb569539d4a9826729`已独立核验。最新产品c062dd6另修复最终文档观察失败丢失mutation回执及前台文档自身状态漂移漏检，便携CI通过；该head尚无公开原生验收。写入名单仍空，不能据内部成功宣称公开写入完成。
+收口快照（2026-11-07）：内部运行42277961301在head6445c1375586d33eca13db0ffa0ee697c64ced89完成part/assembly/drawing校准，原产物SHA256 `b5bc069911527c77312c79dd3cba34c5ee6ddd5d8eb399eb569539d4a9826729`已独立核验。最新产品c062dd6另修复最终文档观察失败丢失mutation回执及前台文档自身状态漂移漏检，便携CI通过；该head尚无公开原生验收；不能据内部成功宣称公开写入完成。后续仅在开发分支开放已核内部范围作为公开验收候选。
+
+统筹随后澄清收口不取消原计划必要公开gate：本分支仅按已核内部范围开放上述验收候选，P1修复保持不变，准备一次必要公开运行；不增加字段/场景，不持续监看。最终公开运行状态与精确head见WORK_HANDOFF.md。

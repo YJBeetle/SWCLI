@@ -10,10 +10,11 @@ DIMENSION_FORMAT_FIELDS = {
     "parentheses": {"kind": "Toggle", "preference": 48, "option": 0,
                     "symbol": "swDetailingDimsShowParenthesisByDefault", "option_symbol": "swDetailingNoOptionSpecified"},
 }
-# Internal calibration is not installed-public-CLI acceptance. No new native
-# writes are enabled by merely passing mocks or a private adapter calibration.
-CALIBRATED_DOCUMENT_TYPES = frozenset()
-CALIBRATED_HOST_REVISIONS = frozenset()
+# Development-branch public-acceptance candidate: internal run 42277961301
+# calibrated these exact native Windows profiles. Installed CLI/daemon
+# acceptance is still required before integration; see WORK_HANDOFF.md.
+CALIBRATED_DOCUMENT_TYPES = frozenset({1, 2, 3})
+CALIBRATED_HOST_REVISIONS = frozenset({"33.5.0"})
 
 
 def format_schema():

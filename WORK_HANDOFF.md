@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-当前状态：6445c13的原生内部校准42277961301已成功，part/assembly/drawing完整保存重开及保护证据均通过独立核验。最新产品head c062dd6修复两项P1并通过Windows便携CI；尚无该head的安装公开CLI/daemon原生验收。写入白名单仍空，不merge-ready。按最新收口要求停止持续监看，本轮不再dispatch。
+当前状态：6445c13的内部原生校准42277961301已成功并核原件；P1修复c062dd6的Windows便携CI已过。统筹澄清原计划公开gate继续，因此仅在开发分支开放原生Windows / revision33.5.0 / 三种文档的验收候选，正在提交一次必要公开运行。尚无最终head公开原生通过结论，不merge-ready；记录run后停止持续监看。
 
 ## 分支与范围
 
@@ -100,3 +100,11 @@
 - 此运行先于P1修复c062dd6；且report/supervisor均full_acceptance_eligible=false。因此仅是该6445c13的内部校准，不是最终产品head的公开CLI/daemon验收，不提供已验收写入子集或可合并通过结论。
 - 未完成：最终产品head必要的安装公开CLI/daemon验收；通过前不开放文档类型/revision白名单。当前两集合仍空，Wine仍拒绝实际变更。公开gate准备代码保留，未新增功能或计划。
 - 按统筹转达的最新收口要求，已停止持续sleep/状态轮询并收回本地watch；无新dispatch/automation、无取消任何CI，无CAD失败重试/回滚/组内host重启。本轮交接后由统筹分次快照跟进，不自行合main或发布，不rebase main。
+
+## 原计划公开gate候选
+
+- 统筹随后澄清：收口不取消当前已实现范围原计划必要公开gate；真实内部证据过且已知P1修复后可继续一次必要公开验收。
+- 仅在本开发分支开放内部已证实的原生Windows / revision33.5.0 / 文档类型1、2、3候选；Wine、其他版本仍拒绝实际写入。不是已通过公开验收的白名单，不提供合并通过结论。
+- c062dd6两处P1保持；portable假host设为显式未知revision，保证未校准范围拒绝用例不依赖候选名单为空。公开运行将绑定本次精确产品head；记录一次状态后停止轮询。
+
+- 候选本地检查：精确wheel构建安装及installed CLI/schema/product skill检查通过（不激活COM）；全套1860项通过、32项平台跳过，定向41项与SDK生成检查通过。原始便携日志 ../evidence/public-candidate-*.log。

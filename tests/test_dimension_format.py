@@ -24,6 +24,7 @@ class DimensionFormatTests(unittest.TestCase):
         fixture.setUp()
         self.__dict__.update(fixture.__dict__)
         self.fixture = fixture
+        self.app.RevisionNumber = "uncalibrated-test"
         self.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
         self.foreground.Extension = SimpleNamespace()
         self.native.update({43: False, 14: 1, 48: False})
