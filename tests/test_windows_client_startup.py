@@ -34,7 +34,8 @@ class StartupBrokerTests(unittest.TestCase):
         self.assertEqual(definition.Settings.ExecutionTimeLimit, "PT0S")
         definition.Triggers.Create.assert_not_called()
         action = definition.Actions.Create.return_value
-        self.assertEqual(action.Path, sys.executable)
+        from swcli.background_runtime import background_python
+        self.assertEqual(action.Path, background_python())
         self.assertEqual(action.Arguments, subprocess.list2cmdline(arguments))
         task = folder.RegisterTaskDefinition.return_value
         task.RunEx.assert_called_once_with("", 4, 2, "")

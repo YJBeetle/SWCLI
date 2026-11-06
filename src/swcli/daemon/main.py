@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from ..background_runtime import background_python
 from .client import DEFAULT_ENDPOINT, call_daemon, parse_endpoint
 from .server import SwclidServer, WorkerManager, WorkerStartupError
 from .timeouts import validate_timeout
@@ -362,6 +363,7 @@ def start_daemon(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200
     )
     try:
+        command[0] = background_python()
         with log_path.open("ab") as log:
             log_offset = log.tell()
             process = subprocess.Popen(

@@ -12,6 +12,8 @@ import sys
 import time
 import uuid
 
+from .background_runtime import background_python
+
 
 def in_client_job():
     if sys.platform != "win32":
@@ -36,7 +38,7 @@ def register_start_task(service, *, name, user_sid, arguments, session_id):
     settings.StopIfGoingOnBatteries = False
     settings.ExecutionTimeLimit = "PT0S"
     action = definition.Actions.Create(0)  # TASK_ACTION_EXEC
-    action.Path = sys.executable
+    action.Path = background_python()
     action.Arguments = subprocess.list2cmdline(arguments)
     # TASK_CREATE, never replace an existing definition. There are no triggers.
     task = folder.RegisterTaskDefinition(name, definition, 2, user_sid, None, 3)
