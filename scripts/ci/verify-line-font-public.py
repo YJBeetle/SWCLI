@@ -33,11 +33,11 @@ OBSERVATION_CALLS = {
 
 class LineFontSmoke(helpers.AnnotationSmoke):
     def health(self):
-        runtime = self.command("daemon", "status")["result"]
-        status = runtime["health"]
-        require(runtime["daemon_running"] is True and runtime["daemon_reachable"] is True
-                and runtime["daemon_state"] == "ready" and runtime["host_connected"] is True
-                and status["host_connected"] is True and status["recovery_required"] is False,
+        # Plain CLI status routes to daemon.health; only --details / the
+        # DaemonManager status surface returns daemon.runtime-status.
+        status = self.command("daemon", "status")["result"]
+        require(status["worker_alive"] is True and status["host_connected"] is True
+                and status["recovery_required"] is False,
                 "public line font gate requires a connected, unreplaced host")
         require(type(status["host"]["process_id"]) is int, "native host PID unavailable")
         return status
@@ -202,6 +202,16 @@ def run(gate, trace, template):
     gate.record.update(success=True, state="completed")
 
 
+def create_gate(directory, endpoint):
+    gate = LineFontSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
+    gate.record_path = directory / "line-font-public.json"
+    # Atomic checkpoints preserve the original file mode, so the summary must
+    # exist before the first command or any startup/cleanup failure.
+    with gate.record_path.open("x", encoding="utf-8") as stream:
+        json.dump(gate.record, stream, ensure_ascii=False, allow_nan=False)
+    return gate
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -211,8 +221,7 @@ def main():
     directory.mkdir(parents=True)
     stdout_path, stderr_path = directory / "daemon.stdout.log", directory / "daemon.stderr.log"
     endpoint = "127.0.0.1:18495"
-    gate = LineFontSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
-    gate.record_path = directory / "line-font-public.json"
+    gate = create_gate(directory, endpoint)
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
         daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--tray", "off", "--startup-timeout", "120"],
             stdout=out, stderr=err, env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})

@@ -1,6 +1,8 @@
+> **统筹更正：先前“共享 ModelingSmoke.health 不兼容”的判断错误，现撤回。普通 CLI `daemon status` 走 daemon.health，基类 helper 与该路径兼容；只有 --details / DaemonManager.status 走嵌套 runtime-status。本分支曾错误混用两条路由，现按原始失败产物修复，并补真实 CLI 路由联测。不要把先前提醒应用到其他分支。**
+
 # 线型 / 线宽默认设置交接
 
-当前状态：内部原生校准及独立原产物核验通过；已开放证实的精确范围，公开 CLI/daemon 验收运行中。**尚未 merge-ready，不自行合 main/发布。**
+当前状态：内部原生校准及独立原产物核验通过；公开 run 42272391578 已失败，首错为本分支 gate 误读 CLI health，另有摘要文件未初始化导致 checkpoint 报错致摘要缺失（原 job 日志仍保有首错），正在修复。未发生公开线型读写。**尚未 merge-ready，不自行合 main/发布。**
 
 ## 范围与接口
 
@@ -55,7 +57,7 @@
 
 - 接线修复提交：`36a262ad020738b9bb8e4bbc8c3cbd3a993716eb`，21 项相关便携测试通过。
 - 新的必要公开 run：[42269536427](https://github.com/YJBeetle/SWCLI/actions/runs/42269536427)，head=`36a262ad020738b9bb8e4bbc8c3cbd3a993716eb`；参数 line_font_public=true / line_font_calibration=false / native_full=false，其余默认。当前待结果。
-- 给统筹的共享 helper 提醒：本 worktree 的 `scripts/ci/verify-modeling.py:494` 基类 health 读取旧状态形状；当前 `src/swcli/runtime_state.py` 把原始健康放在 health 子键中。本分支仅通过 LineFontSmoke 覆盖修复，不改共享 helper。其他 gate 若直接复用旧 health，需要主对话独立审查。
+- 【该提醒已被原产物否定，现已撤回；见下方实际 CLI 路由修复】先前的共享 helper 提醒：本 worktree 的 `scripts/ci/verify-modeling.py:494` 基类 health 读取旧状态形状；当前 `src/swcli/runtime_state.py` 把原始健康放在 health 子键中。本分支仅通过 LineFontSmoke 覆盖修复，不改共享 helper。其他 gate 若直接复用旧 health，需要主对话独立审查。
 
 - 旧公开 run 42266835193 普通 cancel 后仍被 always() job 保持运行，已仅对该本线程 run 使用 force-cancel；最终 conclusion=cancelled。停止时仍在 runner 磁盘清理，未进入公开 native group；GitHub 未产生 native artifact。已保留 run metadata、无 native artifact 说明与 job-log HTTP 404 取证状态于本地（原 job 日志当前无法取得） `artifacts/line-font/internal-cancelled-public-42266835193/`。不将其冒充 SOLIDWORKS API 失败或验收。
 
@@ -83,3 +85,12 @@
 - 默认全 false 保持 portable；单独 native_full=true 保持 full；合法版本 tag 仍由既有 tag-policy 控制完整 native/release；错误参数 workflow 明确失败，避免空绿。
 - 新增 56 组 flags/ref/event 组合断言、CLI env 解码/错误组合子进程检查，以及 YAML 接线检查；不接触 CAD 或凭据。
 - 当前公开 run 42272391578 继续以原 head a783b498213597385bed2dfa41cc7cfa1dced2ed 独立取证，其参数本来就是合法单 public + 正确 branch。此路由补丁不改变产品 adapter、CLI、SDK/MCP 或公开 gate 脚本；不为统筹路由消息触发另一 CAD。
+
+## 首次真实公开 gate 失败（原产物已保存）
+
+- run [42272391578](https://github.com/YJBeetle/SWCLI/actions/runs/42272391578)，head a783b498213597385bed2dfa41cc7cfa1dced2ed，conclusion=failure。
+- 原 artifact id 13533098590，SHA256 `a3064f349b415f4c7cc5f7435a7d3a5e7607f2821c66a2d36c46cf50fe4fddbb` 与 GitHub digest 一致；ZIP/metadata/expanded/job log 保存在本地 `artifacts/line-font/internal-public-42272391578/`，未推送原日志。
+- journal 第一条 daemon.status 返回真实 raw health 封套，本分支误从 result.health 读取，KeyError；finally checkpoint 又因初始 line-font-public.json 未创建而 stat 失败，未产生 summary；原 job 日志仍完整保留 KeyError 首错。尚未进入 line-font 读写，不冒充 API 失败或验收。
+- 修复：沿真实 cli.main -> daemon.main.run -> daemon.health 路径联测 health（不使用错误的 DaemonManager/status 假定）；启动任何进程前以 x 模式创建初始 summary，并测试原子 checkpoint 可保存首个失败；不放宽状态/几何/trace 断言。
+
+- 已保存原 job 日志 63876 字节，SHA256 `af8a37335d586d9126774387337bd3d049f4ce6e922d4beb69ad11c31aca660e`；明确 KeyError: health 是首错，27 项相关（含路由）测试通过，SDK 生成一致性及既有门禁/摘要策略测试通过。

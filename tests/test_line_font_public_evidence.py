@@ -6,7 +6,6 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest import mock
-from swcli.runtime_state import snapshot
 
 spec = importlib.util.spec_from_file_location("_line_font_public_test", Path(__file__).parents[1] / "scripts/ci/verify-line-font-public.py")
 public = importlib.util.module_from_spec(spec)
@@ -69,22 +68,41 @@ class LineFontPublicTraceTests(unittest.TestCase):
 
 
 class LineFontRuntimeContractTests(unittest.TestCase):
-    def test_status_uses_nested_current_health_contract(self):
-        native = dict(server_version="test", host_connected=True, recovery_required=False,
-                      host=dict(process_id=10, owned_by_daemon=True, visible=False))
-        runtime = snapshot(native)
+    def native(self):
+        return dict(server_version="test", worker_alive=True, host_connected=True, recovery_required=False,
+                    host=dict(process_id=10, owned_by_daemon=True, visible=False))
+
+    def test_actual_cli_status_routes_to_plain_daemon_health(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from swcli.cli import main
+        native = self.native()
+        envelope = dict(api_version="swcli/v1", request_id="health-test", success=True, duration_ms=0, result=native)
+        stdout = StringIO()
+        with mock.patch("swcli.daemon.main.call_daemon", return_value=envelope) as transport, redirect_stdout(stdout):
+            self.assertEqual(main(["daemon", "status", "--json"]), 0)
+        self.assertEqual(transport.call_args.args[0], "daemon.health")
         gate = public.LineFontSmoke.__new__(public.LineFontSmoke)
-        gate.command = mock.Mock(return_value={"result": runtime})
+        gate.command = mock.Mock(return_value=json.loads(stdout.getvalue()))
         self.assertEqual(gate.health(), native)
         gate.command.assert_called_once_with("daemon", "status")
 
-    def test_disconnected_runtime_cannot_be_promoted_by_nested_health(self):
-        native = dict(host_connected=True, recovery_required=False, host=dict(process_id=10))
-        runtime = {**snapshot(native), "host_connected": False}
+    def test_disconnected_health_cannot_be_promoted(self):
         gate = public.LineFontSmoke.__new__(public.LineFontSmoke)
-        gate.command = mock.Mock(return_value={"result": runtime})
+        gate.command = mock.Mock(return_value={"result": {**self.native(), "host_connected": False}})
         with self.assertRaises(RuntimeError):
             gate.health()
+
+    def test_initial_summary_exists_before_first_atomic_checkpoint(self):
+        with TemporaryDirectory() as directory:
+            gate = public.create_gate(Path(directory), "127.0.0.1:18495")
+            self.assertTrue(gate.record_path.is_file())
+            gate.record.update(state="failed", error=dict(type="FixtureError", message="first failure"))
+            gate.checkpoint("first-failure-preserved")
+            actual = json.loads(gate.record_path.read_text())
+            self.assertEqual(actual["error"]["message"], "first failure")
+            self.assertEqual(actual["stage"], "first-failure-preserved")
+            self.assertIsNone(gate.checkpoint_error)
 
 
 class LineFontOwnedWorkerIntegrationTests(unittest.TestCase):
