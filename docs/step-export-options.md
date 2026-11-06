@@ -79,3 +79,21 @@ an independent observer group reads the exact SHA256-pinned public output
 files with `LoadFile4`, then saves and reopens imported native geometry. Each
 group owns one host with no failure retry or replacement. These prepared paths
 have not run yet; they do not enable the empty public revision allowlist.
+
+The independent observer explicitly scopes neutral-format import settings: it
+resolves `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`
+and `swImportNeutral_FreeCurvesAndPoints` from installed SwConst, selects the
+legacy solids+free-curves-as-sketch profile before importing generated outputs,
+and restores/verifies its complete original snapshot in `finally`. These are
+test-only observer settings; production export does not change import options.
+Every import must still return error code zero and pass the same geometry and
+save/reopen checks. No failed import is retried in its group.
+
+- [Neutral-format import API preferences](https://help.solidworks.com/2023/English/api/swconst/FileOpenOptionsSTEPIGESACIS.htm)
+- [STEP import entities, including free curves/points as sketches](https://help.solidworks.com/2025/english/SolidWorks/sldworks/t_reading_step_iges_acis_sw.htm)
+- [3D Interconnect API toggle](https://help.solidworks.com/2022/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IImport3DInterconnectData.html)
+
+The observer uses the official void `ISldWorks.SetUserPreferenceToggle`
+contract and verifies each effect through the complete boolean readback;
+production integer preference setters retain their separate boolean contract.
+[Toggle setter API](https://help.solidworks.com/2019/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isldworks~setuserpreferencetoggle.html).

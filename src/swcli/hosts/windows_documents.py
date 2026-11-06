@@ -805,6 +805,10 @@ def export_active_windows_document(
             }
             return result
 
+        if step_protocol is not None and not before["document"].get("path"):
+            result["error"] = {"type": "SourceNotClean", "message": "STEP options require a saved native source"}
+            return result
+
         warnings = _export_source_warnings(before)
         if (strict or step_protocol is not None) and warnings:
             result["error"] = {

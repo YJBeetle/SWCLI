@@ -37,15 +37,19 @@ def step_host_scope(app, *, isolated, calibration=False):
 
 
 def read_step_constants(path=None):
-    """Resolve symbols from the installed official library, never guessed IDs."""
+    """Resolve STEP symbols from the installed official library."""
+    return _read_native_enum_constants(path, {
+        "swUserPreferenceIntegerValue_e": {"swStepAP", "swStepExportPreference"},
+        "swAcisOutputGeometryPreference_e": set(STEP_GEOMETRIES.values()),
+    })
+
+
+def _read_native_enum_constants(path, wanted):
+    """Resolve exact enum ownership/names without guessed native IDs."""
     import pythoncom
     path = Path(path or r"C:\Program Files\SOLIDWORKS\swconst.tlb")
     if not path.is_file():
         raise StepExportError("StepTypeLibraryUnavailable", "installed swconst.tlb is required")
-    wanted = {
-        "swUserPreferenceIntegerValue_e": {"swStepAP", "swStepExportPreference"},
-        "swAcisOutputGeometryPreference_e": set(STEP_GEOMETRIES.values()),
-    }
     found = {}
     library = pythoncom.LoadTypeLib(str(path))
     for index in range(library.GetTypeInfoCount()):
@@ -59,12 +63,11 @@ def read_step_constants(path=None):
             name = info.GetDocumentation(descriptor[0])[0]
             if name in names:
                 if name in found or type(descriptor.value) is not int:
-                    raise StepExportError("StepTypeLibraryUnavailable", "ambiguous STEP enum")
+                    raise StepExportError("StepTypeLibraryUnavailable", "ambiguous native preference enum")
                 found[name] = descriptor.value
     if set(found) != set().union(*wanted.values()):
-        raise StepExportError("StepTypeLibraryUnavailable", "installed STEP enums are incomplete")
+        raise StepExportError("StepTypeLibraryUnavailable", "installed preference enums are incomplete")
     return found
-
 
 def validate_step_options(output, protocol, geometry):
     if protocol is None and geometry is None:
@@ -87,6 +90,17 @@ def _snapshot(app, keys):
     return values
 
 
+def _native_windows_runtime():
+    import ctypes
+    import sys
+    if sys.platform != "win32":
+        return False
+    # An unreadable runtime identity raises and therefore fails closed. The
+    # Wine export is absent from native ntdll; no platform label from a client
+    # is trusted to establish this calibrated native-Windows scope.
+    return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+
+
 @contextmanager
 def step_preferences(app, document, protocol, geometry, result):
     if protocol is None and geometry is None:
@@ -98,6 +112,8 @@ def step_preferences(app, document, protocol, geometry, result):
     revision = str(_com_value(app, "RevisionNumber"))
     if not scope[1] and revision not in VALIDATED_REVISIONS:
         raise StepExportError("StepCalibrationRequired", "STEP option writes await native/public calibration for this revision")
+    if not scope[1] and not _native_windows_runtime():
+        raise StepExportError("StepNativePlatformRequired", "calibrated STEP options currently require native Windows")
     _require_writable(document)
     state = _state(document)
     if state[0] != 1:

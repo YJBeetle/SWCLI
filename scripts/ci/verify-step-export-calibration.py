@@ -5,6 +5,7 @@ call has a 600-second watchdog; the complete group has an 1800-second deadline.
 The normal public revision allowlist stays empty until reviewed acceptance.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -23,7 +24,9 @@ from swcli.hosts.windows_measurements import measure_part_windows
 from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_box_part_windows_with_handle, create_part_windows_with_handle
 from swcli.hosts.windows_sketches import _features
-from swcli.hosts.windows_step_export import read_step_constants, step_host_scope, verify_step_output
+from swcli.hosts.windows_step_export import (
+    read_step_constants, step_host_scope, verify_step_output, _read_native_enum_constants,
+)
 from swcli.result_schemas import validate_operation_result
 
 spec = importlib.util.spec_from_file_location(
@@ -59,6 +62,70 @@ def read_wireframe(document):
     # Box edge perimeter is 4*(40+30+10)=320mm. Included source rectangle adds
     # 2*(40+30)=140mm; verify exact profile below in the case runner.
     return dict(segment_count=len(lengths), lengths_mm=sorted(lengths), total_length_mm=sum(lengths))
+
+
+IMPORT_PROFILE = {
+    "swMultiCAD_Enable3DInterconnect": False,
+    "swImportNeutral_SolidandSurface": True,
+    "swImportNeutral_FreeCurvesAndPoints": True,
+}
+
+
+def read_import_constants(path):
+    return _read_native_enum_constants(path, {"swUserPreferenceToggle_e": set(IMPORT_PROFILE)})
+
+
+@contextmanager
+def observer_import_preferences(app, constants, call, case):
+    """Only the generated-output observer; never production export settings."""
+    def observe(label):
+        values = {name: call(label + "." + name, lambda: app.GetUserPreferenceToggle(constants[name]))
+                  for name in IMPORT_PROFILE}
+        checked(all(type(value) is bool for value in values.values()), "observer import preferences unreadable")
+        return values
+    checked(call("observer-empty-before-import-options", lambda: _com_value(app, "GetDocumentCount")) == 0,
+            "observer import profile requires an empty owned host")
+    before = observe("read-import-original")
+    evidence = case["observer_import_preferences"] = dict(before=before, requested=IMPORT_PROFILE, restored=False)
+    checked(observe("compare-import-original") == before, "observer import preference snapshot changed")
+    attempted = []
+    first_error = None
+    try:
+        for name, value in IMPORT_PROFILE.items():
+            if before[name] == value:
+                continue
+            attempted.append(name)
+            status = call("set-import-option." + name,
+                          lambda: app.SetUserPreferenceToggle(constants[name], value))
+            checked(status is None, "unexpected return from void ISldWorks.SetUserPreferenceToggle")
+            expected = {**before, **{key: IMPORT_PROFILE[key] for key in attempted}}
+            checked(observe("read-import-applied") == expected, "observer import preference readback differs")
+        checked(observe("verify-import-profile") == IMPORT_PROFILE, "observer import profile differs")
+        yield
+    except BaseException as exc:
+        first_error = exc
+        raise
+    finally:
+        failures = []
+        for name in reversed(attempted):
+            try:
+                status = call("restore-import-option." + name,
+                              lambda: app.SetUserPreferenceToggle(constants[name], before[name]))
+                checked(status is None, "unexpected return from void ISldWorks.SetUserPreferenceToggle restore")
+            except Exception as exc:
+                failures.append(dict(preference=name, error=str(exc)))
+        try:
+            after = evidence["after"] = observe("read-import-restored")
+            checked(after == before, "observer import original preferences did not round-trip")
+        except Exception as exc:
+            failures.append(dict(error=str(exc)))
+        if failures:
+            evidence["restore_errors"] = failures
+            case["success"] = False
+            if first_error is None:
+                raise RuntimeError("observer import preferences could not be restored")
+        else:
+            evidence["restored"] = True
 
 
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
@@ -119,7 +186,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     checked(not _com_value(document, "GetSaveFlag"), "reopened source observation mutated source")
     call("close-reopened-source", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
     live["document"] = document = None
-    verify_imported_geometry(app, target, output, name, geometry, call, case, live)
+    verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
 
 
 def verify_reopened_geometry(before, after, geometry):
@@ -164,7 +231,12 @@ def verify_reopened_geometry(before, after, geometry):
                     "analytic wireframe length differs after native save/reopen")
 
 
-def verify_imported_geometry(app, target, output, name, geometry, call, case, live):
+def verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
+    with observer_import_preferences(app, constants, call, case):
+        _verify_imported_geometry(app, target, output, name, geometry, call, case, live)
+
+
+def _verify_imported_geometry(app, target, output, name, geometry, call, case, live):
     import pythoncom
     from win32com.client import VARIANT
     original_step_digest = hashlib.sha256(target.read_bytes()).hexdigest()
@@ -212,7 +284,7 @@ def readback_case(app, output, constants, plane, reverse, call, case, report, li
     target = Path(row["path"])
     checked(hashlib.sha256(target.read_bytes()).hexdigest() == row["sha256"], "public STEP digest mismatch")
     case.update(public_output=row, actual_step=verify_step_output(target, row["protocol"], row["geometry"]))
-    verify_imported_geometry(app, target, output, target.stem, row["geometry"], call, case, live)
+    verify_imported_geometry(app, target, output, target.stem, row["geometry"], constants, call, case, live)
 
 
 def worker(args):
@@ -236,7 +308,7 @@ def worker(args):
     windows._com_value = bounded_com_value
     globals()["_com_value"] = bounded_com_value
     harness._com_value = bounded_com_value
-    harness.read_constants = lambda pythoncom, path: read_step_constants(path)
+    harness.read_constants = lambda pythoncom, path: {**read_step_constants(path), **read_import_constants(path)}
     if args.export_report is not None:
         public = json.loads(args.export_report.read_text(encoding="utf-8"))
         checked(public["success"] and len(public["outputs"]) == 8, "public export group is incomplete")

@@ -56,3 +56,26 @@
 - Additional public-phase preparation includes explicit native SaveAs3 attempted/possible-mutation flags and trace boundaries, fail-closed unknown original preferences, native input type-library SHA256/head identity. Public revision allowlist remains empty.
 - Preparing a new commit and a single internal dispatch on that new head after portable/wiring checks. No public acceptance or whitelist promotion yet.
 - Approved repair verification: full portable suite 1841 tests passed, 26 skipped (55.311 seconds); STEP/offline harness tests 22 passed; SDK generator/strict typing and 10 negative consumer fixtures passed; Python compilation/YAML and full/default CI guard tests passed. Logs in step-evidence/portable-second-head.log and sdk-types-second-head.log.
+
+
+## Repaired internal run
+- Repair commit: `6d477667e74aa2cf734fceff86c14186d82ef5cb`, pushed to the same authorized branch.
+- First dispatch API call returned HTTP 500 and created no run; two read-only dispatch-list checks one minute apart confirmed absence. A resubmission then established exactly one actual run for this head.
+- Internal run: https://github.com/YJBeetle/SWCLI/actions/runs/42267422666
+- Verified workflow_dispatch head: 6d477667e74aa2cf734fceff86c14186d82ef5cb. Parameters native_step_targeted=true, native_step_public_targeted=false, native_full=false; other workflow defaults. Independent internal-profile+ref concurrency, no cancellations.
+- This is a new repaired head; the failed ff7f66b run/ZIP remain unchanged. Public allowlist is empty; public acceptance remains pending successful full internal evidence/audit.
+
+- While the repaired internal run executes, prepared a native-runtime identity guard for the eventual public head. Matching SOLIDWORKS revision alone will not enable Wine/non-Windows; unreadable runtime identity fails closed. Its portable negative test passes; no whitelist entry has been added.
+- Pending public-head guards (not part of 6d47766): require actual native Windows identity in addition to the calibrated revision, and reject an unsaved source before preference setters/native SaveAs. Portable STEP checks now 24 passed; existing mesh export checks 8 passed. Public whitelist is still empty.
+- Independent first-run raw STEP audit confirmed recorded hash/schema plus exact 1 solid/1 closed shell/6 faces/12 edges/8 vertices. Native source/import file hashes/signatures recorded in internal-audit.json. This remains failed/partial evidence and does not promote the first run.
+
+## Second internal result / substantive observer-profile repair
+- Run 42267422666 / head 6d477667e74aa2cf734fceff86c14186d82ef5cb failed at its first AP203 wireframe LoadFile4 readback (error code 1). AP203 solid-surface completed full native import/save/read-only reopen successfully. Two cases started, one completed, no later cases/retries. Cleanup/owned process exit succeeded.
+- Original ZIP `step-evidence/internal-original-42267422666.zip`, artifact 13528703173; SHA256 `3203496cde278d8f1ac83d9b3b122052b05f492e38655cad5a1f2ed2b43d681e` matches GitHub digest. Report/trace/files extracted; audit `step-evidence/second-audit.json`.
+- Independent wire STEP proof: exact AP203 header/hash, 12 degree-one B-spline line edges, 8 vertices degree 3, millimeter units, 4 each of 10/30/40 mm, total 320 mm. Preference 142 set 0->1 and restored 1->0 with complete snapshot checks. Native import error remains unaccepted; no public promotion.
+- The observer previously relied on unrecorded import defaults. Official API references identify `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`, `swImportNeutral_FreeCurvesAndPoints`. Implemented test-only observer profile (False/True/True), exact installed enum-name/owner resolution, complete bool snapshot/CAS/readback and finally restore, preserving first failure if restore also fails. This is a substantive test-environment repair, not relaxed error/geometric assertions or a native retry.
+- All import error-code-zero, geometry, topology, approved precision, source identity and save/reopen requirements remain. Public allowlist stays empty. Pending native-Windows/saved-source guards are now included with the upcoming repaired internal head.
+- STEP/offline checks: 25 pass. Full portable, SDK/wiring verification and new repair commit/one internal dispatch are next. No public run yet.
+
+- Before dispatch, official setter signature review confirmed ISldWorks.SetUserPreferenceToggle is void (unlike the integer setter). Observer accepts the expected None return and requires complete readback after every setter/restoration. Portable stand-ins use this actual contract; no guessed boolean toggle return remains.
+- Third-head verification complete: 1845 portable tests passed, 26 skipped (50.946 seconds); 26 STEP/offline checks passed; SDK strict typing/generation plus 10 negative consumer fixtures passed; Python compilation and diff checks passed. Logs: step-evidence/portable-third-head.log and sdk-types-third-head.log.

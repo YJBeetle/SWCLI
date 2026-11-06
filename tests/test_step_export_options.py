@@ -203,7 +203,7 @@ class StepExportTests(unittest.TestCase):
             win32 = ModuleType("win32com"); win32.client = ModuleType("win32com.client")
             with mock.patch.object(docs.sys, "platform", "win32"), \
                     mock.patch.dict("sys.modules", {"pythoncom": ModuleType("pythoncom"), "win32com": win32, "win32com.client": win32.client}), \
-                    mock.patch.object(docs, "_export_source_state", return_value={"document": {"type": 1}}), \
+                    mock.patch.object(docs, "_export_source_state", return_value={"document": {"type": 1, "path": "source.SLDPRT"}}), \
                     mock.patch.object(docs, "_export_source_warnings", return_value=[]), \
                     mock.patch.object(docs, "step_preferences", return_value=ExitStack()):
                 result = docs.export_active_windows_document(str(path), app=self.app, document=document,
@@ -274,4 +274,33 @@ class StepExportTests(unittest.TestCase):
                 with self.scope({}):
                     self.fail("unknown original preference must not enter mutation scope")
             self.assertEqual(raised.exception.code, "StepPreferenceUnsupported")
+            self.assertEqual(self.writes, [])
+
+
+    def test_revision_evidence_never_enables_other_native_runtimes(self):
+        with mock.patch.object(step, "VALIDATED_REVISIONS", frozenset({"34.0"})), \
+                mock.patch.object(step, "_native_windows_runtime", return_value=False):
+            with step.step_host_scope(self.app, isolated=True):
+                with self.assertRaises(step.StepExportError) as raised:
+                    with step.step_preferences(self.app, self.document, "ap214", "wireframe", {}):
+                        self.fail("unvalidated Wine/non-Windows runtime must not write preferences")
+        self.assertEqual(raised.exception.code, "StepNativePlatformRequired")
+        self.assertEqual(self.writes, [])
+
+
+    def test_unsaved_source_rejected_before_preferences_or_native_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "part.step"
+            output.write_bytes(b"original")
+            document = SimpleNamespace(SaveAs3=mock.Mock())
+            win32 = ModuleType("win32com"); win32.client = ModuleType("win32com.client")
+            with mock.patch.object(docs.sys, "platform", "win32"), \
+                    mock.patch.dict("sys.modules", {"pythoncom": ModuleType("pythoncom"), "win32com": win32, "win32com.client": win32.client}), \
+                    mock.patch.object(docs, "_export_source_state", return_value={"document": {"type": 1, "path": ""}}):
+                result = docs.export_active_windows_document(str(output), app=self.app, document=document,
+                    overwrite=True, step_protocol="ap214", step_geometry="solid-surface")
+            self.assertEqual(result["error"]["type"], "SourceNotClean")
+            self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+            self.assertEqual(output.read_bytes(), b"original")
+            document.SaveAs3.assert_not_called()
             self.assertEqual(self.writes, [])

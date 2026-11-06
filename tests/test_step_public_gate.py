@@ -110,3 +110,50 @@ class StepPublicGateTests(unittest.TestCase):
                         {**wire, "lengths_mm": [10.000001] + wire["lengths_mm"][1:]}):
             with self.assertRaises(RuntimeError):
                 module.verify_reopened_geometry(wire, changed, "wireframe")
+
+    def test_observer_import_profile_is_scoped_and_first_failure_survives_restore_error(self):
+        module = script("verify-step-export-calibration.py")
+        names = list(module.IMPORT_PROFILE)
+        constants = {name: index + 1000 for index, name in enumerate(names)}
+        original = {1000: True, 1001: True, 1002: False}
+        values = dict(original)
+        writes = []
+        def setter(key, value):
+            writes.append((key, value))
+            values[key] = value
+            return None
+        app = SimpleNamespace(GetDocumentCount=0, GetUserPreferenceToggle=lambda key: values[key],
+                              SetUserPreferenceToggle=setter)
+        case = {}
+        call = lambda name, function: function()
+        with module.observer_import_preferences(app, constants, call, case):
+            self.assertEqual(values, {constants[name]: value for name, value in module.IMPORT_PROFILE.items()})
+        self.assertEqual(values, original)
+        self.assertTrue(case["observer_import_preferences"]["restored"])
+        self.assertEqual(len(writes), 4)  # Two changed settings, once each way.
+        first = RuntimeError("original LoadFile4 readback failure")
+        def bad_restore(key, value):
+            if key == 1002 and value is False:
+                raise RuntimeError("restore failure")
+            return setter(key, value)
+        app.SetUserPreferenceToggle = bad_restore
+        case = {}
+        with self.assertRaises(RuntimeError) as raised:
+            with module.observer_import_preferences(app, constants, call, case):
+                raise first
+        self.assertIs(raised.exception, first)
+        self.assertIn("restore_errors", case["observer_import_preferences"])
+        self.assertFalse(case["success"])
+        self.assertTrue(values[1000])  # Other original preference still restored.
+
+    def test_void_import_setter_requires_effective_readback_before_import(self):
+        module = script("verify-step-export-calibration.py")
+        constants = {name: index + 2000 for index, name in enumerate(module.IMPORT_PROFILE)}
+        values = {2000: True, 2001: True, 2002: False}
+        app = SimpleNamespace(GetDocumentCount=0, GetUserPreferenceToggle=lambda key: values[key],
+                              SetUserPreferenceToggle=lambda *args: None)
+        case = {}
+        with self.assertRaisesRegex(RuntimeError, "observer import preference readback differs"):
+            with module.observer_import_preferences(app, constants, lambda name, fn: fn(), case):
+                self.fail("ignored setter must not import generated output")
+        self.assertTrue(case["observer_import_preferences"]["restored"])
