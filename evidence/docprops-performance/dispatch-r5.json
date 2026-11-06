@@ -20,5 +20,10 @@
   "dispatch_stderr": "",
   "run_id": 42281734865,
   "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42281734865",
-  "run_attempt": 1
+  "run_attempt": 1,
+  "handoff_snapshot_utc": "2026-11-06T19:42:58.404319+00:00",
+  "handoff_run_status": "in_progress",
+  "handoff_run_conclusion": "",
+  "continuous_polling_stopped": true,
+  "followup": "parent coordinator will take bounded snapshots when original artifacts become available"
 }

@@ -1,9 +1,9 @@
 # 文档属性校准性能：当前接管与验收边界
 
-## 当前汇总（2026-11-07，R4原件已核）
+## 当前汇总（2026-11-07，按最新收口交接）
 
 - 工作分支实现已推送到 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`；本路**尚未 merge-ready**，不合main/发布。
-- 当前唯一进行中：[R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，固定head `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`，尚无原生结果。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
+- 当前唯一进行中：[R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，固定head `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`。最后一次快照in_progress，正执行 `Free disposable runner disk for installation`，尚无原生结果；已停止持续轮询。R4 [42274393189 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42274393189) 固定head `ea45651b1afbd18e936ea5946c93c329c058bca0` 已失败：英文安装没有明确命名GB part模板，选择器在启动host前拒绝，0原生setter。原ZIP/摘要/首因已保存。
 - R4 ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0` 与GitHub digest一致；唯一原件 template-selection.json SHA256 `8b23779be484396816795ea190c658e3105ffe8b17cab72c51afec3eda9b80a9`。详情 `evidence/docprops-performance/run-42274393189-audit.json`。
 - 相关修复已提交并触发一次R5：同一owned host先执行**独立fixture准备组1800秒**，记录已知named→GB最多每类一次或GB零setter、完整profile/保存/RO/hash/part几何；成功后复制这些本run生成文件，再执行**原单组36转换/216 profiles，仍1800秒**。两组worker分别授权、600原生上限不变；准备失败不启动主组，零失败重试/rollback/组内host重启。额外准备不计入36能力。
 - 准备/审计相关148项纳入完整回归；完整portable 2157项 / 75.483秒 / skipped32 通过，workflow actionlint exit0。此前2131完整portable（skip32）、host范围标准28、公开准备10、SDK strict types/25负向消费者已通过，均非原生/公开验收。
@@ -184,4 +184,17 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 
 ### R5已受理（同head唯一dispatch）
 
-相关实现 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa` 已push。本head于2026-11-07 03:40:44 Asia/Shanghai只dispatch一次：[42281734865](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，attempt1。参数 `docprops_calibration=true`、`docprops_public=false`、`docprops_expected_head=cd624d95ea2a8f05553e39d6344b0c1f065b89aa`、`native_full=false`。持久回执 `dispatch-r5.json`，只读watch每3min核该run；不重发正常排队run。该运行采用独立准备1800+原单组36/216 1800；尚无成功原件，仍非merge-ready/非公开验收，白名单不变。
+相关实现 `cd624d95ea2a8f05553e39d6344b0c1f065b89aa` 已push。本head于2026-11-07 03:40:44 Asia/Shanghai只dispatch一次：[42281734865](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，attempt1。参数 `docprops_calibration=true`、`docprops_public=false`、`docprops_expected_head=cd624d95ea2a8f05553e39d6344b0c1f065b89aa`、`native_full=false`。持久回执 `dispatch-r5.json`，持续watch已按最新收口要求停止，由统筹后续分次快照；不重发正常排队run。该运行采用独立准备1800+原单组36/216 1800；尚无成功原件，仍非merge-ready/非公开验收，白名单不变。
+
+
+### 最新收口：停止持续跟进，交回统筹
+
+遵循用户最新指令：本轮只完成已在做的准备/性能/审计修复，不扩新功能、新计划，不为凑齐无限迭代；无审查子代理。未取消CI、未重复dispatch、未创建单CI automation。自己的read-only watcher已经停止，后续由统筹按需分次快照。未因main最新集成进行rebase或重跑，main未操作。
+
+- 实现tip：`cd624d95ea2a8f05553e39d6344b0c1f065b89aa`；其后仅交接文档/receipt提交。分支 `codex/docprops-calibration-performance`。
+- 当前唯一run：[42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865)，head严格绑定实现tip，最后快照 `in_progress` / `Free disposable runner disk for installation`。快照文件 `evidence/docprops-performance/run-42281734865-handoff-snapshot.json`，时间见 `dispatch-r5.json.handoff_snapshot_utc`。
+- 可交付实现子集：report revision缓存、严格checkpoint内native identity双射、保守wrapper计时拆分、owned授权COM传递、独立GB准备组和原单组36限制、原件hash/SDK叶调用离线审计，以及关闭的Windows/revision范围门禁与公开gate准备。完整portable 2157/skip32及actionlint通过。
+- **未达到原生/公开验收或merge-ready**：R5原生原件尚未产生；没有完整36/216成功artifact或digest可列；原生性能改善未实测；真实公开CLI/daemon/SDK/MCP未运行；成功proof缺失，转换/Windows revision名单保持空。不能按本路为整批标准能力发版背书。
+- 已有失败原件：R4 artifact `13532064982`，ZIP SHA256 `cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0`，GitHub digest核对一致；明确首因无GB part模板、0host/0setter。R2/R3原件和独立审计此前已保存。
+- 无新增公开operation/CLI/request-result schema/SDK/MCP字段。共享变动包括 `.github/workflows/ci.yml`、`scripts/ci/windows/cleanup-hosted-solidworks.ps1`、calibrator/driver、`src/swcli/document_drafting_standard.py`、`src/swcli/hosts/windows_document_drafting_standard.py`；生产src仅关闭门禁且固定reader AST未变，详见前述指纹。CI基础设施65min容纳独立准备1800+原36组1800，各组native600不变。
+- 统筹下次只需读该run完成/失败快照；原件可用后下载并核GitHub digest/source/head/attempt/manifest，再按独立auditor核首因与覆盖。当前没有需要用户审批的动作或未解决自动审批拒绝。
