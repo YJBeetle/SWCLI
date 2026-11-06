@@ -38,6 +38,10 @@ def validate_public_result(operation, value):
                                          if key not in ("request_id", "replayed")})
 
 
+def document_context(document, lease, stamp):
+    return ["--document", document, "--lease", lease, "--if-update-stamp", str(stamp)]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -78,7 +82,11 @@ def main(argv=None):
             if parse_error:
                 checked(completed.returncode == 2, "illegal CLI option was not rejected before export")
                 return None
-            value = json.loads(stdout)
+            try:
+                value = json.loads(stdout)
+            except ValueError as exc:
+                raise RuntimeError(label + " returned non-JSON stdout (exit " + str(completed.returncode)
+                                   + "); stderr: " + stderr) from exc
             event["result"] = value
             persist()
             if error:
@@ -95,8 +103,6 @@ def main(argv=None):
             event.update(state="failed", error=repr(exc))
             persist()
             raise
-    def context(document, lease, stamp):
-        return ["--document", document, "--lease", lease, "--expected-update-stamp", str(stamp)]
     def stamp(document):
         return cli("inspect-" + str(len(report["events"])), "document", "inspect", "--document", document,
                    operation="document.inspect")["document"]["update_stamp"]
@@ -161,7 +167,7 @@ def main(argv=None):
                 path = output / (protocol + "-" + geometry + ".step")
                 value = cli(protocol + "-" + geometry, "document", "export", str(path),
                     "--step-protocol", protocol, "--step-geometry", geometry,
-                    *context(document, lease, stamp(document)), operation="document.export")
+                    *document_context(document, lease, stamp(document)), operation="document.export")
                 verify_output(path, protocol, geometry, value, "cli")
         # Independent public frontends use the same daemon/worker, never COM.
         client = Client(endpoint=endpoint, session_id=session, timeout_seconds=600)
@@ -183,8 +189,8 @@ def main(argv=None):
         verify_output(path, "ap203", "wireframe", reply["result"], "mcp")
         base = ["document", "export", str(output / "rejected.step"), "--step-protocol", "ap214",
                 "--step-geometry", "solid-surface"]
-        cli("stale-cas", *base, *context(document, lease, stamp(document) + 1), error="DocumentUpdateConflict")
-        cli("foreign-lease", *base, *context(document, lease, stamp(document)),
+        cli("stale-cas", *base, *document_context(document, lease, stamp(document) + 1), error="DocumentUpdateConflict")
+        cli("foreign-lease", *base, *document_context(document, lease, stamp(document)),
             chosen_session=session + "-contender", error="DocumentLeaseConflict")
         cli("illegal-protocol", "document", "export", str(output / "rejected.step"), "--step-protocol", "ap242", parse_error=True)
         checked(not (output / "rejected.step").exists(), "rejected export created output")
@@ -204,7 +210,7 @@ def main(argv=None):
         report["source_sha256"] = digest
         lease = cli("readonly-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
         documents[document] = lease
-        cli("readonly-export-rejected", *base, *context(document, lease, stamp(document)), error="ValueError")
+        cli("readonly-export-rejected", *base, *document_context(document, lease, stamp(document)), error="ValueError")
         checked(not (output / "rejected.step").exists(), "readonly export created output")
         after = cli("host-after", "daemon", "status")["result"]["host"]
         checked(after["process_id"] == host["process_id"] and after["revision"] == host["revision"], "native host changed")

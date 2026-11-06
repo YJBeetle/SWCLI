@@ -18,7 +18,7 @@ CLI contract:
 
 ```sh
 swcli document export part.STEP --document d-ab12cd \
-  --lease l-ab12cd34ef56 --expected-update-stamp 5 \
+  --lease l-ab12cd34ef56 --if-update-stamp 5 \
   --step-protocol ap214 --step-geometry solid-surface --json
 ```
 

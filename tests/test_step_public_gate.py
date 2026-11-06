@@ -55,6 +55,24 @@ class StepPublicGateTests(unittest.TestCase):
             self.assertEqual((output / "create-box.stderr.log").read_text(), "original stderr")
             handle.Close.assert_called_once()
 
+    def test_public_exports_parse_real_cli_with_complete_document_lease_and_cas_context(self):
+        from swcli.cli import build_parser, _typed_operation
+        module = script("verify-step-export-public.py")
+        parser = build_parser()
+        for protocol in ("ap203", "ap214"):
+            for geometry in ("solid-surface", "wireframe", "wireframe-sketches"):
+                arguments = ["--endpoint", "127.0.0.1:51742", "--session", "step-public-session",
+                    "--request-timeout", "600", "document", "export", "output.STEP",
+                    "--step-protocol", protocol, "--step-geometry", geometry,
+                    *module.document_context("d-testdoc", "l-testlease", 163), "--json"]
+                parsed = parser.parse_args(arguments)
+                self.assertEqual((parsed.document_id, parsed.lease_id, parsed.expected_update_stamp),
+                                 ("d-testdoc", "l-testlease", 163))
+                operation, parameters = _typed_operation(parsed)[:2]
+                self.assertEqual(operation, "document.export")
+                self.assertEqual(parameters["step_protocol"], protocol)
+                self.assertEqual(parameters["step_geometry"], geometry)
+
     def test_public_output_digest_mismatch_blocks_native_readback(self):
         module = script("verify-step-export-calibration.py")
         with tempfile.TemporaryDirectory() as directory:
