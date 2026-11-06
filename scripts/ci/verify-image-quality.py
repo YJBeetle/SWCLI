@@ -7,6 +7,8 @@ stops; no CAD retries, rollback, exporter-option guesses or host replacement.
 import argparse
 import hashlib
 import importlib.util
+import importlib.metadata
+import os
 import json
 import math
 from pathlib import Path
@@ -33,6 +35,8 @@ class QualitySmoke(modeling.ModelingSmoke):
         self.record.update(profile="image-quality-calibration", evidence_kind="internal-installed-cli-sdk-calibration",
             full_acceptance_eligible=False, covers_full_modeling_suite=False,
             group_timeout_seconds=1800, image_quality_writes_accepted=False, glb_control_proven=False,
+            expected_version=__version__, source_commit=os.environ.get("GITHUB_SHA"),
+            python_version=sys.version,
             format_options_status="unsupported: no verified API mapping; same host defaults observed, not independently controlled")
 
     def command(self, *args, **kwargs):
@@ -64,7 +68,14 @@ class Trace:
         for sequence, (begin, end) in enumerate(zip(pairs[::2], pairs[1::2]), 1):
             require(begin["sequence"] == end["sequence"] == sequence and begin["phase"] == "begin"
                 and end["phase"] == "end" and begin["call"] == end["call"], "quality native call failure/order mismatch")
-        calls = [r["call"] for r in pairs[::2]]
+        all_calls = [r["call"] for r in pairs[::2]]
+        require(not any(c.startswith(("ISldWorks.SetUserPreference", "SldWorks.SetUserPreference")) for c in all_calls),
+                "quality operation called a global preference setter")
+        # The trace also includes _com_value state/identity and API-sequence
+        # guards. Validate every pair above, then compare only preference/dirty
+        # calls against the strict single-write lifecycle, as annotation gates do.
+        calls = [c for c in all_calls if c.startswith(("IModelDocExtension.GetUserPreference",
+                 "IModelDocExtension.SetUserPreference")) or c == "IModelDoc2.SetSaveFlag"]
         getter_cycle = ["IModelDocExtension.GetUserPreference"+kind for kind in ("Integer", "Double", "Toggle", "Toggle", "Toggle")]
         getter_cycle += ["IModelDocExtension.GetUserPreferenceDoubleValueRange"]
         dirty = calls.count("IModelDoc2.SetSaveFlag")
@@ -76,7 +87,7 @@ class Trace:
             expected = getter_cycle + ["IModelDocExtension.SetUserPreference"+IMAGE_QUALITY_FIELDS[field]["kind"]] + getter_cycle + ["IModelDoc2.SetSaveFlag"]*dirty + getter_cycle
         require(calls == expected, "quality native getter/setter count or order mismatch")
         self.requests.add(identifier)
-        proof = dict(request_id=identifier, setter_count=setters, dirty_count=dirty, calls=calls)
+        proof = dict(request_id=identifier, setter_count=setters, dirty_count=dirty, calls=calls, all_native_call_count=len(all_calls))
         gate.record.setdefault("native_call_proofs", []).append(proof)
         return proof
 
@@ -134,6 +145,7 @@ def open_saved(gate, saved, kind, *, read_only):
 
 
 def run(gate, trace, swconst):
+    gate.record["decoder_versions"] = {package: importlib.metadata.version(package) for package in ("DracoPy", "numpy")}
     gate.record["swconst"] = constants(swconst)
     health = gate.health(); gate.record["host"] = health["host"]
     require(health["server_version"] == __version__ and health["host"]["owned_by_daemon"] is True
@@ -156,6 +168,24 @@ def run(gate, trace, swconst):
         case["sdk_read"] = reply.raw
         require(reply.ok and exact_snapshot(reply.require_result()["quality"], current["quality"]), "SDK quality mapping disagrees with public CLI")
         require(current["quality"]["apply_to_referenced_parts"] is False and current["quality"]["shaded_mode"] != "other", "unsupported initial image quality profile")
+        # Keep an immutable, independently reopened baseline before the first
+        # preference setter. A first-call failure must leave native input evidence.
+        baseline = case["baseline_save"] = annotations.save_copy(gate, document, shape+"-baseline.SLDPRT", "SLDPRT")
+        expected_baseline = current["quality"]
+        require(exact_snapshot(read(gate, document, trace)["quality"], expected_baseline), "baseline save changed raw quality")
+        gate.close(document); gate.close(foreground)
+        baseline_open, baseline_document, foreground = open_saved(gate, baseline, shape, read_only=True)
+        case["baseline_readonly_open"] = baseline_open
+        case["baseline_reopened_quality"] = read(gate, baseline_document, trace)
+        require(baseline_document != document and exact_snapshot(case["baseline_reopened_quality"]["quality"], expected_baseline),
+                "baseline raw quality did not persist to a fresh readonly handle")
+        annotations.same_geometry(geometry, gate.measure(baseline_document, volume=volume, area=area)["metrics"])
+        require(hashlib.sha256(Path(baseline["path"]).read_bytes()).hexdigest() == baseline["sha256"], "readonly baseline observation changed native input")
+        gate.close(baseline_document); gate.close(foreground)
+        writable_open, document, foreground = open_saved(gate, baseline, shape, read_only=False)
+        case["baseline_writable_open"] = writable_open
+        current = case["baseline_writable_quality"] = read(gate, document, trace)
+        require(exact_snapshot(current["quality"], expected_baseline), "writable baseline reopen lost raw quality")
         case["edge_write"] = current = edit(gate, document, current, "optimize_edge_length", not current["quality"]["optimize_edge_length"], trace)
         # Full-value CAS refusal even when stamp is unchanged: no setter allowed.
         stale = json.loads(json.dumps(current["quality"]))
@@ -210,6 +240,7 @@ def run(gate, trace, swconst):
         case["format_materials_extensions_stable"] = all(all(row["mesh"][key] == case["levels"][0]["mesh"][key]
             for key in ("materials", "extensions_used", "extensions_required", "camera_count", "animation_count", "scene_extensions")) for row in case["levels"])
         require(case["format_materials_extensions_stable"], "GLB material/extension/scene controls drifted between quality levels")
+        require(hashlib.sha256(Path(baseline["path"]).read_bytes()).hexdigest() == baseline["sha256"], "quality experiment modified its original native baseline")
         case["success"] = True
         gate.require_empty()
     gate.record["host_after"] = gate.health()["host"]

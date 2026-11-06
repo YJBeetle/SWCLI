@@ -73,7 +73,10 @@ box (40×30×10 mm), verifies kernel volume/area, changes edge optimization,
 coarse/fine/custom mode and a legal actual custom deviation. It checks full CAS
 refusal and noops, native call counts/order and one setter per changed request.
 The SDK independently reads the same background handle under another session.
-Each quality level is saved to a distinct native file, strictly exported once,
+Before its first setter, each fixture is saved, reopened read-only with raw
+quality/geometry/hash checks, and reopened writable; the baseline file is
+retained unchanged even on first-call failure. Each quality level is then saved
+to a distinct native file, strictly exported once,
 closed, reopened with a fresh read-only handle, checked for complete **raw**
 quality persistence and unchanged geometry/file SHA. It then reopens writable
 for the next level, preserving a single host throughout.

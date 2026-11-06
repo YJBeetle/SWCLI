@@ -53,3 +53,20 @@
 - 修正后校准：[42261983700](https://github.com/YJBeetle/SWCLI/actions/runs/42261983700)，head **`e62fa65bbdb079eb6d8f4eff60276f3ce1017cd3`**，参数 `image_quality_calibration=true`, `native_full=false`，其他输入默认值。此head只派发一次，不为排队重复dispatch。dispatch返回成功，结果待完成，当前没有原生通过或公开验收结论。
 - 初次run已确认 `completed/cancelled`，取消发生在native前；原始结果 `run-42261706856-cancelled.json`。修正后派发原件：`dispatch-corrected-request.json`, `dispatch-corrected-result.json`。
 - 原始派发请求、返回、首次run状态保存在 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/dispatch-request.json`, `dispatch-result.json`, `run-42261706856-initial.json`。
+
+### 验收继续工作
+
+- 用户最新要求：内部校准通过后继续独立核 artifact/head/digest/trace/save-reopen，再开放已证实的精确范围并做公开 CLI/daemon 验收；本分支当前仍不是 merge-ready。
+- 复查补强：在首次 setter 前保留独立 native baseline，并经新 readonly/writable handle 核完整 raw quality、几何与文件hash。失败也保留未修改基线；补版本/来源commit/decoder版本记录。此补强不属于正在运行的 `e62fa65`，当前run不能冒称覆盖了它；下一次相关验证再使用新head，不因排队重派。
+
+### 首次真实内部校准失败核验
+
+- 修正并发后的run `42261983700` 已完成/failure；Windows3.9/3.14、wheel/SDK/PowerShell解析均通过，安装/decoder/client准备通过，新校准步骤失败，清理与原证据上传成功。
+- 已下载**原zip**并核对GitHub artifact digest完全一致：`sha256:b0e56025fb34cd61af5e3f8ad589578f44af2090a3dd7f0de8f3e52c6db449ac`（796225 bytes），head精确 `e62fa65bbdb079eb6d8f4eff60276f3ce1017cd3`。
+- 原件目录：`/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42261983700`（原zip、metadata、download-receipt与解压original均保留）。
+- 第一真实失败：校准器 `Trace.verify` 错把所有`_com_value`状态/身份/API-sequence调用与仅六个preference getters的预期列表整体比较。错误为 `quality native getter/setter count or order mismatch`，不是CAD API失败。
+- 原始首个 `document.image-quality` 返回ok=true、后台身份保持，range status=0，bounds_m `[9.036144578313254e-06,0.00025]`；mode=custom，deviation_m=`1.8750000000000002e-05`；edge=false/save_tessellation=true/apply_refs=false。**零次image-quality-set请求、零次此功能setter**，没有GLB或变更保存证据。不得由该只读结果开放写入。
+- host revision `33.5.0`，PID5476；swconst SHA256 `95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6`，全部9个相关ID/mode匹配。圆柱kernel体积/面积与解析值匹配。
+- 修复保留所有native pair的完整顺序/边界/终止检查，仅对preference+dirty子序列执行精确getter/setter计数；显式拒绝任何global setter。fake补真实guard traces、global setter/偏好重排反例。新head将连同首次写前baseline保护做一次必要校准，不是原run无修改重试。
+- 独立复核 `independent-read-audit.json`：首read结果schema有效，document descriptor与extrusion后完全相同，解析圆柱kernel值匹配，write请求数0。最终lifecycle comparison通过，原始结束快照仍有host，1.3198387s内settle-02归零，不能只读第一结束快照就称泄漏或忽略它。report/trace各自SHA见audit。
+- 修复后的trace对子序列重放原请求成功：6 getter / 0 setter / 0 dirty；完整98个leaf native calls边界顺序仍检查，原件未改。原始report的failure保持原样。

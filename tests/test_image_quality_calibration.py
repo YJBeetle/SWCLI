@@ -34,7 +34,12 @@ class QualityCLI(FakeCLI):
         if args.command == "document" and args.document_command.startswith("image-quality"):
             response=json.loads(completed.stdout); operation="document."+args.document_command
             records=[]
-            for sequence, name in enumerate([operation,*self.native_calls]):
+            # Real _com_value and native_sequence tracing surrounds the six
+            # property getters. Include that independent evidence in the fake.
+            calls=["CommandInProgress", "SldWorks.CommandInProgress.enter", "GetDocuments", *self.native_calls, "GetUpdateStamp", "SldWorks.CommandInProgress.restore"]
+            if self.quality_defect == "global-setter": calls.insert(3,"ISldWorks.SetUserPreferenceDoubleValue")
+            if self.quality_defect == "reordered-preferences": calls[3],calls[4]=calls[4],calls[3]
+            for sequence, name in enumerate([operation,*calls]):
                 if sequence == 0: records.append(dict(sequence=0,call=operation,phase="begin"))
                 else: records.extend(dict(sequence=sequence,call=name,phase=phase) for phase in ("begin","end"))
             records.append(dict(sequence=0,call=operation,phase="end"))
@@ -120,6 +125,7 @@ class CalibrationTests(unittest.TestCase):
             return SimpleNamespace(document=SimpleNamespace(image_quality=read))
         with mock.patch.object(gate.modeling.subprocess,"run",side_effect=self.fake.run), \
                 mock.patch.object(gate,"constants",return_value={}), mock.patch.object(gate,"Client",side_effect=sdk), \
+                mock.patch.object(gate.importlib.metadata,"version",return_value="portable-fake"), \
                 mock.patch("sys.stdout",new=io.StringIO()):
             return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog"])
 
@@ -133,18 +139,23 @@ class CalibrationTests(unittest.TestCase):
         for case in record["cases"]:
             self.assertEqual(case["triangle_counts"],dict(coarse=1,fine=1,custom=1))
             self.assertFalse(case["quality_associated_triangle_difference_observed"])
+            self.assertTrue(case["baseline_readonly_open"]["read_only"])
+            self.assertEqual(case["baseline_reopened_quality"]["quality"],case["initial"]["quality"])
+            self.assertTrue(Path(case["baseline_save"]["path"]).is_file())
             self.assertTrue(all(row["success"] and row["reopen"]["read_only"] for row in case["levels"]))
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(all(event["request_timeout_seconds"]==600 for event in record["events"]))
 
     def test_first_failure_trace_and_lost_persistence_stop_without_retry_and_clean_once(self):
-        for defect in ("native-first-failure","missing-trace","missing-native-getter","reopen-lost-value"):
+        for defect in ("native-first-failure","missing-trace","missing-native-getter","reopen-lost-value","global-setter","reordered-preferences"):
             with self.subTest(defect=defect):
                 self.setUp(); self.fake.quality_defect=defect
                 with self.assertRaises((RuntimeError, ValueError)): self.run_gate()
                 self.assertFalse(self.record()["success"])
                 self.assertEqual(self.fake.documents,{})
-                if defect=="native-first-failure": self.assertEqual(self.fake.setters,1)
+                if defect=="native-first-failure":
+                    self.assertEqual(self.fake.setters,1)
+                    self.assertTrue(Path(self.record()["cases"][0]["baseline_save"]["path"]).is_file())
                 self.assertEqual(len(self.record()["cases"]),1)
 
     def test_external_watchdog_bounds_whole_group_without_retry(self):
