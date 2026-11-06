@@ -771,6 +771,46 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
+DocumentDetailingOptionsParameters = DocumentAnnotationOptionsParameters
+
+
+class _DocumentDetailingOptionsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.detailing-options']
+
+
+class DocumentDetailingOptionsResult(_DocumentDetailingOptionsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+
+
+class DocumentDetailingOptionSetParameters(TypedDict):
+    field: Literal['auto_center_marks.part_holes', 'auto_center_marks.part_fillets']
+    value: bool
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentDetailingOptionSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.detailing-option-set']
+
+
+class DocumentDetailingOptionSetResult(_DocumentDetailingOptionSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['auto_center_marks.part_holes', 'auto_center_marks.part_fillets']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_return: Union[bool, None]
+
+
 DocumentUnitsParameters = DocumentAnnotationOptionsParameters
 
 

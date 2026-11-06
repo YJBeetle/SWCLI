@@ -27,6 +27,9 @@ from ..hosts.windows_custom_properties import (
     read_document_properties_windows, read_property_summary_windows, edit_document_property_windows,
 )
 from ..hosts.windows_document_summary import read_document_summary_windows, set_document_summary_windows
+from ..hosts.windows_document_detailing import (
+    read_document_detailing_options_windows, set_document_detailing_option_windows,
+)
 from ..hosts.windows_document_units import read_document_units_windows, set_document_units_windows
 from ..hosts.windows_document_annotations import (
     read_document_annotation_options_windows, set_document_annotation_option_windows,
@@ -442,6 +445,24 @@ def document_annotation_option_set(context: OperationContext, values: Dict[str, 
     result = set_document_annotation_option_windows(
         app=context.app, document=context.entry.document, field=values["field"],
         value=values["value"], expected_value=values["expected_value"],
+    )
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_detailing_options(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_detailing_options_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_detailing_option_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_detailing_option_windows(
+        app=context.app, document=context.entry.document, **values,
     )
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 

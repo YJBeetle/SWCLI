@@ -10,6 +10,7 @@ from typing import Any, Dict
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_annotations import ANNOTATION_FIELDS
+from .document_detailing import DETAILING_FIELDS, detailing_options_schema
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
@@ -563,6 +564,15 @@ _RESULT_FIELDS = {
     "document.annotation-option-set": (
         {"field": {"enum": list(ANNOTATION_FIELDS)}, "before": DOCUMENT_ANNOTATION_OPTIONS,
          "options": DOCUMENT_ANNOTATION_OPTIONS, "changed": BOOL, "mutation": METADATA_MUTATION},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
+    "document.detailing-options": (
+        {"options": detailing_options_schema()}, ("session_id", "document", "options"),
+    ),
+    "document.detailing-option-set": (
+        {"field": {"enum": list(DETAILING_FIELDS)}, "before": detailing_options_schema(),
+         "options": detailing_options_schema(), "changed": BOOL, "mutation": METADATA_MUTATION,
+         "native_return": {"type": ["boolean", "null"]}},
         ("session_id", "document", "field", "before", "options", "changed", "mutation"),
     ),
     "document.units": (
@@ -2719,6 +2729,15 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "document.detailing-option-set" and result["ok"] is True:
+        before, after, field = result["before"], result["options"], result["field"]
+        changed = before[field] != after[field]
+        if (result["changed"] != changed or result["mutation"] !=
+                {"attempted": changed, "may_have_changed": changed}
+                or any(before[key] != after[key] for key in DETAILING_FIELDS if key != field)
+                or (changed and (result["document"]["modified"] is not True
+                                 or result.get("native_return") is not True))):
+            raise OperationResultInvalid(name + ": inconsistent detailing mutation lifecycle")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:
