@@ -182,18 +182,18 @@ Annotation text format and overall drafting standard remain later increments
 because changing them can propagate to subtype settings.
 [SOLIDWORKS annotation document options](https://help.solidworks.com/2024/english/api/swconst/DP_Annotations.htm)
 
-## MCP tool names (0.2.1 development)
+## MCP tool names (0.2.1)
 
 The MCP server remains named `swcli`. Its five tools are `status`,
 `daemon_start`, `daemon_stop`, `capabilities` and `execute`. The client/daemon
 protocol, operation names and lifecycle protections stay the same. The stdio
 SDK contract and packaged skill describe these current names. This work and
-Windows tray development are independent of the frozen 0.2.0a1 release.
+Windows tray support are independent of the 0.2.0a1 release.
 
-## Resident host visibility (0.2.1 development)
+## Resident host visibility (0.2.1)
 
-The Windows notification icon and `--tray auto|on|off` are implemented on the
-development version. Omitted `auto` shows on native Windows and is off under
+The Windows notification icon and `--tray auto|on|off` are implemented in
+0.2.1. Omitted `auto` shows on native Windows and is off under
 Wine; an explicit value wins. The icon is independent of SW visibility, and
 hiding it keeps the host/documents alive. Status and confirmed stop reuse the
 normal daemon protocol and document/ownership guards. Portable and official MCP
