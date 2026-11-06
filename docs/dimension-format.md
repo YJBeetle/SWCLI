@@ -39,3 +39,11 @@ Windows 手动 CI：现有 `ci.yml` 的 `dimension_format_calibration=true`，�
 首次内部运行42260887789失败，原始artifact摘要`cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`已核。首失败为前后台/保存转换两侧的质心逐位比较不等，尚未保存重开，不能算原生通过。修复将基线放到保存/后台转换之后并增加无写入控制读；仍保留精确相等的写后和重开比较，不放宽几何或状态断言。当前公开文档类型及revision白名单仍空。
 
 Windows证据不会开启Wine：真正公开变更还要求原生Windows运行环境，ntdll出现Wine导出或检测失败均fail closed；内部夹具入口不属于公开协议。公开争用lease测试使用符合12字符wire schema的token，确保拒绝发生在daemon授权层。
+
+## 校准观测器修正
+
+第二轮42264996931（artifact SHA256 `8959bbb4c6d924aacf5a641e12dc79100c6b32fd1ddb8d6f2ca0db6b08a490aa`）在完全没有尺寸setter的两次读取中复现质心尾数变化。因此自有盒形夹具改用完整8顶点/12直线边/6平面及闭合面边界的精确几何指纹，几何质心由边界确定，坐标不取整。native体积/面积精确比较保留；原始质量属性逐次留存，同时原样复用仓库既有native metric差分断言和解析界限，质心仍须满足既有严格解析检查。状态断言不改。该helper仅用于自有夹具验证，不是新的稳定拓扑产品API。
+
+公开gate复用既有entity.list边/面只读结果，所有字段最终保存为与源初值不同的值，验证重开持久化；每个位置和两个布尔方向都实际执行过setter。
+
+Oracle核对的官方API：[GetVertices](https://help.solidworks.com/2019/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IBody2~GetVertices.html)、[IVertex.GetPoint](https://help.solidworks.com/2019/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IVertex~GetPoint.html)、[IEdge.GetStartVertex](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetStartVertex.html)、[ICurveParamData.StartPoint与Sense语义](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~StartPoint.html)。端点仅作此直线盒形夹具的无向几何比较，不重新定义公开trim、闭合或持久实体身份。

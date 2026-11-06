@@ -86,6 +86,22 @@ class DimensionPublicTests(unittest.TestCase):
                        lambda rows: rows[1].update(operation="document.units")):
             with self.subTest(damage=damage), self.assertRaises(RuntimeError): self.proof(damage)
 
+    def test_public_plan_exercises_every_setter_value_and_saves_nondefault_snapshot(self):
+        from itertools import product
+        for dual, position, parentheses in product((False, True), public.POSITIONS.values(), (False, True)):
+            initial = dict(dual_display=dual, dual_position=position, parentheses=parentheses)
+            current = dict(initial)
+            actual = {field: set() for field in initial}
+            for field, value in public.mutation_plan(initial):
+                native = public.POSITIONS[value] if field == "dual_position" else value
+                if native != current[field]: actual[field].add(native)
+                current[field] = native
+            with self.subTest(initial=initial):
+                self.assertEqual(actual["dual_display"], {False, True})
+                self.assertEqual(actual["parentheses"], {False, True})
+                self.assertEqual(actual["dual_position"], set(public.POSITIONS.values()))
+                self.assertTrue(all(current[field] != initial[field] for field in initial))
+
     def test_public_lease_refusal_reaches_daemon_with_a_valid_wire_token(self):
         from jsonschema import Draft202012Validator
         from swcli.protocol import load_schema

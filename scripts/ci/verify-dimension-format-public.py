@@ -20,6 +20,10 @@ spec = importlib.util.spec_from_file_location("_dimension_public_annotations", P
 annotations = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(annotations)
 require = annotations.require
+box_spec = importlib.util.spec_from_file_location("_dimension_box_oracle", Path(__file__).with_name("gate_support") / "dimension_box.py")
+box = importlib.util.module_from_spec(box_spec)
+box_spec.loader.exec_module(box)
+observe_public = box.observe_public
 
 
 class DimensionSmoke(annotations.AnnotationSmoke):
@@ -123,6 +127,35 @@ def protected(gate, document):
             "annotations": gate.command("document", "annotation-options", document=document)["options"]}
 
 
+def geometry(gate, document, case):
+    metrics = annotations.geometry(gate, document)
+    samples = case.setdefault("geometry_native_samples", [])
+    samples.append(metrics)
+    if len(samples) > 1:
+        box.verify_native_pair(samples[0], metrics)
+    edges = gate.command("entity", "list", "--kind", "edge", "--max-edges", 12, document=document)
+    faces = gate.command("entity", "list", "--kind", "face", "--max-faces", 6, document=document)
+    for result in (edges, faces):
+        validate_operation_result("entity.list", result)
+        gate.background(result, document)
+    require(edges["document"] == faces["document"], "public boundary observation changed document state")
+    return observe_public(edges, faces, metrics)
+
+
+def mutation_plan(initial):
+    require(initial["dual_position"] in POSITIONS.values(), "public fixture position is outside the supported profile")
+    final_position = next(name for name, code in POSITIONS.items() if code != initial["dual_position"])
+    # Two position cycles force every enum through an actual setter even when
+    # the first cycle starts at that same native value. Final values differ
+    # from the source on all three fields, so saving defaults cannot fake proof.
+    return ([("dual_display", not initial["dual_display"]), ("dual_display", initial["dual_display"]),
+             ("dual_display", True)]
+            + [("dual_position", name) for _ in range(2) for name in ("top", "bottom", "left", "right")]
+            + [("parentheses", not initial["parentheses"]), ("parentheses", initial["parentheses"]),
+               ("parentheses", not initial["parentheses"]), ("dual_display", not initial["dual_display"]),
+               ("dual_position", final_position)])
+
+
 def run(gate, fixtures, trace):
     gate.record.update(profile="document-dimension-format", evidence_kind="installed-public-cli-daemon-gate",
                        covers_full_modeling_suite=False, dimension_cases=[], source_commit=os.environ.get("GITHUB_SHA"))
@@ -161,7 +194,7 @@ def run(gate, fixtures, trace):
         gate.command("document", "lease", "acquire", "--ttl-seconds", 600, document=document)
         initial = case["initial"] = read(gate, document, trace, session=gate.session + "-reader")
         before_protected = case["protected_before"] = protected(gate, document)
-        if kind == 1: case["geometry_before"] = annotations.geometry(gate, document)
+        if kind == 1: case["geometry_before"] = geometry(gate, document, case)
         case["lease_refusal"] = edit(gate, document, initial, "dual_display", True, trace,
                                      session=gate.session + "-contender", error="DocumentLeaseConflict")
         case["stamp_refusal"] = edit(gate, document, initial, "dual_display", True, trace,
@@ -172,22 +205,21 @@ def run(gate, fixtures, trace):
         untouched = read(gate, document, trace)
         require(untouched["format"] == initial["format"] and untouched["document"] == initial["document"], "refused public edits changed native state")
         current = initial
-        for field, value in (("dual_display", not initial["format"]["dual_display"]),
-                ("dual_display", initial["format"]["dual_display"]), ("dual_display", True),
-                ("dual_position", "top"), ("dual_position", "bottom"), ("dual_position", "left"),
-                ("dual_position", "right"), ("parentheses", not initial["format"]["parentheses"]),
-                ("parentheses", initial["format"]["parentheses"]), ("parentheses", False), ("dual_display", False)):
+        for field, value in mutation_plan(initial["format"]):
             row = edit(gate, document, current, field, value, trace)
             case["writes"].append(row)
             current = row["result"]
+        require(all(current["format"][field] != initial["format"][field] for field in initial["format"]),
+                "public saved values must differ from all three source values")
+        case["persisted_targets"] = current["format"]
         case["protected_after"] = protected(gate, document)
         require(case["protected_after"] == before_protected, "public edits changed units or annotation/zero fields")
         if kind == 1:
-            case["geometry_after"] = annotations.geometry(gate, document)
-            annotations.same_geometry(case["geometry_before"], case["geometry_after"])
+            case["geometry_after"] = geometry(gate, document, case)
+            require(case["geometry_before"] == case["geometry_after"], "public exact box boundary changed after display writes")
         saved = case["save_copy"] = annotations.save_copy(gate, document, "saved-dimension-format." + suffix, suffix)
         clean = read(gate, document, trace)
-        case["same_value"] = edit(gate, document, clean, "dual_display", False, trace)
+        case["same_value"] = edit(gate, document, clean, "dual_display", clean["format"]["dual_display"], trace)
         require(case["same_value"]["result"]["document"]["modified"] is False, "same-value request dirtied saved copy")
         gate.close(document); gate.close(foreground)
         reopened, fresh, foreground = annotations.open_background(gate, saved["host_path"], kind, read_only=True)
@@ -196,12 +228,12 @@ def run(gate, fixtures, trace):
         observed = case["reopened_format"] = read(gate, fresh, trace)
         require(observed["format"] == current["format"], "public settings did not persist after save/reopen")
         gate.command("document", "lease", "acquire", "--ttl-seconds", 600, document=fresh)
-        case["readonly_refusal"] = edit(gate, fresh, observed, "dual_display", True, trace, error="ValueError")
+        case["readonly_refusal"] = edit(gate, fresh, observed, "dual_display", not observed["format"]["dual_display"], trace, error="ValueError")
         final = read(gate, fresh, trace)
         require(final["document"] == observed["document"] and final["format"] == observed["format"]
                 and hashlib.sha256(source.read_bytes()).hexdigest() == source_hash
                 and hashlib.sha256(Path(saved["path"]).read_bytes()).hexdigest() == saved["sha256"], "readonly observation changed state or file bytes")
-        if kind == 1: annotations.same_geometry(case["geometry_before"], annotations.geometry(gate, fresh))
+        if kind == 1: require(case["geometry_before"] == geometry(gate, fresh, case), "public exact box boundary changed after save/reopen")
         gate.close(fresh); gate.close(foreground)
         gate.require_empty(after_case="dimension-format-" + suffix)
         case["success"] = True

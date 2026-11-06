@@ -36,6 +36,10 @@ spec = importlib.util.spec_from_file_location("_dimension_owned_harness", Path(_
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 checked = harness.checked
+box_spec = importlib.util.spec_from_file_location("_dimension_box_oracle", Path(__file__).with_name("gate_support") / "dimension_box.py")
+box = importlib.util.module_from_spec(box_spec)
+box_spec.loader.exec_module(box)
+observe_native = box.observe_native
 KINDS = {"part": (1, "SLDPRT"), "assembly": (2, "SLDASM"), "drawing": (3, "SLDDRW")}
 
 
@@ -64,11 +68,15 @@ def constants(pythoncom, path):
     return found
 
 
-def geometry(document):
+def geometry(document, samples):
     result = measure_part_windows(document=document)
     checked(result["ok"], "part measurement failed")
+    sample = dict(native_metrics=result["metrics"], boundary_observation={})
+    samples.append(sample)
+    if len(samples) > 1:
+        box.verify_native_pair(samples[0]["native_metrics"], result["metrics"])
     harness.verify_geometry(result["metrics"], 10, cut=False)
-    return result["metrics"]
+    return observe_native(document, result["metrics"], sample["boundary_observation"])
 
 
 def calibrate(app, output, const, plane, reverse, call, case, report, live, *, profile_kind, template):
@@ -89,7 +97,7 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
             app=app, document=doc, sketch_feature=sketch, depth_mm=10))
         case["boss"] = boss
         checked(boss["ok"] and not boss.get("warnings"), "fixture extrusion failed")
-        case["geometry_before_save"] = call("geometry-before-save", lambda: geometry(doc))
+        case["geometry_before_save"] = call("geometry-before-save", lambda: geometry(doc, case.setdefault("geometry_native_samples", [])))
         sketch = feature = None
     source = output / ("source." + suffix)
     case["save_source"] = call("save-source", lambda: save_as_native_windows(str(source), document=doc))
@@ -133,10 +141,10 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
             # Both sides must observe the saved background document. The old
             # baseline preceded SaveAs and the foreground transition.
             control_state = case["geometry_control_state_before"] = _state(doc)
-            case["geometry_before"] = call("geometry-saved-background-before", lambda: geometry(doc))
-            case["geometry_control"] = call("geometry-no-write-control", lambda: geometry(doc))
+            case["geometry_before"] = call("geometry-saved-background-before", lambda: geometry(doc, case.setdefault("geometry_native_samples", [])))
+            case["geometry_control"] = call("geometry-no-write-control", lambda: geometry(doc, case.setdefault("geometry_native_samples", [])))
             checked(case["geometry_control"] == case["geometry_before"],
-                    "no-write geometry control is not bitwise stable; no display setter attempted")
+                    "no-write exact box boundary control changed; no display setter attempted")
             case["geometry_control_state_after"] = _state(doc)
             checked(case["geometry_control_state_after"] == control_state,
                     "no-write geometry observation changed saved background document state")
@@ -172,7 +180,7 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
         checked(case["protected_after"] == protected and call("application-after", application) == case["application_before"],
                 "display writes changed units, zero/annotation or application preferences")
         if kind == 1:
-            case["geometry_after"] = call("geometry-after", lambda: geometry(doc))
+            case["geometry_after"] = call("geometry-after", lambda: geometry(doc, case.setdefault("geometry_native_samples", [])))
             checked(case["geometry_after"] == case["geometry_before"], "display writes changed geometry")
     finally:
         if foreground is not None:
@@ -202,7 +210,7 @@ def calibrate(app, output, const, plane, reverse, call, case, report, live, *, p
         app=app, document=doc, field="dual_display", value=True, expected_format=observed["format"], _calibration=True))
     checked(not refused["ok"] and not refused["mutation"]["attempted"] and refused["error"]["type"] == "ValueError", "readonly display write reached setter")
     if kind == 1:
-        checked(call("reopened-geometry", lambda: geometry(doc)) == case["geometry_before"], "reopened geometry changed")
+        checked(call("reopened-geometry", lambda: geometry(doc, case.setdefault("geometry_native_samples", []))) == case["geometry_before"], "reopened geometry changed")
     checked(hashlib.sha256(source.read_bytes()).hexdigest() == source_hash
             and hashlib.sha256(saved_path.read_bytes()).hexdigest() == digest and not _com_value(doc, "GetSaveFlag"),
             "display calibration changed source or readonly saved bytes/state")

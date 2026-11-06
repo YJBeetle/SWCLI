@@ -17,7 +17,7 @@ class DimensionCalibrationTests(unittest.TestCase):
         self.assertLess(script.index('geometry-no-write-control'), script.index('internal-set-'))
         self.assertIn('case["geometry_control"] == case["geometry_before"]', script)
         self.assertIn('case["geometry_after"] == case["geometry_before"]', script)
-        self.assertIn('geometry(doc)) == case["geometry_before"]', script)
+        self.assertIn('geometry(doc, case.setdefault("geometry_native_samples", []))) == case["geometry_before"]', script)
 
     def test_watchdog_enforces_native_and_group_limits_without_restart(self):
         rows = [{"call": "setter", "phase": "begin", "time": 100}]
