@@ -21,6 +21,10 @@ For MCP client configuration, explicit lifecycle, host launchers, sessions and p
 response fields, read [the MCP guide](references/mcp.md). `swcli mcp serve`
 uses stdio and reuses the existing daemon; it is not an HTTP listener.
 
+For a Python automation script, use the [typed SDK guide](references/sdk.md).
+The SDK reuses this daemon and the same operations; it does not own SW lifetime,
+retry writes or refresh leases/CAS implicitly.
+
 ## Working rules
 
 - With MCP, first call `status`; explicitly use `daemon_start` if a

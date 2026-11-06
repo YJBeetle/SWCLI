@@ -41,7 +41,7 @@ export, and a reusable native part-modeling loop. The public typed commands are
 daemon-only; there is no direct-COM fallback mode.
 
 The modeling vocabulary is intentionally still small. General sketch editing,
-feature editing, stable entity references, transactions, and a typed SDK remain future
+feature editing, stable entity references and transactions remain future
 work. A stdio MCP adapter reuses the same daemon and operation schemas. The daemon now publishes the JSON Schema used to validate each supported
 operation through capability discovery. Since `v0.1.0a4`, it also advertises
 `operation_result_schemas` and validates worker results before returning them.
@@ -91,6 +91,14 @@ machine. The MCP guide describes attachment status and metadata-only mode.
 For larger files, SWCLI 0.2.3 adds `swcli transfer upload|download` and
 optional MCP `upload_file` / `download_file` tools for explicitly configured
 workspaces. See [TLS authentication and file transfer](src/swcli/skills/swcli/references/remote-files.md).
+
+## Typed Python SDK
+
+Development builds include `from swcli.sdk import Client` with generated typed
+methods/results for all current protocol operations. It uses the existing daemon,
+TLS and session/lease/CAS rules, without implicit startup, retries or document
+cleanup. See the [SDK guide](src/swcli/skills/swcli/references/sdk.md) for typed
+results, error receipts and workspace file streaming.
 
 ## Installation
 
