@@ -76,6 +76,11 @@ retry writes or refresh leases/CAS implicitly.
   `document.annotation-options`/`document.annotation-option-set` schemas. The
   supported fields and document types are bounded; do not infer font or
   overall drafting-standard support from these operations.
+- For part display quality, discover `document.image-quality` separately from
+  export operations. `document.image-quality-set` is an internal calibration
+  candidate and fails closed by default. A complete quality CAS snapshot, lease
+  and update stamp are mandatory. Do not equate these settings with GLB export
+  options or claim GLB subdivision control without decoded mesh evidence.
 - If feature observation/depth editing is advertised, use returned exact feature
   handles, not tree names. Inspection is read-only, not edit eligibility.
   `feature.set-depth` has narrow profile/scope/control guards; equal depth still

@@ -692,3 +692,28 @@ Request IDs protect nearby transport retries: reuse the same explicit
 terminal result, including failure; a genuinely new retry needs a new ID.
 This bounded in-memory cache is lost on daemon restart, not a durable
 exactly-once log. Unknown outcomes require inspection, not blind retries.
+
+
+## Part image quality and GLB
+
+`swcli document image-quality --document d-ab12cd --json` observes document
+Image Quality, with normalized `shaded_mode`, `shaded_deviation_mm`,
+`optimize_edge_length`, two observed toggles, raw `native` values and
+`deviation_range`. It supports parts only and preserves the selected background
+handle, foreground, configuration, dirty flag and update stamp.
+
+The candidate `document image-quality-set FIELD VALUE --if-quality '<complete
+quality JSON>' --if-update-stamp N --lease TOKEN --document ID` edits one typed
+field. Modes are `coarse`, `fine`, `custom`; deviation is positive millimeters
+within the actual native range and requires an explicit existing `custom` mode;
+edge optimization uses `true`/`false`. `expected_quality` is the whole `quality`
+object, including raw values and range. CAS is exact, not a rounded display
+comparison. Never construct a partial snapshot or reuse one after a state change.
+Writes fail closed outside the explicitly enabled internal calibration harness.
+Failures preserve attempted/may-have-changed receipts; inspect before another
+request and never assume rollback.
+
+These fields are document display properties. GLTF/GLB Export Options (views,
+cameras, lights, motion, exploded views, Draco) have no verified API mapping in
+this profile. The exporter has no newly supported GLB options object or triangle
+budget. Do not use Image Quality or STL-specific options as a replacement.

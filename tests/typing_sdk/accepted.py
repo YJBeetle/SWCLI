@@ -28,3 +28,9 @@ def workflows(client: Client) -> FileReceipt:
 def configured() -> Client:
     return Client(tls=TLSConfig(token_file=Path("token.txt"), ca_file="ca.pem", server_name="cad.internal"),
                   client_workspace=Path("client-files"))
+
+
+def observe_quality(client: Client) -> None:
+    quality = client.document.image_quality(document_id="d-ab12cd").require_result()["quality"]
+    client.document.image_quality_set(field="optimize_edge_length", value=False,
+        expected_quality=quality, expected_update_stamp=0, lease_id="l-ab12cd34ef56")

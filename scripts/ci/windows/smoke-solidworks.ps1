@@ -7,10 +7,14 @@ param(
     [ValidateSet("core", "full")]
     [string]$Suite = "full",
     [string]$PropertyFixtureDirectory,
-    [string]$AnnotationFixtureDirectory
+    [string]$AnnotationFixtureDirectory,
+    [switch]$ImageQualityCalibration
 )
 
 $ErrorActionPreference = "Stop"
+if ($ImageQualityCalibration -and (-not $Hidden -or $VisibleSmoke -or $PropertyFixtureDirectory -or $AnnotationFixtureDirectory)) {
+    throw "Image-quality calibration requires only its own hidden host/profile"
+}
 if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
 if ($AnnotationFixtureDirectory -and -not $Hidden) { throw "Annotation verification requires the initial hidden host" }
 if (-not $VisibleSmoke -and -not $Hidden) { throw "Business suites require -Hidden; use -VisibleSmoke for the lightweight visible check" }
@@ -342,9 +346,12 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120")
 if (-not $Hidden) { $daemonArguments += "--visible" }
+$previousQualityCalibration = [Environment]::GetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", "Process")
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
-    if ($AnnotationFixtureDirectory) {
+    if ($ImageQualityCalibration) { $env:SWCLI_IMAGE_QUALITY_CALIBRATION = "1" }
+    else { Remove-Item Env:SWCLI_IMAGE_QUALITY_CALIBRATION -ErrorAction SilentlyContinue }
+    if ($AnnotationFixtureDirectory -or $ImageQualityCalibration) {
         $env:SWCLI_TRACE_NATIVE_CALLS = "1"
     }
     else {
@@ -360,6 +367,7 @@ try {
 }
 finally {
     [Environment]::SetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", $previousNativeTrace, "Process")
+    [Environment]::SetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", $previousQualityCalibration, "Process")
 }
 # Pin the OS handle while it is alive; preflight exits long before we check it.
 $null = $daemon.Handle
@@ -407,6 +415,17 @@ try {
     }
     if (-not $doctor.daemon.reachable) {
         throw "swclid is not reachable after startup"
+    }
+
+    if ($ImageQualityCalibration) {
+        & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
+            --output-dir (Join-Path $Workspace "calibration") `
+            --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+        if ($LASTEXITCODE -ne 0) { throw "Internal image-quality calibration failed; retain first report and trace" }
+        Invoke-SwCliJson -Name "quality-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+        Assert-OwnedDaemonExit -Process $daemon -Name "quality"
+        $started = $false
+        return
     }
 
     if ($VisibleSmoke) {

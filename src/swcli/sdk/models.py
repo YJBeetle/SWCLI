@@ -731,8 +731,80 @@ class DocumentPropertyDeleteResult(_DocumentPropertyDeleteResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-class DocumentAnnotationOptionsParameters(TypedDict):
+class DocumentImageQualityParameters(TypedDict):
     pass
+
+
+class DocumentImageQualityResultQualityNative(TypedDict):
+    shaded_mode: int
+    shaded_deviation_m: float
+    optimize_edge_length: bool
+    save_tessellation: bool
+    apply_to_referenced_parts: bool
+
+
+class DocumentImageQualityResultQualityDeviationRange(TypedDict):
+    status: int
+    bounds_m: List[float]
+
+
+class DocumentImageQualityResultQuality(TypedDict):
+    shaded_mode: Literal['coarse', 'fine', 'custom', 'other']
+    shaded_deviation_mm: float
+    optimize_edge_length: bool
+    save_tessellation: bool
+    apply_to_referenced_parts: bool
+    native: DocumentImageQualityResultQualityNative
+    deviation_range: DocumentImageQualityResultQualityDeviationRange
+
+
+class _DocumentImageQualityResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.image-quality']
+
+
+class DocumentImageQualityResult(_DocumentImageQualityResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    quality: DocumentImageQualityResultQuality
+
+
+class DocumentImageQualitySetParameters(TypedDict):
+    field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length']
+    value: Union[str, float, bool]
+    expected_quality: DocumentImageQualityResultQuality
+
+
+class DocumentImageQualitySetResultLinkedChangesItem(TypedDict):
+    field: Literal['shaded_deviation_mm']
+    before: float
+    after: float
+    reason: Literal['shaded-mode-coupling']
+
+
+class _DocumentImageQualitySetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.image-quality-set']
+
+
+class DocumentImageQualitySetResult(_DocumentImageQualitySetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length']
+    before: DocumentImageQualityResultQuality
+    quality: DocumentImageQualityResultQuality
+    observed_quality: DocumentImageQualityResultQuality
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_return: JSONValue
+    linked_changes: List[DocumentImageQualitySetResultLinkedChangesItem]
+
+
+DocumentAnnotationOptionsParameters = DocumentImageQualityParameters
 
 
 class _DocumentAnnotationOptionsResultRequired(TypedDict):
@@ -771,7 +843,7 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentUnitsParameters = DocumentAnnotationOptionsParameters
+DocumentUnitsParameters = DocumentImageQualityParameters
 
 
 class DocumentUnitsResultUnitsNativeUnits(TypedDict):
@@ -824,7 +896,7 @@ class DocumentUnitsSetResult(_DocumentUnitsSetResultRequired, total=False):
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentSummaryParameters = DocumentAnnotationOptionsParameters
+DocumentSummaryParameters = DocumentImageQualityParameters
 
 
 class DocumentSummaryResultFields(TypedDict):

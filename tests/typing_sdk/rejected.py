@@ -10,3 +10,6 @@ wrong_type: str = client.document.inspect().require_result()["document"]["modifi
 client.feature.extrude(sketch_id="s-ab12cd", depth_mm="ten")  # E: arg-type
 client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0}])  # E: typeddict-item
 bad_empty_parameters: DocumentListParameters = {"unexpected": True}  # E: typeddict-unknown-key
+
+quality = client.document.image_quality().require_result()["quality"]
+client.document.image_quality_set(field="optimize_edge_length", value=True, expected_quality=quality)  # E: call-arg

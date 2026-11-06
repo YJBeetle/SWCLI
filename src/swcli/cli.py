@@ -20,6 +20,7 @@ from .hosts.windows_sketches import STANDARD_PLANES
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
 from .hosts.windows_document_units import LENGTH_UNITS
+from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, validate_value
 from .document_annotations import ANNOTATION_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
@@ -248,6 +249,17 @@ def build_parser() -> argparse.ArgumentParser:
         else:
             editor.add_argument("--if-value", dest="expected_value", help="require this raw value")
         editor.add_argument("--json", action="store_true", dest="as_json")
+    image_reader = document_commands.add_parser("image-quality", help="read bounded part image quality; independent of GLB export options")
+    add_document_selector(image_reader)
+    image_reader.add_argument("--json", action="store_true", dest="as_json")
+    image_editor = document_commands.add_parser("image-quality-set", help="edit one part image quality field with a complete CAS snapshot")
+    add_document_target(image_editor)
+    image_editor.add_argument("--if-update-stamp", type=int, dest="expected_update_stamp", required=True)
+    image_editor.add_argument("--lease", dest="lease_id", required=True)
+    image_editor.add_argument("field", choices=tuple(IMAGE_QUALITY_FIELDS))
+    image_editor.add_argument("value")
+    image_editor.add_argument("--if-quality", required=True, dest="expected_quality", help="complete JSON quality snapshot from image-quality")
+    image_editor.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -874,7 +886,7 @@ def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Opt
         if (
             not isinstance(operation_schema, dict)
             or not operation_schema_fields.issubset(operation_schema)
-            or set(operation_schema) - operation_schema_fields - {"allOf"}
+            or set(operation_schema) - operation_schema_fields - {"allOf", "description"}
         ):
             return f"operation schema fields are invalid for {operation}"
         if (
@@ -1312,6 +1324,29 @@ def _typed_operation(
                 args.expected_update_stamp,
                 None,
             )
+        if command == "image-quality":
+            return ("document.image-quality", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "image-quality-set":
+            def unique_members(pairs):
+                result = {}
+                for key, item in pairs:
+                    if key in result:
+                        raise ValueError("duplicate image quality JSON member: " + key)
+                    result[key] = item
+                return result
+            def invalid_constant(token):
+                raise ValueError("image quality JSON numbers must be finite: " + token)
+            expected = json.loads(args.expected_quality, object_pairs_hook=unique_members, parse_constant=invalid_constant)
+            validate_quality(expected)
+            if args.field == "optimize_edge_length":
+                if args.value not in ("true", "false"):
+                    raise ValueError("image quality boolean must be true or false")
+                value = args.value == "true"
+            else:
+                value = float(args.value) if args.field == "shaded_deviation_mm" else args.value
+            validate_value(args.field, value)
+            return ("document.image-quality-set", {"field": args.field, "value": value, "expected_quality": expected},
+                    args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

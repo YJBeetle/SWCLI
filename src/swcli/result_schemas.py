@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
+from .document_image_quality import IMAGE_QUALITY_FIELDS, exact_snapshot, linked_changes, quality_schema, validate_quality
 from .document_annotations import ANNOTATION_FIELDS
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
@@ -556,6 +557,19 @@ _RESULT_FIELDS = {
     ),
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
+    "document.image-quality": (
+        {"quality": quality_schema()}, ("session_id", "document", "quality"),
+    ),
+    "document.image-quality-set": (
+        {"field": {"type": "string", "enum": list(IMAGE_QUALITY_FIELDS)}, "before": quality_schema(),
+         "quality": quality_schema(), "observed_quality": quality_schema(), "changed": BOOL,
+         "mutation": METADATA_MUTATION, "native_return": {},
+         "linked_changes": {"type": "array", "maxItems": 1, "items": _object({
+             "field": {"type": "string", "enum": ["shaded_deviation_mm"]},
+             "before": NUMBER, "after": NUMBER,
+             "reason": {"const": "shaded-mode-coupling"}}, ("field", "before", "after", "reason"))}},
+        ("session_id", "document", "field", "before", "quality", "changed", "mutation", "linked_changes"),
+    ),
     "document.annotation-options": (
         {"options": DOCUMENT_ANNOTATION_OPTIONS},
         ("session_id", "document", "options"),
@@ -2719,6 +2733,24 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name in ("document.image-quality", "document.image-quality-set"):
+        try:
+            for key in ("before", "quality", "observed_quality"):
+                if key in result:
+                    validate_quality(result[key])
+            if name.endswith("-set") and result["ok"] is True:
+                before, after = result["before"], result["quality"]
+                changed = not exact_snapshot(before, after)
+                expected_mutation = {"attempted": changed, "may_have_changed": changed}
+                if (result["changed"] is not changed or result["mutation"] != expected_mutation
+                        or result["linked_changes"] != linked_changes(before, after, result["field"])
+                        or (changed and (result["document"]["modified"] is not True
+                            or result.get("native_return") is not True
+                            or not exact_snapshot(result.get("observed_quality"), after)))
+                        or (not changed and ("native_return" in result or "observed_quality" in result))):
+                    raise ValueError("image quality lifecycle or coupled-change evidence disagrees")
+        except (ValueError, RuntimeError) as exc:
+            raise OperationResultInvalid(name + ": " + str(exc)) from exc
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:
