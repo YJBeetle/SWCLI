@@ -38,3 +38,11 @@
 - 后续只需跟踪此 run：若失败先下载 `swcli-windows-hosted-42260712677-*` 原产物，查看 line-font-calibration/report.json、trace.jsonl、process.log 与第一真实失败；如果未到原生阶段则读取失败 portable job。必要相关修复后才新验证。
 - 未完成边界：Windows 原生内部校准结果待回收；即使内部校准通过，公开 CLI 写入端到端验收仍缺，本分支公开 setter 保持 fail closed。不得将该 run 当成完整原生基础门禁或公开验收。
 - 交接记录后续文档提交不改变上述待校准代码 head；主对话可统一读取并处理集成。
+
+## 公开验收续作（统筹授权后）
+
+- 已准备 `scripts/ci/verify-line-font-public.py`：installed public CLI + 独立隐藏 daemon，完整 CAS/lease/stamp/readonly 拒绝、每字段单次修改、noop、source hash、save/reopen/fresh ID、SDK typed read/noop 及 MCP live bridge execute noop。MCP stdio transport 不在该 gate 的证据范围。
+- 新开关 `line_font_public=false` 默认关闭，只允许本分支手动；专属 `swcli-hosted-windows-line-font-public` 并发组，不进入默认 full/release 流程。
+- 已准备 `scripts/ci/audit-line-font-calibration.py` 对原产物独立核验：内部结果、四字段值变化、12 getter / 1 setter 顺序、save/reopen、fixture/report/trace/process-log SHA256。
+- 对应 16 项线型/证据检查便携测试通过，日志 `artifacts/line-font/public-gate-portable.log`；未重复全套检查。公开门禁仍关闭，只有拿到原生内部证据后才能开放已证实的精确 transition 并触发公共验收。
+- 现有原生作业仍在 disposable runner 磁盘清理阶段，未产生原生校准结果；不重复 dispatch。

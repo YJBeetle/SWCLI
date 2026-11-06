@@ -39,6 +39,11 @@ on:
           - "6"
           - "8"
           - "12"
+      line_font_public:
+        description: Public CLI drawing Line Font acceptance (branch only)
+        required: false
+        default: false
+        type: boolean
       line_font_calibration:
         description: Internal drawing line font calibration (branch only, no public acceptance)
         required: false
@@ -238,13 +243,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.line_font_calibration && 'Internal drawing Line Font calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && inputs.line_font_calibration && github.ref == 'refs/heads/codex/docprops-line-style') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full) || (github.event_name == 'workflow_dispatch' && (inputs.line_font_calibration || inputs.line_font_public) && github.ref == 'refs/heads/codex/docprops-line-style') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: swcli-hosted-windows-${{ inputs.line_font_calibration && 'line-font-calibration' || 'solidworks' }}
+      group: swcli-hosted-windows-${{ inputs.line_font_public && 'line-font-public' || inputs.line_font_calibration && 'line-font-calibration' || 'solidworks' }}
       cancel-in-progress: false
     env:
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
@@ -387,6 +392,17 @@ jobs:
           python -I scripts/ci/verify-installed.py
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
+      - name: Verify public drawing Line Font CLI and daemon
+        if: ${{ inputs.line_font_public && github.ref == 'refs/heads/codex/docprops-line-style' }}
+        timeout-minutes: 30
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          $template = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Drawing template discovery failed" }
+          python -I scripts/ci/verify-line-font-public.py --output-dir "$env:SWCLI_SMOKE_ROOT\line-font-public" --drawing-template $template
+          if ($LASTEXITCODE -ne 0) { throw "Public Line Font gate failed; retain report and native trace" }
+
       - name: Calibrate drawing line font defaults only
         if: ${{ inputs.line_font_calibration && github.ref == 'refs/heads/codex/docprops-line-style' }}
         timeout-minutes: 30
@@ -399,7 +415,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Line font calibration failed; retain original report and trace" }
 
       - name: Prepare property fixtures for public CLI verification
-        if: ${{ !inputs.line_font_calibration }}
+        if: ${{ !inputs.line_font_calibration && !inputs.line_font_public }}
         id: property_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -411,7 +427,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
-        if: ${{ !inputs.line_font_calibration }}
+        if: ${{ !inputs.line_font_calibration && !inputs.line_font_public }}
         id: annotation_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -425,7 +441,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
-        if: ${{ !inputs.line_font_calibration }}
+        if: ${{ !inputs.line_font_calibration && !inputs.line_font_public }}
         id: native_tests
         shell: powershell
         run: |
@@ -463,8 +479,8 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: |
-          if ("${{ inputs.line_font_calibration }}" -eq "true") {
-            "Internal Line Font calibration only; full public acceptance is not evaluated." >> $env:GITHUB_STEP_SUMMARY
+          if ("${{ inputs.line_font_calibration }}" -eq "true" -or "${{ inputs.line_font_public }}" -eq "true") {
+            "Dedicated Line Font evidence only; full modeling acceptance is not evaluated." >> $env:GITHUB_STEP_SUMMARY
             exit 0
           }
           $clientVersion = python -c "import sys; sys.path.insert(0, 'src'); import swcli; print(swcli.__version__)"
