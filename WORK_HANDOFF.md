@@ -1,18 +1,46 @@
 # 线型 / 线宽默认设置交接
 
-**收口状态：产品实现与已知 peer 阻断已修复并推送；最终公开验收正在运行，尚非 merge-ready。停止本地持续 sleep/轮询，不建 CI automation，由统筹后续分次快照回收原件。没有待审批动作，不自行合 main/发布。**
+**收口状态：公开 run 42282239432 已 success，原ZIP/head/digest及原始trace/save-reopen/foreground首层自验通过。冻结产品80b6133，可交统筹本人最终review的限定子集候选；本路不代替最终review、不自行合main/发版。整个系列完成后再发布，正式发布等待用户最终确认。没有新增CI或持续poll。**
 
 产品精确 tip：`80b61334537d9394b19da03dee9d7baa08da58e8`。
 本次交接提交只更新本文档，不改变产品、gate 或 schema。
 
-## 当前唯一需要跟进的公开 run
+## 最终公开原件与首层自验（供统筹本人review）
 
-- [42282239432](https://github.com/YJBeetle/SWCLI/actions/runs/42282239432)，GitHub 已核 head=`80b61334537d9394b19da03dee9d7baa08da58e8`。
-- 参数：`line_font_public=true`、`line_font_calibration=false`、`native_full=false`；media_path/assets_path/cleanup_profile/vfs_cache_gib 均 workflow 默认。
-- 收口仅取一次状态：`in_progress`；Build wheel success，Windows 3.9 / 3.14 portable jobs 进行中；native job 尚未产生最终结果。仅为该产品修复 head 触发这一次必要公开验收，未因正常排队重发。
-- 专属 concurrency=`swcli-hosted-windows-line-font-public`，不进入默认 full/release 的共享组；不扩 PR secrets。600s请求 / 1800s group，首个非预期失败停止，无 native API重试/回滚/组内重启。
-- 后续若失败：先下载 `swcli-windows-hosted-42282239432-*` 原ZIP与metadata，核 head/digest，再看 `line-font-public/line-font-public.json`、events journal、daemon stderr、SDK/MCP回执、source/changed文件hash与第一真实失败。只有相关修复后才新验证。
-- 若成功：还须独立核原artifact/head/digest/trace/save-reopen与foreground完整状态，才能把精确已测子集交统筹合并。当前不可将 CI在跑、内部校准或 mocks 当成最终公开验收。
+- [42282239432](https://github.com/YJBeetle/SWCLI/actions/runs/42282239432)，GitHub 已核 head=`80b61334537d9394b19da03dee9d7baa08da58e8`，conclusion=`success`；Windows 3.9 / 3.14 portable、wheel、Public drawing Line Font acceptance均success。正式发布job skipped，未发布。
+- 参数：`line_font_public=true`、`line_font_calibration=false`、`native_full=false`；其余 media/assets/cleanup/vfs 参数默认。专属public gate真实执行success，internal/property/annotation/full矩阵均按目标模式skipped，非空绿。
+- artifact id **13537021814**，name `swcli-windows-hosted-42282239432-1`，183722字节。
+- 原ZIP SHA256（与GitHub digest逐字核对）：`268d916ec25155130455f508e172908a69de30adf39b1650092d2eb37ca3ab15`。
+- 永久本地原件根：`/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI/artifacts/line-font/internal-public-42282239432/`。
+- 原ZIP `original.zip`；`artifact-metadata.json` / `run-metadata.json`；完整解包 `expanded/`；首层自验代码 `audit.py` 与结果 `audit.json`。原始native数据未推送远端。
+- 完整公开报告：`expanded/swcli-native-smoke/line-font-public/line-font-public.json`；原journal、daemon stderr/stdout、source.SLDDRW / changed.SLDDRW 同目录。
+- 无CAD/网络的复核命令：
+
+```sh
+/opt/homebrew/bin/python3.14 /Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI/artifacts/line-font/internal-public-42282239432/audit.py
+```
+
+首层复核摘要：
+
+- 90个CLI事件与原journal逐条一致；27个CLI line-font请求 + 3个SDK/MCP请求 = 30个独立request ID，原始trace全部匹配。
+- 4个字段各1次原生setter，140次preference getters、1次SetSaveFlag；逐请求进入/恢复CommandInProgress严格配对。无未知native方法或全局偏好setter，单Python worker / 同一native host，无组内重启。
+- 13次read、4次changed write、6次noop、4次完整值CAS拒绝、1次lease拒绝、1次stamp拒绝、1次readonly拒绝；每个请求按实际CLI参数/完整snapshot/回执核对。四次写入实际顺序来自CLI JSON排序，不假定字段插入顺序。
+- 30次前台完整descriptor比较稳定；两个阶段分别使用新建foreground part，各自title/path/stamp/dirty等完整字段不变。raw trace含已修复peer guard的GetActiveConfiguration/Name观察。
+- source与changed copy实际字节hash匹配；changed关闭后readonly重开使用fresh document ID，四项值持久化且dirty=false，拒绝readonly写未改变值或文件字节。
+- 最终原生文档列表为空；daemon stop成功，daemon退出码0；此处不额外宣称未执行的独立OS进程handle审计。
+
+关键hash：
+
+| 原件 | SHA256 |
+| --- | --- |
+| public report | `ecc42c3137857d28f60c9ee09bed119312f1f577e77aa316fe8a39e1218a44f0` |
+| events journal | `957554fae6a836e39603961ce7d014482ccbb7b45a82617a445ba5ba4c253b54` |
+| daemon native trace | `05aafca531dadc4c64d23ce036119a5635193f18d63a3e58c25f1eb3cb2d2d67` |
+| source.SLDDRW（24956字节） | `890dbdb3b498065eaf43ca04ec42004d0c0afdf7aef5de104ebcda454cb9a6d2` |
+| changed.SLDDRW（24144字节） | `d4437e37a6d133be9b88fdaeaf222841b9353e448b9386d452da863c0d0f7e2e` |
+
+实际验收边界：revision 33.5.0、正常drawing目标+新建foreground part的健康public CLI/daemon链路、以下四个单向转换与0/1 noop；SDK typed read/noop与MCP live bridge execute/noop。peer注入的描述符失败/foreground漂移是生产handler/worker的portable mock证明，不是原生故障现场；不宣称MCP stdio、其他版本/文档模式、任意数值/实体、完整modeling suite或整个系列release已验收。未测域不得直接算作本系列已完成或擅自后置发版；由统筹本人按既定系列范围审查收口。
+
 
 ## 范围与接口 diff
 

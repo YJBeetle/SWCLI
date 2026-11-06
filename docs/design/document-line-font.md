@@ -1,4 +1,4 @@
-# Drawing Line Font defaults (internal evidence audited; public acceptance pending)
+# Drawing Line Font defaults
 
 The independent `document.line-font` read and `document.line-font-set` guarded write
 surface cover four **drawing document defaults** only:
@@ -28,8 +28,12 @@ Same-value 0/1 requests are observations with no setter. Reverse conversions,
 other versions, weight 2, custom and layer sentinels remain closed. The adapter's
 internal calibration flag is not a protocol or CLI parameter.
 
-Public CLI/daemon save/reopen validation remains a separate gate; internal
-calibration does not establish public acceptance. Dispatch `line_font_public=true`
+Public CLI/daemon save/reopen validation is a separate gate; internal
+calibration does not establish public acceptance. Public run [42282239432](https://github.com/YJBeetle/SWCLI/actions/runs/42282239432)
+passed at product head `80b61334537d9394b19da03dee9d7baa08da58e8`. Its original ZIP,
+metadata, trace, file hashes and foreground observations passed local first-level
+artifact checks; final integration review belongs to the orchestrator. This is
+the bounded subset described here, not full-series release acceptance. Dispatch `line_font_public=true`
 on this branch only, with `line_font_calibration=false`, `native_full=false`.
 It has an independent concurrency group and skips unrelated full gates.
 SDK typed read/noop and MCP live bridge execute/noop are included; MCP stdio
