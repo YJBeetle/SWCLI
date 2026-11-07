@@ -51,21 +51,59 @@ def check_box(document):
     return measured
 
 
-def read_wireframe(document):
-    checked(not tuple(document.GetBodies2(0, False) or ()), "wireframe imported as a solid")
-    lengths = []
-    for feature in _features(document):
-        if _com_value(feature, "GetTypeName2") not in ("ProfileFeature", "3DProfileFeature"):
+def _wire_features(document):
+    """Visit top-level and absorbed features once, by document-unique GetID."""
+    from collections import deque
+    pending = deque((feature, None, 0) for feature in _features(document))
+    checked(len(pending) <= 10000, "wire feature inventory exceeds safety limit")
+    seen = set()
+    while pending:
+        feature, parent, depth = pending.popleft()
+        identity = _com_value(feature, "GetID")
+        checked(type(identity) is int, "wire feature ID is unreadable")
+        if identity in seen:
             continue
-        sketch = _com_value(feature, "GetSpecificFeature2")
-        for segment in tuple(_com_value(sketch, "GetSketchSegments") or ()):
-            length = float(_com_value(segment, "GetLength")) * 1000
-            checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
-            lengths.append(length)
+        seen.add(identity)
+        checked(len(seen) <= 10000 and depth <= 64, "wire feature graph exceeds safety limit")
+        yield feature, identity, parent, depth
+        child = _com_value(feature, "GetFirstSubFeature")
+        siblings = set()
+        while child is not None:
+            child_id = _com_value(child, "GetID")
+            checked(type(child_id) is int and child_id not in siblings,
+                    "wire subfeature traversal has an invalid ID or sibling cycle")
+            siblings.add(child_id)
+            pending.append((child, identity, depth + 1))
+            checked(len(seen) + len(pending) <= 10000, "wire feature graph exceeds safety limit")
+            child = _com_value(child, "GetNextSubFeature")
+
+
+def read_wireframe(document, evidence=None):
+    checked(not tuple(document.GetBodies2(0, False) or ()), "wireframe imported as a solid")
+    lengths, inventory = [], []
+    observation = evidence if evidence is not None else {}
+    try:
+        for feature, identity, parent, depth in _wire_features(document):
+            kind = _com_value(feature, "GetTypeName2")
+            row = dict(feature_id=identity, parent_id=parent, depth=depth,
+                       kind=kind, name=_com_value(feature, "Name"), lengths_mm=[])
+            inventory.append(row)
+            if kind not in ("ProfileFeature", "3DProfileFeature"):
+                continue
+            sketch = _com_value(feature, "GetSpecificFeature2")
+            checked(sketch is not None, "wire sketch interface is unavailable")
+            for segment in tuple(_com_value(sketch, "GetSketchSegments") or ()):
+                length = float(_com_value(segment, "GetLength")) * 1000
+                checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
+                lengths.append(length)
+                row["lengths_mm"].append(length)
+    finally:
+        # Preserve every observed feature/length before any strict count/vector
+        # assertion (or native read failure); never retry an incomplete import.
+        observation.update(segment_count=len(lengths), lengths_mm=sorted(lengths),
+                           total_length_mm=sum(lengths), feature_inventory=inventory)
     checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
-    # Validate the independently observed source outline/construction profile
-    # and exact exported length vector separately in the case runner.
-    return dict(segment_count=len(lengths), lengths_mm=sorted(lengths), total_length_mm=sum(lengths))
+    return observation
 
 
 IMPORT_PROFILE = {
@@ -263,7 +301,8 @@ def _verify_imported_geometry(app, target, output, name, geometry, call, case, l
     if geometry == "solid-surface":
         case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
     else:
-        case["imported_geometry"] = call("read-imported-wireframe", lambda: read_wireframe(document))
+        case["imported_geometry"] = {}
+        call("read-imported-wireframe", lambda: read_wireframe(document, case["imported_geometry"]))
         verify_wire_geometry(case["imported_geometry"], geometry)
     imported_native = output / (name + "-imported.SLDPRT")
     case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
@@ -276,8 +315,10 @@ def _verify_imported_geometry(app, target, output, name, geometry, call, case, l
     live["document"] = document
     case["imported_reopen"] = opened
     checked(opened["ok"] and opened["api_errors"] == opened["api_warnings"] == 0, "imported native reopen failed")
-    case["reopened_imported_geometry"] = call("verify-reopened-import", lambda:
-        check_box(document) if geometry == "solid-surface" else read_wireframe(document))
+    case["reopened_imported_geometry"] = {}
+    observed = call("verify-reopened-import", lambda:
+        check_box(document) if geometry == "solid-surface" else read_wireframe(document, case["reopened_imported_geometry"]))
+    case["reopened_imported_geometry"] = observed
     verify_reopened_geometry(case["imported_geometry"], case["reopened_imported_geometry"], geometry)
     checked(not _com_value(document, "GetSaveFlag"), "read-only imported observation changed save state")
     checked(hashlib.sha256(imported_native.read_bytes()).hexdigest() == native_digest, "read-only reopen changed native bytes")

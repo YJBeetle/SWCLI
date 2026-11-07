@@ -73,6 +73,40 @@ class StepPublicGateTests(unittest.TestCase):
                 self.assertEqual(parameters["step_protocol"], protocol)
                 self.assertEqual(parameters["step_geometry"], geometry)
 
+    def test_wire_observer_reads_absorbed_sketches_once_and_keeps_incomplete_evidence(self):
+        module = script("verify-step-export-calibration.py")
+        expected = [10.0]*4 + [30.0]*4 + [40.0]*4
+        def feature(identity, lengths=(), kind="3DProfileFeature"):
+            return SimpleNamespace(GetID=identity,GetTypeName2=kind,Name="feature-"+str(identity),
+                GetSpecificFeature2=SimpleNamespace(GetSketchSegments=[SimpleNamespace(GetLength=v/1000) for v in lengths]),
+                GetFirstSubFeature=None,GetNextSubFeature=None,GetNextFeature=None)
+        parent = feature(1,kind="ImportedCurve")
+        top_sketch = feature(2,expected[:9])
+        absorbed_sketch = feature(3,expected[9:])
+        parent.GetFirstSubFeature = absorbed_sketch
+        parent.GetNextFeature = top_sketch
+        document = SimpleNamespace(FirstFeature=parent,GetBodies2=lambda *args:())
+        observed = module.read_wireframe(document)
+        self.assertEqual(observed["segment_count"],12)
+        self.assertEqual(observed["lengths_mm"],expected)
+        self.assertEqual(len(observed["feature_inventory"]),3)
+        module.verify_wire_geometry(observed,"wireframe")
+        top_sketch.GetNextFeature = absorbed_sketch  # Same native ID via two paths.
+        self.assertEqual(module.read_wireframe(document)["segment_count"],12)
+        # The same nine real segments still fail if the missing three are absent.
+        top_sketch.GetNextFeature = parent.GetFirstSubFeature = None
+        partial = {}
+        with self.assertRaisesRegex(RuntimeError,"at least its twelve edges"):
+            module.read_wireframe(document,partial)
+        self.assertEqual(partial["segment_count"],9)
+        self.assertEqual(partial["lengths_mm"],expected[:9])
+        self.assertEqual(len(partial["feature_inventory"]),2)
+        # Corrupt cyclic graphs also fail, retaining the first observation.
+        parent.GetFirstSubFeature = absorbed_sketch
+        absorbed_sketch.GetNextSubFeature = absorbed_sketch
+        with self.assertRaisesRegex(RuntimeError,"sibling cycle"):
+            module.read_wireframe(document,{})
+
     def test_public_output_digest_mismatch_blocks_native_readback(self):
         module = script("verify-step-export-calibration.py")
         with tempfile.TemporaryDirectory() as directory:

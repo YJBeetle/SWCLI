@@ -146,3 +146,24 @@ no CAD state is rolled back. Worker command finalization/result-schema failure
 retains a trusted mutation boundary, first native error and valid preference
 receipt, returns failure and retires the worker. An already published output is
 reported in that failure receipt rather than silently retried or rolled back.
+
+Public guard-repair run
+[42361918322](https://github.com/YJBeetle/SWCLI/actions/runs/42361918322), head
+`b5b2d1d2894e7ea78b81642b2b1b0b9dd593b7fa`, passed all eight public exports,
+including the narrow native probe and foreground peer checks. Its independent
+reader completed seven files; the last MCP wireframe imported with error 0 but
+the top-level observer read nine segments, so the run failed. Original artifact
+`13570691525` SHA256 is
+`d113f76a96f31d27aee5a776ad357b1998fe5404651f264dd62f736888ce55be`.
+The actual last STEP contains all twelve expected box edges. The retained trace
+cannot distinguish missing imported geometry from skipped nested sketches.
+
+The observer now visits bounded top-level and subfeature graphs, deduplicates
+by document-unique native feature ID, and retains feature inventory/partial
+lengths before failing. Exact 12/18 segment counts, complete length vectors,
+all error-code and save/reopen gates, and all precision bounds remain unchanged.
+There is no reread/reimport/rebuild/retry or host replacement. The next unique
+public gate must establish complete geometry; nested sketches are an unresolved
+explanation, not an accepted result from the failed run.
+[Feature traversal](https://help.solidworks.com/2026/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature_members.html)
+and [document-unique feature IDs](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetID.html).
