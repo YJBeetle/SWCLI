@@ -75,7 +75,10 @@ class TopologySmoke(base.ModelingSmoke):
         digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
         self.close(a)
         c = self.command("document", "open", target, "--read-only")["document"]["document_id"]
-        self.command("document", "use", b)
+        # Opening activates c. Creating the next owned foreground fixture makes
+        # c genuinely background for the unchanged background assertions.
+        self.close(b)
+        b = self.create()
         for file in files.values():
             resolved = self.resolve(file, c)
             self.background(resolved, c)

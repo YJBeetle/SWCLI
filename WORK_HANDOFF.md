@@ -110,3 +110,13 @@
 - hole 与 notch 的内部原生校准均通过，清理无错误。已独立核对两组修改态及最终态共四个 SLDPRT 哈希，以及只读重开后的 12000 mm³ 体积。hole 删除前 OK 且原生身份一致，删除后 Invalid=1/NULL。notch 的分裂、合并、保存重开和持续拒绝均通过。
 - 公开组首个 `daemon status` 连接 `127.0.0.1:45191` 超时。原启动回执显示 daemon 实际监听 `127.0.0.1:18495`，因为 runner 把客户端的全局 `--endpoint` 当作服务端绑定参数。后续停止命令也使用错端口，进程等待超时是次生结果。公开组尚未执行引用用例。
 - 修复只在 runner 和回归测试。使用 `daemon serve --host 127.0.0.1 --port 45191`，收到同端口且成功的服务启动回执后才运行公开组，并以该回执约束清理时发送的停止命令。25 项针对性检查通过，覆盖成功端口贯通与错误端口时禁止进入公开组。产品、并发策略及 CAD 验收断言不变。
+
+- 端口修复提交 `2a431a1eccc7c0061b6791b0634cd817082bfd1e` 已推送。唯一新 head 验收 <https://github.com/YJBeetle/SWCLI/actions/runs/42305484520> 已核对提交，当前状态 `in_progress`，结论 `pending`。参数 `native_topology_targeted=true` / `native_full=false`。回执和快照见 `.task-evidence/dispatch/daemon-endpoint-fix-*.json`。待公开 CLI/SDK/MCP 原生证据，仍不可合并。
+
+## 阶段 15：公开重开后的前台夹具修复
+
+- [42305484520](https://github.com/YJBeetle/SWCLI/actions/runs/42305484520) 的 head 为 `2a431a1eccc7c0061b6791b0634cd817082bfd1e`。原 native ZIP artifact ID `13547291392`，SHA256 为 `dbe884fdfb8368c2b6588bb86e9ed70639fa25a56b5655b6d53d0122a8191c01`，已核 digest/head，完整保存在 `.task-evidence/ci-42305484520/`。
+- 内部 hole/notch 再次全部通过，四个模型文件 SHA256 与原报告一致，重开体积 12000 mm³ 通过。公开 SDK face 和 MCP edge 的真实 daemon 解析都已成功，native_status=0。CLI 的捕获、后台读取、另一 session lease 下读取、跨文档拒绝、重建及 CAS 检查也已执行到后续保存重开。
+- 首失败是公开夹具的前台准备。只读打开目标使其 active=true；随后 `document use b` 只设置 session current，回执中 b.active=false。接下来的 face 引用解析成功、observation.unchanged=true、目标 current=false / active=true，触发原有 background 断言。原始状态和完整错误已保存在 `first-failure.json`。
+- 最小修复在 `verify-topology-references.py`。目标重开后关闭已完成任务的旧 b，再创建新的 owning foreground b，随后执行原有 active=false/current=false 断言。产品行为与断言保持原契约。25 项关联检查通过，日志 `.task-evidence/portable-reopen-foreground-fix/targeted.log`。
+- 公开验收仍待完成重开后台 face/edge、保存后拓扑变更拒绝及最终输出内容检查。完成后由统筹本人 review，当前尚不可合并。
