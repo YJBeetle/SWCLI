@@ -11,6 +11,16 @@ on:
       - 'LICENSE'
   workflow_dispatch:
     inputs:
+      dimension_format_public:
+        description: Run installed public dimension display acceptance after internal proof
+        type: boolean
+        required: false
+        default: false
+      dimension_format_calibration:
+        description: Run only branch-owned dimension display internal calibration
+        type: boolean
+        required: false
+        default: false
       media_path:
         description: Google Drive path to the SOLIDWORKS ISO
         required: true
@@ -166,7 +176,7 @@ jobs:
 
   test:
     needs: [native-profile, dispatch-policy]
-    if: ${{ needs.dispatch-policy.outputs.validation_profile == 'standard' && !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate)) }}
+    if: ${{ needs.dispatch-policy.outputs.validation_profile == 'standard' && !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate || inputs.dimension_format_calibration || inputs.dimension_format_public)) }}
     name: Windows / Python ${{ matrix.python }}
     runs-on: windows-2025
     timeout-minutes: 15
@@ -274,7 +284,7 @@ jobs:
 
   package:
     needs: [native-profile, dispatch-policy]
-    if: ${{ needs.dispatch-policy.outputs.validation_profile == 'standard' && !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate)) }}
+    if: ${{ needs.dispatch-policy.outputs.validation_profile == 'standard' && !(github.event_name == 'workflow_dispatch' && (inputs.detailing_calibration || inputs.detailing_public_gate || inputs.dimension_format_calibration || inputs.dimension_format_public)) }}
     name: Build wheel
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -922,6 +932,204 @@ jobs:
     secrets:
       RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
 
+
+  dimension-format:
+    needs: [native-profile]
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-dimension-format' && (inputs.dimension_format_calibration || inputs.dimension_format_public) }}
+    runs-on: windows-2025
+    timeout-minutes: 120
+    concurrency:
+      group: ${{ format('swcli-dimension-format-{0}-{1}', github.ref, inputs.dimension_format_public && 'public' || 'internal') }}
+      cancel-in-progress: false
+    env:
+      SW_MEDIA_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
+      SW_ASSETS_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack
+    steps:
+      - name: Require exactly one dimension format mode
+        if: ${{ inputs.dimension_format_calibration == inputs.dimension_format_public }}
+        shell: powershell
+        run: throw "Choose internal calibration or installed public acceptance, not both"
+      - name: Check out exact selected head
+        uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Initialize private paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-hosted-media" >> $env:GITHUB_ENV
+          "PRIVATE_ROOT=$env:RUNNER_TEMP\swcli-private-runtime" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
+          "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+
+      - name: Measure disposable runner disk
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      # Installation snapshots are disabled until fresh-runner native core
+      # registration and equation behavior are proven equivalent to installation.
+      - name: Free disposable runner disk for installation
+        shell: powershell
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"8" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "auto" -MinFreeGiB $targetGiB
+
+      - name: Measure disk after runner cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-media-dependencies.ps1
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
+
+      - name: Prepare protected Google Drive configuration
+        id: private_config
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, [Convert]::FromBase64String($env:RCLONE_CONFIG_B64))
+          if (-not (rclone --config $env:RCLONE_CONFIG_FILE listremotes | Select-String -SimpleMatch "gdrive:" -Quiet)) {
+            throw "gdrive: remote is unavailable"
+          }
+
+      - name: Stream Google Drive through WinFsp
+        id: drive_mount
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]8 * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
+        shell: powershell
+        run: |
+          scripts/ci/windows/probe-imdisk.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
+
+      - name: Fetch private smoke-test runtime
+        id: private_fetch
+        shell: powershell
+        run: |
+          $assets = "$env:PRIVATE_ROOT\assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          rclone --config $env:RCLONE_CONFIG_FILE copy "gdrive:$env:SW_ASSETS_PATH" $assets `
+            --include "/SolidWorks_Flexnet_Server/**" `
+            --include "/SOLIDWORKS Corp/SOLIDWORKS/**" `
+            --include "/sw2025_network_serials_licensing.reg" `
+            --exclude "*" `
+            --transfers 4 `
+            --checkers 8 `
+            --log-level NOTICE
+          foreach ($required in @(
+            "$assets\sw2025_network_serials_licensing.reg",
+            "$assets\SolidWorks_Flexnet_Server",
+            "$assets\SOLIDWORKS Corp\SOLIDWORKS"
+          )) {
+            if (-not (Test-Path -LiteralPath $required)) { throw "Missing private test input: $required" }
+          }
+
+      - name: Install native SOLIDWORKS
+        id: native_install
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-solidworks.ps1 `
+            -MediaRoot $env:SW_MEDIA_ROOT `
+            -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
+
+      - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
+        shell: powershell
+        run: |
+          scripts/ci/windows/prepare-test-runtime.ps1 `
+            -AssetsRoot "$env:PRIVATE_ROOT\assets" `
+            -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Install built SWCLI wheel
+        id: client_install
+        shell: powershell
+        run: |
+          python -m pip install build
+          if ($LASTEXITCODE -ne 0) { throw "build installation failed" }
+          python -m build --outdir "$env:RUNNER_TEMP\swcli-dist"
+          if ($LASTEXITCODE -ne 0) { throw "wheel build failed" }
+          $wheels = @(Get-ChildItem -LiteralPath "$env:RUNNER_TEMP\swcli-dist" -Filter *.whl -File)
+          if ($wheels.Count -ne 1) { throw "Expected exactly one SWCLI wheel from the package job" }
+          python --version
+          python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+          python -m pip install $wheels[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
+
+      - name: Calibrate dimension display only
+        if: ${{ inputs.dimension_format_calibration && !inputs.dimension_format_public }}
+        id: calibration
+        timeout-minutes: 31
+        shell: powershell
+        env:
+          SWCLI_TRACE_NATIVE_CALLS: "1"
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Explicit drawing template discovery failed" }
+          python -I scripts/ci/verify-dimension-format-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\dimension-format" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Dimension display calibration failed; inspect original report/trace" }
+      - name: Prepare independent public dimension format fixtures
+        if: ${{ inputs.dimension_format_public && !inputs.dimension_format_calibration }}
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Explicit public drawing template discovery failed" }
+          python -I scripts/ci/prepare-annotation-fixtures.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\dimension-public-fixtures" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" --drawing-template $drawingTemplate
+          if ($LASTEXITCODE -ne 0) { throw "Independent dimension format fixture preparation failed" }
+      - name: Verify installed public dimension format CLI and daemon
+        if: ${{ inputs.dimension_format_public && !inputs.dimension_format_calibration }}
+        timeout-minutes: 30
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\dimension-public" -Hidden -Suite core `
+            -DimensionFormatFixtureDirectory "$env:SWCLI_SMOKE_ROOT\dimension-public-fixtures"
+      - name: Clean private inputs
+        if: always()
+        shell: powershell
+        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+      - name: Upload original calibration evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dimension-format-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-native-smoke
+          if-no-files-found: warn
+          retention-days: 14
 
   release:
     name: Publish original verified version-tag artifacts

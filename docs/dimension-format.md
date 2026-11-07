@@ -1,0 +1,55 @@
+# 尺寸显示格式（公开验收候选）
+
+本批限定选项 → 文档属性 → 尺寸中的三项：
+
+| 字段 | 值 | 官方文档级映射 |
+| --- | --- | --- |
+| `dual_display` | boolean | `IModelDocExtension.Get/SetUserPreferenceToggle(swDetailingDualDimensions=43, swDetailingDimension=200)` |
+| `dual_position` | `right/top/left/bottom`（写入参数）；原生整数（读取/CAS） | `Get/SetUserPreferenceInteger(swDetailingDualDimPosition=14, swDetailingDimension=200)`；右1、上2、左3、下4 |
+| `parentheses` | boolean | `Get/SetUserPreferenceToggle(swDetailingDimsShowParenthesisByDefault=48, swDetailingNoOptionSpecified=0)` |
+
+零显示已有 `document.annotation-options` / `document.annotation-option-set` 的 `zero.leading`、`zero.trailing`，本批不重复实现。长度/角度/质量单位转换、精度转换、公差、字体、分数格式与各尺寸子类型不在本批范围。
+
+公开操作：
+
+```sh
+swcli document dimension-format --document d-ab12cd --json
+swcli document dimension-format-set dual_position top --document d-ab12cd --lease l-ab12cd34ef56 --if-update-stamp 7 --if-format '{"dual_display":false,"dual_position":1,"parentheses":false}' --json
+```
+
+读取 `format` 为完整的原生三字段快照；未知位置整数保留原值用于完整 CAS。setter 每次最多改变一项，要求显式 `document_id`、`expected_update_stamp`、`lease_id` 和 `expected_format`。公开字段不接受内部校准开关。文档身份、前台、活动配置/草图/图纸上下文、readonly/viewonly 均受保护。真正写入前再次观察完整快照；写入后精确读取全部三字段，同时保护原有单位元组与注解/零显示配置。setter 失败保留 `mutation.attempted/may_have_changed`，不重试、不回滚。
+
+**当前仅为开发分支的公开验收候选。** 内部运行42277961301支持原生Windows、SOLIDWORKS revision `33.5.0`、part/assembly/drawing三种文档，候选白名单仅包含该范围；其他环境实际变更返回 `DimensionFormatNotCalibrated`。CAS 成功的同值调用不触碰 setter、不置脏。内部校准不能代替安装后公开CLI/daemon验收，公开gate完整通过前不可据此合并或宣称完成。
+
+Windows 手动 CI：现有 `ci.yml` 的 `dimension_format_calibration=true`，仅 `codex/docprops-dimension-format` 可运行；默认 false，不接收 PR 事件，不触发完整 native suite。内部校准在独立隐藏 host 中顺序运行 part/assembly/drawing，核安装 `swconst.tlb`，验证背景读写、全部位置、true/false、保存重开、单位/零显示/全局偏好不变及零件几何。单个原生操作600秒、整组1800秒、首失败停止，无失败 API 重试/自动回滚/组内重启。原始报告、trace、stdout/stderr、原生文件由专属 artifact 保留。
+
+官方来源（2026-11-07 核对）：
+
+- [尺寸文档属性界面](https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_OPTIONS_DIMS_New.htm?id=4.7.3.3)
+- [尺寸 API 映射表](https://help.solidworks.com/2019/english/api/swconst/dp_dimensions.htm)（2025 同名网页读取异常，因此同时核本机官方2025 SDK头文件与CI安装类型库）
+- [2025 双尺寸位置枚举](https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swDetailingDualDimPosition_e.html?id=2.10.1.249)
+- [文档 Toggle setter](https://help.solidworks.com/2023/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.imodeldocextension~setuserpreferencetoggle.html?format=P&value=) 的返回值文案与已有 Windows2025 校准存在差异：代码仅接受严格 True，并要求精确 readback；False 直接记录部分 mutation，不推测成功。
+
+偏好/option ID 来自已安装官方 SOLIDWORKS 2025 SDK `samples/appcomm/win32/swconst.h`（只读读取，未启动 Wine/SOLIDWORKS），并在CI首次CAD操作前逐项核对官方类型库。
+
+## 公开验收路径（准备中）
+
+新增默认关闭的 `dimension_format_public` 手动模式；与内部校准互斥，不进入默认full/release共享concurrency。独立fixture准备报告与源文件摘要绑定后，通过安装的CLI驱动一个隐藏daemon，在同一worker中核三种文档的CAS拒绝、每项写入/同值、只读拒绝、保存重开、单位/零显示不变及几何。每个尺寸操作request_id与完整native trace边界关联，记录整个trace前缀摘要；SDK/MCP上下文另有定向契约测试。公开写入需同时匹配经过证据确认的文档类型与确切SOLIDWORKS revision；未知位置只能读取或同值观察。
+
+首次内部运行42260887789失败，原始artifact摘要`cb43e60375da1814624f47d8a4708ae832fd05ff3031cee53a18548b995f211c`已核。首失败为前后台/保存转换两侧的质心逐位比较不等，尚未保存重开，不能算原生通过。修复将基线放到保存/后台转换之后并增加无写入控制读；仍保留精确相等的写后和重开比较，不放宽几何或状态断言。当次运行时公开文档类型及revision白名单仍空。
+
+Windows证据不会开启Wine：真正公开变更还要求原生Windows运行环境，ntdll出现Wine导出或检测失败均fail closed；内部夹具入口不属于公开协议。公开争用lease测试使用符合12字符wire schema的token，确保拒绝发生在daemon授权层。
+
+## 校准观测器修正
+
+第二轮42264996931（artifact SHA256 `8959bbb4c6d924aacf5a641e12dc79100c6b32fd1ddb8d6f2ca0db6b08a490aa`）在完全没有尺寸setter的两次读取中复现质心尾数变化。因此自有盒形夹具改用完整8顶点/12直线边/6平面及闭合面边界的精确几何指纹，几何质心由边界确定，坐标不取整。native体积/面积精确比较保留；原始质量属性逐次留存，同时原样复用仓库既有native metric差分断言和解析界限，质心仍须满足既有严格解析检查。状态断言不改。该helper仅用于自有夹具验证，不是新的稳定拓扑产品API。
+
+公开gate复用既有entity.list边/面只读结果，所有字段最终保存为与源初值不同的值，验证重开持久化；每个位置和两个布尔方向都实际执行过setter。
+
+Oracle核对的官方API：[GetVertices](https://help.solidworks.com/2019/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IBody2~GetVertices.html)、[IVertex.GetPoint](https://help.solidworks.com/2019/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IVertex~GetPoint.html)、[IEdge.GetStartVertex](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetStartVertex.html)、[ICurveParamData.StartPoint与Sense语义](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~StartPoint.html)。端点仅作此直线盒形夹具的无向几何比较，不重新定义公开trim、闭合或持久实体身份。
+
+收口快照（2026-11-07）：内部运行42277961301在head6445c1375586d33eca13db0ffa0ee697c64ced89完成part/assembly/drawing校准，原产物SHA256 `b5bc069911527c77312c79dd3cba34c5ee6ddd5d8eb399eb569539d4a9826729`已独立核验。最新产品c062dd6另修复最终文档观察失败丢失mutation回执及前台文档自身状态漂移漏检，便携CI通过；该head尚无公开原生验收；不能据内部成功宣称公开写入完成。后续仅在开发分支开放已核内部范围作为公开验收候选。
+
+统筹随后澄清收口不取消原计划必要公开gate：本分支仅按已核内部范围开放上述验收候选，P1修复保持不变，准备一次必要公开运行；不增加字段/场景，不持续监看。最终公开运行状态与精确head见WORK_HANDOFF.md。
+
+公开运行42305495076已在9fe8d9d0fedc19eb47bdb4fee55c940b06238605完成三类文档公开验收，原始产物与完整回执/trace独立审计通过。统筹随后要求收紧原生环境探针，最新局部修复采用已合STL的已知ntdll导出和127缺失错误核验，需该修复head的公开gate及终审。验收原件和精确范围见WORK_HANDOFF.md。

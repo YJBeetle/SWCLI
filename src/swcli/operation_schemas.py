@@ -16,6 +16,7 @@ from .document_tolerances import TOLERANCE_FIELDS, value_schema, snapshot_schema
 from .document_font_scopes import (WRITABLE_FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, font_scopes_schema, font_value_schema, validate_font_edit)
 from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_VALUES, LINE_FONT_SNAPSHOT, validate_edit as validate_line_font_edit
+from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema, value_schema as dimension_value_schema, validate_value as validate_dimension_value, validate_format
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
@@ -268,6 +269,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "if": {"properties": {"field": {"const": field}}},
             "then": {"properties": {"value": value_schema(field)}},
         } for field in TOLERANCE_FIELDS],
+        document_id="required", expected_update_stamp="required", lease_id="required",
+    ),
+    "document.dimension-format": _operation("document.dimension-format", **_DOCUMENT_READ_CONTEXT),
+    "document.dimension-format-set": _operation(
+        "document.dimension-format-set",
+        {"field": _string(enum=list(DIMENSION_FORMAT_FIELDS)),
+         "value": {"anyOf": [_string(), _boolean()]}, "expected_format": format_schema()},
+        required=("field", "value", "expected_format"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": dimension_value_schema(field)}},
+        } for field in DIMENSION_FORMAT_FIELDS],
         document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
@@ -686,6 +699,9 @@ def validate_operation_request(
             raise ValueError("stl_options require .stl output")
     if operation == "document.line-font-set":
         validate_line_font_edit(parameters["field"], parameters["value"], parameters["expected_options"])
+    if operation == "document.dimension-format-set":
+        validate_dimension_value(parameters["field"], parameters["value"])
+        validate_format(parameters["expected_format"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

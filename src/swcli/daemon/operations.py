@@ -31,6 +31,7 @@ from ..hosts.windows_document_detailing import (
     read_document_detailing_options_windows, set_document_detailing_option_windows,
 )
 from ..hosts.windows_document_line_font import read_document_line_font_windows, set_document_line_font_windows
+from ..hosts.windows_dimension_format import read_dimension_format_windows, set_dimension_format_windows
 from ..hosts.windows_document_units import read_document_units_windows, set_document_units_windows
 from ..hosts.windows_document_tolerances import read_document_tolerances_windows, set_document_tolerance_windows
 from ..hosts.windows_document_font_scopes import (
@@ -565,6 +566,35 @@ def document_tolerance_set(context: OperationContext, values: Dict[str, Any]) ->
                            if isinstance(original_error, dict) else
                            {"type": "DocumentObservationFailed", "message": str(exc),
                             "document_observation_error": observation_error})
+        return result
+
+
+@_register_handler
+def document_dimension_format(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_dimension_format_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_dimension_format_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_dimension_format_windows(app=context.app, document=context.entry.document, **values)
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as error:
+        # A failed final observation cannot erase an already attempted mutation
+        # or replace the first native/business failure. Never retry the write.
+        result["ok"] = False
+        if "error" not in result:
+            result["error"] = {"type": type(error).__name__, "message": str(error)}
+        result.setdefault("warnings", []).append({
+            "code": "DocumentObservationFailed",
+            "message": "final document observation failed: " + str(error),
+        })
+        result["session_id"] = context.session_id
         return result
 
 

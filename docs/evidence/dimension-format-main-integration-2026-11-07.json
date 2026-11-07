@@ -1,0 +1,107 @@
+{
+  "success": true,
+  "audited_head": "e1d18709587f5c62e6757caad81bd188c027dd99",
+  "artifact_id": 13569618998,
+  "archive_sha256": "7a6401569d8ca703e81d4b2f498be12f76664318349393c2a0c5cbf53b7596a1",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 6800,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.591812199999822,
+    "visible": false
+  },
+  "worker_pids": [
+    2500
+  ],
+  "cli_events": 208,
+  "dimension_requests": 78,
+  "actual_setters": 39,
+  "native_trace_prefix_sha256": "113223907b5371ef04adb094e588983fce8a1bdfe778e14d0b26b8fc172cb954",
+  "cases": [
+    {
+      "format": "SLDPRT",
+      "actual_setters": 13,
+      "planned_requests": 16,
+      "source_sha256": "1558219213d2a4a0c2265cac59c8120de40ab8ff63174b697475c7cfa838530e",
+      "saved_sha256": "149f52b3901ea073801e7ec9868d2215de65e07ef36f6ec0b5a06d307f5a246f",
+      "persisted_format": {
+        "dual_display": true,
+        "dual_position": 1,
+        "parentheses": true
+      }
+    },
+    {
+      "format": "SLDASM",
+      "actual_setters": 13,
+      "planned_requests": 16,
+      "source_sha256": "2f1e278e7792cc323db4dd8cb01e3a5ce0c4f82c5b017721811f976f8f89d24b",
+      "saved_sha256": "b6fe84b3b8abc8738ae999eb5cd1c8cdaa466c049d10d2c2b4e0bbe40a7c5892",
+      "persisted_format": {
+        "dual_display": true,
+        "dual_position": 1,
+        "parentheses": true
+      }
+    },
+    {
+      "format": "SLDDRW",
+      "actual_setters": 13,
+      "planned_requests": 16,
+      "source_sha256": "8856675fac3890ab7f15804f194362fddfcca5bdb0ddea29716bc52182fc90cb",
+      "saved_sha256": "5a5272d7e3c123144b7d6b3316a2ee6b5a4d77298e2458bbcfbb550f7c2a7f7a",
+      "persisted_format": {
+        "dual_display": true,
+        "dual_position": 1,
+        "parentheses": false
+      }
+    }
+  ],
+  "exact_part_boundaries_verified": true,
+  "raw_geometry_metrics_verified": true,
+  "cleanup_verified": true,
+  "lifecycle": {
+    "schema_version": 1,
+    "before": "lifecycle-initial-inventory.json",
+    "original_after": "lifecycle-final-inventory.json",
+    "after": "lifecycle-final-settle-01-inventory.json",
+    "observations": [
+      "lifecycle-final-inventory.json",
+      "lifecycle-final-settle-01-inventory.json"
+    ],
+    "settle_budget_seconds": 10,
+    "settle_elapsed_seconds": 0.6852285,
+    "inventory_complete": true,
+    "new_tasks": [],
+    "new_processes": [],
+    "passed": true
+  },
+  "daemon_stop": {
+    "api_version": "swcli/v1",
+    "duration_ms": 0.0,
+    "request_id": "81de5136-f888-4216-8834-34f7f3e52eef",
+    "result": {
+      "stopping": true
+    },
+    "success": true
+  },
+  "daemon_exit": {
+    "process_id": 6016,
+    "wait_completed": true,
+    "has_exited": true,
+    "exit_code": 0
+  },
+  "reviewer": "coordinator personally",
+  "public_run": 42361878938,
+  "integration_base": "42ca355ae2d06604835be9c4f3b5fe2c36e8c4cf",
+  "integration_portable": {
+    "ran": 2091,
+    "passed": 2058,
+    "skipped": 33,
+    "log_sha256": "c2f1d2258679e8ecbc5ee4eb61bd96340a7c112e81a97b15268b347850550dc1"
+  },
+  "integration_sdk": "passed; 10 consumer typing refusals",
+  "release_eligible": false
+}

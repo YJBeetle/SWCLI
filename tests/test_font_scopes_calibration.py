@@ -1,6 +1,7 @@
 """Portable watchdog/wiring checks; does not create a COM host."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -112,7 +113,7 @@ class FontScopeCalibrationTests(unittest.TestCase):
 
     def test_existing_dispatch_routes_only_font_calibration_with_one_named_secret(self):
         text = (ROOT / ".github/workflows/ci.yml").read_text()
-        job = text.split("  font-scopes-calibration:", 1)[1].split("  release:", 1)[0]
+        job = re.split(r"(?m)^  [A-Za-z0-9_-]+:\s*$", text.split("  font-scopes-calibration:", 1)[1], maxsplit=1)[0]
         self.assertIn("inputs.calibrate_font_scopes", job)
         self.assertIn("github.ref == 'refs/heads/codex/docprops-font-scopes'", job)
         self.assertIn("uses: ./.github/workflows/font-scopes-calibration.yml", job)
