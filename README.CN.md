@@ -18,6 +18,8 @@ SWCLI 是一个独立、跨平台的自动化协议、命令行客户端与智�
 - 通过 Wine 运行 SOLIDWORKS 的 Linux
 - 默认安装并固定 SWCLI 版本的 DockerSW
 
+当前开发与验收以 **SOLIDWORKS 2025** 为基线。其他主版本暂不开发、不验证，也不宣称支持；以后有明确需求再评估。具体功能仍可能限定服务包、内部修订号或宿主运行时，不能把某个 2025 SP 的通过结果推广为全部版本通过。参见[版本基线](docs/roadmap.md#solidworks-version-baseline)。
+
 ## 命名
 
 - 项目：**SWCLI**

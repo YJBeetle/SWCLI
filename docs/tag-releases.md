@@ -12,6 +12,25 @@ verification. It does not require a second manual workflow dispatch. The workflo
 must already be present in the tagged commit; existing version tags and published
 assets are not rewritten or republished.
 
+## Compatibility declarations
+
+Each new release's notes must state its SOLIDWORKS compatibility boundary:
+
+- Major version baseline: currently **SOLIDWORKS 2025** only. Other major
+  versions are not planned for compatibility work or validation now.
+- Actual tested service pack/native revision and host/runtime, with links to
+  the matching native evidence and source commit. Distinguish native Windows
+  evidence from DockerSW/Wine and MacSW evidence.
+- Feature-specific restrictions, including narrower revisions, runtime or
+  ownership requirements and unverified document types/value combinations.
+- Separate verified behavior, unverified configurations and explicitly refused
+  operations. An API being present, portable tests passing, or one host passing
+  does not establish compatibility elsewhere.
+
+This is a release documentation requirement. It does not add a new legacy
+version implementation or CI matrix, and it does not change historical release
+assets or widen runtime capability guards.
+
 ## Trust and execution order
 
 1. A secret-free policy job checks out upstream `main` and checks the pushed tag.

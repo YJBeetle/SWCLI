@@ -4,6 +4,20 @@ Capabilities from the running daemon remain authoritative. Historical increment
 plans and their acceptance boundaries are preserved in [roadmap history](roadmap-history.md).
 Release details belong in [versioned release notes](releases/).
 
+## SOLIDWORKS version baseline
+
+- Current development and acceptance target **SOLIDWORKS 2025**. Other major
+  versions are outside the current workstream: do not add compatibility paths,
+  run version-matrix validation, or advertise support for them without a new
+  concrete requirement.
+- Consider other versions only when there is an explicit user need. An API's
+  introduction version does not establish a SWCLI supported-version floor.
+- Record the tested service pack and native revision for each release and
+  feature. Current new-feature proofs commonly use 2025 SP5 / revision 33.5.0;
+  that does not qualify every 2025 service pack or every Windows/Wine host.
+- Release notes must identify verified hosts and feature-specific restrictions.
+  See [release compatibility declarations](tag-releases.md#compatibility-declarations).
+
 ## Implemented tooling
 
 - CLI and MCP share explicit daemon lifecycle management; no implicit SW startup.

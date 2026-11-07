@@ -24,6 +24,12 @@ export workflows.
 - Linux with SOLIDWORKS running through Wine
 - DockerSW, which installs and pins SWCLI as its default automation interface
 
+The current SOLIDWORKS development and acceptance baseline is **2025**. Other
+major versions are not currently developed, validated, or advertised as
+supported; they may be considered if a concrete need arises. Individual
+features can require a specific service pack, native revision or runtime.
+See the [version baseline](docs/roadmap.md#solidworks-version-baseline).
+
 ## Naming
 
 - Project: **SWCLI**
