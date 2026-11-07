@@ -1,0 +1,60 @@
+{
+  "run_id": 42365387925,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42365387925",
+  "head": "0dd4c36d496e6ce700b19a353d45544d1465ac20",
+  "artifact_id": 13572331235,
+  "artifact_sha256": "f8de0a291a0ace9b76dc3877f6a639ef75b1dc149799399967cd71fece9a030c",
+  "distribution_artifact_id": 13571183928,
+  "distribution_artifact_sha256": "870fbc2fe144e878d83ae2a9c803a4c497a5ab2731eacf745e57d5d756f2f6e4",
+  "github_digests_matched": true,
+  "verified_installed_wheel_python_files": 83,
+  "wheel_sha256": "c0da42e3016eb1946db9c106e6ebf6666160b81f38ca7f23ed794a66cbf2568c",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 3328,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6720000000000255,
+    "visible": false
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-2hwv31",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "mapped face has no component in the selected assembly context",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "75408cbc-9565-4a61-af8a-51b5fec2a8b5",
+    "session_id": "modeling-smoke-24163dab806b"
+  },
+  "confirmed_native_observation": "Mapped and privately resolved face identity checks passed; IEntity.GetComponent still returned None in the inactive assembly",
+  "native_create_mate_count": 0,
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56630,
+      "sha256": "e9ead3e759d1e09d3c49117b7eca1f191c2eef8ac3aff57dbbcac43f4e7f443e"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "candidate": "Enumerate component instance body faces with GetBodies3, require an exact one-to-one native face match, then retain GetBody/GetComponent and geometry assertions",
+  "internal_acceptance_run_id": 42279916240,
+  "public_acceptance": false,
+  "merge_ready": false
+}

@@ -38,8 +38,10 @@ swcli assembly mate-targets 'part-1' 'part-2' --document d-ab12cd --json
 
 面数组 `index` 只用于本次完整观察，不是稳定引用。每个源面通过
 `IComponent2.GetCorrespondingEntity` 映射到指定装配组件实例，用 `ISldWorks.IsSame`
-证明归属。映射面先在目标 ASM 的 Extension 中捕获并解析私有引用，解析前后原生身份必须相同；
-组件归属读取使用该装配文档解析出的实体。私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
+证明归属。组件体通过 GetBodies3 完整枚举，必须是一个 normal solid body。
+组件体面的数量必须与源零件一致，每个源面对应结果都必须唯一匹配组件体中一张原生面，
+该面的 GetBody 与组件体一致，GetComponent 与指定组件一致。
+私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
 完整 CAS，不发布可解析 token，也不承诺跨更新、关闭重开或拓扑变化稳定。
 本分支不依赖尚未验收的独立稳定引用分支。
 
@@ -97,3 +99,5 @@ SLDASM 文件随独立 artifact 保留；本地交接记录见 `WORK_HANDOFF.md`
 - [组件抑制状态枚举](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swComponentSuppressionState_e.html)
 
 - [IComponent2.IsVirtual 只读属性](https://help.solidworks.com/2020/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icomponent2~isvirtual.html)
+
+- [组件实体枚举和装配修改体标识](https://help.solidworks.com/2018/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IComponent2~GetBodies3.html)

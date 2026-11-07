@@ -39,10 +39,10 @@ from gate_support.package_identity import verify_installed_package
 
 EXPECTED_ENUMS = dict(swMateCOINCIDENT=0, swMateCONCENTRIC=1, swMateAlignALIGNED=0,
     swMateAlignANTI_ALIGNED=1, swSolidBody=0, swComponentFullyResolved=2,
-    swComponentResolved=3, swThisConfiguration=1)
+    swComponentResolved=3, swThisConfiguration=1, swNormalBody_e=1, swUserBody_e=0)
 REQUIRED_MEMBERS = {
     'IAssemblyDoc': {'CreateMateData', 'CreateMate', 'GetComponents', 'GetComponentCount', 'GetEditTarget', 'GetEditTargetComponent'},
-    'IComponent2': {'GetID', 'GetCorrespondingEntity', 'ReferencedConfiguration', 'IsFixed', 'IsVirtual', 'GetSuppression2', 'Transform2'},
+    'IComponent2': {'GetID', 'GetCorrespondingEntity', 'GetBodies3', 'ReferencedConfiguration', 'IsFixed', 'IsVirtual', 'GetSuppression2', 'Transform2'},
     'IEntity': {'GetComponent'},
     'ICoincidentMateFeatureData': {'EntitiesToMate', 'MateAlignment'},
     'IConcentricMateFeatureData': {'EntitiesToMate', 'MateAlignment', 'LockRotation'},

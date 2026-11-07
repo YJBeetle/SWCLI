@@ -13,7 +13,7 @@ from .native_trace import native_call
 from .windows_documents import _diagnose_features
 from .windows_entity_geometry import _numbers, _direction
 from .windows_entity_observation import _geometry
-from .windows_entity_references import capture_verified_reference, resolve_verified_reference
+from .windows_entity_references import capture_verified_reference
 from .windows_feature_inspection import _same
 from .windows_feature_depth import _running_command, _empty_variant
 
@@ -187,7 +187,7 @@ def _dispatch(native, interface, *, app):
     return Dispatch(queried)
 
 
-def _face(app, assembly, source, component, native, index):
+def _face(app, assembly, source, component, native, index, body, assembly_faces):
     entity = _dispatch(native, "IEntity", app=app)
     mapped = native_call(
         "assembly-mates",
@@ -195,16 +195,13 @@ def _face(app, assembly, source, component, native, index):
         lambda: component.GetCorrespondingEntity(entity),
     )
     require(mapped is not None, "native corresponding face is absent")
-    mapped = _dispatch(mapped, "IFace2", app=app)
-    extension = value(assembly, "Extension")
-    reference = capture_verified_reference(app, extension, mapped)
-    # GetComponent requires an entity obtained from the assembly document.
-    resolved = resolve_verified_reference(extension, reference)
-    require(_same(app, mapped, resolved), "assembly-document face identity changed")
-    mapped = _dispatch(resolved, "IFace2", app=app)
-    owner = value(_dispatch(mapped, "IEntity", app=app), "GetComponent")
+    matches = [face for face in assembly_faces if _same(app, mapped, face)]
+    require(len(matches) == 1, "mapped face identity is not unique in the component body")
+    owner = value(_dispatch(matches[0], "IEntity", app=app), "GetComponent")
     require(owner is not None, "mapped face has no component in the selected assembly context")
     require(_same(app, owner, component), "mapped face does not belong to the exact component")
+    mapped = _dispatch(matches[0], "IFace2", app=app)
+    require(_same(app, value(mapped, "GetBody"), body), "component face belongs to another body")
     original = _geometry(native)
     require(original["surface_kind"] in ("plane", "cylinder"), "only plane/cylinder fixtures are supported", "UnsupportedMateScope")
     require(_geometry(mapped) == original, "assembly-context face differs from the part geometry", "UnsupportedMateScope")
@@ -212,6 +209,7 @@ def _face(app, assembly, source, component, native, index):
     kind = original["surface_kind"]
     params = _numbers(value(surface, "PlaneParams" if kind == "plane" else "CylinderParams"),
                       6 if kind == "plane" else 7, "surface parameters")
+    reference = capture_verified_reference(app, value(assembly, "Extension"), mapped)
     return dict(index=index, surface_kind=kind, parameters=params,
                 area_mm2=original["area_mm2"], sense=boolean(value(native, "FaceInSurfaceSense"), "face sense"),
                 reference_sha256=hashlib.sha256(reference).hexdigest()), mapped
@@ -221,6 +219,28 @@ def _saved_external_part(path):
     from pathlib import Path
     source = Path(path)
     return source.suffix.casefold() == ".sldprt" and source.is_file() and source.stat().st_size > 0
+
+
+def _component_body_faces(app, component):
+    import pythoncom
+    from win32com.client import VARIANT
+
+    info = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_VARIANT, None)
+    raw = native_call("assembly-mates", "Component2.GetBodies3",
+                      lambda: component.GetBodies3(0, info))
+    bodies = sequence(raw, "component solid bodies", 1)
+    metadata = sequence(info.value, "component body information", 1)
+    require(len(bodies) == len(metadata) == 1,
+            "component body traversal is incomplete", "UnsupportedMateScope")
+    require(integer(metadata[0], "component body type") == 1,
+            "assembly-modified component bodies are unsupported", "UnsupportedMateScope")
+    body = bodies[0]
+    faces = sequence(value(body, "GetFaces"), "component body faces", 64)
+    require(0 < len(faces) == integer(value(body, "GetFaceCount"), "component face count"),
+            "component face traversal is incomplete")
+    require(all(_same(app, value(face, "GetBody"), body) for face in faces),
+            "component face belongs to another body")
+    return body, faces
 
 
 def _component(app, assembly, component):
@@ -244,10 +264,12 @@ def _component(app, assembly, component):
     require(len(bodies) == 1, "component must contain exactly one solid body", "UnsupportedMateScope")
     faces = sequence(value(bodies[0], "GetFaces"), "faces", 64)
     require(0 < len(faces) == integer(value(bodies[0], "GetFaceCount"), "face count"), "face traversal is incomplete")
+    body, assembly_faces = _component_body_faces(app, component)
+    require(len(assembly_faces) == len(faces), "component/source face traversal differs", "UnsupportedMateScope")
     observed, bindings = [], []
     for index, native in enumerate(faces):
         require(_same(app, value(native, "GetBody"), bodies[0]), "face belongs to another body")
-        row, mapped = _face(app, assembly, source, component, native, index)
+        row, mapped = _face(app, assembly, source, component, native, index, body, assembly_faces)
         require(not any(_same(app, mapped, previous) for previous in bindings), "face traversal repeats native identity")
         require(row["reference_sha256"] not in {r["reference_sha256"] for r in observed}, "ambiguous face references")
         observed.append(row)

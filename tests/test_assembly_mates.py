@@ -61,6 +61,10 @@ class Scene:
             body.GetFaces=lambda faces=faces: tuple(faces)
             body.GetFaceCount=lambda: 2
             source.GetBodies2=lambda kind, visible, body=body: (body,)
+            def component_bodies(kind, info, body=body):
+                info.value = (1,)
+                return (body,)
+            component.GetBodies3 = mock.Mock(side_effect=component_bodies)
             component.GetCorrespondingEntity=lambda native: native
             self.components.append(component)
             self.faces.append(faces)
@@ -101,12 +105,10 @@ class MateTests(unittest.TestCase):
                       mock.patch.object(api, '_native_windows', return_value=True),
                       mock.patch.object(api, '_dispatch', side_effect=lambda native, interface, **context: native),
                       mock.patch.object(api, 'capture_verified_reference', side_effect=lambda a,e,f: f.token),
-                      mock.patch.object(api, 'resolve_verified_reference', side_effect=lambda e,token: next(
-                          face for faces in self.scene.faces for face in faces if face.token==token)),
                       mock.patch.object(api, 'feature_error', side_effect=lambda f: self.scene.error_code),
                       mock.patch.object(api, '_running_command', return_value={'ui_active':False}),
                       mock.patch.object(api, '_empty_variant', return_value=None),
-                      mock.patch.dict(sys.modules, {'pythoncom':NS(VT_ARRAY=1, VT_DISPATCH=2),
+                      mock.patch.dict(sys.modules, {'pythoncom':NS(VT_ARRAY=1, VT_DISPATCH=2, VT_BYREF=4, VT_VARIANT=8),
                           'win32com.client':NS(VARIANT=lambda typ, value: NS(value=value))})]
         for patch in self.patches: patch.start(); self.addCleanup(patch.stop)
         self.expected=api.snapshot(self.scene.app, self.scene.doc, self.scene.names)[0]
@@ -152,7 +154,7 @@ class MateTests(unittest.TestCase):
             for face in faces:
                 self.assertIn(mock.call(face, "IEntity", app=self.scene.app), dispatch.call_args_list)
 
-    def test_background_owner_is_read_from_exact_assembly_document_resolution(self):
+    def test_background_owner_is_read_from_exact_component_body_face(self):
         original = self.scene.faces[0][0]
         intermediate = NS(**vars(original))
         intermediate.GetComponent = mock.Mock(
@@ -172,14 +174,43 @@ class MateTests(unittest.TestCase):
         )
         self.assertTrue(result["ok"], result)
         intermediate.GetComponent.assert_not_called()
-        api.resolve_verified_reference.assert_any_call(self.scene.doc.Extension, original.token)
+        self.scene.components[0].GetBodies3.assert_called()
         self.assertIs(self.scene.app.ActiveDoc, foreground)
 
-    def test_assembly_document_resolution_rejects_a_different_native_face(self):
-        with mock.patch.object(api, "resolve_verified_reference", return_value=self.scene.faces[1][0]):
+    def test_component_body_rejects_foreign_faces_and_incomplete_or_modified_bodies(self):
+        component = self.scene.components[0]
+        body = self.scene.faces[0][0].GetBody()
+        foreign = NS(GetFaces=lambda: tuple(self.scene.faces[1]), GetFaceCount=lambda: 2)
+        def returned(bodies, metadata):
+            def get_bodies(kind, info):
+                info.value = metadata
+                return bodies
+            return get_bodies
+        cases = [
+            ((foreign,), (1,)),
+            ((body,), None),
+            ((body,), (True,)),
+            ((body,), (0,)),
+            ((body,), (2,)),
+            ((body,), (1, 1)),
+            ((), ()),
+            ((body, body), (1, 1)),
+        ]
+        for bodies, metadata in cases:
+            with self.subTest(metadata=metadata), mock.patch.object(
+                component, "GetBodies3", side_effect=returned(bodies, metadata)
+            ):
+                result = self.add()
+                self.assertFalse(result["ok"], result)
+                self.assertFalse(result["mutation"]["attempted"])
+        self.scene.doc.CreateMate.assert_not_called()
+
+    def test_source_mapping_must_match_exact_component_body_face_identity(self):
+        with mock.patch.object(self.scene.components[0], "GetCorrespondingEntity",
+                               return_value=self.scene.faces[1][0]):
             result = self.add()
         self.assertFalse(result["ok"])
-        self.assertIn("face identity changed", result["error"]["message"])
+        self.assertIn("face identity", result["error"]["message"])
         self.assertFalse(result["mutation"]["attempted"])
         self.scene.doc.CreateMate.assert_not_called()
 

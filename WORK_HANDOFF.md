@@ -154,3 +154,15 @@
 - 原 ZIP `evidence/run-42361567672/swcli-assembly-mates-42361567672-1-13569608878.zip` 的 GitHub digest 为 `2ab0cda2ab6ff92185e1181c1dcd321e75dd8c9dd96a7769df3fa123060a44ab`，原分发 ZIP `swcli-dist-13570062052.zip` digest 为 `cc8e99e06a70f52310c647d23846a95946a3e4bc0f55a2700ce76b763b159ff3`，均已匹配。已安装的 83 个 Python 文件与 wheel/Git blob 全部一致。原件摘要见 `docs/verification/assembly-mates-public-context-failure-2026-11-07.json`，实际源 PRT 为 56794 字节，SHA `504b33f46b7d6f9cb00b6e854a8eb07f29a9b278aec68e5327e114b3c7baaa70`。
 - 官方 GetComponent 要求实体直接取自装配文档。候选使用既有私有引用能力，在目标 ASM 的 Extension 中捕获/解析映射面的引用，再核验解析对象与映射面 IsSame，最后执行原有组件 owner、几何、重复引用与完整 CAS 检查。仍从显式目标文档只读获取数据，并继续核对前台身份。新上下文路径尚待原生公开 gate 证明。
 - 回归覆盖中间映射对象缺少上下文而装配解析对象身份相同的成功形态，以及解析到其他原生面时写前拒绝。46 项针对性通过，全量执行 1865 项，26 平台跳过，其余通过。SDK generator / strict mypy / 8 个负向消费类型场景通过。日志 `evidence/portable/assembly-context-{tests,all-tests,sdk}.log`。
+
+## 装配文档上下文候选的公开 gate 已启动
+- 新 tip `0dd4c36d496e6ce700b19a353d45544d1465ac20` 已 push 并核对远端。唯一新 dispatch [run 42365387925](https://github.com/YJBeetle/SWCLI/actions/runs/42365387925)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`。首次快照已核对精确 head，状态 `in_progress`。receipt `evidence/public-run-42365387925.json`。
+- 本节为本地交接状态。本轮结束等待，更新后的实体上下文路径及公开全流程待原件审查。
+
+## 第四次公开失败与组件体面候选
+- [run 42365387925](https://github.com/YJBeetle/SWCLI/actions/runs/42365387925) / `0dd4c36d496e6ce700b19a353d45544d1465ac20` 的首个业务失败仍为后台 `assembly.mate-targets` 的空组件 owner。原追踪显示映射、私有引用解析与身份核对均完成，之后 GetComponent 返回 None。该候选未解决后台上下文问题。CreateMate 为 0 次，宿主 PID 3328 / revision 33.5.0，server 正常退出 0，清理错误为空，退出后原生进程目录为空。
+- 原 ZIP `evidence/run-42365387925/swcli-assembly-mates-42365387925-1-13572331235.zip` 的 GitHub digest 为 `f8de0a291a0ace9b76dc3877f6a639ef75b1dc149799399967cd71fece9a030c`，分发原 ZIP `swcli-dist-13571183928.zip` 的 digest 为 `870fbc2fe144e878d83ae2a9c803a4c497a5ab2731eacf745e57d5d756f2f6e4`，均已匹配。wheel、安装报告中 83 个 Python 文件与精确 Git blob 全部一致。原件、daemon 日志、完整 journal 和官方元数据均已保留。
+- 原件摘要为 `docs/verification/assembly-mates-public-resolved-context-failure-2026-11-08.json`。实际源 PRT 为 56630 字节，SHA `e9ead3e759d1e09d3c49117b7eca1f191c2eef8ac3aff57dbbcac43f4e7f443e`。没有实际保存的配合 ASM，也没有配合部分修改。
+- 新候选直接调用组件实例的 GetBodies3 枚举一个 normal solid body，并检查 body info、完整 face count、每张面的 GetBody 身份。源面对应结果必须通过 IsSame 唯一匹配组件体中的原生面，再对该面执行原有 GetComponent 精确组件身份、几何、私有引用往返和完整 CAS 检查。body info 缺失/未知/user body、体或面遍历不完整、外来原生面全部拒绝。该路径的真实后台支持仍待公开 gate。
+- 47 项针对性回归已通过，覆盖体元数据、外来面、唯一对应与后台前台身份保持。完整便携回归和 SDK 检查日志存入 `evidence/portable/component-body-*.log`。
+- 完整回归执行 1866 项，26 平台跳过，其余通过。SDK generator / strict mypy / 8 个负向消费类型场景通过。当前代码候选待必要新公开 gate 的原件审查。
