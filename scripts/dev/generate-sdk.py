@@ -29,11 +29,26 @@ def identifier(value):
     return value
 
 
+def parameter_variants(schema):
+    """Extract complete object alternatives, never partial allOf conditions."""
+    for constraint in schema.get("allOf", []):
+        variants = constraint.get("oneOf", [])
+        if variants and all(
+                part.get("type") == "object"
+                and part.get("additionalProperties") is False
+                and set(part.get("properties", {})) == set(schema.get("properties", {}))
+                and set(part.get("required", [])) == set(schema.get("required", []))
+                for part in variants):
+            return variants
+    return []
+
+
 class Models:
     def __init__(self):
         self.lines = []
         self.seen = {}
         self.names = set()
+        self.precise_objects = False
 
     def unique(self, name):
         candidate, suffix = name, 2
@@ -51,6 +66,10 @@ class Models:
             return "JSONValue"
         if schema is False:
             raise ValueError("Uninhabited schema needs an explicit SDK mapping: " + name)
+        variants = parameter_variants(schema)
+        if variants:
+            return self.union([self.type(part, name + "Variant" + str(i + 1))
+                               for i, part in enumerate(variants)])
         if "const" in schema:
             value = schema["const"]
             if value is None:
@@ -70,11 +89,16 @@ class Models:
         if isinstance(kind, list):
             return self.union([self.type(dict(schema, type=k), name) for k in kind])
         if kind == "array":
+            if schema.get("prefixItems") and schema.get("items") is False:
+                # JSON arrays remain lists; exact order/length is runtime checked.
+                return "List[" + self.union([self.type(part, name + "Item" + str(i + 1))
+                                             for i, part in enumerate(schema["prefixItems"])]) + "]"
             return "List[" + self.type(schema.get("items", {}), name + "Item") + "]"
         if kind == "object":
             properties = schema.get("properties", {})
+            invalid_keys = any(not k.isidentifier() or keyword.iskeyword(k) for k in properties)
             if ((not properties and schema.get("additionalProperties") is not False)
-                    or any(not k.isidentifier() or keyword.iskeyword(k) for k in properties)):
+                    or (invalid_keys and (not self.precise_objects or set(properties) != set(schema.get("required", []))))):
                 additional = schema.get("additionalProperties", {})
                 return "Dict[str, " + self.type(additional if isinstance(additional, dict) else {}, name + "Value") + "]"
             canonical = deepcopy(schema)
@@ -86,6 +110,10 @@ class Models:
             name = self.unique(name)
             self.seen[fingerprint] = name
             fields = [(key, self.type(value, name + camel(key))) for key, value in properties.items()]
+            if invalid_keys:
+                self.lines.extend([f'{name} = TypedDict({name!r}, {{',
+                    *[f'    {key!r}: {typ},' for key, typ in fields], '})', '', ''])
+                return name
             if not fields:
                 self.lines.extend([f"class {name}(TypedDict):", "    pass", "", ""])
                 return name
@@ -120,8 +148,19 @@ def render():
     contracts = {}
     for name, spec in OPERATION_CATALOG.items():
         stem = camel(name)
+        # Keep existing operation model contracts stable; these new snapshots
+        # require typed dotted keys rather than the legacy open dictionary.
+        models.precise_objects = name in {
+            "document.annotation-font", "document.annotation-font-set",
+            "document.display-options", "document.display-option-set",
+            "document.drafting-standard", "document.drafting-standard-set",
+        }
         contracts[name] = (models.exported(spec.parameters, stem + "Parameters"),
                            models.exported(spec.result, stem + "Result"))
+    # Preserve the new public font snapshot alias when an earlier operation
+    # already generated the structurally identical shared font TypedDict.
+    models.exported(OPERATION_CATALOG["document.annotation-font"].result["properties"]["font"],
+                    "DocumentAnnotationFontResultFont")
     model_text = ('"""Generated from operation/result schemas; edit scripts/dev/generate-sdk.py instead."""\n\n'
         'from typing import Dict, List, Literal, TypedDict, Union\nfrom .runtime import JSONValue\n\n\n' + "\n".join(models.lines))
     groups = {}
@@ -134,7 +173,7 @@ def render():
             namespaces.add(namespace[:i])
     lines = ['"""Generated typed operation methods; regenerate from the public catalog."""',
         'from __future__ import annotations', '',
-        'from typing import Dict, List, Literal, Optional, Protocol, Union, cast',
+        'from typing import Dict, List, Literal, Optional, Protocol, Union, cast, overload',
         'from . import models',
         'from .runtime import JSONValue, Response, UNSET, Unset', '', '',
         'class Dispatcher(Protocol):',
@@ -168,6 +207,15 @@ def render():
                 forwarded.append(f'{key}={key}')
             parts.append('request_id: Optional[str] = None')
             result = contracts[name][1]
+            for variant in parameter_variants(spec.parameters):
+                overload_parts = []
+                for key, needed in assignments:
+                    typ = models.type(variant['properties'][key], camel(name) + 'Parameters' + camel(key))
+                    for model in sorted(models.names, key=len, reverse=True):
+                        typ = re.sub(r'(?<![A-Za-z0-9_.])' + re.escape(model) + r'(?![A-Za-z0-9_])', 'models.' + model, typ)
+                    overload_parts.append(f'{identifier(key)}: {typ}' if needed else f'{identifier(key)}: Union[{typ}, Unset] = UNSET')
+                overload_parts.extend(parts[len(assignments):])
+                lines.extend(['    @overload', f'    def {identifier(name.split(".")[-1])}(self, *, ' + ', '.join(overload_parts) + f') -> Response[models.{result}]: ...', ''])
             lines.extend([f'    def {identifier(name.split(".")[-1])}(self, *, ' + ', '.join(parts) + f') -> Response[models.{result}]:',
                 f'        """{name}; runtime validation enforces bounds, conditions and context."""',
                 '        parameters: Dict[str, object] = {}'])

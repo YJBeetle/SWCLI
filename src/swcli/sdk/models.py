@@ -881,10 +881,25 @@ class DocumentImageQualityResult(_DocumentImageQualityResultRequired, total=Fals
     finalization_error: DocumentCreateResultError
 
 
-class DocumentImageQualitySetParameters(TypedDict):
-    field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length']
-    value: Union[str, float, bool]
+class DocumentImageQualitySetParametersVariant1(TypedDict):
+    field: Literal['shaded_mode']
+    value: Literal['coarse', 'fine']
     expected_quality: DocumentImageQualityResultQuality
+
+
+class DocumentImageQualitySetParametersVariant2(TypedDict):
+    field: Literal['shaded_deviation_mm']
+    value: float
+    expected_quality: DocumentImageQualityResultQuality
+
+
+class DocumentImageQualitySetParametersVariant3(TypedDict):
+    field: Literal['optimize_edge_length']
+    value: bool
+    expected_quality: DocumentImageQualityResultQuality
+
+
+DocumentImageQualitySetParameters = Union[DocumentImageQualitySetParametersVariant1, DocumentImageQualitySetParametersVariant2, DocumentImageQualitySetParametersVariant3]
 
 
 class DocumentImageQualitySetResultLinkedChangesItemVariant1(TypedDict):
@@ -2860,6 +2875,623 @@ class PartCreateBoxResult(_PartCreateBoxResultRequired, total=False):
     feature: SketchListResultSketchesItemOwnerVariant2
 
 
+DocumentAnnotationFontParameters = DocumentFontScopesParameters
+
+
+class DocumentAnnotationFontResultNativeFont(TypedDict):
+    TypeFaceName: str
+    CharHeight: float
+    CharHeightInPts: int
+    IsHeightSpecifiedInPts: bool
+    Bold: bool
+    Italic: bool
+    Underline: bool
+    Strikeout: bool
+    BackWards: bool
+    UpsideDown: bool
+    Vertical: bool
+    WidthFactor: float
+    CharSpacingFactor: float
+    Escapement: float
+    LineSpacing: float
+    LineLength: float
+    ObliqueAngle: float
+
+
+class _DocumentAnnotationFontResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.annotation-font']
+
+
+class DocumentAnnotationFontResult(_DocumentAnnotationFontResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    font: DocumentFontScopesResultFontsDimensions
+    native_font: DocumentAnnotationFontResultNativeFont
+
+
+class DocumentAnnotationFontSetParametersVariant1(TypedDict):
+    field: Literal['typeface']
+    value: str
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant2(TypedDict):
+    field: Literal['height_mm']
+    value: float
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant3(TypedDict):
+    field: Literal['height_points']
+    value: int
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant4(TypedDict):
+    field: Literal['bold']
+    value: bool
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant5(TypedDict):
+    field: Literal['italic']
+    value: bool
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant6(TypedDict):
+    field: Literal['underline']
+    value: bool
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+class DocumentAnnotationFontSetParametersVariant7(TypedDict):
+    field: Literal['strikeout']
+    value: bool
+    expected_font: DocumentFontScopesResultFontsDimensions
+
+
+DocumentAnnotationFontSetParameters = Union[DocumentAnnotationFontSetParametersVariant1, DocumentAnnotationFontSetParametersVariant2, DocumentAnnotationFontSetParametersVariant3, DocumentAnnotationFontSetParametersVariant4, DocumentAnnotationFontSetParametersVariant5, DocumentAnnotationFontSetParametersVariant6, DocumentAnnotationFontSetParametersVariant7]
+
+
+class DocumentAnnotationFontSetResultNativeNormalizationsItemVariant1(TypedDict):
+    member: Literal['CharHeight']
+    before: float
+    after: float
+    reason: Literal['inactive-height-representation']
+
+
+class DocumentAnnotationFontSetResultNativeNormalizationsItemVariant2(TypedDict):
+    member: Literal['CharHeightInPts']
+    before: int
+    after: int
+    reason: Literal['inactive-height-representation']
+
+
+class _DocumentAnnotationFontSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.annotation-font-set']
+    mutation: DrawingStandardViewsResultMutation
+
+
+class DocumentAnnotationFontSetResult(_DocumentAnnotationFontSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    font: DocumentFontScopesResultFontsDimensions
+    native_font: DocumentAnnotationFontResultNativeFont
+    field: Literal['typeface', 'height_mm', 'height_points', 'bold', 'italic', 'underline', 'strikeout']
+    before: DocumentFontScopesResultFontsDimensions
+    native_before: DocumentAnnotationFontResultNativeFont
+    observed_font: DocumentFontScopesResultFontsDimensions
+    observed_native_font: DocumentAnnotationFontResultNativeFont
+    changed: bool
+    native_normalizations: List[Union[DocumentAnnotationFontSetResultNativeNormalizationsItemVariant1, DocumentAnnotationFontSetResultNativeNormalizationsItemVariant2]]
+
+
+DocumentDisplayOptionsParameters = DocumentFontScopesParameters
+
+
+class DocumentDisplayOptionsResultOptionsVariant1GridDisplay(TypedDict):
+    value: bool
+    native_value: bool
+
+
+class DocumentDisplayOptionsResultOptionsVariant1GridMajorSpacingMm(TypedDict):
+    value: float
+    native_value: float
+
+
+class DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor(TypedDict):
+    value: int
+    native_value: int
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant1(TypedDict):
+    value: Literal['none']
+    native_value: Literal[0]
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant2(TypedDict):
+    value: Literal['plus']
+    native_value: Literal[1]
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant3(TypedDict):
+    value: Literal['star']
+    native_value: Literal[2]
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant4(TypedDict):
+    value: Literal['witness']
+    native_value: Literal[3]
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant5(TypedDict):
+    value: Literal['dot']
+    native_value: Literal[4]
+
+
+class DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant6(TypedDict):
+    value: Literal['other']
+    native_value: int
+
+
+DocumentDisplayOptionsResultOptionsVariant1 = TypedDict('DocumentDisplayOptionsResultOptionsVariant1', {
+    'grid.display': DocumentDisplayOptionsResultOptionsVariant1GridDisplay,
+    'grid.major_spacing_mm': DocumentDisplayOptionsResultOptionsVariant1GridMajorSpacingMm,
+    'grid.minor_lines_per_major': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'grid.snap_points_per_minor': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'virtual_sharp.style': Union[DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant1, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant2, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant3, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant4, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant5, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant6],
+    'plane.front_face_color': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'plane.back_face_color': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'plane.intersection_line_color': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'plane.transparency': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'plane.show_intersections': DocumentDisplayOptionsResultOptionsVariant1GridDisplay,
+})
+
+
+DocumentDisplayOptionsResultOptionsVariant2 = TypedDict('DocumentDisplayOptionsResultOptionsVariant2', {
+    'grid.display': DocumentDisplayOptionsResultOptionsVariant1GridDisplay,
+    'grid.major_spacing_mm': DocumentDisplayOptionsResultOptionsVariant1GridMajorSpacingMm,
+    'grid.minor_lines_per_major': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'grid.snap_points_per_minor': DocumentDisplayOptionsResultOptionsVariant1GridMinorLinesPerMajor,
+    'virtual_sharp.style': Union[DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant1, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant2, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant3, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant4, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant5, DocumentDisplayOptionsResultOptionsVariant1VirtualSharpStyleVariant6],
+})
+
+
+class _DocumentDisplayOptionsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.display-options']
+
+
+class DocumentDisplayOptionsResult(_DocumentDisplayOptionsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Union[DocumentDisplayOptionsResultOptionsVariant1, DocumentDisplayOptionsResultOptionsVariant2]
+
+
+class DocumentDisplayOptionSetParametersVariant1(TypedDict):
+    field: Literal['grid.display']
+    value: bool
+    expected_value: bool
+
+
+class DocumentDisplayOptionSetParametersVariant2(TypedDict):
+    field: Literal['grid.major_spacing_mm']
+    value: float
+    expected_value: float
+
+
+class DocumentDisplayOptionSetParametersVariant3(TypedDict):
+    field: Literal['grid.minor_lines_per_major']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant4(TypedDict):
+    field: Literal['grid.snap_points_per_minor']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant5(TypedDict):
+    field: Literal['virtual_sharp.style']
+    value: Literal['none', 'plus', 'star', 'witness', 'dot']
+    expected_value: Literal['none', 'plus', 'star', 'witness', 'dot']
+
+
+class DocumentDisplayOptionSetParametersVariant6(TypedDict):
+    field: Literal['plane.front_face_color']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant7(TypedDict):
+    field: Literal['plane.back_face_color']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant8(TypedDict):
+    field: Literal['plane.intersection_line_color']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant9(TypedDict):
+    field: Literal['plane.transparency']
+    value: int
+    expected_value: int
+
+
+class DocumentDisplayOptionSetParametersVariant10(TypedDict):
+    field: Literal['plane.show_intersections']
+    value: bool
+    expected_value: bool
+
+
+DocumentDisplayOptionSetParameters = Union[DocumentDisplayOptionSetParametersVariant1, DocumentDisplayOptionSetParametersVariant2, DocumentDisplayOptionSetParametersVariant3, DocumentDisplayOptionSetParametersVariant4, DocumentDisplayOptionSetParametersVariant5, DocumentDisplayOptionSetParametersVariant6, DocumentDisplayOptionSetParametersVariant7, DocumentDisplayOptionSetParametersVariant8, DocumentDisplayOptionSetParametersVariant9, DocumentDisplayOptionSetParametersVariant10]
+
+
+class _DocumentDisplayOptionSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.display-option-set']
+    mutation: DrawingStandardViewsResultMutation
+
+
+class DocumentDisplayOptionSetResult(_DocumentDisplayOptionSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Union[DocumentDisplayOptionsResultOptionsVariant1, DocumentDisplayOptionsResultOptionsVariant2]
+    field: Literal['grid.display', 'grid.major_spacing_mm', 'grid.minor_lines_per_major', 'grid.snap_points_per_minor', 'virtual_sharp.style', 'plane.front_face_color', 'plane.back_face_color', 'plane.intersection_line_color', 'plane.transparency', 'plane.show_intersections']
+    before: Union[DocumentDisplayOptionsResultOptionsVariant1, DocumentDisplayOptionsResultOptionsVariant2]
+    observed_options: Union[DocumentDisplayOptionsResultOptionsVariant1, DocumentDisplayOptionsResultOptionsVariant2]
+    changed: bool
+
+
+DocumentDraftingStandardParameters = DocumentFontScopesParameters
+
+
+class DocumentDraftingStandardResultStandardVariant1(TypedDict):
+    value: Literal['ansi']
+    native_value: Literal[1]
+
+
+class DocumentDraftingStandardResultStandardVariant2(TypedDict):
+    value: Literal['iso']
+    native_value: Literal[2]
+
+
+class DocumentDraftingStandardResultStandardVariant3(TypedDict):
+    value: Literal['din']
+    native_value: Literal[3]
+
+
+class DocumentDraftingStandardResultStandardVariant4(TypedDict):
+    value: Literal['jis']
+    native_value: Literal[4]
+
+
+class DocumentDraftingStandardResultStandardVariant5(TypedDict):
+    value: Literal['bsi']
+    native_value: Literal[5]
+
+
+class DocumentDraftingStandardResultStandardVariant6(TypedDict):
+    value: Literal['gost']
+    native_value: Literal[6]
+
+
+class DocumentDraftingStandardResultStandardVariant7(TypedDict):
+    value: Literal['gb']
+    native_value: Literal[7]
+
+
+class DocumentDraftingStandardResultStandardVariant8(TypedDict):
+    value: Literal['custom']
+    native_value: Literal[8]
+
+
+class DocumentDraftingStandardResultStandardVariant9(TypedDict):
+    value: Literal['other']
+    native_value: int
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsGeometricTolerance(TypedDict):
+    preference: Literal[13]
+    option: Literal[103]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsDetailView(TypedDict):
+    preference: Literal[13]
+    option: Literal[301]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsAuxiliaryView(TypedDict):
+    preference: Literal[13]
+    option: Literal[303]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsSectionView(TypedDict):
+    preference: Literal[13]
+    option: Literal[302]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandards(TypedDict):
+    geometric_tolerance: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsGeometricTolerance
+    detail_view: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsDetailView
+    auxiliary_view: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsAuxiliaryView
+    section_view: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandardsSectionView
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1Coverage(TypedDict):
+    annotations: List[Union[Literal['arrow.edge_vertex'], Literal['arrow.face_surface'], Literal['arrow.unattached'], Literal['bent_leader.enabled'], Literal['bent_leader.length_mm'], Literal['zero.leading'], Literal['zero.trailing']]]
+    annotation_font_preference: Literal[19]
+    annotation_font_option: Literal[0]
+    annotation_font_members: List[Union[Literal['TypeFaceName'], Literal['CharHeight'], Literal['CharHeightInPts'], Literal['IsHeightSpecifiedInPts'], Literal['Bold'], Literal['Italic'], Literal['Underline'], Literal['Strikeout'], Literal['BackWards'], Literal['UpsideDown'], Literal['Vertical'], Literal['WidthFactor'], Literal['CharSpacingFactor'], Literal['Escapement'], Literal['LineSpacing'], Literal['LineLength'], Literal['ObliqueAngle']]]
+    length_units_native_fields: List[Union[Literal['length_unit'], Literal['fraction_base'], Literal['fraction_value'], Literal['significant_digits'], Literal['round_to_fraction']]]
+    display: List[Union[Literal['grid.display'], Literal['grid.major_spacing_mm'], Literal['grid.minor_lines_per_major'], Literal['grid.snap_points_per_minor'], Literal['virtual_sharp.style'], Literal['plane.front_face_color'], Literal['plane.back_face_color'], Literal['plane.intersection_line_color'], Literal['plane.transparency'], Literal['plane.show_intersections']]]
+    base_standards: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandards
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant1(TypedDict):
+    value: Literal['open']
+    native_value: Literal[0]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant2(TypedDict):
+    value: Literal['closed']
+    native_value: Literal[1]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant3(TypedDict):
+    value: Literal['slash']
+    native_value: Literal[2]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant4(TypedDict):
+    value: Literal['dot']
+    native_value: Literal[3]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant5(TypedDict):
+    value: Literal['origin']
+    native_value: Literal[4]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant6(TypedDict):
+    value: Literal['wide']
+    native_value: Literal[5]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant7(TypedDict):
+    value: Literal['iso_wide']
+    native_value: Literal[6]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant8(TypedDict):
+    value: Literal['gost']
+    native_value: Literal[7]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant9(TypedDict):
+    value: Literal['closed_top']
+    native_value: Literal[8]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant10(TypedDict):
+    value: Literal['closed_bottom']
+    native_value: Literal[9]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant11(TypedDict):
+    value: Literal['none']
+    native_value: Literal[10]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant12(TypedDict):
+    value: Literal['shoulder']
+    native_value: Literal[11]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant13(TypedDict):
+    value: Literal['smart']
+    native_value: Literal[12]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant14(TypedDict):
+    value: Literal['other']
+    native_value: int
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant1(TypedDict):
+    value: Literal['standard']
+    native_value: Literal[1]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant2(TypedDict):
+    value: Literal['show']
+    native_value: Literal[2]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant3(TypedDict):
+    value: Literal['remove']
+    native_value: Literal[3]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant4(TypedDict):
+    value: Literal['other']
+    native_value: int
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant1(TypedDict):
+    value: Literal['show']
+    native_value: Literal[1]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant2(TypedDict):
+    value: Literal['remove']
+    native_value: Literal[2]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant3(TypedDict):
+    value: Literal['remove_only_on_zero']
+    native_value: Literal[4]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant4(TypedDict):
+    value: Literal['same_as_source']
+    native_value: Literal[5]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant5(TypedDict):
+    value: Literal['other']
+    native_value: int
+
+
+DocumentDraftingStandardResultObservedDefaultsVariant1Annotations = TypedDict('DocumentDraftingStandardResultObservedDefaultsVariant1Annotations', {
+    'arrow.edge_vertex': Union[DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant1, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant2, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant3, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant4, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant5, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant6, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant7, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant8, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant9, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant10, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant11, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant12, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant13, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant14],
+    'arrow.face_surface': Union[DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant1, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant2, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant3, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant4, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant5, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant6, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant7, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant8, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant9, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant10, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant11, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant12, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant13, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant14],
+    'arrow.unattached': Union[DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant1, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant2, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant3, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant4, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant5, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant6, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant7, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant8, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant9, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant10, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant11, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant12, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant13, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsArrowEdgeVertexVariant14],
+    'bent_leader.enabled': DocumentDisplayOptionsResultOptionsVariant1GridDisplay,
+    'bent_leader.length_mm': DocumentDisplayOptionsResultOptionsVariant1GridMajorSpacingMm,
+    'zero.leading': Union[DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant1, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant2, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant3, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroLeadingVariant4],
+    'zero.trailing': Union[DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant1, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant2, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant3, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant4, DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationsZeroTrailingVariant5],
+})
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationFont(TypedDict):
+    font: DocumentFontScopesResultFontsDimensions
+    native_font: DocumentAnnotationFontResultNativeFont
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnitsNativeUnits(TypedDict):
+    length_unit: int
+    fraction_base: int
+    fraction_value: int
+    significant_digits: int
+    round_to_fraction: int
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnits(TypedDict):
+    length_unit: Literal['mm', 'inch', 'other']
+    decimal_places: int
+    native_units: DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnitsNativeUnits
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1BaseStandards(TypedDict):
+    geometric_tolerance: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    detail_view: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    auxiliary_view: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    section_view: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant1(TypedDict):
+    profile: Literal['drafting-defaults-v1']
+    document_type: Literal[1]
+    coverage: DocumentDraftingStandardResultObservedDefaultsVariant1Coverage
+    annotations: DocumentDraftingStandardResultObservedDefaultsVariant1Annotations
+    annotation_font: DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationFont
+    length_units: DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnits
+    display: DocumentDisplayOptionsResultOptionsVariant1
+    base_standards: DocumentDraftingStandardResultObservedDefaultsVariant1BaseStandards
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant2(TypedDict):
+    profile: Literal['drafting-defaults-v1']
+    document_type: Literal[2]
+    coverage: DocumentDraftingStandardResultObservedDefaultsVariant1Coverage
+    annotations: DocumentDraftingStandardResultObservedDefaultsVariant1Annotations
+    annotation_font: DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationFont
+    length_units: DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnits
+    display: DocumentDisplayOptionsResultOptionsVariant1
+    base_standards: DocumentDraftingStandardResultObservedDefaultsVariant1BaseStandards
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant3Coverage(TypedDict):
+    annotations: List[Union[Literal['arrow.edge_vertex'], Literal['arrow.face_surface'], Literal['arrow.unattached'], Literal['bent_leader.enabled'], Literal['bent_leader.length_mm'], Literal['zero.leading'], Literal['zero.trailing']]]
+    annotation_font_preference: Literal[19]
+    annotation_font_option: Literal[0]
+    annotation_font_members: List[Union[Literal['TypeFaceName'], Literal['CharHeight'], Literal['CharHeightInPts'], Literal['IsHeightSpecifiedInPts'], Literal['Bold'], Literal['Italic'], Literal['Underline'], Literal['Strikeout'], Literal['BackWards'], Literal['UpsideDown'], Literal['Vertical'], Literal['WidthFactor'], Literal['CharSpacingFactor'], Literal['Escapement'], Literal['LineSpacing'], Literal['LineLength'], Literal['ObliqueAngle']]]
+    length_units_native_fields: List[Union[Literal['length_unit'], Literal['fraction_base'], Literal['fraction_value'], Literal['significant_digits'], Literal['round_to_fraction']]]
+    display: List[Union[Literal['grid.display'], Literal['grid.major_spacing_mm'], Literal['grid.minor_lines_per_major'], Literal['grid.snap_points_per_minor'], Literal['virtual_sharp.style']]]
+    base_standards: DocumentDraftingStandardResultObservedDefaultsVariant1CoverageBaseStandards
+
+
+class DocumentDraftingStandardResultObservedDefaultsVariant3(TypedDict):
+    profile: Literal['drafting-defaults-v1']
+    document_type: Literal[3]
+    coverage: DocumentDraftingStandardResultObservedDefaultsVariant3Coverage
+    annotations: DocumentDraftingStandardResultObservedDefaultsVariant1Annotations
+    annotation_font: DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationFont
+    length_units: DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnits
+    display: DocumentDisplayOptionsResultOptionsVariant2
+    base_standards: DocumentDraftingStandardResultObservedDefaultsVariant1BaseStandards
+
+
+class _DocumentDraftingStandardResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.drafting-standard']
+
+
+class DocumentDraftingStandardResult(_DocumentDraftingStandardResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    standard: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    observed_defaults: Union[DocumentDraftingStandardResultObservedDefaultsVariant1, DocumentDraftingStandardResultObservedDefaultsVariant2, DocumentDraftingStandardResultObservedDefaultsVariant3]
+
+
+class DocumentDraftingStandardSetParametersExpectedSnapshotVariant1(TypedDict):
+    standard: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    observed_defaults: DocumentDraftingStandardResultObservedDefaultsVariant1
+
+
+class DocumentDraftingStandardSetParametersExpectedSnapshotVariant2(TypedDict):
+    standard: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    observed_defaults: DocumentDraftingStandardResultObservedDefaultsVariant2
+
+
+class DocumentDraftingStandardSetParametersExpectedSnapshotVariant3(TypedDict):
+    standard: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    observed_defaults: DocumentDraftingStandardResultObservedDefaultsVariant3
+
+
+class DocumentDraftingStandardSetParameters(TypedDict):
+    value: Literal['ansi', 'iso', 'din', 'jis', 'bsi', 'gost', 'gb']
+    expected_snapshot: Union[DocumentDraftingStandardSetParametersExpectedSnapshotVariant1, DocumentDraftingStandardSetParametersExpectedSnapshotVariant2, DocumentDraftingStandardSetParametersExpectedSnapshotVariant3]
+
+
+class _DocumentDraftingStandardSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.drafting-standard-set']
+    mutation: DrawingStandardViewsResultMutation
+
+
+class DocumentDraftingStandardSetResult(_DocumentDraftingStandardSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    standard: Union[DocumentDraftingStandardResultStandardVariant1, DocumentDraftingStandardResultStandardVariant2, DocumentDraftingStandardResultStandardVariant3, DocumentDraftingStandardResultStandardVariant4, DocumentDraftingStandardResultStandardVariant5, DocumentDraftingStandardResultStandardVariant6, DocumentDraftingStandardResultStandardVariant7, DocumentDraftingStandardResultStandardVariant8, DocumentDraftingStandardResultStandardVariant9]
+    observed_defaults: Union[DocumentDraftingStandardResultObservedDefaultsVariant1, DocumentDraftingStandardResultObservedDefaultsVariant2, DocumentDraftingStandardResultObservedDefaultsVariant3]
+    before: Union[DocumentDraftingStandardSetParametersExpectedSnapshotVariant1, DocumentDraftingStandardSetParametersExpectedSnapshotVariant2, DocumentDraftingStandardSetParametersExpectedSnapshotVariant3]
+    after: Union[DocumentDraftingStandardSetParametersExpectedSnapshotVariant1, DocumentDraftingStandardSetParametersExpectedSnapshotVariant2, DocumentDraftingStandardSetParametersExpectedSnapshotVariant3]
+    final: Union[DocumentDraftingStandardSetParametersExpectedSnapshotVariant1, DocumentDraftingStandardSetParametersExpectedSnapshotVariant2, DocumentDraftingStandardSetParametersExpectedSnapshotVariant3]
+    observed_defaults_changed: bool
+    changed: bool
+
+
 class _WorkspaceUploadBeginParametersRequired(TypedDict):
     path: str
     size_bytes: int
@@ -2936,3 +3568,6 @@ WorkspaceDownloadEndParameters = WorkspaceUploadStatusParameters
 
 
 WorkspaceDownloadEndResult = WorkspaceUploadBeginResult
+
+
+DocumentAnnotationFontResultFont = DocumentFontScopesResultFontsDimensions

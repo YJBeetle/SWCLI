@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from math import isfinite
 import os
 import subprocess
 import sys
@@ -28,6 +29,10 @@ from .document_line_font import LINE_FONT_FIELDS
 from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, validate_value
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
+from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
+from .document_display_options import DISPLAY_FIELDS
+from .document_drafting_standard import NAMED_DRAFTING_STANDARDS
+from .document_preferences_schemas import validate_document_preference_request
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -50,6 +55,51 @@ def _polygon_vertices(text):
         return vertices
     except (ValueError, TypeError, OverflowError) as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _document_preference_json(text):
+    """Parse a complete JSON observation without duplicate or non-finite values."""
+    def object_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON key: " + key)
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise ValueError("non-finite JSON value: " + value)
+
+    def check_finite(value):
+        if type(value) is float and not isfinite(value):
+            raise ValueError("JSON numbers must be finite")
+        if type(value) is dict:
+            for child in value.values():
+                check_finite(child)
+        elif type(value) is list:
+            for child in value:
+                check_finite(child)
+
+    try:
+        result = json.loads(text, object_pairs_hook=object_pairs, parse_constant=reject_constant)
+        if type(result) is not dict:
+            raise ValueError("expected a complete JSON object observation")
+        check_finite(result)
+        return result
+    except (ValueError, TypeError, OverflowError, RecursionError) as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def _document_preference_scalar(text, kind):
+    if kind == "Toggle":
+        if text not in ("true", "false"):
+            raise ValueError("document preference boolean must be true or false")
+        return text == "true"
+    if kind == "Double":
+        return float(text)
+    if kind == "Integer":
+        return int(text)
+    return text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -168,19 +218,21 @@ def build_parser() -> argparse.ArgumentParser:
             help="target a d-... document ID, or 'active' for this command only",
         )
 
-    def add_document_selector(command_parser: argparse.ArgumentParser) -> None:
+    def add_document_selector(command_parser: argparse.ArgumentParser, *, require_stamp=False) -> None:
         add_document_target(command_parser)
         command_parser.add_argument(
             "--if-update-stamp",
             type=int,
             dest="expected_update_stamp",
+            required=require_stamp,
             help="run only if GetUpdateStamp still equals this value",
         )
 
-    def add_lease_token(command_parser: argparse.ArgumentParser) -> None:
+    def add_lease_token(command_parser: argparse.ArgumentParser, *, required=False) -> None:
         command_parser.add_argument(
             "--lease",
             dest="lease_id",
+            required=required,
             help="active l-... lease token for this document operation",
         )
 
@@ -327,6 +379,39 @@ def build_parser() -> argparse.ArgumentParser:
     format_editor.add_argument("value", help="true/false, or right/top/left/bottom")
     format_editor.add_argument("--if-format", required=True, dest="expected_format", help="complete native format JSON from dimension-format")
     format_editor.add_argument("--json", action="store_true", dest="as_json")
+    for name, help_text in (
+        ("annotation-font", "read the complete document annotation font"),
+        ("display-options", "read bounded document display options"),
+        ("drafting-standard", "read the document drafting standard and observed defaults"),
+    ):
+        reader = document_commands.add_parser(name, help=help_text)
+        add_document_selector(reader)
+        reader.add_argument("--json", action="store_true", dest="as_json")
+
+    font_editor = document_commands.add_parser("annotation-font-set", help="edit one document annotation font field")
+    add_document_selector(font_editor, require_stamp=True)
+    add_lease_token(font_editor, required=True)
+    font_editor.add_argument("field", choices=ANNOTATION_FONT_WRITABLE_FIELDS)
+    font_editor.add_argument("value", help="font name, millimeters, integer points, or true/false according to field")
+    font_editor.add_argument("--if-font", dest="expected_font", required=True, type=_document_preference_json,
+                             help="complete 17-field previous font JSON object")
+    font_editor.add_argument("--json", action="store_true", dest="as_json")
+
+    display_editor = document_commands.add_parser("display-option-set", help="edit one bounded document display option")
+    add_document_selector(display_editor, require_stamp=True)
+    add_lease_token(display_editor, required=True)
+    display_editor.add_argument("field", choices=tuple(DISPLAY_FIELDS))
+    display_editor.add_argument("value", help="true/false, millimeters, enum name, or integer according to field")
+    display_editor.add_argument("--if-value", dest="expected_value", required=True, help="previous typed scalar value")
+    display_editor.add_argument("--json", action="store_true", dest="as_json")
+
+    standard_editor = document_commands.add_parser("drafting-standard-set", help="set the document drafting standard")
+    add_document_selector(standard_editor, require_stamp=True)
+    add_lease_token(standard_editor, required=True)
+    standard_editor.add_argument("value", choices=NAMED_DRAFTING_STANDARDS)
+    standard_editor.add_argument("--if-snapshot", dest="expected_snapshot", required=True, type=_document_preference_json,
+                                 help="complete previous fixed-profile drafting snapshot JSON object")
+    standard_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1476,6 +1561,29 @@ def _typed_operation(
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)
+        if command in ("annotation-font", "display-options", "drafting-standard"):
+            return ("document." + command, {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command in ("annotation-font-set", "display-option-set", "drafting-standard-set"):
+            if type(args.expected_update_stamp) is not int:
+                raise ValueError("document preference writes require --if-update-stamp")
+            if type(args.lease_id) is not str or not args.lease_id or args.lease_id.strip() != args.lease_id:
+                raise ValueError("document preference writes require a non-empty --lease token")
+            if command == "annotation-font-set":
+                kind = ("Double" if args.field == "height_mm" else "Integer" if args.field == "height_points"
+                        else "String" if args.field == "typeface" else "Toggle")
+                values = {"field": args.field, "value": _document_preference_scalar(args.value, kind),
+                          "expected_font": args.expected_font}
+            elif command == "display-option-set":
+                spec = DISPLAY_FIELDS[args.field]
+                kind = "String" if "values" in spec else spec["kind"]
+                values = {"field": args.field, "value": _document_preference_scalar(args.value, kind),
+                          "expected_value": _document_preference_scalar(args.expected_value, kind)}
+            else:
+                values = {"value": args.value, "expected_snapshot": args.expected_snapshot}
+            operation = "document." + command
+            validate_document_preference_request(operation, values)
+            return (operation, values, args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "annotation-option-set":
             def scalar(text):
                 kind = ANNOTATION_FIELDS[args.field]["kind"]

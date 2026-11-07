@@ -1,0 +1,29 @@
+{
+  "repository": "YJBeetle/SWCLI",
+  "workflow": "ci.yml",
+  "branch": "codex/docprops-calibration-performance",
+  "head": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+  "inputs": {
+    "docprops_calibration": "true",
+    "docprops_expected_head": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+    "native_full": "false"
+  },
+  "requested_at_utc": "2026-11-06T17:24:46.681886+00:00",
+  "dispatch_attempts_for_head": 1,
+  "previous_run": 42260761081,
+  "reason_for_new_validation": "related concurrency-isolation fix after pre-run cancellation; no native retry",
+  "full_acceptance_eligible": false,
+  "status": "completed",
+  "dispatch_exit_code": 0,
+  "dispatch_stdout": "https://github.com/YJBeetle/SWCLI/actions/runs/42261401694\n",
+  "dispatch_stderr": "",
+  "run_id": 42261401694,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42261401694",
+  "run_attempt": 1,
+  "conclusion": "failure",
+  "first_real_failure": "ROT exact PID moniker must match exactly once; no object bound",
+  "native_cases": 0,
+  "native_setters": 0,
+  "artifact_id": 13526632475,
+  "artifact_sha256": "e057d905a1e0887d89d429eed7319455a7e5608c060b584eef231436ce90cb40"
+}

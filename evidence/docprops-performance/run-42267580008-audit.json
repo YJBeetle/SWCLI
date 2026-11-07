@@ -1,0 +1,73 @@
+{
+  "audit_success": true,
+  "auditor_sha256": "5315df200255532f640509cd7725d6bb338ca98893ca74c27548d82c92476433",
+  "all_original_hashes_verified": true,
+  "source_head": "143f9d5691def3f4cb2b09d8e56feb3e53ca50a7",
+  "run_id": "42267580008",
+  "run_attempt": "1",
+  "source_hashes": {
+    "scripts/dev/calibrate-document-properties.py": "ee79cbc92dfead2857ce1c51b3972564d391b35dda695e89acc27c63d932d61b",
+    "scripts/dev/run-document-properties-calibration.py": "63ede2edf4428ffff6f297e8752f634c45c7fad347325f0d9544dabd98fc772c",
+    "scripts/ci/verify-document-properties-calibration.py": "ec4da1c90db0026562e726cfff96f9a5ae40796148701f53e715ed20f835340c",
+    "scripts/ci/verify-through-all-calibration.py": "883541f571838fb44bb15c38b46a6dbb53c390e01d10cf27af30ab675c6fef4e"
+  },
+  "source_byte_forms_verified_locally": {
+    "scripts/dev/calibrate-document-properties.py": "git-CRLF",
+    "scripts/dev/run-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-through-all-calibration.py": "git-CRLF"
+  },
+  "manifest_sha256": "836764a50c898d03facffe52945865c95677cb12020649802aa9f804265bc144",
+  "native_group_complete": false,
+  "completed_transitions": null,
+  "per_kind": {
+    "part": {
+      "setter_attempts": 0,
+      "strict_true_returns": 0,
+      "complete_saved_readonly_transitions": 0
+    }
+  },
+  "coverage_error": "hardened worker did not complete successfully",
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "standard plan requires an unchanged GB7 template baseline",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 1434, in run\n    self.run_case(kind)\n    ~~~~~~~~~~~~~^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 1312, in run_case\n    document = self.standards_stage(document, kind, front, row)\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 1230, in standards_stage\n    require(type(case[\"initial\"][\"standard\"]) is int\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and case[\"initial\"][\"standard\"] == self.constants[\"swDetailingStandardGB\"]\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and current[\"standard\"][\"native_value\"] == self.constants[\"swDetailingStandardGB\"]\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and current[\"standard\"][\"value\"] == \"gb\", \"standard plan requires an unchanged GB7 template baseline\")\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 60, in require\n    raise RuntimeError(message)\nRuntimeError: standard plan requires an unchanged GB7 template baseline\n"
+  },
+  "driver_elapsed_seconds": 18.190436399999953,
+  "trace": {
+    "begin_records": 214,
+    "terminal_records": 214,
+    "error_records": 0,
+    "unfinished_call": null,
+    "first_error": null,
+    "categories": {
+      "other_guards_and_io": {
+        "calls": 184,
+        "wrapper_seconds": 16.0504147000006,
+        "begin_trace_seconds": 0.8412914000020919,
+        "checkpoint_seconds": 0.37474310000015976,
+        "function_body_seconds": 14.833560199999738,
+        "pre_native_failures": 0
+      },
+      "identity": {
+        "calls": 29,
+        "wrapper_seconds": 0.17569369999978335,
+        "begin_trace_seconds": 0.13878700000054778,
+        "checkpoint_seconds": 9.59999988481286e-05,
+        "function_body_seconds": 0.03668810000090161,
+        "pre_native_failures": 0
+      },
+      "fixed_profile_reader": {
+        "calls": 1,
+        "wrapper_seconds": 0.3435934999999972,
+        "begin_trace_seconds": 0.0030291999999008112,
+        "checkpoint_seconds": 3.099999958067201e-06,
+        "function_body_seconds": 0.3405566999999792,
+        "pre_native_failures": 0
+      }
+    },
+    "scope": "completed wrappers only; wrapper excludes terminal fsync; function body may contain multiple COM leaves"
+  },
+  "full_acceptance_eligible": false,
+  "public_whitelist_updates": []
+}

@@ -17,6 +17,9 @@ from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema
 from .document_image_quality import IMAGE_QUALITY_FIELDS, exact_snapshot, linked_changes, quality_schema, validate_quality
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema
+from .document_preferences_schemas import (
+    document_preference_result_fields, validate_document_preference_result_values,
+)
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
@@ -1633,6 +1636,16 @@ _RESULT_FIELDS["feature.revolve"] = (
     ("document", "sketch_id", "expected_profile_mm", "axis_mm", "angle_deg", "mutation", "cleanup_errors",
      "feature", "definition", "model_to_sketch_transform", "expected_metrics", "metrics", "diagnostics", "verified"),
 )
+_DOCUMENT_PREFERENCE_OPERATIONS = (
+    "document.annotation-font", "document.annotation-font-set",
+    "document.display-options", "document.display-option-set",
+    "document.drafting-standard", "document.drafting-standard-set",
+)
+for _preference_operation in _DOCUMENT_PREFERENCE_OPERATIONS:
+    _preference_fields, _preference_required = document_preference_result_fields(_preference_operation)
+    _RESULT_FIELDS[_preference_operation] = (
+        _preference_fields, ("session_id", "document", *_preference_required),
+    )
 
 
 def operation_result_schema(name: str) -> Dict[str, Any]:
@@ -1708,6 +1721,24 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         }
         schema["else"]["not"] = {"anyOf": [{"required": [key]} for key in
                                            ("reference", "entity_id", "entity", "resolution", "topology_verified")]}
+    if name in _DOCUMENT_PREFERENCE_OPERATIONS:
+        schema["then"]["properties"] = {"document": {"properties": {"update_stamp": INTEGER}}}
+    if name in _DOCUMENT_PREFERENCE_OPERATIONS and name.endswith("-set"):
+        schema["required"].append("mutation")
+        changed_required = {
+            "document.annotation-font-set": ("observed_font", "observed_native_font"),
+            "document.display-option-set": ("observed_options",),
+            "document.drafting-standard-set": ("after", "final", "observed_defaults_changed"),
+        }[name]
+        schema["then"]["allOf"] = [{
+            "if": {"properties": {"changed": {"const": True}}},
+            "then": {"required": list(changed_required), "properties": {
+                "document": {"properties": {"modified": {"const": True}}},
+                "mutation": {"properties": {"attempted": {"const": True},
+                                               "may_have_changed": {"const": True}}}}},
+            "else": {"properties": {"mutation": {"properties": {
+                "attempted": {"const": False}, "may_have_changed": {"const": False}}}}},
+        }]
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {
@@ -2873,6 +2904,89 @@ def _validate_feature_depth_result(result: Dict[str, Any]) -> None:
     )
 
 
+def _validate_document_preference_result(name, result):
+    def require(condition, message):
+        if not condition:
+            raise ValueError(message)
+
+    def same(first, second):
+        return json.dumps(first, sort_keys=True, allow_nan=False) == json.dumps(second, sort_keys=True, allow_nan=False)
+
+    try:
+        validate_document_preference_result_values(name, result)
+        if result["ok"] is not True:
+            return
+        document = result["document"]
+        require(type(document["type"]) is int and document["type"] in (1, 2, 3),
+                "preference result requires an exact native document type")
+        require(type(document["update_stamp"]) is int,
+                "preference result requires an exact native update stamp")
+        if not name.endswith("-set"):
+            return
+        changed = result["changed"]
+        require(result["mutation"] == {"attempted": changed, "may_have_changed": changed},
+                "preference result mutation flags disagree with changed")
+        require(not changed or document["modified"] is True, "changed preferences must be dirty")
+        field = result.get("field")
+        if name == "document.annotation-font-set":
+            before, after = result["before"], result["font"]
+            if field == "height_mm":
+                actually_changed = (before["height_mode"] != "millimeters"
+                    or not isclose(before[field], after[field], rel_tol=1e-12, abs_tol=1e-12))
+                require(after["height_mode"] == "millimeters", "millimeter write returned wrong font height mode")
+            elif field == "height_points":
+                actually_changed = before["height_mode"] != "points" or before[field] != after[field]
+                require(after["height_mode"] == "points", "point write returned wrong font height mode")
+            else:
+                actually_changed = type(before[field]) is not type(after[field]) or before[field] != after[field]
+            require(actually_changed == changed, "font changed flag disagrees with requested field")
+            if not changed:
+                require(same(before, after) and same(result["native_before"], result["native_font"])
+                        and result["native_normalizations"] == [], "font no-op changed an observed field")
+            else:
+                require(same(result["observed_font"], after)
+                        and same(result["observed_native_font"], result["native_font"]),
+                        "font final values disagree with post-setter observation")
+        elif name == "document.display-option-set":
+            before, after = result["before"], result["options"]
+            require(before.keys() == after.keys() and field in after,
+                    "display field/profile changed during edit")
+            from .document_display_options import DISPLAY_FIELDS
+            if DISPLAY_FIELDS[field]["kind"] == "Double":
+                actually_changed = not isclose(before[field]["value"], after[field]["value"],
+                                               rel_tol=1e-12, abs_tol=1e-12)
+            else:
+                actually_changed = not same(before[field], after[field])
+            require(actually_changed == changed, "display changed flag disagrees with selected field")
+            require(all(same(before[key], after[key]) for key in before if key != field),
+                    "display edit changed an unrequested field")
+            if changed:
+                require(same(result["observed_options"], after), "display final values disagree with post-setter observation")
+            else:
+                require(same(before, after), "display no-op changed an observed field")
+        else:
+            before = result["before"]
+            after = {key: result[key] for key in ("standard", "observed_defaults")}
+            require(before["observed_defaults"]["document_type"] == document["type"],
+                    "standard before snapshot belongs to another document type")
+            require(before["standard"]["value"] not in ("custom", "other"),
+                    "custom/unknown standard source is read-only")
+            require(after["standard"]["value"] not in ("custom", "other"),
+                    "custom/unknown standard target is read-only")
+            require((before["standard"]["native_value"] != after["standard"]["native_value"]) == changed,
+                    "standard changed flag disagrees with native standard")
+            if changed:
+                require(same(result["after"], after) and same(result["final"], after),
+                        "standard after/final/readback snapshots disagree")
+                observed_change = not same(before["observed_defaults"], after["observed_defaults"])
+                require(result["observed_defaults_changed"] is observed_change,
+                        "standard observed-defaults change flag disagrees with snapshots")
+            else:
+                require(same(before, after), "standard no-op changed observed defaults")
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        raise OperationResultInvalid(name + ": " + str(error)) from error
+
+
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
     if name == "document.detailing-option-set" and result["ok"] is True:
@@ -2942,6 +3056,8 @@ def validate_operation_result(name: str, result: Any) -> None:
                     raise ValueError("image quality lifecycle or coupled-change evidence disagrees")
         except (ValueError, RuntimeError) as exc:
             raise OperationResultInvalid(name + ": " + str(exc)) from exc
+    if name in _DOCUMENT_PREFERENCE_OPERATIONS:
+        _validate_document_preference_result(name, result)
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

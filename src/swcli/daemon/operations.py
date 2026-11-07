@@ -41,6 +41,15 @@ from ..hosts.windows_document_font_scopes import (
 from ..hosts.windows_document_annotations import (
     read_document_annotation_options_windows, set_document_annotation_option_windows,
 )
+from ..hosts.windows_document_annotation_fonts import (
+    read_document_annotation_font_windows, set_document_annotation_font_windows,
+)
+from ..hosts.windows_document_display_options import (
+    read_document_display_options_windows, set_document_display_option_windows,
+)
+from ..hosts.windows_document_drafting_standard import (
+    read_document_drafting_standard_windows, set_document_drafting_standard_windows,
+)
 from ..hosts.windows_parts import (
     create_box_part_windows_with_handle,
     create_part_windows_with_handle,
@@ -568,6 +577,86 @@ def document_annotation_option_set(context: OperationContext, values: Dict[str, 
         value=values["value"], expected_value=values["expected_value"],
     )
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+def _with_preference_receipt(result, context):
+    """Descriptor postflight cannot erase this adapter's mutation or first error."""
+    candidate = dict(result)
+    if isinstance(candidate.get('document'), dict):
+        candidate['document'] = dict(candidate['document'])
+    try:
+        enriched = _with_document(candidate, context.documents, context.entry, session_id=context.session_id)
+        result.update(enriched)
+        return result
+    except Exception as exc:
+        partial = dict(result)
+        partial['ok'] = False
+        partial['session_id'] = context.session_id
+        detail = {'type': type(exc).__name__, 'message': str(exc)}
+        previous = partial.get('error')
+        if isinstance(previous, dict) and isinstance(previous.get('type'), str) and isinstance(previous.get('message'), str):
+            partial['error'] = dict(previous, descriptor_error=detail)
+        else:
+            partial['error'] = dict(detail, descriptor_error=detail)
+        result.update(partial)
+        return result
+
+
+@_register_handler
+def document_annotation_font(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_annotation_font_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_annotation_font_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_annotation_font_windows(
+        app=context.app, document=context.entry.document, field=values["field"],
+        value=values["value"], expected_font=values["expected_font"],
+    )
+    return _with_preference_receipt(result, context)
+
+
+@_register_handler
+def document_display_options(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_display_options_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_display_option_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_display_option_windows(
+        app=context.app, document=context.entry.document, field=values["field"],
+        value=values["value"], expected_value=values["expected_value"],
+    )
+    return _with_preference_receipt(result, context)
+
+
+@_register_handler
+def document_drafting_standard(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_drafting_standard_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_drafting_standard_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_drafting_standard_windows(
+        app=context.app, document=context.entry.document,
+        value=values["value"], expected_snapshot=values["expected_snapshot"],
+    )
+    return _with_preference_receipt(result, context)
 
 
 @_register_handler

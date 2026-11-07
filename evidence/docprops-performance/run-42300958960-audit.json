@@ -1,0 +1,56 @@
+{
+  "first_layer_audit_success": true,
+  "source_head": "9a32b685908e83026fd51313eedd03a37b2a4e04",
+  "manifest_sha256": "70906767936ea0ddd1d247fe25c3ddef6ddb8bd763e79e6f3ef88fd1faec470e",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 4328,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 1.3898372999999538,
+    "visible": false
+  },
+  "groups": [
+    {
+      "profile": "standards",
+      "elapsed_seconds": 184.7140394999999,
+      "cases": [
+        {
+          "kind": 1,
+          "writes": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    },
+    {
+      "profile": "standards",
+      "elapsed_seconds": 202.90932380000004,
+      "cases": [
+        {
+          "kind": 2,
+          "writes": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    },
+    {
+      "profile": "standards",
+      "elapsed_seconds": 228.23560850000013,
+      "cases": [
+        {
+          "kind": 3,
+          "writes": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    }
+  ],
+  "full_modeling_acceptance": false,
+  "scope": "hash/receipt/strict native-trace replay; final independent review by coordinator"
+}

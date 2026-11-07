@@ -1,7 +1,7 @@
 """Generated typed operation methods; regenerate from the public catalog."""
 from __future__ import annotations
 
-from typing import Dict, List, Literal, Optional, Protocol, Union, cast
+from typing import Dict, List, Literal, Optional, Protocol, Union, cast, overload
 from . import models
 from .runtime import JSONValue, Response, UNSET, Unset
 
@@ -266,6 +266,15 @@ class DocumentOperations:
         return cast("Response[models.DocumentImageQualityResult]", self._client._execute('document.image-quality', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
 
 
+    @overload
+    def image_quality_set(self, *, field: Literal['shaded_mode'], value: Literal['coarse', 'fine'], expected_quality: models.DocumentImageQualityResultQuality, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentImageQualitySetResult]: ...
+
+    @overload
+    def image_quality_set(self, *, field: Literal['shaded_deviation_mm'], value: float, expected_quality: models.DocumentImageQualityResultQuality, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentImageQualitySetResult]: ...
+
+    @overload
+    def image_quality_set(self, *, field: Literal['optimize_edge_length'], value: bool, expected_quality: models.DocumentImageQualityResultQuality, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentImageQualitySetResult]: ...
+
     def image_quality_set(self, *, field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length'], value: Union[str, float, bool], expected_quality: models.DocumentImageQualityResultQuality, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentImageQualitySetResult]:
         """document.image-quality-set; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
@@ -452,6 +461,101 @@ class DocumentOperations:
         if stl_options is not UNSET:
             parameters['stl_options'] = stl_options
         return cast("Response[models.DocumentExportResult]", self._client._execute('document.export', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
+    def annotation_font(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontResult]:
+        """document.annotation-font; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentAnnotationFontResult]", self._client._execute('document.annotation-font', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['typeface'], value: str, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['height_mm'], value: float, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['height_points'], value: int, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['bold'], value: bool, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['italic'], value: bool, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['underline'], value: bool, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    @overload
+    def annotation_font_set(self, *, field: Literal['strikeout'], value: bool, expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]: ...
+
+    def annotation_font_set(self, *, field: Union[Literal['typeface'], Literal['height_mm'], Literal['height_points'], Literal['bold'], Literal['italic'], Literal['underline'], Literal['strikeout']], value: Union[str, float, int, bool], expected_font: models.DocumentFontScopesResultFontsDimensions, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationFontSetResult]:
+        """document.annotation-font-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_font'] = expected_font
+        return cast("Response[models.DocumentAnnotationFontSetResult]", self._client._execute('document.annotation-font-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
+    def display_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionsResult]:
+        """document.display-options; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentDisplayOptionsResult]", self._client._execute('document.display-options', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    @overload
+    def display_option_set(self, *, field: Literal['grid.display'], value: bool, expected_value: bool, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['grid.major_spacing_mm'], value: float, expected_value: float, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['grid.minor_lines_per_major'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['grid.snap_points_per_minor'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['virtual_sharp.style'], value: Literal['none', 'plus', 'star', 'witness', 'dot'], expected_value: Literal['none', 'plus', 'star', 'witness', 'dot'], document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['plane.front_face_color'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['plane.back_face_color'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['plane.intersection_line_color'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['plane.transparency'], value: int, expected_value: int, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    @overload
+    def display_option_set(self, *, field: Literal['plane.show_intersections'], value: bool, expected_value: bool, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]: ...
+
+    def display_option_set(self, *, field: Union[Literal['grid.display'], Literal['grid.major_spacing_mm'], Literal['grid.minor_lines_per_major'], Literal['grid.snap_points_per_minor'], Literal['virtual_sharp.style'], Literal['plane.front_face_color'], Literal['plane.back_face_color'], Literal['plane.intersection_line_color'], Literal['plane.transparency'], Literal['plane.show_intersections']], value: Union[bool, float, int, Literal['none', 'plus', 'star', 'witness', 'dot']], expected_value: Union[bool, float, int, Literal['none', 'plus', 'star', 'witness', 'dot']], document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDisplayOptionSetResult]:
+        """document.display-option-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_value'] = expected_value
+        return cast("Response[models.DocumentDisplayOptionSetResult]", self._client._execute('document.display-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
+    def drafting_standard(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentDraftingStandardResult]:
+        """document.drafting-standard; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentDraftingStandardResult]", self._client._execute('document.drafting-standard', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def drafting_standard_set(self, *, value: Literal['ansi', 'iso', 'din', 'jis', 'bsi', 'gost', 'gb'], expected_snapshot: Union[models.DocumentDraftingStandardSetParametersExpectedSnapshotVariant1, models.DocumentDraftingStandardSetParametersExpectedSnapshotVariant2, models.DocumentDraftingStandardSetParametersExpectedSnapshotVariant3], document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDraftingStandardSetResult]:
+        """document.drafting-standard-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['value'] = value
+        parameters['expected_snapshot'] = expected_snapshot
+        return cast("Response[models.DocumentDraftingStandardSetResult]", self._client._execute('document.drafting-standard-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
 class DrawingOperations:

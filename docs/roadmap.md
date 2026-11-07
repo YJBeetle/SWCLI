@@ -62,3 +62,7 @@ claims. A failed operation can leave partial geometry; do not imply automatic
 rollback or repeat a native write merely to recover delivery. Keep previous
 version evidence unchanged. A Wine-specific issue does not block Windows
 publication unless traced to shared SWCLI code.
+
+## Current bounded Document Properties batch
+
+The existing series includes overall annotation font (seven writable fields), grid/virtual-sharp/plane display (ten model fields, five drawing fields), and 36 GB-to-named-standard round trips on the verified native 2025 SP5 host. See [batch scope](design/document-preferences-batch.md) and [page inventory](design/document-properties-coverage.md). These groups do not complete the whole Document Properties UI. Units, table defaults, STEP, assembly mates and modern API migration remain under separate evidence review. Finish this existing series before version freeze and owner publication approval; do not open another expansion.

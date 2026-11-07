@@ -514,6 +514,14 @@ format options and tessellation control remain unsupported.
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 
+The isolated document-properties batch adds `document.annotation-font[-set]`,
+`document.display-options` / `document.display-option-set`, and
+`document.drafting-standard[-set]`. Bounded public acceptance passed on native Windows 2025 SP5 (33.5.0);
+this batch is not yet released and
+these bounded defaults do not complete the entire Document Properties page.
+See [the batch contract](docs/design/document-preferences-batch.md) for exact
+fields, mandatory lease/stamp/CAS guards and remaining limits.
+
 Structural inspection adds the active configuration and all configuration
 names, explicit document units, a bounded top-level feature traversal in model
 definition order, and part-body topology summaries. Feature names are reported

@@ -526,6 +526,13 @@ try {
             --output-dir (Join-Path $Workspace "document-annotations") `
             --fixture-dir $AnnotationFixtureDirectory --native-trace $daemonStderr
         if ($LASTEXITCODE -ne 0) { throw "public document annotation CLI gate failed" }
+        foreach ($preferenceProfile in @("fonts", "display", "standards")) {
+            & python -I (Join-Path $PSScriptRoot "../verify-document-preferences.py") `
+                --profile $preferenceProfile `
+                --output-dir (Join-Path $Workspace ("document-preferences-" + $preferenceProfile)) `
+                --fixture-dir $AnnotationFixtureDirectory --native-trace $daemonStderr
+            if ($LASTEXITCODE -ne 0) { throw "public document preferences $preferenceProfile CLI gate failed" }
+        }
     }
 
     # Shared scripts own CAD coverage and fresh CLI/SW session boundaries.

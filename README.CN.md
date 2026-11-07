@@ -326,6 +326,12 @@ lease 的边界有意保持狭窄：
 
 网格导出只做有界的容器和基本几何检查，不保证水密性、离散精度、材质或几何等价性。原生转换器是否可用和离散设置由宿主决定；STL 不携带单位声明。装配体 STL 导出临时启用单文件输出，并在发布产物前恢复该偏好；恢复失败时导出失败且不替换已有目标。不提供 OBJ 导出或静默网格后备方案。
 
+当前文档属性批次新增总注释字体、十项显示设置和有限总体绘图标准转换，
+分别使用 `document.annotation-font[-set]`、`document.display-options` /
+`document.display-option-set`、`document.drafting-standard[-set]`。
+本批有界子集已通过原生 Windows 2025 SP5（33.5.0）公开验收，尚未发布，不能视为整页完成；写入要求租约、版本戳和完整旧值。
+详见[本批契约](docs/design/document-preferences-batch.md)及[剩余覆盖矩阵](docs/design/document-properties-coverage.md)。
+
 ## 草图操作（自 v0.1.0a4 起）
 
 ```powershell

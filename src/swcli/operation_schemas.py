@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 from re import search
 from typing import Any, Dict, Optional
@@ -20,6 +20,9 @@ from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema, v
 from .document_image_quality import IMAGE_QUALITY_FIELDS, quality_schema, value_schema as quality_value_schema, validate_quality, validate_value as validate_quality_value
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
+from .document_preferences_schemas import (
+    document_preference_parameters, validate_document_preference_request,
+)
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -116,6 +119,41 @@ _DOCUMENT_WRITE_CONTEXT = {
     **_DOCUMENT_READ_CONTEXT,
     "lease_id": "optional",
 }
+
+
+_DOCUMENT_PREFERENCE_OPERATIONS = (
+    "document.annotation-font", "document.annotation-font-set",
+    "document.display-options", "document.display-option-set",
+    "document.drafting-standard", "document.drafting-standard-set",
+)
+
+
+def _document_preference_operation(name):
+    parameters = document_preference_parameters(name)
+    # Keep top-level property discovery useful while retaining the complete
+    # field-dependent oneOf contract from the pure schema helper.
+    if "oneOf" in parameters:
+        properties = {}
+        for branch in parameters["oneOf"]:
+            for key, value in branch["properties"].items():
+                candidates = properties.setdefault(key, [])
+                if value not in candidates:
+                    candidates.append(value)
+        properties = {key: values[0] if len(values) == 1 else {"anyOf": values}
+                      for key, values in properties.items()}
+        parameters = {"type": "object", "additionalProperties": False,
+                      "properties": properties,
+                      "required": parameters["oneOf"][0]["required"],
+                      "allOf": [{"oneOf": parameters["oneOf"]}]}
+    context = dict(_DOCUMENT_WRITE_CONTEXT if name.endswith("-set") else _DOCUMENT_READ_CONTEXT)
+    if name.endswith("-set"):
+        context["expected_update_stamp"] = "required"
+        context["lease_id"] = "required"
+    spec = _operation(name, **context)
+    spec.parameters.update(parameters)
+    # Required leases must retain actual worker ownership checks. The legacy
+    # constructor only flags optional leases; leave all old operations unchanged.
+    return replace(spec, lease_guarded=True) if name.endswith("-set") else spec
 
 
 _PROPERTY_NAME = _string(minLength=1, pattern=r"\S")
@@ -610,6 +648,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
 }
 
 
+# These schemas describe public dispatch contracts. Native acceptance and the
+# finite transition whitelist remain independent evidence/gates.
+OPERATION_CATALOG.update({name: _document_preference_operation(name)
+                          for name in _DOCUMENT_PREFERENCE_OPERATIONS})
+
 from .workspace import definitions as workspace_definitions
 for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
@@ -708,6 +751,10 @@ def validate_operation_request(
     schema = OPERATION_SCHEMAS.get(operation)
     if schema is None:
         raise ValueError(f"unsupported operation: {operation}")
+    if operation in _DOCUMENT_PREFERENCE_OPERATIONS:
+        validate_document_preference_request(operation, parameters)
+        if expected_update_stamp is not None and type(expected_update_stamp) is not int:
+            raise ValueError("expected_update_stamp must be an integer")
     properties = schema["properties"]
     unexpected = sorted(set(parameters) - set(properties))
     if unexpected:
@@ -719,8 +766,9 @@ def validate_operation_request(
         raise ValueError(f"{operation} requires {', '.join(missing)}")
     if operation == "feature.cut-extrude":
         resolve_cut_termination(parameters)
-    for name, value in parameters.items():
-        _validate_parameter(name, value, properties[name])
+    if operation not in _DOCUMENT_PREFERENCE_OPERATIONS:
+        for name, value in parameters.items():
+            _validate_parameter(name, value, properties[name])
     if operation == "document.tolerance-set":
         validate_value(parameters["field"], parameters["value"])
     if operation == "document.font-scope-set":

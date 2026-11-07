@@ -70,6 +70,12 @@ retry writes or refresh leases/CAS implicitly.
   revision/runtime and bounded targets; other writes fail closed. A complete quality CAS snapshot, lease
   and update stamp are mandatory. Do not equate these settings with GLB export
   options or claim GLB subdivision control without decoded mesh evidence.
+- For an advertised `document.annotation-font`, `document.display-options` or
+  `document.drafting-standard` pair, request its own schema and read the guide's
+  bounded preference contract. New setters require an explicit lease, fresh
+  update stamp and exact field/full-snapshot CAS. Only overall annotation font
+  and a finite standard observation profile are covered; unknown/custom
+  standards, subtype fonts and unobserved page settings remain separate work.
 - For MCP previews or file delivery, use `execute` with `document.render` or
   `document.export`. Check both CAD success and `artifact.content.status`;
   consume the returned image/resource block, not a client-side host path.

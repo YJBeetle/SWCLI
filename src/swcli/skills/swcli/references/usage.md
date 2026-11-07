@@ -436,8 +436,37 @@ their original code. Writes always require `--if-value`, in addition to lease
 and optional stamp guards. An equal value does not invoke a native setter.
 Unrequested scalar options remain unchanged; a changed value marks the document
 for an explicit save. Partial failures report possible mutation and are never
-retried or rolled back. Annotation font and drafting standard writes remain
-outside this increment.
+retried or rolled back. These seven scalars do not imply font or standard support.
+
+This development batch also advertises three separate document-preference
+read/write pairs. Their bounded public native acceptance is documented for Windows 2025 SP5;
+check the running daemon's selected operation schema and host limits before use.
+
+| Read command | Write command | Bounded scope |
+| --- | --- | --- |
+| `document annotation-font` | `document annotation-font-set FIELD VALUE --if-font JSON` | Overall annotation font only: typeface, millimeter/point height, bold, italic, underline, strikeout. Read the complete 17-field `font` snapshot; do not infer dimensions/table subtype fonts or rendered glyphs. |
+| `document display-options` | `document display-option-set FIELD VALUE --if-value OLD` | `grid.display`, `grid.major_spacing_mm`, `grid.minor_lines_per_major`, `grid.snap_points_per_minor`, `virtual_sharp.style`; parts/assemblies additionally expose `plane.front_face_color`, `plane.back_face_color`, `plane.intersection_line_color`, `plane.transparency`, `plane.show_intersections`. Native color integers are not RGB rendering evidence. |
+| `document drafting-standard` | `document drafting-standard-set NAME --if-snapshot JSON` | Named standards (`ansi`, `iso`, `din`, `jis`, `bsi`, `gost`, `gb`) only on explicitly calibrated source/target/type transitions. Custom/unknown sources are read-only; arbitrary standard files are unsupported. |
+
+Prefix these commands with `swcli`; every new write requires `--lease TOKEN` and fresh `--if-update-stamp STAMP` in a consistent
+session. The target may also be selected through the session when no document
+argument is given. `--if-font` takes exactly the just-read `font` object, and
+`--if-snapshot` takes exactly `{standard, observed_defaults}` from the standard
+read. Preserve both full objects; never manufacture a subset CAS. Strict JSON
+rejects duplicate keys, nonfinite values and undeclared fields at any depth. The standard
+snapshot names its finite `drafting-defaults-v1` observation coverage; it does
+not observe all document defaults. A standard switch can legitimately change
+related defaults and reports before/after/final snapshots.
+
+Font setters may normalize the inactive height representation; explicit
+`native_normalizations` records this, while active height/mode, unrequested
+members and full raw save/reopen equality remain guarded. Partial mutation can
+begin with the ITextFormat property assignment before the final document Set.
+Same-value requests have no assignment, setter or SaveFlag, including on clean
+copies. Save explicitly only after successful readback and task authorization;
+failures are not retried or rolled back. MCP uses the same six operation names
+through `execute`, not a separate native API surface.
+
 
 `document inspect` defaults to a summary with `.document.modified` and top-level
 `needs_rebuild`; there is no separate `document status` command or invented

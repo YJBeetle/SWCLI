@@ -1,0 +1,26 @@
+{
+  "run_id": 42274393189,
+  "source_head": "ea45651b1afbd18e936ea5946c93c329c058bca0",
+  "artifact_id": 13532064982,
+  "artifact_sha256": "cf0ee1014aa1bb3776ab57971a6baf7a76004b880c6046129160d8494054abd0",
+  "github_digest_matches": true,
+  "native_group_complete": false,
+  "full_acceptance_eligible": false,
+  "files": {
+    "template-selection.json": {
+      "bytes": 266,
+      "sha256": "8b23779be484396816795ea190c658e3105ffe8b17cab72c51afec3eda9b80a9"
+    }
+  },
+  "template_selection": {
+    "success": false,
+    "program_data": "C:\\ProgramData",
+    "installation": "C:\\Program Files\\SOLIDWORKS",
+    "failure": {
+      "type": "RuntimeError",
+      "message": "Expected one explicit installed GB part template, found 0; no arbitrary fallback"
+    }
+  },
+  "native_started": false,
+  "native_setters": 0
+}

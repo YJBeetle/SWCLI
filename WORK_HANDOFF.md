@@ -19,3 +19,5 @@
 - 文档图像品质：严格native宿主修复950c833/公开42361573569由本人复核；仅已证实零件品质字段，GLB细分控制仍未解决，不能当作已完成功能。
 
 - 持久拓扑引用：f325943/公开42361455599原件由本人复核，单实体零件完整面/边 census 双射；非任意拓扑永久稳定保证。组合2160项便携测试完成（34跳过），SDK及14个类型拒绝例通过。见 docs/handoffs/topology-references.md 与 docs/evidence/topology-references-main-integration-2026-11-08.json。
+
+- 总注释字体七字段、显示十字段（工程图五项）及GB往返六标准36转换：42361904486原件由本人复核；三setter描述符和worker异常回执已补保护。组合2520项测试完成（34跳过），SDK及31类型拒绝例通过。主CI保持不变，手动专项迁至独立document-preferences.yml。见docs/handoffs/document-preferences.md及docs/evidence/document-preferences-main-integration-2026-11-08.json。

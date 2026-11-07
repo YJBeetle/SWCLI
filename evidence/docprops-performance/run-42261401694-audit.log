@@ -1,0 +1,51 @@
+{
+  "audit_success": true,
+  "auditor_sha256": "5315df200255532f640509cd7725d6bb338ca98893ca74c27548d82c92476433",
+  "all_original_hashes_verified": true,
+  "source_head": "1c57948b7a22fb930bce5f5f3c0ef6b303a66034",
+  "run_id": "42261401694",
+  "run_attempt": "1",
+  "source_hashes": {
+    "scripts/dev/calibrate-document-properties.py": "65748666cab640e095941ea34383a74c9a72677d4bb3596c9b77ce2e90f2cece",
+    "scripts/dev/run-document-properties-calibration.py": "a32edeeb8051c6524aa9b99a7f906ea89b0a99b0674d2f9812719266e32c5472",
+    "scripts/ci/verify-document-properties-calibration.py": "3e11dec4f7488dc1449817f12f025c4d14f31997a7d4e89e023f902e37d9800a",
+    "scripts/ci/verify-through-all-calibration.py": "883541f571838fb44bb15c38b46a6dbb53c390e01d10cf27af30ab675c6fef4e"
+  },
+  "source_byte_forms_verified_locally": {
+    "scripts/dev/calibrate-document-properties.py": "git-CRLF",
+    "scripts/dev/run-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-document-properties-calibration.py": "git-CRLF",
+    "scripts/ci/verify-through-all-calibration.py": "git-CRLF"
+  },
+  "manifest_sha256": "aadc7813e4830051caa7cffcf8b5c40fb87921f90980becdd6d5bd922d4350bb",
+  "native_group_complete": false,
+  "completed_transitions": null,
+  "per_kind": {},
+  "coverage_error": "hardened worker did not complete successfully",
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "ROT exact PID moniker must match exactly once; no object bound",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 1391, in run\n    self.attach()\n    ~~~~~~~~~~~^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 424, in attach\n    self.app = self.attach_rot()\n               ~~~~~~~~~~~~~~~^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 403, in attach_rot\n    require(len(matches) == 1, \"ROT exact PID moniker must match exactly once; no object bound\")\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\dev\\calibrate-document-properties.py\", line 60, in require\n    raise RuntimeError(message)\nRuntimeError: ROT exact PID moniker must match exactly once; no object bound\n"
+  },
+  "driver_elapsed_seconds": 0.6727776000000176,
+  "trace": {
+    "begin_records": 8,
+    "terminal_records": 8,
+    "error_records": 0,
+    "unfinished_call": null,
+    "first_error": null,
+    "categories": {
+      "other_guards_and_io": {
+        "calls": 8,
+        "wrapper_seconds": 0.1882309000004625,
+        "begin_trace_seconds": 0.03802210000026207,
+        "checkpoint_seconds": 0.005324699999846416,
+        "function_body_seconds": 0.1448360000001685,
+        "pre_native_failures": 0
+      }
+    },
+    "scope": "completed wrappers only; wrapper excludes terminal fsync; function body may contain multiple COM leaves"
+  },
+  "full_acceptance_eligible": false,
+  "public_whitelist_updates": []
+}

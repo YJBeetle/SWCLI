@@ -121,6 +121,30 @@ def _preserve_option_receipt(response, operation, result, error):
     return response
 
 
+def _preserve_preference_receipt(response, operation, result, error):
+    """Keep only this request's trusted two-boolean preference mutation boundary."""
+    if (operation not in ('document.annotation-font-set', 'document.display-option-set', 'document.drafting-standard-set')
+            or not isinstance(result, dict) or result.get('action') != operation):
+        return response
+    mutation = result.get('mutation')
+    if (not isinstance(mutation, dict) or set(mutation) != {'attempted','may_have_changed'}
+            or any(type(value) is not bool for value in mutation.values())):
+        return response
+    partial = dict(result, ok=False, mutation=dict(mutation))
+    detail = {'type': type(error).__name__, 'message': str(error)}
+    previous = partial.get('error')
+    if isinstance(previous, dict) and isinstance(previous.get('type'), str) and isinstance(previous.get('message'), str):
+        partial['error'] = dict(previous, worker_error=detail)
+    else:
+        partial['error'] = detail
+    try:
+        validate_operation_result(operation, partial)
+    except Exception:
+        partial = {'ok':False, 'action':operation, 'mutation':dict(mutation), 'error':partial['error']}
+    response['result'] = partial
+    return response
+
+
 def _success_response(
     request_id: str, result: Any, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -460,6 +484,7 @@ def _worker_main(
                 )
                 response = _preserve_tolerance_receipt(response, str(request["operation"]), result, exc)
                 response = _preserve_option_receipt(response, str(request["operation"]), result, exc)
+                response = _preserve_preference_receipt(response, str(request["operation"]), result, exc)
                 if (request["operation"] == "document.font-scope-set"
                         and isinstance(result, dict)
                         and isinstance(result.get("mutation"), dict)

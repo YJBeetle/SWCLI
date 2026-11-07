@@ -1,0 +1,31 @@
+{
+  "repository": "YJBeetle/SWCLI",
+  "workflow": "ci.yml",
+  "branch": "codex/docprops-calibration-performance",
+  "head": "143f9d5691def3f4cb2b09d8e56feb3e53ca50a7",
+  "inputs": {
+    "docprops_calibration": "true",
+    "docprops_expected_head": "143f9d5691def3f4cb2b09d8e56feb3e53ca50a7",
+    "native_full": "false"
+  },
+  "requested_at_utc": "2026-11-06T18:05:50.286778+00:00",
+  "dispatch_attempts_for_head": 1,
+  "previous_run": 42261401694,
+  "reason_for_new_validation": "related owned COM capability transfer fix after exact ROT refusal; zero prior native setters",
+  "full_acceptance_eligible": false,
+  "status": "completed",
+  "dispatch_exit_code": 0,
+  "dispatch_stdout": "https://github.com/YJBeetle/SWCLI/actions/runs/42267580008\n",
+  "dispatch_stderr": "",
+  "run_id": 42267580008,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42267580008",
+  "run_attempt": 1,
+  "conclusion": "failure",
+  "native_cases": 1,
+  "native_setters": 0,
+  "first_real_failure": "standard plan requires an unchanged GB7 template baseline",
+  "owned_interface_binding_verified": true,
+  "owned_marshal_released": true,
+  "artifact_id": 13528709614,
+  "artifact_sha256": "3dfb206fe5a497922ba3f6974c1062dcfda1a325c4ef80afc29cc9a93a8c9b08"
+}

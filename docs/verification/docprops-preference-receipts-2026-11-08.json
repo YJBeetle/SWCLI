@@ -1,0 +1,20 @@
+{
+  "scope": "three document-preference setters handler postflight and worker late-fault receipt preservation",
+  "healthy_native_source_head": "b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6",
+  "healthy_native_run": 42361904486,
+  "native_fault_injection_performed": false,
+  "portable_test_methods": 6,
+  "portable_full_tests": 2177,
+  "portable_full_skipped": 32,
+  "portable_full_seconds": 61.704,
+  "sdk_negative_consumers": 25,
+  "new_operation_or_schema_fields": false,
+  "source_sha256": {
+    "src/swcli/daemon/operations.py": "05ab940bc4578ca1ffc7e43b5e5beffed35731244ce874eb5f6d8ea92ba5bee2",
+    "src/swcli/daemon/server.py": "fff12ab90ebbf5ba3ed996d273e0fbd79c623e9833b9c33be3c2e849fdc0cb03",
+    "tests/test_document_preferences_worker_receipts.py": "e5dca102707d52208495819c78aa6d9a3c2dd02fe2a3fde6c88c7f1e4ad3af01"
+  },
+  "final_coordinator_source_review": "pending",
+  "retire_on_unknown_restore": true,
+  "retry_or_rollback": false
+}

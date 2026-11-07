@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 13538635862,
+      "node_id": "MDg6QXJ0aWZhY3QxMzUzODYzNTg2Mg==",
+      "name": "swcli-docprops-performance-42281734865-1",
+      "size_in_bytes": 3161983,
+      "url": "https://api.github.com/repos/YJBeetle/SWCLI/actions/artifacts/13538635862",
+      "archive_download_url": "https://api.github.com/repos/YJBeetle/SWCLI/actions/artifacts/13538635862/zip",
+      "expired": false,
+      "digest": "sha256:13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d",
+      "created_at": "2026-11-06T20:20:29Z",
+      "updated_at": "2026-11-06T20:20:29Z",
+      "expires_at": "2026-12-06T20:20:28Z",
+      "workflow_run": {
+        "id": 42281734865,
+        "repository_id": 1377028326,
+        "head_repository_id": 1377028326,
+        "head_branch": "codex/docprops-calibration-performance",
+        "head_sha": "cd624d95ea2a8f05553e39d6344b0c1f065b89aa"
+      }
+    }
+  ]
+}
