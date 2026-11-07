@@ -879,7 +879,8 @@ def export_active_windows_document(
                     "signature_valid": signature_valid,
                 },
             }
-            if plain_glb_calibration:
+            if export_format == "GLB" and (plain_glb_calibration or
+                    os.environ.get("SWCLI_PRESERVE_REJECTED_GLB") == "1"):
                 # Internal owned-fixture diagnostics only. Preserve rejected
                 # native bytes separately; never publish them as a valid export
                 # or overwrite evidence. Recording errors cannot mask the cause.

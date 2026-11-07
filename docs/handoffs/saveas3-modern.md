@@ -75,3 +75,11 @@ pywin32实际公开`LoadTypeLib`，未猜用不存在的`pythoncom.LoadTypeLibEx
 诊断事件为stderr NDJSON `event=swcli.native-interface`，含request_id/operation/sequence/worker_pid，异常仅记diagnostic_error_type，不替换业务返回或首错。身份开关可单独开启以保留请求关联，而不放大全部native-call日志；只在内层`stage=read/call=GetDefinition`记录，fillet外层同名边界不重复读取。默认关闭时不读取身份。当前便携反例覆盖三类名字、同名异IID、coclass/异库、typeinfo/文件不可读、路径拒绝、原对象和原业务异常保持、观察/日志失败与内外层去重。
 
 统筹下一次**本来就需要**的组合head gate中，在既有入口的进程环境设置该开关即可，runtime-sets的新daemon会继承它。保留所有相关`swclid.stderr.log`与`daemon.log`；按实际到达的extrude/revolve/simple-fillet分别核官方条目和自报IID。若流程先停于GLB而未到达revolve/fillet，后二者仍待证据，不为收集身份额外建模或重试。此分支没有额外派发Windows验证；另一个coverage负责人在`codex/native-api-observation-modern`处理`GetActiveConfiguration/GetSystemValue2`，这里未修改这两个getter。
+
+## 后续GLB首失败原字节保留与验证状态
+
+新增内部诊断开关`SWCLI_PRESERVE_REJECTED_GLB=1`，仅在GLB已经由内容门禁拒绝之后，把这一次保存的原临时文件复制为同目录`<output-stem>.invalid-native.glb`，以`xb`独占创建。不会变更既有`.stem.uuid.swcli.GLB`暂存名称，不新增保存、重试、回退或模型写入；不会把拒绝文件发布成成功artifact。原目标及已有诊断文件均保持；复制失败附加`diagnostic_recording_error`，原ExportVerificationFailed仍为首业务错误，原临时文件按既有finally清理。正向成功/非GLB不记录。后续原件审计从上传原始文件计算hash并读BIN/mesh；开关本身不构成GLB修复或字节结论。
+
+统筹后续组合head的既有full入口可同时设`SWCLI_TRACE_DEFINITION_INTERFACES=1`、`SWCLI_PRESERVE_REJECTED_GLB=1`，保留继承进程环境及正常上传目录即可；没有增加workflow_dispatch输入、独立native job或同head重试。原run42369257219不受后续开关和代码影响。
+
+本轮全部新增诊断/保留逻辑的便携回归：2156项，35项平台/可选依赖跳过，45.493s，日志`portable-diagnostics-ready.log`。其中两项新反例覆盖不改暂存命名/单次保存以及已有诊断文件不被覆盖，十项身份反例覆盖原对象/首错与官方身份匹配边界。SDK生成器、strict6源文件及11个消费者拒绝检查通过，日志`sdk-diagnostics-compatible.log`；本轮使用mypy1.18.2，符合现有CI的`>=1.15,<2`。起初重建临时环境时误装无上限mypy2.4.1，其拒绝Python3.9目标的日志`sdk-diagnostics-ready.log`原样保留，已换回兼容版本，未改产品或CI版本约束。便携首轮隔离入口因重建环境未安装本地包而失败，也保留`portable-diagnostics.log`；安装本地包后完整回归如上。当前诊断只获便携验证，尚无新的Windows原生身份或GLB原字节结果。
