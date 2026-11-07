@@ -1,6 +1,8 @@
 """Protected table defaults; uncalibrated public writes fail before any setter."""
 
+import ctypes
 from pathlib import Path
+import sys
 from typing import Any
 
 from ..document_tables import TABLE_FIELDS, LINE_WEIGHTS, validate_table_options, validate_table_value
@@ -19,7 +21,33 @@ class DocumentTableConflict(RuntimeError):
 
 
 class DocumentTableCalibrationRequired(RuntimeError):
-    """This document/version has no accepted public write evidence."""
+    """The runtime or document/version lacks accepted public write evidence."""
+
+
+def _native_windows_runtime():
+    if sys.platform != "win32":
+        return False
+    try:
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        module = kernel.GetModuleHandleW
+        module.argtypes = [ctypes.c_wchar_p]
+        module.restype = ctypes.c_void_p
+        address = kernel.GetProcAddress
+        address.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        address.restype = ctypes.c_void_p
+        ntdll = module("ntdll.dll")
+        if type(ntdll) is not int or ntdll <= 0:
+            return False
+        known = address(ntdll, b"NtClose")
+        if type(known) is not int or known <= 0:
+            return False
+        ctypes.set_last_error(0)
+        wine = address(ntdll, b"wine_get_version")
+        error = ctypes.get_last_error()
+        return wine is None and type(error) is int and error == 127
+    except Exception:
+        # Only a functioning lookup with ERROR_PROC_NOT_FOUND proves absence.
+        return False
 
 
 def _read_constants(path):
@@ -128,6 +156,8 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
     result = {"ok": False, "action": "document.table-option-set",
               "mutation": {"attempted": False, "may_have_changed": False}}
     try:
+        if not _native_windows_runtime():
+            raise DocumentTableCalibrationRequired("table default writes require a confirmed native Windows runtime")
         validate_table_value(field, value)
         expected = validate_table_options(expected_options)
         _require_writable(document)

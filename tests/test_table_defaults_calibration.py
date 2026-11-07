@@ -126,7 +126,8 @@ class TableCalibrationTests(unittest.TestCase):
         original_handler = operations.set_document_table_option_windows
         if fail:
             fake.extension.SetUserPreferenceInteger.side_effect = RuntimeError('first real setter failure')
-        with mock.patch.object(gate.fixtures, 'prepare_case', side_effect=prepare), \
+        with mock.patch.object(gate.adapter, '_native_windows_runtime', return_value=True), \
+             mock.patch.object(gate.fixtures, 'prepare_case', side_effect=prepare), \
              mock.patch.object(gate.adapter, '_read_constants', return_value=fake.constants), \
              mock.patch.object(gate, 'open_windows_document_with_handle', side_effect=opened), \
              mock.patch.object(gate, 'create_part_windows_with_handle', return_value=(dict(ok=True), fake.foreground)), \

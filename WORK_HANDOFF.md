@@ -123,3 +123,15 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 修复提交 `c95ecdefa40689b2c8723a2e85998bbde2b6633f` 已推送，首次失败及原始日志摘要见上段。
 - [42361458023](https://github.com/YJBeetle/SWCLI/actions/runs/42361458023) 仅 dispatch 一次，验收 head `c95ecdefa40689b2c8723a2e85998bbde2b6633f`，mode `public`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `assembly-drawing`。单次快照为 `in_progress`，metadata 与原始参数保存在 ignored `run-42361458023/`。
 - 继续使用内部 `42301331238` 的已审核原件和精确 profile。结果待本轮完成原件核验，零件精确几何仍为本系列待完成项。按统筹指令记录正常在跑状态后结束本轮等待。
+
+
+## 新公开原件审计与统筹发现的 runtime 准入阻断
+
+- 新公开 [42361458023](https://github.com/YJBeetle/SWCLI/actions/runs/42361458023) / `c95ecdefa40689b2c8723a2e85998bbde2b6633f` completed/success，artifact `13569274991`，名称 `table-defaults-public-42361458023-1`，GitHub/ZIP SHA256 `f1877623dfc909900ba9784644e4266809d67afd68dd109feee49f42c82e66ad`。
+- 该 run 的全新原 ZIP、官方 metadata、报告、trace、journal、CAD 文件和独立 audit 保存在 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/docs/verification/table-defaults-evidence/run-42361458023/`。可复跑命令和完整路径见 `docs/verification/table-defaults-public-42361458023.md`，审计脚本为同目录 `audit-table-defaults-public-42361458023.py`。
+- 独立重算 57 个表格请求、8 setters / 274 getters、120 CLI 事件、4 SDK 和 4 MCP bridge 回执、完整 lease/stamp/CAS 参数、另存/新 handle readonly reopen、10 handles 全关闭、空 catalog 和 daemon 退出。最长 native 请求约 1.271 秒，trace 跨度约 30.157 秒。8 项原件破坏和来源替换探针全部拒绝。
+- 随后统筹本人复现合并阻断。旧 public adapter 仅按 revision/type/profile 放行，在 macOS 直接调用已接受的装配体 profile 也能进入 setter。因此该成功原件只证明其精确 head 的上述功能路径，修复后必须使用新提交 gate。
+- 最小修复在 adapter 首次写入准入处加严格 native 探针。win32、kernel32 GetModuleHandleW(ntdll.dll)、已知 NtClose 导出、wine_get_version 缺失且新 last_error=127 必须同时满足。其余平台、Wine、异常或未知值均在文档观察/偏好读取前拒绝，mutation 双 false。内部 candidate 同样需要 native 证明，仅 profile 可在诊断进程内 bypass。
+- 共享变更涉及 `src/swcli/hosts/windows_document_tables.py`、table job 的 CAD 前真实 runtime preflight。新 `tests/test_table_defaults_native_runtime.py` 覆盖直接 adapter 拒绝、Wine/未知/异常、no-op 也拒绝、零 setter/dirty/save，以及真实 handler 在 positive native probe 下的精确 profile 写入。
+- macOS 当前实际 direct repro 使用真实 fixture、kind=2/native200=True、公共 adapter true→false，现为 ok=false，getter/setter/dirty 均 0，结果保存 `native-runtime-direct-repro.json`。通用测试 helper 只在明确的 fake native 业务路径内 mock positive probe，fixture 本身保持真实平台判断。
+- 相关 41 tests 通过。完整 portable suite 本轮 1861 tests / 33 skips 通过。原有 part 几何硬断言、精确 profiles 和 600/1800 秒限制继续为系列门禁。修复公开 gate 只 dispatch 一次，正常运行保存链接后结束等待。

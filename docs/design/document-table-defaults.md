@@ -56,6 +56,14 @@ true to false and the drawing toggle admits false to true. Both document types
 admit thin to normal for each applicable border. Only the resulting values
 admit same-value requests. Part writes remain closed.
 
+Every write first requires a native runtime proof. The adapter checks
+`sys.platform == "win32"`, obtains the loaded `ntdll.dll` through kernel32
+`GetModuleHandleW`, resolves the known `NtClose` export, then requires a missing
+`wine_get_version` export with a fresh `ERROR_PROC_NOT_FOUND` (127). Wine,
+non-Windows and unknown probes return `DocumentTableCalibrationRequired` before
+preference reads, setters or dirty marking. Internal calibration also requires
+this proof and bypasses only profile admission.
+
 The `expected_options` argument is the entire `options` object returned by the
 read, including all raw values and unavailable entries. Validation rejects
 missing, extra, mistyped or inconsistent entries. The adapter compares the whole
@@ -149,3 +157,6 @@ existing table objects, Excel-based BOMs and templates outside owned fixtures.
 - [System options and document properties](https://help.solidworks.com/2025/english/api/sldworksapiprogguide/overview/System_Options_and_Document_Properties.htm): application versus document API ownership.
 
 - [SetUserPreferenceToggle return semantics](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SetUserPreferenceToggle.html): Boolean state wording; deliberately unresolved for new table fields pending native evidence.
+
+- [GetModuleHandleW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew) and [GetProcAddress](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress) define the native module/export lookup used for runtime admission.
+- [Windows system errors](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-) defines ERROR_PROC_NOT_FOUND (127), required for the negative Wine-export lookup.

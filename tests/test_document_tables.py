@@ -71,7 +71,8 @@ class DocumentTableTests(unittest.TestCase):
             field: [(before, after) for before in ((False, True) if spec["kind"] == "Toggle" else LINE_WEIGHTS.values())
                     for after in ((False, True) if spec["kind"] == "Toggle" else (0, 1, 2))]
             for field, spec in TABLE_FIELDS.items()}}
-        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profiles if calibrated else {}):
+        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profiles if calibrated else {}), \
+             mock.patch.object(adapter, "_native_windows_runtime", return_value=True):
             result = execute_operation(self.app, "document.table-option-set",
                 dict(field=field, value=value, expected_options=expected), documents=self.documents,
                 session_id=session, document_id=self.entry.document_id, expected_update_stamp=stamp,
@@ -293,7 +294,8 @@ class DocumentTableTests(unittest.TestCase):
         expected = self.read()["options"]
         profile = {("33.5.0", 1): {"bom.box_border": [(1, 2), (2, 2)]}}
         context = dict(app=self.app, document=self.document, field="bom.box_border", expected_options=expected)
-        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profile):
+        with mock.patch.object(adapter, "_CALIBRATED_PROFILES", profile), \
+             mock.patch.object(adapter, "_native_windows_runtime", return_value=True):
             self.assertEqual(adapter.set_document_table_option_windows(**context, value="thin")["error"]["type"],
                              "DocumentTableCalibrationRequired")
             self.app.RevisionNumber = lambda: "33.5.1"
