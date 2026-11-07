@@ -104,14 +104,14 @@ source identity and both owned-host lifecycles passed. This retained result
 predates the runtime/peer/postflight review repair; the repaired head needs its
 own public evidence.
 
-The independent observer explicitly scopes neutral-format import settings: it
-resolves `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`
-and `swImportNeutral_FreeCurvesAndPoints` from installed SwConst, selects the
-legacy solids+free-curves profile before importing generated outputs. The
-current repaired observer additionally selects native 3D reference curves using
-the installed integer enum below, and restores/verifies the complete mixed
-boolean/integer snapshot in `finally`. These are
-test-only observer settings; production export does not change import options.
+The independent observer explicitly scopes the General import settings for
+its disabled-3D-Interconnect host: `swMultiCAD_Enable3DInterconnect`,
+`swImportSolidSurface`, `swImportFreeCurves`, and `swImportCurvePreference`.
+All exact names and the `swGeneralImportAs3dCurves` value are resolved from the
+installed SwConst enum owners. It imports free curves as native reference
+curves, then restores/verifies the complete mixed boolean/integer snapshot in
+`finally`. These are test-only observer settings; production export does not
+change import options.
 Every import must still return error code zero and pass the same geometry and
 save/reopen checks. No failed import is retried in its group.
 
@@ -211,3 +211,32 @@ remain unchanged. The repaired profile still requires its own public gate.
 - [Edge curve parameters and required call order](https://help.solidworks.com/2016/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetCurveParams3.html)
 - [Parameter orientation](https://help.solidworks.com/2023/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~UMaxValue.html)
 - [Trimmed curve length](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ICurve~GetLength3.html?format=P&value=)
+
+Reference-profile run
+[42405019483](https://github.com/YJBeetle/SWCLI/actions/runs/42405019483), head
+`b36375197873820c1197ea3cb6174382ba9fd49d`, passed eight public writes but
+completed only the first independent solid roundtrip. The second AP203 wire
+import returned error 0 yet produced a nonempty `3DProfileFeature`; the reader
+stopped at its representation check before any segment length call. Its
+partial 0-segment/0-length record means **not measured**, not zero geometry.
+All raw STEP wire vectors are complete. Original artifact `13587497385` SHA256
+is `5149d2d543cab9461ab6fd826fa465a239577866d4326aa51655dab12e49e945`.
+The original ZIP, job log, official summary and partial accounting are retained.
+
+This run exposed a concrete option-family mismatch: the test disabled
+3D Interconnect but configured `swImportNeutral_CurvesAndPointsOption` instead
+of the documented General import controls for that mode. The corrected profile
+uses `swImportFreeCurves` and `swImportCurvePreference` =
+`swGeneralImportAs3dCurves`, alongside `swImportSolidSurface`. It does not infer
+geometry or alter any precision/count assertion. The reader now records real
+partial sketch lengths before rejecting an unexpected type, and marks
+incomplete observations explicitly. `LoadFile4` retains argument `"r"`, whose
+official meaning is a new document, not a curve representation selector.
+The corrected installed-enum mapping and full eight-file roundtrip still need
+a new necessary gate; this is not a claim that the prior sketch losses are
+fully diagnosed.
+
+- [General import API mapping](https://help.solidworks.com/2019/English/api/swconst/FileOpenOptionsGeneral.htm)
+- [General curve/solid controls with 3D Interconnect disabled](https://help.solidworks.com/2026/english/solidworks/sldworks/hidd_options_import_general.htm)
+- [General curve representation enum](https://help.solidworks.com/2021/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swGeneralImportFreePointCurveEntityOptions_e.html?id=2.10.1.357)
+- [LoadFile4 argument semantics](https://help.solidworks.com/2015/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~LoadFile4.html)

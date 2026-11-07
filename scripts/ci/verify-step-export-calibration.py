@@ -83,6 +83,7 @@ def read_wireframe(document, evidence=None, *, representation="sketches"):
     checked(representation in ("sketches", "reference-curves"), "unknown wire observation representation")
     lengths, inventory = [], []
     observation = evidence if evidence is not None else {}
+    observation["complete"] = False
     try:
         for feature, identity, parent, depth in _wire_features(document):
             kind = _com_value(feature, "GetTypeName2")
@@ -93,13 +94,13 @@ def read_wireframe(document, evidence=None, *, representation="sketches"):
                 sketch = _com_value(feature, "GetSpecificFeature2")
                 checked(sketch is not None, "wire sketch interface is unavailable")
                 segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
-                checked(representation == "sketches" or not segments,
-                        "reference-curve profile unexpectedly produced sketch geometry")
                 for segment in segments:
                     length = float(_com_value(segment, "GetLength")) * 1000
                     checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
                     lengths.append(length)
                     row["lengths_mm"].append(length)
+                checked(representation == "sketches" or not segments,
+                        "reference-curve profile unexpectedly produced sketch geometry")
             elif representation == "reference-curves" and kind in ("RefCurve", "ImportedCurve", "3DSplineCurve", "CompositeCurve"):
                 reference = _com_value(feature, "GetSpecificFeature2")
                 checked(reference is not None, "reference curve interface is unavailable")
@@ -129,30 +130,31 @@ def read_wireframe(document, evidence=None, *, representation="sketches"):
         observation.update(method="native-" + representation, segment_count=len(lengths), lengths_mm=sorted(lengths),
                            total_length_mm=sum(lengths), feature_inventory=inventory)
     checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
+    observation["complete"] = True
     return observation
 
 
 IMPORT_PROFILE = {
     "swMultiCAD_Enable3DInterconnect": False,
-    "swImportNeutral_SolidandSurface": True,
-    "swImportNeutral_FreeCurvesAndPoints": True,
+    "swImportSolidSurface": True,
+    "swImportFreeCurves": True,
 }
 
 
 def read_import_constants(path):
     return _read_native_enum_constants(path, {
         "swUserPreferenceToggle_e": set(IMPORT_PROFILE),
-        "swUserPreferenceIntegerValue_e": {"swImportNeutral_CurvesAndPointsOption"},
-        "swImportNeutralCurvesAndPointsOptions_e": {
-            "swImportNeutralCurvesAndPointsOptions_As3DCurves", "swImportNeutralCurvesAndPointsOptions_AsSketches"},
+        "swUserPreferenceIntegerValue_e": {"swImportCurvePreference"},
+        "swGeneralImportFreePointCurveEntityOptions_e": {
+            "swGeneralImportAs3dCurves", "swGeneralImportAsSketches"},
     })
 
 
 @contextmanager
 def observer_import_preferences(app, constants, call, case):
     """Only the generated-output observer; never production export settings."""
-    curve_name = "swImportNeutral_CurvesAndPointsOption"
-    desired = {**IMPORT_PROFILE, curve_name: constants["swImportNeutralCurvesAndPointsOptions_As3DCurves"]}
+    curve_name = "swImportCurvePreference"
+    desired = {**IMPORT_PROFILE, curve_name: constants["swGeneralImportAs3dCurves"]}
     def observe(label):
         values = {}
         for name in desired:
@@ -169,8 +171,8 @@ def observer_import_preferences(app, constants, call, case):
             "observer import profile requires an empty owned host")
     before = observe("read-import-original")
     evidence = case["observer_import_preferences"] = dict(before=before, requested=desired, restored=False)
-    checked(before[curve_name] in {constants["swImportNeutralCurvesAndPointsOptions_As3DCurves"],
-                                  constants["swImportNeutralCurvesAndPointsOptions_AsSketches"]},
+    checked(before[curve_name] in {constants["swGeneralImportAs3dCurves"],
+                                  constants["swGeneralImportAsSketches"]},
             "original observer curve import option is unknown")
     checked(observe("compare-import-original") == before, "observer import preference snapshot changed")
     attempted = []

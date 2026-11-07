@@ -143,8 +143,8 @@ class StepPublicGateTests(unittest.TestCase):
     def test_curve_import_integer_setter_partial_failure_restores_without_retry(self):
         module = script("verify-step-export-calibration.py")
         codes={name:3000+index for index,name in enumerate(module.IMPORT_PROFILE)}
-        codes.update(swImportNeutral_CurvesAndPointsOption=3003,
-            swImportNeutralCurvesAndPointsOptions_As3DCurves=1,swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        codes.update(swImportCurvePreference=3003,
+            swGeneralImportAs3dCurves=1,swGeneralImportAsSketches=0)
         values={3000:False,3001:True,3002:True,3003:0}
         writes=[]
         def setter(key,value):
@@ -161,6 +161,45 @@ class StepPublicGateTests(unittest.TestCase):
         self.assertTrue(evidence["observer_import_preferences"]["restored"])
         self.assertEqual(values[3003],0)
         app.SetUserPreferenceToggle.assert_not_called()
+
+    def test_legacy_import_profile_does_not_mistake_neutral_preference_for_general(self):
+        module = script("verify-step-export-calibration.py")
+        wanted={}
+        with mock.patch.object(module,"_read_native_enum_constants",side_effect=lambda path,names:wanted.update(names) or {}) as resolve:
+            module.read_import_constants("installed-swconst.tlb")
+        self.assertEqual(wanted["swUserPreferenceIntegerValue_e"],{"swImportCurvePreference"})
+        self.assertEqual(wanted["swGeneralImportFreePointCurveEntityOptions_e"],
+                         {"swGeneralImportAs3dCurves","swGeneralImportAsSketches"})
+        self.assertEqual(wanted["swUserPreferenceToggle_e"],
+                         {"swMultiCAD_Enable3DInterconnect","swImportSolidSurface","swImportFreeCurves"})
+        codes={name:4000+i for i,name in enumerate(module.IMPORT_PROFILE)}
+        codes.update(swImportCurvePreference=4003,swGeneralImportAs3dCurves=1,swGeneralImportAsSketches=0)
+        values={4000:False,4001:True,4002:True,4003:0,578:1}  # Neutral mode1 does not select General mode.
+        writes=[]
+        def setter(key,value):
+            writes.append((key,value)); values[key]=value; return True
+        app=SimpleNamespace(GetDocumentCount=0,GetUserPreferenceToggle=lambda key:values[key],
+            GetUserPreferenceIntegerValue=lambda key:values[key],SetUserPreferenceToggle=mock.Mock(),
+            SetUserPreferenceIntegerValue=setter)
+        evidence={}
+        with module.observer_import_preferences(app,codes,lambda name,fn:fn(),evidence):
+            self.assertEqual(values[4003],1)
+        self.assertEqual(writes,[(4003,1),(4003,0)])
+        self.assertEqual(values[578],1)
+        self.assertTrue(evidence["observer_import_preferences"]["restored"])
+
+    def test_unexpected_sketch_type_rejection_retains_real_partial_geometry(self):
+        module=script("verify-step-export-calibration.py")
+        feature=SimpleNamespace(GetID=26,GetTypeName2="3DProfileFeature",Name="Sketch1",
+            GetSpecificFeature2=SimpleNamespace(GetSketchSegments=[SimpleNamespace(GetLength=0.01)]*4),
+            GetFirstSubFeature=None,GetNextSubFeature=None,GetNextFeature=None)
+        document=SimpleNamespace(FirstFeature=feature,GetBodies2=lambda *args:())
+        partial={}
+        with self.assertRaisesRegex(RuntimeError,"unexpectedly produced sketch"):
+            module.read_wireframe(document,partial,representation="reference-curves")
+        self.assertEqual(partial["segment_count"],4)
+        self.assertEqual(partial["total_length_mm"],40)
+        self.assertFalse(partial["complete"])
 
     def test_public_output_digest_mismatch_blocks_native_readback(self):
         module = script("verify-step-export-calibration.py")
@@ -222,8 +261,8 @@ class StepPublicGateTests(unittest.TestCase):
         module = script("verify-step-export-calibration.py")
         names = list(module.IMPORT_PROFILE)
         constants = {name: index + 1000 for index, name in enumerate(names)}
-        constants.update(swImportNeutral_CurvesAndPointsOption=1003,
-            swImportNeutralCurvesAndPointsOptions_As3DCurves=1, swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        constants.update(swImportCurvePreference=1003,
+            swGeneralImportAs3dCurves=1, swGeneralImportAsSketches=0)
         original = {1000: True, 1001: True, 1002: False, 1003: 0}
         values = dict(original)
         writes = []
@@ -259,8 +298,8 @@ class StepPublicGateTests(unittest.TestCase):
     def test_void_import_setter_requires_effective_readback_before_import(self):
         module = script("verify-step-export-calibration.py")
         constants = {name: index + 2000 for index, name in enumerate(module.IMPORT_PROFILE)}
-        constants.update(swImportNeutral_CurvesAndPointsOption=2003,
-            swImportNeutralCurvesAndPointsOptions_As3DCurves=1, swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        constants.update(swImportCurvePreference=2003,
+            swGeneralImportAs3dCurves=1, swGeneralImportAsSketches=0)
         values = {2000: True, 2001: True, 2002: False, 2003:0}
         app = SimpleNamespace(GetDocumentCount=0, GetUserPreferenceToggle=lambda key: values[key],
                               SetUserPreferenceToggle=lambda *args: None,
