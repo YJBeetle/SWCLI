@@ -7,7 +7,7 @@
 - 统筹随后发现的保护缺口已修到三组：严格kernel32 GetModuleHandleW(ntdll.dll)+已知NtClose存在+Wine导出缺失且last_error127才判native，未知拒绝；前台peer的native身份/state/title/path/extension/edit context/permissions与目标identity在各metadata守卫重复验证，SetSaveFlag前再核peer。首错与partial mutation保留，无retry/rollback。
 - 字体七字段/显示十字段仍由本路负责既定公共门禁：接线batch scope，一次run依次标准3个kind组、fonts全P/A/D组、display全P/A/D组，各独立1800秒/请求600，共用一个owned隐藏daemon，首失败停止。fonts21字段写逐字段saveRO、display25适用写和每类最终saveRO，均实际SDK/MCP读且业务schema/CLI快照/trace对齐。无新增API/字段，D的plane仍拒绝。
 - 新source完整portable2164项/64.601s/skip32通过；随后补充dirty前漂移/首错反例和fonts/display契约测试分别5/15项通过，actionlint及SDK strict6文件/25负向消费者通过。原36 tuple/33.5.0名单、固定reader/profile不扩。
-- 修复前标准成功不能直接证明新guard；将只对相关修复新head触发一次batch验证，覆盖必要标准复验及尚未完成fonts/display，不重跑内部R5、不派多个无差异run。运行正常记录链接后停止，不持续watch。
+- 修复前标准成功不能直接证明新guard；已仅对相关修复新head `b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6` 唯一触发[batch 42361904486](https://github.com/YJBeetle/SWCLI/actions/runs/42361904486)，覆盖必要标准复验及尚未完成fonts/display，不重跑内部R5、不派多个无差异run。运行正常记录链接后停止，不持续watch。
 - **全batch尚非merge-ready**；三个operation pair一起验收后交统筹本人最终review/逐条合并/全系列发版，不把字体/显示后置发版。不操作main/版本/VM/DockerSW/MacSW/其他worktree，无审查代理，无审批拒绝。
 
 
@@ -247,3 +247,13 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 既有公开wrapper扩展内部 `--scope batch`，workflow `docprops_public_scope=batch`，不新建公共operation/CLI字段。batch=标准3kind组+fonts单组(all P/A/D)+display单组(all P/A/D)，全部单组1800/native600，同daemon一生，零retry/rollback/restart。step165min/job230min只是容纳最多5个独立组+安装清理；不延长任一组。默认standards仍旧设计；可选fonts-display为两组，scope校验固定枚举。新head一次batch run避免两次安装和无差异分开重跑。
 
 本轮完整portable2164/skip32及后加5guard/15public组合测试通过，SDK生成/strict6文件/25反例通过，actionlint通过。原R5校准36 tuple与fixed reader/profile未改，无再次内部校准需求；新host/peer保护须以新的public batch原件证明。待该原件完成后再给统筹可合tip，不提前标全batch验收。
+
+
+### Review修复后batch唯一dispatch / 本轮结束等待
+
+- 代码tip `b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6` 已推送，新增三组统一严格native/peer guard和既定fonts/display公共接线；统筹本人最终review尚待执行。
+- 唯一[run 42361904486 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42361904486)，2026-11-07 17:57:50 Asia/Shanghai受理，固定上述head，`docprops_public=true/docprops_calibration=false/docprops_public_scope=batch/native_full=false`。同head dispatch_attempts=1，receipt `dispatch-public-batch-r1.json`。
+- 最后一次状态快照 in_progress，conclusion 未出；`run-42361904486-handoff-snapshot.json` 已保存。按指令正常运行记录后结束等待，无watch/sleep/持续轮询、无重复dispatch、无automation。
+- 此run覆盖原承诺三对operation的公共验收：标准36转换3个kind独立组、总字体21字段写1个profile组、显示25适用写1个profile组；每组1800/每请求600，same owned daemon，无native retry/rollback/restart。标准复验是针对新host/peer修复，并非无差异重跑。
+- 旧标准9a32b68在run42300958960的成功原件已核，可供统筹review精确旧source；**新tip及全batch仍待本run实际原件，自验前不标merge-ready**。字体/显示不移出本批、不后置发版。
+- 保护改动共享文件：新增 `src/swcli/hosts/windows_document_preferences_guard.py`；三个 `windows_document_annotation_fonts.py/windows_document_display_options.py/windows_document_drafting_standard.py` 改为统一调用。既有custom-properties/annotations helper无改动；固定reader/profile、36tuple、revision名单、schema/SDK/MCP字段无新增或扩展。
