@@ -1,3 +1,9 @@
+# 当前组合候选：现代保存、配置观察与尺寸读取
+
+按统筹要求合入getter精确tip e801a95，merge为5c102541e3040a77455d07da6ee64e66ccfe500e。main ce6606fa仅审计文档变化，已读；未修改main。已协调读取getter路线的1cc16f3接线审查，补工程图空配置、前置既有完整直径/矩形组、官方类型库签名/枚举核验及Get3首次返回形状。full仍19组、core不变，无额外CAD安装/样件/保存或失败重试。
+
+最终2172项便携通过、35skip、SDK strict6文件/11拒绝例与actionlint/CI路由通过。唯一必要native_full的精确head/run及一次快照将记录于 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined`；详细范围和日志见 `docs/handoffs/saveas3-modern.md` 最后一节。原run42369257219失败及ZIP不改写，GLB仍以实际内容判断。组合原生结论待该次原件，统筹本人最终review/合并。
+
 # 当前任务：SW2025 IModelDocExtension.SaveAs3迁移
 
 当前产品head `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3` 的必要Windows full https://github.com/YJBeetle/SWCLI/actions/runs/42369257219 已完成failure：现代绑定、PRT/ASM/DRW保存重开通过，首失败为零件GLB严格内容检查，真实true/0/0；拒绝原字节未保留，不能对本次断言BIN=0。原ZIP官方SHA256已核，163文件逐一一致；详见 `docs/handoffs/saveas3-modern.md` 与 `docs/evidence/saveas3-modern-native-2026-11-08.json`。后续必要full由统筹协调组合head；未同head重跑、未合并或发布。

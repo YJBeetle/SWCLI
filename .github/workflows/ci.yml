@@ -665,10 +665,23 @@ jobs:
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\tolerance-public" -Hidden -ToleranceFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
 
+      - name: Verify installed modern API contracts without a CAD host
+        id: modern_api_contract
+        if: ${{ needs.native-profile.outputs.profile == 'full' && github.ref == 'refs/heads/codex/saveas3-modern' }}
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-modern-api-contract.py --output-dir "$env:SWCLI_SMOKE_ROOT\modern-api-contract" --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb" --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Installed modern API contract verification failed; preserve first evidence" }
+
       - name: Run real SOLIDWORKS modeling and export smoke test
         id: native_tests
         if: ${{ needs.native-profile.outputs.profile == 'full' }}
         shell: powershell
+        env:
+          SWCLI_TRACE_NATIVE_CALLS: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
+          SWCLI_TRACE_DEFINITION_INTERFACES: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
+          SWCLI_PRESERVE_REJECTED_GLB: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"

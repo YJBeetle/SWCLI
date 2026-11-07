@@ -4,11 +4,12 @@ import argparse
 import hashlib
 import importlib.util
 import math
+import sys
 from pathlib import Path
 
 from swcli.hosts.windows import _com_value
 from swcli.hosts.windows_assemblies import create_assembly_windows_with_handle
-from swcli.hosts.windows_documents import open_windows_document_with_handle
+from swcli.hosts.windows_documents import open_windows_document_with_handle, _inspect_configurations
 from swcli.hosts.windows_drawings import create_drawing_windows_with_handle
 from swcli.hosts.windows_features import extrude_sketch_windows_with_handle
 from swcli.hosts.windows_measurements import measure_part_windows
@@ -22,6 +23,9 @@ spec = importlib.util.spec_from_file_location(
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
 checked = harness.checked
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support.drawing_checks import empty_drawing_configurations
+
 KINDS = {"part": (1, "SLDPRT"), "assembly": (2, "SLDASM"), "drawing": (3, "SLDDRW")}
 
 
@@ -64,6 +68,9 @@ def prepare_case(app, output, constants, plane, reverse, call, case, report, liv
                 "annotation drawing must use its explicit template without model references")
         case["drawing_template"] = str(drawing_template)
         case["model_references"] = []
+        case["configurations_before"] = call("read-drawing-empty-configurations-before",
+                                             lambda: _inspect_configurations(document))
+        empty_drawing_configurations(case["configurations_before"])
     path = output / ("annotations." + suffix)
     case["path"] = str(path)
     case["save"] = call("save-annotation-fixture", lambda: save_as_native_windows(str(path), document=document))
@@ -86,6 +93,10 @@ def prepare_case(app, output, constants, plane, reverse, call, case, report, liv
             and opened["read_only"] is True and document is not None
             and _com_value(document, "GetType") == kind and not _com_value(document, "GetSaveFlag"),
             "annotation fixture did not reopen read-only and cleanly with its original type")
+    if kind == 3:
+        case["configurations_reopened"] = call("read-drawing-empty-configurations-reopened",
+                                               lambda: _inspect_configurations(document))
+        empty_drawing_configurations(case["configurations_reopened"])
     if kind == 1:
         case["geometry_reopened"] = part_geometry(document, call)
         for key in ("volume_mm3", "surface_area_mm2"):

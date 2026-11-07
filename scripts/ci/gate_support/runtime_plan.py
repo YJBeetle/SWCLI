@@ -45,6 +45,13 @@ def runtime_plan(suite):
                 continue  # Already covered in the required continuation set.
             sets.append(TestSet(aspect + "-" + plane, (Step(script, "driving", ("--plane", plane)),)))
     sets.append(TestSet("toolbox", (Step("verify-toolbox.py", "toolbox"),)))
+    if suite == "full":
+        # Complete existing getter groups before neutral translators can fail.
+        # Keep both continuation steps together on their one owned host. No set
+        # or native operation is duplicated, removed or weakened.
+        prefix = ("native-model", "continuation-front-diameter", "rectangle-front")
+        by_name = {item.name: item for item in sets}
+        sets = [by_name[name] for name in prefix] + [item for item in sets if item.name not in prefix]
     return tuple(sets)
 
 

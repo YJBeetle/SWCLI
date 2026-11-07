@@ -83,3 +83,18 @@ pywin32实际公开`LoadTypeLib`，未猜用不存在的`pythoncom.LoadTypeLibEx
 统筹后续组合head的既有full入口可同时设`SWCLI_TRACE_DEFINITION_INTERFACES=1`、`SWCLI_PRESERVE_REJECTED_GLB=1`，保留继承进程环境及正常上传目录即可；没有增加workflow_dispatch输入、独立native job或同head重试。原run42369257219不受后续开关和代码影响。
 
 本轮全部新增诊断/保留逻辑的便携回归：2156项，35项平台/可选依赖跳过，45.493s，日志`portable-diagnostics-ready.log`。其中两项新反例覆盖不改暂存命名/单次保存以及已有诊断文件不被覆盖，十项身份反例覆盖原对象/首错与官方身份匹配边界。SDK生成器、strict6源文件及11个消费者拒绝检查通过，日志`sdk-diagnostics-compatible.log`；本轮使用mypy1.18.2，符合现有CI的`>=1.15,<2`。起初重建临时环境时误装无上限mypy2.4.1，其拒绝Python3.9目标的日志`sdk-diagnostics-ready.log`原样保留，已换回兼容版本，未改产品或CI版本约束。便携首轮隔离入口因重建环境未安装本地包而失败，也保留`portable-diagnostics.log`；安装本地包后完整回归如上。当前诊断只获便携验证，尚无新的Windows原生身份或GLB原字节结果。
+
+## 2026-11-08 三项现代API组合验收候选
+
+按统筹指令，在当前SaveAs分支合入getter精确tip `e801a95b1402f22d0638c74809125ff7add3f4da`，保留`aecd560a9c0293f1a97d33d91ab400dbb2b651f9`配置和`1cdbff41a0594440eda17e068c3d42e1fb24579c`尺寸迁移历史。合入提交为`5c102541e3040a77455d07da6ee64e66ccfe500e`，唯一冲突为windows_documents导入块，两个helper均保留。先检查main `ce6606fa879e4c611d15d98a8ce4985e74d45881`：仅新增弃用API审计文档，没有新生产依赖，未修改或合并main。
+
+已先读取getter线程当前接线审查和其独立交接`1cc16f3`中的建议，原路径为`/Users/YJBeetle/.codex/worktrees/native-api-observation-modern/SWCLI/docs/verification/native-observation-saveas3-wiring.md`。本次仅合指定e801a95，不把后续审查文档冒充产品变更。采纳下列组合补强：
+
+- full仍为原有19个完整组、原有步骤各一次。顺序前置为native-model、continuation-front-diameter、rectangle-front、assemblies，然后其余原组；连续宿主的modeling+diameter两步不拆组。这样两种Get3读取不再必然被已知GLB首失败挡住。同步本版汇总canonical顺序；未到达仍SKIP、首业务错误仍优先。core计划不改，历史原件不重写。
+- 已有annotation drawing夹具在首次保存前和只读重开后，仅读取`_inspect_configurations`并分别留原结果；严格要求active=None、names=[]、count为实际int0。没有新增fixture、保存或host。同样补在较后公开drawing结构前后，未对兼用于part source的结构函数套工程图断言。便携反例拒绝缺键、非空及bool count；旧mock分开零件和工程图配置，不放宽断言。
+- 本分支既有full的native_tests步骤继承三项内部诊断环境：`SWCLI_TRACE_NATIVE_CALLS=1`、`SWCLI_TRACE_DEFINITION_INTERFACES=1`、`SWCLI_PRESERVE_REJECTED_GLB=1`。无新增dispatch输入或安装job；runtime新daemon因此保留方法trace和接口身份。原Get3返回另发只含return_type/container_length的`swcli.native-return-shape`事件，取同一次原返回，不再查询，不写入或记录尺寸数值；实际配置/数值/mm由公共回执及固定源码对应。
+- 同一既有native job增加10分钟上限的只读类型库预检，不启动CAD。保存sldworks/swconst原文件hash、library GUID/version、官方接口IID与方法参数名。严格核SaveAs3七参、GetSystemValue3两参、ActiveConfiguration零参及actual integer swThisConfiguration=1/swSpecifyConfiguration=3。缺失/冲突即首失败停止；报告明确native_binding_accepted=false，类型库存在不能替代真实绑定。
+
+最终便携2172项通过、35项平台/可选依赖跳过，45.252s；SDK generator/strict6文件和11消费者拒绝例通过；actionlint1.7.12与统一CI路由通过（只输入native_full=true）。日志根`/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined`：最终`portable-combined-ready.log`、`sdk-final.log`、`actionlint-final.log`、`native-profile.log`、`dispatch-profile.log`。初次组合接线回归在`portable-ready.log`保留summary顺序及旧drawing mock错误；下一次`portable-final.log`保留旧位置索引断言；修正后最终回归如上，均没有为这些便携问题派发native。
+
+后续只派发本候选精确head的一次必要native_full。派发请求、返回、单次初始快照与精确head/run链接放在该日志根，不更改运行中的产品head，不watch或循环查状态。若GLB仍true/0/0却内容失败，保留该首次错误与`*.invalid-native.glb`原字节，不换参数再试。多配置异值不从默认单配置样件外推；特征定义三类IID与box/装配中性导出均按实际到达范围审计。本次实现与portable通过不构成新组合原生验收通过；最终原件审查、main合并由统筹本人完成，发布仍需用户确认。

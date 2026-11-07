@@ -77,6 +77,18 @@ def native_call(stage: str, call: str, function: Callable[[], Any]) -> Any:
                                        operation=state.operation, sequence=sequence)
         except Exception:
             pass  # Observation must never replace the original native result.
+    if state.native_calls and stage == "dimension-observation" and call == "IDimension.GetSystemValue3":
+        try:
+            # Shape only, from this original return; never re-invoke the getter
+            # or log native dimension/configuration values.
+            record = {"event": "swcli.native-return-shape", "request_id": state.request_id,
+                      "operation": state.operation, "sequence": sequence, "worker_pid": os.getpid(),
+                      "call": call, "return_type": type(result).__name__,
+                      "container_length": len(result) if isinstance(result, (tuple, list)) else None}
+            sys.stderr.write(json.dumps(record, ensure_ascii=True, allow_nan=False) + "\n")
+            sys.stderr.flush()
+        except Exception:
+            pass
     return result
 
 

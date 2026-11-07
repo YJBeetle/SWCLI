@@ -30,6 +30,8 @@ class AnnotationFixtureTests(unittest.TestCase):
 
     def document(self, kind):
         document = SimpleNamespace(GetType=lambda: kind, GetSaveFlag=lambda: False,
+                                   GetConfigurationNames=lambda: None,
+                                   ConfigurationManager=SimpleNamespace(ActiveConfiguration=None),
                                    GetTitle=lambda: "generated-" + str(kind))
         self.documents.append(document)
         return document
@@ -89,7 +91,17 @@ class AnnotationFixtureTests(unittest.TestCase):
                     self.assertEqual(self.case["geometry"], self.case["geometry_reopened"])
                 if kind == "drawing":
                     self.assertEqual(self.case["model_references"], [])
+                    self.assertEqual(self.case["configurations_before"], {"active": None, "names": [], "count": 0})
+                    self.assertEqual(self.case["configurations_before"], self.case["configurations_reopened"])
                 self.assertFalse(any("annotation-option" in name or "SetUserPreference" in name for name in self.calls))
+
+    def test_drawing_nonempty_or_missing_configuration_evidence_is_rejected(self):
+        for bad in ({}, {"active": "Default", "names": [], "count": 0},
+                    {"active": None, "names": ["Default"], "count": 1},
+                    {"active": None, "names": [], "count": False}):
+            with self.subTest(configurations=bad):
+                with self.assertRaisesRegex(RuntimeError, "explicitly empty"):
+                    fixture.empty_drawing_configurations(bad)
 
     def test_bad_part_geometry_stops_before_save_without_an_api_retry(self):
         with self.assertRaisesRegex(RuntimeError, "exactly one solid"):

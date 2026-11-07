@@ -156,6 +156,20 @@ class NativeTraceTests(unittest.TestCase):
         native_call('after', 'outside', lambda: None)
         self.assertEqual(len(self.records()), 4)
 
+    def test_get3_shape_is_from_the_single_original_return_and_contains_no_values(self):
+        for value in ((0.123,), [0.123], 0.123, None):
+            with self.subTest(container=type(value).__name__):
+                self.stream.seek(0); self.stream.truncate()
+                call = mock.Mock(return_value=value)
+                with trace_native_request("req-shape", "dimension.inspect"):
+                    self.assertIs(native_call("dimension-observation", "IDimension.GetSystemValue3", call), value)
+                call.assert_called_once_with()
+                records = [r for r in self.records() if r["event"] == "swcli.native-return-shape"]
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0]["return_type"], type(value).__name__)
+                self.assertEqual(records[0]["container_length"], 1 if isinstance(value, (tuple,list)) else None)
+                self.assertNotIn("0.123", self.stream.getvalue())
+
     def test_nested_calls_have_distinct_matching_sequence_numbers(self):
         with trace_native_request('req-1', 'sketch.rectangle'):
             native_call('verify', 'geometry', lambda: _com_value(SimpleNamespace(X=1), 'X'))
