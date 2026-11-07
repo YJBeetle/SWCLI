@@ -78,8 +78,9 @@ def _wire_features(document):
             child = _com_value(child, "GetNextSubFeature")
 
 
-def read_wireframe(document, evidence=None):
+def read_wireframe(document, evidence=None, *, representation="sketches"):
     checked(not tuple(document.GetBodies2(0, False) or ()), "wireframe imported as a solid")
+    checked(representation in ("sketches", "reference-curves"), "unknown wire observation representation")
     lengths, inventory = [], []
     observation = evidence if evidence is not None else {}
     try:
@@ -88,19 +89,44 @@ def read_wireframe(document, evidence=None):
             row = dict(feature_id=identity, parent_id=parent, depth=depth,
                        kind=kind, name=_com_value(feature, "Name"), lengths_mm=[])
             inventory.append(row)
-            if kind not in ("ProfileFeature", "3DProfileFeature"):
-                continue
-            sketch = _com_value(feature, "GetSpecificFeature2")
-            checked(sketch is not None, "wire sketch interface is unavailable")
-            for segment in tuple(_com_value(sketch, "GetSketchSegments") or ()):
-                length = float(_com_value(segment, "GetLength")) * 1000
-                checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
-                lengths.append(length)
-                row["lengths_mm"].append(length)
+            if kind in ("ProfileFeature", "3DProfileFeature"):
+                sketch = _com_value(feature, "GetSpecificFeature2")
+                checked(sketch is not None, "wire sketch interface is unavailable")
+                segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
+                checked(representation == "sketches" or not segments,
+                        "reference-curve profile unexpectedly produced sketch geometry")
+                for segment in segments:
+                    length = float(_com_value(segment, "GetLength")) * 1000
+                    checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
+                    lengths.append(length)
+                    row["lengths_mm"].append(length)
+            elif representation == "reference-curves" and kind in ("RefCurve", "ImportedCurve", "3DSplineCurve", "CompositeCurve"):
+                reference = _com_value(feature, "GetSpecificFeature2")
+                checked(reference is not None, "reference curve interface is unavailable")
+                count = row["native_segment_count"] = _com_value(reference, "GetSegmentCount")
+                checked(type(count) is int and 0 <= count <= 10000, "reference curve segment count is unreadable")
+                edges = tuple(_com_value(reference, "GetSegments") or ())
+                checked(len(edges) == count, "reference curve edge array differs from native segment count")
+                row["curve_parameters"] = []
+                for edge in edges:
+                    curve = _com_value(edge, "GetCurve")  # Required before GetCurveParams3.
+                    parameters = _com_value(edge, "GetCurveParams3")
+                    checked(curve is not None and parameters is not None, "reference edge curve/parameters unavailable")
+                    low, high = (float(_com_value(parameters, key)) for key in ("UMinValue", "UMaxValue"))
+                    sense = _com_value(parameters, "Sense")
+                    checked(type(sense) is bool and math.isfinite(low) and math.isfinite(high) and low < high,
+                            "reference edge parameter range is invalid")
+                    row["curve_parameters"].append(dict(min_u=low,max_u=high,sense=sense))
+                    if not sense:  # API returns reversed edge ranges in negative parameter space.
+                        low, high = -high, -low
+                    length = float(curve.GetLength3(low, high)) * 1000
+                    checked(math.isfinite(length) and length > 0, "reference edge length is invalid")
+                    lengths.append(length)
+                    row["lengths_mm"].append(length)
     finally:
         # Preserve every observed feature/length before any strict count/vector
         # assertion (or native read failure); never retry an incomplete import.
-        observation.update(segment_count=len(lengths), lengths_mm=sorted(lengths),
+        observation.update(method="native-" + representation, segment_count=len(lengths), lengths_mm=sorted(lengths),
                            total_length_mm=sum(lengths), feature_inventory=inventory)
     checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
     return observation
@@ -114,35 +140,50 @@ IMPORT_PROFILE = {
 
 
 def read_import_constants(path):
-    return _read_native_enum_constants(path, {"swUserPreferenceToggle_e": set(IMPORT_PROFILE)})
+    return _read_native_enum_constants(path, {
+        "swUserPreferenceToggle_e": set(IMPORT_PROFILE),
+        "swUserPreferenceIntegerValue_e": {"swImportNeutral_CurvesAndPointsOption"},
+        "swImportNeutralCurvesAndPointsOptions_e": {
+            "swImportNeutralCurvesAndPointsOptions_As3DCurves", "swImportNeutralCurvesAndPointsOptions_AsSketches"},
+    })
 
 
 @contextmanager
 def observer_import_preferences(app, constants, call, case):
     """Only the generated-output observer; never production export settings."""
+    curve_name = "swImportNeutral_CurvesAndPointsOption"
+    desired = {**IMPORT_PROFILE, curve_name: constants["swImportNeutralCurvesAndPointsOptions_As3DCurves"]}
     def observe(label):
-        values = {name: call(label + "." + name, lambda: app.GetUserPreferenceToggle(constants[name]))
-                  for name in IMPORT_PROFILE}
-        checked(all(type(value) is bool for value in values.values()), "observer import preferences unreadable")
+        values = {}
+        for name in desired:
+            kind = "Toggle" if name in IMPORT_PROFILE else "IntegerValue"
+            values[name] = call(label + "." + name,
+                lambda: getattr(app, "GetUserPreference" + kind)(constants[name]))
+            checked(type(values[name]) is (bool if kind == "Toggle" else int), "observer import preference unreadable: " + name)
         return values
+    def write(label, name, value):
+        kind = "Toggle" if name in IMPORT_PROFILE else "IntegerValue"
+        status = call(label + "." + name, lambda: getattr(app, "SetUserPreference" + kind)(constants[name], value))
+        checked(status is None if kind == "Toggle" else status is True, "unexpected observer import setter result: " + name)
     checked(call("observer-empty-before-import-options", lambda: _com_value(app, "GetDocumentCount")) == 0,
             "observer import profile requires an empty owned host")
     before = observe("read-import-original")
-    evidence = case["observer_import_preferences"] = dict(before=before, requested=IMPORT_PROFILE, restored=False)
+    evidence = case["observer_import_preferences"] = dict(before=before, requested=desired, restored=False)
+    checked(before[curve_name] in {constants["swImportNeutralCurvesAndPointsOptions_As3DCurves"],
+                                  constants["swImportNeutralCurvesAndPointsOptions_AsSketches"]},
+            "original observer curve import option is unknown")
     checked(observe("compare-import-original") == before, "observer import preference snapshot changed")
     attempted = []
     first_error = None
     try:
-        for name, value in IMPORT_PROFILE.items():
+        for name, value in desired.items():
             if before[name] == value:
                 continue
             attempted.append(name)
-            status = call("set-import-option." + name,
-                          lambda: app.SetUserPreferenceToggle(constants[name], value))
-            checked(status is None, "unexpected return from void ISldWorks.SetUserPreferenceToggle")
-            expected = {**before, **{key: IMPORT_PROFILE[key] for key in attempted}}
+            write("set-import-option", name, value)
+            expected = {**before, **{key: desired[key] for key in attempted}}
             checked(observe("read-import-applied") == expected, "observer import preference readback differs")
-        checked(observe("verify-import-profile") == IMPORT_PROFILE, "observer import profile differs")
+        checked(observe("verify-import-profile") == desired, "observer import profile differs")
         yield
     except BaseException as exc:
         first_error = exc
@@ -151,9 +192,7 @@ def observer_import_preferences(app, constants, call, case):
         failures = []
         for name in reversed(attempted):
             try:
-                status = call("restore-import-option." + name,
-                              lambda: app.SetUserPreferenceToggle(constants[name], before[name]))
-                checked(status is None, "unexpected return from void ISldWorks.SetUserPreferenceToggle restore")
+                write("restore-import-option", name, before[name])
             except Exception as exc:
                 failures.append(dict(preference=name, error=str(exc)))
         try:
@@ -269,6 +308,7 @@ def verify_reopened_geometry(before, after, geometry):
                 checked(math.isclose(first["centroid_mm"][axis], second["centroid_mm"][axis], rel_tol=0, abs_tol=1e-9),
                         "box centroid differs after native save/reopen: " + axis)
     else:
+        checked(before.get("method") == after.get("method"), "wire observation method changed after native save/reopen")
         verify_wire_geometry(before, geometry)
         verify_wire_geometry(after, geometry)
         checked(before["segment_count"] == after["segment_count"],
@@ -302,7 +342,7 @@ def _verify_imported_geometry(app, target, output, name, geometry, call, case, l
         case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
     else:
         case["imported_geometry"] = {}
-        call("read-imported-wireframe", lambda: read_wireframe(document, case["imported_geometry"]))
+        call("read-imported-wireframe", lambda: read_wireframe(document, case["imported_geometry"], representation="reference-curves"))
         verify_wire_geometry(case["imported_geometry"], geometry)
     imported_native = output / (name + "-imported.SLDPRT")
     case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
@@ -317,7 +357,7 @@ def _verify_imported_geometry(app, target, output, name, geometry, call, case, l
     checked(opened["ok"] and opened["api_errors"] == opened["api_warnings"] == 0, "imported native reopen failed")
     case["reopened_imported_geometry"] = {}
     observed = call("verify-reopened-import", lambda:
-        check_box(document) if geometry == "solid-surface" else read_wireframe(document, case["reopened_imported_geometry"]))
+        check_box(document) if geometry == "solid-surface" else read_wireframe(document, case["reopened_imported_geometry"], representation="reference-curves"))
     case["reopened_imported_geometry"] = observed
     verify_reopened_geometry(case["imported_geometry"], case["reopened_imported_geometry"], geometry)
     checked(not _com_value(document, "GetSaveFlag"), "read-only imported observation changed save state")

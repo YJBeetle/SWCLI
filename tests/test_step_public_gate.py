@@ -107,6 +107,61 @@ class StepPublicGateTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,"sibling cycle"):
             module.read_wireframe(document,{})
 
+    def test_reference_curve_observer_uses_real_edge_range_once_and_keeps_exact_counts(self):
+        module = script("verify-step-export-calibration.py")
+        expected = [10.0]*4+[30.0]*4+[40.0]*4
+        calls = []
+        def edge(length, reverse):
+            curve = SimpleNamespace(GetLength3=mock.Mock(side_effect=lambda low,high: high-low))
+            parameters = SimpleNamespace(UMinValue=-length/1000 if reverse else 0.0,
+                UMaxValue=0.0 if reverse else length/1000,Sense=not reverse)
+            return SimpleNamespace(GetCurve=lambda:(calls.append("curve"),curve)[1],
+                GetCurveParams3=lambda:(calls.append("parameters"),parameters)[1]),curve
+        pairs = [edge(value,index%2==1) for index,value in enumerate(expected)]
+        reference = SimpleNamespace(GetSegmentCount=12,GetSegments=[pair[0] for pair in pairs])
+        feature = SimpleNamespace(GetID=26,GetTypeName2="ImportedCurve",Name="Curve1",
+            GetSpecificFeature2=reference,GetFirstSubFeature=None,GetNextSubFeature=None,GetNextFeature=None)
+        document = SimpleNamespace(FirstFeature=feature,GetBodies2=lambda *args:())
+        observed = module.read_wireframe(document,representation="reference-curves")
+        self.assertEqual(observed["method"],"native-reference-curves")
+        module.verify_wire_geometry(observed,"wireframe")
+        self.assertEqual(calls,["curve","parameters"]*12)
+        for value,(_,curve) in zip(expected,pairs):
+            curve.GetLength3.assert_called_once_with(0.0,value/1000)
+        # Neither native count mismatch nor a real nine-edge import is accepted.
+        reference.GetSegmentCount = 13
+        partial = {}
+        with self.assertRaisesRegex(RuntimeError,"array differs"):
+            module.read_wireframe(document,partial,representation="reference-curves")
+        self.assertEqual(partial["feature_inventory"][0]["native_segment_count"],13)
+        reference.GetSegmentCount = 9
+        reference.GetSegments = reference.GetSegments[:9]
+        with self.assertRaisesRegex(RuntimeError,"at least its twelve edges"):
+            module.read_wireframe(document,partial,representation="reference-curves")
+        self.assertEqual(partial["segment_count"],9)
+
+    def test_curve_import_integer_setter_partial_failure_restores_without_retry(self):
+        module = script("verify-step-export-calibration.py")
+        codes={name:3000+index for index,name in enumerate(module.IMPORT_PROFILE)}
+        codes.update(swImportNeutral_CurvesAndPointsOption=3003,
+            swImportNeutralCurvesAndPointsOptions_As3DCurves=1,swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        values={3000:False,3001:True,3002:True,3003:0}
+        writes=[]
+        def setter(key,value):
+            writes.append((key,value)); values[key]=value
+            return value==0
+        app=SimpleNamespace(GetDocumentCount=0,GetUserPreferenceToggle=lambda key:values[key],
+            GetUserPreferenceIntegerValue=lambda key:values[key],SetUserPreferenceToggle=mock.Mock(),
+            SetUserPreferenceIntegerValue=setter)
+        evidence={}
+        with self.assertRaisesRegex(RuntimeError,"unexpected observer import setter"):
+            with module.observer_import_preferences(app,codes,lambda name,fn:fn(),evidence):
+                self.fail("rejected setter must not import")
+        self.assertEqual(writes,[(3003,1),(3003,0)])
+        self.assertTrue(evidence["observer_import_preferences"]["restored"])
+        self.assertEqual(values[3003],0)
+        app.SetUserPreferenceToggle.assert_not_called()
+
     def test_public_output_digest_mismatch_blocks_native_readback(self):
         module = script("verify-step-export-calibration.py")
         with tempfile.TemporaryDirectory() as directory:
@@ -167,7 +222,9 @@ class StepPublicGateTests(unittest.TestCase):
         module = script("verify-step-export-calibration.py")
         names = list(module.IMPORT_PROFILE)
         constants = {name: index + 1000 for index, name in enumerate(names)}
-        original = {1000: True, 1001: True, 1002: False}
+        constants.update(swImportNeutral_CurvesAndPointsOption=1003,
+            swImportNeutralCurvesAndPointsOptions_As3DCurves=1, swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        original = {1000: True, 1001: True, 1002: False, 1003: 0}
         values = dict(original)
         writes = []
         def setter(key, value):
@@ -175,14 +232,15 @@ class StepPublicGateTests(unittest.TestCase):
             values[key] = value
             return None
         app = SimpleNamespace(GetDocumentCount=0, GetUserPreferenceToggle=lambda key: values[key],
-                              SetUserPreferenceToggle=setter)
+                              SetUserPreferenceToggle=setter, GetUserPreferenceIntegerValue=lambda key: values[key],
+                              SetUserPreferenceIntegerValue=lambda key,value: (setter(key,value),True)[1])
         case = {}
         call = lambda name, function: function()
         with module.observer_import_preferences(app, constants, call, case):
-            self.assertEqual(values, {constants[name]: value for name, value in module.IMPORT_PROFILE.items()})
+            self.assertEqual(values, {**{constants[name]: value for name, value in module.IMPORT_PROFILE.items()},1003:1})
         self.assertEqual(values, original)
         self.assertTrue(case["observer_import_preferences"]["restored"])
-        self.assertEqual(len(writes), 4)  # Two changed settings, once each way.
+        self.assertEqual(len(writes), 6)  # Two toggles plus the curve representation, once each way.
         first = RuntimeError("original LoadFile4 readback failure")
         def bad_restore(key, value):
             if key == 1002 and value is False:
@@ -201,9 +259,13 @@ class StepPublicGateTests(unittest.TestCase):
     def test_void_import_setter_requires_effective_readback_before_import(self):
         module = script("verify-step-export-calibration.py")
         constants = {name: index + 2000 for index, name in enumerate(module.IMPORT_PROFILE)}
-        values = {2000: True, 2001: True, 2002: False}
+        constants.update(swImportNeutral_CurvesAndPointsOption=2003,
+            swImportNeutralCurvesAndPointsOptions_As3DCurves=1, swImportNeutralCurvesAndPointsOptions_AsSketches=0)
+        values = {2000: True, 2001: True, 2002: False, 2003:0}
         app = SimpleNamespace(GetDocumentCount=0, GetUserPreferenceToggle=lambda key: values[key],
-                              SetUserPreferenceToggle=lambda *args: None)
+                              SetUserPreferenceToggle=lambda *args: None,
+                              GetUserPreferenceIntegerValue=lambda key:values[key],
+                              SetUserPreferenceIntegerValue=lambda *args:True)
         case = {}
         with self.assertRaisesRegex(RuntimeError, "observer import preference readback differs"):
             with module.observer_import_preferences(app, constants, lambda name, fn: fn(), case):

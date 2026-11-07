@@ -107,8 +107,10 @@ own public evidence.
 The independent observer explicitly scopes neutral-format import settings: it
 resolves `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`
 and `swImportNeutral_FreeCurvesAndPoints` from installed SwConst, selects the
-legacy solids+free-curves-as-sketch profile before importing generated outputs,
-and restores/verifies its complete original snapshot in `finally`. These are
+legacy solids+free-curves profile before importing generated outputs. The
+current repaired observer additionally selects native 3D reference curves using
+the installed integer enum below, and restores/verifies the complete mixed
+boolean/integer snapshot in `finally`. These are
 test-only observer settings; production export does not change import options.
 Every import must still return error code zero and pass the same geometry and
 save/reopen checks. No failed import is retried in its group.
@@ -167,3 +169,45 @@ public gate must establish complete geometry; nested sketches are an unresolved
 explanation, not an accepted result from the failed run.
 [Feature traversal](https://help.solidworks.com/2026/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature_members.html)
 and [document-unique feature IDs](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetID.html).
+
+Observer-coverage run
+[42365535291](https://github.com/YJBeetle/SWCLI/actions/runs/42365535291), head
+`d6505f7384911b43b28a5f273ab14262032c4698`, still failed: the fifth AP214
+wireframe import returned error 0 but yielded nine sketch segments / 260 mm;
+one of three imported sketches was empty. Its complete top/subfeature inventory
+contains no omitted nested sketch, refuting that explanation. Four earlier
+native cases completed; all eight public writes and foreground/restore/cleanup
+checks passed. Original artifact `13571478417` SHA256 is
+`b2e70c0786e67a9e97ff7a0af60234516eb2fd2a4884bf9b8506d7e6c9af1475`.
+The original ZIP, job log, official summary and partial inventory are retained;
+this failed run is not accepted or retried.
+
+The official `GetSketchSegments` contract warns that sketches with errors can
+produce an incomplete array. The retained evidence does not establish the
+underlying sketch solver/import error, so no successful geometric proof is
+inferred from its zero import code. The corrected observer selects
+`swImportNeutral_CurvesAndPointsOption` =
+`swImportNeutralCurvesAndPointsOptions_As3DCurves` before its single import,
+resolving both names and enum ownership from installed SwConst. The three
+existing import toggles plus this integer setting share complete snapshot/CAS,
+checked setter/readback and original restoration. This is test-only import
+representation; production export and its options are unchanged.
+
+The reader then uses `IReferenceCurve.GetSegmentCount/GetSegments`, calls
+`IEdge.GetCurve` before `GetCurveParams3`, and measures each trimmed edge using
+`ICurve.GetLength3` with its documented parameter range. Reversed negative
+ranges are normalized according to `ICurveParamData.Sense`. Native segment
+counts must agree with the edge array and the exact same 12/18 analytic length
+vectors before and after native save/readonly reopen. There is no automatic
+fallback, reimport, rebuild, healing or in-process-only enumerator. The previous
+sketch observation is preserved as failed evidence; all precision/count bounds
+remain unchanged. The repaired profile still requires its own public gate.
+
+- [Sketch array limitation](https://help.solidworks.com/2016/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketch~GetSketchSegments.html)
+- [Native integer preference name](https://help.solidworks.com/2018/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swUserPreferenceIntegerValue_e.html?id=2.10.1.774)
+- [Neutral curve representation enum](https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swImportNeutralCurvesAndPointsOptions_e.html)
+- [Reference curve segments](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IReferenceCurve~GetSegments.html)
+- [Feature type/interface mapping](https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetTypeName2.html)
+- [Edge curve parameters and required call order](https://help.solidworks.com/2016/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IEdge~GetCurveParams3.html)
+- [Parameter orientation](https://help.solidworks.com/2023/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ICurveParamData~UMaxValue.html)
+- [Trimmed curve length](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ICurve~GetLength3.html?format=P&value=)
