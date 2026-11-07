@@ -116,3 +116,10 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - `scripts/ci/verify-table-defaults-proof.py` 的 gh subprocess 显式指定 `encoding='utf-8'`。新增实际 Python 子进程输出包含中文及弯引号的 UTF-8 JSON 回归，模拟隐式 cp1252 解码并验证来源适配器按正确编码读取。
 - 本地相关 54 tests / 4 platform skips 通过。实际 pinned internal remote preflight 和原始 artifact local audit 均通过，workflow YAML 与 cleanup 条件验证通过。已有内部原件、精确 profile、CAS/状态/零件几何硬断言及 600/1800 秒限制继续作为验收门禁。
 - 本轮仅对上述首错及后续空路径清理错误修复。下一次公开 gate 使用该修复的精确 head，完成后仍需原件核验。零件精确几何仍为系列未完成项，系列整组完成后再请用户确认发版。
+
+
+## UTF-8 预检修复后的必要公开 gate
+
+- 修复提交 `c95ecdefa40689b2c8723a2e85998bbde2b6633f` 已推送，首次失败及原始日志摘要见上段。
+- [42361458023](https://github.com/YJBeetle/SWCLI/actions/runs/42361458023) 仅 dispatch 一次，验收 head `c95ecdefa40689b2c8723a2e85998bbde2b6633f`，mode `public`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `assembly-drawing`。单次快照为 `in_progress`，metadata 与原始参数保存在 ignored `run-42361458023/`。
+- 继续使用内部 `42301331238` 的已审核原件和精确 profile。结果待本轮完成原件核验，零件精确几何仍为本系列待完成项。按统筹指令记录正常在跑状态后结束本轮等待。
