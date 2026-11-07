@@ -80,6 +80,30 @@ def _error_response(
     }
 
 
+def _preserve_preference_receipt(response, operation, result, error):
+    """Keep only this request's trusted two-boolean preference mutation boundary."""
+    if (operation not in ('document.annotation-font-set', 'document.display-option-set', 'document.drafting-standard-set')
+            or not isinstance(result, dict) or result.get('action') != operation):
+        return response
+    mutation = result.get('mutation')
+    if (not isinstance(mutation, dict) or set(mutation) != {'attempted','may_have_changed'}
+            or any(type(value) is not bool for value in mutation.values())):
+        return response
+    partial = dict(result, ok=False, mutation=dict(mutation))
+    detail = {'type': type(error).__name__, 'message': str(error)}
+    previous = partial.get('error')
+    if isinstance(previous, dict) and isinstance(previous.get('type'), str) and isinstance(previous.get('message'), str):
+        partial['error'] = dict(previous, worker_error=detail)
+    else:
+        partial['error'] = detail
+    try:
+        validate_operation_result(operation, partial)
+    except Exception:
+        partial = {'ok':False, 'action':operation, 'mutation':dict(mutation), 'error':partial['error']}
+    response['result'] = partial
+    return response
+
+
 def _success_response(
     request_id: str, result: Any, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -331,6 +355,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
+            result = None  # never carry a prior request receipt across late/dispatch failures
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -409,6 +434,7 @@ def _worker_main(
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
+                response = _preserve_preference_receipt(response, str(request['operation']), result, exc)
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

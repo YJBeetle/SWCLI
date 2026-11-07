@@ -1,13 +1,14 @@
 # 文档属性校准性能：当前接管与验收边界
 
-## 当前汇总（2026-11-08，全batch公开原件自验通过，交统筹review）
+## 当前汇总（2026-11-08，全batch原件通过，postflight修复便携回归通过，交统筹review）
 
-- 实测代码tip `b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6`；[全batch run42361904486](https://github.com/YJBeetle/SWCLI/actions/runs/42361904486) / attempt1 / success。三组统一严格native/peer保护均在此head实际执行；本轮不改production src、CI或公共gate，只有离线审计/证据/文档。
+- 实测代码tip `b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6`；[全batch run42361904486](https://github.com/YJBeetle/SWCLI/actions/runs/42361904486) / attempt1 / success。三组统一严格native/peer保护均在此head实际执行；原件审计已提交e123388；随后按统筹review最小修复两个共享daemon文件的三setter异常回执保护，未改COM adapter、CI或公共gate。
 - artifact `13571626572` / ZIP10354958bytes，官方digest=本地SHA256 `460d32d13b9953604c5f6ed1246258725895d7579817b53084413236e2501d30`。ZIP97原文件逐字节核对、manifest文件hash/size/集合全部一致，run/head/attempt/repo/workflow/context匹配；原件未修改。
 - 三组适用范围首层自验通过：标准36写、字体21写、显示25写；dirty no-op82、clean no-op60均0setter/属性赋值/SaveFlag；值冲突82、lease9、stamp9、RO60次拒绝及后续snapshot/document保持；保存RO60份，freshID/clean/profile/hash/part几何全部通过。
 - native trace691请求逐条重放，9个类型/profile组合各SDK/MCP读共18读，schema/CLI snapshot/后台相符。5组同owned隐藏host PID1000/revision33.5.0，case逐次清空、cleanup=[]、最终daemon shutdown成功，全部1800组/600请求限制不变，无retry/rollback/host重启。
 - **三组既定适用字段验收候选可交统筹review/合并**，不是整页或全部系列发布许可；最终source review/合并/版本/发版仍由统筹本人。精确限制：D只前5显示项，plane写未作native拒绝尝试；强制失败partial注入与视觉渲染只portable或未测，不冒充本run证据。
 - 详细范围/原件/可直接复跑离线命令：[docs/verification/docprops-batch-public-2026-11-08.md](docs/verification/docprops-batch-public-2026-11-08.md)；机器收据同名json；审计 `evidence/docprops-performance/run-42361904486-audit.json`。新增离线审计故障4项通过；原实测代码portable2164/skip32、补充guard/契约和SDK/actionlint原日志保留，不做无差异CI重跑。
+- 最新postflight/worker修复：handler描述符失败保留真实两bool/首错并以error.descriptor_error单列；worker late-fault以error.worker_error单列，坏字段降级最小已知receipt，按请求重置result，不借上一receipt；恢复未知仍退休。真实handler/adapter/registry/worker故障6项36子场景及完整2177/skip32通过，SDKstrict/25反例通过；不需要无信息native重跑，最终source review仍由统筹。详见 `docs/verification/docprops-preference-receipts-2026-11-08.md`。
 - 无待审批/自动审批拒绝；未操作main、VM、DockerSW/MacSW或其他worktree；未扩计划、未派审查代理、不持续轮询。此前“字体/显示未验收”仅为历史状态，以本节与最终收据为准。
 
 
@@ -268,3 +269,14 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 可复跑完整命令和临时依赖环境建立步骤在 `docs/verification/docprops-batch-public-2026-11-08.md`。旧 `/private/tmp/swcli-a14-test-env` 已被外部清理，本轮建立新独立audit-only venv（Python3.15/jsonschema4.26），原件与产物均持久存本工作树。离线审计新增4项故障测试：wrong head/digest、ZIP与解包不一致、unlisted文件、malformed trace、拒绝setter/dirty等；通过。未为只改审计/文档重跑无差异native/完整portable。
 
 候选范围：总字体7字段×3类=21、显示P/A10+D5=25、标准P/A/D共36 GB↔named转换；原生Windows33.5.0。工程图plane字段未暴露且未在本run写拒绝；native强制partial/错误注入和视觉渲染不声称已测。记录这些边界不改变原batch适用字段完成结论，不扩其它字体/任意API或未来revision。最终review/合并/全系列一起发版由统筹本人执行，本路不自行merge/publish。
+
+
+### 统筹新阻断：三setter postflight / worker late-fault（已最小修复）
+
+先完成并提交原件审计 `e123388`；随后只读参考git对象main既有00f4538语义，没有merge/rebase/cherry-pick或覆盖main。当前修复共享文件仅 `src/swcli/daemon/operations.py`（三setter专用 `_with_preference_receipt`）与 `src/swcli/daemon/server.py`（专用 `_preserve_preference_receipt`、每请求result=None、except调用）；main整合时请将专用helper调用与已有tolerance/line/dimension/image保护并存，保留既有restore退休分支，不覆盖其他路函数。
+
+描述符收尾使用副本，完整后再更新返回原adapter receipt对象，避免破坏既有alias/metadata契约。收尾失败ok=false，原mutation和首error保留，次生描述符错误放现有extensible error.descriptor_error。worker仅接受本operation/action匹配、精确两boolmutation，不将int作bool、不从未执行操作生成receipt；late validator坏字段时降级最小已知failure。第一native/业务error不覆盖，secondary worker_error分开；传输envelope仍报告worker故障。NativeCommandRestoreFailed仍发host-disconnected并break，无重试/回滚。每请求初始化result避免同operation第二个未执行请求借上一成功receipt。
+
+真实adapter/handler/DocumentRegistry/execute_operation/_worker_main与真实native_api_sequence假宿主恢复异常注入测试6项36子场景通过；含descriptor success/native-first失败、真实restore success/native-first失败、late validator与坏descriptor降级、clean noop零写、连续请求不借receipt、未知/坏mutation/action拒绝。原生setter每次仅一次，恢复未知不收下一任务，COM最终清理执行。初次完整回归发现原result对象identity需保持，现已保留；另补齐新临时env的editable安装用于-I子进程，最终完整2177tests/61.704s/skip32全过。SDK生成/strict6文件/25反例通过，diffcheck通过。
+
+此次源码异常路径修复与healthy native run42361904486证据分开记录：未声称SOLIDWORKS实际强制故障注入，按统筹要求不重跑整套native。详细收据和复跑命令 `docs/verification/docprops-preference-receipts-2026-11-08.md`，机器指纹同名json。全batch既定适用字段及此portable故障保护一并作为可合候选交统筹最终review；本路不合main/发版，不扩功能或代理。

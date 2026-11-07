@@ -455,6 +455,29 @@ def document_annotation_option_set(context: OperationContext, values: Dict[str, 
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 
 
+def _with_preference_receipt(result, context):
+    """Descriptor postflight cannot erase this adapter's mutation or first error."""
+    candidate = dict(result)
+    if isinstance(candidate.get('document'), dict):
+        candidate['document'] = dict(candidate['document'])
+    try:
+        enriched = _with_document(candidate, context.documents, context.entry, session_id=context.session_id)
+        result.update(enriched)
+        return result
+    except Exception as exc:
+        partial = dict(result)
+        partial['ok'] = False
+        partial['session_id'] = context.session_id
+        detail = {'type': type(exc).__name__, 'message': str(exc)}
+        previous = partial.get('error')
+        if isinstance(previous, dict) and isinstance(previous.get('type'), str) and isinstance(previous.get('message'), str):
+            partial['error'] = dict(previous, descriptor_error=detail)
+        else:
+            partial['error'] = dict(detail, descriptor_error=detail)
+        result.update(partial)
+        return result
+
+
 @_register_handler
 def document_annotation_font(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
@@ -471,7 +494,7 @@ def document_annotation_font_set(context: OperationContext, values: Dict[str, An
         app=context.app, document=context.entry.document, field=values["field"],
         value=values["value"], expected_font=values["expected_font"],
     )
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_preference_receipt(result, context)
 
 
 @_register_handler
@@ -490,7 +513,7 @@ def document_display_option_set(context: OperationContext, values: Dict[str, Any
         app=context.app, document=context.entry.document, field=values["field"],
         value=values["value"], expected_value=values["expected_value"],
     )
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_preference_receipt(result, context)
 
 
 @_register_handler
@@ -509,7 +532,7 @@ def document_drafting_standard_set(context: OperationContext, values: Dict[str, 
         app=context.app, document=context.entry.document,
         value=values["value"], expected_snapshot=values["expected_snapshot"],
     )
-    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    return _with_preference_receipt(result, context)
 
 
 @_register_handler

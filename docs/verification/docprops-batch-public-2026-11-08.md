@@ -54,4 +54,4 @@ PYTHONPATH=src /private/tmp/swcli-docprops-audit-env/bin/python scripts/dev/audi
 PYTHONPATH=src /private/tmp/swcli-docprops-audit-env/bin/python -m unittest discover -s tests -p 'test_document_preferences_public_audit.py'
 ```
 
-本轮只增强离线审计及补齐证据/文档，production src、CI与公共gate字节相对b6d28f2无改动；不需要无差异重跑CI。后续交接tip与实测代码tip的区别仅审计/证据/文档，见WORK_HANDOFF.md。
+原件审计提交e123388仅增强离线审计及补齐证据/文档。随后统筹review要求的三个setter postflight/worker late-fault修复已另做portable故障注入，详见[异常回执修复收据](docprops-preference-receipts-2026-11-08.md)。健康native证据仍绑定b6d28f2，不冒称新故障路径在SOLIDWORKS现场复现；按统筹要求不做无信息整套原生重跑。

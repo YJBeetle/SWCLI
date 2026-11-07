@@ -59,5 +59,7 @@
   ],
   "audit_path": "evidence/docprops-performance/run-42361904486-audit.json",
   "receipt_path": "docs/verification/docprops-batch-public-2026-11-08.md",
-  "production_source_changed_since_test": false
+  "production_source_changed_since_test": true,
+  "post_native_portable_fix_receipt": "docs/verification/docprops-preference-receipts-2026-11-08.json",
+  "post_native_source_scope": "three setter postflight/worker late-fault paths only; healthy native head remains b6d28f2"
 }
