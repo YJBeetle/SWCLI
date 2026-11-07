@@ -47,3 +47,11 @@
 - 单配置GetSystemValue3：`1cdbff41a0594440eda17e068c3d42e1fb24579c`。
 - 两笔中文逻辑提交已成功push到公开`https://github.com/YJBeetle/SWCLI`的`codex/native-api-observation-modern`。针对最初自动审批拒绝，仅先完成获准本地工作，再提交公开repo/ADMIN/已公开base及实际无原始日志/机密payload的新只读证据；原始直接push复核通过，没有换路径或间接绕过。当前无待审批动作。
 - 最终本地工作树干净（仅随后本交接记录commit）；配置helper+尺寸实现全部完成关联和完整portable/SDK，不包含原生成功声明。当前没有本分支run/artifact/native digest，原生计划尚待统筹的精确组合head；不取消、不重复已有SaveAs full42369257219。
+
+## 与SaveAs3组合的接线交接（只读，未新派CI）
+
+- 新交接`docs/verification/native-observation-saveas3-wiring.md`及源码hash JSON，供SaveAs3现有负责人/统筹直接读取；SaveAs只读快照head记录在文件中，不冒充已组合。
+- full已有直径+矩形宽/高Get3路径，但在exports后；GLB若首失败则这些组未到达。part/assembly metadata配置观察在较早property fixture/preflight中有覆盖。
+- 明确缺口：DRW只比较前后配置结构相等，缺active=None/names=[]/count=0硬断言；swconst现有读取未核swSpecifyConfiguration=3；通用native trace不输出返回容器shape。提供在现有DRW fixture/官方常量读取处增加只读断言与证据的最小方案，不新增模型/保存/host/原生运行。
+- 保留SaveAs3诊断开关、原GLB失败字节、null/BYREF/首错等局部修复；definition IID诊断不能误作dimension/configuration IID证明。首失败后未到达的gate不补跑或翻绿。
+- 不改SaveAs3或main，不另dispatch、不用VM。两getter精确提交已推送可取；最终精确组合head和一次full由SaveAs3负责人/统筹安排。

@@ -1,0 +1,43 @@
+{
+  "scope": "static combination wiring review; no CAD or dispatch",
+  "observation_tip": "e801a95b1402f22d0638c74809125ff7add3f4da",
+  "saveas_snapshot_head": "5c102541e3040a77455d07da6ee64e66ccfe500e",
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "888d852ddb6983e3af379f9b2a54e5de278a3f4d24c48fabb7a6a35b8d9f11e2"
+    },
+    {
+      "path": "scripts/ci/gate_support/runtime_plan.py",
+      "sha256": "8fb2456ac5555d0c794b8f68ea4dfce2bda253350b7253cae6f94337e7069207"
+    },
+    {
+      "path": "scripts/ci/windows/smoke-solidworks.ps1",
+      "sha256": "3bbe83cd485f0d2f96f1373319135765a9740df3693cf609fa82f5c96c3d185d"
+    },
+    {
+      "path": "scripts/ci/verify-properties-calibration.py",
+      "sha256": "05ce308bdb811dc99b85d64175995444a3644a0a3515dd17285b250a0e6b9e49"
+    },
+    {
+      "path": "scripts/ci/verify-properties.py",
+      "sha256": "24d4d600a2167b558a6247cac69ee2eeeb79d4af309b4900c8274d3db0e2085c"
+    },
+    {
+      "path": "scripts/ci/verify-drawings.py",
+      "sha256": "6cedad60eb2b1b796e3c9b3119139e44c3f499a9e213f900e0ec3d5b653828c4"
+    },
+    {
+      "path": "scripts/ci/gate_support/driving_diameter.py",
+      "sha256": "29041a6b62fd1a8146fb0a4b8d68381539ec9321692c752a0361106d0eee8397"
+    },
+    {
+      "path": "scripts/ci/gate_support/driving_rectangle.py",
+      "sha256": "80552505c054f52bfb6f73e73aee9b241a0f3caf76a8265871b941cadc53c74a"
+    },
+    {
+      "path": "src/swcli/hosts/windows_definition_identity.py",
+      "sha256": "29d88467ab0e59e6e9152f6b9b4dacf865a8b3dd2d4cb616e4e0e434632bf726"
+    }
+  ]
+}
