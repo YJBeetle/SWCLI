@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-公开运行42301046570的原件已保全。嵌套GetUnits trace误判修复9fe8d9d已推送，44项定向测试与六条真实请求离线复验通过。公开运行42305495076唯一快照为in_progress，完整验收待产物核验。
+公开42305495076/head9fe8d9d已success，原ZIP与完整回执/trace独立审计通过。统筹随后指出原生探针对未知ntdll误接受的阻断，局部严格修复与46项定向、1865项便携测试及打包安装检查已过，需修复head的必要公开gate后交终审。
 
 ## 分支与范围
 
@@ -143,3 +143,15 @@
 - 3153b24便携Windows CI 42301024325 已通过。离线复验仅覆盖已记录的六条请求。完整公开验收需要在修复后走到三类保存重开和清理结束。
 
 修复后的公开运行 https://github.com/YJBeetle/SWCLI/actions/runs/42305495076 绑定 `9fe8d9d0fedc19eb47bdb4fee55c940b06238605`，唯一快照为in_progress。继续按原范围验收三类文档及保存重开，完成后核原件。当前仍待公开验收及统筹审查。
+
+## 公开成功原件独立审计与统筹阻断修复
+
+- 已核运行 https://github.com/YJBeetle/SWCLI/actions/runs/42305495076 ，精确head `9fe8d9d0fedc19eb47bdb4fee55c940b06238605`。artifact ID `13546644221`，原ZIP SHA256 `6e07e9d7d9bd45e5347e461bd684cbc0bb2a01b49ec09337545e17255210bfdd`，与GitHub digest/head完全一致；解压文件逐字节与ZIP条目核对一致。
+- 原件目录 `../evidence/public-42305495076/` 包含original.zip、artifacts.json、integrity.json、run.json、extracted、audit_public.py与audit.json。审计命令从本工作树执行 `PYTHONPATH=src python ../evidence/public-42305495076/audit_public.py --evidence ../evidence/public-42305495076 --head 9fe8d9d0fedc19eb47bdb4fee55c940b06238605`。
+- 审计复算208条CLI事件、78条尺寸请求、39次真实setter。part/assembly/drawing各16次计划请求中13次真实setter，覆盖两布尔方向及四位置；最终三字段均与源初值不同。逐条核完整CAS/lease/stamp和readonly拒绝、完整before/format链、native_return、mutation、同值清洁、后台/current=false、保存API成功与零错误/原生警告空值、同ID保存与新ID只读重开、源与副本实际SHA。保护单位及七项注解值的前后原始CLI回执一致。
+- 全部78请求的原始trace逐层核开始序号与结束栈、调用次数/方法/顺序/600秒边界、request_id及同一worker2132，原生host10108和revision33.5.0保持，公开组74.145秒。trace前缀SHA256 `d224516a533084e5e34334314786d21b2ee9df14eb66c921a92555ae8561db89` 已核。
+- part写前/写后/重开三份完整边/面观察重新计算相同精确8顶点/12直线边/6平面，native体积/面积精确一致，原有raw metric差分和解析判据通过。每类结束均零文档，cleanup_errors=[]；daemon停止成功、退出码0；完整生命周期对照无新增任务/进程。
+- 同head Windows Python3.9/3.14及wheel CI https://github.com/YJBeetle/SWCLI/actions/runs/42305417447 success，原元数据 ../evidence/portable-ci-42305417447.json。该原件证明上述head的限定三字段/三类文档公开行为。
+- 统筹随后发现合并前阻断。旧探针仅检查wine_get_version属性缺失，会把无可核导出的ntdll对象接受为原生。现按已合STL机制核GetModuleHandleW(ntdll.dll)、已知NtClose导出，清last_error后查询wine_get_version，只有缺失且error=127才接受；缺模块/已知导出、Wine、非127与异常全拒绝。
+- 新正向测试经完整公开handler确认合法探针可写。反例经公开handler核零preference setter/dirty/save。当前46项定向与全套1865项便携通过，32项平台跳过；构建安装及installed CLI/schema/product skill、SDK生成检查通过。原日志 ../evidence/strict-native-*.log。
+- 原成功原件已完成审计，最新探针修复需一次必要公开gate。当前可审查代码包括adapter与catalog、daemon handler、CLI/schema/SDK，以及scripts/ci/verify-dimension-format-public.py、verify-dimension-format-calibration.py、gate_support/dimension_box.py和tests/test_dimension_format*.py。最终可合tip以探针修复head公开验收及统筹本人review为准。

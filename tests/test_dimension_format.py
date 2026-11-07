@@ -369,17 +369,72 @@ class DimensionFormatTests(unittest.TestCase):
         self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
         self.fixture.assert_no_setters()
 
-    def test_native_windows_detection_fails_closed_for_wine_and_load_errors(self):
-        from types import SimpleNamespace
+    def test_native_windows_probe_requires_known_export_and_exact_missing_export_error(self):
+        kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=123),
+                                 GetProcAddress=mock.Mock(side_effect=[456, None]))
         with mock.patch.object(adapter.sys, "platform", "win32"), \
-                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace()):
-            self.assertTrue(adapter._native_windows())
-        with mock.patch.object(adapter.sys, "platform", "win32"), \
-                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=SimpleNamespace(wine_get_version=object())):
-            self.assertFalse(adapter._native_windows())
-        with mock.patch.object(adapter.sys, "platform", "win32"), \
-                mock.patch.object(adapter.ctypes, "WinDLL", create=True, side_effect=OSError("unavailable")):
-            self.assertFalse(adapter._native_windows())
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=kernel) as loader, \
+                mock.patch.object(adapter.ctypes, "set_last_error", create=True) as clear_error, \
+                mock.patch.object(adapter.ctypes, "get_last_error", create=True, return_value=127):
+            self.app.RevisionNumber = "33.5.0"
+            result = self.public(True, self.values())
+            validate_operation_result("document.dimension-format-set", result)
+            self.assertTrue(result["ok"], result)
+            self.extension.SetUserPreferenceToggle.assert_called_once_with(43, 200, True)
+        loader.assert_called_once_with("kernel32.dll", use_last_error=True)
+        kernel.GetModuleHandleW.assert_called_once_with("ntdll.dll")
+        self.assertEqual(kernel.GetProcAddress.call_args_list,
+                         [mock.call(123, b"NtClose"), mock.call(123, b"wine_get_version")])
+        clear_error.assert_called_once_with(0)
+
+    def test_unknown_native_probe_refuses_public_write_without_setter_dirty_or_save(self):
+        scenarios = [
+            ("missing module", 0, [456, None], 127),
+            ("missing known export", 123, [None], 127),
+            ("Wine export", 123, [456, 789], 127),
+            ("lookup exception", 123, [456, OSError("lookup failed")], 127),
+        ]
+        scenarios.extend(("unknown lookup error " + str(error), 123, [456, None], error)
+                         for error in (0, 5, 126, 193, None))
+        for label, handle, exports, error in scenarios:
+            with self.subTest(probe=label):
+                self.setUp()
+                self.app.RevisionNumber = "33.5.0"
+                self.document.Save3 = mock.Mock()
+                self.extension.SaveAs = mock.Mock()
+                kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=handle),
+                                         GetProcAddress=mock.Mock(side_effect=exports))
+                with mock.patch.object(adapter.sys, "platform", "win32"), \
+                        mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=kernel), \
+                        mock.patch.object(adapter.ctypes, "set_last_error", create=True), \
+                        mock.patch.object(adapter.ctypes, "get_last_error", create=True, return_value=error):
+                    result = self.public(True, self.values())
+                validate_operation_result("document.dimension-format-set", result)
+                self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
+                self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+                self.assertFalse(self.fixture.modified)
+                self.fixture.assert_no_setters()
+                self.document.Save3.assert_not_called()
+                self.extension.SaveAs.assert_not_called()
+
+    def test_missing_native_probe_api_or_load_failure_is_closed(self):
+        for kernel in (SimpleNamespace(), SimpleNamespace(GetModuleHandleW=mock.Mock()),
+                       OSError("unavailable")):
+            with self.subTest(kernel=kernel):
+                self.setUp()
+                self.app.RevisionNumber = "33.5.0"
+                self.document.Save3 = mock.Mock()
+                self.extension.SaveAs = mock.Mock()
+                loader = mock.Mock(side_effect=kernel) if isinstance(kernel, Exception) else mock.Mock(return_value=kernel)
+                with mock.patch.object(adapter.sys, "platform", "win32"), \
+                        mock.patch.object(adapter.ctypes, "WinDLL", create=True, new=loader):
+                    result = self.public(True, self.values())
+                self.assertEqual(result["error"]["type"], "DimensionFormatNotCalibrated")
+                self.assertEqual(result["mutation"], {"attempted": False, "may_have_changed": False})
+                self.assertFalse(self.fixture.modified)
+                self.fixture.assert_no_setters()
+                self.document.Save3.assert_not_called()
+                self.extension.SaveAs.assert_not_called()
 
     def test_native_windows_evidence_does_not_enable_wine_or_unknown_platform(self):
         self.app.RevisionNumber = "33.test"

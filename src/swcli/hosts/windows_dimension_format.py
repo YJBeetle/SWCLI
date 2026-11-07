@@ -23,12 +23,24 @@ class DimensionFormatNotCalibrated(RuntimeError):
 
 
 def _native_windows():
-    # Windows evidence does not enable this path on Wine. Use the same ntdll
-    # export distinction as windows_tray, but fail closed if detection fails.
     if sys.platform != "win32":
         return False
     try:
-        return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+        module = kernel.GetModuleHandleW
+        module.argtypes = [wintypes.LPCWSTR]
+        module.restype = wintypes.HMODULE
+        lookup = kernel.GetProcAddress
+        lookup.argtypes = [wintypes.HMODULE, wintypes.LPCSTR]
+        lookup.restype = ctypes.c_void_p
+        ntdll = module("ntdll.dll")
+        if not ntdll or not lookup(ntdll, b"NtClose"):
+            return False
+        ctypes.set_last_error(0)
+        wine = lookup(ntdll, b"wine_get_version")
+        error = ctypes.get_last_error()
+        return not wine and error == 127  # ERROR_PROC_NOT_FOUND
     except Exception:
         return False
 
