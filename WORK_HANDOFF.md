@@ -23,6 +23,8 @@ PYTHONPATH="$evidence_root/audit-source-295e89f/src:$evidence_root/audit-source-
   --output /private/tmp/swcli-public-quality-review-audit.json
 ```
 
+新必要公开 gate 已派发一次，精确 head 为 `950c83396784a9f647e9ea0d06d1771a5f00d1c5`，运行地址 https://github.com/YJBeetle/SWCLI/actions/runs/42361573569。使用既有 `image_quality_public_acceptance=true`、`native_full=false` 和独立并发组。请求与返回保存在 `dispatch-public-strict-native-request.json`、`dispatch-public-strict-native-result.json`。当前 source tip 需待该 gate 完成后核原件，统筹本人最终 review。
+
 后续段落保留过程记录，以本节为当前状态。
 
 ## 当前状态：内部属性通过，进入公开验收
