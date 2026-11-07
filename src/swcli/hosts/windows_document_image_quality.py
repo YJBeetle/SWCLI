@@ -31,11 +31,24 @@ def _public_runtime(app):
             or sys.version_info[:3] != (3, 12, 10) or sysconfig.get_platform() != "win-amd64"):
         return False
     try:
-        ntdll = ctypes.WinDLL("ntdll.dll")
-    except (AttributeError, OSError):
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+        module = kernel.GetModuleHandleW
+        module.argtypes = [wintypes.LPCWSTR]
+        module.restype = wintypes.HMODULE
+        lookup = kernel.GetProcAddress
+        lookup.argtypes = [wintypes.HMODULE, wintypes.LPCSTR]
+        lookup.restype = ctypes.c_void_p
+        ntdll = module("ntdll.dll")
+        if not ntdll or not lookup(ntdll, b"NtClose"):
+            return False
+        ctypes.set_last_error(0)
+        wine = lookup(ntdll, b"wine_get_version")
+        if wine or ctypes.get_last_error() != 127:
+            return False
+    except Exception:
         return False
-    return (getattr(ntdll, "wine_get_version", None) is None
-            and _com_value(app, "RevisionNumber") == "33.5.0")
+    return _com_value(app, "RevisionNumber") == "33.5.0"
 
 
 def _public_custom_target(before, value):

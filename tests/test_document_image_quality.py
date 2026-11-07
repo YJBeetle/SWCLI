@@ -1,4 +1,5 @@
 """Portable image-quality safety/contracts; these mocks are not native evidence."""
+from contextlib import ExitStack
 from copy import deepcopy
 import json
 import math
@@ -73,23 +74,59 @@ class ImageQualityTests(unittest.TestCase):
         self.document.SetSaveFlag.assert_not_called()
         self.app.ActivateDoc3.assert_not_called()
 
-    def test_public_runtime_rejects_wine_other_revisions_and_python_versions(self):
+    def test_public_runtime_requires_known_export_and_explicit_wine_export_absence(self):
         app = SimpleNamespace(RevisionNumber="33.5.0")
+        kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=101),
+            GetProcAddress=mock.Mock(side_effect=[202, None]))
         with mock.patch.object(adapter.sys, "platform", "win32"), \
                 mock.patch.object(adapter.sys, "version_info", (3, 12, 10)), \
                 mock.patch.object(adapter.sysconfig, "get_platform", return_value="win-amd64"), \
-                mock.patch.object(adapter.ctypes, "WinDLL", create=True) as dll:
-            dll.return_value = SimpleNamespace()
+                mock.patch.object(adapter.ctypes, "WinDLL", create=True, return_value=kernel) as dll, \
+                mock.patch.object(adapter.ctypes, "set_last_error", create=True) as reset, \
+                mock.patch.object(adapter.ctypes, "get_last_error", create=True, return_value=127):
             self.assertTrue(adapter._public_runtime(app))
-            dll.return_value = SimpleNamespace(wine_get_version=object())
-            self.assertFalse(adapter._public_runtime(app))
-            dll.return_value = SimpleNamespace()
+            dll.assert_called_once_with("kernel32.dll", use_last_error=True)
+            reset.assert_called_once_with(0)
+            kernel.GetModuleHandleW.assert_called_once_with("ntdll.dll")
+            self.assertEqual(kernel.GetProcAddress.call_args_list,
+                [mock.call(101, b"NtClose"), mock.call(101, b"wine_get_version")])
+            kernel.GetProcAddress.side_effect = [202, None]
             app.RevisionNumber = "33.5.1"
             self.assertFalse(adapter._public_runtime(app))
             with mock.patch.object(adapter.sys, "version_info", (3, 12, 9)):
                 dll.reset_mock()
                 self.assertFalse(adapter._public_runtime(app))
                 dll.assert_not_called()
+
+    def test_unknown_native_probes_refuse_without_preference_setter_dirty_or_save(self):
+        cases = [dict(platform="darwin"), dict(module=0), dict(known=0),
+            dict(wine=303, error=0), dict(error=0), dict(error=5),
+            dict(loader_error=OSError("loader failure")), dict(empty=True),
+            dict(lookup_error=RuntimeError("unknown lookup")), dict(error_error=RuntimeError("unknown last error"))]
+        for case in cases:
+            with self.subTest(case=case), ExitStack() as stack:
+                self.setUp()
+                self.document.SaveAs3 = mock.Mock()
+                kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=case.get("module", 101)),
+                    GetProcAddress=mock.Mock(side_effect=case.get("lookup_error") or
+                        (lambda module, name: case.get("known", 202) if name == b"NtClose" else case.get("wine"))))
+                stack.enter_context(mock.patch.dict(os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION=""))
+                stack.enter_context(mock.patch.object(adapter.sys, "platform", case.get("platform", "win32")))
+                stack.enter_context(mock.patch.object(adapter.sys, "version_info", (3, 12, 10)))
+                stack.enter_context(mock.patch.object(adapter.sysconfig, "get_platform", return_value="win-amd64"))
+                stack.enter_context(mock.patch.object(adapter.ctypes, "WinDLL", create=True,
+                    return_value=SimpleNamespace() if case.get("empty") else kernel,
+                    side_effect=case.get("loader_error")))
+                stack.enter_context(mock.patch.object(adapter.ctypes, "set_last_error", create=True))
+                stack.enter_context(mock.patch.object(adapter.ctypes, "get_last_error", create=True,
+                    return_value=case.get("error", 127), side_effect=case.get("error_error")))
+                result = self.edit()
+                self.assertEqual(result["error"]["type"], "DocumentImageQualityUnsupported", result)
+                self.assertEqual(result["mutation"], dict(attempted=False, may_have_changed=False))
+                self.assert_no_mutation()
+                self.document.SaveAs3.assert_not_called()
+                for kind in ("Integer", "Double", "Toggle"):
+                    getattr(self.extension, "GetUserPreference" + kind).assert_not_called()
 
     def test_public_custom_requires_exact_native_profile_and_target(self):
         self.native[44] = 2

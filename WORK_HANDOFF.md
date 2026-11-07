@@ -2,6 +2,29 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 最新公开审计与宿主探针修复
+
+- 公开 run [42305767940](https://github.com/YJBeetle/SWCLI/actions/runs/42305767940) 的精确 head 为 `295e89fe3512744a13f23ac85aee14878a1bc5ce`，conclusion 为 success。原 artifact 13547501819，1229135 bytes，SHA-256 `8850316ff4852c4bfc39a5246fb0dd8e3392822ce9e412549292bacab8abe457`。
+- 原件位于 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42305767940`。ZIP、metadata、download receipt 和解压 original 均保留。`independent-public-audit.json` 和补核 runtime 路径的 `independent-public-runtime-audit.json` 均通过。审计使用 `git archive 295e89f src scripts/ci` 导出的 `audit-source-295e89f`，源码与 run 绑定。
+- 核验 8 个 SLDPRT 文件 hash/大小、圆柱和方盒 baseline 及 coarse/fine/custom 完整 raw 另存重开、fresh readonly/writable 身份、58 条 CLI 原生 trace、2 次 SDK 读取、2 次 MCP 读取及 live schema、16 次解析几何对照、生命周期清理。公开 changed 请求 10 次、noop 16 次、完整 CAS 拒绝 2 次。28 次写请求均经过公开 runtime guard。SDK/MCP 的原生证据覆盖读取与 schema 发现，写入行为由公开 CLI 覆盖。
+- 统筹随后指出 `getattr(ntdll, wine_get_version, None)` 会把未知查询失败误认为 Wine 导出不存在。原 295e89f 的功能验收仍保留，当前新增宿主探针修复待必要公开 gate。可合 tip 需待新 gate 审计并由统筹最终 review。
+- 修复复用 main 已合 `windows_stl_options.py` 的严格协议。kernel32 获取 ntdll module，先确认已知 `NtClose` 导出，清零 last_error 后查 Wine 导出，仅在导出为空且 error=127 时允许。未知、非127、无module/已知导出、空loader对象均拒绝，Python/版本限制继续执行。新增真实 handler 路径反例核零 preference getter/setter、零 dirty/save 和 mutation 双 false，定向54项通过。完整1860项通过，32项跳过，47.674s，原日志`portable-quality-strict-native-probe.log`。
+- GLB 独立原文件仍缺 BIN。42301795947 的诊断文件为3816 bytes，JSON声明buffer 3696 bytes，实际BIN 0，SHA-256 `be886c6cb8853fc6e4c516531ed08a874894749bf0e375e7337f434a104e9c51`。与42265919228原输出逐字节相同。导出参数与渲染细分控制仍无验收通过结论。
+
+公开旧原件离线复核命令如下。`--output` 使用新路径，已有回执保留。
+
+```sh
+evidence_root='/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107'
+PYTHONPATH="$evidence_root/audit-source-295e89f/src:$evidence_root/audit-source-295e89f/scripts/ci" \
+/private/tmp/swcli-a14-test-env/bin/python "$evidence_root/audit-image-quality-artifact.py" \
+  --root "$evidence_root/run-42305767940" \
+  --source "$evidence_root/audit-source-295e89f" \
+  --head 295e89fe3512744a13f23ac85aee14878a1bc5ce --profile public \
+  --output /private/tmp/swcli-public-quality-review-audit.json
+```
+
+后续段落保留过程记录，以本节为当前状态。
+
 ## 当前状态：内部属性通过，进入公开验收
 
 - [42301795947](https://github.com/YJBeetle/SWCLI/actions/runs/42301795947) 精确 head `0a5afc1508574800adb2c82561a9b1d32fe8b979`。原 artifact 13546105488，1641461 bytes，SHA-256 `c49857f607eb2efc09b16c5366a46f4e08685f0341fba46168ce95940ff77b0a`。原件及独立审计位于持久根 `run-42301795947`。后续段落为历史。

@@ -1,8 +1,9 @@
 # Part Image Quality and GLB evidence boundary
 
 The internal part display-quality group passed on SOLIDWORKS 33.5.0 with native
-Windows CPython 3.12.10 x64. The same scope is enabled for a separate public
-acceptance run. GLB format options remain unsupported.
+Windows CPython 3.12.10 x64. Public run 42305767940 passed the same property scope, including installed
+CLI persistence, SDK and MCP reads, native trace and cleanup. A stricter native
+host probe correction is pending a fresh public gate. GLB format options remain unsupported.
 
 ## Public contract
 
@@ -131,16 +132,15 @@ remains unverified. No exporter correction follows from the filename experiment.
 The 33.5.0 Integer-custom failure is preserved in run 42271766677: coarse and
 fine had saved/reopened successfully; setting Integer 44 to 3 returned True but
 left both the raw mode (2) and deviation unchanged. The official enumeration
-explicitly directs custom values to `swImageQualityShadedDeviation`. The next
-single-Double calibration must prove its linked custom classification; neither
-the True return nor the documented route alone is accepted as native proof.
+explicitly directs custom values to `swImageQualityShadedDeviation`. The subsequent internal and public runs proved the two admitted fine-to-custom
+transitions through single-Double calls and raw save/reopen checks.
 
 
 The prepared separate public gate clears both internal switches. In addition to
 installed CLI persistence and SDK observation, it discovers the live write
 request/result schemas through the MCP bridge and reads the exact background
-handle through MCP, checking raw quality and native trace. This path has not yet
-passed native acceptance. A cleanup failure clears every acceptance flag.
+handle through MCP, checking raw quality and native trace. Run 42305767940 passed this path at head 295e89f. Its original ZIP SHA-256 is
+`8850316ff4852c4bfc39a5246fb0dd8e3392822ce9e412549292bacab8abe457`. A cleanup failure clears every acceptance flag.
 
 Run 42280265165 subsequently failed the unchanged strict readback check: a
 single Double request for 0.06927710843373494 mm returned True and selected
@@ -154,3 +154,9 @@ a quantization grid or prove arbitrary in-range values are exactly writable.
 The original failure ZIP and first-failure audit are preserved under
 run-42280265165 in the handoff artifact directory. The subsequent property-only
 audit of run 42301795947 verified both fixtures and the two observed targets.
+
+The runtime probe now resolves the known ntdll export `NtClose` before checking
+`wine_get_version` through `GetProcAddress`. A missing Wine export authorizes
+the native profile only when the recorded last error is 127. Unknown lookup
+results refuse the operation before preference access. This correction requires
+a new public acceptance run after the successful 295e89f artifact audit.
