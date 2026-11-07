@@ -156,7 +156,7 @@ class DedicatedWorkflow(unittest.TestCase):
         self.assertLess(job.index('--check-dependency'), job.index('secrets.'))
         self.assertIn('ref: ${{ github.sha }}', job)
         self.assertLess(job.index('--check-context'), job.index('secrets.'))
-        self.assertIn('default: false\n        type: boolean\n      docprops_expected_head:', workflow)
+        self.assertIn('default: false\n        type: boolean\n      docprops_public_scope:', workflow)
         self.assertNotIn('pull_request_target:', workflow)
         self.assertNotIn('smoke-solidworks.ps1', job)
         self.assertNotIn('Upload private installer logs', job)

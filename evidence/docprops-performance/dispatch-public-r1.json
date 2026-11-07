@@ -15,7 +15,7 @@
   "native_artifact_id": 13538635862,
   "native_artifact_sha256": "13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d",
   "reason_for_validation": "required existing public CLI daemon SDK MCP acceptance after independently audited full native proof",
-  "status": "dispatch-accepted",
+  "status": "completed",
   "public_acceptance_verified": false,
   "full_acceptance_eligible": false,
   "dispatch_exit_code": 0,
@@ -27,5 +27,12 @@
   "handoff_snapshot_utc": "2026-11-06T21:58:36.511434+00:00",
   "handoff_run_status": "in_progress",
   "handoff_run_conclusion": "",
-  "continuous_polling": false
+  "continuous_polling": false,
+  "conclusion": "success",
+  "artifact_id": 13546905902,
+  "artifact_sha256": "76a348687c452ef63be0bf3626e12bd441ae3cc1696c4192ef794d45cbbd34f9",
+  "first_layer_audit_success": true,
+  "accepted_source_head": "9a32b685908e83026fd51313eedd03a37b2a4e04",
+  "scope": "standards only, before review guard fixes",
+  "full_batch_acceptance": false
 }

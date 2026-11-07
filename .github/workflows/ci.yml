@@ -55,6 +55,15 @@ on:
         required: false
         default: false
         type: boolean
+      docprops_public_scope:
+        description: Existing batch public profile groups
+        required: false
+        default: standards
+        type: choice
+        options:
+          - standards
+          - fonts-display
+          - batch
       docprops_expected_head:
         description: Exact 40-character head for dedicated calibration (required when opted in)
         required: false
@@ -502,7 +511,7 @@ jobs:
     name: ${{ inputs.docprops_public && 'Public standard CLI daemon SDK MCP verification' || 'Internal owned standards-36 performance calibration' }}
     if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'YJBeetle/SWCLI' && github.ref == 'refs/heads/codex/docprops-calibration-performance' && (inputs.docprops_calibration != inputs.docprops_public) && !inputs.native_full && inputs.docprops_expected_head == github.sha }}
     runs-on: windows-2025
-    timeout-minutes: ${{ inputs.docprops_public && 170 || 110 }}
+    timeout-minutes: ${{ inputs.docprops_public && (inputs.docprops_public_scope == 'batch' && 230 || 170) || 110 }}
     permissions:
       contents: read
       actions: read
@@ -695,7 +704,7 @@ jobs:
       - name: Verify public standard CLI daemon SDK MCP groups
         id: docprops_public
         if: ${{ inputs.docprops_public }}
-        timeout-minutes: 105
+        timeout-minutes: ${{ inputs.docprops_public_scope == 'batch' && 165 || 105 }}
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -704,7 +713,8 @@ jobs:
           python -I scripts/ci/verify-document-properties-public.py `
             --expected-head "$env:DOC_PROPS_EXPECTED_HEAD" `
             --artifact-root "$env:RUNNER_TEMP\swcli-docprops-verified-inputs" `
-            --output-dir "$env:SWCLI_SMOKE_ROOT\public"
+            --output-dir "$env:SWCLI_SMOKE_ROOT\public" `
+            --scope "${{ inputs.docprops_public_scope }}"
           if ($LASTEXITCODE -ne 0) { throw "Public standard group failed; preserve originals; no retry or host restart" }
 
       - name: Measure streamed data and remaining disk

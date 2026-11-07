@@ -1,0 +1,16 @@
+{
+  "run_id": 42300958960,
+  "run_attempt": 1,
+  "source_head": "9a32b685908e83026fd51313eedd03a37b2a4e04",
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42300958960",
+  "artifact_id": 13546905902,
+  "artifact_sha256": "76a348687c452ef63be0bf3626e12bd441ae3cc1696c4192ef794d45cbbd34f9",
+  "first_layer_audit": "evidence/docprops-performance/run-42300958960-audit.json",
+  "completed_standard_transitions": 36,
+  "saved_readonly_copies": 36,
+  "sdk_mcp_reads": 6,
+  "replayed_requests": 345,
+  "host_revision": "33.5.0",
+  "full_batch_acceptance": false,
+  "scope": "standard public gate succeeded at exact source head; later native-host/peer guard fixes require corresponding public revalidation; final independent review by coordinator"
+}

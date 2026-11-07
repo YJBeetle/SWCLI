@@ -4,17 +4,21 @@ import unittest
 from unittest.mock import Mock, patch
 
 from swcli.hosts import windows_document_drafting_standard as adapter
+from swcli.hosts import windows_document_preferences_guard as guard
 import test_document_drafting_standard as portable
 
 
 class StandardNativeScope(unittest.TestCase):
     def check(self, platform='win32', revision='33.5.0', *, wine=False, loader_error=False):
         app = SimpleNamespace(RevisionNumber=Mock(spec=lambda: None, return_value=revision))
-        ntdll = SimpleNamespace(**({'wine_get_version': object()} if wine else {}))
-        with patch.object(adapter.sys, 'platform', platform), patch.object(
-                adapter.ctypes, 'WinDLL', create=True, return_value=ntdll,
+        kernel = SimpleNamespace(GetModuleHandleW=Mock(return_value=1),
+            GetProcAddress=Mock(side_effect=lambda handle,name: 1 if name==b'NtClose' or wine else 0))
+        with patch.object(guard.sys, 'platform', platform), patch.object(
+                guard.ctypes, 'WinDLL', create=True, return_value=kernel,
                 side_effect=OSError('loader unavailable') if loader_error else None), patch.object(
-                adapter, 'CALIBRATED_DRAFTING_WINDOWS_REVISIONS', ('33.5.0',)):
+                guard.ctypes, 'set_last_error', create=True), patch.object(
+                guard.ctypes, 'get_last_error', create=True, return_value=127), patch.object(
+                guard, 'CALIBRATED_DRAFTING_WINDOWS_REVISIONS', ('33.5.0',)):
             adapter._require_calibrated_native_host(app)
         return app
 
@@ -22,12 +26,12 @@ class StandardNativeScope(unittest.TestCase):
         app = self.check()
         app.RevisionNumber.assert_called_once_with()
         for revision in ('33.5.1', '34.0.0', '33.5', 33, None):
-            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, 'native host'):
+            with self.subTest(revision=revision), self.assertRaisesRegex(ValueError, 'native'):
                 self.check(revision=revision)
 
     def test_wine_nonwindows_and_unreadable_detection_are_closed(self):
         for options in ({'wine': True}, {'platform': 'darwin'}, {'platform': 'linux'}, {'loader_error': True}):
-            with self.subTest(options=options), self.assertRaisesRegex(ValueError, 'native host'):
+            with self.subTest(options=options), self.assertRaisesRegex(ValueError, 'native'):
                 self.check(**options)
 
     def test_transition_allowlist_alone_cannot_enable_unproven_host_mutation(self):

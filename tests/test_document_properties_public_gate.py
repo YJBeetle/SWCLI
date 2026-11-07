@@ -227,3 +227,59 @@ class CommittedNativeScope(unittest.TestCase):
         self.assertEqual(result['mutation'], {'attempted': False, 'may_have_changed': False})
         host.assert_not_called()
         fixture.assert_no_mutation()
+
+
+class CompleteBatchGroups(unittest.TestCase):
+    def run_mock(self, scope, fail=None):
+        calls=[]
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            class Daemon:
+                pid=123
+                def __init__(self, cmd, **kwargs):
+                    calls.append('start');kwargs['stdout'].write(b'{"action": "daemon.serve"}');kwargs['stdout'].flush()
+                def poll(self):return None
+                def wait(self,timeout):return 0
+            def run(cmd,**kwargs):
+                if '--run-gate' not in cmd:calls.append('stop');return SimpleNamespace(returncode=0)
+                profile=cmd[cmd.index('--profile')+1];calls.append((profile,kwargs['timeout']))
+                if profile==fail:return SimpleNamespace(returncode=1)
+                output=Path(cmd[cmd.index('--output-dir')+1]);output.mkdir()
+                kinds=[int(cmd[cmd.index('--kind')+1])] if '--kind' in cmd else [1,2,3]
+                cases=[]
+                for kind in kinds:
+                    count=12 if profile=='standards' else 7 if profile=='fonts' else 5 if kind==3 else 10
+                    cases.append({'document_type':kind,'writes':[{}]*count,'saved_copies':[{}]*(count if profile!='display' else 1)})
+                (output/('document-preferences-'+profile+'.json')).write_text(json.dumps({'success':True,'preference_cases':cases,'sdk_mcp_contracts':[{}]*len(cases),'host':{'pid':42},'host_after':{'pid':42}}))
+                return SimpleNamespace(returncode=0)
+            with patch.object(public.subprocess,'Popen',Daemon),patch.object(public.subprocess,'run',side_effect=run):
+                result=public.run_public(root/'out',root/'fixtures','a'*40,scope)
+            return result,calls
+
+    def test_batch_retains_each_1800_budget_and_single_owned_daemon(self):
+        result,calls=self.run_mock('batch');self.assertEqual(result,0)
+        self.assertEqual(calls,['start',('standards',1800),('standards',1800),('standards',1800),('fonts',1800),('display',1800),'stop'])
+
+    def test_fonts_failure_stops_display_without_restart(self):
+        result,calls=self.run_mock('fonts-display','fonts');self.assertEqual(result,1)
+        self.assertEqual(calls,['start',('fonts',1800),'stop'])
+
+
+class FontDisplayContractComposition(unittest.TestCase):
+    def test_existing_sdk_mcp_reads_match_each_profile_business_schema(self):
+        import copy
+        import test_document_annotation_fonts as ft
+        import test_document_display_options as dt
+        from swcli.hosts import windows_document_annotation_fonts as fa
+        for profile,cls,method,set_name,cas in [('fonts',ft.DocumentAnnotationFontTests,'annotation_font','annotation-font-set','expected_font'),('display',dt.DocumentDisplayOptionsTests,'display_options','display-option-set','expected_value')]:
+            with self.subTest(profile=profile),tempfile.TemporaryDirectory() as folder:
+                f=cls();f.setUp();self.addCleanup(f.doCleanups)
+                before=fa.read_document_annotation_font_windows(app=f.app,document=f.document) if profile=='fonts' else f.observe()
+                self.assertTrue(before['ok'])
+                before.update(session_id='contract',document={'document_id':'d-ab12cd','title':'part','path':'','type':1,'modified':False,'update_stamp':7,'active':False,'current':False})
+                client=SimpleNamespace(daemon=SimpleNamespace(capabilities=lambda **kwargs:SimpleNamespace(require_result=lambda:{'operation_schemas':{'document.'+set_name:{'required':['value',cas]}}})),document=SimpleNamespace(**{method:lambda **kwargs:SimpleNamespace(require_result=lambda:copy.deepcopy(before),request_id='sdk')}))
+                gate=SimpleNamespace(endpoint='127.0.0.1:1',session='contract',directory=Path(folder),record={'events':[]},background=lambda *args:None,checkpoint=lambda *args:None)
+                def async_result(coro):coro.close();return {**copy.deepcopy(before),'request_id':'mcp'}
+                trace=SimpleNamespace(verify=lambda g,p:{'request_id':g.record['events'][-1]['result']['request_id']})
+                with patch('swcli.sdk.Client',return_value=client),patch.object(public.asyncio,'run',side_effect=async_result):public.contract_probe(gate,trace,profile,'d-ab12cd',before)
+                self.assertEqual(len(gate.record['sdk_mcp_contracts']),1)

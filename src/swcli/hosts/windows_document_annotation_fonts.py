@@ -14,7 +14,9 @@ from ..document_annotation_fonts import (
 )
 from .native_trace import native_call
 from .windows import _com_value, _error
-from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
+from .windows_custom_properties import _require_writable, _state
+from .windows_document_preferences_guard import (capture_foreground, verify_metadata_state as _verify_metadata_state,
+                                                 require_calibrated_native_host as _require_calibrated_native_host)
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
 
 
@@ -47,7 +49,7 @@ def _read_font(document):
 def read_document_annotation_font_windows(*, app: Any, document: Any) -> dict:
     result = {"ok": False, "action": "document.annotation-font"}
     try:
-        foreground = _com_value(app, "ActiveDoc")
+        foreground = capture_foreground(app, document)
         edit = _edit_context(document)
         state = _state(document)
         _verify_context(app, document, edit)
@@ -74,7 +76,7 @@ def set_document_annotation_font_windows(
     try:
         validate_annotation_font_value(field, value)
         validate_annotation_font_snapshot(expected_font)
-        foreground = _com_value(app, "ActiveDoc")
+        foreground = capture_foreground(app, document)
         edit = _edit_context(document)
         _require_writable(document)
         state = _state(document)
@@ -90,6 +92,7 @@ def set_document_annotation_font_windows(
             result.update(ok=True, font=before, native_font=native_before, changed=False,
                           native_normalizations=[])
             return result
+        _require_calibrated_native_host(app)
         if not _writable_context(app, edit):
             raise ValueError("annotation font editing requires a normal drawing sheet or no active model sketch")
         member = ANNOTATION_FONT_MEMBERS[field]

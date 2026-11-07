@@ -20,7 +20,9 @@ from ..document_drafting_standard import (
 )
 from .native_trace import native_call
 from .windows import _com_value, _error
-from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
+from .windows_custom_properties import _require_writable, _state
+from .windows_document_preferences_guard import (capture_foreground, verify_metadata_state as _verify_metadata_state,
+                                                 require_calibrated_native_host as _require_calibrated_native_host)
 from .windows_document_annotation_fonts import _read_font
 from .windows_document_annotations import (
     _edit_context, _read_options as _read_annotations, _verify_context, _writable_context,
@@ -35,13 +37,13 @@ class DocumentDraftingStandardConflict(RuntimeError):
 
 
 def _capture_state(app, document, *, writable=False):
-    foreground = _com_value(app, "ActiveDoc")
+    foreground = capture_foreground(app, document)
     edit = _edit_context(document)
     if writable:
         _require_writable(document)
     state = _state(document)
     _verify_context(app, document, edit)
-    if not _same(app, foreground, _com_value(app, "ActiveDoc")):
+    if not _same(app, foreground[0], _com_value(app, "ActiveDoc")):
         raise RuntimeError("document foreground changed while capturing drafting metadata state")
     _verify_metadata_state(app, document, state, foreground, changed=False)
     return state, foreground, edit
@@ -148,24 +150,6 @@ def read_document_drafting_standard_windows(*, app: Any, document: Any) -> dict:
     except Exception as exc:
         result["error"] = _error(exc)
     return result
-
-
-def _require_calibrated_native_host(app):
-    # No Windows calibration is promoted to Wine or another revision. Unknown
-    # native-runtime detection is closed. The export check mirrors the existing
-    # Windows tray detector, without treating loader failure as native Windows.
-    message = "drafting-standard changes require calibration for this native host"
-    if sys.platform != "win32":
-        raise ValueError(message)
-    try:
-        ntdll = ctypes.WinDLL("ntdll")
-    except (AttributeError, OSError) as error:
-        raise ValueError(message) from error
-    if getattr(ntdll, "wine_get_version", None) is not None:
-        raise ValueError(message)
-    revision = _com_value(app, "RevisionNumber")
-    if type(revision) is not str or revision not in CALIBRATED_DRAFTING_WINDOWS_REVISIONS:
-        raise ValueError(message)
 
 
 def set_document_drafting_standard_windows(

@@ -1,3 +1,4 @@
+from preference_guard_fakes import preference_peer
 """Portable guard tests; these mocks do not establish native font behavior."""
 
 from types import SimpleNamespace
@@ -60,7 +61,11 @@ class DocumentAnnotationFontTests(unittest.TestCase):
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)),
         )
-        self.foreground = object()
+        self.document.GetTitle = lambda: 'target'
+        self.document.GetPathName = lambda: ''
+        self.guard_patch = mock.patch.object(adapter, '_require_calibrated_native_host', return_value=None)
+        self.guard_patch.start(); self.addCleanup(self.guard_patch.stop)
+        self.foreground = preference_peer()
         self.app = SimpleNamespace(ActiveDoc=self.foreground,
                                    IsSame=lambda first, second: int(first is second),
                                    ActivateDoc3=mock.Mock())

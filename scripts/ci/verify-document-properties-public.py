@@ -1,6 +1,7 @@
 """Bounded public standard CLI/daemon + SDK/MCP proof after audited native proof.
 
-Three explicitly independent 1800-second document-kind groups, 12 writes each.
+Standard kind groups and existing font/display profile groups each retain
+independent 1800-second budgets. Explicit batch scope covers all five groups.
 One owned hidden daemon is retained across the groups. No API retry or restart.
 Absent committed native success proof or exact whitelist => fail before startup.
 """
@@ -118,13 +119,17 @@ def contract_probe(gate, trace, profile, document, before):
     """One typed SDK read + one MCP read per kind; neither starts/writes CAD."""
     from swcli.sdk import Client
     from swcli.result_schemas import validate_operation_result
-    checked(profile == 'standards', 'this contract probe is standards-only')
-    checked(before['standard'] == {'value': 'gb', 'native_value': 7}, 'audited GB baseline was not retained before public writes')
+    names = {'standards': ('drafting-standard', 'drafting_standard', 'drafting-standard-set', 'expected_snapshot', ('standard','observed_defaults','document')),
+             'fonts': ('annotation-font','annotation_font','annotation-font-set','expected_font',('font','native_font','document')),
+             'display': ('display-options','display_options','display-option-set','expected_value',('options','document'))}
+    read_name, sdk_name, set_name, cas_name, keys = names[profile]
+    if profile == 'standards':
+        checked(before['standard'] == {'value': 'gb', 'native_value': 7}, 'audited GB baseline was not retained before public writes')
     client = Client(endpoint=gate.endpoint, session_id=gate.session + '-sdk-contract', timeout_seconds=600)
-    capabilities = client.daemon.capabilities(include_schemas=True, operation='document.drafting-standard-set').require_result()
-    schema = capabilities['operation_schemas']['document.drafting-standard-set']
-    checked({'value', 'expected_snapshot'} <= set(schema['required']), 'installed writer CAS schema missing')
-    response = client.document.drafting_standard(document_id=document, expected_update_stamp=before['document']['update_stamp'])
+    capabilities = client.daemon.capabilities(include_schemas=True, operation='document.' + set_name).require_result()
+    schema = capabilities['operation_schemas']['document.' + set_name]
+    checked({'value', cas_name} <= set(schema['required']), 'installed writer CAS schema missing')
+    response = getattr(client.document, sdk_name)(document_id=document, expected_update_stamp=before['document']['update_stamp'])
     sdk = {**response.require_result(), 'request_id': response.request_id}
 
     async def mcp_read():
@@ -142,7 +147,7 @@ def contract_probe(gate, trace, profile, document, before):
                     tools = {tool.name: tool for tool in (await session.list_tools()).tools}
                     checked('execute' in tools and 'document_id' in tools['execute'].inputSchema['properties'],
                             'MCP execute document context schema missing')
-                    result = await session.call_tool('execute', {'operation': 'document.drafting-standard', 'parameters': {},
+                    result = await session.call_tool('execute', {'operation': 'document.' + read_name, 'parameters': {},
                         'session_id': gate.session + '-mcp-contract', 'document_id': document,
                         'expected_update_stamp': before['document']['update_stamp']})
                     checked(not result.isError and result.structuredContent['success'] is True, 'MCP standard read failed')
@@ -152,12 +157,12 @@ def contract_probe(gate, trace, profile, document, before):
     mcp_result = asyncio.run(mcp_read())
     proofs = []
     for name, result in (('sdk', sdk), ('mcp', mcp_result)):
-        validate_operation_result('document.drafting-standard',
+        validate_operation_result('document.' + read_name,
                                   {key: value for key, value in result.items() if key != 'request_id'})
-        checked(result['ok'] is True and canonical({key: result[key] for key in ('standard', 'observed_defaults', 'document')})
-                == canonical({key: before[key] for key in ('standard', 'observed_defaults', 'document')}),
+        checked(result['ok'] is True and canonical({key: result[key] for key in keys})
+                == canonical({key: before[key] for key in keys}),
                 name + ' read differs from public CLI snapshot/state')
-        gate.record['events'].append({'command': [name, 'document', 'drafting-standard'], 'result': result})
+        gate.record['events'].append({'command': [name, 'document', read_name], 'result': result})
         proof = trace.verify(gate, profile)
         gate.background(result, document)
         proofs.append({'transport': name, 'response': result, 'native_trace': proof})
@@ -165,19 +170,19 @@ def contract_probe(gate, trace, profile, document, before):
     gate.checkpoint('sdk-mcp-contracts-verified')
 
 
-def gate_group(output, fixtures, native_trace, kind, host_revision):
+def gate_group(output, fixtures, native_trace, kind, host_revision, profile="standards"):
     gate_module = load_script('_public_docprops_preference_gate', 'scripts/ci/verify-document-preferences.py')
-    item = next(row for row in gate_module.KINDS if row[1] == kind)
+    kinds = tuple(row for row in gate_module.KINDS if kind is None or row[1] == kind)
     output.mkdir(parents=True, exist_ok=False)
     gate = gate_module.support.AnnotationSmoke(directory=output, host_directory=str(output),
                                               endpoint=gate_module.support.modeling.DEFAULT_ENDPOINT)
-    gate.record_path = output / 'document-preferences-standards.json'
+    gate.record_path = output / ('document-preferences-' + profile + '.json')
     with gate.record_path.open('x', encoding='utf-8') as stream:
         json.dump(gate.record, stream)
     trace = gate_module.PreferenceTrace(native_trace)
     try:
         checked(gate.health()['host']['revision'] == host_revision, 'public host revision differs from audited native host')
-        gate_module.run(gate, fixtures, trace, 'standards', kinds=(item,), contract_probe=contract_probe)
+        gate_module.run(gate, fixtures, trace, profile, kinds=kinds, contract_probe=contract_probe)
     except BaseException as error:
         gate.record.update(state='failed', success=False, error={'type': type(error).__name__, 'message': str(error)})
         raise
@@ -191,10 +196,10 @@ def gate_group(output, fixtures, native_trace, kind, host_revision):
             'public standard kind/cleanup incomplete')
 
 
-def run_public(output, fixtures, expected_head):
+def run_public(output, fixtures, expected_head, scope="standards"):
     output.mkdir(parents=True, exist_ok=False)
     record = {'success': False, 'source_head': expected_head, 'full_acceptance_eligible': False,
-              'scope': 'public standard finite GB/named transitions, three independent 1800-second kind groups',
+              'scope': scope + ': explicit independent 1800-second groups',
               'groups': [], 'cleanup_errors': [], 'native_timeout_seconds': 600, 'group_timeout_seconds': 1800}
     stdout_path, stderr_path = output / 'daemon.stdout.log', output / 'daemon.stderr.log'
     daemon = None
@@ -211,20 +216,27 @@ def run_public(output, fixtures, expected_head):
                 checked(time.monotonic() < deadline, 'owned public daemon readiness deadline exceeded')
                 time.sleep(.2)
             anchor_host = None
-            for kind in (1, 2, 3):
-                group = {'document_type': kind, 'timeout_seconds': 1800, 'success': False}
+            plan = []
+            if scope in ('standards','batch'): plan += [('standards', kind, 'kind-' + str(kind)) for kind in (1,2,3)]
+            if scope in ('fonts-display','batch'): plan += [('fonts', None, 'fonts'), ('display', None, 'display')]
+            for profile, kind, label in plan:
+                group = {'profile': profile, 'document_type': kind, 'timeout_seconds': 1800, 'success': False}
                 record['groups'].append(group)
-                with (output / f'kind-{kind}.stdout.log').open('wb') as go, (output / f'kind-{kind}.stderr.log').open('wb') as ge:
+                with (output / (label + '.stdout.log')).open('wb') as go, (output / (label + '.stderr.log')).open('wb') as ge:
                     command = [sys.executable, '-I', str(Path(__file__)), '--expected-head', expected_head, '--run-gate',
-                               '--output-dir', str(output / f'kind-{kind}'), '--fixture-dir', str(fixtures),
-                               '--native-trace', str(stderr_path), '--kind', str(kind)]
+                               '--output-dir', str(output / label), '--fixture-dir', str(fixtures),
+                               '--native-trace', str(stderr_path), '--profile', profile]
+                    if kind is not None: command += ['--kind', str(kind)]
                     result = subprocess.run(command, stdout=go, stderr=ge, timeout=1800)
                 checked(result.returncode == 0, f'public kind {kind} failed; first failure stops the remaining kinds')
-                evidence = read_json(output / f'kind-{kind}/document-preferences-standards.json')
-                checked(evidence['success'] is True and len(evidence['preference_cases']) == 1
-                        and len(evidence['preference_cases'][0]['writes']) == 12
-                        and len(evidence['preference_cases'][0]['saved_copies']) == 12
-                        and len(evidence.get('sdk_mcp_contracts', [])) == 1, 'public 12-transition/contract coverage incomplete')
+                evidence = read_json(output / label / ('document-preferences-' + profile + '.json'))
+                cases = evidence['preference_cases']
+                checked(evidence['success'] is True and len(cases) == (1 if kind is not None else 3)
+                        and len(evidence.get('sdk_mcp_contracts', [])) == len(cases), 'public cases/contracts incomplete')
+                for case in cases:
+                    expected = 12 if profile == 'standards' else 7 if profile == 'fonts' else 5 if case['document_type'] == 3 else 10
+                    checked(len(case['writes']) == expected and len(case['saved_copies']) == (expected if profile != 'display' else 1),
+                            'public field/save coverage incomplete')
                 if anchor_host is None:
                     anchor_host = evidence['host']
                 checked(evidence['host'] == evidence['host_after'] == anchor_host and daemon.poll() is None,
@@ -258,14 +270,16 @@ def main(argv=None):
     parser.add_argument('--output-dir', type=Path)
     parser.add_argument('--fixture-dir', type=Path)
     parser.add_argument('--native-trace', type=Path)
+    parser.add_argument('--scope', choices=('standards','fonts-display','batch'), default='standards')
+    parser.add_argument('--profile', choices=('standards','fonts','display'), default='standards')
     parser.add_argument('--kind', type=int, choices=(1, 2, 3))
     args = parser.parse_args(argv)
     owner = load_script('_public_docprops_source_context', 'scripts/ci/verify-document-properties-calibration.py')
     context = owner.source_context(args.expected_head)
     proof = verified_proof()
     if args.run_gate:
-        checked(args.output_dir and args.fixture_dir and args.native_trace and args.kind, 'explicit gate inputs required')
-        gate_group(args.output_dir, args.fixture_dir, args.native_trace, args.kind, proof['host_revision'])
+        checked(args.output_dir and args.fixture_dir and args.native_trace and (args.kind or args.profile != 'standards'), 'explicit gate inputs required')
+        gate_group(args.output_dir, args.fixture_dir, args.native_trace, args.kind, proof['host_revision'], args.profile)
         return 0
     dependency = validate_dependency(proof)
     if args.check_dependency:
@@ -280,7 +294,7 @@ def main(argv=None):
     checked(workspace in args.output_dir.resolve().parents, 'public output must be below C:\\Workspace')
     prepared = prepare_fixtures(args.artifact_root, fixtures, proof)
     (fixtures / 'provenance.json').write_text(json.dumps({'public_context': context, 'dependency': dependency, **prepared}, indent=2)+'\n', encoding='utf-8')
-    code = run_public(args.output_dir, fixtures, args.expected_head)
+    code = run_public(args.output_dir, fixtures, args.expected_head, args.scope)
     (args.output_dir / 'fixture-provenance.json').write_text(json.dumps(prepared, indent=2)+'\n', encoding='utf-8')
     (args.output_dir / 'context.json').write_text(json.dumps({'public_context': context, 'dependency': dependency,
         'native_proof_sha256': hashlib.sha256(PROOF.read_bytes()).hexdigest()}, indent=2)+'\n', encoding='utf-8')
@@ -288,7 +302,7 @@ def main(argv=None):
               'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
              for p in sorted(args.output_dir.rglob('*')) if p.is_file()]
     (args.output_dir / 'manifest.json').write_text(json.dumps({'source_head': args.expected_head, 'files': files,
-        'group_design': 'three independent per-kind 1800-second public groups; not the internal single group',
+        'group_design': args.scope + ': independent 1800-second public groups, no internal group substitution',
         'full_acceptance_eligible': False}, indent=2)+'\n', encoding='utf-8')
     return code
 

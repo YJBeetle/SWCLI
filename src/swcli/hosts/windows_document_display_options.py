@@ -13,7 +13,9 @@ from ..document_display_options import (
 )
 from .native_trace import native_call
 from .windows import _com_value, _error
-from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
+from .windows_custom_properties import _require_writable, _state
+from .windows_document_preferences_guard import (capture_foreground, verify_metadata_state as _verify_metadata_state,
+                                                 require_calibrated_native_host as _require_calibrated_native_host)
 from .windows_document_annotations import _edit_context, _verify_context, _writable_context
 
 
@@ -54,7 +56,7 @@ def read_document_display_options_windows(
     result = {"ok": False, "action": "document.display-options"}
     try:
         preference_ids = resolve_display_preference_ids(_preference_ids)
-        foreground = _com_value(app, "ActiveDoc")
+        foreground = capture_foreground(app, document)
         edit = _edit_context(document)
         state = _state(document)
         _verify_context(app, document, edit)
@@ -78,7 +80,7 @@ def set_document_display_option_windows(
         validate_display_value(field, value)
         validate_display_value(field, expected_value, writable=False)
         preference_ids = resolve_display_preference_ids(_preference_ids)
-        foreground = _com_value(app, "ActiveDoc")
+        foreground = capture_foreground(app, document)
         edit = _edit_context(document)
         _require_writable(document)
         state = _state(document)
@@ -95,6 +97,7 @@ def set_document_display_option_windows(
         if _matches(field, before[field]["value"], value):
             result.update(ok=True, options=before, changed=False)
             return result
+        _require_calibrated_native_host(app)
         if not _writable_context(app, edit):
             raise ValueError("display editing requires a normal drawing sheet or no active model sketch")
         spec = DISPLAY_FIELDS[field]

@@ -1,3 +1,4 @@
+from preference_guard_fakes import preference_peer
 """Portable tests execute the real fixed reader; they are not native calibration."""
 
 from collections import Counter
@@ -60,7 +61,9 @@ class DocumentDraftingStandardTests(unittest.TestCase):
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda:setattr(self,'modified',True)),
         )
-        self.foreground=object()
+        self.document.GetTitle = lambda: 'target'
+        self.document.GetPathName = lambda: ''
+        self.foreground=preference_peer()
         self.app=SimpleNamespace(ActiveDoc=self.foreground,
             IsSame=lambda first,second:int(first is second),ActivateDoc3=mock.Mock(),
             SetUserPreferenceIntegerValue=mock.Mock())

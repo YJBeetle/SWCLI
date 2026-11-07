@@ -1,16 +1,14 @@
 # 文档属性校准性能：当前接管与验收边界
 
-## 当前汇总（2026-11-07，R5自验成功，必要公开gate已唯一触发）
+## 当前汇总（2026-11-07，标准公开成功；统筹review保护修复与全batch待验证）
 
-- 当前代码tip `9a32b685908e83026fd51313eedd03a37b2a4e04`（真实校准范围/proof登记）；内部原生依赖tip `cd624d95ea2a8f05553e39d6344b0c1f065b89aa`。未merge main、未发版，最终review由统筹本人执行，无审查子代理。
-- [R5 42281734865 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42281734865) 已success，exact head为上述实现tip；artifact `13538635862`，ZIP SHA256 `13c788ce8b69f84cfe0393f851f4e5876af01c4a1b4b9a5a5339cb458ea5108d` 与GitHub digest一致。
-- 原件76文件持久保留：`evidence/docprops-performance/run-42281734865-original.zip`、`run-42281734865-original/`；4项当时源码snapshot为 `run-42281734865-source/`。原件未改；完整metadata/audit已保存。独立首层自验：native_group_complete=true，first_failure=null，全部manifest文件hash/size及4源码Windows CRLF hash一致，owned清理成功。
-- 实际内部覆盖：独立准备组2 setter/15 profile，56.346s；随后原单组36 setter全部strict True、216固定profile、36保存RO完整，632.444s。两组同owned PID6592、revision `33.5.0`；主组hard1800/native600未改变，无retry/rollback/host重启。这是实测完成时间，不是跨机器加速倍数。
-- 仅登记 part/assembly/drawing × GB7↔ANSI1/ISO2/DIN3/JIS4/BSI5/GOST6 共36 tuple、`drafting-defaults-v1` 与原生Windows revision `33.5.0`；custom/unknown、任意named→named、Wine、未来revision不开放。成功proof `docs/calibration/docprops-performance-windows.json`，明确public_acceptance_verified=false/full_acceptance_eligible=false。
-- 公开依赖与真实artifact baseline复制预检通过；必要公开gate [42300958960 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42300958960) 已唯一触发，固定代码tip `9a32b685908e83026fd51313eedd03a37b2a4e04`，最后快照 in_progress，尚无成功结果；不能标记merge-ready或标准公开验收完成。完整portable 2159项 / 68.168s / skipped32通过，SDK生成/strict6文件/25负向消费者通过；已仅对此相关提交触发一次公开gate；正常运行记录链接/状态后结束等待，后续由统筹分次快照。
-- 无新公开operation/CLI/request-result schema/SDK/MCP字段；生产adapter完整源码与R5逐字节一致，指纹 `run-42281734865-reader-parity.json`。本轮生产改动仅有限校准数据；协议/lease/stamp/fullCAS/保护/partial receipt不改。
-- 原batch三对operation均保留：总字体七写字段、display十字段、standard有限转换。当前公开R1仅standard，不覆盖字体/显示写验收；这两组仍由本路继续收口，统筹最终review，不能因任务名performance漏项或后置发版。详见文末责任/缺口清单。
-- 待审批/自动审批拒绝：无。无本地VM、DockerSW/MacSW或其他worktree操作，无新增功能/计划，不rebase统筹当前main，不重复dispatch、不持续轮询、不创建单任务automation。
+- 标准公开 [42300958960 / attempt1](https://github.com/YJBeetle/SWCLI/actions/runs/42300958960) 在exact代码 `9a32b685908e83026fd51313eedd03a37b2a4e04` 已success。artifact `13546905902` ZIP SHA256 `76a348687c452ef63be0bf3626e12bd441ae3cc1696c4192ef794d45cbbd34f9` 与GitHub一致；原件保存 `evidence/docprops-performance/run-42300958960-original.zip` 与 `run-42300958960-original/`，首层自验 `run-42300958960-audit.json`。
+- 首层自验重放345个请求、三类各12转换和12保存RO，SDK/MCP共6读，same owned hidden host4328/revision33.5.0；三组184.714/202.909/228.236秒、cleanup=[]。manifest全部hash/size匹配。使用既有严格PreferenceTrace重放，明确不是统筹最终独立review。
+- 统筹随后发现的保护缺口已修到三组：严格kernel32 GetModuleHandleW(ntdll.dll)+已知NtClose存在+Wine导出缺失且last_error127才判native，未知拒绝；前台peer的native身份/state/title/path/extension/edit context/permissions与目标identity在各metadata守卫重复验证，SetSaveFlag前再核peer。首错与partial mutation保留，无retry/rollback。
+- 字体七字段/显示十字段仍由本路负责既定公共门禁：接线batch scope，一次run依次标准3个kind组、fonts全P/A/D组、display全P/A/D组，各独立1800秒/请求600，共用一个owned隐藏daemon，首失败停止。fonts21字段写逐字段saveRO、display25适用写和每类最终saveRO，均实际SDK/MCP读且业务schema/CLI快照/trace对齐。无新增API/字段，D的plane仍拒绝。
+- 新source完整portable2164项/64.601s/skip32通过；随后补充dirty前漂移/首错反例和fonts/display契约测试分别5/15项通过，actionlint及SDK strict6文件/25负向消费者通过。原36 tuple/33.5.0名单、固定reader/profile不扩。
+- 修复前标准成功不能直接证明新guard；将只对相关修复新head触发一次batch验证，覆盖必要标准复验及尚未完成fonts/display，不重跑内部R5、不派多个无差异run。运行正常记录链接后停止，不持续watch。
+- **全batch尚非merge-ready**；三个operation pair一起验收后交统筹本人最终review/逐条合并/全系列发版，不把字体/显示后置发版。不操作main/版本/VM/DockerSW/MacSW/其他worktree，无审查代理，无审批拒绝。
 
 
 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-calibration-performance/SWCLI`
@@ -238,3 +236,14 @@ R4已完成failure，首因 `Expected one explicit installed GB part template, f
 既有 `scripts/ci/verify-document-preferences.py --profile fonts|display|standards` 已分别定义600请求/1800组预算和三类输入，fonts/display不是新scope；后续继续这两个既定profile的必要公开验证，复用已核R5 baseline副本与同类owned隐藏daemon原则，不回VM、不扩子类型字体/任意显示API/视觉效果承诺、不借standard成功覆盖它们。当前公开wrapper硬限定standards，`42300958960`只证明其自身实际执行范围；不能在其成功后就把原batch六operation全部标记完成。
 
 以上两组是本系列发版前仍需完成的原定验收，不直接列为发版后事项。当前不标记本batch整体merge-ready；统筹可继续逐条代码集成，但公开验收证据必须覆盖三组实际范围。
+
+
+### 统筹review修复与最后全batch公共门禁
+
+标准R1已success且原件摘要验证：ZIP4655990bytes SHA256 `76a348687c452ef63be0bf3626e12bd441ae3cc1696c4192ef794d45cbbd34f9`；manifest SHA256 `70906767936ea0ddd1d247fe25c3ddef6ddb8bd763e79e6f3ef88fd1faec470e`。该source9a32b68标准scope可供统筹review，但不是修复后tip或字体/显示验收证据。实际receipt另存 `docs/verification/docprops-standard-public-2026-11-07.json`。
+
+新增共享 `src/swcli/hosts/windows_document_preferences_guard.py`，仅三组adapter引用，不更改通用custom-properties/annotations helper而影响其他路。严格native export判定不将getattr异常/缺少符号任意解释native；每次changed写需精确revision33.5.0，no-op仍完整CAS后零setter/dirty。前台peer在初始捕获、每次target state读之后、SetSaveFlag之前及之后均重核，不把同一ActiveDoc指针当作peer内容未变；target title/path/Extension同样保持。原生setter异常直接保留首错，property/setter后peer漂移返回已attempted/may_have_changed，不自动回滚。新增portable矩阵覆盖三组×六类peer漂移×前后mutation，未知host零setter/dirty，peer在targetstate读取期间漂移不SetSaveFlag，首错遇peer漂移不覆盖，kernel导出missing/known/Wine/error0/5/127。
+
+既有公开wrapper扩展内部 `--scope batch`，workflow `docprops_public_scope=batch`，不新建公共operation/CLI字段。batch=标准3kind组+fonts单组(all P/A/D)+display单组(all P/A/D)，全部单组1800/native600，同daemon一生，零retry/rollback/restart。step165min/job230min只是容纳最多5个独立组+安装清理；不延长任一组。默认standards仍旧设计；可选fonts-display为两组，scope校验固定枚举。新head一次batch run避免两次安装和无差异分开重跑。
+
+本轮完整portable2164/skip32及后加5guard/15public组合测试通过，SDK生成/strict6文件/25反例通过，actionlint通过。原R5校准36 tuple与fixed reader/profile未改，无再次内部校准需求；新host/peer保护须以新的public batch原件证明。待该原件完成后再给统筹可合tip，不提前标全batch验收。
