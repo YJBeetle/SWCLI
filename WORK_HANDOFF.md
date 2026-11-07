@@ -1,15 +1,17 @@
 # 线型 / 线宽默认设置交接
 
-**收口状态：统筹最终 review 发现 revision 相同不能证明 native Windows；原 80b6133 暂停合入。现已补严格平台/ntdll 导出探针，定向 42 项及全量便携回归 1861 项（32 skipped）通过；待中文提交、推送后仅触发一次修复 head 的公开 gate。不扩原范围、不持续 poll，最终仍由统筹本人 review、合入。整个系列完成后再发布，正式发布等待用户最终确认。**
+**收口状态：统筹最终 review 发现 revision 相同不能证明 native Windows；原 80b6133 暂停合入。现已补严格平台/ntdll 导出探针，定向 42 项及全量便携回归 1861 项（32 skipped）通过；修复已中文提交推送，并仅触发一次修复 head 的公开 gate。不扩原范围、不持续 poll，最终仍由统筹本人 review、合入。整个系列完成后再发布，正式发布等待用户最终确认。**
 
 前次已验产品 tip：`80b61334537d9394b19da03dee9d7baa08da58e8`；它的成功证据保留如下，但不能冒充本次 host 修复 head 验收。
 
-## Native host 修复（待 exact-head 公开 gate）
+## Native host 修复（唯一 exact-head 公开 gate 已启动）
 
 - 参考 STL `f22b7a1` 的严格探针方式，仅只读对照，未合入其他分支：真实 `sys.platform == "win32"`；kernel32 `GetModuleHandleW` 必须找到 ntdll，`GetProcAddress` 必须找到已知 `NtClose`；清零 last error 后，`wine_get_version` 必须空地址且错误码恰为 127。仅查询地址，不调用导出。
 - Wine 导出存在、模块/已知导出缺失、错误 0/5/126、异常、非 Windows 或未知值一律拒绝。包括 noop 与 private calibration；无 preference getter/setter、SetSaveFlag、Save3/SaveAs。读取不探测 OS，原 state/CAS/lease/stamp/foreground/identity/access/context/partial-receipt 保护全部保留。
 - `tests/test_line_font_native_host.py`：8项 OS 边界测试及多组子例，既有 mock fixture 显式声明 native。与原 Line Font/回执保护共 42 项通过；日志 `artifacts/line-font/native-host-checks.log`。全量便携回归 **1861 项通过，32 skipped**（44.085s）；日志 `artifacts/line-font/native-host-full-portable.log`。`git diff --check` 通过。
-- 最终 code head、唯一新 public run 及一次快照待提交推送后记录；此时未宣称可合入。
+- 修复 code head **`85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`**，中文提交 `fix(line-font): 严格限定原生 Windows 写入主机`；push 成功后先以 `git ls-remote` 核远端 SHA 一致，随后 dispatch，未提前触发。
+- 唯一新 public run：[42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)，参数 `line_font_public=true`、`line_font_calibration=false`、`native_full=false`。唯一快照已核 head 为上述完整 SHA，status=`in_progress`，conclusion 为空；Windows 3.9/3.14 与 wheel 正在进行，release tag job skipped，native 尚无结果。
+- 按统筹要求一次快照后结束本轮，无 watch/sleep/持续 poll/CI 自动化；交接文档提交不更改 code head，不追加 CAD run。修复 head 的 Windows public 原件仍待取得并由统筹本人最终 review；旧 80b6133 成功不覆盖本次修复，此时不宣称可合入。
 
 ## 最终公开原件与首层自验（供统筹本人review）
 

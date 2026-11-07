@@ -116,8 +116,11 @@ protection and do not invoke this host probe. All existing CAS, lease/stamp,
 foreground, identity/access, edit-context and partial-receipt guards remain.
 
 The earlier successful public run at `80b6133` predates this host fix and does
-not establish acceptance for the changed product. A separate exact-head public
-gate is required before integration review can close. Portable OS-probe tests
+not establish acceptance for the changed product. The single exact-head public
+gate [42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)
+was dispatched at fix head `85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`; the
+one recorded snapshot was in progress. Its original evidence and final
+integration review remain pending. Portable OS-probe tests
 are fault-injection evidence, not native Windows acceptance.
 
 Official Win32 references: [GetModuleHandleW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew),
