@@ -111,6 +111,27 @@ async def mcp_stdio_export(endpoint, context, options, path, error_log):
                                      protocol_version=initialized.protocolVersion, tools=tools, is_error=reply.isError)
 
 
+def configuration_trace_proof(path, request_id):
+    """Prove the existing legal STL request used modern source configuration reads."""
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines()
+               if line.startswith('{')]
+    records = [r for r in records if r.get("event") == "swcli.native-call"]
+    rows = [r for r in records if r.get("request_id") == request_id]
+    require(rows and all(r.get("operation") == "document.export" for r in rows), "STL request trace missing")
+    begins = [(r["sequence"], r["call"]) for r in rows if r["phase"] == "begin"]
+    ends = [(r["sequence"], r["call"]) for r in rows if r["phase"] == "end"]
+    require(sorted(begins) == sorted(ends) and len(set(begins)) == len(begins)
+            and all(r["phase"] in ("begin", "end") for r in rows)
+            and len({r["worker_pid"] for r in rows}) == 1, "STL native trace failed or incomplete")
+    calls = [r["call"] for r in rows if r["phase"] == "begin"]
+    require("GetActiveConfiguration" not in calls, "STL source guard used obsolete configuration getter")
+    modern = [call for call in calls if call in ("ConfigurationManager", "ActiveConfiguration", "Name")]
+    triples = sum(calls[i:i+3] == ["ConfigurationManager", "ActiveConfiguration", "Name"] for i in range(len(calls)-2))
+    require(triples >= 2, "STL source guard lacks modern before/after configuration evidence")
+    return dict(request_id=request_id, modern_configuration_triples=triples,
+                observations=modern, native_trace_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -312,6 +333,11 @@ def main(argv=None):
                 checkpoint()
                 route = "sdk" if name == "sdk-fine" else "mcp" if name == "mcp-fine" else "cli"
                 result = cli_export(doc, path, options, route=route)
+                source_state = result["stl_source_state"]
+                require(source_state["unchanged"] is True and source_state["before"] == source_state["after"]
+                        and isinstance(source_state["before"]["configuration"], str)
+                        and bool(source_state["before"]["configuration"].strip()), "STL source configuration/state changed")
+                case["configuration_trace"] = configuration_trace_proof(root / "daemon.stderr.log", result["request_id"])
                 case["route"] = route
                 if route == "mcp":
                     case["mcp_transport"] = report["events"][-1]["mcp_transport"]
