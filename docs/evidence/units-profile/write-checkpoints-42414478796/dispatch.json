@@ -1,0 +1,55 @@
+{
+  "run_id": 42414478796,
+  "head_sha": "68b05c98e0a13000b4ac06002163d01820fba7b7",
+  "ref": "codex/docprops-units-expanded",
+  "event": "workflow_dispatch",
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42414478796",
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": false,
+    "native_full": false
+  },
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "updated_at": "2026-11-07T21:09:20Z",
+    "jobs": [
+      {
+        "id": 128529486114,
+        "name": "Validate manual units routing before private native setup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128529486272,
+        "name": "Windows / Python 3.14",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128529486281,
+        "name": "Windows / Python 3.9",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128529486370,
+        "name": "Build wheel",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128529487657,
+        "name": "Validate release tag before private native runtime",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "reason": "one necessary new-head verification of confirmed repeated report serialization overhead; not a failed API retry",
+  "native_result_available": false,
+  "group_seconds": 1800,
+  "native_seconds": 600,
+  "snapshot_policy": "one normal snapshot then stop; no continuous polling"
+}

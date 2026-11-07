@@ -267,3 +267,5 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 仅修改写诊断重复全报告序列化开销：显式语义/观察/写前意图检查点完整持久化，每native begin/end/error仍fsync；default read原逻辑保持。真实报告离线1000合成getter保留2000 durable事件，完整序列化1002降2，本机3.61s降0.076s只是离线证据。关联70项通过、Python3.9 AST通过；src产品/白名单/schema/workflow/main property tests无diff，不扩大预算/容差、不减少guard/字段、不回滚或原生失败重试。main960839e的PyYAML及测试修复必须在统筹集成中保留，不整文件覆盖旧tests/CI。
 
 仅对相关新head推送后做一次必要private验证，参数保持units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false；正常一次快照即停，不持续poll或再开agent，不用VM/不合main/不发布。新原件前两表仍空、public0/9、系列未完成；旧run保持failure。
+
+最小相关修复业务head`68b05c98e0a13000b4ac06002163d01820fba7b7`已推送。仅一次必要新验证 [42414478796](https://github.com/YJBeetle/SWCLI/actions/runs/42414478796)，head/ref/event已核，private参数不变。原始一次run/jobs及输入在`docs/evidence/units-profile/write-checkpoints-42414478796/`；快照in_progress，route success，Windows3.9/3.14及wheel运行中，尚无native结果。正常快照后结束本轮，不持续poll、不repeat dispatch，不把旧part/assembly原件清成全失败，也不把未测类型计通过。若新优化后仍触硬预算，先交实际时间分布供统筹评估，不改600/1800或拆组/少测。此后提交只docs，操作源保持68b05c98。

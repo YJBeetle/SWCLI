@@ -50,3 +50,5 @@ part原始V=`11999.999999999998`、S=`3799.9999999999995`、body=1（完整doubl
 关联70项/2.599秒通过，含旧read路径、新观察检查点、意图持久化失败零Set、trace fsync失败零Set、nested begin/end每条fsync、native异常单次/首因保留及V/S/count/质心既定边界；Python3.9 AST通过。原日志在本地原件目录，hash与验证记录 `fix-validation.json`。产品src、白名单、schema、workflow均未改；main `960839e`修好的PyYAML依赖和两个property测试文件未改动。统筹集成时应保留main这些修复，不从旧分支整文件覆盖tests/CI。
 
 后续只对修复新head触发一次必要private校准，正常启动一次快照即停。此次失败保持failure；待新原件完成前仍无完整三类型写入/退出/public验收，不填生产白名单、不合main、不发布。
+
+修复业务head `68b05c98e0a13000b4ac06002163d01820fba7b7` 已提交推送；唯一必要新验证 [42414478796](https://github.com/YJBeetle/SWCLI/actions/runs/42414478796)，保持原private参数、同一组定义及600/1800预算。一次快照已核head：route成功，Windows/wheel运行中，原生结果未到。元数据/参数在 `docs/evidence/units-profile/write-checkpoints-42414478796/`。不持续轮询；若仍有硬预算问题，交实际时间分布评估，绝不先放宽时限、拆组或少测。
