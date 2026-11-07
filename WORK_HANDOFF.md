@@ -181,3 +181,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 新测试执行真实 handler/adapter/native_api_sequence/worker，覆盖成功写后 restore fault、native 抛错或 false 后 restore fault、实际坏描述符、首错+late validator 降级、clean no-op、第二请求执行前失败无回执借用、严格 guard 及 JSON/text 降级。相关 126 tests 通过。
 - 复跑命令、完整日志路径和各故障结果见 `docs/verification/table-defaults-worker-late-fault-2026-11-08.md`。异常路径按统筹指令用 portable fault injection 验证，无新增 native dispatch。本轮代码/测试/证据独立提交交统筹本人审查。
 - 零件 `42405733149` / `6396034fe941b28d90ced2b941ae0d6c26907be9` 的受测历史保持不变，严格几何和其他系列范围继续作为原门禁。
+
+
+## 零件 42405733149 已核原件并确认前置阻断
+
+- `42405733149` / `6396034fe941b28d90ced2b941ae0d6c26907be9` completed/failure。Artifact `13588160547` / `table-defaults-internal-42405733149-1`，官方/原始 ZIP SHA256 `3a1d78b525c62488eb75d82324dd9551d8700333d74f0e2a623850e586876d92`。
+- 首错为 `before-first-table-write` 的 exact equality，测量、解析 V/S 和 context 验证均已通过。table setter=0、table getter=3、显式 dirty setter=0、`writes=[]`。原有草图推断 global toggle 为 2 次 fixture disable/restore。cleanup 无错，worker exit 1。
+- 体积三次均 `11999.999999999998 mm3`，面积三次均 `3799.9999999999995 mm2`，实体数1，x=`-7.058607893785837e-16 mm`、z=`5.0 mm`。创建/只读重开/可写首写前三次 y 依次 `5.514537417020185e-16`、`6.286572655403011e-16`、`8.271806125530278e-16 mm`。首写前与只读基线 y 差 `1.9852334701272664e-16 mm`。
+- 已证明此次差异先于任何 candidate table setter，具体重开/访问模式/前后台或 kernel 数值路径仍未分离。当前没有保持原 exact 规则及测量语义的已证实有效修复，零件继续阻断，不无差异重跑。
+- 完整原值、全部原始文件 hash、路径和可复跑原件检查命令见 `docs/verification/table-defaults-part-42405733149.md`，脚本 `audit-table-defaults-part-42405733149.py`。原件位于 ignored `run-42405733149/`。
+- 统筹随后发现 post-setter writable/peer 再确认缺口，健康路径修复另作提交和一次既有 [2,3] public gate。worker late-fault 修复 `1d44a42` 继续保留，当前暂不能合。
