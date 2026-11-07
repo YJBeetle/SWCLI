@@ -3,6 +3,11 @@
 # (exact RevisionNumber, document type) -> field -> (before raw, after raw).
 # The unchanged target pair permits an observed no-op, not an extra transition.
 PROFILES = {
+    ('33.5.0', 1): {
+        'all.use_template_settings': [(True, False), (False, False)],
+        'bom.box_border': [(0, 1), (1, 1)],
+        'bom.grid_border': [(0, 1), (1, 1)],
+    },
     ('33.5.0', 2): {
         'all.use_template_settings': [(True, False), (False, False)],
         'bom.box_border': [(0, 1), (1, 1)],
@@ -18,12 +23,12 @@ PROFILES = {
 }
 
 INTERNAL_PROOF = {
-    'run_id': 42301331238,
-    'head': '50db73af937cd78aa9adcd8c4bfdd5467c956533',
-    'artifact_id': 13545815581,
-    'artifact_name': 'table-defaults-internal-42301331238-1',
-    'artifact_digest': 'sha256:7e473478064998f3e116329d29007f8f21c441be74d7827a7d3bfbc90fc2f4f6',
-    'report_sha256': 'f04b79376ea8e5e5fd7569c7d20feb28ae6193215ee9dc29695c3bca5dbbd7f9',
-    'native_trace_sha256': 'd95c6b1ac3c577cb4a90772a83b7f47f51b618adabeab5880cf03bbd7812ef13',
-    'harness_trace_sha256': 'eb97a6e5fb77dae6d1f46f63122c9847d90dc965c16a319df92b87f8d5393afa',
+    'run_id': 42415716434,
+    'head': 'f1881a7421200e46028652538892c15a366f2ef8',
+    'artifact_id': 13591813168,
+    'artifact_name': 'table-defaults-internal-42415716434-1',
+    'artifact_digest': 'sha256:7e1d8fcd8c1d8b26346024305c0f30a0c77536b2ea4ade06f3c694e382db9e8e',
+    'report_sha256': '9e4c61044958cbe5ae6964820e8e800e87f003871ca419850e56c319dfd566cf',
+    'native_trace_sha256': '0ceb9245963abf13eeaef13162c3ef6318fbd405d16fa8096ee69260684d0127',
+    'harness_trace_sha256': '3926c138fae2f4747ff53ecbd6608c9a61960d3e3a132a7eea2f51a6231d6af9',
 }

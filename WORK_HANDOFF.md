@@ -4,9 +4,9 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **本轮正在补齐健康路径保护与零件完整验证，暂不可合并。** 已有装配体/工程图公开原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，不能替代本轮新 adapter 的 native 验收。worker late-fault 独立修复 `1d44a42` 保留，交统筹本人审查。
+- **健康路径保护与零件完整 internal 已通过，仍待全量 public，暂不可合并。** 已有装配体/工程图公开原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，不能替代本轮新 adapter 的 native 验收。worker late-fault 独立修复 `1d44a42` 保留，交统筹本人审查。
 - 用户于 2026-11-08 明确批准“允许，仅限表格路线的质心界限”：每轴绝对差 `<=1e-12 mm`。其余几何 V/S/实体数、身份、状态、lease/CAS 等严格规则不变，原值/hex/delta 和旧失败均保留。见 `docs/verification/table-defaults-centroid-decision-2026-11-08.md`。
-- 零件 public profile 仍关闭；下一轮为一个 internal `all` 原生组，覆盖零件3项及已有装配体/工程图8项、保存重开与新保护。原件成功审核后才固定完整 profile/pin，并做一次新 exact-head public all gate。不得用 portable 或旧 head 原件宣称已完成。
+- 完整 internal `42415716434` / `f1881a7` 已success且原ZIP独立审核通过：11 setters / 237 getters、完整3类型及save/reopen。已人工固定实测零件3项和原有A/D8项及同值pair；public all验收尚未完成，不能把内部通过当公共通过。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -209,3 +209,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 单次 dispatch [内部 all run 42415716434](https://github.com/YJBeetle/SWCLI/actions/runs/42415716434)，输入 `native_full=false`、`table_defaults_calibration=true`、mode `internal`、document types `all`、`table_defaults_head=f1881a7421200e46028652538892c15a366f2ef8`。计划 `[1,2,3]`，零件3项及既有装配体/工程图8项，native600/group1800秒。
 - 仅取一次状态快照：**in_progress**。原始 metadata、dispatch inputs 与 snapshot 保存在 ignored `docs/verification/table-defaults-evidence/run-42415716434/`。本轮尚无已审核完成原件，不能视为 native 成功。未启动 watcher/automation，不再轮询或 dispatch。
 - 待该原件可用后核 ZIP/GitHub digest、exact head、完整计划、原始几何、setter/noop/CAS、save/reopen 和 cleanup。成功也仅为内部证据；固定完整3类型 profile/pin 后，仍需一次新 exact-head public all gate。零件公开写入当前继续关闭，统筹本人审查/main合并与最终发版不在本轮执行。
+
+
+## 42415716434 原件通过，进入新三类型公开验收
+
+- 官方/本地 ZIP `7e1d8fcd8c1d8b26346024305c0f30a0c77536b2ea4ade06f3c694e382db9e8e`，artifact13591813168；head `f1881a7421200e46028652538892c15a366f2ef8`。完整原件/逐字段/预算/target-peer-guard和原始几何核验见 `docs/verification/table-defaults-internal-42415716434.md`，可复跑脚本 `audit-table-defaults-internal-42415716434.py`。
+- native完整组27.843395秒，最大harness阶段3.711325秒，11 setters/237 getters；单worker4192/host8968、wrapper exit0、cleanup空。原始metrics只有y有小幅差，最大1.5440704767656523e-16mm，按仅表格许可通过，其余几何严格一致。
+- 手工新增part True→False/BOM0→1及目标同值，A/D8项不变，pin指向本轮全量原件。运行前remote/local preflight和必要portable/SDK检查，随后仅一次public all exact-head组，拥有独立600/1800秒预算和首错停组规则。
+- 新公开结果尚待验证；内部成功不构成公开成功，不main合并、不发版、不触VM/DockerSW/MacSW。
+
+- 本次promotion必要检查已通过：完整1881 tests / 33 skips，相关72项，SDK generator、strict mypy 6 source files与8 negative consumer refusals；remote/local新原件preflight均通过。日志在ignored `run-42415716434/promotion-{full-portable,related,sdk-types}.log`，remote结果同目录。

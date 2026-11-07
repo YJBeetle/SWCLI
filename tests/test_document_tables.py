@@ -419,6 +419,32 @@ class DocumentTableTests(unittest.TestCase):
                              "DocumentTableCalibrationRequired")
         self.no_setters()
 
+    def test_registered_part_profile_accepts_only_original_audited_transitions_and_noops(self):
+        self.native.update({200: True, 201: 0, 202: 0})
+        self.assertEqual(set(adapter._CALIBRATED_PROFILES[('33.5.0', 1)]),
+                         {'all.use_template_settings', 'bom.box_border', 'bom.grid_border'})
+        def execute(field, value):
+            return adapter.set_document_table_option_windows(app=self.app, document=self.document,
+                field=field, value=value, expected_options=adapter._read_options(self.document, self.constants))
+        with mock.patch.object(adapter, '_native_windows_runtime', return_value=True):
+            for field, value in [('all.use_template_settings', False), ('bom.box_border', 'normal'), ('bom.grid_border', 'normal')]:
+                changed = execute(field, value)
+                self.assertTrue(changed['ok'], changed)
+                self.assertTrue(changed['changed'])
+                noop = execute(field, value)
+                self.assertTrue(noop['ok'], noop)
+                self.assertFalse(noop['changed'])
+                self.assertEqual(noop['mutation'], dict(attempted=False, may_have_changed=False))
+            for field, value in [('all.use_template_settings', True), ('bom.box_border', 'thin'),
+                                 ('bom.box_border', 'thick'), ('bom.grid_border', 'thin'), ('bom.grid_border', 'thick')]:
+                denied = execute(field, value)
+                self.assertEqual(denied['error']['type'], 'DocumentTableCalibrationRequired')
+                self.assertEqual(denied['mutation'], dict(attempted=False, may_have_changed=False))
+            self.app.RevisionNumber = lambda: '33.5.1'
+            self.assertEqual(execute('bom.box_border', 'normal')['error']['type'], 'DocumentTableCalibrationRequired')
+        self.extension.SetUserPreferenceToggle.assert_called_once_with(200, 0, False)
+        self.assertEqual(self.extension.SetUserPreferenceInteger.call_args_list, [mock.call(201, 0, 1), mock.call(202, 0, 1)])
+
     def test_result_rejects_false_applicability_and_lifecycle_claims(self):
         observed = self.read()
         observed["options"]["general.box_border"] = {"value": "thin", "native_value": 0}
