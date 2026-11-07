@@ -253,3 +253,7 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 完整说明`docs/verification/units-write-calibration-2026-11-08.md`。Python3.14.10完整portable1918项/51.783秒通过（32 skipped），关联55项通过；SDK generated/strict6文件和8负向typing通过，全部src/CI/tests的Python3.9 AST与workflow YAML/新模式isolated help导入通过。原始日志持久保存`evidence/units-profile/write-implementation-2026-11-08/`，hash/本地结果在`docs/evidence/units-profile/write-implementation-2026-11-08/validation.json`。首次全套仅因临时venv未安装SWCLI的-I导入失败，已安装editable后重跑，不改产品断言；首次工具输出摘录另存且明确不是完整原stdout。
 
 本轮将只触发精确新head的private写校准：`units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false`。正常启动一次快照即停，不持续轮询、不用VM或审查代理、不合main/发版。V/S/count/state/identity/CAS保持严格；仅既有批准质心xyz各轴绝对≤1e-12mm，无relative，raw/hex/delta/exact_equal保留。旧read run42361728509不为已改变的操作源提供新写入通过证明。
+
+实现业务head `4f20723116103c6e5f43def9f3d42b5a91372903` 已中文提交并推送。仅触发一次 [42406393957](https://github.com/YJBeetle/SWCLI/actions/runs/42406393957)，已核 workflow_dispatch/head/ref；输入 `units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false`。原始一次run/job快照及精确参数保存在`docs/evidence/units-profile/write-native-42406393957/`。该快照状态in_progress：units-route及wheel success，Win3.9/3.14前置检查运行中；尚无本轮native/public写入结果。正常快照即结束本轮，不持续poll、不重复dispatch、不cancel其他run。
+
+下一步由后续一次快照取得完成/失败原件，保留第一业务错误、原native文件/raw数值/trace/sha，审139预定步骤的实际覆盖及600/1800预算/owned退出；若失败先处理首因，不跳过/降低守护或扩大V/S容差。只有原件完成审阅后，才手动填精确白名单及system完整后态，并对包含这些手动域的新head触发必要public验收。当前两表仍空、公开完成0/9、系列未完成，不能据本地合成139步骤或workflow启动标成九字段全读写或可发布。

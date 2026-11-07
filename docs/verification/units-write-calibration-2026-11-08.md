@@ -33,3 +33,5 @@
 旧 run42361728509 的读/noop/拒写通过仍只绑定旧业务 head5773090；本轮产品/脚本已改，旧独立审计器按设计不能证明当前操作源。这不翻转旧原件，也不借用旧绿灯为本轮真实写入证明。九字段 public 写入及本系列完整交付继续列未完成，直至真实校准、人工域和新 head public 原件齐备。
 
 本地最终验证：Python3.14.10，完整1918项/51.783秒通过（32 skipped），关联55项通过；SDK generated/strict6文件及8项负向typing通过；全部src/CI/tests以Python3.9 AST解析，workflow YAML解析及两个新模式`-I --help`导入通过。元数据与原始日志路径/hash见 `docs/evidence/units-profile/write-implementation-2026-11-08/validation.json`。这些证据均不代表native。
+
+实现业务head `4f20723116103c6e5f43def9f3d42b5a91372903` 已推送；唯一private校准run [42406393957](https://github.com/YJBeetle/SWCLI/actions/runs/42406393957)。参数与原始一次快照在`docs/evidence/units-profile/write-native-42406393957/`：精确head已核，in_progress；route/wheel通过，Win3.9/3.14前置检查运行中，native尚无结果。本轮遵守正常一次快照即停；不持续查询。此后的交接提交仅docs/metadata，不改变该run操作源。
