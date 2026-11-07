@@ -169,6 +169,9 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
             if scratch is not None and scratch.exists():
                 scratch.unlink()
 
+    def run_command(self, command, **options):
+        return subprocess.run(command, **options)
+
     def command(
         self,
         *arguments,
@@ -211,7 +214,7 @@ class ModelingSmoke(PolygonCases, ThroughAllCases, NativeModelCases, FeatureDept
         self.checkpoint(stage + ".started", event=event)
         started = time.monotonic()
         try:
-            completed = subprocess.run(
+            completed = self.run_command(
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

@@ -4,7 +4,7 @@
 
 `document.unit-profile-set` 要求 lease、expected_update_stamp、完整 `expected_snapshot`，包括非目标字段、原始值和联动观察的类型敏感 CAS。相同目标不调用 setter、不标脏。原生 setter 单次执行；False、异常、联动变化或状态漂移保留部分 mutation 回执并停止，无重试或回滚。
 
-**新增公开 changed-write 白名单为空。** 候选精度为 0..8，其余候选目标见 catalog；候选不等于原生验收。内部 `_calibrate_unit_profile` 不注册、不接受公共参数。system 与 scalar 原生写入、跨系统联动、保存重开写入持久性均未验收；不得凭 SDK 生成或 portable mock 成功开放。
+**本分支已在完整原件审核后人工录入137个精确changed-write域，公共CLI/SDK/MCP原生验收仍待本轮CI。** 范围仅SOLIDWORKS33.5.0、part/assembly的Default配置及drawing正常上下文，并绑定完整源snapshot及有限目标；不是任意值/组合/配置。内部 `_calibrate_unit_profile` 不注册、不接受公共参数。三类型内部真实写入/联动/保存RO已通过固定run42414478796，不能由此直接发布；详见 [原件审核与公共验收交接](verification/units-write-42414478796-handoff.md)。
 
 ## 原生校准分层
 
@@ -32,3 +32,5 @@ DP 页面 energy precision 标成 Toggle，与既有 swconst Integer 导出不�
 `units_calibration=true,units_write_calibration=true` 显式运行 private 八 scalar/system 有限诊断，精度覆盖已有候选0..8，逐目标记录 before/after/raw5/linkage、native bool/partial 与保存重开原件。公共生产域和system完整后态证据表仍空；CI不会自动填表。只有原件审阅后人工录入精确源/目标域，才可追加 `units_public_acceptance=true` 运行新的公开 changed-write 入口；空表在私有native setup前拒绝。公共system的host与结果语义均要求完整受审后态精确匹配，scalar非目标保持规则不变。
 
 详见 [本轮实现、路由和剩余验收](verification/units-write-calibration-2026-11-08.md)。实现和portable通过不等于本路真实写入、写持久性或全系列发布完成。
+
+2026-11-08更新：上文各“白名单仍空”段落是前一阶段历史状态；当前以本页开头及 [新原件审核](verification/units-write-42414478796-handoff.md) 为准。137条由审核后手动录入，CI不自动授权；26条system结果绑定完整after hash，其他来源/配置/版本继续拒写。公共三通路真实417步尚待完成，未合main或发布。

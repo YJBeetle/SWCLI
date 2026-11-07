@@ -39,10 +39,10 @@ LINKAGE = {
 NATIVE_UNITS = ("length_unit", "fraction_base", "fraction_value", "significant_digits", "round_to_fraction")
 # Exact (document_type, source_snapshot_sha256, field, native_target). Never
 # populate from synthetic tests or automatically enable after a probe succeeds.
-CALIBRATED_UNIT_WRITES = ()
-# Separately reviewed full after-snapshot for system domains. Empty until the
-# original native artifact is audited. Entries are (exact_domain, after_sha256).
-CALIBRATED_UNIT_SYSTEM_RESULTS = ()
+from .document_unit_write_domains import (REVIEWED_UNIT_TRANSITIONS,
+    CALIBRATED_UNIT_REVISION, CALIBRATED_UNIT_CONFIGURATIONS)
+CALIBRATED_UNIT_WRITES = tuple(row[:4] for row in REVIEWED_UNIT_TRANSITIONS)
+CALIBRATED_UNIT_SYSTEM_RESULTS = tuple((row[:4], row[4]) for row in REVIEWED_UNIT_TRANSITIONS if row[2] == "system")
 
 
 def typed_key(value):
@@ -160,3 +160,8 @@ def verify_calibrated_system_after(before, after):
     if domain not in CALIBRATED_UNIT_WRITES:
         raise ValueError("system result is outside the reviewed exact write domain")
     verify_system_after(before, after, native_target, calibrated_system_result(domain))
+
+
+def require_calibrated_context(document_type, configuration, revision):
+    if type(document_type) is not int or revision != CALIBRATED_UNIT_REVISION or (document_type, configuration) not in CALIBRATED_UNIT_CONFIGURATIONS:
+        raise ValueError("unit write requires the reviewed SOLIDWORKS revision and document configuration")

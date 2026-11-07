@@ -53,5 +53,6 @@ class UnitsRouteTests(unittest.TestCase):
         from unittest import mock
         import os
         values=dict(ROUTE_EVENT='workflow_dispatch',ROUTE_REF=route.UNITS_REF,ROUTE_NATIVE_FULL='false',ROUTE_UNITS_CALIBRATION='true',ROUTE_UNITS_PUBLIC='true',ROUTE_UNITS_WRITE='true')
-        with mock.patch.dict(os.environ,values):
+        from swcli import document_unit_profile as catalog
+        with mock.patch.dict(os.environ,values),mock.patch.object(catalog,'CALIBRATED_UNIT_WRITES',()),mock.patch.object(catalog,'CALIBRATED_UNIT_SYSTEM_RESULTS',()):
             with self.assertRaisesRegex(ValueError,'manually reviewed'):route.main()

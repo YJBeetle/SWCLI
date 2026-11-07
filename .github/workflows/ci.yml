@@ -415,7 +415,9 @@ jobs:
           python --version
           python -m pip install --upgrade pip
           if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
-          python -m pip install $wheels[0].FullName
+          $package = $wheels[0].FullName
+          if ("${{ inputs.units_write_calibration }}" -eq "true" -and "${{ inputs.units_public_acceptance }}" -eq "true") { $package += "[mcp]" }
+          python -m pip install $package
           if ($LASTEXITCODE -ne 0) { throw "SWCLI wheel installation failed" }
           python -I scripts/ci/verify-installed.py
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }

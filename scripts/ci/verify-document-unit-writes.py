@@ -3,6 +3,8 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import os
+import subprocess
 from pathlib import Path, PureWindowsPath
 
 from swcli import document_unit_profile as catalog
@@ -11,6 +13,56 @@ from swcli.result_schemas import validate_operation_result
 spec=importlib.util.spec_from_file_location('_unit_write_public_base',Path(__file__).with_name('verify-document-unit-profile.py'))
 public=importlib.util.module_from_spec(spec);spec.loader.exec_module(public)
 require=public.require
+spec=importlib.util.spec_from_file_location('_unit_public_transports',Path(__file__).parent/'gate_support/unit_public_transports.py')
+transports=importlib.util.module_from_spec(spec);spec.loader.exec_module(transports)
+
+
+class WriteGate(public.DurableGate):
+    transport='cli'
+    wire_sequence=0
+
+    def clients(self):
+        if not hasattr(self,'_clients'):
+            self._clients=transports.Transports(self.endpoint,self.session,self.directory)
+            self.record['transport_setup']=self._clients.metadata
+        return self._clients
+
+    def run_command(self,command,**options):
+        # Lifecycle status remains the existing CLI. All typed CAD operations
+        # in SDK/MCP phases use the actual SDK/stdio transport, no COM shortcuts.
+        if self.transport=='cli' or 'daemon' in command:
+            self.record['events'][-1]['transport']='cli'
+            return super().run_command(command,**options)
+        event=self.record['events'][-1]
+        request=self.clients().prepare(command)
+        event.update(transport=self.transport,wire_request=request)
+        self.checkpoint('transport.request.started',event=event)
+        try:payload,raw,presented=self.clients().invoke(self.transport,request)
+        except BaseException as error:
+            if isinstance(getattr(error,'raw',None),dict):event['wire_response']=error.raw
+            if getattr(error,'mcp_reply',None) is not None:event['mcp_call_tool_result']=error.mcp_reply
+            if hasattr(error,'outcome_unknown'):event['outcome_unknown']=error.outcome_unknown
+            raise
+        event['wire_response']=raw
+        if presented is not None:event['mcp_call_tool_result']=presented
+        return subprocess.CompletedProcess(command,1 if payload.get('ok') is False else 0,json.dumps(payload,ensure_ascii=False,allow_nan=False).encode(),b'')
+
+    def checkpoint(self,stage,*,event=None):
+        self.record['stage']=stage
+        if event is None:return super().checkpoint(stage)
+        # Every complete raw request/reply is durable before/after transport IO.
+        # Semantic/intent/final checkpoints still persist the complete report.
+        self.wire_sequence+=1
+        actual=event.get('transport','cli' if 'daemon' in event.get('command',[]) else getattr(self,'transport','cli'))
+        row=dict(sequence=self.wire_sequence,stage=stage,transport=actual,event_index=len(self.record['events'])-1,event=event)
+        with (self.directory/'transport-events.jsonl').open('a',encoding='utf-8') as stream:
+            stream.write(json.dumps(row,ensure_ascii=False,allow_nan=False)+'\n');stream.flush();os.fsync(stream.fileno())
+
+    def cleanup(self):
+        self.transport='cli'
+        try:return super().cleanup()
+        finally:
+            if hasattr(self,'_clients'):self._clients.close()
 
 
 def domain(before, field, value):
@@ -124,6 +176,13 @@ def run(gate,fixtures,prior_pids):
                        changed_write_acceptance=False,changed_write_attempted=True,unit_cases=[])
     # Capture ownership before evidence preflight so a preflight failure still
     # leaves the wrapper enough proof to stop this exact owned host once.
+    from swcli import document_unit_write_domains as admission
+    gate.record['admission']=dict(run=admission.AUDITED_RUN,head=admission.AUDITED_HEAD,
+        artifact=admission.AUDITED_ARTIFACT,zip_sha256=admission.AUDITED_ZIP_SHA256,
+        report_sha256=admission.AUDITED_REPORT_SHA256,
+        installed_manifest_sha256=hashlib.sha256(Path(admission.__file__).read_bytes()).hexdigest(),
+        revision=admission.CALIBRATED_UNIT_REVISION,configurations=admission.CALIBRATED_UNIT_CONFIGURATIONS,
+        finite_domains=len(catalog.CALIBRATED_UNIT_WRITES),system_results=len(catalog.CALIBRATED_UNIT_SYSTEM_RESULTS))
     host=gate.record['host']=gate.health()['host'];gate.checkpoint('unit-write-owned-host')
     require(host.get('owned_by_daemon') is True and host.get('visible') is False and host.get('shared_interactive') is False,
             'public unit writes require own hidden unshared host')
@@ -146,8 +205,10 @@ def run(gate,fixtures,prior_pids):
     gate.record.update(calibration_source_commit=report['source_commit'],
         calibration_sha256=hashlib.sha256((fixtures/'report.json').read_bytes()).hexdigest())
     gate.require_empty()
-    for index,(key,expected,path) in enumerate(planned):
-        case=dict(document_type=key[0],domain=list(key),success=False,source_sha256=expected['source_sha256'])
+    planned=[(transport,key,expected,path) for transport in ('cli','sdk','mcp') for key,expected,path in planned]
+    for index,(transport,key,expected,path) in enumerate(planned):
+        gate.transport=transport
+        case=dict(transport=transport,document_type=key[0],domain=list(key),success=False,source_sha256=expected['source_sha256'])
         gate.record['unit_cases'].append(case);gate.checkpoint('unit-write-source-preflight')
         opened=case['open']=gate.command('document','open',str(path))
         document=opened['document']['document_id'];foreground=gate.create()
@@ -208,4 +269,4 @@ def run(gate,fixtures,prior_pids):
     gate.record.update(success=True,state='completed',changed_write_acceptance=True)
 
 
-if __name__=='__main__':public.main(run_profile=run)
+if __name__=='__main__':public.main(run_profile=run,gate_type=WriteGate)

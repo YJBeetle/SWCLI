@@ -1,0 +1,69 @@
+{
+  "portable": {
+    "tests": 1933,
+    "seconds": 59.706,
+    "result": "OK",
+    "skipped": 26,
+    "scope_note": "Complete1933 run before final ProtocolError raw-reply retention change; that final change plus all relevant routes covered by48 targeted tests."
+  },
+  "final_targeted": {
+    "tests": 48,
+    "seconds": 8.874,
+    "result": "OK",
+    "includes_final_protocol_reply_retention": true
+  },
+  "actual_sdk_tcp_and_mcp_stdio_to_fake_daemon": {
+    "tests": 4,
+    "result": "OK",
+    "native": false
+  },
+  "sdk": {
+    "generator_check": true,
+    "strict_source_files": 6,
+    "negative_typing_cases": 8,
+    "result": "OK"
+  },
+  "python39_ast": true,
+  "workflow_yaml": true,
+  "manual_reviewed_domains": 137,
+  "manual_reviewed_system_results": 26,
+  "public_native_accepted": false,
+  "expected_public_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139,
+    "total": 417
+  },
+  "budgets": {
+    "native_seconds": 600,
+    "public_group_seconds": 1800
+  },
+  "original_zip_sha256": "fdf66026e457ff035652acb0fde3d4929b8b0cadde41f0dbc2ca855ebf43e4f0",
+  "actions_logs_zip_local_sha256": "134a540022a16f89027adf8acad1407d42dbd1e8011fc4115929f1180fc5f576",
+  "logs": {
+    "public-admission-portable.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/public-admission-portable.log",
+      "sha256": "91636c9a54a3d503fabb13ce995d18c05652c9d223236ffc2702fa8573965fcc"
+    },
+    "public-admission-targeted.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/public-admission-targeted.log",
+      "sha256": "a24e3394da502a128bf7af467906e743be51233f80b983f35db20e28bc73315d"
+    },
+    "real-transports.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/real-transports.log",
+      "sha256": "1e242c519e14550390950605f1f3893b2b9a6414b8fe0e2cbe52c0cf974a40ef"
+    },
+    "sdk-types.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/sdk-types.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d"
+    },
+    "mcp-extra-install.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/mcp-extra-install.log",
+      "sha256": "72b4d50dbd5769eda2fd7463f945e5db59dcd37561ef29e592c55cf0569778da"
+    },
+    "public-admission-targeted-final.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-checkpoints-42414478796/public-admission-targeted-final.log",
+      "sha256": "406fae61848490750af8bc1fe82c1e836a2259b31f48df6220246002b5a6b63d"
+    }
+  }
+}

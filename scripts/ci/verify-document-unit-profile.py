@@ -123,7 +123,7 @@ def run(gate,fixtures,prior_pids):
     gate.record.update(success=True,state='completed')
 
 
-def main(argv=None, *, run_profile=None):
+def main(argv=None, *, run_profile=None, gate_type=DurableGate):
     if run_profile is None:run_profile=run
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
@@ -132,7 +132,7 @@ def main(argv=None, *, run_profile=None):
     parser.add_argument('--prior-pids',type=Path,required=True)
     args=parser.parse_args(argv)
     args.output_dir.mkdir(parents=True,exist_ok=False)
-    gate=DurableGate(directory=args.output_dir.resolve(),host_directory=str(args.output_dir.resolve()),endpoint=args.endpoint,request_timeout_seconds=600)
+    gate=gate_type(directory=args.output_dir.resolve(),host_directory=str(args.output_dir.resolve()),endpoint=args.endpoint,request_timeout_seconds=600)
     gate.record_path=args.output_dir/'public-unit-profile.json'
     gate.checkpoint('initializing')
     failure=None

@@ -269,3 +269,17 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 仅对相关新head推送后做一次必要private验证，参数保持units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false；正常一次快照即停，不持续poll或再开agent，不用VM/不合main/不发布。新原件前两表仍空、public0/9、系列未完成；旧run保持failure。
 
 最小相关修复业务head`68b05c98e0a13000b4ac06002163d01820fba7b7`已推送。仅一次必要新验证 [42414478796](https://github.com/YJBeetle/SWCLI/actions/runs/42414478796)，head/ref/event已核，private参数不变。原始一次run/jobs及输入在`docs/evidence/units-profile/write-checkpoints-42414478796/`；快照in_progress，route success，Windows3.9/3.14及wheel运行中，尚无native结果。正常快照后结束本轮，不持续poll、不repeat dispatch，不把旧part/assembly原件清成全失败，也不把未测类型计通过。若新优化后仍触硬预算，先交实际时间分布供统筹评估，不改600/1800或拆组/少测。此后提交只docs，操作源保持68b05c98。
+
+## 42414478796内部成功已独立审原件；人工有限域与三公共通路待验
+
+官方artifact13591264000，10944652 bytes，下载/官方ZIP SHA一致`fdf66026e457ff035652acb0fde3d4929b8b0cadde41f0dbc2ca855ebf43e4f0`；原reportSHA`13a4b243b6362436ab200ee6db03928b0671ffbf1c5d31062467874838f68fd2`。原ZIP/官方日志ZIP/安全解压持久存`evidence/units-profile/write-checkpoints-42414478796/`。标准库独立审核脚本`docs/verification/audit-units-write-42414478796.py`无产品/gate/COM依赖，两次结果相同；metadata与`independent-audit.json`同名docs/evidence目录。绝对路径重现命令和范围在`docs/verification/units-write-42414478796-handoff.md`。
+
+真实三类46/46/47共139步骤、281原生文件hash，八scalar全部37目标/类型、system八方向/类型以及4个显式准备步骤均闭环；full snapshot/raw5/19 linkage/保存RO/上下文及首错策略核过。421302 trace、210651完成边界，max3.453s、group357.297s，0 error；owned PID7892一次Exit/句柄退出确认，前后[]。part92几何比较V/S/body严格，40次保留exact_equal=false，最大centroid绝对delta3.970466940254533e-16mm；仅原批准1e-12，无relative。模板仅原hash入report，模板字节不在ZIP，未伪称重算模板本身。内部直接adapter没有registry lease证明，必须由公共阶段真实验证。旧失败原件不翻绿或清空已完成部分。
+
+审核后人工录入137去重精确域/26完整system后态，固化原run/head/artifact/digest。仅33.5.0和PRT/ASM Default配置、drawing正常无模型配置；未测版本/配置拒绝，精确源不能外推任意值组合。无CI自动填表。真实公共gate升级为CLI/SDK/MCP各139共417步骤，SDK实际typed writer+generic其他操作，MCP实际一次stdio frontend的execute工具，全部同一个owned CAD/worker及同一1800组（600请求边界），不拆组/重置/少测。每通路完整正向/lease竞争token/stamp/非目标CAS/闭域/RO拒绝及保存几何；原始wire以JSONL每次fsync，语义/意图/最终报告完整持久化。仅显式public写模式wheel安装既有mcp extra；main960839e的矩阵依赖和property测试修复未覆盖。
+
+真实SDK TCP/MCP stdio对假daemon的4项连接测试、137域逐项匹配、未测配置/版本/新getter漂移拒绝及合成417接线均通过；这些不是CAD证明。公共原生417/清理原件未完成前仍不能称本路/系列验收完成、合main或发布。下一步只触发明确新head的一次public必要验证，正常一次快照即停。
+
+本轮待提交源完整portable1933项/59.706秒通过（26 skipped），最终47关联通过，真实SDK TCP/MCP stdio对假daemon4项通过；SDK generated/strict6文件与8负向typing、全部Python3.9 AST/YAML及isolated入口导入通过。持久原日志及hash `docs/evidence/units-profile/write-checkpoints-42414478796/admission-validation.json`。公共CAD417验收未到，不因这些合成/协议结果标通过。
+
+最终追加SDK ProtocolError/MCP回复不一致时的raw回复保留，避免已执行写入的回执被校验异常丢弃；不重试。此最终失败路径修改及所有相关路由由48项/8.874秒通过覆盖；完整1933项记录为此前完整基线，未冒称运行了新增第1934项的完整套件。相关原日志/hash已追加admission-validation.json。

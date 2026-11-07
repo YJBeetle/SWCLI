@@ -9,6 +9,10 @@ from swcli.hosts import windows_document_unit_profile as adapter
 
 class SystemPolicyTests(existing.UnitProfileTests):
     # Reuse the actual native-adapter fake; these tests are not native evidence.
+    def setUp(self):
+        super().setUp()
+        self.app.RevisionNumber=lambda:'33.5.0'
+
     def system_change(self, **kw):
         return self.edit('system', 'mmgs', **kw)
 
@@ -90,9 +94,20 @@ class SystemPolicyTests(existing.UnitProfileTests):
         self.assertEqual(result['mutation'], dict(attempted=True, may_have_changed=True))
         self.document.SetSaveFlag.assert_not_called()
 
-    def test_production_domains_stay_empty(self):
-        self.assertEqual(catalog.CALIBRATED_UNIT_WRITES, ())
-        self.assertEqual(catalog.CALIBRATED_UNIT_SYSTEM_RESULTS, ())
+    def test_production_domain_counts_are_exact_audited_literals(self):
+        self.assertEqual(len(catalog.CALIBRATED_UNIT_WRITES),137)
+        self.assertEqual(len(catalog.CALIBRATED_UNIT_SYSTEM_RESULTS),26)
+        self.assertEqual(len(set(catalog.CALIBRATED_UNIT_WRITES)),137)
+
+    def test_unmeasured_configuration_and_revision_refuse_before_set(self):
+        domain=(1,catalog.fingerprint(self.expected),'linear.unit',3)
+        for config,revision in (('Alternate','33.5.0'),('Default','34.0.0')):
+            self.configuration.Name=config;self.app.RevisionNumber=lambda:revision
+            with mock.patch.object(adapter,'CALIBRATED_UNIT_WRITES',(domain,)):
+                result=self.edit()
+            self.assertFalse(result['ok'],result)
+            self.assertEqual(result['mutation'],dict(attempted=False,may_have_changed=False))
+            self.assert_no_write()
 
     def test_scalar_getunits_target_must_roundtrip_together(self):
         def change(*args):
@@ -104,3 +119,15 @@ class SystemPolicyTests(existing.UnitProfileTests):
         self.assertFalse(result['ok'],result)
         self.assertEqual(result['mutation'],dict(attempted=True,may_have_changed=True))
         self.document.SetSaveFlag.assert_not_called()
+
+    def test_revision_getter_drift_cannot_be_adopted_as_new_context(self):
+        domain=(1,catalog.fingerprint(self.expected),'linear.unit',3)
+        def revision():
+            self.configuration.Name='Other'
+            return '33.5.0'
+        self.app.RevisionNumber=revision
+        with mock.patch.object(adapter,'CALIBRATED_UNIT_WRITES',(domain,)):
+            result=self.edit()
+        self.assertFalse(result['ok'],result)
+        self.assertEqual(result['mutation'],dict(attempted=False,may_have_changed=False))
+        self.assert_no_write()

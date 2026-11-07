@@ -87,10 +87,10 @@ class WritePublicGateTests(unittest.TestCase):
         self.results=tuple((key,catalog.fingerprint(after)) for key,after in self.transitions.items() if key[2]=='system')
         self.output=self.root/'output';self.output.mkdir()
         self.fake=WriteCLI(self.output,self.fixtures,self.transitions)
-        self.gate=public.public.DurableGate(directory=self.output,host_directory=str(self.output),endpoint='127.0.0.1:18911',request_timeout_seconds=600)
+        self.gate=public.WriteGate(directory=self.output,host_directory=str(self.output),endpoint='127.0.0.1:18911',request_timeout_seconds=600)
 
     def execute(self,reviewed=True):
-        with mock.patch.object(catalog,'CALIBRATED_UNIT_WRITES',self.domains if reviewed else ()),mock.patch.object(catalog,'CALIBRATED_UNIT_SYSTEM_RESULTS',self.results if reviewed else ()),mock.patch.object(public.public.modeling.subprocess,'run',side_effect=self.fake.run),mock.patch.object(self.gate,'checkpoint'),mock.patch('sys.stdout',new=io.StringIO()):
+        with mock.patch.object(catalog,'CALIBRATED_UNIT_WRITES',self.domains if reviewed else ()),mock.patch.object(catalog,'CALIBRATED_UNIT_SYSTEM_RESULTS',self.results if reviewed else ()),mock.patch.object(self.gate,'run_command',side_effect=self.fake.run),mock.patch.object(self.gate,'checkpoint'),mock.patch('sys.stdout',new=io.StringIO()):
             try:public.run(self.gate,self.fixtures,[])
             finally:self.gate.cleanup()
 
@@ -98,8 +98,8 @@ class WritePublicGateTests(unittest.TestCase):
         self.execute()
         self.assertTrue(self.gate.record['success'])
         self.assertTrue(self.gate.record['changed_write_acceptance'])
-        self.assertEqual(len(self.gate.record['unit_cases']),139)
-        self.assertEqual(self.fake.changed_attempts,139)
+        self.assertEqual(len(self.gate.record['unit_cases']),417)
+        self.assertEqual(self.fake.changed_attempts,417)
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(any(c.get('custom_closed_refusal') for c in self.gate.record['unit_cases']))
 

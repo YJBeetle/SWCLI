@@ -2,7 +2,7 @@
 from typing import Any
 from ..document_unit_profile import (FIELDS, LINKAGE, CALIBRATED_UNIT_WRITES, snapshot,
     validate_snapshot, target, typed_key, fingerprint, require_scalar_source, verify_scalar_after,
-    require_system_source, calibrated_system_result, verify_system_after)
+    require_system_source, calibrated_system_result, verify_system_after, require_calibrated_context)
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _state, _require_writable, _verify_metadata_state
@@ -90,6 +90,9 @@ def _edit(app, document, field, value, expected_snapshot, *, calibration=False):
         domain = (state[0], fingerprint(before), field, native_target)
         if not calibration and domain not in CALIBRATED_UNIT_WRITES:
             raise UnitProfileCalibrationRequired("this exact source/target/document-type write awaits native CI calibration")
+        if not calibration:
+            revision = native_call("document-unit-profile", "SldWorks.RevisionNumber", lambda: _com_value(app, "RevisionNumber"))
+            require_calibrated_context(state[0], state[3], revision)
         expected_system = calibrated_system_result(domain) if field == "system" and not calibration else None
         extension = _com_value(document, "Extension")
         _guard(app, document, state, foreground, edit, writable=True)
