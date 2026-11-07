@@ -801,6 +801,46 @@ class DocumentFontScopeSetResult(_DocumentFontScopeSetResultRequired, total=Fals
     mutation: DrawingStandardViewsResultMutation
 
 
+DocumentLineFontParameters = DocumentFontScopesParameters
+
+
+class _DocumentLineFontResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.line-font']
+
+
+class DocumentLineFontResult(_DocumentLineFontResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+
+
+class DocumentLineFontSetParameters(TypedDict):
+    field: Literal['visible_edges.style', 'visible_edges.weight', 'hidden_edges.style', 'hidden_edges.weight']
+    value: int
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentLineFontSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.line-font-set']
+
+
+class DocumentLineFontSetResult(_DocumentLineFontSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['visible_edges.style', 'visible_edges.weight', 'hidden_edges.style', 'hidden_edges.weight']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    finalization_error: DocumentCreateResultError
+
+
 DocumentAnnotationOptionsParameters = DocumentFontScopesParameters
 
 

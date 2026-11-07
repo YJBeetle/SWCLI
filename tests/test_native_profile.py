@@ -15,11 +15,12 @@ SPEC.loader.exec_module(PROFILE)
 
 
 class NativeProfileTests(unittest.TestCase):
-    def test_all_event_ref_scope_combinations(self):
+    def test_all_legal_scopes_and_pairwise_conflicts(self):
         refs = ["refs/heads/main", "refs/heads/other", "refs/tags/v0.2.4", *set(PROFILE.FEATURE_REFS.values())]
-        for event, ref, bits in itertools.product(("push", "workflow_dispatch", "pull_request"), refs,
-                                                  itertools.product((False, True), repeat=len(PROFILE.FLAGS))):
-            inputs = dict(zip(PROFILE.FLAGS, bits))
+        selections = [(), *((name,) for name in PROFILE.FLAGS),
+                      *itertools.combinations(PROFILE.FLAGS, 2), tuple(PROFILE.FLAGS)]
+        for event, ref, selection in itertools.product(("push", "workflow_dispatch", "pull_request"), refs, selections):
+            inputs = {name: name in selection for name in PROFILE.FLAGS}
             selected = [key for key, value in inputs.items() if value]
             valid = (not selected if event != "workflow_dispatch" else
                      len(selected) <= 1 and (not selected or selected[0] == "native_full"

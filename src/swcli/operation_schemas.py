@@ -15,6 +15,7 @@ from .hosts.windows_document_units import LENGTH_UNITS, DECIMAL_PLACES_MIN, DECI
 from .document_tolerances import TOLERANCE_FIELDS, value_schema, snapshot_schema, validate_value
 from .document_font_scopes import (WRITABLE_FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, font_scopes_schema, font_value_schema, validate_font_edit)
 from .font_snapshot import FONT_WRITABLE_FIELDS
+from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_VALUES, LINE_FONT_SNAPSHOT, validate_edit as validate_line_font_edit
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
@@ -223,6 +224,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "then": {"properties": {"value": font_value_schema(field)}},
         } for field in FONT_WRITABLE_FIELDS],
         document_id="required", expected_update_stamp="required", lease_id="required",
+    ),
+    "document.line-font": _operation("document.line-font", **_DOCUMENT_READ_CONTEXT),
+    "document.line-font-set": _operation(
+        "document.line-font-set",
+        {"field": _string(enum=list(LINE_FONT_FIELDS)), "value": _integer(),
+         "expected_options": LINE_FONT_SNAPSHOT},
+        required=("field", "value", "expected_options"),
+        parameter_conditions=[{"if": {"properties": {"field": {"const": field}}},
+                               "then": {"properties": {"value": {"enum": values}}}}
+                              for field, values in LINE_FONT_VALUES.items()],
+        **_DOCUMENT_WRITE_CONTEXT,
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -672,6 +684,8 @@ def validate_operation_request(
     if operation == "document.export" and "stl_options" in parameters:
         if not isinstance(parameters.get("output"), str) or not parameters["output"].lower().endswith(".stl"):
             raise ValueError("stl_options require .stl output")
+    if operation == "document.line-font-set":
+        validate_line_font_edit(parameters["field"], parameters["value"], parameters["expected_options"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

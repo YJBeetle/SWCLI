@@ -1,0 +1,62 @@
+{
+  "success": true,
+  "audit_scope": "local first-level independent public-artifact checks; final review belongs to orchestrator",
+  "run_id": 42361465979,
+  "source_head": "85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6",
+  "artifact_id": 13570840145,
+  "artifact_sha256": "477dda40f31f1bf691543f78b719761d4e8d3c117484a9743637dfb682fb3e43",
+  "report_sha256": "572d3235772454aaea4a64d267ed7355ed1a520cb363c7bbcd3ca0533ef92055",
+  "journal_sha256": "ceff002f2e6e2b8e9d04c30a0e187cf0ea166ca34937a35f7e4075c383188263",
+  "native_trace_sha256": "d69abbf944d6bb6323ef5ff6750f1d2051dceffdcc381e4de22e7b111af29443",
+  "source_files": {
+    "source": {
+      "name": "source.SLDDRW",
+      "size_bytes": 23838,
+      "sha256": "a79dbf582819a3128bf4eef560514e51eca26d13b72b746c6d7721e86467e338"
+    },
+    "changed_save": {
+      "name": "changed.SLDDRW",
+      "size_bytes": 23993,
+      "sha256": "ee2f47d7c21a2f67855655bd0400eb2a8e1f5e9a9ef6921de19b1300a5c0a4b1"
+    }
+  },
+  "cli_events": 90,
+  "verified_linefont_requests": 30,
+  "foreground_observations": 30,
+  "native_counts": {
+    "IModelDocExtension.GetUserPreferenceInteger": 140,
+    "IModelDocExtension.SetUserPreferenceInteger": 4,
+    "IModelDoc2.SetSaveFlag": 1
+  },
+  "outcomes": {
+    "read": 13,
+    "DocumentLeaseConflict": 1,
+    "DocumentUpdateConflict": 1,
+    "DocumentLineFontConflict": 4,
+    "write": 4,
+    "noop": 6,
+    "ValueError": 1
+  },
+  "single_worker": true,
+  "host_revision": "33.5.0",
+  "native_host_pid": 2720,
+  "daemon_exit_code": 0,
+  "mcp_scope": "live bridge execute contract; not stdio transport",
+  "limits": [
+    "four calibrated one-way conversions plus 0/1 noops on revision 33.5.0 drawing defaults",
+    "healthy public background drawing with fresh foreground part; mocks cover injected receipt/foreground faults",
+    "MCP live bridge contract only, not stdio",
+    "not full modeling suite or release acceptance"
+  ],
+  "reviewer": "coordinator personally",
+  "integration_base": "6c1dab885d3eca7df91f2c395b2c65f05bccd3fb",
+  "original_wheel_source_files_verified": 95,
+  "integration_portable": {
+    "ran": 2045,
+    "passed": 2012,
+    "skipped": 33,
+    "log_sha256": "4e5521a3800ea3658e89b2908e44aa05e72a7eca00eb56570b37b7f1fd3e3fd8"
+  },
+  "integration_sdk": "passed; 10 consumer typing refusals",
+  "release_eligible": false
+}

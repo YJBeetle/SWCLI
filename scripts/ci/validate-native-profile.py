@@ -3,6 +3,8 @@ import json
 import os
 
 FEATURE_REFS = {
+    "line_font_public": "refs/heads/codex/docprops-line-style",
+    "line_font_calibration": "refs/heads/codex/docprops-line-style",
     "stl_options_public": "refs/heads/codex/swcli-stl-export-options",
     "stl_options_targeted": "refs/heads/codex/swcli-stl-export-options",
     "calibrate_font_scopes": "refs/heads/codex/docprops-font-scopes",

@@ -12,6 +12,7 @@ from .protocol import load_schema
 from .document_tolerances import TOLERANCE_FIELDS
 from .document_font_scopes import FONT_SCOPES, font_scopes_schema, validate_font_scopes
 from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match
+from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_SNAPSHOT
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
@@ -574,6 +575,12 @@ _RESULT_FIELDS = {
          "before": font_scopes_schema(), "fonts": font_scopes_schema(),
          "observed_fonts": font_scopes_schema(), "changed": BOOL, "mutation": METADATA_MUTATION},
         ("session_id", "document", "scope", "field", "before", "fonts", "changed", "mutation"),
+    ),
+    "document.line-font": ({"options": LINE_FONT_SNAPSHOT}, ("session_id", "document", "options")),
+    "document.line-font-set": (
+        {"field": {"enum": list(LINE_FONT_FIELDS)}, "before": LINE_FONT_SNAPSHOT,
+         "options": LINE_FONT_SNAPSHOT, "changed": BOOL, "mutation": METADATA_MUTATION, "finalization_error": ERROR},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation"),
     ),
     "document.annotation-options": (
         {"options": DOCUMENT_ANNOTATION_OPTIONS},
@@ -2864,6 +2871,13 @@ def validate_operation_result(name: str, result: Any) -> None:
                 or not font_unrequested_fields_match(before[scope], after[scope], field)
                 or (changed and result["document"]["modified"] is not True)):
             raise OperationResultInvalid(name + ": inconsistent scoped font mutation evidence")
+    if name == "document.line-font-set" and result["ok"] is True:
+        before, after, field = result["before"], result["options"], result["field"]
+        changed = before[field] != after[field]
+        if (changed != result["changed"] or result["mutation"] != {"attempted": changed, "may_have_changed": changed}
+                or any(before[k] != after[k] for k in LINE_FONT_FIELDS if k != field)
+                or (changed and result["document"]["modified"] is not True)):
+            raise OperationResultInvalid(name + ": inconsistent line font mutation")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

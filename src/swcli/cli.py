@@ -23,6 +23,7 @@ from .hosts.windows_document_units import LENGTH_UNITS
 from .document_tolerances import TOLERANCE_FIELDS
 from .document_font_scopes import WRITABLE_FONT_SCOPES
 from .font_snapshot import FONT_WRITABLE_FIELDS
+from .document_line_font import LINE_FONT_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -273,6 +274,16 @@ def build_parser() -> argparse.ArgumentParser:
     font_editor.add_argument("value", help="JSON scalar, e.g. true, 12, or a quoted font name")
     font_editor.add_argument("--if-fonts", required=True, dest="expected_fonts", help="complete four-scope JSON snapshot")
     font_editor.add_argument("--json", action="store_true", dest="as_json")
+    line_reader = document_commands.add_parser("line-font", help="read four drawing Line Font defaults")
+    add_document_selector(line_reader)
+    line_reader.add_argument("--json", action="store_true", dest="as_json")
+    line_writer = document_commands.add_parser("line-font-set", help="guarded Line Font write (native acceptance pending)")
+    add_document_selector(line_writer)
+    add_lease_token(line_writer)
+    line_writer.add_argument("field", choices=tuple(LINE_FONT_FIELDS))
+    line_writer.add_argument("value", type=int)
+    line_writer.add_argument("--if-options", required=True, help="complete native integer snapshot as JSON")
+    line_writer.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1385,6 +1396,12 @@ def _typed_operation(
             return ("document.font-scope-set", {"scope": args.scope, "field": args.field,
                     "value": json.loads(args.value), "expected_fonts": json.loads(args.expected_fonts)},
                     args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
+        if command == "line-font":
+            return ("document.line-font", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "line-font-set":
+            return ("document.line-font-set", {"field": args.field, "value": args.value,
+                    "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)
