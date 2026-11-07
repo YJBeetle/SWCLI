@@ -66,7 +66,12 @@ def audit(directory, native_trace, *, report_sha256):
             profile[field] = [[raw_before, raw_after], [raw_after, raw_after]]
         if kind == 1:
             geometry = case.get('geometry_checks', [])
-            require([row['field'] for row in geometry] == fields + ['saved-reopen'], 'missing exact part geometry operands')
+            require([row['field'] for row in geometry] == ['before-first-table-write'] + fields + ['saved-reopen'],
+                    'missing exact part geometry operands')
+            measured = case.get('geometry_before_table_write_measurement', {})
+            require(case.get('geometry_before_table_write_context_unchanged') is True
+                    and measured.get('ok') is True and measured.get('metrics') == case['geometry_reopened'],
+                    'part pre-write measurement/context did not match the readonly baseline')
             require(all(row['exact_equal'] is True and row['before'] == row['after'] == case['geometry_reopened']
                         for row in geometry), 'part geometry exact comparison failed')
         require(current == case['final_options'] == case['persisted']['options'] and case['persisted']['ok'] is True,

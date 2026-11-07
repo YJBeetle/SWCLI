@@ -38,7 +38,22 @@ def record_geometry_check(output, case, field, actual):
     with (output / "geometry-observations.jsonl").open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, allow_nan=False) + "\n")
         stream.flush()
-    checked(actual == before, "table scalar write changed analytic fixture geometry")
+    checked(actual == before, "table fixture exact geometry comparison failed at " + field)
+
+
+def verify_part_before_write(app, document, output, case):
+    """Check the existing readonly baseline before entering any table setter."""
+    snapshot = adapter._capture(app, document)
+    measured = fixtures.measure_part_windows(document=document)
+    case["geometry_before_table_write_measurement"] = measured
+    case["geometry_before_table_write_context"] = {
+        key: snapshot[key] for key in ("state", "identity", "foreground_state", "foreground_identity")
+    }
+    checked(measured["ok"], "part pre-write geometry measurement failed")
+    fixtures.harness.verify_geometry(measured["metrics"], 10, cut=False)
+    adapter._verify(app, document, snapshot)
+    case["geometry_before_table_write_context_unchanged"] = True
+    record_geometry_check(output, case, "before-first-table-write", measured["metrics"])
 
 
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
@@ -94,6 +109,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     operations.set_document_table_option_windows = partial(adapter._edit_table_option, calibration=True)
     try:
         current = original["options"]
+        if kind == 1:
+            call("verify-part-before-first-table-write",
+                 lambda: verify_part_before_write(app, document, output, case))
         for field, spec in TABLE_FIELDS.items():
             if kind not in spec["types"]:
                 unsupported = call("reject-unavailable-table-default", lambda field=field: execute("document.table-option-set",

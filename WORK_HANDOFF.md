@@ -4,8 +4,8 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **尚未 merge-ready。** 33.5.0 装配体/工程图精确转换已按成功的内部原件限定开放，待同分支公开验收。零件写入继续关闭，系列完整验收仍待完成。
-- 内部范围 `assembly-drawing`（类型 `[2,3]`，8 项）已在 wrapper 修复后的 run `42301331238` 通过。公开 gate 和 part 原生失败仍是本系列未完成阻断，默认完整计划保留零件精确几何断言。
+- **装配体/工程图已完成含严格 native guard 的公开验收，供统筹 review/合并。** 精确候选 tip `5a4d861d9caf7c4b79ef9f288630aa06247e50d1`，产品代码对应已验 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`。零件写入继续关闭，系列完整验收仍待完成。
+- 内部 `42301331238` 和公开 `42366316568` 的新原件均已审核。后续提交只增加原计划零件的严格 pre-write 对照，候选 tip 与后续诊断 head 分开记录。默认完整计划保留零件精确几何断言。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -153,3 +153,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 旧临时 venv 已被系统清理，当前审计环境改用工作树忽略目录 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/.venv/`，复跑命令已更新。
 - 装配体/工程图精确范围可供统筹 review/合并，系列发版仍待原计划零件严格几何问题解决。
 - 零件旧原 ZIP 已有首个关键线索。创建后 `geometry.centroid_mm.y=5.514537417020185e-16`，首次保存/只读重开后为 `8.271806125530278e-16`，均发生在表格写入之前。当前严格 table 比较跨越只读 handle 和重新打开的可写 handle，缺少当前可写 handle 在首个 setter 前的严格测量对照。下一项仅补该对照及留证，保留原 exact equality 和首错停组规则。
+
+
+## 零件严格几何阻断的最早差异与最小对照修正
+
+- 已从 `42269888379` 原 ZIP 再次核 SHA256 与 report SHA256，确认 `geometry` 与 `geometry_reopened` 的质心 y 在首次 table writer stage（trace index 40）之前已不完全相同。两次 measure stage 均完整结束，初次保存/只读重开的 y 差值为 `2.7572687085100926e-16 mm`。结构化对照保存在 `docs/verification/table-defaults-evidence/part-prewrite-first-difference.json`。
+- 直接阻断仍是 exact geometry dict equality。当前证据把最早数值差异定位到 fixture 保存/重开阶段，但旧 run 没有可写 handle 在首个 setter 前的读数，尚不足以把该次差异归因于 table setter。`measure_part_windows` 对单实体读取 GetMassProperties(1.0) 并换算为毫米，原生 12 元组未保留，当前不推断更深的 kernel 原因。
+- 最小修正补 `verify_part_before_write`。在首个 candidate setter 前，单次通过原测量函数读取完整 metrics/bodies，保存目标/前台 metadata，验证 context 未变，并与原 readonly baseline 做原样 exact equality。后续每字段和 save/reopen 的 exact equality 全保留。错误信息按实际 phase 命名，便于区分 pre-write 与 post-write 首错。
+- 在既有 internal 文档类型选择中加 `part`，只执行原计划零件，避免重跑已验装配体/工程图。通用默认仍 all，600/1800 秒、单 owned host 和首错停组为硬限制。
+- 审计器要求零件有完整 pre-write 数据及 exact/context 通过标记。新增单 ULP 质心变化在首个 table setter 前即被拒绝的测试，以及独立原件审核对 pre-write context/metrics 篡改的拒绝测试。Windows plain-child 测试覆盖 part/assembly-drawing 的参数路由和 exit 0/7，均不启动 CAD。
+- 相关 44 tests / 4 platform skips 通过，既有 pinned internal [2,3] 原件审核继续通过，workflow YAML 解析通过。零件 profile 保持关闭。下一组单次 internal/part run 将补齐可写 handle 的因果对照，完成原件可用后再处理首因或确认后续最小修复。

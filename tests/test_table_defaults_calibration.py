@@ -23,6 +23,7 @@ class TableCalibrationTests(unittest.TestCase):
         self.assertIn('default: false', entry)
         self.assertIn('table_defaults_document_types:', source)
         self.assertIn('- assembly-drawing', source)
+        self.assertIn('- part', source)
         job = source.split('  table-defaults-calibration:', 1)[1]
         for guard in ("github.event_name == 'workflow_dispatch'", "refs/heads/codex/docprops-table-defaults",
                       'inputs.table_defaults_calibration', 'inputs.table_defaults_head == github.sha'):
@@ -64,13 +65,44 @@ class TableCalibrationTests(unittest.TestCase):
         case = {"geometry_reopened": before}
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
-            with self.assertRaisesRegex(RuntimeError, 'changed analytic fixture geometry'):
+            with self.assertRaisesRegex(RuntimeError, 'exact geometry comparison'):
                 gate.record_geometry_check(output, case, 'bom.box_border', actual)
             recorded = json.loads((output / 'geometry-observations.jsonl').read_text())
             self.assertEqual(recorded['before'], before)
             self.assertEqual(recorded['after'], actual)
             self.assertFalse(recorded['exact_equal'])
             self.assertEqual(case['geometry_checks'], [recorded])
+
+    def test_part_control_keeps_exact_readonly_comparison_and_stops_before_any_table_setter(self):
+        import math
+        from copy import deepcopy
+        for changed in (False, True):
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as temporary:
+                fake = table_tests.DocumentTableTests()
+                fake.setUp()
+                self.addCleanup(fake.doCleanups)
+                expected = dict(solid_body_count=1, volume_mm3=12000.0, surface_area_mm2=3800.0,
+                                centroid_mm=dict(x=0.0, y=0.0, z=5.0))
+                actual = deepcopy(expected)
+                if changed:
+                    actual['centroid_mm']['y'] = math.nextafter(0.0, 1.0)
+                measured = dict(ok=True, action='document.measure', metrics=actual, bodies=[dict(actual)])
+                case = dict(geometry_reopened=expected)
+                with mock.patch.object(gate.fixtures, 'measure_part_windows', return_value=measured) as measure:
+                    if changed:
+                        with self.assertRaisesRegex(RuntimeError, 'before-first-table-write'):
+                            gate.verify_part_before_write(fake.app, fake.document, Path(temporary), case)
+                    else:
+                        gate.verify_part_before_write(fake.app, fake.document, Path(temporary), case)
+                measure.assert_called_once_with(document=fake.document)
+                self.assertEqual(case['geometry_before_table_write_measurement'], measured)
+                self.assertTrue(case['geometry_before_table_write_context_unchanged'])
+                row = case['geometry_checks'][0]
+                self.assertEqual(row['field'], 'before-first-table-write')
+                self.assertEqual(row['before'], expected)
+                self.assertEqual(row['after'], actual)
+                self.assertIs(row['exact_equal'], not changed)
+                fake.no_setters()
 
     def test_wrapper_has_native_and_group_limits_and_one_process_start(self):
         source = (ROOT / 'scripts/ci/windows/calibrate-table-defaults.ps1').read_text()

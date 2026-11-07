@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
     [Parameter(Mandatory = $true)][string]$DrawingTemplate,
     [string]$Swconst = "C:\Program Files\SOLIDWORKS\swconst.tlb",
-    [ValidateSet("all", "assembly-drawing")][string]$DocumentTypes = "all"
+    [ValidateSet("all", "assembly-drawing", "part")][string]$DocumentTypes = "all"
 )
 $ErrorActionPreference = "Stop"
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
@@ -19,6 +19,7 @@ try {
         '--drawing-template', ('"' + $DrawingTemplate + '"')
     )
     if ($DocumentTypes -eq "assembly-drawing") { $arguments += @("--document-types", "assembly", "drawing") }
+    if ($DocumentTypes -eq "part") { $arguments += @("--document-types", "part") }
     $worker = Start-Process -FilePath (Get-Command python).Source -ArgumentList $arguments -RedirectStandardOutput $stdout -RedirectStandardError $stderr -NoNewWindow -PassThru
     # Retain the native handle while the child is live, as in the existing
     # external-host fixture; Windows PowerShell otherwise can lose ExitCode.

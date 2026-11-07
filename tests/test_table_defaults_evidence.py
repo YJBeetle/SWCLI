@@ -45,8 +45,10 @@ class TableEvidenceTests(unittest.TestCase):
                 methods += cycle + ['IModelDocExtension.SetUserPreference' + spec['kind']] + cycle * 4
             if kind == 1:
                 case['geometry_reopened'] = dict(solid_body_count=1, volume_mm3=12000.0, surface_area_mm2=3800.0, centroid_mm=dict(x=0.0, y=0.0, z=5.0))
+                case['geometry_before_table_write_measurement'] = dict(ok=True, metrics=deepcopy(case['geometry_reopened']))
+                case['geometry_before_table_write_context_unchanged'] = True
                 fields = [field for field, spec in TABLE_FIELDS.items() if kind in spec['types']]
-                case['geometry_checks'] = [dict(field=field, before=deepcopy(case['geometry_reopened']), after=deepcopy(case['geometry_reopened']), exact_equal=True) for field in fields + ['saved-reopen']]
+                case['geometry_checks'] = [dict(field=field, before=deepcopy(case['geometry_reopened']), after=deepcopy(case['geometry_reopened']), exact_equal=True) for field in ['before-first-table-write'] + fields + ['saved-reopen']]
             case['final_options'] = fake.read()['options']
             case['persisted'] = fake.read()
             case['readonly_rejection'] = dict(ok=False, mutation=dict(attempted=False, may_have_changed=False))
@@ -71,7 +73,7 @@ class TableEvidenceTests(unittest.TestCase):
         return report, native
 
     def test_audits_only_proven_raw_transitions_and_refuses_corrupt_originals_or_receipts(self):
-        for defect in (None, 'saved-file', 'report-digest', 'partial', 'noop', 'persistence', 'trace'):
+        for defect in (None, 'saved-file', 'report-digest', 'partial', 'noop', 'persistence', 'trace', 'prewrite-context', 'prewrite-metrics'):
             with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
                 directory = Path(temporary)
                 report, native = self.fixture(directory)
@@ -80,6 +82,8 @@ class TableEvidenceTests(unittest.TestCase):
                 if defect == 'noop': report['cases'][0]['noops'][0]['mutation']['attempted'] = True
                 if defect == 'persistence': report['cases'][0]['persisted']['options']['bom.box_border'] = dict(value='normal', native_value=1)
                 if defect == 'trace': native.write_text(native.read_text().replace('"phase": "end"', '"phase": "error"', 1))
+                if defect == 'prewrite-context': report['cases'][0]['geometry_before_table_write_context_unchanged'] = False
+                if defect == 'prewrite-metrics': report['cases'][0]['geometry_before_table_write_measurement']['metrics']['centroid_mm']['y'] = 1e-20
                 path = directory / 'report.json'
                 path.write_text(json.dumps(report))
                 digest = '0' * 64 if defect == 'report-digest' else auditor.sha256(path)

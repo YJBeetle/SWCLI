@@ -1,6 +1,6 @@
 # 原生运行环境准入修复后的公开验收
 
-[42366316568](https://github.com/YJBeetle/SWCLI/actions/runs/42366316568) 在 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b` 完成成功。该提交包含严格 native Windows 探针，CAD 前实际探针检查和公开 gate 均成功。新原始 ZIP 经独立审计通过，当前装配体/工程图产品代码与该验收 head 一致，交由统筹本人 review 和合并。零件精确几何仍是系列待完成项。
+[42366316568](https://github.com/YJBeetle/SWCLI/actions/runs/42366316568) 在 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b` 完成成功。该提交包含严格 native Windows 探针，CAD 前实际探针检查和公开 gate 均成功。新原始 ZIP 经独立审计通过，装配体/工程图候选 tip `5a4d861d9caf7c4b79ef9f288630aa06247e50d1` 的产品代码与该验收 head 一致，交由统筹本人 review 和合并。零件精确几何仍是系列待完成项。
 
 ## 新原件和完整路径
 

@@ -57,6 +57,7 @@ on:
         options:
           - all
           - assembly-drawing
+          - part
       table_defaults_mode:
         description: Internal calibration or public CLI/daemon acceptance using audited internal proof
         required: false

@@ -25,22 +25,27 @@ class TableProcessExitTests(unittest.TestCase):
             # Keep the production wrapper, argument quoting, redirection and
             # watchdog; replace only its script target with a plain child.
             (directory / 'verify-table-defaults-calibration.py').write_text(
-                'import os, sys\n'
+                'import json, os, sys\n'
                 'print("plain child completed", flush=True)\n'
+                'print(json.dumps(sys.argv[1:]), flush=True)\n'
                 'sys.exit(int(os.environ["SWCLI_TEST_TABLE_CHILD_EXIT"]))\n')
-            for exit_code in (0, 7):
-                with self.subTest(exit_code=exit_code):
-                    output = directory / ('output ' + str(exit_code))
+            for document_types, exit_code in (('assembly-drawing', 0), ('assembly-drawing', 7), ('part', 0), ('part', 7)):
+                with self.subTest(document_types=document_types, exit_code=exit_code):
+                    output = directory / ('output ' + document_types + ' ' + str(exit_code))
                     result = subprocess.run([POWERSHELL, '-NoProfile', '-NonInteractive', '-File', str(wrapper),
                         '-OutputDirectory', str(output), '-DrawingTemplate', str(directory / 'not-used.drwdot'),
-                        '-DocumentTypes', 'assembly-drawing'], capture_output=True, text=True, timeout=30,
+                        '-DocumentTypes', document_types], capture_output=True, text=True, timeout=30,
                         env=dict(os.environ, SWCLI_TEST_TABLE_CHILD_EXIT=str(exit_code)))
                     receipt = json.loads((output / 'wrapper-result.json').read_text(encoding='utf-8-sig'))
                     self.assertEqual(receipt['worker_exit_code'], exit_code, result.stdout + result.stderr)
                     self.assertEqual(receipt['success'], exit_code == 0)
                     self.assertEqual((receipt['native_seconds'], receipt['group_seconds']), (600, 1800))
                     self.assertEqual(result.returncode == 0, exit_code == 0, result.stdout + result.stderr)
-                    self.assertIn('plain child completed', (output / 'worker.stdout.log').read_text())
+                    stdout = (output / 'worker.stdout.log').read_text()
+                    self.assertIn('plain child completed', stdout)
+                    arguments = json.loads(stdout.splitlines()[1])
+                    selected = ['part'] if document_types == 'part' else ['assembly', 'drawing']
+                    self.assertEqual(arguments[-len(selected) - 1:], ['--document-types', *selected])
                     self.assertFalse((output / 'watchdog-failure.json').exists())
 
 
