@@ -52,6 +52,8 @@ class TableCalibrationTests(unittest.TestCase):
         self.assertIn("inputs.table_defaults_mode == 'public'", job)
         self.assertNotIn('swcli-hosted-windows-solidworks', job)
         self.assertNotIn('swcli-release-', job)
+        cleanup = job.split('      - name: Remove private inputs and stop disposable services', 1)[1].split('      - name:', 1)[0]
+        self.assertIn("if: ${{ always() && env.PRIVATE_ROOT != '' && env.PROBE_ROOT != '' }}", cleanup)
 
     def test_failed_exact_geometry_comparison_persists_actual_values_without_relaxing(self):
         import math

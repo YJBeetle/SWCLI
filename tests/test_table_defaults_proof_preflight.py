@@ -6,6 +6,7 @@ import importlib.util
 import io
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest import mock
 
@@ -20,6 +21,25 @@ class TableProofPreflightTests(unittest.TestCase):
         return dict(run_id=1, head='a' * 40, artifact_id=2, artifact_name='table-defaults-internal-1-1',
                     artifact_digest='sha256:' + 'b' * 64, report_sha256='c' * 64,
                     native_trace_sha256='d' * 64, harness_trace_sha256='e' * 64)
+
+    def test_actual_utf8_json_child_is_decoded_when_system_default_is_cp1252(self):
+        payload = {'title': '表格默认设置“校准”', 'head': 'a' * 40}
+        encoded = proof.json.dumps(payload, ensure_ascii=False).encode('utf-8')
+        with self.assertRaises(UnicodeDecodeError):
+            encoded.decode('cp1252')
+        native_run = proof.subprocess.run
+
+        def launch_fixture(command, **kwargs):
+            self.assertEqual(command, ['gh', 'api', '/utf8-fixture'])
+            # Model the Windows code page for an implicit text decoder while
+            # allowing the API adapter to specify its protocol encoding.
+            if kwargs.get('text'):
+                kwargs.setdefault('encoding', 'cp1252')
+            return native_run([sys.executable, '-I', '-c',
+                'import sys; sys.stdout.buffer.write(bytes.fromhex(' + repr(encoded.hex()) + '))'], **kwargs)
+
+        with mock.patch.object(proof.subprocess, 'run', side_effect=launch_fixture):
+            self.assertEqual(proof.api('/utf8-fixture'), payload)
 
     def test_empty_proof_fails_before_remote_access(self):
         with mock.patch.object(proof, 'INTERNAL_PROOF', {}), mock.patch.object(proof, 'api') as remote:

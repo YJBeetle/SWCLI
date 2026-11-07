@@ -106,3 +106,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 验收 head `c6614e0cd9a3ecae751587b53f0802486df4dfde`。本地 remote 和 local 预检均通过，相关测试共 37 项，其中 1 项 Windows 专属测试在 macOS 跳过。
 - [公开 run 42305463102](https://github.com/YJBeetle/SWCLI/actions/runs/42305463102) 单次启动，快照为 `in_progress`。参数为 `native_full=false`、`table_defaults_calibration=true`、mode `public`、类型参数 `assembly-drawing` 和上述精确 head。实际公开范围由 pinned 内部原件的 [2,3] 决定。快照和参数存于 ignored `run-42305463102/`。
 - 公开结果待原始 artifact 核验，系列还需解决零件精确几何验收。系列整组完成后再请用户确认发版。
+
+
+## 公开 run 42305463102 的首次失败与相关修复
+
+- [42305463102](https://github.com/YJBeetle/SWCLI/actions/runs/42305463102) / `c6614e0cd9a3ecae751587b53f0802486df4dfde` 已 completed/failure。首次失败在 `Check pinned internal run and original artifact provenance`，尚未准备 private runtime 或执行 CAD。GitHub artifact 列表为空，原始 run/jobs/artifacts metadata 和完整 failed-step log 保存在 ignored `run-42305463102/`，文件摘要见 `evidence-digests.json`。
+- 原始 failed-step log SHA256 `fc1954faed7fdb6d394a0e2d0d88a957a788d355456ab44cfe29b52f97e982f0`。首错为 subprocess reader 使用 Windows 默认 charmap 解码 `gh api` 的 UTF-8 JSON，byte `0x9d` 导致 `UnicodeDecodeError`，随后 `json.loads(None)` 报错。原始来源校验还未完成。
+- 随后 cleanup 因路径初始化步骤尚未运行，`PrivateRoot` 为空而再次报错。相关修复仅为 table job 在 PRIVATE_ROOT 和 PROBE_ROOT 均已初始化时执行 always cleanup。
+- `scripts/ci/verify-table-defaults-proof.py` 的 gh subprocess 显式指定 `encoding='utf-8'`。新增实际 Python 子进程输出包含中文及弯引号的 UTF-8 JSON 回归，模拟隐式 cp1252 解码并验证来源适配器按正确编码读取。
+- 本地相关 54 tests / 4 platform skips 通过。实际 pinned internal remote preflight 和原始 artifact local audit 均通过，workflow YAML 与 cleanup 条件验证通过。已有内部原件、精确 profile、CAS/状态/零件几何硬断言及 600/1800 秒限制继续作为验收门禁。
+- 本轮仅对上述首错及后续空路径清理错误修复。下一次公开 gate 使用该修复的精确 head，完成后仍需原件核验。零件精确几何仍为系列未完成项，系列整组完成后再请用户确认发版。

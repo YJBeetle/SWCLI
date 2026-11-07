@@ -690,7 +690,7 @@ jobs:
         run: |
           scripts/ci/windows/accept-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults\public" -FixtureDirectory "$env:RUNNER_TEMP\table-defaults-internal-proof\calibration" -InternalReportSha256 $env:TABLE_INTERNAL_REPORT_SHA256 -InternalHead $env:TABLE_INTERNAL_HEAD -InternalRun $env:TABLE_INTERNAL_RUN
       - name: Remove private inputs and stop disposable services
-        if: always()
+        if: ${{ always() && env.PRIVATE_ROOT != '' && env.PROBE_ROOT != '' }}
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
       - name: Upload original calibration evidence

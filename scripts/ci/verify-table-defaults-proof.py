@@ -33,7 +33,7 @@ def proof():
 
 
 def api(path):
-    result = subprocess.run(['gh', 'api', path], capture_output=True, text=True, check=True, timeout=60)
+    result = subprocess.run(['gh', 'api', path], capture_output=True, text=True, encoding='utf-8', check=True, timeout=60)
     return json.loads(result.stdout)
 
 
