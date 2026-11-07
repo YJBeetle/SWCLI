@@ -21,6 +21,7 @@ class _TraceState:
     request_id: str
     operation: str
     sequence: int = 0
+    native_calls: bool = True
 
 
 _STATE: ContextVar[Optional[_TraceState]] = ContextVar("swcli_native_trace", default=None)
@@ -28,6 +29,8 @@ _STATE: ContextVar[Optional[_TraceState]] = ContextVar("swcli_native_trace", def
 
 def _emit(state: _TraceState, sequence: int, stage: str, call: str,
           phase: str, started: float, error: Optional[BaseException] = None) -> None:
+    if not state.native_calls:
+        return
     try:
         now = time.monotonic()
         record = {
@@ -66,16 +69,25 @@ def native_call(stage: str, call: str, function: Callable[[], Any]) -> Any:
         _emit(state, sequence, stage, call, "error", started, exc)
         raise
     _emit(state, sequence, stage, call, "end", started)
+    if (stage == "read" and call == "GetDefinition" and
+            os.environ.get("SWCLI_TRACE_DEFINITION_INTERFACES") == "1"):
+        try:
+            from .windows_definition_identity import record_definition_identity
+            record_definition_identity(result, request_id=state.request_id,
+                                       operation=state.operation, sequence=sequence)
+        except Exception:
+            pass  # Observation must never replace the original native result.
     return result
 
 
 @contextmanager
 def trace_native_request(request_id: str, operation: str) -> Iterator[None]:
     """Enable only for this request when the daemon inherits the exact toggle."""
-    if os.environ.get("SWCLI_TRACE_NATIVE_CALLS") != "1":
+    native_calls = os.environ.get("SWCLI_TRACE_NATIVE_CALLS") == "1"
+    if not native_calls and os.environ.get("SWCLI_TRACE_DEFINITION_INTERFACES") != "1":
         yield
         return
-    state = _TraceState(request_id, operation)
+    state = _TraceState(request_id, operation, native_calls=native_calls)
     token = _STATE.set(state)
     started = time.monotonic()
     _emit(state, 0, "operation", operation, "begin", started)

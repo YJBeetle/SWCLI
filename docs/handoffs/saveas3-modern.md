@@ -63,3 +63,15 @@
 完整修复head为 `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3`，已推送。唯一当前必要原生运行 [Windows native_full](https://github.com/YJBeetle/SWCLI/actions/runs/42369257219) 仅传 `native_full=true`，继承本分支独立并发组。新请求/返回记录为`dispatch-native-first-error-fix-request.json`和`dispatch-native-first-error-fix-result.json`。首次取消run没有native steps，当前新run未重复任何已失败原生保存。后续将按该head下载原ZIP/digest，核真实null/BYREF调用结果、PRT/ASM/DRW保存重开、中性导出、真实errors/warnings、trace和首失败。GLB是否解决由实际字节判定。正常运行后记录链接结束等待，统筹本人review。
 
 初次一次性快照状态为`in_progress`，head核一致，原JSON为`run-42369257219-initial-snapshot.json`。当前结束等待，不启动watch或定时。
+
+## 后续已有门禁的只读接口身份观察（尚无原生结果）
+
+已准备`hosts/windows_definition_identity.py`，只在`SWCLI_TRACE_DEFINITION_INTERFACES=1`时，观察公共请求原有`GetDefinition`成功返回对象。它读取原对象`_oleobj_.GetTypeInfo()`、`GetTypeAttr().iid/typekind`、typeinfo名称及containing typelib的GUID/版本/LCID；不替换返回对象，不CastTo/QueryInterface，不增模型创建、selection access或保存调用。
+
+安装类型库从明确绝对路径读取，默认`C:\Program Files\SOLIDWORKS\sldworks.tlb`，可由`SWCLI_SLDWORKS_TYPELIB`指定**已有绝对文件路径**。仅收集官方`IExtrudeFeatureData2`、`IRevolveFeatureData2`、`ISimpleFilletFeatureData2`的interface/dispatch类型条目及其IID，并保留文件SHA256、库GUID/版本。只有原对象自报的名称、IID、typekind和库身份全部匹配，`returned_typeinfo_matches_v2`才为true。缺失、旧IID、同名不同IID、coclass或其他库保持unavailable/unmatched，不用同名可调用成员推断v2。这里核验的是返回IDispatch自报typeinfo，不推断未执行的调用或接口强转结果。
+
+pywin32实际公开`LoadTypeLib`，未猜用不存在的`pythoncom.LoadTypeLibEx`。此处只传入验证过的绝对文件路径；[Microsoft明确说明指定路径的LoadTypeLib不会注册类型库](https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-loadtypelib)。实现依据[pywin32的ITypeInfo/ITypeLib包装源码](https://github.com/mhammond/pywin32/blob/main/com/win32com/src/extensions/PyIType.cpp)，未引入任何硬编码产品IID。
+
+诊断事件为stderr NDJSON `event=swcli.native-interface`，含request_id/operation/sequence/worker_pid，异常仅记diagnostic_error_type，不替换业务返回或首错。身份开关可单独开启以保留请求关联，而不放大全部native-call日志；只在内层`stage=read/call=GetDefinition`记录，fillet外层同名边界不重复读取。默认关闭时不读取身份。当前便携反例覆盖三类名字、同名异IID、coclass/异库、typeinfo/文件不可读、路径拒绝、原对象和原业务异常保持、观察/日志失败与内外层去重。
+
+统筹下一次**本来就需要**的组合head gate中，在既有入口的进程环境设置该开关即可，runtime-sets的新daemon会继承它。保留所有相关`swclid.stderr.log`与`daemon.log`；按实际到达的extrude/revolve/simple-fillet分别核官方条目和自报IID。若流程先停于GLB而未到达revolve/fillet，后二者仍待证据，不为收集身份额外建模或重试。此分支没有额外派发Windows验证；另一个coverage负责人在`codex/native-api-observation-modern`处理`GetActiveConfiguration/GetSystemValue2`，这里未修改这两个getter。
