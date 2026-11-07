@@ -1,5 +1,7 @@
 # 单位九字段：原定范围收口清单与最小剩余验证
 
+本文件记录2026-11-07 / `73e25fca`的收口快照；后续实现见 [2026-11-08进展](units-write-calibration-2026-11-08.md)，尚未取得新增原生写入完成结论。
+
 2026-11-07；分支 `codex/docprops-units-expanded`。本清单只展开原 `HANDOFF.md` 的 read → scalar → system → 人工有限 domain → public 验收步骤，不新增字段、linkage、候选值或任意系统组合。它是未完成工作的清单，不是新 native 通过记录，也不授权合 main 或发布。
 
 ## 当前结论

@@ -1,7 +1,8 @@
 """Nine document unit preferences with whole-profile CAS and finite write domains."""
 from typing import Any
 from ..document_unit_profile import (FIELDS, LINKAGE, CALIBRATED_UNIT_WRITES, snapshot,
-    validate_snapshot, target, typed_key, fingerprint, require_scalar_source, verify_scalar_after)
+    validate_snapshot, target, typed_key, fingerprint, require_scalar_source, verify_scalar_after,
+    require_system_source, calibrated_system_result, verify_system_after)
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _state, _require_writable, _verify_metadata_state
@@ -84,10 +85,12 @@ def _edit(app, document, field, value, expected_snapshot, *, calibration=False):
         if before["values"][field]["native_value"] == native_target:
             result.update(ok=True, changed=False, unit_profile=before); return result
         if not _writable_context(app, edit): raise ValueError("unit editing requires normal sheet/model edit context")
-        if field != "system" or not calibration: require_scalar_source(before, field)
+        if field == "system": require_system_source(before, native_target)
+        else: require_scalar_source(before, field)
         domain = (state[0], fingerprint(before), field, native_target)
         if not calibration and domain not in CALIBRATED_UNIT_WRITES:
             raise UnitProfileCalibrationRequired("this exact source/target/document-type write awaits native CI calibration")
+        expected_system = calibrated_system_result(domain) if field == "system" and not calibration else None
         extension = _com_value(document, "Extension")
         _guard(app, document, state, foreground, edit, writable=True)
         result["mutation"] = {"attempted": True, "may_have_changed": True}
@@ -102,6 +105,7 @@ def _edit(app, document, field, value, expected_snapshot, *, calibration=False):
         _guard(app, document, post, foreground, edit, writable=True)
         if field == "system":
             if after["values"][field]["native_value"] != native_target: raise RuntimeError("native unit system did not round-trip")
+            if not calibration: verify_system_after(before, after, native_target, expected_system)
         else: verify_scalar_after(before, after, field, native_target)
         if (post[0], post[3]) != (state[0], state[3]): raise RuntimeError("unit setter changed document context")
         # Mark once only after checking against the original context and the

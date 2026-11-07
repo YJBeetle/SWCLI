@@ -123,7 +123,8 @@ def run(gate,fixtures,prior_pids):
     gate.record.update(success=True,state='completed')
 
 
-def main(argv=None):
+def main(argv=None, *, run_profile=None):
+    if run_profile is None:run_profile=run
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--fixture-dir',type=Path,required=True)
@@ -135,7 +136,7 @@ def main(argv=None):
     gate.record_path=args.output_dir/'public-unit-profile.json'
     gate.checkpoint('initializing')
     failure=None
-    try:run(gate,args.fixture_dir.resolve(),json.loads(args.prior_pids.read_text()))
+    try:run_profile(gate,args.fixture_dir.resolve(),json.loads(args.prior_pids.read_text()))
     except BaseException as error:
         failure=error
         gate.record.update(success=False,state='failed',error=dict(type=type(error).__name__,message=str(error)))
@@ -145,6 +146,8 @@ def main(argv=None):
             gate.record['cleanup_errors'].append(dict(type=type(error).__name__,message=str(error)))
             if failure is None:failure=error
         if gate.record['cleanup_errors']:gate.record.update(success=False,state='failed')
+        if gate.record.get('profile')=='units-public-writes-v1' and not gate.record['success']:
+            gate.record['changed_write_acceptance']=False
         try:gate.checkpoint('public-unit-profile-final')
         except BaseException as error:
             if failure is None:failure=error

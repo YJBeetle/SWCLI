@@ -10,7 +10,7 @@ from typing import Any, Dict
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_annotations import ANNOTATION_FIELDS
-from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS, validate_snapshot as validate_unit_profile, typed_key as unit_profile_key, verify_scalar_after
+from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS, validate_snapshot as validate_unit_profile, typed_key as unit_profile_key, verify_scalar_after, verify_calibrated_system_after
 from .document_unit_profile_schemas import UNIT_PROFILE_SCHEMA
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
@@ -2746,7 +2746,8 @@ def validate_operation_result(name: str, result: Any) -> None:
                     if changed:
                         if result.get("native_return_value") is not True or result["document"]["modified"] is not True:
                             raise ValueError("unit profile change lacks native success/dirty evidence")
-                        verify_scalar_after(before, after, result["field"], after["values"][result["field"]]["native_value"])
+                        if result["field"] == "system":verify_calibrated_system_after(before, after)
+                        else:verify_scalar_after(before, after, result["field"], after["values"][result["field"]]["native_value"])
         except (ValueError, RuntimeError, KeyError, TypeError) as error:
             raise OperationResultInvalid(name + ": " + str(error)) from error
     if name in ("document.annotation-options", "document.annotation-option-set"):

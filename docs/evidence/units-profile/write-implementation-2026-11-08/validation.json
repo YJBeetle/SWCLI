@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-08",
+  "branch": "codex/docprops-units-expanded",
+  "base_head": "73e25fcaea1565957d71938ca517f6327cc14d79",
+  "python": "3.14.10",
+  "portable": {
+    "tests": 1918,
+    "seconds": 51.783,
+    "skipped": 32,
+    "result": "OK"
+  },
+  "targeted": {
+    "tests": 55,
+    "result": "OK"
+  },
+  "sdk": {
+    "generated_check": true,
+    "strict_source_files": 6,
+    "negative_typing_fixtures": 8,
+    "result": "OK"
+  },
+  "python_39_ast": "all src/CI/test files parsed",
+  "workflow_yaml": "parsed",
+  "isolated_help_imports": true,
+  "public_synthetic_planned_cases": 139,
+  "production_changed_write_domains": 0,
+  "production_system_result_domains": 0,
+  "native_write_acceptance": false,
+  "logs": {
+    "portable.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/portable.log",
+      "sha256": "089d4a1af128d10fc73a46dbe4ff1a61fc5bfaeaaad4b3edf8702ad04b5a4fea"
+    },
+    "targeted.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/targeted.log",
+      "sha256": "fb9547fa827d82bc60e66eb3c5dde675c514593cc35682bddc42c8ee31bf7ac2"
+    },
+    "sdk-types.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/sdk-types.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d"
+    },
+    "editable-install.log": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/editable-install.log",
+      "sha256": "d4a02c39be80ad55c27c8a75627ccb3a31a63df037d20192b6ce20b3d7a5b7ba"
+    },
+    "calibration-help.txt": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/calibration-help.txt",
+      "sha256": "06f1e546809e8a0a3a7d21d1885b9fecdd11bd554ef1417662dbc8e956340fac"
+    },
+    "public-help.txt": {
+      "path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/write-implementation-2026-11-08/public-help.txt",
+      "sha256": "6db24f86e4601242219bb4c13115e1ae96492216c3c2e5fe524e7fa68de3d9b7"
+    }
+  }
+}

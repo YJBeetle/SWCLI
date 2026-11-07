@@ -40,6 +40,9 @@ NATIVE_UNITS = ("length_unit", "fraction_base", "fraction_value", "significant_d
 # Exact (document_type, source_snapshot_sha256, field, native_target). Never
 # populate from synthetic tests or automatically enable after a probe succeeds.
 CALIBRATED_UNIT_WRITES = ()
+# Separately reviewed full after-snapshot for system domains. Empty until the
+# original native artifact is audited. Entries are (exact_domain, after_sha256).
+CALIBRATED_UNIT_SYSTEM_RESULTS = ()
 
 
 def typed_key(value):
@@ -119,6 +122,41 @@ def verify_scalar_after(before, after, field, native_target):
     if any(typed_key(after["values"][f]) != typed_key(before["values"][f]) for f in FIELDS if f != field):
         raise RuntimeError("native unit setter changed an unrequested preference")
     allowed = "length_unit" if field == "linear.unit" else "significant_digits" if field == "linear.precision" else None
+    if allowed is not None and after["native_units"][allowed] != native_target:
+        raise RuntimeError("native unit target and GetUnits did not round-trip together")
     if any(after["native_units"][k] != before["native_units"][k] for k in NATIVE_UNITS if k != allowed):
         raise RuntimeError("native unit setter changed an unrelated GetUnits member")
     if typed_key(after["linkage"]) != typed_key(before["linkage"]): raise RuntimeError("native unit setter changed linkage observations")
+
+
+def require_system_source(before, native_target):
+    source = before["values"]["system"]["native_value"]
+    if (source == native_target or source not in SYSTEMS.values() or native_target not in SYSTEMS.values()
+            or SYSTEMS["mmgs"] not in (source, native_target)):
+        raise ValueError("system writes are limited to separately calibrated MMGS spokes")
+    if any(v["value"] == "other" for v in before["values"].values()):
+        raise ValueError("unknown unit source profile is read-only")
+
+
+def calibrated_system_result(domain):
+    matches = [digest for key, digest in CALIBRATED_UNIT_SYSTEM_RESULTS if key == domain]
+    if (len(matches) != 1 or type(matches[0]) is not str or len(matches[0]) != 64
+            or any(c not in "0123456789abcdef" for c in matches[0])):
+        raise ValueError("exact system domain requires one reviewed complete after-snapshot")
+    return matches[0]
+
+
+def verify_system_after(before, after, native_target, expected_fingerprint):
+    if after["document_type"] != before["document_type"] or after["values"]["system"]["native_value"] != native_target:
+        raise RuntimeError("native unit system/type did not round-trip")
+    if fingerprint(after) != expected_fingerprint:
+        raise RuntimeError("native unit system linkage differs from reviewed complete after-snapshot")
+
+
+def verify_calibrated_system_after(before, after):
+    native_target = after["values"]["system"]["native_value"]
+    require_system_source(before, native_target)
+    domain = (before["document_type"], fingerprint(before), "system", native_target)
+    if domain not in CALIBRATED_UNIT_WRITES:
+        raise ValueError("system result is outside the reviewed exact write domain")
+    verify_system_after(before, after, native_target, calibrated_system_result(domain))

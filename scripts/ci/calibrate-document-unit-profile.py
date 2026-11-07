@@ -1,11 +1,13 @@
 """Opt-in units read/CAS calibration, never write-domain authorization.
 
-One fresh host, three fixtures, first failure stops. No preference writes,
-retries, rollback or host replacement. Parent bounds call/group to 600/1800s.
+One fresh host, three fixtures, first failure stops. Default is read-only;
+--write-calibration selects private finite scalar/system diagnostics, never public
+authorization. No retries, rollback or host replacement. Parent bounds call/group to 600/1800s.
 """
 import argparse
 from contextlib import ExitStack
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -101,6 +103,7 @@ def supervise(args):
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
     command = [sys.executable, '-I', str(Path(__file__).resolve()), '--worker', '--output-dir', str(output), '--swconst', str(args.swconst.resolve()), '--drawing-template', str(args.drawing_template.resolve())]
+    if args.write_calibration:command.append('--write-calibration')
     with (output/'worker.stdout').open('wb') as stdout, (output/'worker.stderr').open('wb') as stderr:
         child = subprocess.Popen(command, stdout=stdout, stderr=stderr)
         started=time.monotonic(); position=0; begins={}
@@ -144,7 +147,10 @@ def worker(args):
     from swcli.daemon.operations import execute_operation
     from swcli.result_schemas import validate_operation_result
     output=args.output_dir
-    report=dict(success=False,profile='units-read-cas-v1',full_acceptance_eligible=False,write_acceptance_eligible=False,cases=[],cleanup_errors=[],source_commit=os.environ.get('GITHUB_SHA'),budgets=dict(native_seconds=600,group_seconds=1800))
+    started=time.monotonic()
+    write_spec=importlib.util.spec_from_file_location('_unit_write_calibration',Path(__file__).parent/'gate_support/unit_profile_writes.py')
+    write_module=importlib.util.module_from_spec(write_spec);write_spec.loader.exec_module(write_module)
+    report=dict(success=False,profile='units-write-calibration-v1' if args.write_calibration else 'units-read-cas-v1',full_acceptance_eligible=False,write_acceptance_eligible=False,cases=[],cleanup_errors=[],source_commit=os.environ.get('GITHUB_SHA'),budgets=dict(native_seconds=600,group_seconds=1800))
     sequence=0
     trace=(output/'trace.jsonl').open('a',encoding='utf-8')
     def persist():durable(output/'report.json',report)
@@ -163,20 +169,29 @@ def worker(args):
     app=handle=None;owned=False
     pythoncom.CoInitialize()
     try:
-        require(not CALIBRATED_UNIT_WRITES,'read calibration cannot authorize writes')
+        report['public_write_domain_count']=len(CALIBRATED_UNIT_WRITES)
+        persist()
+        report['operating_source_sha256']={name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in (('calibration',__file__),('write_harness',write_module.__file__),('native_adapter',adapter.__file__),('catalog',sys.modules['swcli.document_unit_profile'].__file__))}
         report['swconst_sha256']=hashlib.sha256(args.swconst.read_bytes()).hexdigest()
         library=call('LoadTypeLib',lambda:pythoncom.LoadTypeLib(str(args.swconst)))
         enums={}
-        for index in range(library.GetTypeInfoCount()):
-            info=library.GetTypeInfo(index);attr=info.GetTypeAttr()
+        for index in range(call('ITypeLib.GetTypeInfoCount',library.GetTypeInfoCount)):
+            info=call('ITypeLib.GetTypeInfo',lambda:library.GetTypeInfo(index))
+            attr=call('ITypeInfo.GetTypeAttr',info.GetTypeAttr)
             if attr.typekind!=pythoncom.TKIND_ENUM:continue
-            name=info.GetDocumentation(-1)[0]
+            name=call('ITypeInfo.GetDocumentation.enum',lambda:info.GetDocumentation(-1))[0]
             if name not in ('swUserPreferenceIntegerValue_e','swUserPreferenceToggle_e','swUnitSystem_e','swLengthUnit_e','swAngleUnit_e','swUnitsMassPropMass_e','swUnitsMassPropVolume_e'):continue
-            enums[name]={info.GetDocumentation(info.GetVarDesc(i)[0])[0]:info.GetVarDesc(i).value for i in range(attr.cVars)}
+            members={}
+            for i in range(attr.cVars):
+                description=call('ITypeInfo.GetVarDesc',lambda:info.GetVarDesc(i))
+                symbol=call('ITypeInfo.GetDocumentation.member',lambda:info.GetDocumentation(description[0]))[0]
+                members[symbol]=description.value
+            enums[name]=members
         report['official_enums']=enums;persist()
         for spec in FIELDS.values():require(enums['swUserPreferenceIntegerValue_e'][spec['symbol']]==spec['id'],'primary preference id differs')
         for name,(family,value) in LINKAGE.items():
             require(enums['swUserPreferenceToggle_e' if family=='Toggle' else 'swUserPreferenceIntegerValue_e'][name]==value,'linkage id differs: '+name)
+        if args.write_calibration:write_module.validate_native_targets(enums)
         previous=call('inventory-processes-before',solidworks_process_ids);report['pids_before']=previous
         app=call('DispatchEx',lambda:client.DispatchEx('SldWorks.Application'))
         pid=call('GetProcessID',lambda:_com_value(app,'GetProcessID'))
@@ -189,6 +204,8 @@ def worker(args):
         # Every adapter native boundary is durable. Other helpers have their
         # operation boundary recorded as well; no argument/result credentials.
         with ExitStack() as stack:
+            original_same=adapter._same
+            stack.enter_context(patch.object(adapter,'_same',side_effect=lambda app,left,right:call('SldWorks.IsSame',lambda:original_same(app,left,right))))
             for name,module in list(sys.modules.items()):
                 if not name.startswith('swcli.') or module is None:continue
                 if hasattr(module,'native_call'):
@@ -217,6 +234,13 @@ def worker(args):
                 digest=hashlib.sha256(path.read_bytes()).hexdigest();case['file_sha256']=digest
                 front_result,front=call('create-foreground',lambda:create_part_windows_with_handle(app=app))
                 require(front_result['ok'] and front is not None,'foreground creation failed')
+                if args.write_calibration:
+                    diagnostic=write_module.Calibration(app=app,document=document,front=front,case=case,
+                        output=output,suffix=suffix,call=call,persist=persist,geometry=geometry,compare=record_exact_geometry)
+                    diagnostic.run()
+                    require(hashlib.sha256(path.read_bytes()).hexdigest()==digest,'original fixture was modified')
+                    case['success']=True;persist()
+                    continue
                 registry=DocumentRegistry(app);entry=registry.register(document);registry.register(front)
                 lease=registry.acquire_lease(entry,session_id='unit-calibration',ttl_seconds=600)
                 def operation(name,values=None,write=False):
@@ -260,9 +284,16 @@ def worker(args):
             try:
                 call('ExitApp.owned-once',lambda:_com_value(app,'ExitApp'))
                 require(call('wait-owned-process',lambda:win32event.WaitForSingleObject(handle,10000))==win32event.WAIT_OBJECT_0,'owned host exit timeout')
+                report['owned_native_exit_confirmed']=True
+                report['pids_after']=call('inventory-processes-after',solidworks_process_ids)
+                require(sorted(report['pids_after'])==sorted(report['pids_before']),'owned calibration changed prior PID inventory')
             except BaseException as error:report['cleanup_errors'].append(str(error))
-        if handle is not None:handle.Close()
+        if handle is not None:
+            try:call('close-owned-process-handle',handle.Close)
+            except BaseException as error:report['cleanup_errors'].append(str(error))
         pythoncom.CoUninitialize()
+        report['duration_seconds']=time.monotonic()-started
+        if report['duration_seconds']>1800:report['cleanup_errors'].append('group exceeded 1800s including shutdown')
         report['success']=report['success'] and not report['cleanup_errors'];persist();trace.close()
     return 0 if report['success'] else 1
 
@@ -272,6 +303,7 @@ def main():
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--swconst',type=Path,required=True)
     parser.add_argument('--drawing-template',type=Path,required=True)
+    parser.add_argument('--write-calibration',action='store_true',help='Private finite scalar/system diagnostics; never enables public writes')
     parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS)
     args=parser.parse_args()
     require(args.swconst.is_file() and args.drawing_template.is_file(),'explicit native inputs are required')

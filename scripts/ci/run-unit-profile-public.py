@@ -53,7 +53,8 @@ def execute(args):
                     ready=True;break
                 time.sleep(1)
             evidence.require(ready,'owned daemon readiness deadline exceeded')
-            command=[sys.executable,'-I',str(Path(__file__).with_name('verify-document-unit-profile.py')),'--output-dir',str(output/'cli'),'--fixture-dir',str(args.fixture_dir.resolve()),'--endpoint',endpoint,'--prior-pids',str(output/'prior-pids.json')]
+            public_script='verify-document-unit-writes.py' if getattr(args,'write_acceptance',False) else 'verify-document-unit-profile.py'
+            command=[sys.executable,'-I',str(Path(__file__).with_name(public_script)),'--output-dir',str(output/'cli'),'--fixture-dir',str(args.fixture_dir.resolve()),'--endpoint',endpoint,'--prior-pids',str(output/'prior-pids.json')]
             report['public_command']=command;save()
             with (output/'public.stdout').open('wb') as public_stdout,(output/'public.stderr').open('wb') as public_stderr:
                 worker=subprocess.Popen(command,stdout=public_stdout,stderr=public_stderr)
@@ -128,6 +129,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--fixture-dir',type=Path,required=True)
+    parser.add_argument('--write-acceptance',action='store_true',help='Verify only manually reviewed finite public write domains')
     execute(parser.parse_args())
 
 if __name__=='__main__':main()

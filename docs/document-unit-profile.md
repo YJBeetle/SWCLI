@@ -26,3 +26,9 @@ DP 页面 energy precision 标成 Toggle，与既有 swconst Integer 导出不�
 ## 已批准的单位路线几何复测界限
 
 仅本单位内部校准与public CLI两条路径共用：质心x/y/z逐轴绝对差≤1e-12 mm，不使用相对容差；体积、面积、实体数严格相等并拒绝非有限值。原解析V/S/质心判据不变。raw/hex/delta及exact_equal原样保存，accepted_under_units_centroid_bound单独记录，不把数值非精确相等伪装成精确相等。所有state/identity/lease/stamp/完整profile CAS仍精确；其他路线与通用kernel判据未修改。旧失败原件不翻绿，最终验收依新head实际结果。
+
+## 原定真实写入校准已接入（2026-11-08，未验收开放）
+
+`units_calibration=true,units_write_calibration=true` 显式运行 private 八 scalar/system 有限诊断，精度覆盖已有候选0..8，逐目标记录 before/after/raw5/linkage、native bool/partial 与保存重开原件。公共生产域和system完整后态证据表仍空；CI不会自动填表。只有原件审阅后人工录入精确源/目标域，才可追加 `units_public_acceptance=true` 运行新的公开 changed-write 入口；空表在私有native setup前拒绝。公共system的host与结果语义均要求完整受审后态精确匹配，scalar非目标保持规则不变。
+
+详见 [本轮实现、路由和剩余验收](verification/units-write-calibration-2026-11-08.md)。实现和portable通过不等于本路真实写入、写持久性或全系列发布完成。

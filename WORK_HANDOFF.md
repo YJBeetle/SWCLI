@@ -243,3 +243,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 原计划scalar值/precision0与8端点、MMGS↔CGS/MKS/IPS/Custom有限方向不新增；端点不外推1..7、part不外推assembly/drawing、只读保存不外推写入持久性。剩余能力继续属于本系列，不能默认后置并发半组。“精确可合子集”仅是只读/noop/拒写代码可交统筹技术review，不是本路/系列完成或发布资格。V/S/count及state/identity/CAS全部原标准，质心只用用户已批准逐轴绝对≤1e-12mm；无相对容差、无通用kernel宽阈值。
 
 本轮只完善既定范围交接，未扩字段/计划、未新增CI/代理、未触碰其他worktree/VM/main/tag/release；后续实现与必要新head原生写证据按此清单继续，不能用当前read gate重复运行代替。
+
+## 2026-11-08：按继续指令实现原定真实写入路线
+
+已落实private有限写校准、空白名单下安全关闭的system完整后态策略及公开changed-write验收入口，不停在清单。八scalar使用原catalog候选（包含精度0..8逐值，不凭端点外推）；system仅MMGS↔CGS/MKS/IPS/Custom八方向，模板实际来源及显式Custom准备过程全部记录。每目标单Set、native bool/partial、完整snapshot/raw5/19linkage、后台/peer/state/identity/CAS、源文件hash、保存/关闭/readonly重开/计划内writable重开和原始几何均保留；首次失败停止，无API重试、回滚或组内重启。关闭后不再查询旧COM handle。
+
+生产`CALIBRATED_UNIT_WRITES`和`CALIBRATED_UNIT_SYSTEM_RESULTS`均空，当前公开写入完成仍0/9。公共system要求精确域与完整after hash，host及result schema一起核对；scalar非目标精确不变，补目标/GetUnits一致性。新public gate在任何CAD open之前核三类型完整候选/方向、精确domain、受审完整后态和原生文件hash；空表的public-write dispatch在Ubuntu preflight就失败，不接触私有native setup。后续只有审阅真实原件后人工启用有限域，再跑新head public，不自动填表或宣称完成。
+
+完整说明`docs/verification/units-write-calibration-2026-11-08.md`。Python3.14.10完整portable1918项/51.783秒通过（32 skipped），关联55项通过；SDK generated/strict6文件和8负向typing通过，全部src/CI/tests的Python3.9 AST与workflow YAML/新模式isolated help导入通过。原始日志持久保存`evidence/units-profile/write-implementation-2026-11-08/`，hash/本地结果在`docs/evidence/units-profile/write-implementation-2026-11-08/validation.json`。首次全套仅因临时venv未安装SWCLI的-I导入失败，已安装editable后重跑，不改产品断言；首次工具输出摘录另存且明确不是完整原stdout。
+
+本轮将只触发精确新head的private写校准：`units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false`。正常启动一次快照即停，不持续轮询、不用VM或审查代理、不合main/发版。V/S/count/state/identity/CAS保持严格；仅既有批准质心xyz各轴绝对≤1e-12mm，无relative，raw/hex/delta/exact_equal保留。旧read run42361728509不为已改变的操作源提供新写入通过证明。

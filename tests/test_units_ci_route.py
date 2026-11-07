@@ -35,3 +35,23 @@ class UnitsRouteTests(unittest.TestCase):
         self.assertIn("(github.event_name != 'workflow_dispatch' || needs.units-route.result == 'success')",native)
         self.assertIn("github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success'",native)
         self.assertNotIn('pull_request_target',w)
+
+    def test_write_profile_route_is_bounded_and_requires_calibration(self):
+        for ref in (route.UNITS_REF,'refs/heads/main','refs/tags/v1'):
+            for full,units,public,writes in itertools.product((False,True),repeat=4):
+                invalid=(full and (units or public or writes)) or ((public or writes) and not units) or ((units or public or writes) and ref!=route.UNITS_REF)
+                args=dict(event='workflow_dispatch',ref=ref,native_full=full,units_calibration=units,units_public_acceptance=public,units_write_calibration=writes)
+                with self.subTest(**args):
+                    if invalid:
+                        with self.assertRaises(ValueError):route.validate_route(**args)
+                    else:
+                        expected='units-write-public' if writes and public else 'units-write-diagnostic' if writes else 'units-public' if public else 'units-read-cas' if units else 'full' if full else 'portable'
+                        self.assertEqual(route.validate_route(**args),expected)
+        with self.assertRaises(ValueError):route.validate_route(event='push',ref=route.UNITS_REF,native_full=False,units_calibration=False,units_public_acceptance=False,units_write_calibration=True)
+
+    def test_write_public_without_reviewed_production_domains_fails_before_native_setup(self):
+        from unittest import mock
+        import os
+        values=dict(ROUTE_EVENT='workflow_dispatch',ROUTE_REF=route.UNITS_REF,ROUTE_NATIVE_FULL='false',ROUTE_UNITS_CALIBRATION='true',ROUTE_UNITS_PUBLIC='true',ROUTE_UNITS_WRITE='true')
+        with mock.patch.dict(os.environ,values):
+            with self.assertRaisesRegex(ValueError,'manually reviewed'):route.main()
