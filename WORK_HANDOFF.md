@@ -135,3 +135,11 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 共享变更涉及 `src/swcli/hosts/windows_document_tables.py`、table job 的 CAD 前真实 runtime preflight。新 `tests/test_table_defaults_native_runtime.py` 覆盖直接 adapter 拒绝、Wine/未知/异常、no-op 也拒绝、零 setter/dirty/save，以及真实 handler 在 positive native probe 下的精确 profile 写入。
 - macOS 当前实际 direct repro 使用真实 fixture、kind=2/native200=True、公共 adapter true→false，现为 ok=false，getter/setter/dirty 均 0，结果保存 `native-runtime-direct-repro.json`。通用测试 helper 只在明确的 fake native 业务路径内 mock positive probe，fixture 本身保持真实平台判断。
 - 相关 41 tests 通过。完整 portable suite 本轮 1861 tests / 33 skips 通过。原有 part 几何硬断言、精确 profiles 和 600/1800 秒限制继续为系列门禁。修复公开 gate 只 dispatch 一次，正常运行保存链接后结束等待。
+
+
+## 严格 native 准入修复的必要公开 gate
+
+- 修复 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b` 已推送。最终 native 探针针对实际准入的 changed 和 target self-noop 均有拒绝测试，相关测试 41 项及完整 portable 1861 tests / 33 skips 通过。后续仅文档记录提交。
+- [42366316568](https://github.com/YJBeetle/SWCLI/actions/runs/42366316568) 单次 dispatch，精确 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，mode `public`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `assembly-drawing`。单次快照 `in_progress`，metadata 和输入保存在 ignored `run-42366316568/`。
+- 新 head 先在 Windows 实际执行 strict probe，再准备 private runtime 和既有公开计划。当前 merge 仍等待本轮原件通过及统筹本人 review。c95 成功 ZIP 的独立审计明确报告当前产品代码与 c95 不同，防止把旧通过用于新 guard。
+- 零件精确几何仍为系列未完成项，严格断言及既有精确 profile 继续作为门禁。系列整组完成后才请用户确认发版。
