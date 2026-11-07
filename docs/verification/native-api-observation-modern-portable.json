@@ -69,5 +69,8 @@
       "sha256": "c0db48e13985a5d88c899b449e077312818b47dd0bcb0b2cf9e2f961218e076a",
       "bytes": 121
     }
-  ]
+  ],
+  "dimension_commit": "1cdbff41a0594440eda17e068c3d42e1fb24579c",
+  "pushed_branch": "https://github.com/YJBeetle/SWCLI/tree/codex/native-api-observation-modern",
+  "pending_approvals": []
 }

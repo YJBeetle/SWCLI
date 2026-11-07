@@ -40,3 +40,10 @@
 ## 自动审批记录
 
 组合的证据写入/本地commit/远端push命令在执行前被自动审批整体拒绝，理由为远端源码/日志外传目标与载荷缺乏可信用户明确批准。没有绕过或间接推送；先完成获准本地可审提交。只读核对origin=https://github.com/YJBeetle/SWCLI、repo isPrivate=false、当前viewerPermission=ADMIN，指定基线2d83afd确实已在该公开repo。实际待推送只包含上述来源的API修复、tests、说明与日志hash回执；原始生成日志被.gitignore排除。上述事实将供自动审批复核；若仍拒绝则保留本地成果交统筹，不将授权通报假装自动审批通过。
+
+## 精确提交/远端回执（最终）
+
+- 配置观察：`aecd560a9c0293f1a97d33d91ab400dbb2b651f9`。
+- 单配置GetSystemValue3：`1cdbff41a0594440eda17e068c3d42e1fb24579c`。
+- 两笔中文逻辑提交已成功push到公开`https://github.com/YJBeetle/SWCLI`的`codex/native-api-observation-modern`。针对最初自动审批拒绝，仅先完成获准本地工作，再提交公开repo/ADMIN/已公开base及实际无原始日志/机密payload的新只读证据；原始直接push复核通过，没有换路径或间接绕过。当前无待审批动作。
+- 最终本地工作树干净（仅随后本交接记录commit）；配置helper+尺寸实现全部完成关联和完整portable/SDK，不包含原生成功声明。当前没有本分支run/artifact/native digest，原生计划尚待统筹的精确组合head；不取消、不重复已有SaveAs full42369257219。
