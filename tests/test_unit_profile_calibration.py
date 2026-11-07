@@ -127,3 +127,41 @@ class UnitCalibrationTests(unittest.TestCase):
         self.assertEqual(case['comparison']['differences']['centroid_mm.x']['after_hex'],(1e-12).hex())
         self.assertFalse(saved[0]['comparison']['accepted_under_units_centroid_bound'])
         self.assertTrue(saved[-1]['comparison']['accepted_under_units_centroid_bound'])
+
+    def test_write_journal_fsyncs_every_nested_call_without_reserializing_report(self):
+        import json
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as folder:
+            with (Path(folder)/'trace.jsonl').open('w',encoding='utf-8') as trace:
+                persist=mock.Mock()
+                call=calibration.traced_calls(trace,persist,checkpoint_each_call=False)
+                with mock.patch.object(calibration.os,'fsync',wraps=calibration.os.fsync) as fsync:
+                    self.assertEqual(call('outer',lambda:call('native-getter',lambda:42)),42)
+                    self.assertEqual(fsync.call_count,4)
+                persist.assert_not_called()
+            rows=[json.loads(s) for s in (Path(folder)/'trace.jsonl').read_text().splitlines()]
+            self.assertEqual([(r['sequence'],r['phase']) for r in rows],[(1,'begin'),(2,'begin'),(2,'end'),(1,'end')])
+
+    def test_default_read_checkpoint_and_native_exception_no_retry_are_preserved(self):
+        import json
+        from unittest import mock
+        for explicit in (False,True):
+            with tempfile.TemporaryDirectory() as folder:
+                with (Path(folder)/'trace.jsonl').open('w',encoding='utf-8') as trace:
+                    persist=mock.Mock();cause=RuntimeError('first native failure');native=mock.Mock(side_effect=cause)
+                    call=calibration.traced_calls(trace,persist,checkpoint_each_call=explicit)
+                    with self.assertRaises(RuntimeError) as raised:call('setter',native)
+                    self.assertIs(raised.exception,cause);native.assert_called_once()
+                    self.assertEqual(persist.call_count,int(explicit))
+                rows=[json.loads(s) for s in (Path(folder)/'trace.jsonl').read_text().splitlines()]
+                self.assertEqual([r['phase'] for r in rows],['begin','error'])
+                self.assertEqual(rows[-1]['error'],'first native failure')
+
+    def test_trace_begin_failure_prevents_any_native_call(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as folder:
+            with (Path(folder)/'trace.jsonl').open('w',encoding='utf-8') as trace:
+                native=mock.Mock();call=calibration.traced_calls(trace,mock.Mock(),checkpoint_each_call=False)
+                with mock.patch.object(calibration.os,'fsync',side_effect=OSError('trace disk failure')):
+                    with self.assertRaises(OSError):call('setter',native)
+                native.assert_not_called()

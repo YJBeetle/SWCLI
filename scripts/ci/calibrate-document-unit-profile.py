@@ -99,6 +99,23 @@ def record_exact_geometry(before,after,case,label,persist,message):
     persist()
 
 
+def traced_calls(trace, persist, *, checkpoint_each_call=True):
+    sequence=0
+    def call(name,function):
+        nonlocal sequence
+        sequence+=1;current=sequence
+        def event(phase,**extra):
+            trace.write(json.dumps(dict(sequence=current,call=name,phase=phase,monotonic=time.monotonic(),**extra))+'\n')
+            trace.flush();os.fsync(trace.fileno())
+        event('begin')
+        if checkpoint_each_call:persist()
+        try:result=function()
+        except BaseException as error:
+            event('error',error_type=type(error).__name__,error=str(error));raise
+        event('end');return result
+    return call
+
+
 def supervise(args):
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -151,19 +168,13 @@ def worker(args):
     write_spec=importlib.util.spec_from_file_location('_unit_write_calibration',Path(__file__).parent/'gate_support/unit_profile_writes.py')
     write_module=importlib.util.module_from_spec(write_spec);write_spec.loader.exec_module(write_module)
     report=dict(success=False,profile='units-write-calibration-v1' if args.write_calibration else 'units-read-cas-v1',full_acceptance_eligible=False,write_acceptance_eligible=False,cases=[],cleanup_errors=[],source_commit=os.environ.get('GITHUB_SHA'),budgets=dict(native_seconds=600,group_seconds=1800))
-    sequence=0
     trace=(output/'trace.jsonl').open('a',encoding='utf-8')
     def persist():durable(output/'report.json',report)
-    def call(name, function):
-        nonlocal sequence
-        sequence+=1;current=sequence
-        def event(phase, **extra):
-            trace.write(json.dumps(dict(sequence=current,call=name,phase=phase,monotonic=time.monotonic(),**extra))+'\n');trace.flush();os.fsync(trace.fileno())
-        event('begin');persist()
-        try:result=function()
-        except BaseException as error:
-            event('error',error_type=type(error).__name__,error=str(error));raise
-        event('end');return result
+    # Write diagnostics explicitly checkpoint every new observation and BEFORE
+    # mutations. Re-encoding the growing report on tens of thousands of nested
+    # getter boundaries consumed the group budget. The per-call fsync journal
+    # remains identical; default read calibration keeps its original checkpoints.
+    call=traced_calls(trace,persist,checkpoint_each_call=not args.write_calibration)
     def geometry(document,case,label):
         return record_geometry(lambda:call('measure-part-mm',lambda:measure_part_windows(document=document)),case,label,persist)
     app=handle=None;owned=False
@@ -172,7 +183,7 @@ def worker(args):
         report['public_write_domain_count']=len(CALIBRATED_UNIT_WRITES)
         persist()
         report['operating_source_sha256']={name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in (('calibration',__file__),('write_harness',write_module.__file__),('native_adapter',adapter.__file__),('catalog',sys.modules['swcli.document_unit_profile'].__file__))}
-        report['swconst_sha256']=hashlib.sha256(args.swconst.read_bytes()).hexdigest()
+        report['swconst_sha256']=hashlib.sha256(args.swconst.read_bytes()).hexdigest();persist()
         library=call('LoadTypeLib',lambda:pythoncom.LoadTypeLib(str(args.swconst)))
         enums={}
         for index in range(call('ITypeLib.GetTypeInfoCount',library.GetTypeInfoCount)):
@@ -192,7 +203,7 @@ def worker(args):
         for name,(family,value) in LINKAGE.items():
             require(enums['swUserPreferenceToggle_e' if family=='Toggle' else 'swUserPreferenceIntegerValue_e'][name]==value,'linkage id differs: '+name)
         if args.write_calibration:write_module.validate_native_targets(enums)
-        previous=call('inventory-processes-before',solidworks_process_ids);report['pids_before']=previous
+        previous=call('inventory-processes-before',solidworks_process_ids);report['pids_before']=previous;persist()
         app=call('DispatchEx',lambda:client.DispatchEx('SldWorks.Application'))
         pid=call('GetProcessID',lambda:_com_value(app,'GetProcessID'))
         report['host_pid']=pid;persist()
@@ -220,7 +231,7 @@ def worker(args):
                     made,document=call('create-drawing',lambda:creator(app=app,template=str(template),projection='first-angle'))
                 else:made,document=call('create-model',lambda:creator(app=app))
                 case['creation']=made;persist();require(made['ok'] and document is not None,'fixture creation failed')
-                template=Path(made['template']['path']);case['template_sha256']=hashlib.sha256(template.read_bytes()).hexdigest()
+                template=Path(made['template']['path']);case['template_sha256']=hashlib.sha256(template.read_bytes()).hexdigest();persist()
                 if kind==1:
                     sketch_result,sketch=call('box-profile-mm',lambda:create_rectangle_sketch_windows_with_handle(app=app,document=document,plane='front',width_mm=40,height_mm=30))
                     case['sketch']=sketch_result;require(sketch_result['ok'] and sketch is not None and not sketch_result.get('warnings'),'box sketch failed')
@@ -231,7 +242,7 @@ def worker(args):
                 path=output/('units.'+suffix)
                 case['save']=call('save-own-fixture',lambda:save_as_native_windows(str(path),document=document));persist()
                 require(case['save']['ok'] and case['save']['save_errors']==0 and case['save']['save_warnings'] is None and not _com_value(document,'GetSaveFlag'),'fixture save failed')
-                digest=hashlib.sha256(path.read_bytes()).hexdigest();case['file_sha256']=digest
+                digest=hashlib.sha256(path.read_bytes()).hexdigest();case['file_sha256']=digest;persist()
                 front_result,front=call('create-foreground',lambda:create_part_windows_with_handle(app=app))
                 require(front_result['ok'] and front is not None,'foreground creation failed')
                 if args.write_calibration:

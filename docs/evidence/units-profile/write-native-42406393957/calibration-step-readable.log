@@ -1,0 +1,36 @@
+2026-11-07T19:47:57.3711490Z ##[group]Run $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+2026-11-07T19:47:57.3712774Z $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+2026-11-07T19:47:57.3713613Z if ($LASTEXITCODE -ne 0) { throw "Units drawing template discovery failed" }
+2026-11-07T19:47:57.3714032Z $writeArguments = @()
+2026-11-07T19:47:57.3714300Z $unitsDirectory = "units-calibration"
+2026-11-07T19:47:57.3714586Z if ("true" -eq "true") {
+2026-11-07T19:47:57.3714888Z   $writeArguments += "--write-calibration"
+2026-11-07T19:47:57.3715225Z   $unitsDirectory = "units-write-calibration"
+2026-11-07T19:47:57.3715530Z }
+2026-11-07T19:47:57.3715837Z python -I scripts/ci/calibrate-document-unit-profile.py `
+2026-11-07T19:47:57.3716323Z   --output-dir "$env:SWCLI_SMOKE_ROOT\$unitsDirectory" `
+2026-11-07T19:47:57.3716735Z   --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+2026-11-07T19:47:57.3717132Z   --drawing-template $drawingTemplate @writeArguments
+2026-11-07T19:47:57.3717673Z if ($LASTEXITCODE -ne 0) { throw "Units calibration failed; preserve original report and trace" }
+2026-11-07T19:47:57.3783420Z shell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.EXE -command ". '{0}'"
+2026-11-07T19:47:57.3783889Z env:
+2026-11-07T19:47:57.3784321Z   SW_MEDIA_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
+2026-11-07T19:47:57.3784950Z   SW_ASSETS_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack
+2026-11-07T19:47:57.3785347Z   PROBE_ROOT: D:\a\_temp\swcli-hosted-media
+2026-11-07T19:47:57.3785647Z   PRIVATE_ROOT: D:\a\_temp\swcli-private-runtime
+2026-11-07T19:47:57.3786017Z   RCLONE_CONFIG_FILE: D:\a\_temp\swcli-hosted-media\rclone.conf
+2026-11-07T19:47:57.3786468Z   RCLONE_LOG_FILE: D:\a\_temp\swcli-hosted-media\rclone.log
+2026-11-07T19:47:57.3786858Z   RCLONE_CACHE_DIR: D:\a\_temp\swcli-hosted-media\vfs-cache
+2026-11-07T19:47:57.3787213Z   SWCLI_SMOKE_ROOT: D:\a\_temp\swcli-native-smoke
+2026-11-07T19:47:57.3787517Z   SW_MEDIA_ROOT: S:\
+2026-11-07T19:47:57.3787732Z   SOLIDWORKS_LICENSE_FILE: 25734@127.0.0.1
+2026-11-07T19:47:57.3788005Z   SW_D_LICENSE_FILE: 25734@127.0.0.1
+2026-11-07T19:47:57.3788236Z ##[endgroup]
+2026-11-07T20:17:58.5098681Z Units calibration failed; preserve original report and trace
+2026-11-07T20:17:58.5099953Z At D:\a\_temp\0b94b758-b1a8-4e1a-a679-9c43803beccd.ps1:14 char:28
+2026-11-07T20:17:58.5100534Z + ... DE -ne 0) { throw "Units calibration failed; preserve original report ...
+2026-11-07T20:17:58.5101053Z +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2026-11-07T20:17:58.5101712Z     + CategoryInfo          : OperationStopped: (Units calibrati...eport and trace:String) [], RuntimeException
+2026-11-07T20:17:58.5102574Z     + FullyQualifiedErrorId : Units calibration failed; preserve original report and trace
+2026-11-07T20:17:58.5103111Z
+2026-11-07T20:17:58.5436909Z ##[error]Process completed with exit code 1.

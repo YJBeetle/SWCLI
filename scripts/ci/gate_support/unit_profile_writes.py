@@ -121,6 +121,7 @@ class Calibration:
                 and sum(self.q(obj, 'GetTitle') == identity[0] for obj in documents) == 1,
                 'close target identity/title is not uniquely owned')
         survivors = [(obj, list(_state(obj)), list(adapter._identity(obj))) for obj in documents if not self.same(document, obj)]
+        self.persist()
         self.call('close-unique-owned-write-fixture', lambda: self.app.CloseDoc(identity[0]))
         remaining = self.q(self.app, 'GetDocuments') or ()
         # Do not call native IsSame/getters on the now-closed COM handle.
@@ -195,6 +196,7 @@ class Calibration:
         step['after_fingerprint'] = fingerprint(after)
         step['changed_members'] = changed_members(before, after)
         observed = step['context_after'] = self.context()
+        self.persist()
         require(observed['target_identity'] == context['target_identity']
                 and observed['target_state'][0] == context['target_state'][0]
                 and observed['target_state'][3] == context['target_state'][3]
@@ -207,7 +209,9 @@ class Calibration:
         self.measure(step, 'geometry_after_write')
         target_path = directory / ('target.'+self.suffix)
         step['target_file'] = str(target_path.relative_to(self.output))
+        self.persist()
         step['target_sha256'] = self.save(target_path, step)
+        self.persist()
         require(typed_key(self.read()) == typed_key(after), 'save changed complete unit profile')
         require(hashlib.sha256(current_path.read_bytes()).hexdigest() == current_hash
                 and hashlib.sha256(source_path.read_bytes()).hexdigest() == source_hash,
@@ -218,6 +222,7 @@ class Calibration:
         require(self.q(self.app, 'GetDocumentCount') == 0, 'owned write fixture catalog not empty')
         self.document = self.open(target_path, True, step, 'reopen_readonly')
         step['readonly_profile'] = self.read()
+        self.persist()
         require(typed_key(step['readonly_profile']) == typed_key(after),
                 'changed profile did not persist exactly on readonly reopen')
         state = list(_state(self.document))

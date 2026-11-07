@@ -257,3 +257,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 实现业务head `4f20723116103c6e5f43def9f3d42b5a91372903` 已中文提交并推送。仅触发一次 [42406393957](https://github.com/YJBeetle/SWCLI/actions/runs/42406393957)，已核 workflow_dispatch/head/ref；输入 `units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false`。原始一次run/job快照及精确参数保存在`docs/evidence/units-profile/write-native-42406393957/`。该快照状态in_progress：units-route及wheel success，Win3.9/3.14前置检查运行中；尚无本轮native/public写入结果。正常快照即结束本轮，不持续poll、不重复dispatch、不cancel其他run。
 
 下一步由后续一次快照取得完成/失败原件，保留第一业务错误、原native文件/raw数值/trace/sha，审139预定步骤的实际覆盖及600/1800预算/owned退出；若失败先处理首因，不跳过/降低守护或扩大V/S容差。只有原件完成审阅后，才手动填精确白名单及system完整后态，并对包含这些手动域的新head触发必要public验收。当前两表仍空、公开完成0/9、系列未完成，不能据本地合成139步骤或workflow启动标成九字段全读写或可发布。
+
+## 42406393957失败原件：预算首因及仅相关持久化修复
+
+官方artifact13588889164，5744172bytes，ZIP官方/下载SHA256一致`aa850757a3940f0d26ac6ccc8fc20a213842ad2ead2a21bab29b986d7dd5b7ad`。原ZIP/官方日志ZIP/安全解压保存在`evidence/units-profile/write-native-42406393957/`；完整元数据、相关日志、标准库独立审计与离线重放在`docs/evidence/units-profile/write-native-42406393957/`。reportSHA98be23a6b37edef57dd63312fd9c13578621d4dd4b1a13313f1b4d5bdc3a2cab。详细证据/绝对路径重现命令见`docs/verification/units-write-failure-42406393957.md`。
+
+首个失败是1800秒group watchdog（trace首尾1800.297秒），0个native/API error，最大完成调用19.484秒，无600秒调用超限。part46完整private步骤（37 scalar+8system+1准备）有真实原件；assembly仅Custom准备+linear.unit inch/mm3步完整，第4步precision=0 Set True并保存但RO重开未完成；其余asm字段/方向及drawing未到达。共50个setter成功回执、49个完整步骤，无public，不能用139合成或旧read补齐。part92个几何比较V/S/body严格，16个保留exact_equal=false的质心微小变化，max3.970466940254533e-16mm及raw/delta/hex均核过，仅获批绝对≤1e-12mm。worker被杀，没有owned Exit/句柄退出确认，不以cleanup_errors空数组当成功。
+
+仅修改写诊断重复全报告序列化开销：显式语义/观察/写前意图检查点完整持久化，每native begin/end/error仍fsync；default read原逻辑保持。真实报告离线1000合成getter保留2000 durable事件，完整序列化1002降2，本机3.61s降0.076s只是离线证据。关联70项通过、Python3.9 AST通过；src产品/白名单/schema/workflow/main property tests无diff，不扩大预算/容差、不减少guard/字段、不回滚或原生失败重试。main960839e的PyYAML及测试修复必须在统筹集成中保留，不整文件覆盖旧tests/CI。
+
+仅对相关新head推送后做一次必要private验证，参数保持units_calibration=true,units_write_calibration=true,units_public_acceptance=false,native_full=false；正常一次快照即停，不持续poll或再开agent，不用VM/不合main/不发布。新原件前两表仍空、public0/9、系列未完成；旧run保持failure。

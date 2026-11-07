@@ -164,3 +164,22 @@ class WritePersistenceTests(unittest.TestCase):
                 self.assertEqual(native.setter_count,1)
                 self.assertNotIn('reopen_writable_for_next_case',native.calls)
                 self.assertFalse(native.case['write_steps'][0]['success'])
+
+    def test_failed_intent_checkpoint_prevents_set_and_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            native=NativeSimulation(Path(directory))
+            def persist():
+                if native.case['write_steps']:raise OSError('intent fsync failed')
+            native.cal.persist=persist
+            with self.assertRaisesRegex(OSError,'intent fsync failed'):native.execute()
+            self.assertEqual(native.setter_count,0)
+            self.assertNotIn('private-single-unit-set',native.calls)
+            self.assertNotIn('save-distinct-unit-target',native.calls)
+
+    def test_new_readback_and_target_hash_are_checkpointed_before_next_native_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            native=NativeSimulation(Path(directory));native.execute()
+            saved=native.checkpoints
+            self.assertTrue(any(s['write_steps'][-1].get('context_after') and 'save' not in s['write_steps'][-1] for s in saved))
+            self.assertTrue(any('target_sha256' in s['write_steps'][-1] and 'readonly_profile' not in s['write_steps'][-1] for s in saved))
+            self.assertTrue(any('readonly_profile' in s['write_steps'][-1] and 'readonly_refusal' not in s['write_steps'][-1] for s in saved))
