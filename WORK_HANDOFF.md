@@ -166,3 +166,15 @@
 - 新候选直接调用组件实例的 GetBodies3 枚举一个 normal solid body，并检查 body info、完整 face count、每张面的 GetBody 身份。源面对应结果必须通过 IsSame 唯一匹配组件体中的原生面，再对该面执行原有 GetComponent 精确组件身份、几何、私有引用往返和完整 CAS 检查。body info 缺失/未知/user body、体或面遍历不完整、外来原生面全部拒绝。该路径的真实后台支持仍待公开 gate。
 - 47 项针对性回归已通过，覆盖体元数据、外来面、唯一对应与后台前台身份保持。完整便携回归和 SDK 检查日志存入 `evidence/portable/component-body-*.log`。
 - 完整回归执行 1866 项，26 平台跳过，其余通过。SDK generator / strict mypy / 8 个负向消费类型场景通过。当前代码候选待必要新公开 gate 的原件审查。
+
+## 组件体面候选的公开 gate 已启动
+- 精确 tip `202aa7cbfd27749116f1680e89947c6dabe4172a` 已 push 并核对远端。唯一新 dispatch [run 42404819519](https://github.com/YJBeetle/SWCLI/actions/runs/42404819519)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`。首次快照已核对精确 head，状态 `in_progress`，记录 `evidence/public-run-42404819519.json`。
+- 本节为本地交接状态。本轮按统筹要求结束等待，组件体路径及公开全流程仍待原件审查。
+
+## 第五次公开失败核验，缺少新修复依据
+- [run 42404819519](https://github.com/YJBeetle/SWCLI/actions/runs/42404819519) 的精确代码 head 为 `202aa7cbfd27749116f1680e89947c6dabe4172a`。Windows 3.9/3.14 与打包均成功，公开 job 128501170660 失败。首错仍是后台 mate-targets 的 GetComponent 返回 None。
+- 原始公开 ZIP `evidence/run-42404819519/swcli-assembly-mates-42404819519-1-13587473685.zip`，GitHub digest `29818ef61d2b861f39e60da649b8b87a1a83a6b27513c15591d5111b50509096`。分发 ZIP `swcli-dist-13586732711.zip`，GitHub digest `5d64d144f81f4950e5006a278eabb238682948d28b02412fc2ea36124ca8e79f`。两份摘要均匹配，wheel/安装报告的 83 个 Python 文件与精确 Git blob 一致。官方元数据、完整日志及原件保存在该目录。
+- 本轮 CreateMate 实际 begin=0/end=0/error=0，完整 CLI journal 中没有 add-mate 请求。GetBodies3 和 GetCorrespondingEntity 各完成一次，组件体元数据、完整面/体归属和唯一映射面身份检查均已完成，随后 owner 为空。宿主 PID 6744 / revision 33.5.0，server 正常退出 0，cleanup_errors=[]，退出后原生进程目录为空。fixture 原始 PRT 保留，尚未创建配合或保存配合 ASM。
+- 机器收据为 `docs/verification/assembly-mates-public-component-body-failure-2026-11-08.json`。组件体面候选未解决该首因。已查阅的官方 GetComponent 文档限定其实体获取上下文，现有资料未给出满足当前“不激活目标、精确取得并校验 owner”要求的新修复依据。
+- 按“无信息不重跑”，本轮只提交原件核验和技术缺口记录。代码候选仍为 202aa7c，保留全部身份/组件归属/几何断言。没有新的运行时修改或 dispatch，未用 VM。现有内部历史成功仅指 ac9e54f / run 42279916240，公开验收继续未通过，不能合并或发版。
+- 已收到 main 960839e 和便携 42412228332 成功的统筹信息，本工作树未变更 main 或发布/worker 保护。后续需统筹确定保持当前约束的有效组件上下文取得方案后再推进。

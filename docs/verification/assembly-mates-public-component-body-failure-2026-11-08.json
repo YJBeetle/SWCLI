@@ -1,0 +1,71 @@
+{
+  "run_id": 42404819519,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42404819519",
+  "head": "202aa7cbfd27749116f1680e89947c6dabe4172a",
+  "job_id": 128501170660,
+  "artifact_id": 13587473685,
+  "artifact_sha256": "29818ef61d2b861f39e60da649b8b87a1a83a6b27513c15591d5111b50509096",
+  "distribution_artifact_id": 13586732711,
+  "distribution_artifact_sha256": "5d64d144f81f4950e5006a278eabb238682948d28b02412fc2ea36124ca8e79f",
+  "github_digests_matched": true,
+  "verified_installed_wheel_python_files": 83,
+  "wheel_sha256": "8b24785445d3d45388f485886f1685fdadc6c14bc20aad1d8629481f0c4804f9",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 6744,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 1.0160000000000764,
+    "visible": false
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-p1hyg0",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "mapped face has no component in the selected assembly context",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "d3f2cec7-076a-455e-a14e-99dd3f3fa962",
+    "session_id": "modeling-smoke-3590d2629c74"
+  },
+  "completed_component_body_calls": {
+    "get_bodies3": 1,
+    "get_corresponding_entity": 1
+  },
+  "confirmed_observation": "Normal component body enumeration, full face/body membership and unique mapped-face identity checks completed before GetComponent returned None in the inactive assembly",
+  "native_create_mate_counts": {
+    "begin": 0,
+    "end": 0,
+    "error": 0
+  },
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56850,
+      "sha256": "73d82a1541d20cd438dfae416cef661f4cc4c9b9cd8b04cdc7b7b0f45c31b4c6"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "internal_acceptance_run_id": 42279916240,
+  "public_acceptance": false,
+  "merge_ready": false,
+  "current_gap": "No verified component ownership for inactive-assembly mate targets while preserving no-activation and exact GetComponent identity constraints",
+  "new_runtime_fix": null,
+  "new_dispatch": null
+}
