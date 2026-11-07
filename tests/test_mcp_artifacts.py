@@ -89,6 +89,7 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(result["error"]["code"], "PermissionError")
 
     def test_native_outputs_capture_only_their_verified_temporary_file(self):
+        from tests.save_as_fixture import save_as_fixture
         from swcli.hosts import windows_documents as native
         data = b"%PDF-1.7\nverified output"
         class Document:
@@ -97,14 +98,17 @@ class CaptureTests(unittest.TestCase):
             def ClearSelection2(self, _): pass
             def SaveBMP(self, path, width, height):
                 Path(path).write_bytes(bitmap()); return True
-            def SaveAs3(self, path, version, options):
-                Path(path).write_bytes(data); return 0
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
+                Path(path).write_bytes(data)
+                errors.value = 0
+                warnings.value = 0
+                return True
         document = Document()
         app = mock.Mock(ActiveDoc=document)
         pythoncom = ModuleType("pythoncom")
         win32com = ModuleType("win32com")
         win32com.client = ModuleType("win32com.client")
-        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(sys.modules, {"pythoncom": pythoncom, "win32com": win32com, "win32com.client": win32com.client}), mock.patch.object(native.sys, "platform", "win32"), mock.patch.object(native, "_describe_document", return_value={"title": "drawing", "path": "source.SLDDRW", "type": 3, "modified": False}), mock.patch.object(native, "capture_content", wraps=capture_content) as capture:
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(sys.modules, {"pythoncom": pythoncom, "win32com": win32com, "win32com.client": win32com.client}), mock.patch.object(native, "save_as3", side_effect=save_as_fixture), mock.patch.object(native.sys, "platform", "win32"), mock.patch.object(native, "_describe_document", return_value={"title": "drawing", "path": "source.SLDDRW", "type": 3, "modified": False}), mock.patch.object(native, "capture_content", wraps=capture_content) as capture:
             for image in (True, False):
                 target = Path(directory) / ("view.bmp" if image else "view.pdf")
                 result = (native.render_active_windows_document(str(target), width=2, height=2, app=app, include_content=True)

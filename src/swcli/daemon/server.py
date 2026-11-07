@@ -35,6 +35,7 @@ from .operations import (
     UPDATE_STAMP_OPERATIONS,
     execute_operation,
     preserve_image_quality_finalization_failure,
+    preserve_save_finalization_failure,
 )
 from .timeouts import validate_timeout
 
@@ -510,6 +511,10 @@ def _worker_main(
                     response["result"] = result
                 if request["operation"] in ("document.image-quality", "document.image-quality-set") and isinstance(result, dict):
                     response["result"] = preserve_image_quality_finalization_failure(
+                        str(request["operation"]), result, exc,
+                        session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
+                if request["operation"] in ("document.save-as", "document.export", "part.create-box") and isinstance(result, dict):
+                    response["result"] = preserve_save_finalization_failure(
                         str(request["operation"]), result, exc,
                         session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
             response_queue.put(response)

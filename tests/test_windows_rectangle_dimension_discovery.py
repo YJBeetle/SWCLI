@@ -2,6 +2,7 @@
 
 import json
 import unittest
+from dimension_configuration_values import single_configuration_values
 from unittest import mock
 
 from swcli.hosts import windows_rectangle_dimension_discovery as discovery
@@ -131,7 +132,7 @@ class RectangleDiscoveryTests(RectangleNativeFixture, unittest.TestCase):
                         self.center[0] += 1
                     return self.parameters["height"].value
 
-                self.parameters["height"].GetSystemValue2.side_effect = change
+                self.parameters["height"].GetSystemValue3.side_effect = single_configuration_values(change)
                 self.failed("DimensionObservationUnavailable")
 
     def test_nonpart_and_malformed_geometry_fail_before_dimension_selection(self):

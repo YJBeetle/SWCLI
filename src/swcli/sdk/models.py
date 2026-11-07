@@ -1315,9 +1315,11 @@ class DocumentSaveAsResult(_DocumentSaveAsResultRequired, total=False):
     output: str
     document_before: DocumentState
     api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
     save_errors: int
     save_error_names: List[str]
-    save_warnings: None
+    save_warnings: int
     file_verification: DocumentSaveAsResultFileVerification
     artifact: DocumentSaveAsResultArtifact
 
@@ -1498,6 +1500,11 @@ class DocumentExportResult(_DocumentExportResultRequired, total=False):
     error: DocumentCreateResultError
     output: str
     artifact: DocumentExportResultArtifact
+    api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
+    save_errors: int
+    save_warnings: int
     stl_source_state: DocumentExportResultStlSourceState
     stl_preferences: DocumentExportResultStlPreferences
 
@@ -2870,8 +2877,11 @@ class PartCreateBoxResult(_PartCreateBoxResultRequired, total=False):
     bodies: DocumentInspectResultStructureBodies
     geometry_verification: PartCreateBoxResultGeometryVerification
     save_errors: int
-    save_warnings: Union[int, None]
+    save_warnings: int
     saved: bool
+    api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
     feature: SketchListResultSketchesItemOwnerVariant2
 
 

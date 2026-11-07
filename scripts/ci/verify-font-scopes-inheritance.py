@@ -135,7 +135,7 @@ def seed(app, output, constants, plane, reverse, call, case, report, live, *, pr
     path = output / source.name
     saved = case['seed_save'] = call('save-owned-Notes-source', lambda: save_as_native_windows(str(path), document=document))
     require(saved['ok'] and saved['api_saved'] is True and saved['save_errors'] == 0
-            and saved['save_warnings'] is None and saved['document']['modified'] is False, 'Notes source save failed')
+            and saved['save_warnings'] == 0 and saved['document']['modified'] is False, 'Notes source save failed')
     close(app, document, call)
     live['document'] = None
     opened, document = call('reopen-owned-Notes-source-readonly', lambda: open_windows_document_with_handle(str(path), app=app, read_only=True))

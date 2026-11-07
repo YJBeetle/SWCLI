@@ -5,12 +5,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from tests.save_as_fixture import save_as_fixture
 from swcli.hosts import windows_native_files as native
 from swcli.result_schemas import OperationResultInvalid, validate_operation_result
 
 
 class NativeSaveTests(unittest.TestCase):
     def setUp(self):
+        patcher = mock.patch.object(native, "save_as3", side_effect=save_as_fixture)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.scratch = tempfile.TemporaryDirectory()
         self.addCleanup(self.scratch.cleanup)
         self.output = (Path(self.scratch.name) / "part.SLDPRT").resolve()
@@ -24,6 +28,8 @@ class NativeSaveTests(unittest.TestCase):
             self.ClearSelection2 = mock.Mock()
             self.content = bytes.fromhex("a4af291e00000004") + bytes(1024)
             self.save_error = 0
+            self.save_warning = 0
+            self.Extension = self
             self.saved_calls = []
 
         def GetTitle(self):
@@ -41,11 +47,13 @@ class NativeSaveTests(unittest.TestCase):
         def GetUpdateStamp(self):
             return 0
 
-        def SaveAs3(self, path, version, options):
+        def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
             self.saved_calls.append((path, version, options))
             Path(path).write_bytes(self.content)
             self.path, self.title, self.modified = path, Path(path).name, False
-            return self.save_error
+            errors.value = self.save_error
+            warnings.value = self.save_warning
+            return errors.value == 0
 
     def save(self):
         return native.save_as_native_windows(str(self.output), document=self.document)
@@ -58,8 +66,32 @@ class NativeSaveTests(unittest.TestCase):
         self.assertEqual(result["document"]["path"], str(self.output))
         self.assertFalse(result["document"]["modified"])
         self.assertEqual(result["save_errors"], 0)
-        self.assertIsNone(result["save_warnings"])
+        self.assertEqual(result["save_warnings"], 0)
         self.assertEqual(result["artifact"]["size_bytes"], 1032)
+        validate_operation_result("document.save-as", result)
+
+    def test_real_warning_code_is_retained_on_success(self):
+        self.document.save_warning = 4
+        result = self.save()
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["save_warnings"], 4)
+        validate_operation_result("document.save-as", result)
+
+    def test_registry_refresh_failure_preserves_first_save_error_and_attempt(self):
+        from swcli.daemon import operations
+        context = SimpleNamespace(operation="document.save-as", session_id="save-test",
+            entry=SimpleNamespace(document=self.document), documents=SimpleNamespace(
+                require_new_path=mock.Mock(), refresh_key=mock.Mock(side_effect=RuntimeError("late registry failure"))))
+        receipt = dict(ok=False, action="document.save-as", save_attempted=True,
+            api_saved=False, save_errors=32, save_warnings=4,
+            error=dict(type="SaveFailed", message="first native failure"))
+        with mock.patch.object(operations, "save_as_native_windows", return_value=receipt) as save:
+            result = operations.document_save_as(context, dict(output=str(self.output)))
+        self.assertEqual(result["error"], receipt["error"])
+        self.assertEqual(result["finalization_error"]["message"], "late registry failure")
+        self.assertEqual(result["save_errors"], 32)
+        self.assertTrue(result["save_attempted"])
+        save.assert_called_once()
         validate_operation_result("document.save-as", result)
 
     def test_existing_file_and_current_filename_are_never_overwritten(self):

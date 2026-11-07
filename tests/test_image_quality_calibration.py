@@ -95,9 +95,9 @@ class QualityCLI(FakeCLI):
             target=self.directory/PureWindowsPath(args.output).name
             target.write_bytes(mesh_fixture("GLB") if sub=="export" else bytes(1024))
             if sub=="export":
-                return dict(ok=True,artifact=dict(size_bytes=target.stat().st_size,format="GLB",path=args.output))
+                return dict(ok=True,api_saved=True,save_errors=0,save_warnings=0,artifact=dict(size_bytes=target.stat().st_size,format="GLB",path=args.output))
             document.update(path=args.output,modified=False); self.saved[args.output]=deepcopy(document)
-            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=None,document=self.descriptor(document,args.session),
+            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=0,document=self.descriptor(document,args.session),
                 artifact=dict(format="SLDPRT",path=args.output,size_bytes=target.stat().st_size))
         result=super().dispatch(args)
         if action == "daemon":

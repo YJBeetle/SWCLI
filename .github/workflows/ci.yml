@@ -375,7 +375,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || (inputs.native_full && github.ref == 'refs/heads/codex/saveas3-modern' && format('swcli-saveas3-modern-{0}', github.ref)) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
@@ -672,10 +672,23 @@ jobs:
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\tolerance-public" -Hidden -ToleranceFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
 
+      - name: Verify installed modern API contracts without a CAD host
+        id: modern_api_contract
+        if: ${{ needs.native-profile.outputs.profile == 'full' && github.ref == 'refs/heads/codex/saveas3-modern' }}
+        timeout-minutes: 10
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-modern-api-contract.py --output-dir "$env:SWCLI_SMOKE_ROOT\modern-api-contract" --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb" --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Installed modern API contract verification failed; preserve first evidence" }
+
       - name: Run real SOLIDWORKS modeling and export smoke test
         id: native_tests
         if: ${{ needs.native-profile.outputs.profile == 'full' }}
         shell: powershell
+        env:
+          SWCLI_TRACE_NATIVE_CALLS: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
+          SWCLI_TRACE_DEFINITION_INTERFACES: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
+          SWCLI_PRESERVE_REJECTED_GLB: ${{ github.ref == 'refs/heads/codex/saveas3-modern' && '1' || '' }}
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"

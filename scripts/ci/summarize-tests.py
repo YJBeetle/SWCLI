@@ -16,9 +16,10 @@ from urllib.parse import urlsplit
 
 SCHEMA_VERSION = 1
 FULL_SET_NAMES = (
-    "native-model", "assemblies", "exports", "drawing-save", "drawing-save-as",
-    "reverse-cut", "feature-depth", "fillets", "drawings", "continuation-front-diameter",
-    "center-front", "rectangle-front", "diameter-top", "center-top", "rectangle-top",
+    "native-model", "continuation-front-diameter", "rectangle-front",
+    "assemblies", "exports", "drawing-save", "drawing-save-as",
+    "reverse-cut", "feature-depth", "fillets", "drawings",
+    "center-front", "diameter-top", "center-top", "rectangle-top",
     "diameter-right", "center-right", "rectangle-right", "toolbox",
 )
 RECEIPTS = {

@@ -71,9 +71,10 @@ class PublicSummaryTests(unittest.TestCase):
         groups = [row for row in value["phases"] if "/runtime-sets/" in row["name"]]
         self.assertEqual(len(groups), 19)
         self.assertEqual(sum(row["status"] == "SKIP" for row in groups), 17)
-        self.assertEqual(groups[0]["seconds"], 0)
-        self.assertEqual(groups[1]["seconds"], 12.5)
-        self.assertIsNone(groups[2]["seconds"])
+        by_name = {row["name"].rsplit("/", 1)[-1]: row for row in groups}
+        self.assertEqual(by_name["native-model"]["seconds"], 0)
+        self.assertEqual(by_name["assemblies"]["seconds"], 12.5)
+        self.assertTrue(all(row["seconds"] is None for row in groups if row["status"] == "SKIP"))
         self.assertEqual(value["first_failure"]["code"], "NativeFailure")
 
     def test_successful_full_report_cannot_hide_missing_groups(self):

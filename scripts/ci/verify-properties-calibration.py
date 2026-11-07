@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 
+from swcli.hosts.windows_configurations import active_configuration_name
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon.operations import execute_operation
 from swcli.hosts.windows import _com_value
@@ -42,7 +43,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     for name, (type_code, value) in FIXTURE.items():
         status = call("seed-document-property-" + name, lambda: manager.Add3(name, type_code, value, 0))
         checked(status == 0 and type(status) is int, "fixture property creation failed")
-    configuration = _com_value(_com_value(document, "GetActiveConfiguration"), "Name")
+    configuration = active_configuration_name(document)
     scoped = extension.CustomPropertyManager(configuration)
     checked(call("seed-configuration-shadow", lambda: scoped.Add3("Drawing No", 30, "configuration-only", 0)) == 0,
             "configuration shadow fixture failed")

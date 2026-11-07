@@ -158,7 +158,7 @@ def run(gate, fixtures, *, host_fixtures=None, save_copy=False, edit_metadata=Fa
             saved = case["save_copy"] = gate.write(
                 "document", "save-as", reopened_host, document=target
             )
-            require(saved["save_errors"] == 0 and saved["save_warnings"] is None
+            require(saved["save_errors"] == 0 and saved["save_warnings"] == 0
                     and not saved["document"]["modified"] and saved_path.is_file(),
                     "property fixture save-as failed")
             saved_hash = hashlib.sha256(saved_path.read_bytes()).hexdigest()

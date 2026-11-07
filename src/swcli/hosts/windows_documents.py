@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from ..artifact_content import capture_content
+from .windows_save_as import save_as3
+from .windows_configurations import active_configuration_name
 from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
@@ -398,9 +400,9 @@ def open_windows_document(
 
 def _inspect_configurations(document: Any) -> Dict[str, Any]:
     names = list(_com_value(document, "GetConfigurationNames") or ())
-    active = _com_value(document, "GetActiveConfiguration")
+    active = active_configuration_name(document, allow_absent=_com_value(document, "GetType") == 3)
     return {
-        "active": str(_com_value(active, "Name")) if active is not None else None,
+        "active": active,
         "names": [str(name) for name in names],
         "count": len(names),
     }
@@ -813,7 +815,7 @@ def export_active_windows_document(
             if readonly or viewonly:
                 raise StlOptionsError("DocumentReadOnly", "STL options refuse read-only or view-only sources")
             option_state = (_com_value(document, "GetUpdateStamp"),
-                            _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+                            active_configuration_name(document))
             if type(option_state[0]) is not int or not isinstance(option_state[1], str) or not option_state[1]:
                 raise StlOptionsError("SourceStateUnavailable", "source stamp/configuration is not observable")
             result["stl_source_state"] = {
@@ -846,16 +848,20 @@ def export_active_windows_document(
                 app, export_format == "STL" and before["document"]["type"] == 2)
         with preference_scope:
             document.ClearSelection2(True)
-            save_error = int(native_call("document-export" if export_format == "GLB" else "export", "IModelDoc2.SaveAs3",
-                                         lambda: document.SaveAs3(str(export_path), 0, 1)))
-            if save_error != 0:
+            try:
+                saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
+            except Exception as exc:
+                result["error"] = _error(exc)
+                raise
+            save_error = result["save_errors"]
+            if not saved or save_error != 0:
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
-                                   "save_errors": save_error}
+                                   "save_errors": save_error, "save_warnings": result["save_warnings"]}
         if stl_options is not None and not evidence.get("restored"):
             result.setdefault("error", {"type": "ExportPreferenceRestoreFailed",
                                        "message": "STL preferences could not be restored; worker is closed to further option writes"})
             return result
-        if save_error != 0 or not export_path.is_file():
+        if not saved or save_error != 0 or not export_path.is_file():
             result["error"] = {
                 "type": "ExportFailed",
                 "message": "SOLIDWORKS failed to export the active document",
@@ -874,7 +880,8 @@ def export_active_windows_document(
                     "signature_valid": signature_valid,
                 },
             }
-            if plain_glb_calibration:
+            if export_format == "GLB" and (plain_glb_calibration or
+                    os.environ.get("SWCLI_PRESERVE_REJECTED_GLB") == "1"):
                 # Internal owned-fixture diagnostics only. Preserve rejected
                 # native bytes separately; never publish them as a valid export
                 # or overwrite evidence. Recording errors cannot mask the cause.
@@ -896,7 +903,7 @@ def export_active_windows_document(
         after = _export_source_state(document)
         if stl_options is not None:
             observed_option_state = (_com_value(document, "GetUpdateStamp"),
-                                     _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+                                     active_configuration_name(document))
             result["stl_source_state"]["after"] = {
                 **after, "configuration": observed_option_state[1], "update_stamp": observed_option_state[0]}
             result["stl_source_state"]["unchanged"] = (
@@ -930,16 +937,20 @@ def export_active_windows_document(
         result["ok"] = True
         return result
     except (StlOptionsError, _ExportPreferenceError) as exc:
-        result["error"] = {"type": exc.code, "message": str(exc)}
+        detail = {"type": exc.code, "message": str(exc)}
+        if "error" in result:
+            result["finalization_error"] = detail
+        else:
+            result["error"] = detail
         return result
     except Exception as exc:
-        result["error"] = _error(exc)
+        result.setdefault("error", _error(exc))
         return result
     finally:
         if "stl_source_state" in result and "after" not in result["stl_source_state"]:
             try:
                 state = {**_export_source_state(document),
-                         "configuration": _com_value(_com_value(document, "GetActiveConfiguration"), "Name"),
+                         "configuration": active_configuration_name(document),
                          "update_stamp": _com_value(document, "GetUpdateStamp")}
                 result["stl_source_state"]["after"] = state
                 result["stl_source_state"]["unchanged"] = state == result["stl_source_state"]["before"]

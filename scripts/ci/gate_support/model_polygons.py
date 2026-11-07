@@ -142,7 +142,7 @@ class PolygonCases:
         host_path = str(PureWindowsPath(self.host_directory) / (stem+'.SLDPRT'))
         path = self.directory / (stem+'.SLDPRT')
         saved = self.write('document', 'save-as', host_path, document=document)
-        require(saved['save_errors'] == 0 and saved['save_warnings'] is None and path.is_file()
+        require(saved['save_errors'] == 0 and saved['save_warnings'] == 0 and path.is_file()
                 and saved['document']['modified'] is False, 'polygon native save failed')
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         self.close(document)

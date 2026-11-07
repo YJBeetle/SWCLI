@@ -4,6 +4,7 @@ import json
 import math
 from types import SimpleNamespace
 import unittest
+from dimension_configuration_values import single_configuration_values
 from unittest import mock
 
 from swcli.hosts import windows_linear_dimensions as linear
@@ -34,8 +35,8 @@ class RectangleNativeFixture:
             native.DrivenState, native.ReadOnly = 2, 0
             native.FullName = f"{kind}@renamed-sketch@part.Part"
             native.value = value
-            native.GetSystemValue2 = mock.Mock(
-                side_effect=lambda config, n=native: n.value
+            native.GetSystemValue3 = mock.Mock(
+                side_effect=single_configuration_values(lambda config, n=native: n.value)
             )
             native.IsDesignTableDimension = lambda: False
             self.parameters[kind] = native
@@ -156,7 +157,7 @@ class RectangleInspectionTests(RectangleNativeFixture, unittest.TestCase):
             )
             self.assertTrue(result["observation"]["unchanged"])
             self.assertFalse(result["editing"])
-            self.parameters[kind].GetSystemValue2.assert_called_once_with("Current")
+            self.parameters[kind].GetSystemValue3.assert_called_once_with(3, "Current")
 
     def test_invalid_role_is_rejected_before_reading_com(self):
         with mock.patch.object(linear, "_integer") as read:
@@ -321,7 +322,7 @@ class RectangleInspectionTests(RectangleNativeFixture, unittest.TestCase):
                         self.manager.ActiveSketch = Native()
                     return 0.04
 
-                self.parameters["width"].GetSystemValue2.side_effect = value
+                self.parameters["width"].GetSystemValue3.side_effect = single_configuration_values(value)
                 result = self.failed("DimensionObservationUnavailable")
                 self.assertFalse(result["observation"]["unchanged"])
 
@@ -337,7 +338,7 @@ class RectangleInspectionTests(RectangleNativeFixture, unittest.TestCase):
             self.manager.ActiveSketch = Native()
             return 0.04
 
-        self.parameters["width"].GetSystemValue2.side_effect = value
+        self.parameters["width"].GetSystemValue3.side_effect = single_configuration_values(value)
         self.failed("DimensionObservationUnavailable")
 
     def test_final_state_check_preserves_primary_failure_with_warning(self):

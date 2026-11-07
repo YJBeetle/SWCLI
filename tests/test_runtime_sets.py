@@ -57,6 +57,8 @@ class RuntimeSetsTests(unittest.TestCase):
         self.assertIn("feature-depth", [item.name for item in full])
         self.assertNotIn("fillets", [item.name for item in core])
         self.assertIn("fillets", [item.name for item in full])
+        self.assertEqual([item.name for item in full[:4]],
+                         ["native-model", "continuation-front-diameter", "rectangle-front", "assemblies"])
         self.assertNotIn("drawings", [item.name for item in core])
         self.assertIn("drawings", [item.name for item in full])
         cuts = next(item for item in full if item.name == "reverse-cut")

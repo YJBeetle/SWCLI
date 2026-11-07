@@ -5,6 +5,7 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest import mock
 
+from tests.save_as_fixture import save_as_fixture
 from swcli.hosts import windows_documents as documents
 from swcli.result_schemas import ARTIFACT
 from test_export_validation import amf, archive, binary_stl, glb, three_mf_members
@@ -13,7 +14,8 @@ from test_export_validation import amf, archive, binary_stl, glb, three_mf_membe
 class WindowsMeshExportTests(unittest.TestCase):
     def export(self, format, payload, *, document_type=1, strict=False, save_error=0,
                preference=False, restore_failure=False, native_failure=False,
-               unavailable=False, enable_rejected=False, plain_staging=False):
+               save_warning=0, false_with_zero_errors=False,
+               unavailable=False, enable_rejected=False, plain_staging=False, preserve_rejected=False, diagnostic_existing=False):
         self.preference = preference
         self.saved = []
         self.preference_writes = []
@@ -30,14 +32,16 @@ class WindowsMeshExportTests(unittest.TestCase):
                 self.preference = value
             return True
 
-        def save(path, version, options):
+        def save(path, version, options, export_data, advanced_options, errors, warnings):
             self.saved.append(Path(path))
             if format == "STL" and document_type == 2:
                 self.assertTrue(self.preference)
             if native_failure:
                 raise RuntimeError("native save failed")
             Path(path).write_bytes(payload)
-            return save_error
+            errors.value = save_error
+            warnings.value = save_warning
+            return save_error == 0 and not false_with_zero_errors
 
         document = SimpleNamespace(Extension=SimpleNamespace(NeedsRebuild2=0),
                                    ClearSelection2=mock.Mock(), SaveAs3=save)
@@ -48,9 +52,14 @@ class WindowsMeshExportTests(unittest.TestCase):
         win32com = ModuleType("win32com")
         win32com.client = ModuleType("win32com.client")
         with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
+            stack.enter_context(mock.patch.object(documents, "save_as3", side_effect=save_as_fixture))
             output = Path(folder) / ("fixture." + format)
             output.write_bytes(b"previous valid artifact")
-            stack.enter_context(mock.patch.dict(documents.os.environ, SWCLI_GLB_PLAIN_STAGING_CALIBRATION="1" if plain_staging else ""))
+            diagnostic = output.with_name(output.stem + ".invalid-native.glb")
+            if diagnostic_existing:
+                diagnostic.write_bytes(b"previous diagnostic evidence")
+            stack.enter_context(mock.patch.dict(documents.os.environ, SWCLI_GLB_PLAIN_STAGING_CALIBRATION="1" if plain_staging else "",
+                SWCLI_PRESERVE_REJECTED_GLB="1" if preserve_rejected else ""))
             stack.enter_context(mock.patch.object(documents.sys, "platform", "win32"))
             stack.enter_context(mock.patch.dict("sys.modules", {
                 "pythoncom": ModuleType("pythoncom"), "win32com": win32com,
@@ -63,9 +72,10 @@ class WindowsMeshExportTests(unittest.TestCase):
             self.output = output.read_bytes()
             self.residue = sorted(path.name for path in Path(folder).iterdir())
             expected=[output.name]
-            if plain_staging and format=="GLB" and result.get("error",{}).get("type")=="ExportVerificationFailed":
+            if (plain_staging or preserve_rejected) and format=="GLB" and result.get("error",{}).get("type")=="ExportVerificationFailed":
                 diagnostic=output.with_name(output.stem+".invalid-native.glb")
-                self.assertEqual(diagnostic.read_bytes(),payload); expected.append(diagnostic.name)
+                self.assertEqual(diagnostic.read_bytes(), b"previous diagnostic evidence" if diagnostic_existing else payload)
+                expected.append(diagnostic.name)
             self.assertEqual(self.residue, sorted(expected))
             for temporary in self.saved:
                 self.assertNotEqual(temporary, output)
@@ -86,6 +96,27 @@ class WindowsMeshExportTests(unittest.TestCase):
                     self.assertEqual(result["error"]["type"],"ExportVerificationFailed")
                     self.assertEqual(self.output,b"previous valid artifact")
 
+    def test_rejected_raw_glb_retention_does_not_change_staging_or_add_save(self):
+        result = self.export("GLB", b"invalid native bytes", preserve_rejected=True)
+        self.assertFalse(result["ok"])
+        self.assertEqual(len(self.saved), 1)
+        self.assertTrue(self.saved[0].name.startswith(".fixture."))
+        self.assertIn(".swcli.GLB", self.saved[0].name)
+        self.assertTrue(result["error"]["diagnostic_file"].endswith(".invalid-native.glb"))
+        self.assertEqual(self.output, b"previous valid artifact")
+        for format, payload in (("GLB", glb()), ("STL", b"invalid")):
+            with self.subTest(format=format):
+                result = self.export(format, payload, preserve_rejected=True)
+                self.assertNotIn("diagnostic_file", result.get("error", {}))
+
+    def test_rejected_glb_diagnostic_collision_preserves_existing_evidence_and_first_error(self):
+        result = self.export("GLB", b"invalid native bytes", preserve_rejected=True, diagnostic_existing=True)
+        self.assertEqual(result["error"]["type"], "ExportVerificationFailed")
+        self.assertIn("diagnostic_recording_error", result["error"])
+        self.assertNotIn("diagnostic_file", result["error"])
+        self.assertEqual(len(self.saved), 1)
+        self.assertEqual(self.output, b"previous valid artifact")
+
     def test_all_mesh_formats_for_parts_and_assemblies(self):
         for kind in (1, 2):
             for format, payload in (("STL", binary_stl()), ("3MF", archive(three_mf_members())),
@@ -99,6 +130,17 @@ class WindowsMeshExportTests(unittest.TestCase):
                         self.assertEqual(self.output, payload)
                         self.assertNotIn("warnings", result)
                         self.assertFalse(self.preference)
+
+    def test_false_with_zero_error_is_failure_and_warning_integer_is_retained(self):
+        result = self.export("GLB", glb(), false_with_zero_errors=True)
+        self.assertFalse(result["ok"], result)
+        self.assertIs(result["api_saved"], False)
+        self.assertEqual(result["save_errors"], 0)
+        self.assertEqual(self.output, b"previous valid artifact")
+        self.assertEqual(len(self.saved), 1)
+        result = self.export("GLB", glb(), save_warning=4)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["save_warnings"], 4)
 
     def test_corrupted_outputs_do_not_replace_target_in_either_mode(self):
         for format in ("STL", "3MF", "AMF", "GLB"):
@@ -125,6 +167,19 @@ class WindowsMeshExportTests(unittest.TestCase):
             self.assertEqual(result["error"]["type"], error)
             self.assertFalse(self.preference)
             self.assertEqual(self.output, b"previous valid artifact")
+
+    def test_stl_restore_failure_retains_first_save_false_or_exception(self):
+        for kwargs, message in ((dict(save_error=32), "failed to export"),
+                                (dict(native_failure=True), "native save failed")):
+            with self.subTest(kwargs=kwargs):
+                result = self.export("STL", binary_stl(), document_type=2,
+                    restore_failure=True, **kwargs)
+                self.assertFalse(result["ok"], result)
+                self.assertIn(message, result["error"]["message"])
+                self.assertEqual(result["finalization_error"]["type"], "ExportPreferenceRestoreFailed")
+                self.assertTrue(result["save_attempted"])
+                self.assertEqual(len(self.saved), 1)
+                self.assertEqual(self.output, b"previous valid artifact")
 
     def test_stl_restore_failure_prevents_publishing_verified_output(self):
         result = self.export("STL", binary_stl(), document_type=2, restore_failure=True)
