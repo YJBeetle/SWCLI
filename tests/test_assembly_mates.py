@@ -101,6 +101,8 @@ class MateTests(unittest.TestCase):
                       mock.patch.object(api, '_native_windows', return_value=True),
                       mock.patch.object(api, '_dispatch', side_effect=lambda native, interface, **context: native),
                       mock.patch.object(api, 'capture_verified_reference', side_effect=lambda a,e,f: f.token),
+                      mock.patch.object(api, 'resolve_verified_reference', side_effect=lambda e,token: next(
+                          face for faces in self.scene.faces for face in faces if face.token==token)),
                       mock.patch.object(api, 'feature_error', side_effect=lambda f: self.scene.error_code),
                       mock.patch.object(api, '_running_command', return_value={'ui_active':False}),
                       mock.patch.object(api, '_empty_variant', return_value=None),
@@ -149,6 +151,37 @@ class MateTests(unittest.TestCase):
             component.GetCorresponding.assert_not_called()
             for face in faces:
                 self.assertIn(mock.call(face, "IEntity", app=self.scene.app), dispatch.call_args_list)
+
+    def test_background_owner_is_read_from_exact_assembly_document_resolution(self):
+        original = self.scene.faces[0][0]
+        intermediate = NS(**vars(original))
+        intermediate.GetComponent = mock.Mock(
+            side_effect=AssertionError("intermediate component context is unavailable")
+        )
+        self.scene.app.ActiveDoc = foreground = object()
+        self.scene.components[0].GetCorrespondingEntity = (
+            lambda face: intermediate if face is original else face
+        )
+        def same(first, second):
+            return int(first is second or
+                       (first is intermediate and second is original) or
+                       (first is original and second is intermediate))
+        self.scene.app.IsSame = same
+        result = api.read_mate_targets_windows(
+            app=self.scene.app, document=self.scene.doc, components=self.scene.names
+        )
+        self.assertTrue(result["ok"], result)
+        intermediate.GetComponent.assert_not_called()
+        api.resolve_verified_reference.assert_any_call(self.scene.doc.Extension, original.token)
+        self.assertIs(self.scene.app.ActiveDoc, foreground)
+
+    def test_assembly_document_resolution_rejects_a_different_native_face(self):
+        with mock.patch.object(api, "resolve_verified_reference", return_value=self.scene.faces[1][0]):
+            result = self.add()
+        self.assertFalse(result["ok"])
+        self.assertIn("face identity changed", result["error"]["message"])
+        self.assertFalse(result["mutation"]["attempted"])
+        self.scene.doc.CreateMate.assert_not_called()
 
     def test_read_refuses_foreground_identity_change_without_restoring_or_selecting(self):
         original=api.snapshot

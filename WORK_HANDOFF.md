@@ -144,3 +144,13 @@
 - 实际只有源 PRT 产物，56447 字节，SHA `4040864a7032375cdfac6c9edc420dc3bf5228de9ee36c7df38da8d52694c217`。失败摘要 `docs/verification/assembly-mates-public-mapping-failure-2026-11-07.json`。原追踪未记录 COM 返回值，目前确认到后台映射面的组件归属失败，具体原生根因尚未确立。
 - 依据官方 IEntity 面/边/顶点专用 API，候选改为先 QI 源面到 IEntity，再单次 `IComponent2.GetCorrespondingEntity`。精确 owner IsSame、几何、持久引用往返和 CAS 断言继续执行。没有 owner 时给出明确错误，错误实例仍拒绝。后台回归覆盖专用实体映射、前台身份保持及错误/空 owner 拒绝。新路径的原生后台支持继续由公开 gate 验证。
 - 针对性 44 项通过，全量执行 1863 项，26 平台跳过，其余通过。日志 `evidence/portable/entity-mapping-{tests,all-tests,sdk}.log`。内部历史保存重开证据继续指向 ac9e54f / run 42279916240，更新后的实体映射候选待公开验收。
+
+## 实体映射修复后的公开 gate 已启动
+- 新 tip `cc801f78f33551a27e430277c9be3ef350c42c90` 已推送并核对远端。唯一新 dispatch [run 42361567672](https://github.com/YJBeetle/SWCLI/actions/runs/42361567672)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`，首次快照确认精确 head，状态 `in_progress`。receipt `evidence/public-run-42361567672.json`。
+- 本节为本地交接状态。本轮按统筹要求结束等待，公开原件待审查，合并待公开验收。
+
+## 第三次公开失败与装配文档实体上下文候选
+- [run 42361567672](https://github.com/YJBeetle/SWCLI/actions/runs/42361567672) / `cc801f78f33551a27e430277c9be3ef350c42c90` 的首个业务失败仍为后台 `assembly.mate-targets`，新诊断明确 `IEntity.GetComponent` 返回 None。实体专用映射本身已正常返回，尚未取得组件 owner。原件没有 CreateMate 调用。宿主 PID 4952 / revision 33.5.0，owned server 正常退出 0，清理完成后的原生进程目录为空。
+- 原 ZIP `evidence/run-42361567672/swcli-assembly-mates-42361567672-1-13569608878.zip` 的 GitHub digest 为 `2ab0cda2ab6ff92185e1181c1dcd321e75dd8c9dd96a7769df3fa123060a44ab`，原分发 ZIP `swcli-dist-13570062052.zip` digest 为 `cc8e99e06a70f52310c647d23846a95946a3e4bc0f55a2700ce76b763b159ff3`，均已匹配。已安装的 83 个 Python 文件与 wheel/Git blob 全部一致。原件摘要见 `docs/verification/assembly-mates-public-context-failure-2026-11-07.json`，实际源 PRT 为 56794 字节，SHA `504b33f46b7d6f9cb00b6e854a8eb07f29a9b278aec68e5327e114b3c7baaa70`。
+- 官方 GetComponent 要求实体直接取自装配文档。候选使用既有私有引用能力，在目标 ASM 的 Extension 中捕获/解析映射面的引用，再核验解析对象与映射面 IsSame，最后执行原有组件 owner、几何、重复引用与完整 CAS 检查。仍从显式目标文档只读获取数据，并继续核对前台身份。新上下文路径尚待原生公开 gate 证明。
+- 回归覆盖中间映射对象缺少上下文而装配解析对象身份相同的成功形态，以及解析到其他原生面时写前拒绝。46 项针对性通过，全量执行 1865 项，26 平台跳过，其余通过。SDK generator / strict mypy / 8 个负向消费类型场景通过。日志 `evidence/portable/assembly-context-{tests,all-tests,sdk}.log`。

@@ -1,0 +1,60 @@
+{
+  "run_id": 42361567672,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42361567672",
+  "head": "cc801f78f33551a27e430277c9be3ef350c42c90",
+  "artifact_id": 13569608878,
+  "artifact_sha256": "2ab0cda2ab6ff92185e1181c1dcd321e75dd8c9dd96a7769df3fa123060a44ab",
+  "distribution_artifact_id": 13570062052,
+  "distribution_artifact_sha256": "cc8e99e06a70f52310c647d23846a95946a3e4bc0f55a2700ce76b763b159ff3",
+  "github_digests_matched": true,
+  "verified_installed_wheel_python_files": 83,
+  "wheel_sha256": "bd1d0505a57e712dd5e796fc98490b88b517c3bcfcdb55a5c98432d90c83a91f",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 4952,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.625,
+    "visible": false
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-yp8y95",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "mapped face has no component in the selected assembly context",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "33443494-a8e5-404f-8adb-8411a45dd754",
+    "session_id": "modeling-smoke-b17717348ae6"
+  },
+  "confirmed_native_observation": "IEntity.GetComponent returned None on the mapped face in an inactive assembly",
+  "native_create_mate_count": 0,
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56794,
+      "sha256": "504b33f46b7d6f9cb00b6e854a8eb07f29a9b278aec68e5327e114b3c7baaa70"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "candidate": "Resolve the verified private reference using the target assembly Extension before checking component ownership; require identical native face identity",
+  "internal_acceptance_run_id": 42279916240,
+  "public_acceptance": false,
+  "merge_ready": false
+}

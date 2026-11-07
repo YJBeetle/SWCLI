@@ -13,7 +13,7 @@ from .native_trace import native_call
 from .windows_documents import _diagnose_features
 from .windows_entity_geometry import _numbers, _direction
 from .windows_entity_observation import _geometry
-from .windows_entity_references import capture_verified_reference
+from .windows_entity_references import capture_verified_reference, resolve_verified_reference
 from .windows_feature_inspection import _same
 from .windows_feature_depth import _running_command, _empty_variant
 
@@ -196,6 +196,12 @@ def _face(app, assembly, source, component, native, index):
     )
     require(mapped is not None, "native corresponding face is absent")
     mapped = _dispatch(mapped, "IFace2", app=app)
+    extension = value(assembly, "Extension")
+    reference = capture_verified_reference(app, extension, mapped)
+    # GetComponent requires an entity obtained from the assembly document.
+    resolved = resolve_verified_reference(extension, reference)
+    require(_same(app, mapped, resolved), "assembly-document face identity changed")
+    mapped = _dispatch(resolved, "IFace2", app=app)
     owner = value(_dispatch(mapped, "IEntity", app=app), "GetComponent")
     require(owner is not None, "mapped face has no component in the selected assembly context")
     require(_same(app, owner, component), "mapped face does not belong to the exact component")
@@ -206,7 +212,6 @@ def _face(app, assembly, source, component, native, index):
     kind = original["surface_kind"]
     params = _numbers(value(surface, "PlaneParams" if kind == "plane" else "CylinderParams"),
                       6 if kind == "plane" else 7, "surface parameters")
-    reference = capture_verified_reference(app, value(assembly, "Extension"), mapped)
     return dict(index=index, surface_kind=kind, parameters=params,
                 area_mm2=original["area_mm2"], sense=boolean(value(native, "FaceInSurfaceSense"), "face sense"),
                 reference_sha256=hashlib.sha256(reference).hexdigest()), mapped

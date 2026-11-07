@@ -38,7 +38,8 @@ swcli assembly mate-targets 'part-1' 'part-2' --document d-ab12cd --json
 
 面数组 `index` 只用于本次完整观察，不是稳定引用。每个源面通过
 `IComponent2.GetCorrespondingEntity` 映射到指定装配组件实例，用 `ISldWorks.IsSame`
-证明归属。私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
+证明归属。映射面先在目标 ASM 的 Extension 中捕获并解析私有引用，解析前后原生身份必须相同；
+组件归属读取使用该装配文档解析出的实体。私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
 完整 CAS，不发布可解析 token，也不承诺跨更新、关闭重开或拓扑变化稳定。
 本分支不依赖尚未验收的独立稳定引用分支。
 
