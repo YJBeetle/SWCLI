@@ -17,6 +17,9 @@ class LineFontTests(unittest.TestCase):
         self.fx = fixtures.DocumentAnnotationTests()
         self.fx.setUp()
         self.fx.drawing_context()
+        host_patch = mock.patch.object(adapter, "_native_windows", return_value=True)
+        host_patch.start()
+        self.addCleanup(host_patch.stop)
         self.fx.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Foreground")
         self.fx.foreground.IsOpenedReadOnly = lambda: False
         self.fx.foreground.IsOpenedViewOnly = lambda: False

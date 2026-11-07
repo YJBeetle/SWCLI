@@ -1,6 +1,8 @@
 """Drawing Line Font defaults restricted to independently calibrated conversions."""
 
 from pathlib import Path
+import ctypes
+import sys
 from ..document_line_font import (LINE_FONT_FIELDS, validate_edit, CALIBRATED_LINE_FONT_REVISION,
                                   CALIBRATED_LINE_FONT_TRANSITIONS)
 from .native_trace import native_call
@@ -16,6 +18,28 @@ class DocumentLineFontConflict(RuntimeError):
 
 class DocumentLineFontUncalibrated(RuntimeError):
     pass
+
+
+def _native_windows():
+    if sys.platform != "win32":
+        return False
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+    module = kernel.GetModuleHandleW
+    module.argtypes = [wintypes.LPCWSTR]
+    module.restype = wintypes.HMODULE
+    lookup = kernel.GetProcAddress
+    lookup.argtypes = [wintypes.HMODULE, wintypes.LPCSTR]
+    lookup.restype = ctypes.c_void_p
+    ntdll = module("ntdll.dll")
+    # Establish that the module and export-query path work. Query addresses
+    # only: neither NtClose nor the Wine export is invoked.
+    if not ntdll or not lookup(ntdll, b"NtClose"):
+        return False
+    ctypes.set_last_error(0)
+    wine = lookup(ntdll, b"wine_get_version")
+    error = ctypes.get_last_error()
+    return not wine and error == 127  # confirmed ERROR_PROC_NOT_FOUND only
 
 
 def _constants():
@@ -124,6 +148,12 @@ def set_document_line_font_windows(*, app, document, field, value, expected_opti
               "mutation": {"attempted": False, "may_have_changed": False}}
     try:
         validate_edit(field, value, expected_options)
+        try:
+            native = _native_windows()
+        except Exception as exc:
+            raise DocumentLineFontUncalibrated("native Windows host probe is unavailable") from exc
+        if native is not True:
+            raise DocumentLineFontUncalibrated("line font writes require native Windows; Wine and unknown hosts are uncalibrated")
         _drawing(document)
         _require_writable(document)
         state, foreground, context = _state(document), _com_value(app, "ActiveDoc"), _edit_context(document)

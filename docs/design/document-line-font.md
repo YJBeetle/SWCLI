@@ -22,7 +22,8 @@ No arbitrary preference IDs or global `ISldWorks` settings are accepted.
 Internal evidence from [run 42260712677](https://github.com/YJBeetle/SWCLI/actions/runs/42260712677)
 was independently audited against head `6f531a595a50bbadeeab2c0f005d89c0246c7ee5`,
 original artifact digest, per-request trace, and saved/reopened fixture digest.
-Public writes are limited to exact host revision **33.5.0** and these conversions:
+Public writes require a positively identified native Windows host, exact host
+revision **33.5.0**, and these conversions:
 visible style 0→1, visible weight 1→0, hidden style 1→0, hidden weight 0→1.
 Same-value 0/1 requests are observations with no setter. Reverse conversions,
 other versions, weight 2, custom and layer sentinels remain closed. The adapter's
@@ -97,3 +98,28 @@ a post-operation document descriptor. The real worker error envelope, SDK and MC
 bridge retain that partial result. Portable fault-injection evidence covers both
 native success and first business failure followed by descriptor failure; those
 mocks do not constitute native acceptance.
+
+## Native Windows host boundary
+
+Every setter request, including same-value noops and private calibration, first
+requires the real `sys.platform == "win32"`. The adapter loads kernel32 with
+`use_last_error=True`, obtains the loaded ntdll module with `GetModuleHandleW`,
+and verifies the known `NtClose` export through `GetProcAddress`. It then clears
+the last error and queries `wine_get_version`. Only a null address with exactly
+`ERROR_PROC_NOT_FOUND` (127) admits writes. No queried export is invoked.
+
+A Wine export, missing module/known export, lookup errors 0/5/126, probe
+exceptions, non-Windows platforms, and unknown results fail closed before any
+preference getter/setter, dirty marking, or save. The revision check alone never
+establishes this host boundary. Read requests retain their previous state
+protection and do not invoke this host probe. All existing CAS, lease/stamp,
+foreground, identity/access, edit-context and partial-receipt guards remain.
+
+The earlier successful public run at `80b6133` predates this host fix and does
+not establish acceptance for the changed product. A separate exact-head public
+gate is required before integration review can close. Portable OS-probe tests
+are fault-injection evidence, not native Windows acceptance.
+
+Official Win32 references: [GetModuleHandleW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew),
+[GetProcAddress](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress),
+and [system error codes](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-).
