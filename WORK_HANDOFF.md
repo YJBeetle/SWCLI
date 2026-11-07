@@ -2,6 +2,31 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 最终交接：严格宿主探针的新公开验收已审计通过
+
+- 新公开 [42361573569](https://github.com/YJBeetle/SWCLI/actions/runs/42361573569) completed/success。**本轮绑定 source head `950c83396784a9f647e9ea0d06d1771a5f00d1c5`**。该提交包含统筹要求的严格 kernel32/ntdll 已知导出、Wine导出缺失及 last_error=127 检查。
+- 官方 artifact ID `13570318875`，名称 `swcli-windows-hosted-42361573569-1`，1237491 bytes。原 ZIP SHA-256 与 GitHub metadata 完全一致，为 **`8d15490737bf826350a754559ef2f617769ba216b74e68fafe01a42ea186a70c`**。
+- 原 ZIP `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42361573569/original-native-artifact.zip`。同目录 `run.json`、`artifacts.json`、`download-receipt.json` 和解压 `original/` 保留官方状态、digest 与原字节。
+- 新独立审计 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/run-42361573569/independent-public-audit.json` 为 success，public_acceptance_passed=true。报告 SHA-256 `250cb4a0cf706a1a17069e0e88abadce9154e802ac638c4cd27dd4dc756e2d86`，trace SHA-256 `16b0c64881282ca89ceef41487db14d76d39cae9f5fe4faa82ef4e1d3c826dea`。审计使用精确 `git archive 950c833 src scripts/ci` 导出的 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/audit-source-950c833`。
+- 本轮复核 8 个 SLDPRT 文件 hash/大小、两实体 baseline 和 coarse/fine/custom 全 raw 保存重开及 fresh readonly/writable handle，58 条 CLI 原生 trace、2 次 SDK 读取、2 次 MCP 读取与 schema 发现、16 次解析几何对照、owned host 清理。28 次公开写请求含10次改变、16次noop、2次完整CAS拒绝，均进入修复后的公开 runtime guard。SDK/MCP 原生证据覆盖读取和 schema，写入由 CLI 覆盖。
+- 验收范围为 part，SOLIDWORKS 33.5.0、原生 Windows CPython 3.12.10 x64。允许 coarse/fine、edge true/false，Double changed 仅对应代码中两个精确 native range/fine/custom 组合。范围外及未知宿主探针的拒绝由本地回归覆盖。完整1860项通过、32项跳过的原日志为 `portable-quality-strict-native-probe.log`。
+- 当前可供统筹最终 review/merge 的分支为 `codex/docprops-export-options`。source tip 为 `950c8339`，其后的 `dea0b01` 及本交接提交只改文档。最终 tip 由本次提交后的 `git rev-parse HEAD` 给出。`git diff 950c833..HEAD` 可核实只有交接/说明文档。合并与正式发布由统筹处理，正式发布仍需用户确认。
+- **GLB 未解决。** 此次公开组 covers_glb_mesh=false、glb_control_proven=false、full_acceptance_eligible=false。此前原 GLB 的 BIN=0、声明buffer3696 bytes仍是已保存缺陷。不能据此声称GLB导出参数或渲染细分已解决。
+
+以下命令完全离线复核本轮新原件，输出到新路径，保留已有审计回执。
+
+```sh
+evidence_root='/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107'
+PYTHONPATH="$evidence_root/audit-source-950c833/src:$evidence_root/audit-source-950c833/scripts/ci" \
+/private/tmp/swcli-a14-test-env/bin/python "$evidence_root/audit-image-quality-artifact.py" \
+  --root "$evidence_root/run-42361573569" \
+  --source "$evidence_root/audit-source-950c833" \
+  --head 950c83396784a9f647e9ea0d06d1771a5f00d1c5 --profile public \
+  --output /private/tmp/swcli-public-quality-950c833-review-audit.json
+```
+
+后续章节为历史，当前验收以本节新run及新原件为准。
+
 ## 最新公开审计与宿主探针修复
 
 - 公开 run [42305767940](https://github.com/YJBeetle/SWCLI/actions/runs/42305767940) 的精确 head 为 `295e89fe3512744a13f23ac85aee14878a1bc5ce`，conclusion 为 success。原 artifact 13547501819，1229135 bytes，SHA-256 `8850316ff4852c4bfc39a5246fb0dd8e3392822ce9e412549292bacab8abe457`。

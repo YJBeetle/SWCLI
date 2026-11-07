@@ -2,8 +2,8 @@
 
 The internal part display-quality group passed on SOLIDWORKS 33.5.0 with native
 Windows CPython 3.12.10 x64. Public run 42305767940 passed the same property scope, including installed
-CLI persistence, SDK and MCP reads, native trace and cleanup. A stricter native
-host probe correction is pending a fresh public gate. GLB format options remain unsupported.
+CLI persistence, SDK and MCP reads, native trace and cleanup. Public run 42361573569 at 950c833 passed the stricter native host probe
+correction and the complete property persistence gate. GLB format options remain unsupported.
 
 ## Public contract
 
@@ -158,5 +158,9 @@ audit of run 42301795947 verified both fixtures and the two observed targets.
 The runtime probe now resolves the known ntdll export `NtClose` before checking
 `wine_get_version` through `GetProcAddress`. A missing Wine export authorizes
 the native profile only when the recorded last error is 127. Unknown lookup
-results refuse the operation before preference access. This correction requires
-a new public acceptance run after the successful 295e89f artifact audit.
+results refuse the operation before preference access. Public run 42361573569 at source head 950c833 passed with this correction.
+Its original ZIP SHA-256 is
+`8d15490737bf826350a754559ef2f617769ba216b74e68fafe01a42ea186a70c`.
+The independent audit replayed 58 CLI proofs, two SDK reads and two MCP reads,
+checked eight saved native files, 16 analytic geometry observations and owned
+host cleanup. WORK_HANDOFF.md records full paths and the offline audit command.
