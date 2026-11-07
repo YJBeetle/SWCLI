@@ -31,7 +31,7 @@ SOLIDWORKS `33.5.0` 的装配体和工程图共 8 项写入完成。装配体 te
 在当前工作树及已保存的原件下执行以下命令，仅进行本地原件和 Git/source 校验。
 
 ```sh
-/private/tmp/swcli-table-defaults-venv/bin/python \
+/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/.venv/bin/python \
   /Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/docs/verification/audit-table-defaults-public-42361458023.py \
   --public-evidence /Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/docs/verification/table-defaults-evidence/run-42361458023 \
   --internal-evidence /Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/docs/verification/table-defaults-evidence/run-42301331238

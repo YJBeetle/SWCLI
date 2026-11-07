@@ -143,3 +143,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - [42366316568](https://github.com/YJBeetle/SWCLI/actions/runs/42366316568) 单次 dispatch，精确 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，mode `public`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `assembly-drawing`。单次快照 `in_progress`，metadata 和输入保存在 ignored `run-42366316568/`。
 - 新 head 先在 Windows 实际执行 strict probe，再准备 private runtime 和既有公开计划。当前 merge 仍等待本轮原件通过及统筹本人 review。c95 成功 ZIP 的独立审计明确报告当前产品代码与 c95 不同，防止把旧通过用于新 guard。
 - 零件精确几何仍为系列未完成项，严格断言及既有精确 profile 继续作为门禁。系列整组完成后才请用户确认发版。
+
+
+## 严格 native guard 的新公开原件验收通过
+
+- [42366316568](https://github.com/YJBeetle/SWCLI/actions/runs/42366316568) / `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b` completed/success。CAD 前真实 native Windows 探针与公开 gate 均成功。新 ZIP 为 artifact `13571309953`，官方/本地 SHA256 `337b23a2c96913725b3281a12325d918c539753e7a96fe6da4fabca6ed74f17b`。
+- 新原件独立审核成功，产品树与该 head 一致。57 请求、8 setters / 274 getters、120 CLI 事件、4 SDK / 4 MCP bridge 回执、另存/readonly reopen、零件拒绝、空 catalog 和 daemon 退出均符合预期。单调用最大约 1.847 秒，trace 组跨度约 39.400 秒。
+- 原始 report SHA256 `2d93886d6ceeda7afb8ca911d50f848b5bfbf7ab7ed388e6efb39589b96bf958`，native trace `00815ec92f37720ff090c7e32e43cc411d43e940a4f0fc9e97177a30aacaf572`。全部原始 artifact/hash、完整路径和可复跑命令见 `docs/verification/table-defaults-public-42366316568.md`，独立脚本为 `audit-table-defaults-public-42366316568.py`。
+- 旧临时 venv 已被系统清理，当前审计环境改用工作树忽略目录 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/.venv/`，复跑命令已更新。
+- 装配体/工程图精确范围可供统筹 review/合并，系列发版仍待原计划零件严格几何问题解决。
+- 零件旧原 ZIP 已有首个关键线索。创建后 `geometry.centroid_mm.y=5.514537417020185e-16`，首次保存/只读重开后为 `8.271806125530278e-16`，均发生在表格写入之前。当前严格 table 比较跨越只读 handle 和重新打开的可写 handle，缺少当前可写 handle 在首个 setter 前的严格测量对照。下一项仅补该对照及留证，保留原 exact equality 和首错停组规则。
