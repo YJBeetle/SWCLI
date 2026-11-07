@@ -53,3 +53,5 @@ CI仅在显式 `units_write_calibration && units_public_acceptance` 时从本轮
 本地待提交源最终验证：完整1933项/59.706秒通过（26 skipped，临时环境有MCP extra）；47项最终关联通过，真实SDK TCP/MCP stdio对假daemon4项通过；SDK generated/strict6源文件及8负向typing通过；全部src/CI/tests Python3.9 AST、workflow YAML与isolated help导入通过。原日志持久路径/hash在 `admission-validation.json`。这些均不冒充公共CAD原件。
 
 最终失败回执补强：SDK ProtocolError及MCP结构化/文本不一致时，保留可用raw response/CallToolResult及outcome_unknown，不重试。追加该路径后48项/8.874秒关联通过；1933项是此前完整基线，两者精确区分记录于validation JSON。
+
+公共实现业务head `ac8e7f26ced8148d16fe236280082d4f78ec9290` 已推送；唯一必要新run [42423042929](https://github.com/YJBeetle/SWCLI/actions/runs/42423042929)。输入三个units开关true、native_full=false；一次快照已核head，route/wheel成功，Windows前置运行中，尚无公共native结果。原始快照/参数 `docs/evidence/units-profile/public-writes-42423042929/`；本轮正常一次快照即停。必须审该新run原件后再报告公共完成，不以内部分支或本地协议/合成结果冒充。后续docs交接提交不改变此验证操作源。

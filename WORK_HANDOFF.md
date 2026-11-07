@@ -283,3 +283,7 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 本轮待提交源完整portable1933项/59.706秒通过（26 skipped），最终47关联通过，真实SDK TCP/MCP stdio对假daemon4项通过；SDK generated/strict6文件与8负向typing、全部Python3.9 AST/YAML及isolated入口导入通过。持久原日志及hash `docs/evidence/units-profile/write-checkpoints-42414478796/admission-validation.json`。公共CAD417验收未到，不因这些合成/协议结果标通过。
 
 最终追加SDK ProtocolError/MCP回复不一致时的raw回复保留，避免已执行写入的回执被校验异常丢弃；不重试。此最终失败路径修改及所有相关路由由48项/8.874秒通过覆盖；完整1933项记录为此前完整基线，未冒称运行了新增第1934项的完整套件。相关原日志/hash已追加admission-validation.json。
+
+人工域与三通路验收业务head`ac8e7f26ced8148d16fe236280082d4f78ec9290`已中文提交推送。仅触发一次必要公共验证 [42423042929](https://github.com/YJBeetle/SWCLI/actions/runs/42423042929)，head/ref/event已核；输入三个units开关true、native_full=false。一次正常快照在`docs/evidence/units-profile/public-writes-42423042929/`：route/wheel success，Win3.9/3.14前置运行中，尚无公共native结果。首次run元数据HTTP EOF只补读该元数据，没有原生重试或重复dispatch。
+
+正常快照后结束本轮，不持续poll、不建代理/automation。后续必须下载本run新原ZIP/digest并分别核CLI/SDK/MCP各139实际case、真实租约/完整CAS及拒绝、137受限域/26受审后态、保存RO/配置/状态/raw geometry、同一owned host/单worker、600/1800及MCP frontend/owned CAD清理。未到/失败不能以内部139或合成417补齐；若触硬预算先交时间分布评估，不拆组/少测/改限。当前公共验收仍未完成，main/release仍交统筹本人，未合/未发布。其后交接tip只docs，不改变ac8e7f26操作源。
