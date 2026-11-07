@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-公开42305495076/head9fe8d9d成功原件的独立审计已过。统筹提出的严格原生探针修复e1d1870已推送，46项定向、1865项便携（32跳过）、打包安装和SDK生成检查通过。必要公开42361878938/head e1d1870唯一快照in_progress，同head便携42361857745也在运行。最新可合结论待该公开gate及统筹终审。
+本路三字段实现与限定范围验收已完成。严格原生探针提交e1d1870的公开42361878938和Windows便携42361857745均success，新ZIP与官方digest/head、完整回执/trace及原生文件独立审计通过。当前交付统筹本人终审/合并，产品验证head为e1d18709587f5c62e6757caad81bd188c027dd99，后续交接提交仅含文档。
 
 ## 分支与范围
 
@@ -163,3 +163,40 @@
 - 已完成原件审计的head仍为 `9fe8d9d0fedc19eb47bdb4fee55c940b06238605`，最新探针修复head需上述gate完成后核新原件。故当前交付审查候选e1d1870，最终可合tip以其公开证据和统筹本人review为准。
 - 本次交接文档提交在e1d1870之后，仅更新WORK_HANDOFF.md。相关审计脚本绝对路径 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42305495076/audit_public.py`，结果同目录audit.json，原件original.zip，公开回执extracted/dimension-public/dimension-format-public/dimension-format-public.json，trace为extracted/dimension-public/swclid.stderr.log。
 - 正常运行已记录一次快照，当前系列继续通过统筹分次快照推进。
+
+## 严格原生探针提交的新原件最终交接
+
+- 本轮公开运行 https://github.com/YJBeetle/SWCLI/actions/runs/42361878938 ，GitHub状态completed/success，精确产品head `e1d18709587f5c62e6757caad81bd188c027dd99`。新artifact ID `13569618998`，name `dimension-format-42361878938-1`，官方与本地ZIP SHA256均为 `7a6401569d8ca703e81d4b2f498be12f76664318349393c2a0c5cbf53b7596a1`。本次审计读取本轮新ZIP、回执、trace与原生文件，绑定上述新head。
+- 同一head Windows便携 https://github.com/YJBeetle/SWCLI/actions/runs/42361857745 completed/success，Python3.9、Python3.14、wheel三个job均success。原元数据完整保存。
+- 精确通过范围为原生Windows、SOLIDWORKS revision33.5.0、part/assembly/drawing三类文档、dual_display/dual_position/parentheses三字段。公开78条尺寸请求，39次真实setter，每类16次请求中13次真实setter，布尔两个方向及四位置均实际写入。最终保存字段逐项不同于源初值，三份副本只读重开完整profile一致。
+- 独立审计核208条CLI stdout/result与回执、12个lease/stamp/完整CAS/readonly拒绝、逐值before/after链、mutation/native_return、三次同值清洁、尺寸读写目标后台/current=false、单位和七项注解的前后原始回执、保存API零错误与警告空值、同ID保存及新ID重开、源和副本实际SHA。
+- 原始trace逐层核request_id、顺序/配对、方法种类、次数、600秒边界及同一worker2500。host6800/33.5.0保持，公开组100.504秒，1800秒上限保留。新trace前缀SHA256 `113223907b5371ef04adb094e588983fce8a1bdfe778e14d0b26b8fc172cb954`。
+- part写前/写后/重开三份原始完整边/面观察重新算得精确相同的8顶点/12直线边/6平面指纹，native体积/面积精确一致，既有raw metric及解析判据通过。三类结束均零文档，cleanup_errors=[]；daemon停止成功、退出码0；完整生命周期对照无新增任务/进程。
+
+### 新原件与审计完整路径
+
+- 原件目录 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42361878938/`。
+- ZIP为该目录original.zip，官方元数据artifacts.json与run.json，本地匹配记录integrity.json，独立脚本audit_public.py，结果audit.json。
+- 完整回执 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42361878938/extracted/dimension-public/dimension-format-public/dimension-format-public.json`。
+- 原生trace `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42361878938/extracted/dimension-public/swclid.stderr.log`。源文件位于extracted/dimension-public-fixtures/，三份保存副本位于extracted/dimension-public/dimension-format-public/。
+- Windows便携元数据 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/portable-ci-42361857745.json`。
+
+### 可复跑独立审计
+
+使用已安装项目依赖（含jsonschema）的Python3.9+，从本工作树执行。下列命令为本轮实际验证过的解释器与绝对路径。所有验收证据文件保存在上述持久目录。
+
+```sh
+cd /Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI/src \
+  /tmp/swcli-dimension-format-venv/bin/python \
+  /Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42361878938/audit_public.py \
+  --evidence /Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42361878938 \
+  --head e1d18709587f5c62e6757caad81bd188c027dd99
+```
+
+### 统筹审查与合并候选
+
+- 最终产品验证提交为e1d18709587f5c62e6757caad81bd188c027dd99。本次交接文档提交后的分支tip可供统筹终审/合并，精确tip由git rev-parse HEAD取得，并同步到同级evidence/calibration-state.json。
+- e1d1870后仅更新WORK_HANDOFF.md、docs/dimension-format.md。可用 `git diff e1d18709587f5c62e6757caad81bd188c027dd99 HEAD -- src scripts tests .github` 核实现、gate和测试相同。
+- 入口实现为src/swcli/hosts/windows_dimension_format.py与document_dimension_format.py，daemon/operations.py中document_dimension_format和document_dimension_format_set；CLI/operation_schemas/result_schemas/SDK增加两操作。共享CI差异仅手动dimension-format分支与wrapper专用入口。
+- 可复跑公开gate脚本 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/SWCLI/scripts/ci/verify-dimension-format-public.py`，内部校准脚本同目录verify-dimension-format-calibration.py；几何观测器gate_support/dimension_box.py；回归tests/test_dimension_format*.py。已完成现有必要CI与原件审计，本次交接交由统筹本人执行终审/合并。
