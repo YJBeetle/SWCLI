@@ -219,3 +219,11 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 新公开结果尚待验证；内部成功不构成公开成功，不main合并、不发版、不触VM/DockerSW/MacSW。
 
 - 本次promotion必要检查已通过：完整1881 tests / 33 skips，相关72项，SDK generator、strict mypy 6 source files与8 negative consumer refusals；remote/local新原件preflight均通过。日志在ignored `run-42415716434/promotion-{full-portable,related,sdk-types}.log`，remote结果同目录。
+
+
+## 全三类型公开门禁已单次启动（2026-11-08）
+
+- 精确候选head `9bb806b454cdcbcb225135886482a2e555044444` 已推送；仅part三项实测转换及self-pair新增，A/D8项与受测guard不变。完整1881 tests/33 skips、相关72项、SDK生成/strict/8 negative及新pin remote/local均通过。
+- [public all run 42419965068](https://github.com/YJBeetle/SWCLI/actions/runs/42419965068) 单次dispatch，参数 `native_full=false`、calibration=true、mode=public、types=all、head=9bb806b454cdcbcb225135886482a2e555044444。固定内部run42415716434/artifact13591813168/原ZIP7e1d8fcd...为前置proof。
+- 仅取一次状态快照 **in_progress**，metadata/inputs/snapshot已保存在ignored `run-42419965068/`。公开组拥有独立600秒native/1800秒group预算；新part3转换和A/D新guard旧8转换均走CLI/daemon/worker，SDK/MCP同daemon，包含readonly和独立save/reopen。首错即停组并保留原始回执/日志，不重试/回滚/换host。
+- 内部原ZIP审核命令及所有12文件hash见 `docs/verification/table-defaults-internal-42415716434.md`，脚本 `audit-table-defaults-internal-42415716434.py`。公开run尚无已审核完成原件，不能声称公共通过或可合并。此处停止watcher/poll/dispatch，待原件可用再逐次审核，最终review/merge由统筹本人做；本任务不改main、不发版。
