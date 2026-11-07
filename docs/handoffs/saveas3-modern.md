@@ -1,5 +1,19 @@
 # SW2025 现代 SaveAs3 迁移交接
 
+## 当前结论（2026-11-08 原件审计）
+
+精确产品head `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3` 的 [必要full 42369257219](https://github.com/YJBeetle/SWCLI/actions/runs/42369257219) 已结束failure。现代API已真实返回bool/errors/warnings，PRT/ASM/DRW三类保存重开及公共回执通过；整套full未通过，GLB仍未解决。未派发同head重跑，未改该次原件。
+
+官方原artifact `13574345669`，`swcli-windows-hosted-42369257219-1`，6006787 bytes，SHA256 `a18dec74a3f0e37a04197b241dc8b244c397a8f7b2eb4b8630c21d39de5827af`。本地原件、官方run/artifacts JSON、下载回执、精确head源码和离线审计位于 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261107/run-42369257219`，原ZIP内163文件均逐一对比一致。[结构化审计回执](../evidence/saveas3-modern-native-2026-11-08.json)；复现脚本为该artifact根的上级`audit-modern-original.py`。
+
+- annotation准备夹具三类各一次现代保存、只读重开、clean/type、上传文件size/hash一致；其report明确preparation_only，不能充当full完成。
+- 公共annotation前缀PRT/ASM/DRW正向/反向共6次另存，各自原文件hash、原始options保存重开一致、四个document ID均新鲜，宿主PID/revision连续。加units两次、properties两次，共10个请求有原始trace：每请求恰好一次`IModelDocExtension.SaveAs3`，旧ModelDoc2/Extension SaveAs系列0次。
+- native-model组完成：50次document.save-as、1次STEP导出；assemblies组到达component原生PRT另存，以及零件STL/3MF/AMF成功导出，GLB随后失败。全部66份到达的daemon保存/导出回执均通过精确head schema，实际bool=true/errors=0/warnings=0。保留的STEP59843、STL684、3MF11838、AMF1499 bytes均经精确head内容解析器重新读取。
+- 首失败request `f3373180-51c4-4628-aea0-b5712326e01b`：component-export.GLB，ExportVerificationFailed，non_empty=true/signature_valid=false，真实api_saved=true/errors=0/warnings=0。它没有保留拒绝文件，无法对**本次现代保存**声称BIN=0。历史旧API原字节证据不能替代本次原件。
+- runtime矩阵重启daemon没有继承旧native-call开关，因此上面的“单次现代trace”仅限前缀10次，不扩展到矩阵51+5次。矩阵清理无错误，已退出拥有的CAD进程。box包装路径、装配中性导出未到达；extrude/revolve/simple-fillet的接口IID没有在此head记录，均待原生证据。
+
+后续必要full由统筹协调组合head，避免各分支重复安装CAD。此分支继续保留原head证据；不自动重跑，不合主线、不发布。
+
 ## 工作位置与范围
 
 - 持久 worktree 为 `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。

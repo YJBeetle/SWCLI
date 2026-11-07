@@ -1,8 +1,8 @@
 # 当前任务：SW2025 IModelDocExtension.SaveAs3迁移
 
-当前完整实现 `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3`，必要Windows验证 https://github.com/YJBeetle/SWCLI/actions/runs/42369257219，仅 `native_full=true`。交接明细见 `docs/handoffs/saveas3-modern.md`。
+当前产品head `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3` 的必要Windows full https://github.com/YJBeetle/SWCLI/actions/runs/42369257219 已完成failure：现代绑定、PRT/ASM/DRW保存重开通过，首失败为零件GLB严格内容检查，真实true/0/0；拒绝原字节未保留，不能对本次断言BIN=0。原ZIP官方SHA256已核，163文件逐一一致；详见 `docs/handoffs/saveas3-modern.md` 与 `docs/evidence/saveas3-modern-native-2026-11-08.json`。后续必要full由统筹协调组合head；未同head重跑、未合并或发布。
 
-首个可审实现为 `89d4119a372b223c3847f2e905ecba2d6eb6f3bf`。初次run https://github.com/YJBeetle/SWCLI/actions/runs/42368723031 已在portable阶段取消，native job无steps。补齐保存与STL恢复双失败首错保护后，2144项回归通过、33skip，SDK11反例通过。新head与必要原生run见现代SaveAs3交接；COM绑定及实际GLB结果待原件核验。
+首个可审实现为 `89d4119a372b223c3847f2e905ecba2d6eb6f3bf`。初次run https://github.com/YJBeetle/SWCLI/actions/runs/42368723031 已在portable阶段取消，native job无steps。补齐保存与STL恢复双失败首错保护后，2144项回归通过、33skip，SDK11反例通过。新head及其原件审计见现代SaveAs3交接；现代COM绑定已有原生成功证据，GLB仍未解决。
 
 持久worktree `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，新分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。实现、绑定、便携/原生校准方案见 [现代SaveAs3交接](docs/handoffs/saveas3-modern.md)。后续旧品质交接为继承历史，原证据保留。
 

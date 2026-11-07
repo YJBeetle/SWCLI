@@ -1,0 +1,232 @@
+{
+  "run_id": 42369257219,
+  "head": "5a1b48dd1e6abb43560c63466c7bed2b55bf91d3",
+  "run_conclusion": "failure",
+  "original_zip_sha256": "a18dec74a3f0e37a04197b241dc8b244c397a8f7b2eb4b8630c21d39de5827af",
+  "zip_entries_verified": 163,
+  "artifact_id": 13574345669,
+  "audit_script_sha256": "4bfb2dcc44646f7dfe525a9814c306c88e917e169bc4f55fc87dc7676246fbb9",
+  "pinned_save_adapter_sha256": "84cd59919884f050fc70c46f22dcc7fd7a6d0e20fdd6b3932a2f84154e90eb09",
+  "fixture_preparation_only": [
+    {
+      "kind": "part",
+      "path": "swcli-native-smoke/annotation-fixtures/annotations.SLDPRT",
+      "sha256": "140fa2fde7788e606e0efb420f2f92ccf09a8bb5f25e1d58b15250ab67e0b76d",
+      "size_bytes": 50628,
+      "api_saved": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "readonly_reopen": true
+    },
+    {
+      "kind": "assembly",
+      "path": "swcli-native-smoke/annotation-fixtures/annotations.SLDASM",
+      "sha256": "1bb605547f6d6d988408f54ecf23a7975f1491fd43ee753d1e5837b9c0bc0a5e",
+      "size_bytes": 27170,
+      "api_saved": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "readonly_reopen": true
+    },
+    {
+      "kind": "drawing",
+      "path": "swcli-native-smoke/annotation-fixtures/annotations.SLDDRW",
+      "sha256": "f3601b82d0f6d5ffe742bf8a796453bdb073278f1da98612a84fe2fddb4d494a",
+      "size_bytes": 24055,
+      "api_saved": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "readonly_reopen": true
+    }
+  ],
+  "public_annotation_saves": [
+    {
+      "format": "SLDPRT",
+      "direction": "primary",
+      "sha256": "58b3b943b60247acd9ff23dd1a92c83b90df48313c500ac914ae822c8ac67aa2",
+      "size_bytes": 51186,
+      "request_id": "a1bbf75e-b6f5-4030-a698-0a4ece08d339",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDPRT",
+      "direction": "reverse",
+      "sha256": "8223550e5e74b14bd56fe2ac542050aad363ec327115bdc045b6639ba97523e0",
+      "size_bytes": 51428,
+      "request_id": "a10b92f4-c177-49bb-95a1-bda708930007",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDASM",
+      "direction": "primary",
+      "sha256": "40158285ada988bfbfc6a6a7c0afeba6dc76018bacec45014d936e8d79e595c6",
+      "size_bytes": 28169,
+      "request_id": "b500bfe5-872e-4a8a-992f-3cdf2504f4d0",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDASM",
+      "direction": "reverse",
+      "sha256": "0844f3e691cde360380722a1760990939643742ce2247234146c2f403f8b4c1d",
+      "size_bytes": 28442,
+      "request_id": "aa836ec5-9beb-4ad3-87d4-562c77408055",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDDRW",
+      "direction": "primary",
+      "sha256": "e9320d227237ac8c59bc9b9e34e09524b108980d668562b3481373b0d65be664",
+      "size_bytes": 23986,
+      "request_id": "11e33cc0-8065-4874-a32f-5edfa063bc8b",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDDRW",
+      "direction": "reverse",
+      "sha256": "7994736fb0de7b7e03450a71eddb495ffc0eaa5928f34f8112355298cf322d09",
+      "size_bytes": 24342,
+      "request_id": "0791a64d-86e8-49dc-8f9e-8ea904b03001",
+      "native_save_calls": 1,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    }
+  ],
+  "prefix_single_modern_save_requests": 10,
+  "prefix_legacy_save_calls": 0,
+  "reports": [
+    {
+      "report": "hidden/document-units/document-units.json",
+      "state": "completed",
+      "success": true,
+      "save_attempt_counts": {
+        "document.save-as": 2
+      },
+      "pinned_schema_validated": 2,
+      "actual_neutral_files": [],
+      "cleanup_errors": []
+    },
+    {
+      "report": "hidden/document-annotations/document-annotations.json",
+      "state": "completed",
+      "success": true,
+      "save_attempt_counts": {
+        "document.save-as": 6
+      },
+      "pinned_schema_validated": 6,
+      "actual_neutral_files": [],
+      "cleanup_errors": []
+    },
+    {
+      "report": "hidden/properties/properties.json",
+      "state": "completed",
+      "success": true,
+      "save_attempt_counts": {
+        "document.save-as": 2
+      },
+      "pinned_schema_validated": 2,
+      "actual_neutral_files": [],
+      "cleanup_errors": []
+    },
+    {
+      "report": "hidden/runtime-sets/native-model/modeling/modeling.json",
+      "state": "completed",
+      "success": true,
+      "save_attempt_counts": {
+        "document.save-as": 50,
+        "document.export": 1
+      },
+      "pinned_schema_validated": 51,
+      "actual_neutral_files": [
+        {
+          "format": "STEP",
+          "sha256": "97ce00830978c8f29470c12b290b62e5975b785f8735375c579c30d97976ab24",
+          "size_bytes": 59843
+        }
+      ],
+      "cleanup_errors": []
+    },
+    {
+      "report": "hidden/runtime-sets/assemblies/modeling/modeling.json",
+      "state": "completed",
+      "success": false,
+      "save_attempt_counts": {
+        "document.save-as": 1,
+        "document.export": 4
+      },
+      "pinned_schema_validated": 5,
+      "actual_neutral_files": [
+        {
+          "format": "STL",
+          "sha256": "bc1ec8bcacd4691a1f30d4b22414743cf72d7d04f71b6c37a6ed9aa1b8696f39",
+          "size_bytes": 684
+        },
+        {
+          "format": "3MF",
+          "sha256": "ac792ccc2ddab59a006b2e9747ae4939153b3798ac42af7515b5deb18b7f5250",
+          "size_bytes": 11838
+        },
+        {
+          "format": "AMF",
+          "sha256": "350bf384334a5ffca496c6d23adba9ce60d1d6168b58fe56b153e07c6df3e4f1",
+          "size_bytes": 1499
+        }
+      ],
+      "cleanup_errors": []
+    }
+  ],
+  "first_failed_save": {
+    "report": "hidden/runtime-sets/assemblies/modeling/modeling.json",
+    "request_id": "f3373180-51c4-4628-aea0-b5712326e01b",
+    "result": {
+      "action": "document.export",
+      "api_saved": true,
+      "document": {
+        "active": true,
+        "current": true,
+        "document_id": "d-5ey5dx",
+        "modified": false,
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+        "title": "component",
+        "type": 1,
+        "update_stamp": 163
+      },
+      "error": {
+        "message": "exported file did not pass content verification",
+        "type": "ExportVerificationFailed",
+        "verification": {
+          "non_empty": true,
+          "signature_valid": false
+        }
+      },
+      "ok": false,
+      "output": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component-export.GLB",
+      "save_attempted": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "session_id": "modeling-smoke-98bfffb188c7"
+    }
+  },
+  "limitations": [
+    "GLB rejected raw bytes were not retained; no BIN-specific conclusion for this run.",
+    "Runtime matrix daemons did not inherit SWCLI_TRACE_NATIVE_CALLS; trace proof is prefix-only.",
+    "Box wrapper and assembly neutral export were not reached.",
+    "No extrude/revolve/simple-fillet interface IID observation exists at this pinned head.",
+    "No full-native acceptance or release claim."
+  ]
+}
