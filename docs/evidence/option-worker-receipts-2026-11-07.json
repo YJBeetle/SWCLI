@@ -1,0 +1,23 @@
+{
+  "scope": [
+    "document.line-font-set",
+    "document.dimension-format-set"
+  ],
+  "fault_evidence": "portable injection through real adapter, handler, worker and result validator; no native fault claimed",
+  "associated_tests": 48,
+  "full_tests": {
+    "ran": 2094,
+    "passed": 2061,
+    "skipped": 33,
+    "log_sha256": "8410009a143fd7fc6fe86af1f0cb2c50df1c790d554af35f5258b98ee3ca9738"
+  },
+  "retains": [
+    "mutation attempted/may_have_changed",
+    "first business failure",
+    "worker error envelope"
+  ],
+  "restore_failure_retires_worker": true,
+  "native_api_retry": false,
+  "schema_or_cad_behavior_change": false,
+  "release_eligible": false
+}
