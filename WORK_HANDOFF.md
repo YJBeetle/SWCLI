@@ -1,19 +1,54 @@
 # 线型 / 线宽默认设置交接
 
-**收口状态：统筹最终 review 发现 revision 相同不能证明 native Windows；原 80b6133 暂停合入。现已补严格平台/ntdll 导出探针，定向 42 项及全量便携回归 1861 项（32 skipped）通过；修复已中文提交推送，并仅触发一次修复 head 的公开 gate。不扩原范围、不持续 poll，最终仍由统筹本人 review、合入。整个系列完成后再发布，正式发布等待用户最终确认。**
+**收口状态：严格 native Windows 修复 code head `85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6` 的唯一公开 run 42361465979 已 success，本轮原 ZIP/官方 digest/head、逐请求 trace、save/reopen 和前台状态首层审计全部通过。产品冻结，可交统筹本人最终 review/merge；不自行合 main 或发版。未新增代理、未扩范围、未重复 CI。整个系列完成后再发布，正式发布仍等待用户最终确认。**
 
-前次已验产品 tip：`80b61334537d9394b19da03dee9d7baa08da58e8`；它的成功证据保留如下，但不能冒充本次 host 修复 head 验收。
+最终交付分支：`codex/docprops-line-style`。已验产品 commit：`85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`；其后提交仅更新设计/交接文档，不改变产品、schema、测试或 gate。旧 `80b6133` 原件只是历史，不用于本轮通过结论。
 
-## Native host 修复（唯一 exact-head 公开 gate 已启动）
+## 本轮 exact-head 原件与独立首层审计（供统筹本人最终 review）
+
+- [42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)，官方 head=`85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`，status=`completed`、conclusion=`success`。Windows Python 3.9/3.14、wheel、Public drawing Line Font acceptance 全部 success；release tag / publish jobs skipped，未发布。
+- 唯一 dispatch 参数：`line_font_public=true`、`line_font_calibration=false`、`native_full=false`。本轮无新增 dispatch、watch、sleep、持续 poll 或自动化；收到统筹成功通知后只收集完成态原件。
+- 官方 artifact id **13570840145**，name **`swcli-windows-hosted-42361465979-1`**，原 ZIP **186157 字节**。
+- 官方 digest 与实际原 ZIP SHA256 逐字相同：**`477dda40f31f1bf691543f78b719761d4e8d3c117484a9743637dfb682fb3e43`**。
+- 永久本地完整根目录：**`/Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI/artifacts/line-font/internal-public-42361465979/`**。
+- 原件：`original.zip`、官方 `artifact-metadata.json`、完成态 `run-metadata.json`、完整 `expanded/`。报告/原 journal/daemon stderr/stdout/source.SLDDRW/changed.SLDDRW 在 `expanded/swcli-native-smoke/line-font-public/`。
+- 独立首层脚本 **`audit.py`**、结果 **`audit.json`**、精确 git commit 提取的产品 adapter 快照 **`product-windows_document_line_font.py`**。脚本固定本轮 run/head/artifact/digest，重跑时重新核 ZIP hash/大小及每个解包文件逐字一致，独立从 CLI 参数和 SDK/MCP 回执计算请求预期，再与 raw trace 比较；不以 report 的自报 success 代替原件检查。
+- 原 ZIP、native 日志、CAD 和本地审计均仅本地保存，远端只交代码/便携测试及本文摘要；未复用旧 run 内容。
+
+可复跑命令（无 CAD、无网络、无 git、无需安装第三方依赖）：
+
+```sh
+/opt/homebrew/bin/python3.14 /Users/YJBeetle/.codex/worktrees/docprops-line-style/SWCLI/artifacts/line-font/internal-public-42361465979/audit.py
+```
+
+本轮审计通过内容：
+
+- 90 个 CLI event 与原 journal 成对逐条一致；27 个 CLI 请求 + SDK read/noop、MCP live bridge noop = 30 个唯一 Line Font request ID，全部与 raw trace 精确匹配。
+- 4 个字段各 1 次 setter、140 次偏好 getter、1 次 SetSaveFlag；逐请求 CommandInProgress 进入/恢复严格配对、完整 child begin/end/sequence 匹配，单 worker、同一 daemon-owned hidden native host revision 33.5.0，预算内完成，无组内重启。
+- 13 read、4 changed write、6 noop、4 完整 CAS 拒绝、1 lease 拒绝、1 stamp 拒绝、1 readonly 拒绝；所有 mutation receipt 与原生 setter 次数相符，无未知 COM 方法或全局系统偏好 setter。
+- 30 次 foreground 完整 descriptor 稳定；目标仍为后台 drawing。source 和 changed 文件实际字节与报告大小/hash 一致，changed 以 fresh ID 只读重开后四项持久化且 dirty=false；readonly 拒绝未更改值/文件。
+- 最终文档列表为空，daemon stop success、退出码 0。没有额外宣称独立 OS 进程 handle 退出审计。
+
+| 本轮本地原件 | SHA256 |
+| --- | --- |
+| audit.py | `e5143cde73cc365c69355ee248faafcd41ac3821f34b37b0db9b22789cbdce48` |
+| audit.json | `022331867bd7c114b4100ed580a578b0eda838537050fbd63241cd16142475e3` |
+| exact-head adapter | `4d9e21c50593cc2c9d4b702ca213d9a0e83ae178076b2bd48fa2fe7af71a2d6c` |
+| public report | `572d3235772454aaea4a64d267ed7355ed1a520cb363c7bbcd3ca0533ef92055` |
+| events journal | `ceff002f2e6e2b8e9d04c30a0e187cf0ea166ca34937a35f7e4075c383188263` |
+| daemon native trace | `d69abbf944d6bb6323ef5ff6750f1d2051dceffdcc381e4de22e7b111af29443` |
+| source.SLDDRW（23838字节） | `a79dbf582819a3128bf4eef560514e51eca26d13b72b746c6d7721e86467e338` |
+| changed.SLDDRW（23993字节） | `ee2f47d7c21a2f67855655bd0400eb2a8e1f5e9a9ef6921de19b1300a5c0a4b1` |
+
+实际边界：修复代码运行于 exact-head Windows hosted gate；Wine/unknown 拒绝是便携 mock 证据，raw COM trace 不记录 Win32 GetProcAddress 每次查询。四个既定单向转换和 0/1 noop、健康后台 drawing/前台 part、SDK/MCP live bridge 为验收域；不宣称 MCP stdio、原生故障注入、其他 revision/文档模式、完整 modeling suite 或整个系列 release 已验收。统筹本人仍需最终 review/merge。
+
+## Native host 修复与便携验证
 
 - 参考 STL `f22b7a1` 的严格探针方式，仅只读对照，未合入其他分支：真实 `sys.platform == "win32"`；kernel32 `GetModuleHandleW` 必须找到 ntdll，`GetProcAddress` 必须找到已知 `NtClose`；清零 last error 后，`wine_get_version` 必须空地址且错误码恰为 127。仅查询地址，不调用导出。
 - Wine 导出存在、模块/已知导出缺失、错误 0/5/126、异常、非 Windows 或未知值一律拒绝。包括 noop 与 private calibration；无 preference getter/setter、SetSaveFlag、Save3/SaveAs。读取不探测 OS，原 state/CAS/lease/stamp/foreground/identity/access/context/partial-receipt 保护全部保留。
 - `tests/test_line_font_native_host.py`：8项 OS 边界测试及多组子例，既有 mock fixture 显式声明 native。与原 Line Font/回执保护共 42 项通过；日志 `artifacts/line-font/native-host-checks.log`。全量便携回归 **1861 项通过，32 skipped**（44.085s）；日志 `artifacts/line-font/native-host-full-portable.log`。`git diff --check` 通过。
 - 修复 code head **`85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`**，中文提交 `fix(line-font): 严格限定原生 Windows 写入主机`；push 成功后先以 `git ls-remote` 核远端 SHA 一致，随后 dispatch，未提前触发。
-- 唯一新 public run：[42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)，参数 `line_font_public=true`、`line_font_calibration=false`、`native_full=false`。唯一快照已核 head 为上述完整 SHA，status=`in_progress`，conclusion 为空；Windows 3.9/3.14 与 wheel 正在进行，release tag job skipped，native 尚无结果。
-- 按统筹要求一次快照后结束本轮，无 watch/sleep/持续 poll/CI 自动化；交接文档提交不更改 code head，不追加 CAD run。修复 head 的 Windows public 原件仍待取得并由统筹本人最终 review；旧 80b6133 成功不覆盖本次修复，此时不宣称可合入。
-
-## 最终公开原件与首层自验（供统筹本人review）
+## 历史 80b6133 公开原件（不作为本轮通过证据）
 
 - [42282239432](https://github.com/YJBeetle/SWCLI/actions/runs/42282239432)，GitHub 已核 head=`80b61334537d9394b19da03dee9d7baa08da58e8`，conclusion=`success`；Windows 3.9 / 3.14 portable、wheel、Public drawing Line Font acceptance均success。正式发布job skipped，未发布。
 - 参数：`line_font_public=true`、`line_font_calibration=false`、`native_full=false`；其余 media/assets/cleanup/vfs 参数默认。专属public gate真实执行success，internal/property/annotation/full矩阵均按目标模式skipped，非空绿。

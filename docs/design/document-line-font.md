@@ -30,8 +30,8 @@ other versions, weight 2, custom and layer sentinels remain closed. The adapter'
 internal calibration flag is not a protocol or CLI parameter.
 
 Public CLI/daemon save/reopen validation is a separate gate; internal
-calibration does not establish public acceptance. Public run [42282239432](https://github.com/YJBeetle/SWCLI/actions/runs/42282239432)
-passed at product head `80b61334537d9394b19da03dee9d7baa08da58e8`. Its original ZIP,
+calibration does not establish public acceptance. Public run [42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)
+passed at repaired product head `85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`. Its original ZIP,
 metadata, trace, file hashes and foreground observations passed local first-level
 artifact checks; final integration review belongs to the orchestrator. This is
 the bounded subset described here, not full-series release acceptance. Dispatch `line_font_public=true`
@@ -118,9 +118,12 @@ foreground, identity/access, edit-context and partial-receipt guards remain.
 The earlier successful public run at `80b6133` predates this host fix and does
 not establish acceptance for the changed product. The single exact-head public
 gate [42361465979](https://github.com/YJBeetle/SWCLI/actions/runs/42361465979)
-was dispatched at fix head `85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`; the
-one recorded snapshot was in progress. Its original evidence and final
-integration review remain pending. Portable OS-probe tests
+passed at fix head `85ae6c1ec49baba86b2ee66d1aea84bb066bb3e6`. Its original
+artifact 13570840145 (SHA256
+`477dda40f31f1bf691543f78b719761d4e8d3c117484a9743637dfb682fb3e43`)
+passed independent local ZIP/head/trace/save-reopen/foreground checks. The
+complete local path and reproducible offline audit command are recorded in
+`WORK_HANDOFF.md`. Final integration review belongs to the orchestrator. Portable OS-probe tests
 are fault-injection evidence, not native Windows acceptance.
 
 Official Win32 references: [GetModuleHandleW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew),
