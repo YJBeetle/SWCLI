@@ -167,11 +167,12 @@ class StepPublicGateTests(unittest.TestCase):
         wanted={}
         with mock.patch.object(module,"_read_native_enum_constants",side_effect=lambda path,names:wanted.update(names) or {}) as resolve:
             module.read_import_constants("installed-swconst.tlb")
-        self.assertEqual(wanted["swUserPreferenceIntegerValue_e"],{"swImportCurvePreference"})
+        self.assertEqual(wanted["swUserPreferenceIntegerValue_e"],{"swImportCurvePreference","swImportNeutral_CurvesAndPointsOption"})
         self.assertEqual(wanted["swGeneralImportFreePointCurveEntityOptions_e"],
                          {"swGeneralImportAs3dCurves","swGeneralImportAsSketches"})
         self.assertEqual(wanted["swUserPreferenceToggle_e"],
-                         {"swMultiCAD_Enable3DInterconnect","swImportSolidSurface","swImportFreeCurves"})
+                         {"swMultiCAD_Enable3DInterconnect","swImportSolidSurface","swImportFreeCurves",
+                          "swImportNeutral_SolidandSurface","swImportNeutral_FreeCurvesAndPoints","swImportStepConfigData"})
         codes={name:4000+i for i,name in enumerate(module.IMPORT_PROFILE)}
         codes.update(swImportCurvePreference=4003,swGeneralImportAs3dCurves=1,swGeneralImportAsSketches=0)
         values={4000:False,4001:True,4002:True,4003:0,578:1}  # Neutral mode1 does not select General mode.

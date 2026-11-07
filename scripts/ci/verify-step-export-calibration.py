@@ -30,6 +30,9 @@ from swcli.hosts.windows_step_export import (
 from swcli.hosts.windows_sketch_inspection import list_sketches_windows_with_handles, inspect_sketch_windows
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gate_support.step_fixture_checks import verify_source_sketch, verify_wire_geometry
+from gate_support.step_import_observation import (
+    observe_preferences, observe_dispatch, read_interface_contract, probe, error as observation_error,
+)
 
 from swcli.result_schemas import validate_operation_result
 
@@ -81,7 +84,7 @@ def _wire_features(document):
 def read_wireframe(document, evidence=None, *, representation="sketches"):
     checked(not tuple(document.GetBodies2(0, False) or ()), "wireframe imported as a solid")
     checked(representation in ("sketches", "reference-curves"), "unknown wire observation representation")
-    lengths, inventory = [], []
+    lengths, inventory, representation_mismatches = [], [], []
     observation = evidence if evidence is not None else {}
     observation["complete"] = False
     try:
@@ -99,8 +102,8 @@ def read_wireframe(document, evidence=None, *, representation="sketches"):
                     checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
                     lengths.append(length)
                     row["lengths_mm"].append(length)
-                checked(representation == "sketches" or not segments,
-                        "reference-curve profile unexpectedly produced sketch geometry")
+                if representation != "sketches" and segments:
+                    representation_mismatches.append(identity)
             elif representation == "reference-curves" and kind in ("RefCurve", "ImportedCurve", "3DSplineCurve", "CompositeCurve"):
                 reference = _com_value(feature, "GetSpecificFeature2")
                 checked(reference is not None, "reference curve interface is unavailable")
@@ -128,7 +131,9 @@ def read_wireframe(document, evidence=None, *, representation="sketches"):
         # Preserve every observed feature/length before any strict count/vector
         # assertion (or native read failure); never retry an incomplete import.
         observation.update(method="native-" + representation, segment_count=len(lengths), lengths_mm=sorted(lengths),
-                           total_length_mm=sum(lengths), feature_inventory=inventory)
+                           total_length_mm=sum(lengths), feature_inventory=inventory,
+                           representation_mismatches=representation_mismatches)
+    checked(not representation_mismatches, "reference-curve profile unexpectedly produced sketch geometry")
     checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
     observation["complete"] = True
     return observation
@@ -143,8 +148,8 @@ IMPORT_PROFILE = {
 
 def read_import_constants(path):
     return _read_native_enum_constants(path, {
-        "swUserPreferenceToggle_e": set(IMPORT_PROFILE),
-        "swUserPreferenceIntegerValue_e": {"swImportCurvePreference"},
+        "swUserPreferenceToggle_e": set(IMPORT_PROFILE) | {"swImportNeutral_SolidandSurface", "swImportNeutral_FreeCurvesAndPoints", "swImportStepConfigData"},
+        "swUserPreferenceIntegerValue_e": {"swImportCurvePreference", "swImportNeutral_CurvesAndPointsOption"},
         "swGeneralImportFreePointCurveEntityOptions_e": {
             "swGeneralImportAs3dCurves", "swGeneralImportAsSketches"},
     })
@@ -326,20 +331,36 @@ def verify_reopened_geometry(before, after, geometry):
 
 def verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
     with observer_import_preferences(app, constants, call, case):
-        _verify_imported_geometry(app, target, output, name, geometry, call, case, live)
+        _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
 
 
-def _verify_imported_geometry(app, target, output, name, geometry, call, case, live):
+def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
     import pythoncom
     from win32com.client import VARIANT
     original_step_digest = hashlib.sha256(target.read_bytes()).hexdigest()
+    case["actual_import_preferences"] = observe_preferences(app,constants,call)
+    contract_path=output / "import-interface-contract.json"
+    contract=json.loads(contract_path.read_text()) if contract_path.is_file() else {}
+    interfaces=contract.get("interfaces",{})
+    case["installed_import_interface_contract"]=contract
     imported_data = call("GetImportFileData", lambda: app.GetImportFileData(str(target)))
+    case["import_data_observation"]=observe_dispatch(imported_data,interfaces,call,"observe-import-data",step_mapping=True)
     checked(imported_data is not None, "STEP import data interface is unavailable")
     errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
-    document = call("LoadFile4", lambda: app.LoadFile4(str(target), "r", imported_data, errors))
+    case["import_return"] = dict(state="started",document_returned=None,errors=None,arg_string="r")
+    try:
+        document = call("LoadFile4", lambda: app.LoadFile4(str(target), "r", imported_data, errors))
+    except BaseException as exc:
+        case["import_return"].update(state="raised",errors=errors.value,error=observation_error(exc))
+        raise
     live["document"] = document
     case["step_import_errors"] = errors.value
+    case["import_return"].update(state="returned",document_returned=document is not None,
+                                 python_type=type(document).__name__,errors=errors.value)
     checked(document is not None and errors.value == 0, "STEP geometry readback failed")
+    case["import_document_observation"]=observe_dispatch(document,{},call,"observe-import-document")
+    for member in ("GetType","GetTitle","GetPathName"):
+        case["import_document_observation"][member]=probe(call,"observe-import-document."+member,lambda:_com_value(document,member))
     if geometry == "solid-surface":
         case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
     else:
@@ -402,7 +423,15 @@ def worker(args):
     windows._com_value = bounded_com_value
     globals()["_com_value"] = bounded_com_value
     harness._com_value = bounded_com_value
-    harness.read_constants = lambda pythoncom, path: {**read_step_constants(path), **read_import_constants(path)}
+    def read_constants_with_contract(pythoncom,path):
+        constants={**read_step_constants(path),**read_import_constants(path)}
+        try:
+            contract=read_interface_contract(Path(path).with_name("sldworks.tlb"),pythoncom)
+        except Exception as exc:
+            contract={"status":"unknown","error":observation_error(exc),"interfaces":{}}
+        (args.output_dir / "import-interface-contract.json").write_text(json.dumps(contract,indent=2)+"\n")
+        return constants
+    harness.read_constants = read_constants_with_contract
     if args.export_report is not None:
         public = json.loads(args.export_report.read_text(encoding="utf-8"))
         checked(public["success"] and len(public["outputs"]) == 8, "public export group is incomplete")
@@ -432,7 +461,10 @@ def main(argv=None):
     (args.output_dir / "input-identity.json").write_text(json.dumps(dict(
         source_commit=os.environ.get("GITHUB_SHA"),
         swconst_path=str(args.swconst.resolve()),
-        swconst_sha256=hashlib.sha256(args.swconst.read_bytes()).hexdigest())) + "\n", encoding="utf-8")
+        swconst_sha256=hashlib.sha256(args.swconst.read_bytes()).hexdigest(),
+        sldworks_tlb_path=str(args.swconst.with_name("sldworks.tlb")),
+        sldworks_tlb_sha256=(hashlib.sha256(args.swconst.with_name("sldworks.tlb").read_bytes()).hexdigest()
+                            if args.swconst.with_name("sldworks.tlb").is_file() else None))) + "\n", encoding="utf-8")
     started = time.monotonic()
     with (args.output_dir / "worker.stdout.log").open("wb") as stdout, (args.output_dir / "worker.stderr.log").open("wb") as stderr:
         extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []

@@ -1,0 +1,877 @@
+{
+  "status": "offline research and diagnostic instrumentation only; no fix or native acceptance claim",
+  "run_pairs": [
+    {
+      "left": "42405019483/b36375197873820c1197ea3cb6174382ba9fd49d",
+      "right": "42413805736/060f26178b4deabc330ef0959b9ec0f1704159cf"
+    },
+    {
+      "successful_control": "42303929271/ee7f0ea51cc23924cf84462f7688800dc6bca626",
+      "failed_right": "42413805736/060f26178b4deabc330ef0959b9ec0f1704159cf"
+    }
+  ],
+  "files": [
+    {
+      "name": "ap203-wireframe.step",
+      "byte_comparison": {
+        "equal": false,
+        "left_bytes": 10581,
+        "right_bytes": 10595,
+        "first_difference_offset": 102,
+        "same_position_different_bytes": 9493,
+        "length_delta": 14
+      },
+      "sha256_left": "fe60a8a3a25f295981725a9a77fe6e40a9b3283fff407293ecfcc90e38064a8f",
+      "sha256_right": "3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90",
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "root_reachable_curve_count": 12,
+      "total_length_mm": 320.0,
+      "schema_left": "( 'CONFIG_CONTROL_DESIGN' )",
+      "schema_right": "( 'CONFIG_CONTROL_DESIGN' )",
+      "unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "dangling_references": [],
+      "orphan_curves": [],
+      "entity_histogram_equal": true,
+      "curve_entity_counts": {
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "TRIMMED_CURVE": 0,
+        "EDGE_CURVE": 0,
+        "MANIFOLD_SOLID_BREP": 0
+      },
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "all_spline_curves_open": true
+    },
+    {
+      "name": "ap214-wireframe.step",
+      "byte_comparison": {
+        "equal": false,
+        "left_bytes": 7085,
+        "right_bytes": 7086,
+        "first_difference_offset": 102,
+        "same_position_different_bytes": 6008,
+        "length_delta": 1
+      },
+      "sha256_left": "9c9e4b4ea0ad17ad0ef5a8fb6696dea1ece0d45b240824eb68c4af6a9bab894b",
+      "sha256_right": "a82720b6349fa2a7c489afb308e2400f4b41652bc81db34d09fa412deb59a587",
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "root_reachable_curve_count": 12,
+      "total_length_mm": 320.0,
+      "schema_left": "( 'AUTOMOTIVE_DESIGN' )",
+      "schema_right": "( 'AUTOMOTIVE_DESIGN' )",
+      "unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "dangling_references": [],
+      "orphan_curves": [],
+      "entity_histogram_equal": true,
+      "curve_entity_counts": {
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "TRIMMED_CURVE": 0,
+        "EDGE_CURVE": 0,
+        "MANIFOLD_SOLID_BREP": 0
+      },
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "all_spline_curves_open": true
+    },
+    {
+      "name": "ap203-wireframe-sketches.step",
+      "byte_comparison": {
+        "equal": false,
+        "left_bytes": 14787,
+        "right_bytes": 14796,
+        "first_difference_offset": 112,
+        "same_position_different_bytes": 13107,
+        "length_delta": 9
+      },
+      "sha256_left": "078432ef222456a4579dcb8359609e51b113d040302d66dc720469d1b90021cc",
+      "sha256_right": "0790eaaac423cdefef5b3ff71ec6d9e7884d7be33dc214cc1e1419f9dd393e67",
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321",
+      "root_reachable_curve_count": 18,
+      "total_length_mm": 560.0,
+      "schema_left": "( 'CONFIG_CONTROL_DESIGN' )",
+      "schema_right": "( 'CONFIG_CONTROL_DESIGN' )",
+      "unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "dangling_references": [],
+      "orphan_curves": [],
+      "entity_histogram_equal": true,
+      "curve_entity_counts": {
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "TRIMMED_CURVE": 6,
+        "EDGE_CURVE": 0,
+        "MANIFOLD_SOLID_BREP": 0
+      },
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "all_spline_curves_open": true
+    },
+    {
+      "name": "ap214-wireframe-sketches.step",
+      "byte_comparison": {
+        "equal": false,
+        "left_bytes": 11200,
+        "right_bytes": 11203,
+        "first_difference_offset": 111,
+        "same_position_different_bytes": 9552,
+        "length_delta": 3
+      },
+      "sha256_left": "d7b21cf4a88d3e022117c18ec9a4f2dfcdb6cb7effeb37d7c9131a7436106248",
+      "sha256_right": "364e73eac37b4a4f5b7e975c8dc687ffa1dda2fb465217fe6e46876cb914107f",
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321",
+      "root_reachable_curve_count": 18,
+      "total_length_mm": 560.0,
+      "schema_left": "( 'AUTOMOTIVE_DESIGN' )",
+      "schema_right": "( 'AUTOMOTIVE_DESIGN' )",
+      "unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "dangling_references": [],
+      "orphan_curves": [],
+      "entity_histogram_equal": true,
+      "curve_entity_counts": {
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "TRIMMED_CURVE": 6,
+        "EDGE_CURVE": 0,
+        "MANIFOLD_SOLID_BREP": 0
+      },
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "all_spline_curves_open": true
+    },
+    {
+      "name": "mcp-ap203-wireframe.step",
+      "byte_comparison": {
+        "equal": false,
+        "left_bytes": 10597,
+        "right_bytes": 10608,
+        "first_difference_offset": 106,
+        "same_position_different_bytes": 9664,
+        "length_delta": 11
+      },
+      "sha256_left": "59aba2d2c393ed24f610cb585e73fcb455b68a0ea508b0f78433632c59c80044",
+      "sha256_right": "46413fb734e36185374ac50f4402ba14952afc5aa8fa287bcda026755f001c5d",
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "root_reachable_curve_count": 12,
+      "total_length_mm": 320.0,
+      "schema_left": "( 'CONFIG_CONTROL_DESIGN' )",
+      "schema_right": "( 'CONFIG_CONTROL_DESIGN' )",
+      "unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "dangling_references": [],
+      "orphan_curves": [],
+      "entity_histogram_equal": true,
+      "curve_entity_counts": {
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "TRIMMED_CURVE": 0,
+        "EDGE_CURVE": 0,
+        "MANIFOLD_SOLID_BREP": 0
+      },
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "all_spline_curves_open": true
+    }
+  ],
+  "cross_protocol_geometry_equal": {
+    "wireframe": true,
+    "wireframe-sketches": true
+  },
+  "successful_control_geometry_equal": true,
+  "installed_metadata": {
+    "assembly_version": "33.5.0.53",
+    "hashes": {
+      "sldworks.tlb": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+      "swconst.tlb": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+      "SolidWorks.Interop.sldworks.dll": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+      "SolidWorks.Interop.swconst.dll": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9"
+    },
+    "native_ci_swconst_hash_matches": true,
+    "interfaces": {
+      "ISldWorks": {
+        "guid": "83A33D22-27C5-11CE-BFD4-00400513BB57",
+        "tlb_name_offset": 139328,
+        "tlb_guid_offset": 106156,
+        "methods": [
+          {
+            "name": "GetImportFileData",
+            "signature_hex": "20011c0e",
+            "return": "object",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "object",
+                "in": false,
+                "out": false,
+                "marshal_blob": "1a"
+              },
+              {
+                "sequence": 1,
+                "name": "FileName",
+                "type": "string",
+                "in": true,
+                "out": false,
+                "marshal_blob": "13"
+              }
+            ],
+            "dispid": 217
+          },
+          {
+            "name": "LoadFile4",
+            "signature_hex": "20041286500e0e1c1008",
+            "return": "ModelDoc2",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "ModelDoc2",
+                "in": false,
+                "out": false,
+                "marshal_blob": "1c"
+              },
+              {
+                "sequence": 1,
+                "name": "FileName",
+                "type": "string",
+                "in": true,
+                "out": false,
+                "marshal_blob": "13"
+              },
+              {
+                "sequence": 2,
+                "name": "ArgString",
+                "type": "string",
+                "in": true,
+                "out": false,
+                "marshal_blob": "13"
+              },
+              {
+                "sequence": 3,
+                "name": "ImportData",
+                "type": "object",
+                "in": true,
+                "out": false,
+                "marshal_blob": "1a"
+              },
+              {
+                "sequence": 4,
+                "name": "Errors",
+                "type": "byref int32",
+                "in": true,
+                "out": true,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 227
+          }
+        ]
+      },
+      "IImportStepData": {
+        "guid": "AD749A73-9AA2-4A3E-BCA5-8FC012114BB0",
+        "tlb_name_offset": 443604,
+        "tlb_guid_offset": 114076,
+        "methods": [
+          {
+            "name": "get_MapConfigurationData",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 1
+          },
+          {
+            "name": "set_MapConfigurationData",
+            "signature_hex": "20010102",
+            "return": "void",
+            "parameters": [
+              {
+                "sequence": 1,
+                "name": "ConfigData",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 1
+          }
+        ]
+      },
+      "IImportIgesData": {
+        "guid": "57988505-3843-4124-9CBE-AF121D9E0BE8",
+        "tlb_name_offset": 442612,
+        "tlb_guid_offset": 114028,
+        "methods": [
+          {
+            "name": "get_IncludeSurfaces",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 1
+          },
+          {
+            "name": "set_IncludeSurfaces",
+            "signature_hex": "20010102",
+            "return": "void",
+            "parameters": [
+              {
+                "sequence": 1,
+                "name": "Surfaces",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 1
+          },
+          {
+            "name": "get_IncludeCurves",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 2
+          },
+          {
+            "name": "set_IncludeCurves",
+            "signature_hex": "20010102",
+            "return": "void",
+            "parameters": [
+              {
+                "sequence": 1,
+                "name": "Curves",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 2
+          },
+          {
+            "name": "get_CurvesAsSketches",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 3
+          },
+          {
+            "name": "set_CurvesAsSketches",
+            "signature_hex": "20010102",
+            "return": "void",
+            "parameters": [
+              {
+                "sequence": 1,
+                "name": "AsSketches",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 3
+          },
+          {
+            "name": "get_ProcessByLevel",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 4
+          },
+          {
+            "name": "set_ProcessByLevel",
+            "signature_hex": "20010102",
+            "return": "void",
+            "parameters": [
+              {
+                "sequence": 1,
+                "name": "ByLevel",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 4
+          },
+          {
+            "name": "get_IncludeAllLevels",
+            "signature_hex": "200002",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              }
+            ],
+            "dispid": 5
+          },
+          {
+            "name": "get_IncludeOnlyLevels",
+            "signature_hex": "20001c",
+            "return": "object",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "object",
+                "in": false,
+                "out": false,
+                "marshal_blob": "1b"
+              }
+            ],
+            "dispid": 6
+          },
+          {
+            "name": "SetLevels",
+            "signature_hex": "200202021c",
+            "return": "bool",
+            "parameters": [
+              {
+                "sequence": 0,
+                "name": "",
+                "type": "bool",
+                "in": false,
+                "out": false,
+                "marshal_blob": null
+              },
+              {
+                "sequence": 1,
+                "name": "All",
+                "type": "bool",
+                "in": true,
+                "out": false,
+                "marshal_blob": null
+              },
+              {
+                "sequence": 2,
+                "name": "Only",
+                "type": "object",
+                "in": true,
+                "out": false,
+                "marshal_blob": "1b"
+              }
+            ],
+            "dispid": 7
+          }
+        ]
+      },
+      "IModelDoc2": {
+        "guid": "B90793FB-EF3D-4B80-A5C4-99959CDB6CEB",
+        "tlb_name_offset": 145276,
+        "tlb_guid_offset": 106588,
+        "methods": []
+      }
+    },
+    "constants": {
+      "swImportSolidSurface": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 161
+      },
+      "swImportFreeCurves": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 162
+      },
+      "swImportStepConfigData": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 183
+      },
+      "swImportNeutral_SolidandSurface": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 686
+      },
+      "swImportNeutral_FreeCurvesAndPoints": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 687
+      },
+      "swMultiCAD_Enable3DInterconnect": {
+        "enum_owner": "swUserPreferenceToggle_e",
+        "value": 691
+      },
+      "swImportCurvePreference": {
+        "enum_owner": "swUserPreferenceIntegerValue_e",
+        "value": 206
+      },
+      "swImportNeutral_CurvesAndPointsOption": {
+        "enum_owner": "swUserPreferenceIntegerValue_e",
+        "value": 578
+      },
+      "swGeneralImportAsSketches": {
+        "enum_owner": "swGeneralImportFreePointCurveEntityOptions_e",
+        "value": 0
+      },
+      "swGeneralImportAs3dCurves": {
+        "enum_owner": "swGeneralImportFreePointCurveEntityOptions_e",
+        "value": 1
+      },
+      "swImportNeutralCurvesAndPointsOptions_AsSketches": {
+        "enum_owner": "swImportNeutralCurvesAndPointsOptions_e",
+        "value": 0
+      },
+      "swImportNeutralCurvesAndPointsOptions_As3DCurves": {
+        "enum_owner": "swImportNeutralCurvesAndPointsOptions_e",
+        "value": 1
+      }
+    },
+    "native_ci_sldworks_tlb_hash": "unknown"
+  },
+  "classification": {
+    "missing_or_unreachable_linear_fixture_geometry": "excluded by explicit root reachability, complete curves, unit and length checks",
+    "full_EXPRESS_AP203_AP214_conformance": "unknown; this analyzer is not a complete schema validator",
+    "observer_counting_defects": "confirmed early type rejection previously produced unmeasured0/0; fixed only as provenance; prior9/260 remains unexplained",
+    "GetImportFileData_runtime_interface": "unknown; prior runs did not capture type-info/QI",
+    "MapConfigurationData_runtime_value": "unknown; only static bool/default semantics verified",
+    "LoadFile4_r_semantics": "verified: create a new model document, not read-only or curve-mode selection",
+    "blanket_native_wireframe_import_unsupported": "not supported by evidence; geometrically equivalent original control passed8 native readbacks",
+    "reference_curve_import_support_under_current_configuration": "unknown; current General profile produced LoadFile4 error1",
+    "General_vs_Neutral_runtime_precedence": "unknown; raw readbacks of both families were never captured concurrently; docs alone did not prove previous repairs"
+  }
+}

@@ -240,3 +240,28 @@ fully diagnosed.
 - [General curve/solid controls with 3D Interconnect disabled](https://help.solidworks.com/2026/english/solidworks/sldworks/hidd_options_import_general.htm)
 - [General curve representation enum](https://help.solidworks.com/2021/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swGeneralImportFreePointCurveEntityOptions_e.html?id=2.10.1.357)
 - [LoadFile4 argument semantics](https://help.solidworks.com/2015/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~LoadFile4.html)
+
+The General-profile gate
+[42413805736](https://github.com/YJBeetle/SWCLI/actions/runs/42413805736), exact
+head `060f26178b4deabc330ef0959b9ec0f1704159cf`, also failed. All eight public
+writes succeeded; the independent reader completed only its first solid
+roundtrip. The second AP203 wireframe `LoadFile4` returned error 1 and no
+retained model, before geometry observation. Its native object/geometry count
+and total length are unavailable, not zero. General enum IDs were resolved and
+all four requested values read back/restored, but those checks did not prove
+the translator honored the intended representation. Earlier claims that this
+option-family change was a sufficient fix are therefore unproven.
+
+Original artifact `13591430613` SHA256 is
+`de9e6312b9fbfa0c4b0001ae1f54ce5c36d24ea3f59ee435b691716bef1666e7`.
+Raw exported topology/line vectors remain verified, and original logs, official
+summary and partial accounting are retained. There is no substantiated next
+correction and no new CI dispatch. STEP remains a series release blocker.
+The smallest next diagnostic would record both General and neutral preference
+families before one import, explicitly persist returned-object/error metadata,
+and collect all supported readable geometry before a representation assertion.
+That diagnostic is now applied and covered by portable regressions; it remains
+unverified natively and is not a proven repair. See the
+[offline research and single-run plan](step-import-offline-research.md) for byte/geometry
+comparison, installed interface contracts, remaining unknowns and a coordinator-reviewed
+readback of immutable original outputs. No new native dispatch accompanies it.
