@@ -43,3 +43,9 @@
 补测完整回归2144项中仅旧revolve的CI并发拼接字符串断言失败，其原先要求revolve分组直接紧邻默认fallback。已将断言同步为新增modern精确分支条件且保留最后默认组的完整表达式。2143项功能检查通过，最终重跑日志为`portable-ready.log`。
 
 最终ready回归2144项通过、33项跳过，47.953s，日志`portable-ready.log`。SDK生成器、strict6源文件和11个消费者拒绝检查再次通过，日志`sdk-ready.log`。首次run completed/cancelled的官方JSON证明native job没有steps，保存在`run-42368723031-cancelled-before-native.json`。新实现提交和新run将在本记录下追加。
+
+## 当前必要原生运行
+
+完整修复head为 `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3`，已推送。唯一当前必要原生运行 [Windows native_full](https://github.com/YJBeetle/SWCLI/actions/runs/42369257219) 仅传 `native_full=true`，继承本分支独立并发组。新请求/返回记录为`dispatch-native-first-error-fix-request.json`和`dispatch-native-first-error-fix-result.json`。首次取消run没有native steps，当前新run未重复任何已失败原生保存。后续将按该head下载原ZIP/digest，核真实null/BYREF调用结果、PRT/ASM/DRW保存重开、中性导出、真实errors/warnings、trace和首失败。GLB是否解决由实际字节判定。正常运行后记录链接结束等待，统筹本人review。
+
+初次一次性快照状态为`in_progress`，head核一致，原JSON为`run-42369257219-initial-snapshot.json`。当前结束等待，不启动watch或定时。
