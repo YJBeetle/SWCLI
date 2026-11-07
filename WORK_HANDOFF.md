@@ -2,6 +2,12 @@
 
 日期：2026-11-07（Asia/Shanghai）。本文件是当前交接，`HANDOFF.md` 保留为接管时历史初稿。
 
+## 当前 GLB 离线首因核查
+
+统筹已通知文档品质合入main `c1b251b326c39e426e8eb82fcd8109e0a9e577ca`。该产品范围冻结。GLB继续是本系列既有未完成项。
+
+历史完整原件42173065847和42199134982的ZIP均核已记录官方digest。同隐藏host的零件GLB为BIN0/声明720，装配GLB为BIN720/声明720，实际解码12三角形。两类文件的geometry声明相同，原回执target均active/current=true。历史零件GLB也被当前strict validator拒绝，旧“15份导出通过”不能用作零件GLB有效网格证明。离线对照、官方API/SceneGraph证据和下一次最小调用路径区分已记录于 [GLB首因核查](docs/verification/glb-empty-bin-offline-2026-11-07.md)。本轮只提交文档，没有重派CI。持久审计结果为 `/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/glb-history-offline/comparison.json`。
+
 ## 最终交接：严格宿主探针的新公开验收已审计通过
 
 - 新公开 [42361573569](https://github.com/YJBeetle/SWCLI/actions/runs/42361573569) completed/success。**本轮绑定 source head `950c83396784a9f647e9ea0d06d1771a5f00d1c5`**。该提交包含统筹要求的严格 kernel32/ntdll 已知导出、Wine导出缺失及 last_error=127 检查。
