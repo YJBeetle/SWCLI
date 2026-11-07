@@ -221,3 +221,5 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 - 公开宿主wrapper从本次CLI报告核owned_by_daemon/hidden/unshared、新PID不在before库存，捕获该PID的SYNCHRONIZE句柄。仍只请求一次daemon stop；daemon退出后对这个已保留句柄单次WaitForSingleObject（10秒），确认native退出后再做原sorted(before)==sorted(after)严格库存核验；无API重试、native进程kill、回滚或宿主重启。捕获失败也仍单次关闭自己的daemon并保留首业务失败，退出超时仍失败，句柄关闭有证据。
 
 关联56项通过，完整portable1878项/45.784s通过（32 skipped）；SDK generated --check、diff检查通过。记录`docs/evidence/units-profile/lease-exit-fix/`。窄质心<=1e-12mm及V/S/count/state/identity/CAS完全未变，src/swcli产品P1源未修改。本次中文提交推送后只对相关修复head做一次必要public gate，正常记录run后结束等待，不持续盯CI。无新范围/字段/计划，无待审批动作，无可合tip。
+
+最小相关修复提交 `577309005a858c11543b5def253dca36e5d0c598` 已推送；仅对该head手动触发一次必要public gate：[42361728509](https://github.com/YJBeetle/SWCLI/actions/runs/42361728509)，参数 `units_calibration=true,units_public_acceptance=true,native_full=false`。实际head已核对，初始原件 `docs/evidence/units-profile/lease-exit-42361728509/run-initial.json`。旧失败及approved bound原件保留，不改其状态；本次无几何阈值、V/S、count、state/identity/CAS或src/swcli功能变化。正常运行记录链接后结束等待，由统筹后续一次性快照跟进，不持续poll/automation，不新增范围或代理。无待审批动作，无可合tip或public通过声明。
