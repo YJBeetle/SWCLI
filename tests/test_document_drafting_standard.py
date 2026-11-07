@@ -56,7 +56,7 @@ class DocumentDraftingStandardTests(unittest.TestCase):
         self.document = SimpleNamespace(
             GetType=lambda:1, GetUpdateStamp=lambda:self.stamp,
             GetSaveFlag=lambda:self.modified, GetUnits=mock.Mock(spec=(),side_effect=lambda:tuple(self.units)),
-            GetActiveConfiguration=lambda:SimpleNamespace(Name='Default'),
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name='Default')),
             IsOpenedReadOnly=lambda:False, IsOpenedViewOnly=lambda:False,
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda:setattr(self,'modified',True)),

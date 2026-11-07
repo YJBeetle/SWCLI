@@ -56,7 +56,7 @@ class DocumentAnnotationFontTests(unittest.TestCase):
         self.configuration = SimpleNamespace(Name="Default")
         self.document = SimpleNamespace(
             GetType=lambda: 1, GetSaveFlag=lambda: self.modified, GetUpdateStamp=lambda: self.stamp,
-            GetActiveConfiguration=lambda: self.configuration,
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration),
             IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False,
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)),
