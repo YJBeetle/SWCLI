@@ -1,0 +1,63 @@
+{
+  "tested_source_head": "b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6",
+  "run_id": 42361904486,
+  "run_attempt": 1,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42361904486",
+  "artifact_id": 13571626572,
+  "artifact_sha256": "460d32d13b9953604c5f6ed1246258725895d7579817b53084413236e2501d30",
+  "manifest_sha256": "3826d1ecc93b1d136350a5d040e557010553d114af60eb45fbf36d60d7eccd0b",
+  "auditor_sha256": "efc36e6a1d5800f37accccc2677ebf41f1d568dd61f60847debc6f58a575c23e",
+  "first_layer_audit_success": true,
+  "applicable_public_batch_scope_complete": true,
+  "final_coordinator_source_review": "pending",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 1000,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6013040999998793,
+    "visible": false
+  },
+  "totals": {
+    "display": {
+      "writes": 25,
+      "dirty_noops": 25,
+      "clean_noops": 3,
+      "value_conflict_refusals": 25,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 3,
+      "saved_readonly": 3
+    },
+    "fonts": {
+      "writes": 21,
+      "dirty_noops": 21,
+      "clean_noops": 21,
+      "value_conflict_refusals": 21,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 21,
+      "saved_readonly": 21
+    },
+    "standards": {
+      "writes": 36,
+      "dirty_noops": 36,
+      "clean_noops": 36,
+      "value_conflict_refusals": 36,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 36,
+      "saved_readonly": 36
+    }
+  },
+  "limits": [
+    "Drawing plane writes were not attempted in native gate; applicability omission and portable rejection tests only.",
+    "Native forced-failure/partial-mutation injection and visual rendering were not exercised by this successful public run."
+  ],
+  "audit_path": "evidence/docprops-performance/run-42361904486-audit.json",
+  "receipt_path": "docs/verification/docprops-batch-public-2026-11-08.md",
+  "production_source_changed_since_test": false
+}

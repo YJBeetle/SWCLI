@@ -1,0 +1,204 @@
+{
+  "first_layer_audit_success": true,
+  "source_head": "b6d28f2a8f6fd549416ea5fac5aa12f538c9a9d6",
+  "manifest_sha256": "3826d1ecc93b1d136350a5d040e557010553d114af60eb45fbf36d60d7eccd0b",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 1000,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6013040999998793,
+    "visible": false
+  },
+  "groups": [
+    {
+      "profile": "display",
+      "elapsed_seconds": 382.3282085999999,
+      "cases": [
+        {
+          "kind": 1,
+          "writes": 10,
+          "dirty_noops": 10,
+          "clean_noops": 1,
+          "value_conflict_refusals": 10,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 1,
+          "saved_readonly": 1
+        },
+        {
+          "kind": 2,
+          "writes": 10,
+          "dirty_noops": 10,
+          "clean_noops": 1,
+          "value_conflict_refusals": 10,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 1,
+          "saved_readonly": 1
+        },
+        {
+          "kind": 3,
+          "writes": 5,
+          "dirty_noops": 5,
+          "clean_noops": 1,
+          "value_conflict_refusals": 5,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 1,
+          "saved_readonly": 1
+        }
+      ],
+      "replayed_requests": 136
+    },
+    {
+      "profile": "fonts",
+      "elapsed_seconds": 586.5417893000001,
+      "cases": [
+        {
+          "kind": 1,
+          "writes": 7,
+          "dirty_noops": 7,
+          "clean_noops": 7,
+          "value_conflict_refusals": 7,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 7,
+          "saved_readonly": 7
+        },
+        {
+          "kind": 2,
+          "writes": 7,
+          "dirty_noops": 7,
+          "clean_noops": 7,
+          "value_conflict_refusals": 7,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 7,
+          "saved_readonly": 7
+        },
+        {
+          "kind": 3,
+          "writes": 7,
+          "dirty_noops": 7,
+          "clean_noops": 7,
+          "value_conflict_refusals": 7,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 7,
+          "saved_readonly": 7
+        }
+      ],
+      "replayed_requests": 210
+    },
+    {
+      "profile": "standards",
+      "elapsed_seconds": 204.60008670000002,
+      "cases": [
+        {
+          "kind": 1,
+          "writes": 12,
+          "dirty_noops": 12,
+          "clean_noops": 12,
+          "value_conflict_refusals": 12,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    },
+    {
+      "profile": "standards",
+      "elapsed_seconds": 242.65764890000014,
+      "cases": [
+        {
+          "kind": 2,
+          "writes": 12,
+          "dirty_noops": 12,
+          "clean_noops": 12,
+          "value_conflict_refusals": 12,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    },
+    {
+      "profile": "standards",
+      "elapsed_seconds": 286.5356783,
+      "cases": [
+        {
+          "kind": 3,
+          "writes": 12,
+          "dirty_noops": 12,
+          "clean_noops": 12,
+          "value_conflict_refusals": 12,
+          "lease_refusals": 1,
+          "stamp_refusals": 1,
+          "readonly_refusals": 12,
+          "saved_readonly": 12
+        }
+      ],
+      "replayed_requests": 115
+    }
+  ],
+  "totals": {
+    "display": {
+      "writes": 25,
+      "dirty_noops": 25,
+      "clean_noops": 3,
+      "value_conflict_refusals": 25,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 3,
+      "saved_readonly": 3
+    },
+    "fonts": {
+      "writes": 21,
+      "dirty_noops": 21,
+      "clean_noops": 21,
+      "value_conflict_refusals": 21,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 21,
+      "saved_readonly": 21
+    },
+    "standards": {
+      "writes": 36,
+      "dirty_noops": 36,
+      "clean_noops": 36,
+      "value_conflict_refusals": 36,
+      "lease_refusals": 3,
+      "stamp_refusals": 3,
+      "readonly_refusals": 36,
+      "saved_readonly": 36
+    }
+  },
+  "run_id": "42361904486",
+  "run_attempt": "1",
+  "input_fixtures_unchanged": true,
+  "daemon_shutdown_verified": true,
+  "limits": [
+    "Drawing plane writes were not attempted in native gate; applicability omission and portable rejection tests only.",
+    "Native forced-failure/partial-mutation injection and visual rendering were not exercised by this successful public run."
+  ],
+  "full_modeling_acceptance": false,
+  "scope": "hash/receipt/strict native-trace replay; final independent review by coordinator",
+  "official_download": {
+    "official_digest_verified": true,
+    "zip_matches_all_extracted_files": true,
+    "original_file_count": 97,
+    "run_id": 42361904486,
+    "run_attempt": 1,
+    "artifact_id": 13571626572,
+    "artifact_sha256": "460d32d13b9953604c5f6ed1246258725895d7579817b53084413236e2501d30"
+  },
+  "auditor_sha256": "efc36e6a1d5800f37accccc2677ebf41f1d568dd61f60847debc6f58a575c23e"
+}

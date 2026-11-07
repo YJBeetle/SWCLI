@@ -15,7 +15,7 @@
   "reason": "coordinator-reviewed strict native-host/peer fixes across all three existing operation pairs; required font/display acceptance plus corresponding standard revalidation",
   "native_dependency_run": 42281734865,
   "prior_standard_public_run": 42300958960,
-  "status": "accepted",
+  "status": "completed",
   "full_batch_acceptance": false,
   "continuous_polling": false,
   "dispatch_exit_code": 0,
@@ -26,5 +26,12 @@
   "run_attempt": 1,
   "handoff_snapshot_utc": "2026-11-07T09:58:38.884300+00:00",
   "handoff_status": "in_progress",
-  "handoff_conclusion": ""
+  "handoff_conclusion": "",
+  "conclusion": "success",
+  "artifact_id": 13571626572,
+  "artifact_sha256": "460d32d13b9953604c5f6ed1246258725895d7579817b53084413236e2501d30",
+  "first_layer_audit_success": true,
+  "public_batch_applicable_scope_complete": true,
+  "final_coordinator_source_review": "pending",
+  "audit": "run-42361904486-audit.json"
 }
