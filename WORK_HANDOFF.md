@@ -201,3 +201,11 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 内部重验的装配体/工程图转换不得超出已有8项 profile；零件仅在内部 candidate bypass 下执行原计划3项，公开入口不扩值、不提前开放。
 - 最终完整 portable **1880 tests / 33 skips 通过**；相关52项通过。日志 `docs/verification/table-defaults-evidence/approved-rule-guards-final-full-portable.log`。旧 pinned `[2,3]` 原件本地 preflight 复核仍通过：8 setters，原 report/trace digest 不变。这不证明新 adapter 原生通过。
 - 后续单次 dispatch 保存 inputs/run/head/快照后交接，不持续轮询、不加 native 预算、不组内重启或重试、不建自动化。本工作树不 merge main/release。
+
+
+## 表格专属许可与保护修复后的完整内部 run（2026-11-08）
+
+- 修复已提交并推送 `f1881a7421200e46028652538892c15a366f2ef8`。完整 portable 1880 tests / 33 skips 通过，相关52项通过。worker late-fault `1d44a42` 已包含；健康路径 writable/peer/dirty 保护及仅表格 `1e-12 mm` 质心界限均在本精确 head。
+- 单次 dispatch [内部 all run 42415716434](https://github.com/YJBeetle/SWCLI/actions/runs/42415716434)，输入 `native_full=false`、`table_defaults_calibration=true`、mode `internal`、document types `all`、`table_defaults_head=f1881a7421200e46028652538892c15a366f2ef8`。计划 `[1,2,3]`，零件3项及既有装配体/工程图8项，native600/group1800秒。
+- 仅取一次状态快照：**in_progress**。原始 metadata、dispatch inputs 与 snapshot 保存在 ignored `docs/verification/table-defaults-evidence/run-42415716434/`。本轮尚无已审核完成原件，不能视为 native 成功。未启动 watcher/automation，不再轮询或 dispatch。
+- 待该原件可用后核 ZIP/GitHub digest、exact head、完整计划、原始几何、setter/noop/CAS、save/reopen 和 cleanup。成功也仅为内部证据；固定完整3类型 profile/pin 后，仍需一次新 exact-head public all gate。零件公开写入当前继续关闭，统筹本人审查/main合并与最终发版不在本轮执行。
