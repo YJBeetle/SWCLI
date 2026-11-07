@@ -32,6 +32,18 @@ main 960839e 与现代 API 精确产品 0a00751 已合并为 0e288dd。当前新
 
 持久worktree `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，新分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。实现、绑定、便携/原生校准方案见 [现代SaveAs3交接](docs/handoffs/saveas3-modern.md)。后续旧品质交接为继承历史，原证据保留。
 
+## Getter 前置门禁交接原文
+
+# 两配置 getter 前置夹具（2026-11-08，待原生）
+
+统筹复核产品0a00751原件后补充的两配置异值证明已准备在本独立分支。新增 verify-native-getter-configurations.py，用一个内部自有零件的 A=16/B=20，在保存态及只读重开态各读两窗；窗口内生产Get3单次、单BSTR/唯一数组/mm、Name/type/driven/readonly和配置/修改戳/前台身份保持，监督器核原始trace与清理。准备时配置创建/切换/写B发生在读窗外，无公共支持域变化。保存后按实际 FullName 重绑，防止沿用未保存模型名称。
+
+既有 verify-stl-options.py 仅追加 modern configuration before/after trace 和原 state 硬断言，原参数计划/输出/全偏好恢复不变。可直接接到 GLB 分支已经必要的同一个 full 的前置步骤，**不另派 dispatch/安装/job**。具体精确接线与原件清单：[双配置前置交接](docs/verification/native-getter-two-configurations-preflight.md)。本线程不修改 GLB/SaveAs3/main，不操作 VM/MacSW/DockerSW，原0a00751和run42405530053不改写；统筹审查组合head后安排运行。当前没有新增原生通过结论。
+
+本次实现精确提交 `b9c5e3cacc38d5aa0cef9d56160d9307285524d8`。新增9项便携、完整2153项OK（28环境跳过）、SDK strict6文件/11类型拒绝例及安装资源no-COM均通过；原始日志hash见 `docs/verification/native-getter-two-configurations-portable.json`。组合产品0a00751已有旧getter实现，不必重复合历史，只取本次诊断提交和接线文档。
+
+以下保留先前产品实现及历史交接。
+
 # 逐路集成交接
 
 - main 已合入工程图出详图两个默认标量；代码、验收范围与原件摘要见 [出详图交接](docs/handoffs/detailing.md) 和 docs/evidence/detailing-main-integration-2026-11-07.json。
