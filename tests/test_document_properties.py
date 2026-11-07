@@ -26,7 +26,7 @@ class DocumentPropertiesTests(unittest.TestCase):
             GetType=lambda: 1,
             GetSaveFlag=lambda: False,
             GetUpdateStamp=lambda: 7,
-            GetActiveConfiguration=lambda: self.configuration,
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration),
             GetTitle=lambda: "Part",
             GetPathName=lambda: "",
             IsOpenedReadOnly=lambda: False,

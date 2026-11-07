@@ -24,13 +24,13 @@ class ToleranceTests(unittest.TestCase):
             SetUserPreferenceInteger=mock.Mock(side_effect=self.apply))
         self.document = SimpleNamespace(
             GetType=lambda: 1, GetSaveFlag=lambda: self.dirty, GetUpdateStamp=lambda:self.stamp,
-            GetActiveConfiguration=lambda:SimpleNamespace(Name="Default"), GetTitle=lambda:"Background",
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default")), GetTitle=lambda:"Background",
             GetPathName=lambda:"", IsOpenedReadOnly=lambda:False, IsOpenedViewOnly=lambda:False,
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda:setattr(self,"dirty",True)))
         self.foreground = SimpleNamespace(GetType=lambda:1, GetSaveFlag=lambda:False,
             GetUpdateStamp=lambda:9, GetTitle=lambda:"Foreground", GetPathName=lambda:"",
-            GetActiveConfiguration=lambda:SimpleNamespace(Name="Default"))
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default")))
         self.app = SimpleNamespace(RevisionNumber=lambda:"33.5.0", ActiveDoc=self.foreground, GetDocuments=lambda:(self.document,self.foreground),
             IsSame=lambda a,b:int(a is b), ActivateDoc3=mock.Mock(), SetUserPreferenceIntegerValue=mock.Mock())
         self.registry=DocumentRegistry(self.app)

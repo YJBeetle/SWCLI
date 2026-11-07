@@ -17,3 +17,13 @@
 - 集成收尾保护：线型/尺寸格式在CommandInProgress恢复或late validator异常后仍保留修改回执及首错；恢复失败退休worker。真实handler/adapter的便携故障注入48关联通过，组合2094项/33skip通过。不是原生故障现场证明，原健康native原件保持。
 
 - 文档图像品质：严格native宿主修复950c833/公开42361573569由本人复核；仅已证实零件品质字段，GLB细分控制仍未解决，不能当作已完成功能。
+
+# Native API observation现代化（2026-11-08）
+
+本轮用户新授权：从main `2d83afdc6c5c56b1a72157a84d54ee15cde770ab` 建立持久worktree `/Users/YJBeetle/.codex/worktrees/native-api-observation-modern/SWCLI`，分支`codex/native-api-observation-modern`。不修改其他分支/main，不使用VM/MacSW/DockerSW，不派审查子代理。
+
+第一逻辑提交迁移生产GetActiveConfiguration至ConfigurationManager.ActiveConfiguration：新增windows_configurations helper，接metadata _state、document结构和STL before/after/finally观察；Name严格保持，缺失/非法拒绝，不切换配置、不用旧API回退。同步活跃fixtures和line-font trace observation whitelist，历史原件/audit结果不改写。关联197文档+4新helper+42线型/trace测试通过；STL日志见`artifacts/native-api-observation/config-stl-tests.log`。
+
+第二逻辑提交将迁移IDimension.GetSystemValue2到GetSystemValue3；需严格配置范围/单值数组/有限数值并保留原有单位与保护。尚未实施或原生验收；本轮先完成portable/SDK与可审提交，不触发重复安装。已有full42369257219不动。与SaveAs3线程的组合由统筹安排最终精确head一次必要gate，正式发布仍须用户最终确认。
+
+官方来源、实现边界与后续原生验证计划：`docs/verification/native-api-observation-modern.md`。持久日志`artifacts/native-api-observation/`（忽略生成日志，不依赖tmp）。

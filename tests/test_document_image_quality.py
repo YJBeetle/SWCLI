@@ -35,13 +35,13 @@ class ImageQualityTests(unittest.TestCase):
             setattr(self.extension, "GetUserPreference" + kind, mock.Mock(side_effect=lambda p, o: self.native[p]))
             setattr(self.extension, "SetUserPreference" + kind, mock.Mock(side_effect=self.apply))
         self.document = SimpleNamespace(GetType=lambda: 1, GetUpdateStamp=lambda: 7,
-            GetSaveFlag=lambda: self.modified, GetActiveConfiguration=lambda: self.configuration,
+            GetSaveFlag=lambda: self.modified, ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration),
             GetPathName=lambda: "", GetTitle=lambda: "Background", IsOpenedReadOnly=lambda: False,
             IsOpenedViewOnly=lambda: False, SketchManager=SimpleNamespace(ActiveSketch=None),
             Extension=self.extension, SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)))
         self.foreground = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: False,
             GetUpdateStamp=lambda: 8, GetTitle=lambda: "Foreground", GetPathName=lambda: "",
-            GetActiveConfiguration=lambda: SimpleNamespace(Name="ForegroundDefault"),
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="ForegroundDefault")),
             IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False)
         self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda: (self.document, self.foreground),
             IsSame=lambda a,b: int(a is b), ActivateDoc3=mock.Mock())
@@ -379,7 +379,7 @@ class ImageQualityTests(unittest.TestCase):
             "dirty": ("GetSaveFlag", lambda: True),
             "title": ("GetTitle", lambda: "Changed"),
             "path": ("GetPathName", lambda: "Changed.SLDPRT"),
-            "configuration": ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Changed")),
+            "configuration": ("ConfigurationManager", SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Changed"))),
             "read-only": ("IsOpenedReadOnly", lambda: True),
             "view-only": ("IsOpenedViewOnly", lambda: True),
         }
