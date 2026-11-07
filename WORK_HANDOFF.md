@@ -21,3 +21,5 @@
 - 持久拓扑引用：f325943/公开42361455599原件由本人复核，单实体零件完整面/边 census 双射；非任意拓扑永久稳定保证。组合2160项便携测试完成（34跳过），SDK及14个类型拒绝例通过。见 docs/handoffs/topology-references.md 与 docs/evidence/topology-references-main-integration-2026-11-08.json。
 
 - 总注释字体七字段、显示十字段（工程图五项）及GB往返六标准36转换：42361904486原件由本人复核；三setter描述符和worker异常回执已补保护。组合2520项测试完成（34跳过），SDK及31类型拒绝例通过。主CI保持不变，手动专项迁至独立document-preferences.yml。见docs/handoffs/document-preferences.md及docs/evidence/document-preferences-main-integration-2026-11-08.json。
+
+- main自动CI42406720872暴露Windows测试夹具句柄清理、CRLF分类假设和PyYAML未安装三类问题；仅测试/CI依赖修复，30关联与2520本地项（34skip）通过，新Windows CI待核。原日志及两摘要ZIP已核官方digest留存，详见docs/evidence/main-windows-portable-fixture-fix-2026-11-08.json。

@@ -1,0 +1,48 @@
+{
+  "failed_run": 42406720872,
+  "failed_head": "86d6eaf29f68406b4b5387bad482bd88d3e63c74",
+  "failed_jobs": [
+    "Windows / Python 3.9",
+    "Windows / Python 3.14"
+  ],
+  "native_job_executed": false,
+  "package_job": "success",
+  "root_causes": [
+    {
+      "scope": "portable test fixtures",
+      "cause": "test cleanup callback ran after TemporaryDirectory exit, leaving trace.jsonl open on Windows",
+      "fix": "nested context closes trace before removing temporary directory"
+    },
+    {
+      "scope": "portable evidence audit fixture",
+      "cause": "CRLF assertion expected git-CRLF even when local checkout bytes already exactly match CRLF evidence",
+      "fix": "deterministic 2x2 LF/CRLF source/evidence matrix; exact or specific transformed byte hash required, changed code still rejected"
+    },
+    {
+      "scope": "portable CI dependencies",
+      "cause": "new YAML workflow test required PyYAML but Windows test job did not install it",
+      "fix": "install bounded PyYAML test dependency for both matrix versions with explicit install-failure propagation"
+    }
+  ],
+  "original_evidence": {
+    "swcli-portable-summary-3.14-42406720872-1": {
+      "id": 13588185426,
+      "sha256": "a7c606976b8bdde115a779c3360cd70e3961080215eeabdf8b78bdf8bb7af54c"
+    },
+    "swcli-portable-summary-3.9-42406720872-1": {
+      "id": 13586869196,
+      "sha256": "fe14685a7848207fd0be988c37425d5767998798a1ccf55f71299a38a6a59a8d"
+    },
+    "failed_log_sha256": "5f608a8e67835e9c4584182b4d424cf868b0411326056cdcdcb9c589e5cabbc8"
+  },
+  "local_validation": {
+    "associated_tests": 30,
+    "full_tests": 2520,
+    "full_skipped": 34,
+    "full_log_sha256": "9777603aeca525f80ce81fc17222512b8422970efcac0b164a895e18f24e957c"
+  },
+  "production_and_native_calibration_auditor_sources_unchanged": true,
+  "new_windows_verification": "pending automatic push CI",
+  "native_api_retry": false,
+  "assertions_or_native_timeouts_weakened": false
+}

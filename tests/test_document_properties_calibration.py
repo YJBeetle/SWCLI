@@ -5,7 +5,7 @@ import json
 import io
 import os
 import sys
-from contextlib import nullcontext, redirect_stderr
+from contextlib import contextmanager, nullcontext, redirect_stderr
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -1225,20 +1225,23 @@ class StandardNativeTraceControl(unittest.TestCase):
 class ReportPersistenceControl(unittest.TestCase):
     """Disk faults and portable traces; no SOLIDWORKS/COM is invoked."""
 
-    def disk_fixture(self, folder):
-        c = fixture()
-        c.output = Path(folder)
-        c.trace = (c.output / "trace.jsonl").open("x", encoding="utf-8", buffering=1)
-        self.addCleanup(c.trace.close)
-        c.persist = Calibration.persist.__get__(c, Calibration)
-        c.call = Calibration.call.__get__(c, Calibration)
-        c.event = Calibration.event.__get__(c, Calibration)
-        c.trusted = False
-        return c
+    @contextmanager
+    def disk_fixture(self):
+        # Close the writer before TemporaryDirectory removes its files. Test
+        # cleanups run after the method and are too late for Windows file locks.
+        with tempfile.TemporaryDirectory() as folder:
+            c = fixture()
+            c.output = Path(folder)
+            with (c.output / "trace.jsonl").open("x", encoding="utf-8", buffering=1) as trace:
+                c.trace = trace
+                c.persist = Calibration.persist.__get__(c, Calibration)
+                c.call = Calibration.call.__get__(c, Calibration)
+                c.event = Calibration.event.__get__(c, Calibration)
+                c.trusted = False
+                yield c
 
     def test_precall_permission_failure_has_terminal_native_zero_and_cleanup_continues(self):
-        with tempfile.TemporaryDirectory() as folder:
-            c = self.disk_fixture(folder)
+        with self.disk_fixture() as c:
             native = []
             cause = PermissionError(5, "report replacement denied")
             with patch.object(Path, "replace", side_effect=cause) as replace:
@@ -1263,8 +1266,7 @@ class ReportPersistenceControl(unittest.TestCase):
             self.assertEqual(saved["first_call_failure"], first)
 
     def test_identical_report_skips_disk_but_getter_observation_and_mutation_intent_persist(self):
-        with tempfile.TemporaryDirectory() as folder:
-            c = self.disk_fixture(folder)
+        with self.disk_fixture() as c:
             original_replace = Path.replace
             replaced = []
             def replace(path, target):
@@ -1294,8 +1296,7 @@ class ReportPersistenceControl(unittest.TestCase):
             self.assertEqual([r["phase"] for r in rows], ["begin", "end", "begin", "end"])
 
     def test_cache_advances_only_after_successful_replace(self):
-        with tempfile.TemporaryDirectory() as folder:
-            c = self.disk_fixture(folder)
+        with self.disk_fixture() as c:
             c.persist()
             previous = c._persisted_report_bytes
             c.report["reads"]["new-native-value"] = 42
@@ -1308,8 +1309,7 @@ class ReportPersistenceControl(unittest.TestCase):
             self.assertNotEqual((c.output / "report.tmp").read_bytes(), previous)
 
     def test_trace_begin_and_terminal_each_fsync_even_when_snapshot_is_identical(self):
-        with tempfile.TemporaryDirectory() as folder:
-            c = self.disk_fixture(folder)
+        with self.disk_fixture() as c:
             c.persist()
             with patch.object(module.os, "fsync", wraps=module.os.fsync) as fsync:
                 c.call("getter-with-unchanged-report", lambda: 7)

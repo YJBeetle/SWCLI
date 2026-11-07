@@ -140,29 +140,41 @@ class OfflineEvidenceAudit(unittest.TestCase):
             self.assertFalse(result['native_group_complete'])
             self.assertIn('overlapping', result['coverage_error'])
 
-    def test_windows_crlf_checkout_source_is_explicitly_hashed_but_code_drift_is_rejected(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            self.fixture(root)
-            path = root / 'manifest.json'
-            manifest = json.loads(path.read_text())
-            relative = audit.SOURCES[0]
-            crlf = (ROOT / relative).read_bytes().replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
-            source_hash = hashlib.sha256(crlf).hexdigest()
-            report_path = root / 'standards-36/report.json'
-            report = json.loads(report_path.read_text())
-            report['script_sha256'] = source_hash
-            report_path.write_text(json.dumps(report))
-            self.remanifest(root, json.loads((root / 'context.json').read_text()))
-            manifest = json.loads(path.read_text())
-            manifest['sources'][relative] = source_hash
-            path.write_text(json.dumps(manifest))
-            result = audit.audit(root, 'a' * 40, ROOT)
-            self.assertEqual(result['source_byte_forms_verified_locally'][relative], 'git-CRLF')
-            manifest['sources'][relative] = hashlib.sha256(b'different code').hexdigest()
-            path.write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(ValueError, 'source bytes differ'):
-                audit.audit(root, 'a' * 40, ROOT)
+    def test_lf_crlf_checkout_and_evidence_bytes_are_explicit_and_code_drift_is_rejected(self):
+        # Exercise both actual Windows checkout bytes and LF checkouts without
+        # depending on this test runner's Git autocrlf setting.
+        for checkout_form in ('LF', 'CRLF'):
+            for evidence_form in ('LF', 'CRLF'):
+                with self.subTest(checkout=checkout_form, evidence=evidence_form), \
+                     tempfile.TemporaryDirectory() as folder, \
+                     tempfile.TemporaryDirectory() as checkout:
+                    root, source_root = Path(folder), Path(checkout)
+                    self.fixture(root)
+                    hashes = {}
+                    for relative in audit.SOURCES:
+                        lf = (ROOT / relative).read_bytes().replace(b'\r\n', b'\n')
+                        forms = {'LF': lf, 'CRLF': lf.replace(b'\n', b'\r\n')}
+                        destination = source_root / relative
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        destination.write_bytes(forms[checkout_form])
+                        hashes[relative] = hashlib.sha256(forms[evidence_form]).hexdigest()
+                    report_path = root / 'standards-36/report.json'
+                    report = json.loads(report_path.read_text())
+                    report['script_sha256'] = hashes[audit.SOURCES[0]]
+                    report_path.write_text(json.dumps(report))
+                    self.remanifest(root, json.loads((root / 'context.json').read_text()))
+                    path = root / 'manifest.json'
+                    manifest = json.loads(path.read_text())
+                    manifest['sources'] = hashes
+                    path.write_text(json.dumps(manifest))
+                    result = audit.audit(root, 'a' * 40, source_root)
+                    expected = 'exact' if checkout_form == evidence_form else 'git-' + evidence_form
+                    self.assertEqual(result['source_byte_forms_verified_locally'],
+                                     {relative: expected for relative in audit.SOURCES})
+                    manifest['sources'][audit.SOURCES[0]] = hashlib.sha256(b'different code').hexdigest()
+                    path.write_text(json.dumps(manifest))
+                    with self.assertRaisesRegex(ValueError, 'source bytes differ'):
+                        audit.audit(root, 'a' * 40, source_root)
 
     def test_sdk_repeated_setter_cannot_pass_a_complete_report(self):
         with tempfile.TemporaryDirectory() as folder:
