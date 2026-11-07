@@ -1,6 +1,12 @@
 # SW2025 现代 SaveAs3 迁移交接
 
-## 当前结论（2026-11-08 原件审计）
+## 当前原件结论（42405530053 / 0a00751，2026-11-08）
+
+组合full已failure，首错仍为零件component GLB内容拒绝。三API已到达子集的独立证据、trace和文件hash见[组合原件审计](../verification/saveas3-getters-native-2026-11-08.md)及[JSON](../evidence/saveas3-getters-native-2026-11-08.json)。203个ZIP文件逐一一致；68个daemon请求各一次现代SaveAs3、33次Get3原生tuple(len1)，P/A默认配置与DRW明确空值、PRT/ASM/DRW夹具保存重开均有本head实证。多配置异值、box与装配中性导出等未到达范围不能外推。
+
+现代GLB原文件已保留，3800 bytes、JSON声明720而BIN实长0；首错不改写。300条GetDefinition身份诊断全部com_error/unavailable，HRESULT/子阶段未记录，不能认定v1/v2，revolve/simple-fillet未到达。GLB后续由统筹指定既有STL路线调查；本路本次只审计、不改产品代码、不重派native、不合main。后续集成保留main960839e的三偏好保护与Windows测试修复，最终由统筹审查。
+
+## 首次现代SaveAs原件结论（历史42369257219）
 
 精确产品head `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3` 的 [必要full 42369257219](https://github.com/YJBeetle/SWCLI/actions/runs/42369257219) 已结束failure。现代API已真实返回bool/errors/warnings，PRT/ASM/DRW三类保存重开及公共回执通过；整套full未通过，GLB仍未解决。未派发同head重跑，未改该次原件。
 

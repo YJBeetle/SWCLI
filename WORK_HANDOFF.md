@@ -1,3 +1,9 @@
+# 当前结果：组合三API原件已审，GLB仍失败
+
+精确产品head0a00751e44823ca46237000479754634bf50a418/run42405530053已failure；本轮只新增文档审计，不改该head行为。P/A Default配置、DRW空配置、前置直径/矩形Get3读回及PRT/ASM/DRW到达路径保存重开有真实证据；68个daemon现代保存请求各一次、33次Get3 tuple(len1)。GLB原字节3800B、JSON720/BIN0；300条feature-definition身份诊断全部com_error，不能认定v1/v2，revolve/fillet未到达。完整边界和原件digest见 docs/verification/saveas3-getters-native-2026-11-08.md 及 docs/evidence/saveas3-getters-native-2026-11-08.json。
+
+原件根 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined/run-42405530053`，GLB修复已由统筹交既有STL路线，本路不重复实现或派发。最终是否分界合入由统筹本人审查；不得覆盖main960839e新增三偏好/worker保护和Windows便携修复，不自行合main，不使用VM/Docker/Mac。
+
 # 当前组合候选：现代保存、配置观察与尺寸读取
 
 按统筹要求合入getter精确tip e801a95，merge为5c102541e3040a77455d07da6ee64e66ccfe500e。main ce6606fa仅审计文档变化，已读；未修改main。已协调读取getter路线的1cc16f3接线审查，补工程图空配置、前置既有完整直径/矩形组、官方类型库签名/枚举核验及Get3首次返回形状。full仍19组、core不变，无额外CAD安装/样件/保存或失败重试。

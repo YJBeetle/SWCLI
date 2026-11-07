@@ -1,0 +1,1231 @@
+{
+  "run_id": 42405530053,
+  "head": "0a00751e44823ca46237000479754634bf50a418",
+  "conclusion": "failure",
+  "official_zip_sha256": "sha256:a55c00d7e4b7d07cbece2acd0ef5847138efc074f9ddaa3bfead0aef9e967ec9",
+  "zip_bytes": 9159929,
+  "extracted_entries_verified": 203,
+  "workflow_logs": {
+    "sha256": "fe3fd79938986aec3c7ae5dc72ca78df94f3d4186b9cac026fd6650a5be5355b",
+    "official_digest_available": false
+  },
+  "fixture_saves": [
+    {
+      "kind": "part",
+      "sha256": "f64cd3b8c73749c9252db2df8d5257eb2741e4c560a1787977c7e236aaa607b5",
+      "size_bytes": 50220,
+      "readonly_reopen": true
+    },
+    {
+      "kind": "assembly",
+      "sha256": "fc4272f9372cb366bdb49acab15c946c6e1e8318078a6fc13a28cf416287e774",
+      "size_bytes": 26823,
+      "readonly_reopen": true
+    },
+    {
+      "kind": "drawing",
+      "sha256": "003dcb7abea141229ae46927302043d2960e90a424da79be12af129225510f8b",
+      "size_bytes": 24256,
+      "readonly_reopen": true
+    }
+  ],
+  "configuration": {
+    "part_assembly": [
+      {
+        "kind": "part",
+        "state_before": [
+          1,
+          159,
+          false,
+          "Default"
+        ],
+        "state_after": [
+          1,
+          159,
+          false,
+          "Default"
+        ],
+        "file_sha256": "12e586e331b1315127e044935a21be0b6298c8a5a3d90faa357a4c5ab2be296e",
+        "reopen_ok": true
+      },
+      {
+        "kind": "assembly",
+        "state_before": [
+          2,
+          120,
+          false,
+          "Default"
+        ],
+        "state_after": [
+          2,
+          120,
+          false,
+          "Default"
+        ],
+        "file_sha256": "f17ca875ab4346eed5cf211da25f12d5cb673515efe4fca790cb5a3aab55e1cd",
+        "reopen_ok": true
+      }
+    ],
+    "public_metadata": [
+      {
+        "format": "SLDPRT",
+        "configuration": "Default",
+        "saved_sha256": "27f710dba0178e683f83bc3c1b544c56de01e87af062599aef617603bad868a0",
+        "raw_configuration_properties_persisted": true,
+        "summary_fields_except_saved_at_persisted": true,
+        "summary_changed_fields": [
+          "saved_at"
+        ],
+        "readonly_reopen": true,
+        "fresh_document_id": true
+      },
+      {
+        "format": "SLDASM",
+        "configuration": "Default",
+        "saved_sha256": "f806d655994d6ca3c2454db469a79a12d24c34ee1ca196215a339bdd5e3ee2eb",
+        "raw_configuration_properties_persisted": true,
+        "summary_fields_except_saved_at_persisted": true,
+        "summary_changed_fields": [
+          "saved_at"
+        ],
+        "readonly_reopen": true,
+        "fresh_document_id": true
+      }
+    ],
+    "drawing_before": {
+      "active": null,
+      "names": [],
+      "count": 0
+    },
+    "drawing_reopened": {
+      "active": null,
+      "names": [],
+      "count": 0
+    }
+  },
+  "public_annotation_saves": [
+    {
+      "format": "SLDPRT",
+      "direction": "primary",
+      "sha256": "e75d9ce40b6b2f8fcac2e2c955ab982c482908c348b5c7734baeb1c35307432c",
+      "size_bytes": 51957,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDPRT",
+      "direction": "reverse",
+      "sha256": "0d6554b48efe14c31165e3d5b790da2cb2f12165ce397b3265a1268609fa513e",
+      "size_bytes": 51342,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDASM",
+      "direction": "primary",
+      "sha256": "604d77bf460a41c16e5bb8e0ec45bffab7118a13b3e7d52d72232f4a81939d87",
+      "size_bytes": 28355,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDASM",
+      "direction": "reverse",
+      "sha256": "f2a15a699d149188ac49374fd2273ffc073ddc23ce57a5dbdff951c054fb8d53",
+      "size_bytes": 28854,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDDRW",
+      "direction": "primary",
+      "sha256": "82f2340adbd1da456bb96c9d15c8c6187082b9527725c289ba71db2717b190db",
+      "size_bytes": 24507,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    },
+    {
+      "format": "SLDDRW",
+      "direction": "reverse",
+      "sha256": "cfcaf36bb20792308e61ebc1475e6c0ca7ed6ffa8f82e8bd1d694eb76cd697f1",
+      "size_bytes": 24534,
+      "readonly_reopen": true,
+      "raw_options_persisted": true,
+      "fresh_document_ids": true
+    }
+  ],
+  "trace_logs": [
+    {
+      "path": "swcli-native-smoke/hidden/swclid.stderr.log",
+      "sha256": "d656df077168b05f4c2d114fe9afd5df6620fa5664b1e13e09e13811f4633307",
+      "size_bytes": 13555885
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/daemon.log",
+      "sha256": "18919d76599a99292c38338ee5d338dcd6fcc1b2903b679920f5b6fa3d899f6e",
+      "size_bytes": 108450313
+    }
+  ],
+  "modern_save_requests": 68,
+  "legacy_save_calls": 0,
+  "modern_configuration_trace_counts": {
+    "ConfigurationManager": 1263,
+    "ActiveConfiguration": 1263,
+    "GetActiveConfiguration": 0
+  },
+  "get3": {
+    "native_calls": 33,
+    "return_type": "tuple",
+    "container_length": 1,
+    "operation_counts": {
+      "sketch.dimension-diameter": 2,
+      "dimension.inspect": 13,
+      "dimension.set": 6,
+      "dimension.discover-diameter": 2,
+      "sketch.dimension-rectangle": 6,
+      "dimension.discover-rectangle": 4
+    },
+    "descriptor_values_mm": {
+      "diameter": [
+        16.0,
+        20.0
+      ],
+      "height": [
+        30.0,
+        35.0
+      ],
+      "width": [
+        40.0,
+        50.0
+      ]
+    },
+    "configuration": "Default",
+    "multiple_configuration_values_verified": false
+  },
+  "installed_typelib_contract": {
+    "success": true,
+    "evidence_kind": "installed-typelib-readonly",
+    "model_calls": 0,
+    "native_binding_accepted": false,
+    "sldworks": {
+      "path": "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb",
+      "sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+      "library": {
+        "guid": "{83A33D31-27C5-11CE-BFD4-00400513BB57}",
+        "lcid": 0,
+        "syskind": 3,
+        "major": 33,
+        "minor": 0
+      },
+      "interfaces": {
+        "IDimension": {
+          "iid": "{83A33D3A-27C5-11CE-BFD4-00400513BB57}",
+          "typekind": 4,
+          "members": {
+            "GetSystemValue3": [
+              [
+                "WhichConfigurations",
+                "Config_names"
+              ]
+            ]
+          }
+        },
+        "IModelDocExtension": {
+          "iid": "{99F4D4AF-F268-4EE1-8C55-041F7BECF879}",
+          "typekind": 4,
+          "members": {
+            "SaveAs3": [
+              [
+                "Name",
+                "Version",
+                "Options",
+                "ExportData",
+                "AdvancedSaveAsOptions",
+                "Errors",
+                "Warnings"
+              ]
+            ]
+          }
+        },
+        "IConfigurationManager": {
+          "iid": "{8DB64337-F36E-47CC-BBBC-B4B979D31505}",
+          "typekind": 4,
+          "members": {
+            "ActiveConfiguration": [
+              []
+            ]
+          }
+        }
+      }
+    },
+    "swconst": {
+      "path": "C:\\Program Files\\SOLIDWORKS\\swconst.tlb",
+      "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+      "library": {
+        "guid": "{4687F359-55D0-4CD3-B6CF-2EB42C11F989}",
+        "lcid": 0,
+        "syskind": 3,
+        "major": 33,
+        "minor": 0
+      },
+      "constants": {
+        "swThisConfiguration": 1,
+        "swSpecifyConfiguration": 3
+      }
+    }
+  },
+  "reports": [
+    {
+      "path": "swcli-native-smoke/hidden/document-units/document-units.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 2
+      },
+      "save_request_ids": [
+        "ab850bae-2e31-4f1e-a748-3d4cf85b3f90",
+        "0a5cebbc-d4fc-450d-9dbc-5af42e6aa434"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/document-annotations/document-annotations.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 6
+      },
+      "save_request_ids": [
+        "bc747d22-8419-4427-b6e7-d618f156074e",
+        "427621cd-f9f6-4851-8468-5ca6cfd26572",
+        "683136a7-b192-4255-a8cc-23e28c0fa00c",
+        "1ae131ca-91a4-4c91-802d-4183dedfa169",
+        "e78cbd48-ecd2-4a01-a99d-5d590eee6c47",
+        "91fca0ca-8a15-4cc4-bcf6-83a59d5478f2"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/properties/properties.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 2
+      },
+      "save_request_ids": [
+        "afeadc50-c9d4-4fe7-99a5-0d2a6a3236fd",
+        "51d40883-acac-48b2-999d-73d123ab9671"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/modeling.json",
+      "success": false,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 1,
+        "document.export": 4
+      },
+      "save_request_ids": [
+        "1d8d7dca-88f3-4525-9deb-571df46c6cae",
+        "45d8a04b-dd3c-4263-b6f8-cdfa366026dd",
+        "087e2648-2477-4165-bca0-11cb649e0c26",
+        "19260ea9-3ff7-476f-bab7-7fb04c49c0b2",
+        "7712054a-7f17-495b-a30a-7d37690bd042"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/continuation-front-diameter/modeling/modeling.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {},
+      "save_request_ids": []
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/modeling.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 50,
+        "document.export": 1
+      },
+      "save_request_ids": [
+        "fe7a9e87-e02f-4367-ad15-4541874b76c9",
+        "8041ffea-a443-4b59-a62f-1869e58211bd",
+        "3c9e80ea-b089-4ddb-89e3-447dce3e5f9b",
+        "0eb64078-4fcd-4e48-b3b0-ebe0a96e0af0",
+        "5aef082c-7f8a-4186-910a-0098c0871e91",
+        "0a106de0-d049-4a19-b359-0742ea09e1c5",
+        "989dd409-c209-45dc-a4c8-40b202d6451b",
+        "d2ec5e72-5925-48c7-96b2-1b6f40814406",
+        "af535846-0d57-488e-aa01-b1992cd13abd",
+        "6b4e16fd-b137-406f-944b-8c29db4bae01",
+        "d71c50ff-af2e-41b0-ab91-175244b084f1",
+        "63c3c594-f5a7-4835-8ee6-11479acc3e1f",
+        "c1046cf2-6f8e-4ab1-b73c-2f3ffa049e71",
+        "1b1c3702-2d04-4d70-8c65-1316e18e5578",
+        "58ef2769-3aa9-4aa7-9c5b-59b87cc97bcc",
+        "a3626aa4-b73d-4285-9971-a1c9e5907541",
+        "ae32d902-2772-47b9-877b-e80a6f08f545",
+        "da0f0714-d3ad-4589-8bc4-1e0a17ac57af",
+        "cabde167-494a-4993-95b2-c1aac5d3a3aa",
+        "173bf3f4-0db4-4b8f-8f28-70adb5e34f8c",
+        "a3c0dcfc-c1d7-4ad0-8a97-448c5b43e5ab",
+        "65364cdb-f3fe-45da-95f4-fa19be780e33",
+        "01aebc01-7dd9-422e-a4bf-c7e3fd9169c5",
+        "0fdd172d-c268-4aeb-b8fe-ecc126583299",
+        "fc290a70-f7ae-4d00-b82d-8f33c4155b31",
+        "caefb27c-bf66-4ccd-ba81-c1c7da5b33b2",
+        "b046b6ad-599f-42f7-877e-282f7fb052f9",
+        "550b1362-064f-4b4f-a5f6-d7cc0927dd82",
+        "9464eb4a-3c0a-47db-a027-a513aaba72cb",
+        "c87aca0f-598c-4609-b396-2631d8bd73f6",
+        "c834ff19-a204-4847-b8eb-ee1ba4380ce6",
+        "a17cc418-ac5d-45de-b144-88151caad2dd",
+        "707d5875-5c99-4559-9c85-a66d16f9e695",
+        "35120b06-8733-4f1f-93cf-9902aac5d532",
+        "d11f6e1f-24dd-4dc2-9e96-90e3a006b9db",
+        "d9d1022c-0197-486b-8ada-ce3b35c84639",
+        "cb33d8e3-8994-4aca-b1b1-c4516d35e47d",
+        "c5f936f2-7471-4b60-89cb-4bbce10538cc",
+        "8fa68517-ce74-487a-ad07-21cbf72dfe4d",
+        "e608f346-179a-41fb-84a7-ec6856c9fd72",
+        "c32f83ce-ecde-4e66-83a3-9809b2a33dd3",
+        "25b2ccc0-7dad-41d9-84d1-44b9c7130e68",
+        "4c1a599a-b385-40d7-b878-22284bf4b86b",
+        "e6aca71d-0c8f-405d-b23b-17b629b64dc3",
+        "9e774cc0-4c5c-4ed9-9d87-5f544218311e",
+        "b87434e0-a52b-41c5-9cbe-7b03fb0cebed",
+        "6dabd30d-0c99-4e31-aad8-e19714f996fd",
+        "7a514f53-fa4a-4501-9ffc-79330984e118",
+        "4b06c8b1-6c12-4579-a0e0-b788bf39cf63",
+        "97ea4fcc-2eb7-46c2-8321-7ef39b4daf91",
+        "c5b43313-3cc3-46a1-adf4-d535af8bac08"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/continuation-front-diameter/driving/driving-dimensions.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 1
+      },
+      "save_request_ids": [
+        "1b7a6284-480d-4f2d-9e39-7067ae9d6e5f"
+      ]
+    },
+    {
+      "path": "swcli-native-smoke/hidden/runtime-sets/rectangle-front/driving/driving-dimensions.json",
+      "success": true,
+      "state": "completed",
+      "save_attempt_counts": {
+        "document.save-as": 1
+      },
+      "save_request_ids": [
+        "a0cbcb89-b3f3-4e6e-bc3f-61cc1a78ca28"
+      ]
+    }
+  ],
+  "retained_artifacts": [
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/document-units/saved-units.SLDPRT",
+      "sha256": "4a1cdc1b1624c79e2ceb7028489d200230ffeafc84a386d40686291ba95c354e",
+      "size_bytes": 32447,
+      "save_as_receipt_size_bytes": 32447,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDASM",
+      "path": "swcli-native-smoke/hidden/document-units/saved-units.SLDASM",
+      "sha256": "d3cceaee731687a786fa1d7be3f563436cc5db613b24c3f7dd502402f3b45048",
+      "size_bytes": 28942,
+      "save_as_receipt_size_bytes": 28942,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/document-annotations/changed-annotations.SLDPRT",
+      "sha256": "e75d9ce40b6b2f8fcac2e2c955ab982c482908c348b5c7734baeb1c35307432c",
+      "size_bytes": 51957,
+      "save_as_receipt_size_bytes": 51957,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/document-annotations/reverse-annotations.SLDPRT",
+      "sha256": "0d6554b48efe14c31165e3d5b790da2cb2f12165ce397b3265a1268609fa513e",
+      "size_bytes": 51342,
+      "save_as_receipt_size_bytes": 51342,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDASM",
+      "path": "swcli-native-smoke/hidden/document-annotations/changed-annotations.SLDASM",
+      "sha256": "604d77bf460a41c16e5bb8e0ec45bffab7118a13b3e7d52d72232f4a81939d87",
+      "size_bytes": 28355,
+      "save_as_receipt_size_bytes": 28355,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDASM",
+      "path": "swcli-native-smoke/hidden/document-annotations/reverse-annotations.SLDASM",
+      "sha256": "f2a15a699d149188ac49374fd2273ffc073ddc23ce57a5dbdff951c054fb8d53",
+      "size_bytes": 28854,
+      "save_as_receipt_size_bytes": 28854,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDDRW",
+      "path": "swcli-native-smoke/hidden/document-annotations/changed-annotations.SLDDRW",
+      "sha256": "82f2340adbd1da456bb96c9d15c8c6187082b9527725c289ba71db2717b190db",
+      "size_bytes": 24507,
+      "save_as_receipt_size_bytes": 24507,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDDRW",
+      "path": "swcli-native-smoke/hidden/document-annotations/reverse-annotations.SLDDRW",
+      "sha256": "cfcaf36bb20792308e61ebc1475e6c0ca7ed6ffa8f82e8bd1d694eb76cd697f1",
+      "size_bytes": 24534,
+      "save_as_receipt_size_bytes": 24534,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/properties/saved-properties.SLDPRT",
+      "sha256": "27f710dba0178e683f83bc3c1b544c56de01e87af062599aef617603bad868a0",
+      "size_bytes": 33472,
+      "save_as_receipt_size_bytes": 33472,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDASM",
+      "path": "swcli-native-smoke/hidden/properties/saved-properties.SLDASM",
+      "sha256": "f806d655994d6ca3c2454db469a79a12d24c34ee1ca196215a339bdd5e3ee2eb",
+      "size_bytes": 28608,
+      "save_as_receipt_size_bytes": 28608,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component.SLDPRT",
+      "sha256": "dccee2900406901b279297a2e3519966d3bcb558b04215b516f16b8518591079",
+      "size_bytes": 50709,
+      "save_as_receipt_size_bytes": 50709,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "STL",
+      "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.STL",
+      "sha256": "e3fa41d56f3525b859ad35d5866364de37dddf7d49a50d0d49d9f560a806306a",
+      "size_bytes": 684,
+      "save_as_receipt_size_bytes": 684,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "3MF",
+      "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.3MF",
+      "sha256": "a5baf8d5696c44e8f0d2a35ea56df157b58bf31b6ccdfb0102c1d971705b29f4",
+      "size_bytes": 11836,
+      "save_as_receipt_size_bytes": 11836,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "AMF",
+      "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.AMF",
+      "sha256": "350bf384334a5ffca496c6d23adba9ce60d1d6168b58fe56b153e07c6df3e4f1",
+      "size_bytes": 1499,
+      "save_as_receipt_size_bytes": 1499,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/model.SLDPRT",
+      "sha256": "a0585f5ceb1238d0753bb8aeca88e4ba0187cc9c6a71b8867e279bc18af94faa",
+      "size_bytes": 86850,
+      "save_as_receipt_size_bytes": 86042,
+      "retained_size_matches_save_as_receipt": false,
+      "retained_phase": "after-subsequent-in-place-save"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/中文 路径/垫片 零件.SLDPRT",
+      "sha256": "7a9e9cf01b1e7da8680669e8c6ecff003a493a39da63c55aacb58b0e8158c1bb",
+      "size_bytes": 89221,
+      "save_as_receipt_size_bytes": 88839,
+      "retained_size_matches_save_as_receipt": false,
+      "retained_phase": "after-subsequent-in-place-save"
+    },
+    {
+      "format": "STEP",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/中文 路径/垫片 导出.STEP",
+      "sha256": "af4af95d16b752ffafddf8c44b622ad148d5dfae454a222d991f497749095171",
+      "size_bytes": 59848,
+      "save_as_receipt_size_bytes": 59848,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-front-forward.SLDPRT",
+      "sha256": "ac8c45042f1978aca7c7129415667d64b70360e2a60ee98889b4fee3957ca274",
+      "size_bytes": 51741,
+      "save_as_receipt_size_bytes": 51741,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-front-reverse.SLDPRT",
+      "sha256": "3c702952ad72e2da50f2ac246fd98111d33da878d1a4c904d08a16e33d78ef3d",
+      "size_bytes": 49932,
+      "save_as_receipt_size_bytes": 49932,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-top-forward.SLDPRT",
+      "sha256": "b91b725194472516cfee436a798654a5cb0a2f31fd599fc55ba47ec761071172",
+      "size_bytes": 48337,
+      "save_as_receipt_size_bytes": 48337,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-top-reverse.SLDPRT",
+      "sha256": "a386e8461cc82ed3180b6fdba036bc4e285095d7583e9a33cbdc37f5c08bbbd4",
+      "size_bytes": 48055,
+      "save_as_receipt_size_bytes": 48055,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-right-forward.SLDPRT",
+      "sha256": "066c962266f6a5fef9b6147b4e2b5787fd4ba25d44b98cb81369b101292d1acc",
+      "size_bytes": 48085,
+      "save_as_receipt_size_bytes": 48085,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-boss-right-reverse.SLDPRT",
+      "sha256": "d4b9b1ac3b3cd3498082820d8d27ada4804fdda39fc6f917b77dbb6c897d8764",
+      "size_bytes": 48842,
+      "save_as_receipt_size_bytes": 48842,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-front-forward.SLDPRT",
+      "sha256": "f2c70f6c918b53174c022f32fb93739a4a8a7192ec32e1718a02e9b3cc318145",
+      "size_bytes": 54625,
+      "save_as_receipt_size_bytes": 54625,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-front-reverse.SLDPRT",
+      "sha256": "ff7da0219937e6606e450379ffc7f7fe8305453c6efa51adee9d3fbf5fd9811b",
+      "size_bytes": 58977,
+      "save_as_receipt_size_bytes": 58977,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-top-forward.SLDPRT",
+      "sha256": "f161c438d47810dd2140fcbd94b6b822f65e84fd40a8deb099d6d008d126c574",
+      "size_bytes": 59603,
+      "save_as_receipt_size_bytes": 59603,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-top-reverse.SLDPRT",
+      "sha256": "f17f00d28e6ff256d2237d165ad4ecef4363a0ff2a2391ac2ae5ce30c4726b20",
+      "size_bytes": 66082,
+      "save_as_receipt_size_bytes": 66082,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-right-forward.SLDPRT",
+      "sha256": "bfc15a87afba27e30291c268af3ff7db84bab255bb35124929563994079853c0",
+      "size_bytes": 55481,
+      "save_as_receipt_size_bytes": 55481,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-ccw-cut-right-reverse.SLDPRT",
+      "sha256": "f9ec23a280f9deec4b3d6d5c8104cce6bda83c4fdacf4a829d39ba3f4d09da47",
+      "size_bytes": 59288,
+      "save_as_receipt_size_bytes": 59288,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-front-forward.SLDPRT",
+      "sha256": "43ff9bc20cf957ea8c619de3ab8649176cbbc8310934886498f59e7ea4add324",
+      "size_bytes": 49879,
+      "save_as_receipt_size_bytes": 49879,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-front-reverse.SLDPRT",
+      "sha256": "2242f0bbea5908bafe18795604fb62d5beb794e36f7f8eda4bd598797aeb0617",
+      "size_bytes": 50057,
+      "save_as_receipt_size_bytes": 50057,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-top-forward.SLDPRT",
+      "sha256": "1cb54bfe1f554a601457f4324340d8fcc8fc1e70df4f34039a767096a9a0f9eb",
+      "size_bytes": 48613,
+      "save_as_receipt_size_bytes": 48613,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-top-reverse.SLDPRT",
+      "sha256": "ff25e56a800728c4e8efd39b37f98d89e6f462f180366599ad1f493abd4070a4",
+      "size_bytes": 48036,
+      "save_as_receipt_size_bytes": 48036,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-right-forward.SLDPRT",
+      "sha256": "68d521e92e64f605b4d5d81d7964350a0f402b944f2e0e1a9cb890316c85a63a",
+      "size_bytes": 48170,
+      "save_as_receipt_size_bytes": 48170,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-boss-right-reverse.SLDPRT",
+      "sha256": "b4866f86e29b05f6f0555a94cb94084f3a5e9d4c22781e6d7172b846daa49f15",
+      "size_bytes": 48916,
+      "save_as_receipt_size_bytes": 48916,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-front-forward.SLDPRT",
+      "sha256": "7b34ed33ea37ea07d3d9bdf8a0402211a1d58f1373583b5a3b910d59be18b191",
+      "size_bytes": 55302,
+      "save_as_receipt_size_bytes": 55302,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-front-reverse.SLDPRT",
+      "sha256": "e2fe7613c3c5299299cc83def74c634d5b16a134249fb44a92e464fc15bc4aba",
+      "size_bytes": 59536,
+      "save_as_receipt_size_bytes": 59536,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-top-forward.SLDPRT",
+      "sha256": "f6f2fd0e0c300978496248643d757b6668c2c0c370756c96e54911ed1f561119",
+      "size_bytes": 60035,
+      "save_as_receipt_size_bytes": 60035,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-top-reverse.SLDPRT",
+      "sha256": "877e5d88a80a2e48f75bd7addb2cfd49a6d43599a3951cd46aef70c832944107",
+      "size_bytes": 66073,
+      "save_as_receipt_size_bytes": 66073,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-right-forward.SLDPRT",
+      "sha256": "3d53bbd6d42521494f423330d0f72dfc7a60c900b79f50bd47502e5fc44c1d02",
+      "size_bytes": 55907,
+      "save_as_receipt_size_bytes": 55907,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-triangle-cw-cut-right-reverse.SLDPRT",
+      "sha256": "46a0cf38104e861b157887bf439ecedbb507286c6837a4e067bf22585c465dd3",
+      "size_bytes": 59216,
+      "save_as_receipt_size_bytes": 59216,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-front-forward.SLDPRT",
+      "sha256": "efd3606698788822827dcd5a79c1f4455c0e608c977f5f4933cb0c83127e7218",
+      "size_bytes": 52584,
+      "save_as_receipt_size_bytes": 52584,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-front-reverse.SLDPRT",
+      "sha256": "23f2baddde2b71a9ba6c79ebd8ed0197f79d8bd622711daf91993e65170154b7",
+      "size_bytes": 53314,
+      "save_as_receipt_size_bytes": 53314,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-top-forward.SLDPRT",
+      "sha256": "25cc1af8551d7363426d5acd9c73021b80b689421b525914ec294bb58faa0c8f",
+      "size_bytes": 51932,
+      "save_as_receipt_size_bytes": 51932,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-top-reverse.SLDPRT",
+      "sha256": "ac99afc356e6cf5911132a16568b7433a1bd83c01b4adf6e81ed5bcf79a95fd9",
+      "size_bytes": 51792,
+      "save_as_receipt_size_bytes": 51792,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-right-forward.SLDPRT",
+      "sha256": "47e62462509abed6374a17e95089dfefe3e407446cc218859030ad83f8e55969",
+      "size_bytes": 51095,
+      "save_as_receipt_size_bytes": 51095,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-boss-right-reverse.SLDPRT",
+      "sha256": "a601a41e06e12c935b126b0f33a6ce7596ea11822dfbdbd0758d2509e32841f6",
+      "size_bytes": 52462,
+      "save_as_receipt_size_bytes": 52462,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-front-forward.SLDPRT",
+      "sha256": "019412fd615ae7659c0029401b1509e9bc4658634c5587d9975eb8ba54cb2fd9",
+      "size_bytes": 57614,
+      "save_as_receipt_size_bytes": 57614,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-front-reverse.SLDPRT",
+      "sha256": "4cec8498b9ab384d67e9b22b526f211d407c05e0cd604972e7faeb8efb7e1803",
+      "size_bytes": 59375,
+      "save_as_receipt_size_bytes": 59375,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-top-forward.SLDPRT",
+      "sha256": "f75a7ff6f0b590a9619da3ff6ff077b462314c193dc38fcf046c478e7a1b0367",
+      "size_bytes": 62104,
+      "save_as_receipt_size_bytes": 62104,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-top-reverse.SLDPRT",
+      "sha256": "c337d0c49c7366258b5ada3161235132bbcf906621246edab4d74462911aaf14",
+      "size_bytes": 67482,
+      "save_as_receipt_size_bytes": 67482,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-right-forward.SLDPRT",
+      "sha256": "db4308b18d0c92a116bbc73acfa18f2efacf9230dc8fbfe7ad9f47f033e7b9fa",
+      "size_bytes": 57408,
+      "save_as_receipt_size_bytes": 57408,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-ccw-cut-right-reverse.SLDPRT",
+      "sha256": "054d2e6f12e704e3e4c2052185e80afb46c61a0428d36ac88dc6330a52938a67",
+      "size_bytes": 60992,
+      "save_as_receipt_size_bytes": 60992,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-front-forward.SLDPRT",
+      "sha256": "35c40080e9444b4d6e9533c6753ad36064c29084012a3af6374cf2a32c3a3313",
+      "size_bytes": 53757,
+      "save_as_receipt_size_bytes": 53757,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-front-reverse.SLDPRT",
+      "sha256": "6cd0867b958bec4dfa418960ec5641d373db4da470d7252cdae2bace07c11cb5",
+      "size_bytes": 53338,
+      "save_as_receipt_size_bytes": 53338,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-top-forward.SLDPRT",
+      "sha256": "41c5b8ff6d0c15b4ac5bf968890c380e7cac60a953f301382c790b224aee769c",
+      "size_bytes": 52346,
+      "save_as_receipt_size_bytes": 52346,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-top-reverse.SLDPRT",
+      "sha256": "0fba23fd37290d1f63eaf462fec58afa2df2340d671352ff3694cc50dfc26b69",
+      "size_bytes": 53192,
+      "save_as_receipt_size_bytes": 53192,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-right-forward.SLDPRT",
+      "sha256": "f39539634582d0f616e3b45c0ebde5072a6a6c09d4a54f6b9d800fbd7376726c",
+      "size_bytes": 52896,
+      "save_as_receipt_size_bytes": 52896,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-boss-right-reverse.SLDPRT",
+      "sha256": "87620a670103d198ac8003ece7ccfc6a4c7481ca6873a3882290ba4597b6f85e",
+      "size_bytes": 51901,
+      "save_as_receipt_size_bytes": 51901,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-front-forward.SLDPRT",
+      "sha256": "d5d9df5f7920761eea9bc6263c34d1d65e87682624f083c60632de165b099c4e",
+      "size_bytes": 56431,
+      "save_as_receipt_size_bytes": 56431,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-front-reverse.SLDPRT",
+      "sha256": "f9a1d5f7d773686b7a8eeeceac0e79ca55f19aea86183773345f6b69003991f4",
+      "size_bytes": 60266,
+      "save_as_receipt_size_bytes": 60266,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-top-forward.SLDPRT",
+      "sha256": "a38d5af9fe9f2b8b29a38d83f06022cf5e880d30eecd18e4f454542236bee69a",
+      "size_bytes": 62119,
+      "save_as_receipt_size_bytes": 62119,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-top-reverse.SLDPRT",
+      "sha256": "3faba623f06102e0539732016db5827e9d7e25417ba8415977ce6a3c58bee1db",
+      "size_bytes": 67136,
+      "save_as_receipt_size_bytes": 67136,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-right-forward.SLDPRT",
+      "sha256": "6bad8f326f9ee28bf2134471f7faa9f612c3b91cc295becabd6c52d99b038d4d",
+      "size_bytes": 58006,
+      "save_as_receipt_size_bytes": 58006,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/native-model/modeling/polygon-ell-cw-cut-right-reverse.SLDPRT",
+      "sha256": "205165221870d700367d3166f9b8414b7be7a4d4f937eab4c6e9ef2703e15169",
+      "size_bytes": 59885,
+      "save_as_receipt_size_bytes": 59885,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/continuation-front-diameter/driving/driving-smoke-2823f8dc2b7d-front.SLDPRT",
+      "sha256": "3c82012fccb7ba2d7003daabc50739ef08b8478e0335d0909d3b68560ed41007",
+      "size_bytes": 56362,
+      "save_as_receipt_size_bytes": 56362,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    },
+    {
+      "format": "SLDPRT",
+      "path": "swcli-native-smoke/hidden/runtime-sets/rectangle-front/driving/driving-smoke-b812c28f1b34-front-rectangle.SLDPRT",
+      "sha256": "c7e6526b980578663e6d2152bdd2ae176ec59677610ff39e6b3db8c09b4bea25",
+      "size_bytes": 51323,
+      "save_as_receipt_size_bytes": 51323,
+      "retained_size_matches_save_as_receipt": true,
+      "retained_phase": "save-as"
+    }
+  ],
+  "first_failure": {
+    "report": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/modeling.json",
+    "request_id": "7712054a-7f17-495b-a30a-7d37690bd042",
+    "result": {
+      "action": "document.export",
+      "api_saved": true,
+      "document": {
+        "active": true,
+        "current": true,
+        "document_id": "d-pa6rp3",
+        "modified": false,
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+        "title": "component",
+        "type": 1,
+        "update_stamp": 163
+      },
+      "error": {
+        "diagnostic_file": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component-export.invalid-native.glb",
+        "message": "exported file did not pass content verification",
+        "type": "ExportVerificationFailed",
+        "verification": {
+          "non_empty": true,
+          "signature_valid": false
+        }
+      },
+      "ok": false,
+      "output": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component-export.GLB",
+      "save_attempted": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "session_id": "modeling-smoke-2e62bb93ef37"
+    }
+  },
+  "invalid_glb": {
+    "path": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.invalid-native.glb",
+    "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+    "size_bytes": 3800,
+    "declared_glb_length": 3800,
+    "chunks": [
+      {
+        "kind": "0x4e4f534a",
+        "byte_length": 3772
+      },
+      {
+        "kind": "0x4e4942",
+        "byte_length": 0
+      }
+    ],
+    "declared_buffer_bytes": 720,
+    "actual_bin_bytes": 0,
+    "declared_accessors": [
+      {
+        "bufferView": 0,
+        "byteOffset": 0,
+        "componentType": 5125,
+        "count": 36,
+        "type": "SCALAR",
+        "min": [
+          0
+        ],
+        "max": [
+          23
+        ]
+      },
+      {
+        "bufferView": 1,
+        "byteOffset": 0,
+        "componentType": 5126,
+        "count": 24,
+        "type": "VEC3",
+        "min": [
+          -0.019999999552965164,
+          -0.014999999664723873,
+          0.0
+        ],
+        "max": [
+          0.019999999552965164,
+          0.014999999664723873,
+          0.009999999776482582
+        ]
+      },
+      {
+        "bufferView": 2,
+        "byteOffset": 0,
+        "componentType": 5126,
+        "count": 24,
+        "type": "VEC3",
+        "min": [
+          -1.0,
+          -1.0,
+          -1.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    ],
+    "strict_mesh_error": "external or invalid GLB buffer",
+    "readable_mesh": false
+  },
+  "definition_identity": {
+    "records": 300,
+    "counts": [
+      {
+        "operation": "feature.extrude",
+        "status": "unavailable",
+        "error_type": "com_error",
+        "count": 58
+      },
+      {
+        "operation": "feature.cut-extrude",
+        "status": "unavailable",
+        "error_type": "com_error",
+        "count": 25
+      },
+      {
+        "operation": "feature.inspect",
+        "status": "unavailable",
+        "error_type": "com_error",
+        "count": 105
+      },
+      {
+        "operation": "feature.set-depth",
+        "status": "unavailable",
+        "error_type": "com_error",
+        "count": 112
+      }
+    ],
+    "typeinfo_iid_verified": false,
+    "revolve_and_simple_fillet": "not reached",
+    "error_hresult_and_stage": "not captured by this exact head"
+  },
+  "runtime_groups": [
+    {
+      "name": "native-model",
+      "success": true,
+      "owned_host_pid": 8788,
+      "stopped": true
+    },
+    {
+      "name": "continuation-front-diameter",
+      "success": true,
+      "owned_host_pid": 7760,
+      "stopped": true
+    },
+    {
+      "name": "rectangle-front",
+      "success": true,
+      "owned_host_pid": 6736,
+      "stopped": true
+    },
+    {
+      "name": "assemblies",
+      "success": false,
+      "owned_host_pid": 3424,
+      "stopped": true
+    }
+  ],
+  "source_sha256": {
+    "src/swcli/hosts/windows_save_as.py": "84cd59919884f050fc70c46f22dcc7fd7a6d0e20fdd6b3932a2f84154e90eb09",
+    "src/swcli/hosts/windows_configurations.py": "c337ff31ddfe98839e3a556b81e1b6de4ce6c50b756d8f75f38651ddba52539e",
+    "src/swcli/hosts/windows_dimensions.py": "c26f89a7536362f1b6d1876741b49194f0e3dac936d96870cf0404b78090183d",
+    "src/swcli/hosts/windows_documents.py": "3fb0e4e449cfb3611005e463c46c476d1ea2f7e906a3914ba6c84f5e540a50a1",
+    "src/swcli/hosts/windows_native_files.py": "f79a7fe939ab7df497fbdfed7fd05258aed23fb08bc7fe1d21b817c0f8db30f3",
+    "src/swcli/hosts/windows_parts.py": "7132a6f90d02b46f2d348cd76e257a389b4eb47355063f638f0513424b9e302f",
+    "src/swcli/hosts/native_trace.py": "2e001d50be84d6efc2518be8c639f005b580841af9e8b9c001266c1758189424",
+    "src/swcli/hosts/windows_definition_identity.py": "29d88467ab0e59e6e9152f6b9b4dacf865a8b3dd2d4cb616e4e0e434632bf726"
+  },
+  "audit_script_sha256": "61b6f85c7b96829cecea5f578c96cbae3a52d4414e8d64b9cbccb96042f5720c",
+  "not_reached": [
+    "exports",
+    "drawing-save",
+    "drawing-save-as",
+    "reverse-cut",
+    "feature-depth",
+    "fillets",
+    "drawings",
+    "center-front",
+    "diameter-top",
+    "center-top",
+    "rectangle-top",
+    "diameter-right",
+    "center-right",
+    "rectangle-right",
+    "toolbox"
+  ],
+  "limitations": [
+    "Default current configuration only; no two-configuration different-value proof.",
+    "ASM/DRW save-reopen evidence is owned preparation/public annotation fixtures; component assembly neutral exports and box wrapper were not reached.",
+    "GetDefinition observations failed diagnostically; no v1/v2 conclusion.",
+    "Modern part GLB has empty BIN; no parameter/binding fallback or acceptance relaxation is justified.",
+    "Not a full-native acceptance or release result."
+  ]
+}
