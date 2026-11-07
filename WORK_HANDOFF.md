@@ -4,7 +4,7 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **装配体/工程图已完成含严格 native guard 的公开验收，供统筹 review/合并。** 精确候选 tip `5a4d861d9caf7c4b79ef9f288630aa06247e50d1`，产品代码对应已验 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`。零件写入继续关闭，系列完整验收仍待完成。
+- **装配体/工程图正常路径已完成含严格 native guard 的公开验收。** 原候选 tip `5a4d861d9caf7c4b79ef9f288630aa06247e50d1` 须补本轮 worker late-fault 回执独立修复后交统筹 review。正常路径原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`。零件写入继续关闭，系列完整验收仍待完成。
 - 内部 `42301331238` 和公开 `42366316568` 的新原件均已审核。后续提交只增加原计划零件的严格 pre-write 对照，候选 tip 与后续诊断 head 分开记录。默认完整计划保留零件精确几何断言。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
@@ -171,3 +171,13 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 后续零件诊断提交 `6396034fe941b28d90ced2b941ae0d6c26907be9` 已推送，产品 adapter/profile 与候选一致。该提交增加 pre-write exact 对照和 part-only CI 选择，尚待其自身原件。
 - [42405733149](https://github.com/YJBeetle/SWCLI/actions/runs/42405733149) 单次 dispatch，精确 head `6396034fe941b28d90ced2b941ae0d6c26907be9`，mode `internal`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `part`。单次快照 `in_progress`，metadata 与输入保存在 ignored `run-42405733149/`。
 - 本轮验证会在任何 candidate table setter 前读取当前可写 handle，与原只读基线严格比较。该数据用于判断先前的 exact centroid 阻断是否在首写前已存在。原有全部 post-write/save-reopen exact 检查和首错停组规则继续执行。结果待完成原件核验。
+
+
+## worker 恢复/late validator 回执的独立修复
+
+- 统筹继续 source review 发现 `_worker_main` 原 except 会丢失 table setter 已知 mutation 及第一业务错误。本轮按 main `00f4538` 语义增加表格专用 helper，现有其他偏好 helper 由统筹合并时保留。
+- 只接纳当前 `document.table-option-set` operation/action 匹配及精确两 bool mutation。第一业务错误保持 type/message，次级故障放入 `worker_error`。完整 payload 经现有 validator（含 finite UTF-8 JSON）验证，不可信字段降级最小失败，非法 native 文本复用 server 的可见转义。每请求 result=None 防止借用前一请求。
+- 恢复不明的 NativeCommandRestoreFailed 仍使用原 envelope code、host-disconnected lifecycle 和 break 退休规则。未改变正常操作分派和 supervisor recovery 机制。
+- 新测试执行真实 handler/adapter/native_api_sequence/worker，覆盖成功写后 restore fault、native 抛错或 false 后 restore fault、实际坏描述符、首错+late validator 降级、clean no-op、第二请求执行前失败无回执借用、严格 guard 及 JSON/text 降级。相关 126 tests 通过。
+- 复跑命令、完整日志路径和各故障结果见 `docs/verification/table-defaults-worker-late-fault-2026-11-08.md`。异常路径按统筹指令用 portable fault injection 验证，无新增 native dispatch。本轮代码/测试/证据独立提交交统筹本人审查。
+- 零件 `42405733149` / `6396034fe941b28d90ced2b941ae0d6c26907be9` 的受测历史保持不变，严格几何和其他系列范围继续作为原门禁。

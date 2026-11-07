@@ -80,6 +80,34 @@ def _error_response(
     }
 
 
+def _preserve_table_receipt(response, operation, result, error):
+    """Retain this request's trusted table boundary after a worker late fault."""
+    if (operation != "document.table-option-set" or not isinstance(result, dict)
+            or type(result.get("action")) is not str or result["action"] != operation):
+        return response
+    mutation = result.get("mutation")
+    if (not isinstance(mutation, dict) or set(mutation) != {"attempted", "may_have_changed"}
+            or any(type(value) is not bool for value in mutation.values())):
+        return response
+    partial = dict(result)
+    partial["ok"] = False
+    partial["mutation"] = dict(mutation)
+    worker_error = {"type": type(error).__name__, "message": _safe_error_text(error)}
+    previous = result.get("error")
+    if (result.get("ok") is False and isinstance(previous, dict)
+            and isinstance(previous.get("type"), str) and isinstance(previous.get("message"), str)):
+        partial["error"] = {"type": _safe_error_text(previous["type"]),
+                            "message": _safe_error_text(previous["message"]), "worker_error": worker_error}
+    else:
+        partial["error"] = worker_error
+    try:
+        validate_operation_result(operation, partial)
+    except Exception:
+        partial = {"ok": False, "action": operation, "mutation": dict(mutation), "error": partial["error"]}
+    response["result"] = partial
+    return response
+
+
 def _success_response(
     request_id: str, result: Any, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -331,6 +359,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
+            result = None  # A fault before dispatch must not borrow a prior receipt.
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -409,6 +438,7 @@ def _worker_main(
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
+                response = _preserve_table_receipt(response, str(request["operation"]), result, exc)
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(
