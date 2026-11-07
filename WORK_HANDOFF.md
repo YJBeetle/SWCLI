@@ -233,3 +233,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 完整可复跑**绝对路径命令**、head/artifact/digest/报告hash/精确范围及缺口位于 `docs/verification/units-42361728509-handoff.md`。最终可合tip为本轮完成审计文档提交（精确SHA由最终回复给出），其后相对验证head仅docs/auditor与本地原件忽略规则，无操作源码变化，可由独立命令复核。最终review/merge仍由统筹本人办理，本线程不合main不发布、不新增代理、不扩范围、不重复CI。
 
 可合只限九字段read/raw5/linkage、公开precision=2 noop、lease/stamp/完整CAS/readonly/闭域拒写、save/reopen及owned生命周期的上述三fixture子集。changed-write/scalar/system切换/写持久性仍未验收、白名单空；P1异常故障注入是portable/mock证据，本轮native是正常正向/拒绝覆盖。不得宣称九字段写能力或全系列/发布已完成。旧失败原件原状态全部保留，正式发布仍待用户确认。
+
+## 九字段原定完整收口清单（替代“本路已完成”的任何解读）
+
+按统筹最新要求再次独立复审 run42361728509 / head577309005a858c11543b5def253dca36e5d0c598 的原 ZIP，audit_success=true、10项负向/边界自检通过、当前操作源与验收head相同。没有新CI或产品改动。已通过范围保持三fixture九字段读取/raw5/linkage、仅precision=2 noop、五类拒写、只读文件生命周期及owned退出；不是九字段全读写。
+
+新增 `docs/verification/units-original-scope-closeout.md` 逐项列九字段既定目标与最小剩余验证。changed-write白名单仍空，公开完成0/9：八scalar真实setter/各目标保存重开、system独立联动与公共有限策略、审原件后手动精确domain、公开changed-write验收均未完成。当前CI不调用private校准写；公共system无条件拒绝，private仅system目标roundtrip也不构成完整联动验收，不能只填白名单宣称完成。
+
+原计划scalar值/precision0与8端点、MMGS↔CGS/MKS/IPS/Custom有限方向不新增；端点不外推1..7、part不外推assembly/drawing、只读保存不外推写入持久性。剩余能力继续属于本系列，不能默认后置并发半组。“精确可合子集”仅是只读/noop/拒写代码可交统筹技术review，不是本路/系列完成或发布资格。V/S/count及state/identity/CAS全部原标准，质心只用用户已批准逐轴绝对≤1e-12mm；无相对容差、无通用kernel宽阈值。
+
+本轮只完善既定范围交接，未扩字段/计划、未新增CI/代理、未触碰其他worktree/VM/main/tag/release；后续实现与必要新head原生写证据按此清单继续，不能用当前read gate重复运行代替。

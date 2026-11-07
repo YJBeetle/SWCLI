@@ -1,4 +1,4 @@
-# 单位扩展：交统筹最终review的精确可合子集
+# 单位扩展：已验收只读子集交接（完整读写尚未收口）
 
 工作树：`/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI`，分支`codex/docprops-units-expanded`。最终可合tip为本次完整审计/交接docs提交（精确SHA随本轮最终回复给出）；业务验收head为`577309005a858c11543b5def253dca36e5d0c598`。其后的变化仅审计/原件/交接文档与本次本地原件忽略规则；src、scripts/ci、workflow均与验收head相同，独立命令会强制核验，不能在未审计的新业务源上冒用此通过记录。
 
@@ -49,3 +49,9 @@ Windows-2025 hosted、SOLIDWORKS 33.5.0，public实际Python3.12.10。Windows Py
 `CALIBRATED_UNIT_WRITES=()`仍空。没有changed单位写入、scalar/system切换、其他source/target写域或写入持久性证据；不得把只读/noop/拒写public通过标作九字段写入完成。旧A17接口源码未改，兼容性portable证据不等于本run重测其全部native场景。P1描述符异常回执/同指针peer漂移有真实handler/worker便携故障注入与独立mock复现，本run是正常native正向/拒绝覆盖，不宣称已原生主动注入所有异常。Wine/macOS/Linux、全功能/发布gate未覆盖，release job skipped。
 
 该精确子集交统筹本人最终review/merge；本线程未合main、未发版、未触碰VM/DockerSW/MacSW。系列其他未完能力与正式发布仍按用户要求处理，本次不作系列完成或发布授权。
+
+## 九字段完整收口仍未完成（本轮澄清）
+
+本次再次从原 ZIP 独立复审通过，不能改变 `CALIBRATED_UNIT_WRITES=()` 所代表的 **0/9 changed-write 完成**状态。此前“可合子集”仅是已验收只读/noop/拒写代码可交技术 review，不表示本路或系列已完成，也不代表可发半组。scalar/system/写后保存持久性/人工有限域/public changed-write 仍为本系列既定未完工作；公共 system 目前还会无条件拒绝，单填白名单不足以启用。
+
+逐字段原定目标、实现缺口及按依赖排列的最小剩余验证见 [原定范围收口清单](units-original-scope-closeout.md)。精度原 native 端点计划仅0/8，不外推1..7；part 写入不得外推assembly/drawing；保留原600/1800秒预算、首失败停止及仅质心绝对1e-12mm例外，V/S/count/state/identity/CAS不放宽。本轮只补清单，不新增功能、字段、计划、CI或代理。
