@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-08",
+  "scope": "diagnostic acceptance gap only; no native execution",
+  "branch": "codex/native-api-observation-modern",
+  "implementation_commit": "b9c5e3cacc38d5aa0cef9d56160d9307285524d8",
+  "required_combination_product": "0a00751e44823ca46237000479754634bf50a418",
+  "integration_owner": "existing GLB thread and coordinator; this branch does not merge or dispatch",
+  "checks": {
+    "new_portable_tests": 9,
+    "portable_total": 2153,
+    "portable_skipped": 28,
+    "sdk_strict_files": 6,
+    "sdk_type_refusals": 11,
+    "installed_resources": "passed; no COM activation",
+    "diff_check": "passed"
+  },
+  "native": {
+    "executed": false,
+    "dispatches": 0,
+    "accepted": false,
+    "original_product_and_evidence": "untouched",
+    "next": "same necessary combined full; installed contract then two-configuration getter and existing public STL plan before original full/GLB; first failure stops"
+  },
+  "source_files": [
+    {
+      "path": "scripts/ci/verify-native-getter-configurations.py",
+      "sha256": "bbacf594eee788fd7fca9635af1e6023dbcc12cd30fe75d657386eb0cb9f1921",
+      "size_bytes": 17769
+    },
+    {
+      "path": "scripts/ci/verify-stl-options.py",
+      "sha256": "fe9cbd8eda7a0b8c87c051292749888065ebd47925494ed32504c2dd7326965e",
+      "size_bytes": 25690
+    },
+    {
+      "path": "tests/test_native_getter_configurations.py",
+      "sha256": "11bd0f4b1367ccb189cae41982ad62c08b29c5ff7f0a610208503bf3d1639a80",
+      "size_bytes": 13686
+    }
+  ],
+  "logs": [
+    {
+      "path": "artifacts/native-api-observation/getter-fixture-tests.log",
+      "sha256": "d0ab1dd43e2e3a29ddc06d756ae4702874ccf5a5279c1cbb8656a100cf3a9bc7",
+      "size_bytes": 1724
+    },
+    {
+      "path": "artifacts/native-api-observation/getter-preflight-portable-full.log",
+      "sha256": "b972242eb4c9a4b07a0a5f247048f76369ade61634ca606f11aa4a46d3a24ba2",
+      "size_bytes": 389691
+    },
+    {
+      "path": "artifacts/native-api-observation/getter-preflight-sdk.log",
+      "sha256": "c0db48e13985a5d88c899b449e077312818b47dd0bcb0b2cf9e2f961218e076a",
+      "size_bytes": 121
+    },
+    {
+      "path": "artifacts/native-api-observation/getter-preflight-installed.log",
+      "sha256": "08897a2cf91d4a85ba58bc75c0c1f4d7b7f8691de42c64656e154451506cb6e4",
+      "size_bytes": 76
+    }
+  ]
+}
