@@ -65,7 +65,7 @@ class Scene:
                 info.value = (1,)
                 return (body,)
             component.GetBodies3 = mock.Mock(side_effect=component_bodies)
-            component.GetCorrespondingEntity=lambda native: native
+            component.GetCorresponding=lambda native: native
             self.components.append(component)
             self.faces.append(faces)
         self.doc.GetComponents=lambda top: tuple(reversed(self.components))
@@ -130,52 +130,93 @@ class MateTests(unittest.TestCase):
         Draft202012Validator(SNAPSHOT).validate(result['snapshot'])
         self.scene.doc.CreateMate.assert_not_called()
 
-    def test_background_mapping_uses_entity_interface_and_entity_specific_correspondence(self):
+    def test_background_mapping_preserves_the_source_wrapper_and_uses_one_api_path(self):
         foreground = object()
         self.scene.app.ActiveDoc = foreground
         for component in self.scene.components:
-            component.GetCorresponding = mock.Mock(
-                side_effect=AssertionError("generic object mapping must not bind faces")
+            component.GetCorresponding = mock.Mock(side_effect=lambda source: source)
+            component.GetCorrespondingEntity = mock.Mock(
+                side_effect=AssertionError("no alternate mapping path")
             )
-            component.GetCorrespondingEntity = mock.Mock(side_effect=lambda entity: entity)
-        original_dispatch = api._dispatch.side_effect
-        with mock.patch.object(api, "_dispatch", wraps=original_dispatch) as dispatch:
-            observed = api.read_mate_targets_windows(
-                app=self.scene.app, document=self.scene.doc, components=self.scene.names
-            )
+        observed = api.read_mate_targets_windows(
+            app=self.scene.app, document=self.scene.doc, components=self.scene.names
+        )
         self.assertTrue(observed["ok"], observed)
         self.assertIs(self.scene.app.ActiveDoc, foreground)
         for component, faces in zip(self.scene.components, self.scene.faces):
-            self.assertEqual(
-                component.GetCorrespondingEntity.call_args_list,
-                [mock.call(face) for face in faces],
-            )
-            component.GetCorresponding.assert_not_called()
-            for face in faces:
-                self.assertIn(mock.call(face, "IEntity", app=self.scene.app), dispatch.call_args_list)
+            self.assertEqual(component.GetCorresponding.call_args_list,
+                             [mock.call(face) for face in faces])
+            component.GetCorrespondingEntity.assert_not_called()
 
-    def test_background_owner_is_read_from_exact_component_body_face(self):
-        original = self.scene.faces[0][0]
-        intermediate = NS(**vars(original))
-        intermediate.GetComponent = mock.Mock(
-            side_effect=AssertionError("intermediate component context is unavailable")
-        )
-        self.scene.app.ActiveDoc = foreground = object()
-        self.scene.components[0].GetCorrespondingEntity = (
-            lambda face: intermediate if face is original else face
-        )
+    def test_same_native_face_with_different_context_keeps_original_mapped_wrapper_for_mate(self):
+        api.capture_verified_reference.reset_mock()
+        mapped_by_source = {}
+        body_face_by_mapped = {}
+        for component, faces in zip(self.scene.components, self.scene.faces):
+            for body_face in faces:
+                mapped = NS(**vars(body_face))
+                mapped.GetComponent = lambda component=component: component
+                mapped_by_source[id(body_face)] = mapped
+                body_face_by_mapped[id(mapped)] = body_face
+                body_face.GetComponent = mock.Mock(
+                    side_effect=AssertionError("body-face wrapper has no assembly owner")
+                )
+            component.GetCorresponding = mock.Mock(
+                side_effect=lambda source: mapped_by_source[id(source)]
+            )
+            component.GetCorrespondingEntity = mock.Mock(
+                side_effect=AssertionError("no alternate mapping path")
+            )
         def same(first, second):
+            token = getattr(first, "token", None)
             return int(first is second or
-                       (first is intermediate and second is original) or
-                       (first is original and second is intermediate))
+                       (token is not None and token == getattr(second, "token", None)))
         self.scene.app.IsSame = same
-        result = api.read_mate_targets_windows(
-            app=self.scene.app, document=self.scene.doc, components=self.scene.names
-        )
+        def dispatch(native, interface, **kwargs):
+            if interface == "IFace2" and id(native) in body_face_by_mapped:
+                return body_face_by_mapped[id(native)]
+            return native
+        self.scene.app.ActiveDoc = foreground = object()
+        with mock.patch.object(api, "_dispatch", side_effect=dispatch):
+            read = api.read_mate_targets_windows(
+                app=self.scene.app, document=self.scene.doc, components=self.scene.names
+            )
+            self.assertTrue(read["ok"], read)
+            self.assertIs(self.scene.app.ActiveDoc, foreground)
+            self.scene.app.ActiveDoc = self.scene.doc
+            result = self.add(expected_value=read["snapshot"])
         self.assertTrue(result["ok"], result)
-        intermediate.GetComponent.assert_not_called()
-        self.scene.components[0].GetBodies3.assert_called()
-        self.assertIs(self.scene.app.ActiveDoc, foreground)
+        for index, faces in enumerate(self.scene.faces):
+            self.assertIs(self.scene.data.EntitiesToMate[index], mapped_by_source[id(faces[0])])
+            for face in faces:
+                face.GetComponent.assert_not_called()
+            self.scene.components[index].GetCorrespondingEntity.assert_not_called()
+        for call in api.capture_verified_reference.call_args_list:
+            self.assertIn(id(call.args[2]), body_face_by_mapped)
+        self.scene.doc.CreateMate.assert_called_once()
+
+    def test_valid_body_wrapper_cannot_mask_missing_or_wrong_original_mapped_owner(self):
+        source = self.scene.faces[0][0]
+        for owner in (None, self.scene.components[1]):
+            mapped = NS(**vars(source))
+            owner_probe = mock.Mock(return_value=owner)
+            mapped.GetComponent = lambda: owner_probe()
+            self.scene.app.IsSame = lambda first, second: int(
+                first is second or
+                (getattr(first, "token", None) is not None and
+                 first.token == getattr(second, "token", None)))
+            def corresponding(native):
+                return mapped if native is source else native
+            with self.subTest(owner=owner), mock.patch.object(
+                self.scene.components[0], "GetCorresponding", side_effect=corresponding
+            ) as mapping:
+                result = self.add()
+                self.assertFalse(result["ok"])
+                self.assertFalse(result["mutation"]["attempted"])
+                mapping.assert_called_once_with(source)
+                owner_probe.assert_called_once()
+        self.scene.doc.CreateMateData.assert_not_called()
+        self.scene.doc.CreateMate.assert_not_called()
 
     def test_component_body_rejects_foreign_faces_and_incomplete_or_modified_bodies(self):
         component = self.scene.components[0]
@@ -206,7 +247,7 @@ class MateTests(unittest.TestCase):
         self.scene.doc.CreateMate.assert_not_called()
 
     def test_source_mapping_must_match_exact_component_body_face_identity(self):
-        with mock.patch.object(self.scene.components[0], "GetCorrespondingEntity",
+        with mock.patch.object(self.scene.components[0], "GetCorresponding",
                                return_value=self.scene.faces[1][0]):
             result = self.add()
         self.assertFalse(result["ok"])

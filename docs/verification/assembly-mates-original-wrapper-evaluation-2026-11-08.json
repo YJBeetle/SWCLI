@@ -1,0 +1,58 @@
+{
+  "evaluation": "original-mapped-wrapper-context",
+  "prior_code_head": "202aa7cbfd27749116f1680e89947c6dabe4172a",
+  "prior_failure_run": 42404819519,
+  "confirmed_code_issue": "After IsSame matching the original mapping, ownership, reference capture and mate bindings used a body-enumeration wrapper instead",
+  "prior_evidence_limit": "Owner None was observed on the replacement body-face wrapper; raw original GetCorresponding mapping context is not excluded",
+  "installed_solidworks_contract": {
+    "native_run": 42279916240,
+    "revision": "33.5.0",
+    "sldworks_tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+    "component_members": [
+      "GetCorresponding",
+      "GetID",
+      "GetSuppression2",
+      "IsFixed",
+      "IsVirtual",
+      "ReferencedConfiguration",
+      "Transform2"
+    ],
+    "entity_members": [
+      "GetComponent"
+    ],
+    "native_getcorresponding_execution": "Completed in the recorded 2025 internal calibration",
+    "getcorresponding_trace_counts": {
+      "begin": 192,
+      "end": 192
+    }
+  },
+  "official_sources": [
+    "https://help.solidworks.com/2022/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icomponent2~getcorresponding.html",
+    "https://help.solidworks.com/2023/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IEntity~GetComponent.html"
+  ],
+  "official_2025_web_result": "API body not retrievable from the requested 2025 Web Help pages; installed 2025 library/member and native execution evidence used",
+  "candidate_path": "Single GetCorresponding(source-face) call; preserve original mapped object for owner, persistent reference, and EntitiesToMate; body wrappers only validate identity",
+  "invariant_checks": [
+    "unique native face match",
+    "queried interface native identity",
+    "exact owner component",
+    "exact body identity",
+    "geometry equality",
+    "private reference round trip",
+    "full value CAS",
+    "foreground identity"
+  ],
+  "portable_regressions": [
+    "same native identity with distinct owner contexts",
+    "IFace2 view may be a different wrapper; original used for mate",
+    "good body owner cannot mask absent/wrong raw mapping owner",
+    "one mapping API path with no fallback"
+  ],
+  "native_acceptance": false,
+  "public_acceptance": false,
+  "merge_ready": false,
+  "portable_test_count": 48,
+  "full_portable_test_count": 1867,
+  "platform_skips": 26,
+  "sdk_check": "generator, strict implementation and 8 negative consumer cases passed"
+}

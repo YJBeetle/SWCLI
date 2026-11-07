@@ -37,10 +37,12 @@ swcli assembly mate-targets 'part-1' 'part-2' --document d-ab12cd --json
 `area_mm2` 为原生近似面积；实际配合残差才以毫米返回。
 
 面数组 `index` 只用于本次完整观察，不是稳定引用。每个源面通过
-`IComponent2.GetCorrespondingEntity` 映射到指定装配组件实例，用 `ISldWorks.IsSame`
+`IComponent2.GetCorresponding` 映射到指定装配组件实例，用 `ISldWorks.IsSame`
 证明归属。组件体通过 GetBodies3 完整枚举，必须是一个 normal solid body。
 组件体面的数量必须与源零件一致，每个源面对应结果都必须唯一匹配组件体中一张原生面，
-该面的 GetBody 与组件体一致，GetComponent 与指定组件一致。
+GetBody 与组件体一致。身份匹配只作验证，原始 mapped wrapper 持续用于 GetComponent、
+私有引用捕获和 EntitiesToMate，避免用身份相同而上下文不同的体面 wrapper 替换。
+GetComponent 必须返回指定组件，任何空 owner 或错误实例都拒绝。
 私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
 完整 CAS，不发布可解析 token，也不承诺跨更新、关闭重开或拓扑变化稳定。
 本分支不依赖尚未验收的独立稳定引用分支。
@@ -91,7 +93,7 @@ SLDASM 文件随独立 artifact 保留；本地交接记录见 `WORK_HANDOFF.md`
 
 - [CreateMate 与创建顺序](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IAssemblyDoc~CreateMate.html)
 - [官方标准配合示例](https://help.solidworks.com/2024/English/api/sldworksapi/Create_Standard_Mates_Example_CSharp.htm)
-- [GetCorrespondingEntity 的面实体实例上下文](https://help.solidworks.com/2019/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IComponent2~GetCorrespondingEntity.html)
+- [GetCorresponding 的装配实例上下文](https://help.solidworks.com/2022/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.icomponent2~getcorresponding.html)
 - [IEntity.GetComponent 的装配归属语义](https://help.solidworks.com/2023/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IEntity~GetComponent.html)
 - [配合实体 Reference](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IMateEntity2~Reference.html)
 - [配合类型](https://help.solidworks.com/2026/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swMateType_e.html)

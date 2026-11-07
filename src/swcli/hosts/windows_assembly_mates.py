@@ -188,23 +188,34 @@ def _dispatch(native, interface, *, app):
 
 
 def _face(app, assembly, source, component, native, index, body, assembly_faces):
-    entity = _dispatch(native, "IEntity", app=app)
     mapped = native_call(
         "assembly-mates",
-        "Component2.GetCorrespondingEntity",
-        lambda: component.GetCorrespondingEntity(entity),
+        "Component2.GetCorresponding(source-face)",
+        lambda: component.GetCorresponding(native),
     )
     require(mapped is not None, "native corresponding face is absent")
-    matches = [face for face in assembly_faces if _same(app, mapped, face)]
+    matches = [
+        face for face in assembly_faces
+        if native_call("assembly-mates", "OriginalMapped.IsSame(component-body-face)",
+                       lambda face=face: _same(app, mapped, face))
+    ]
     require(len(matches) == 1, "mapped face identity is not unique in the component body")
-    owner = value(_dispatch(matches[0], "IEntity", app=app), "GetComponent")
-    require(owner is not None, "mapped face has no component in the selected assembly context")
-    require(_same(app, owner, component), "mapped face does not belong to the exact component")
-    mapped = _dispatch(matches[0], "IFace2", app=app)
-    require(_same(app, value(mapped, "GetBody"), body), "component face belongs to another body")
+    # Keep the original assembly-instance wrapper for ownership, references
+    # and mating. Body enumeration verifies native identity only.
+    mapped_entity = _dispatch(mapped, "IEntity", app=app)
+    require(_same(app, mapped, mapped_entity), "mapped entity interface changed native identity")
+    owner = native_call("assembly-mates", "IEntity(original-mapped).GetComponent",
+                        lambda: value(mapped_entity, "GetComponent"))
+    require(owner is not None, "original mapped face has no component in the selected assembly context")
+    owner_matches = native_call("assembly-mates", "OriginalMapped.owner-IsSame(target-component)",
+                                lambda: _same(app, owner, component))
+    require(owner_matches, "mapped face does not belong to the exact component")
+    mapped_face = _dispatch(mapped, "IFace2", app=app)
+    require(_same(app, mapped, mapped_face), "mapped face interface changed native identity")
+    require(_same(app, value(mapped_face, "GetBody"), body), "component face belongs to another body")
     original = _geometry(native)
     require(original["surface_kind"] in ("plane", "cylinder"), "only plane/cylinder fixtures are supported", "UnsupportedMateScope")
-    require(_geometry(mapped) == original, "assembly-context face differs from the part geometry", "UnsupportedMateScope")
+    require(_geometry(mapped_face) == original, "assembly-context face differs from the part geometry", "UnsupportedMateScope")
     surface = value(native, "GetSurface")
     kind = original["surface_kind"]
     params = _numbers(value(surface, "PlaneParams" if kind == "plane" else "CylinderParams"),

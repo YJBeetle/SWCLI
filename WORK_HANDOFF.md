@@ -178,3 +178,11 @@
 - 机器收据为 `docs/verification/assembly-mates-public-component-body-failure-2026-11-08.json`。组件体面候选未解决该首因。已查阅的官方 GetComponent 文档限定其实体获取上下文，现有资料未给出满足当前“不激活目标、精确取得并校验 owner”要求的新修复依据。
 - 按“无信息不重跑”，本轮只提交原件核验和技术缺口记录。代码候选仍为 202aa7c，保留全部身份/组件归属/几何断言。没有新的运行时修改或 dispatch，未用 VM。现有内部历史成功仅指 ac9e54f / run 42279916240，公开验收继续未通过，不能合并或发版。
 - 已收到 main 960839e 和便携 42412228332 成功的统筹信息，本工作树未变更 main 或发布/worker 保护。后续需统筹确定保持当前约束的有效组件上下文取得方案后再推进。
+
+## 统筹复审后的原始 mapped wrapper 修复
+- 统筹指出具体对象替换问题后，已核实旧 _face 在唯一 IsSame 匹配后丢弃原始 mapped，改用 matches[0] 获取 owner、捕获引用并作为配合绑定。最近原件确实只证明体面 wrapper 的 owner 为空，尚未排除原始映射对象的上下文。此前便携替身把相反的上下文假设写进测试，本轮改为覆盖身份相同而 owner 上下文不同的两个 wrapper。
+- 官方 2022 GetCorresponding 明确返回装配中指定实例上下文。已保存的 2025 / revision 33.5.0 原安装库证据包含 IComponent2.GetCorresponding 和 IEntity.GetComponent，TLB SHA 为 `585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159`，历史原生 trace 的该映射调用成对成功。2025 Web Help 请求未返回 API 正文，本轮采用上述实际安装库证据和可读取的官方语义，未把网页空壳算成契约证明。评估收据 `docs/verification/assembly-mates-original-wrapper-evaluation-2026-11-08.json`。
+- 候选只调用 GetCorresponding(source-face) 一条映射路径，保留其原始返回对象。组件体面数组只核验唯一原生身份；IEntity owner 从原始 mapped 的接口读取，IFace2 仅用于几何与体核验，引用捕获和 EntitiesToMate 均保留原始 mapped。原始 owner 为空或错误组件继续拒绝。体归属、接口身份、几何、引用往返、完整 CAS 及后台保护全部执行。
+- 新 trace 标签区分 GetCorresponding(source-face)、OriginalMapped.IsSame(component-body-face)、IEntity(original-mapped).GetComponent 和 OriginalMapped.owner-IsSame(target-component)，用于下次原件确认实际映射与 owner 路径。
+- 48 项针对性通过。正向回归令体面/IFace2 wrapper 缺少 owner 而原始 mapped 有精确 owner，并核对实际 mate 输入和私有引用捕获对象均为原始 mapped；反向回归证明体面 owner 正确不能掩盖原始 mapped 的空/错 owner，失败时映射与 owner 调用各仅一次。
+- 完整便携执行 1867 项，26 平台跳过，其余通过；SDK generator / strict mypy / 8 负向消费场景通过。日志 `evidence/portable/original-mapped-*.log`。本轮有具体源码替换证据和官方契约依据，拟仅对这个候选发一次必要公开 gate，实际后台修复效果继续待原件核验。
