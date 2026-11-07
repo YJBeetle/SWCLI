@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "baseline": "2d83afdc6c5c56b1a72157a84d54ee15cde770ab",
+  "branch": "codex/native-api-observation-modern",
+  "configuration_commit": "aecd560a9c0293f1a97d33d91ab400dbb2b651f9",
+  "checks": {
+    "configuration_document_tests": 197,
+    "configuration_helper_tests": 4,
+    "line_trace_tests": 42,
+    "stl_tests": 24,
+    "dimension_associated_tests": 202,
+    "portable_total": 2144,
+    "portable_skipped": 28,
+    "sdk_generator": "passed",
+    "sdk_strict_source_files": 6,
+    "sdk_consumer_refusals": 11,
+    "mypy": "1.18.2",
+    "installed_resources": "passed-no-COM"
+  },
+  "native": {
+    "accepted": false,
+    "dispatches": 0,
+    "untouched_existing_run": "https://github.com/YJBeetle/SWCLI/actions/runs/42369257219",
+    "next": "coordinator final exact SaveAs3 + observation combined head single full/gate"
+  },
+  "logs": [
+    {
+      "path": "artifacts/native-api-observation/config-document-tests.log",
+      "sha256": "d7e5ed178ef8a7ba6cdf8c85ed53d07436c17bbda74db594dcc87170e6c95343",
+      "bytes": 399
+    },
+    {
+      "path": "artifacts/native-api-observation/config-helper-tests.log",
+      "sha256": "0323f48ca9ad17bae63ce6ffdee666ed4b1fdd96d9adc1aabba3f5bb2f45d980",
+      "bytes": 948
+    },
+    {
+      "path": "artifacts/native-api-observation/config-line-tests.log",
+      "sha256": "3d8bf7bf21d070f3272c68fd0a141d1490b92878c9f23961c037afe6104c6400",
+      "bytes": 98
+    },
+    {
+      "path": "artifacts/native-api-observation/config-stl-tests.log",
+      "sha256": "313afac52013212733158725c4253fe4d610847dbd50887526c168d573758171",
+      "bytes": 98
+    },
+    {
+      "path": "artifacts/native-api-observation/dimension-associated-tests.log",
+      "sha256": "cf3e085b066decc289f8bcdba7315fe51e4df425d4563727dcc84b857593b578",
+      "bytes": 38456
+    },
+    {
+      "path": "artifacts/native-api-observation/installed-resources.log",
+      "sha256": "08897a2cf91d4a85ba58bc75c0c1f4d7b7f8691de42c64656e154451506cb6e4",
+      "bytes": 76
+    },
+    {
+      "path": "artifacts/native-api-observation/portable-full.log",
+      "sha256": "74ff8acc417ba2a1e87ff636c8372a33c69a9a55cb4763874e709833188728ce",
+      "bytes": 388065
+    },
+    {
+      "path": "artifacts/native-api-observation/sdk-types-initial-mypy2.log",
+      "sha256": "133b11dce61e399da1fc44aae7f72d2d10ec76f96d854c1e9e256d898ce84d15",
+      "bytes": 1485
+    },
+    {
+      "path": "artifacts/native-api-observation/sdk-types.log",
+      "sha256": "c0db48e13985a5d88c899b449e077312818b47dd0bcb0b2cf9e2f961218e076a",
+      "bytes": 121
+    }
+  ]
+}

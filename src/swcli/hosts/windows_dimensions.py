@@ -11,6 +11,7 @@ import re
 from typing import Any, Dict, Optional, Tuple
 
 from .windows import _com_value, _error
+from .native_trace import native_call
 from .windows_documents import _diagnose_features
 from .windows_measurements import measure_part_windows
 from .windows_sketches import _unabsorbed_profile
@@ -19,6 +20,9 @@ from .windows_dimension_identity import DimensionIdentityUnavailable, same_dimen
 _INPUT_VALUE_ON_CREATE = 10
 _DRIVING = 2
 _CURRENT_CONFIGURATION = 1
+# swInConfigurationOpts_e.swSpecifyConfiguration, official enum reference:
+# https://help.solidworks.com/2022/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swInConfigurationOpts_e.html
+_SPECIFY_CONFIGURATION = 3
 _TOLERANCE_MM = 1e-6
 _TRAVERSAL_LIMIT = 10000
 _EQUATION_LHS = re.compile(r'^\s*"((?:[^"\r\n]|"")+)"\s*=')
@@ -260,7 +264,16 @@ def _descriptor(
         raise _DimensionError(
             "DimensionObservationUnavailable", "native dimension name is unreadable"
         )
-    value = dimension.GetSystemValue2(configuration)
+    # Explicitly query only the configuration already observed above. The OLE
+    # contract permits one BSTR name and returns an object/SAFEARRAY of values.
+    values = native_call("dimension-observation", "IDimension.GetSystemValue3",
+                         lambda: dimension.GetSystemValue3(_SPECIFY_CONFIGURATION, configuration))
+    if not isinstance(values, (tuple, list)) or len(values) != 1:
+        raise _DimensionError(
+            "DimensionObservationUnavailable",
+            "native dimension value must contain exactly one configured value",
+        )
+    value = values[0]
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise _DimensionError(
             "DimensionObservationUnavailable", f"native {kind} value is not numeric"
