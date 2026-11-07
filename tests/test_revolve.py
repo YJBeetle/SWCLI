@@ -338,7 +338,7 @@ class WiringTests(unittest.TestCase):
         self.assertIn("needs.test.result == 'success' && needs.package.result == 'success'",workflow)
         self.assertIn("needs.tag-policy.result == 'success'",workflow)
         self.assertNotIn("pull_request_target",workflow)
-        self.assertIn("inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks'",workflow)
+        self.assertIn("inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || (inputs.native_full && github.ref == 'refs/heads/codex/saveas3-modern' && format('swcli-saveas3-modern-{0}', github.ref)) || 'swcli-hosted-windows-solidworks'",workflow)
         self.assertIn('cancel-in-progress: false',workflow.split('  solidworks-e2e:',1)[1].split('    env:',1)[0])
         self.assertIn('Internal revolve calibration only; see revolve-calibration/report.json. Public acceptance is false.',workflow)
         summary=workflow.split('      - name: Summarize public test evidence',1)[1].split('      - name:',1)[0]

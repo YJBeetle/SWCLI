@@ -847,7 +847,11 @@ def export_active_windows_document(
                 app, export_format == "STL" and before["document"]["type"] == 2)
         with preference_scope:
             document.ClearSelection2(True)
-            saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
+            try:
+                saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
+            except Exception as exc:
+                result["error"] = _error(exc)
+                raise
             save_error = result["save_errors"]
             if not saved or save_error != 0:
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
@@ -931,10 +935,14 @@ def export_active_windows_document(
         result["ok"] = True
         return result
     except (StlOptionsError, _ExportPreferenceError) as exc:
-        result["error"] = {"type": exc.code, "message": str(exc)}
+        detail = {"type": exc.code, "message": str(exc)}
+        if "error" in result:
+            result["finalization_error"] = detail
+        else:
+            result["error"] = detail
         return result
     except Exception as exc:
-        result["error"] = _error(exc)
+        result.setdefault("error", _error(exc))
         return result
     finally:
         if "stl_source_state" in result and "after" not in result["stl_source_state"]:

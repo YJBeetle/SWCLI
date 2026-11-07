@@ -31,3 +31,15 @@
 复用完整Windows安装与正式入口。其annotation fixture准备先覆盖PRT/ASM/DRW三类真实另存、只读重开、clean/type与文件hash。后续矩阵覆盖原生保存、中性导出、part.create-box及前台恢复。每个实际保存须按新接口trace和真实integer错误/警告核验，首个非预期失败停止，不补保存调用或重启组。若GLB仍缺BIN，保留失败原字节并明确实际到达的覆盖范围。
 
 仅mock不构成COM绑定通过。是否解决GLB必须读取实际BIN/mesh，且格式专属参数仍以既有边界为准。正常运行后记录run/head/链接结束等待，由统筹本人最终review、合并。系列完成后的正式发布仍需用户确认。
+
+## 首个可审提交与必要原生运行
+
+首个实现提交为 `89d4119a372b223c3847f2e905ecba2d6eb6f3bf`，已推送到 `codex/saveas3-modern`。便携/SDK通过后只派发一次 [Windows native_full](https://github.com/YJBeetle/SWCLI/actions/runs/42368723031)，仅传 `native_full=true`，其他输入默认。派发请求与返回原件为 `dispatch-native-full-request.json`、`dispatch-native-full-result.json`。当前尚无原生绑定通过或GLB解决结论。后续文档tip不替代此精确source head。
+
+### 原生启动前补齐的STL首错反例
+
+首次实现89d4119的run42368723031在portable单测阶段取消，尚无native job/CAD调用。补测发现False/errors32或native异常与STL恢复异常并发时，原有catch会覆盖首保存错误。现把首保存异常在偏好scope内部捕获进receipt，scope退出恢复异常单独记finalization_error。原正常恢复/清理继续执行。仅取消本分支这一个未原生启动的run，原请求与取消回执保留。此为具体回归修复后的新head校准，真实原生调用仍未重试。
+
+补测完整回归2144项中仅旧revolve的CI并发拼接字符串断言失败，其原先要求revolve分组直接紧邻默认fallback。已将断言同步为新增modern精确分支条件且保留最后默认组的完整表达式。2143项功能检查通过，最终重跑日志为`portable-ready.log`。
+
+最终ready回归2144项通过、33项跳过，47.953s，日志`portable-ready.log`。SDK生成器、strict6源文件和11个消费者拒绝检查再次通过，日志`sdk-ready.log`。首次run completed/cancelled的官方JSON证明native job没有steps，保存在`run-42368723031-cancelled-before-native.json`。新实现提交和新run将在本记录下追加。

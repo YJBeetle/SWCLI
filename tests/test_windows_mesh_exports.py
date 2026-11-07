@@ -142,6 +142,19 @@ class WindowsMeshExportTests(unittest.TestCase):
             self.assertFalse(self.preference)
             self.assertEqual(self.output, b"previous valid artifact")
 
+    def test_stl_restore_failure_retains_first_save_false_or_exception(self):
+        for kwargs, message in ((dict(save_error=32), "failed to export"),
+                                (dict(native_failure=True), "native save failed")):
+            with self.subTest(kwargs=kwargs):
+                result = self.export("STL", binary_stl(), document_type=2,
+                    restore_failure=True, **kwargs)
+                self.assertFalse(result["ok"], result)
+                self.assertIn(message, result["error"]["message"])
+                self.assertEqual(result["finalization_error"]["type"], "ExportPreferenceRestoreFailed")
+                self.assertTrue(result["save_attempted"])
+                self.assertEqual(len(self.saved), 1)
+                self.assertEqual(self.output, b"previous valid artifact")
+
     def test_stl_restore_failure_prevents_publishing_verified_output(self):
         result = self.export("STL", binary_stl(), document_type=2, restore_failure=True)
         self.assertFalse(result["ok"])
