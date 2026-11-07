@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..artifact_content import capture_content
 from .windows_save_as import save_as3
+from .glb_runtime_diagnostics import glb_runtime_evidence
 from .windows_configurations import active_configuration_name
 from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
@@ -848,11 +849,12 @@ def export_active_windows_document(
                 app, export_format == "STL" and before["document"]["type"] == 2)
         with preference_scope:
             document.ClearSelection2(True)
-            try:
-                saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
-            except Exception as exc:
-                result["error"] = _error(exc)
-                raise
+            with glb_runtime_evidence(app, export_path, output_path, result, enabled=export_format == "GLB"):
+                try:
+                    saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
+                except Exception as exc:
+                    result["error"] = _error(exc)
+                    raise
             save_error = result["save_errors"]
             if not saved or save_error != 0:
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",

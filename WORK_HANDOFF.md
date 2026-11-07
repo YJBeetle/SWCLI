@@ -1,3 +1,13 @@
+# GLB 运行时取证候选交接
+
+main 960839e 与现代 API 精确产品 0a00751 已合并为 0e288dd。当前新增默认关闭的 GLB 有界取证，保留原暂存命名与一次 SaveAs3。manifest 绑定原请求、worker/SOLIDWORKS PID，保存前后复制同前缀含隐藏文件并记录 hash，读取实际模块路径/版本，按实际 SW2025 typelib 只读采集相关枚举偏好。文件访问监控明确 unknown。详细边界见 [GLB 交接](docs/handoffs/glb-export-repair.md)。
+
+便携验证完成，完整组合回归2567项OK（27项平台/依赖跳过），新增10项取证测试通过，SDK生成器/strict6文件及31个消费者类型拒绝例通过，actionlint和YAML接线检查通过。首次组合回归发现 main 新三偏好夹具仍使用旧配置入口，已改为现代 manager 属性，保留原反例和保护断言，56项相关测试通过。首轮失败日志保留。
+
+本次组合 native_full 等待原 getter 负责人的两配置异值/STL门禁精确接线及统筹个人审查。当前未派发。
+
+## 此前诊断和合并历史
+
 # GLB 首失败诊断交接
 
 独立分支 `codex/glb-export-repair`，main 基线 `960839e52d0c433c817e71e02493a27681f7e858`。首阶段离线审计已完成，已确认本次原生 GLB 声明 720 字节 buffer 而 BIN 为 0。上游首因仍待实际暂存路径、隐藏 sidecar、导出时加载模块和文件 I/O 证据。

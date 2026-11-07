@@ -92,6 +92,13 @@ def native_call(stage: str, call: str, function: Callable[[], Any]) -> Any:
     return result
 
 
+def current_request_context() -> dict:
+    """Read correlation metadata for an opt-in diagnostic on this worker."""
+    state = _STATE.get()
+    return {"request_id": state.request_id if state is not None else None,
+            "operation": state.operation if state is not None else None}
+
+
 @contextmanager
 def trace_native_request(request_id: str, operation: str) -> Iterator[None]:
     """Enable only for this request when the daemon inherits the exact toggle."""

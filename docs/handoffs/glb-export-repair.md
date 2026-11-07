@@ -1,5 +1,20 @@
 # GLB 首失败诊断与待证候选
 
+## 运行时取证实现与组合验收前置
+
+现代 API 产品 `0a00751e44823ca46237000479754634bf50a418` 已在本分支与 main `960839e52d0c433c817e71e02493a27681f7e858` 合并，merge 为 `0e288dd`。两侧 CI 分组、交接历史和 main 三组偏好晚期错误保护均保留。main 新增三偏好夹具已适配 ConfigurationManager.ActiveConfiguration，保留配置漂移、首错误与 worker receipt 断言。
+
+`SWCLI_GLB_RUNTIME_DIAGNOSTICS=1` 才启用新增观测。它包围原来那一次现代 SaveAs3，生产暂存名仍沿用原始后缀。调用前后的 manifest 放在目标目录下可见的 `swcli-glb-diagnostics-<uuid>/`，与原 request_id、Python worker PID、SOLIDWORKS PID 对应。阶段分别为 pre-save 和 post-save-before-validation。
+
+- 保存前后读取同一暂存 stem 前缀的目录项，包含点号/隐藏文件，记录 size、mtime、属性、SHA256 和复制文件映射。复制使用可见 `.bin` 文件名，保留内容原字节。每阶段最多 128 个文件、64 MiB，单项观测 15 秒，目录项为非普通文件/reparse、发生竞态或超过边界时明确标为 unknown/incomplete。
+- 使用同一观测到的 SOLIDWORKS PID 打开只读进程句柄，前后枚举最多 2048 个模块，筛选 sldgltf/SPAXGLTF/VisGltf、Draco 与 XR exporter 的实际路径，读取实际文件及产品版本。句柄在 finally 关闭。
+- 保存前从显式安装路径 `SWCLI_GLB_DIAGNOSTICS_SWCONST` 读取 swconst.tlb、SHA256 与版本，要求 major 33。只对实际 GLTF/GLB/Draco/XR 相关枚举，依据已知全局 preference 枚举类型选取已有 getter。其他枚举仅记录原 ID，getter 不可读时记 unknown。保存后仅做文件与 OS 观察。
+- 文件访问监控字段明确为 unknown，当前没有经过验证的本 PID 有界采集器。模块加载清单也可能记录 inaccessible/unknown。诊断收集、manifest 或 stderr 写入失败均不能改变保存结果或原错误。
+
+CI 仅在 `codex/glb-export-repair` 的现有 native_full 步骤开启该开关，复用安装和所有原完整组。该 full 使用独立并发组，cancel-in-progress false。没有新 dispatch 输入。取证文件目录可被现有关闭隐藏文件上传的动作正常收集。
+
+统筹补充的两配置异值 getter 与 STL 新配置入口 proof 仍是本次 full 的前置。原 getter 负责人准备精确门禁接线，待其提交与统筹本人审查完成后，才组合到同一必要运行中。当前未派发本轮 native_full。便携组合2567项OK（27跳过），新增10项取证测试、三偏好56项组合保护、SDK strict6文件/31类型拒绝例、actionlint及YAML检查通过。日志在 `/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261108/`，首轮夹具不兼容和修复后的日志均保留。
+
 首阶段离线审计已完成。当前可复核的内容失败是原生 GLB 声明 720 字节嵌入 buffer，实际 BIN 长度为 0。导致原生写器产生空 BIN 的上游首因仍缺运行时证据。当前生产容器校验正确拒绝该文件。
 
 ## 工作边界与来源

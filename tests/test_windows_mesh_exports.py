@@ -1,6 +1,7 @@
 from contextlib import ExitStack
 from pathlib import Path
 import tempfile
+import json
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest import mock
@@ -15,7 +16,7 @@ class WindowsMeshExportTests(unittest.TestCase):
     def export(self, format, payload, *, document_type=1, strict=False, save_error=0,
                preference=False, restore_failure=False, native_failure=False,
                save_warning=0, false_with_zero_errors=False,
-               unavailable=False, enable_rejected=False, plain_staging=False, preserve_rejected=False, diagnostic_existing=False):
+               unavailable=False, enable_rejected=False, plain_staging=False, preserve_rejected=False, diagnostic_existing=False, runtime_diagnostics=False):
         self.preference = preference
         self.saved = []
         self.preference_writes = []
@@ -59,7 +60,8 @@ class WindowsMeshExportTests(unittest.TestCase):
             if diagnostic_existing:
                 diagnostic.write_bytes(b"previous diagnostic evidence")
             stack.enter_context(mock.patch.dict(documents.os.environ, SWCLI_GLB_PLAIN_STAGING_CALIBRATION="1" if plain_staging else "",
-                SWCLI_PRESERVE_REJECTED_GLB="1" if preserve_rejected else ""))
+                SWCLI_PRESERVE_REJECTED_GLB="1" if preserve_rejected else "",
+                SWCLI_GLB_RUNTIME_DIAGNOSTICS="1" if runtime_diagnostics else ""))
             stack.enter_context(mock.patch.object(documents.sys, "platform", "win32"))
             stack.enter_context(mock.patch.dict("sys.modules", {
                 "pythoncom": ModuleType("pythoncom"), "win32com": win32com,
@@ -72,6 +74,13 @@ class WindowsMeshExportTests(unittest.TestCase):
             self.output = output.read_bytes()
             self.residue = sorted(path.name for path in Path(folder).iterdir())
             expected=[output.name]
+            self.runtime_evidence = []
+            for directory in Path(folder).glob("swcli-glb-diagnostics-*"):
+                expected.append(directory.name)
+                manifest = directory / "manifest.json"
+                if manifest.exists():
+                    self.runtime_evidence.append(dict(report=json.loads(manifest.read_text()),
+                        copies={path.name: path.read_bytes() for path in directory.glob("*.bin")}))
             if (plain_staging or preserve_rejected) and format=="GLB" and result.get("error",{}).get("type")=="ExportVerificationFailed":
                 diagnostic=output.with_name(output.stem+".invalid-native.glb")
                 self.assertEqual(diagnostic.read_bytes(), b"previous diagnostic evidence" if diagnostic_existing else payload)
