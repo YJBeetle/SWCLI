@@ -1,0 +1,33 @@
+# SW2025 现代 SaveAs3 迁移交接
+
+## 工作位置与范围
+
+- 持久 worktree 为 `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。
+- 已核初始状态干净、没有 `.codegraph/`。新 worktree 的独立 `config.worktree` 修正了继承失效的相对路径。已合品质分支、旧原 ZIP 与历史回执均保留。
+- 仅面向 SOLIDWORKS 2025。采用 `IModelDocExtension.SaveAs3`。原生另存、中性导出、盒体模型保存三条生产路径共用 `hosts/windows_save_as.py`，活跃drawing fixture也调用它。
+
+## 调用绑定与回执
+
+官方签名为 `(Name, Version, Options, ExportData, AdvancedSaveAsOptions, Errors, Warnings) -> bool`。[官方 SaveAs3 文档](https://help.solidworks.com/2021/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~SaveAs3.html)
+
+适配器使用 `DumbDispatch` 保留显式参数类型，并预先 `_FlagAsMethod("SaveAs3")`，避免动态属性get探测。两个对象参数分别构造 `VARIANT(VT_DISPATCH, None)`。Errors和Warnings分别使用 `VARIANT(VT_BYREF | VT_I4, sentinel)`，调用后检查确实写出。版本0、选项1，方法只调用一次。该模式依据本仓库selection的显式dispatch null和pywin32动态包装实现。[pywin32 dynamic.py](https://github.com/mhammond/pywin32/blob/main/com/win32com/client/dynamic.py)
+
+- `api_saved` 为真实bool，不能用errors=0推导bool。False且errors=0仍为失败。
+- `save_errors` / `save_warnings` 为真实integer。非零warning保留，正常clean门禁要求0。历史旧接口null不被改写，历史audit继续使用各自精确head源码/schema。
+- `save_attempted` 在实际保存调用前设true。COM异常时保留已经写出的输出码。未写出的输出、非bool返回会失败。
+- trace固定命名 `IModelDocExtension.SaveAs3`。STL原件审计器统计全部ModelDoc2/Extension的SaveAs系列，要求总数1且接口为现代SaveAs3。拒绝场景要求这些调用均为0。
+- 既有租约、CAS、临时激活恢复、目标独占预留、格式校验与临时文件清理继续执行。registry、描述符或worker命令恢复晚期异常保留首业务错误与保存回执，附加finalization_error。
+
+## 便携验证
+
+测试包含显式VT/null/BYREF、单方法调用、bool/errors组合、真实warning值、异常部分输出、registry/worker晚期异常、文件内容/状态、目标保护与清理。当前gate和fake receipts同步integer warnings，SDK由生成器更新。
+
+日志根为 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261107`。首次迁移回归的`portable-first.log`保留missing api_saved的fake迁移失败。修复后`portable-modern.log`为2139项通过、33项跳过。最终追加收尾保护后的`portable-final.log`为2143项通过、33项跳过，47.379s。`sdk-final.log`确认生成器一致、strict实现及11个消费者拒绝检查通过。actionlint v1.7.12与diff-check通过。旧v1.7.7将既有21个dispatch输入按旧10个上限报错，因此改用main已采用的当前版本校验。
+
+## 必要原生验证
+
+首个可审实现提交便携/SDK通过后，只派发一次该精确head的`ci.yml`，仅输入`native_full=true`。本分支该full运行使用`swcli-saveas3-modern-${github.ref}`独立组，cancel-in-progress=false，其他full/release沿用既有组。
+
+复用完整Windows安装与正式入口。其annotation fixture准备先覆盖PRT/ASM/DRW三类真实另存、只读重开、clean/type与文件hash。后续矩阵覆盖原生保存、中性导出、part.create-box及前台恢复。每个实际保存须按新接口trace和真实integer错误/警告核验，首个非预期失败停止，不补保存调用或重启组。若GLB仍缺BIN，保留失败原字节并明确实际到达的覆盖范围。
+
+仅mock不构成COM绑定通过。是否解决GLB必须读取实际BIN/mesh，且格式专属参数仍以既有边界为准。正常运行后记录run/head/链接结束等待，由统筹本人最终review、合并。系列完成后的正式发布仍需用户确认。

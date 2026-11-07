@@ -789,3 +789,13 @@ These fields are document display properties. GLTF/GLB Export Options (views,
 cameras, lights, motion, exploded views, Draco) have no verified API mapping in
 this profile. The exporter has no newly supported GLB options object or triangle
 budget. Do not use Image Quality or STL-specific options as a replacement.
+
+
+Native save-as, box output saves and neutral exports use the SOLIDWORKS 2025
+IModelDocExtension.SaveAs3 API. Inspect its actual boolean `api_saved` and
+integer `save_errors` / `save_warnings` outputs. A nonzero warning is retained
+even when saving succeeds. `save_attempted` marks an entered save call. An
+exception after entry may have changed the live document or new output. Inspect
+the retained receipt and current document state before a further request.
+Historical artifact audits must use their exact source commit and schemas,
+which may describe unknown warnings as null.

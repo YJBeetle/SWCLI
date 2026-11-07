@@ -123,7 +123,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                     saved = call("save-detailing-drawing", lambda: save_as_native_windows(str(path), document=document))
                     evidence["save"] = saved
                     checked(saved["ok"] and saved["api_saved"] and saved["save_errors"] == 0
-                            and saved["save_warnings"] is None and not saved["document"]["modified"]
+                            and saved["save_warnings"] == 0 and not saved["document"]["modified"]
                             and path.is_file() and path.stat().st_size >= 512, "drawing did not save cleanly")
                     digest = hashlib.sha256(path.read_bytes()).hexdigest()
                     title = _com_value(document, "GetTitle")

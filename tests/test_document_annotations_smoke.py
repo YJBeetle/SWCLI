@@ -157,7 +157,7 @@ class AnnotationsCLI(FakeCLI):
                     and self.annotation_defect == "reopen-lost-value"):
                 document["annotations"]["bent_leader.enabled"] = option("bent_leader.enabled", False)
         if args.command == "document" and args.document_command == "save-as":
-            result["save_warnings"] = None
+            result["save_warnings"] = 0
             if self.annotation_defect == "source-changed":
                 (self.fixtures / "annotations.SLDPRT").write_bytes(b"changed original")
             if self.annotation_defect == "saved-size-mismatch":

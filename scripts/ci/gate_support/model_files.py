@@ -151,6 +151,8 @@ class NativeFileCases:
             exported = self.write("document", "export", target, "--strict",
                                   document=document)
             validate_operation_result("document.export", exported)
+            require(exported["api_saved"] is True and exported["save_errors"] == exported["save_warnings"] == 0,
+                    "modern export returned failure or warnings")
             artifact = exported["artifact"]
             require(PureWindowsPath(exported["output"]) == PureWindowsPath(target)
                     and PureWindowsPath(artifact["path"]) == PureWindowsPath(target)

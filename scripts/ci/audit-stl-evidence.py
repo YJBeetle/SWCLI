@@ -70,6 +70,10 @@ def audit(directory, expected_head, *, phase="internal"):
             current = [row["document_id"] for row in catalog if row["current"]]
             require(len(active) == 1 and active == current and active[0] != result["document"]["document_id"],
                     "public foreground/current catalog identity is not preserved")
+        require(result["api_saved"] is True
+                and type(result["save_errors"]) is type(result["save_warnings"]) is int
+                and result["save_errors"] == result["save_warnings"] == 0,
+                "modern save bool/error/warning receipt differs")
         require(result["ok"] is True and prefs["restored"] is True and not prefs["cleanup_errors"]
                 and prefs["before"] == prefs["after"] and prefs["readback"] == prefs["requested"],
                 "preference transaction is not exactly restored and retained")
@@ -102,8 +106,8 @@ def audit(directory, expected_head, *, phase="internal"):
         require(begins == ends and all(n == 1 for n in begins.values())
                 and begins[(0, "document.export")] == 1,
                 "native trace contains errors, retries, missing or duplicated call boundaries")
-        save_calls = [r for r in trace if r["phase"] == "begin" and r["call"] == "IModelDoc2.SaveAs3"]
-        require(len(save_calls) == 1, "export trace does not contain exactly one native save")
+        save_calls = [r for r in trace if r["phase"] == "begin" and r["call"].startswith(("IModelDoc2.SaveAs", "IModelDocExtension.SaveAs"))]
+        require(len(save_calls) == 1 and save_calls[0]["call"] == "IModelDocExtension.SaveAs3", "export trace does not contain exactly one native save")
         setters = [r for r in trace if r["phase"] == "begin" and r.get("stage") == "stl-preferences-write"]
         reads = [r for r in trace if r["phase"] == "begin" and r.get("stage") == "stl-preferences-read"]
         require(len(setters) == 16 and len(reads) == 96,
@@ -124,7 +128,7 @@ def audit(directory, expected_head, *, phase="internal"):
             require(response["success"] is False and response["error"]["code"] == guard["expected_error"],
                     "public native guard returned the wrong first error")
             trace = [r for r in records if r.get("request_id") == response["request_id"]]
-            require(trace and not any(r.get("stage") == "stl-preferences-write" or r.get("call") == "IModelDoc2.SaveAs3" for r in trace),
+            require(trace and not any(r.get("stage") == "stl-preferences-write" or str(r.get("call", "")).startswith(("IModelDoc2.SaveAs", "IModelDocExtension.SaveAs")) for r in trace),
                     "a rejected public request entered native preference writes or export")
     require({c["name"] for c in cases} == planned,
             "planned independent tolerance/encoding/unit cases are incomplete")

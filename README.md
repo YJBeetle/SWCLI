@@ -551,8 +551,10 @@ their original files must remain available (this is not Pack and Go). The
 same document ID, session current, lease and live sketch handles survive the
 name change. The response checks native save status, adopted path, clean state
 and minimum file size, not a proprietary file-format signature or complete
-geometric validity. `save_warnings` is `null` because the scalar native call
-does not expose that output. For stronger evidence, close, reopen and inspect
+geometric validity. Saves and neutral exports use the SOLIDWORKS 2025
+`IModelDocExtension.SaveAs3` interface. `api_saved` is its actual boolean return,
+and `save_errors` and `save_warnings` are its integer output codes.
+`save_attempted` records whether the call was entered. For stronger evidence, close, reopen and inspect
 the saved document. Unlike neutral export, native save-as changes the COM document's
 filename and cannot use export's temporary-file rename strategy. Failures may
 leave a renamed live document; inspect its returned state and cleanup warnings.

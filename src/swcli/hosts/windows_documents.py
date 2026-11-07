@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from ..artifact_content import capture_content
+from .windows_save_as import save_as3
 from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
@@ -846,16 +847,16 @@ def export_active_windows_document(
                 app, export_format == "STL" and before["document"]["type"] == 2)
         with preference_scope:
             document.ClearSelection2(True)
-            save_error = int(native_call("document-export" if export_format == "GLB" else "export", "IModelDoc2.SaveAs3",
-                                         lambda: document.SaveAs3(str(export_path), 0, 1)))
-            if save_error != 0:
+            saved = save_as3(document, str(export_path), receipt=result, stage="document-export")
+            save_error = result["save_errors"]
+            if not saved or save_error != 0:
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
-                                   "save_errors": save_error}
+                                   "save_errors": save_error, "save_warnings": result["save_warnings"]}
         if stl_options is not None and not evidence.get("restored"):
             result.setdefault("error", {"type": "ExportPreferenceRestoreFailed",
                                        "message": "STL preferences could not be restored; worker is closed to further option writes"})
             return result
-        if save_error != 0 or not export_path.is_file():
+        if not saved or save_error != 0 or not export_path.is_file():
             result["error"] = {
                 "type": "ExportFailed",
                 "message": "SOLIDWORKS failed to export the active document",

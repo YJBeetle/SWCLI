@@ -10,6 +10,7 @@ import importlib.util
 import json
 import math
 import ntpath
+from swcli.hosts.windows_save_as import save_as3
 from pathlib import Path
 import time
 import traceback
@@ -222,7 +223,9 @@ def run(output, template, swconst, visible, projection=None, source_kind="part",
             report["source_after_insertion"] = call("source.after-insertion", lambda: source_state(source_document))
             checked(report["source_before"] == report["source_after_insertion"], "view insertion changed source state")
             saved = output / "fixture.SLDDRW"
-            checked(call("SaveAs3", lambda: drawing.SaveAs3(str(saved), 0, 1)) == 0 and saved.is_file()
+            save_receipt = {}
+            saved_ok = call("IModelDocExtension.SaveAs3", lambda: save_as3(drawing, str(saved), receipt=save_receipt))
+            checked(saved_ok and save_receipt["save_errors"] == save_receipt["save_warnings"] == 0 and saved.is_file()
                     and saved.stat().st_size > 0, "native drawing save failed")
             call("CloseDrawing", lambda: app.CloseDoc(_com_value(drawing, "GetTitle")))
             documents.remove(drawing)

@@ -5,6 +5,7 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest import mock
 
+from tests.save_as_fixture import save_as_fixture
 from swcli.hosts import windows_documents as documents
 from swcli.result_schemas import ARTIFACT
 from test_export_validation import amf, archive, binary_stl, glb, three_mf_members
@@ -13,6 +14,7 @@ from test_export_validation import amf, archive, binary_stl, glb, three_mf_membe
 class WindowsMeshExportTests(unittest.TestCase):
     def export(self, format, payload, *, document_type=1, strict=False, save_error=0,
                preference=False, restore_failure=False, native_failure=False,
+               save_warning=0, false_with_zero_errors=False,
                unavailable=False, enable_rejected=False, plain_staging=False):
         self.preference = preference
         self.saved = []
@@ -30,14 +32,16 @@ class WindowsMeshExportTests(unittest.TestCase):
                 self.preference = value
             return True
 
-        def save(path, version, options):
+        def save(path, version, options, export_data, advanced_options, errors, warnings):
             self.saved.append(Path(path))
             if format == "STL" and document_type == 2:
                 self.assertTrue(self.preference)
             if native_failure:
                 raise RuntimeError("native save failed")
             Path(path).write_bytes(payload)
-            return save_error
+            errors.value = save_error
+            warnings.value = save_warning
+            return save_error == 0 and not false_with_zero_errors
 
         document = SimpleNamespace(Extension=SimpleNamespace(NeedsRebuild2=0),
                                    ClearSelection2=mock.Mock(), SaveAs3=save)
@@ -48,6 +52,7 @@ class WindowsMeshExportTests(unittest.TestCase):
         win32com = ModuleType("win32com")
         win32com.client = ModuleType("win32com.client")
         with tempfile.TemporaryDirectory() as folder, ExitStack() as stack:
+            stack.enter_context(mock.patch.object(documents, "save_as3", side_effect=save_as_fixture))
             output = Path(folder) / ("fixture." + format)
             output.write_bytes(b"previous valid artifact")
             stack.enter_context(mock.patch.dict(documents.os.environ, SWCLI_GLB_PLAIN_STAGING_CALIBRATION="1" if plain_staging else ""))
@@ -99,6 +104,17 @@ class WindowsMeshExportTests(unittest.TestCase):
                         self.assertEqual(self.output, payload)
                         self.assertNotIn("warnings", result)
                         self.assertFalse(self.preference)
+
+    def test_false_with_zero_error_is_failure_and_warning_integer_is_retained(self):
+        result = self.export("GLB", glb(), false_with_zero_errors=True)
+        self.assertFalse(result["ok"], result)
+        self.assertIs(result["api_saved"], False)
+        self.assertEqual(result["save_errors"], 0)
+        self.assertEqual(self.output, b"previous valid artifact")
+        self.assertEqual(len(self.saved), 1)
+        result = self.export("GLB", glb(), save_warning=4)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["save_warnings"], 4)
 
     def test_corrupted_outputs_do_not_replace_target_in_either_mode(self):
         for format in ("STL", "3MF", "AMF", "GLB"):

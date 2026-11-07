@@ -809,6 +809,20 @@ def document_render(
     return render_active_windows_document(str(values["output"]), **kwargs)
 
 
+def preserve_save_finalization_failure(operation, result, exc, *, session_id):
+    """Retain the actual save receipt and first error after late bookkeeping fails."""
+    failed = dict(result)
+    failed.update(ok=False, action=operation, session_id=session_id,
+                  finalization_error={"type": type(exc).__name__, "message": str(exc)})
+    failed.setdefault("error", {"type": "SaveFinalizationFailed", "message": str(exc)})
+    try:
+        validate_operation_result(operation, failed)
+    except Exception:
+        failed.pop("document", None)
+        validate_operation_result(operation, failed)
+    return failed
+
+
 @_register_handler
 def document_save_as(
     context: OperationContext, values: Dict[str, Any]
@@ -817,12 +831,14 @@ def document_save_as(
         raise RuntimeError("document registry is unavailable")
     output = str(Path(values["output"]).expanduser().resolve())
     context.documents.require_new_path(context.entry, output)
+    result = save_as_native_windows(output, document=context.entry.document)
     try:
-        return save_as_native_windows(output, document=context.entry.document)
-    finally:
-        # COM may have adopted the filename even when a later check failed.
-        # Refresh before the next sync so references and leases are not lost.
+        # COM may adopt the name even when a later check fails. Refresh only
+        # registry bookkeeping, and retain the save receipt if observation fails.
         context.documents.refresh_key(context.entry)
+    except Exception as exc:
+        return preserve_save_finalization_failure(context.operation, result, exc, session_id=context.session_id)
+    return result
 
 
 @_register_handler
@@ -1539,14 +1555,18 @@ def part_create_box(
         overwrite=bool(values.get("overwrite", False)),
         app=context.app,
     )
-    if context.documents is not None and result.get("ok"):
-        if created_document is None:
-            raise RuntimeError("SOLIDWORKS returned no document after creating a part")
-        context.entry = context.documents.register(created_document)
-        context.documents.set_current(context.entry, session_id=context.session_id)
-        return _with_document(
-            result, context.documents, context.entry, session_id=context.session_id
-        )
+    try:
+        if context.documents is not None and result.get("ok"):
+            if created_document is None:
+                raise RuntimeError("SOLIDWORKS returned no document after creating a part")
+            context.entry = context.documents.register(created_document)
+            context.documents.set_current(context.entry, session_id=context.session_id)
+            return _with_document(
+                result, context.documents, context.entry, session_id=context.session_id
+            )
+    except Exception as exc:
+        return preserve_save_finalization_failure(context.operation, result, exc, session_id=context.session_id)
+
     return result
 
 
@@ -1662,5 +1682,10 @@ def execute_operation(
         and documents is not None
         and context.entry is not None
     ):
-        return _with_document(result, documents, context.entry, session_id=session_id)
+        try:
+            return _with_document(result, documents, context.entry, session_id=session_id)
+        except Exception as exc:
+            if operation in ("document.save-as", "document.export"):
+                return preserve_save_finalization_failure(operation, result, exc, session_id=session_id)
+            raise
     return result

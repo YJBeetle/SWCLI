@@ -39,7 +39,7 @@ class AnnotationFixtureTests(unittest.TestCase):
 
     def save(self, path, *, document):
         Path(path).write_bytes(b"owned native file" * 40)
-        return {"ok": True, "api_saved": True, "save_errors": 0, "save_warnings": None,
+        return {"ok": True, "api_saved": True, "save_errors": 0, "save_warnings": 0,
                 "document": {"modified": False}}
 
     def reopen(self, path, *, app, read_only):

@@ -125,7 +125,7 @@ def run(gate):
         verify_cylinder_metrics(case['measured'],expected)
         path=gate.directory/(plane+'-public.SLDPRT')
         case['save']=gate.write('document','save-as',str(path),document=document)
-        require(case['save']['save_errors']==0 and case['save']['save_warnings'] is None
+        require(case['save']['save_errors']==0 and case['save']['save_warnings'] == 0
                 and case['save']['document']['modified'] is False and path.is_file()
                 and case['save']['artifact']['size_bytes']==path.stat().st_size>=512,
                 'public revolve native output did not save cleanly')

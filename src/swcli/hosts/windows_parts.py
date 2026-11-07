@@ -8,11 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from .windows_save_as import save_as3
 from .windows import PROG_ID, _com_value, _describe_document, _error
 from .windows_documents import _diagnose_features, _inspect_bodies
 
-_SAVE_CURRENT_VERSION = 0
-_SAVE_SILENT = 1
 _SW_DEFAULT_TEMPLATE_PART = 8
 _BOX_VERIFICATION_TOLERANCE_MM = 0.1
 
@@ -373,15 +372,8 @@ def create_box_part_windows_with_handle(
             return result, None
 
         document.ClearSelection2(True)
-        # ModelDocExtension.SaveAs3 has two optional COM object parameters that
-        # dynamic pywin32 Dispatch cannot marshal as null on the tested host.
-        # ModelDoc2.SaveAs3 is scalar-only and returns the swFileSaveError_e code.
-        save_error = int(
-            document.SaveAs3(str(output_path), _SAVE_CURRENT_VERSION, _SAVE_SILENT)
-        )
-        saved = save_error == 0 and output_path.is_file()
-        result["save_errors"] = save_error
-        result["save_warnings"] = None
+        api_saved = save_as3(document, str(output_path), receipt=result, stage="part-save-as")
+        saved = api_saved and result["save_errors"] == 0 and output_path.is_file()
         result["saved"] = saved
         if not saved:
             result["error"] = {

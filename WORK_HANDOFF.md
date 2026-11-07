@@ -1,3 +1,7 @@
+# 当前任务：SW2025 IModelDocExtension.SaveAs3迁移
+
+持久worktree `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，新分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。实现、绑定、便携/原生校准方案见 [现代SaveAs3交接](docs/handoffs/saveas3-modern.md)。后续旧品质交接为继承历史，原证据保留。
+
 # 逐路集成交接
 
 - main 已合入工程图出详图两个默认标量；代码、验收范围与原件摘要见 [出详图交接](docs/handoffs/detailing.md) 和 docs/evidence/detailing-main-integration-2026-11-07.json。
