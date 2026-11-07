@@ -188,11 +188,17 @@ def _dispatch(native, interface, *, app):
 
 
 def _face(app, assembly, source, component, native, index):
-    mapped = native_call("assembly-mates", "Component2.GetCorresponding", lambda: component.GetCorresponding(native))
+    entity = _dispatch(native, "IEntity", app=app)
+    mapped = native_call(
+        "assembly-mates",
+        "Component2.GetCorrespondingEntity",
+        lambda: component.GetCorrespondingEntity(entity),
+    )
     require(mapped is not None, "native corresponding face is absent")
     mapped = _dispatch(mapped, "IFace2", app=app)
-    require(_same(app, value(_dispatch(mapped, "IEntity", app=app), "GetComponent"), component),
-            "mapped face does not belong to the exact component")
+    owner = value(_dispatch(mapped, "IEntity", app=app), "GetComponent")
+    require(owner is not None, "mapped face has no component in the selected assembly context")
+    require(_same(app, owner, component), "mapped face does not belong to the exact component")
     original = _geometry(native)
     require(original["surface_kind"] in ("plane", "cylinder"), "only plane/cylinder fixtures are supported", "UnsupportedMateScope")
     require(_geometry(mapped) == original, "assembly-context face differs from the part geometry", "UnsupportedMateScope")

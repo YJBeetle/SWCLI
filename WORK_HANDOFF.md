@@ -133,3 +133,14 @@
 - 仅公开配合 runner 使用本地独占 bind 确认可用的专用端口。被占用则直接失败，无未知 daemon RPC。共享 runner 原有状态探测和拒绝语义由既有测试覆盖。原生断言、组预算和 CI 并发设置均保持。真实回环测试覆盖端口占用拒绝和端口释放后成功。配合测试 43 项和共享 runner 测试 28 项通过。
 - 内部四组和组合场景原生保存关闭重开已完成。公开验收仍待新 head 的独立 CLI→daemon→worker 原件。
 - 修复后的全量便携回归执行 1862 项，26 项平台跳过，其余通过。日志 `evidence/portable/public-bind-all-tests.log`。
+
+## 修复后的公开 gate 已启动
+- 新 tip `ebc382f76b7210372347e8e6cc5edd66db96366e` 已推送并核对。唯一新 dispatch [run 42305617301](https://github.com/YJBeetle/SWCLI/actions/runs/42305617301)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`。首次 GET 确认精确 head，状态 `in_progress`，快照 `evidence/public-run-42305617301.json`。
+- 本地交接状态已更新。本轮按统筹要求结束等待，公开原件待审查，合并待公开验收。
+
+## 第二次公开 gate 的首个业务失败与实体映射候选
+- [run 42305617301](https://github.com/YJBeetle/SWCLI/actions/runs/42305617301) / `ebc382f76b7210372347e8e6cc5edd66db96366e` 的端口 bind 预检成功，宿主 PID 5916、revision 33.5.0 已正常启动。第一组后台装配 `assembly.mate-targets` 返回 `mapped face does not belong to the exact component`，属于 `MateObservationUnavailable`。日志中 CreateMate 为 0 次，首次失败后正常清理，server_exit_code=0，宿主退出后的进程目录为空。
+- 原 ZIP `evidence/run-42305617301/swcli-assembly-mates-42305617301-1-13547066936.zip` 的 GitHub digest `cafe07ef6f88b32f6d133e5f9b21050c13a5681d35ee9e9910ac2e1776a4cb8a` 已匹配。分发原 ZIP `swcli-dist-13546661206.zip` digest `bf2b84e6edad9cfc56a1ce6dfe8115f5c8912a6c8744da1a4866af3f77583fed` 也已匹配，wheel/安装报告中全部 83 个 Python 文件与 Git blob 一致。原件元数据、journal、daemon trace、源 PRT 均保留。
+- 实际只有源 PRT 产物，56447 字节，SHA `4040864a7032375cdfac6c9edc420dc3bf5228de9ee36c7df38da8d52694c217`。失败摘要 `docs/verification/assembly-mates-public-mapping-failure-2026-11-07.json`。原追踪未记录 COM 返回值，目前确认到后台映射面的组件归属失败，具体原生根因尚未确立。
+- 依据官方 IEntity 面/边/顶点专用 API，候选改为先 QI 源面到 IEntity，再单次 `IComponent2.GetCorrespondingEntity`。精确 owner IsSame、几何、持久引用往返和 CAS 断言继续执行。没有 owner 时给出明确错误，错误实例仍拒绝。后台回归覆盖专用实体映射、前台身份保持及错误/空 owner 拒绝。新路径的原生后台支持继续由公开 gate 验证。
+- 针对性 44 项通过，全量执行 1863 项，26 平台跳过，其余通过。日志 `evidence/portable/entity-mapping-{tests,all-tests,sdk}.log`。内部历史保存重开证据继续指向 ac9e54f / run 42279916240，更新后的实体映射候选待公开验收。

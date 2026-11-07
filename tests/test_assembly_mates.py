@@ -61,7 +61,7 @@ class Scene:
             body.GetFaces=lambda faces=faces: tuple(faces)
             body.GetFaceCount=lambda: 2
             source.GetBodies2=lambda kind, visible, body=body: (body,)
-            component.GetCorresponding=lambda native: native
+            component.GetCorrespondingEntity=lambda native: native
             self.components.append(component)
             self.faces.append(faces)
         self.doc.GetComponents=lambda top: tuple(reversed(self.components))
@@ -125,6 +125,30 @@ class MateTests(unittest.TestCase):
         self.assertEqual(result['snapshot'], self.expected)
         Draft202012Validator(SNAPSHOT).validate(result['snapshot'])
         self.scene.doc.CreateMate.assert_not_called()
+
+    def test_background_mapping_uses_entity_interface_and_entity_specific_correspondence(self):
+        foreground = object()
+        self.scene.app.ActiveDoc = foreground
+        for component in self.scene.components:
+            component.GetCorresponding = mock.Mock(
+                side_effect=AssertionError("generic object mapping must not bind faces")
+            )
+            component.GetCorrespondingEntity = mock.Mock(side_effect=lambda entity: entity)
+        original_dispatch = api._dispatch.side_effect
+        with mock.patch.object(api, "_dispatch", wraps=original_dispatch) as dispatch:
+            observed = api.read_mate_targets_windows(
+                app=self.scene.app, document=self.scene.doc, components=self.scene.names
+            )
+        self.assertTrue(observed["ok"], observed)
+        self.assertIs(self.scene.app.ActiveDoc, foreground)
+        for component, faces in zip(self.scene.components, self.scene.faces):
+            self.assertEqual(
+                component.GetCorrespondingEntity.call_args_list,
+                [mock.call(face) for face in faces],
+            )
+            component.GetCorresponding.assert_not_called()
+            for face in faces:
+                self.assertIn(mock.call(face, "IEntity", app=self.scene.app), dispatch.call_args_list)
 
     def test_read_refuses_foreground_identity_change_without_restoring_or_selecting(self):
         original=api.snapshot
@@ -226,6 +250,10 @@ class MateTests(unittest.TestCase):
         self.assertEqual(self.add(targets=targets)['error']['type'],'ComponentNotFound')
         with mock.patch.object(self.scene.faces[1][0], 'GetComponent', lambda:self.scene.components[0]):
             self.assertFalse(self.add()['ok'])
+        with mock.patch.object(self.scene.faces[1][0], 'GetComponent', lambda:None):
+            absent = self.add()
+            self.assertFalse(absent['ok'])
+            self.assertIn('no component', absent['error']['message'])
         self.scene.doc.CreateMate.assert_not_called()
 
     def test_missing_saved_external_source_never_reaches_native_creation(self):

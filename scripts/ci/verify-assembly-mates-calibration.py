@@ -42,7 +42,7 @@ EXPECTED_ENUMS = dict(swMateCOINCIDENT=0, swMateCONCENTRIC=1, swMateAlignALIGNED
     swComponentResolved=3, swThisConfiguration=1)
 REQUIRED_MEMBERS = {
     'IAssemblyDoc': {'CreateMateData', 'CreateMate', 'GetComponents', 'GetComponentCount', 'GetEditTarget', 'GetEditTargetComponent'},
-    'IComponent2': {'GetID', 'GetCorresponding', 'ReferencedConfiguration', 'IsFixed', 'IsVirtual', 'GetSuppression2', 'Transform2'},
+    'IComponent2': {'GetID', 'GetCorrespondingEntity', 'ReferencedConfiguration', 'IsFixed', 'IsVirtual', 'GetSuppression2', 'Transform2'},
     'IEntity': {'GetComponent'},
     'ICoincidentMateFeatureData': {'EntitiesToMate', 'MateAlignment'},
     'IConcentricMateFeatureData': {'EntitiesToMate', 'MateAlignment', 'LockRotation'},

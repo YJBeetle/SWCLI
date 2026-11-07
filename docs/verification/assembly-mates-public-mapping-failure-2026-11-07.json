@@ -1,0 +1,65 @@
+{
+  "run_id": 42305617301,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42305617301",
+  "head": "ebc382f76b7210372347e8e6cc5edd66db96366e",
+  "artifact_id": 13547066936,
+  "artifact_sha256": "cafe07ef6f88b32f6d133e5f9b21050c13a5681d35ee9e9910ac2e1776a4cb8a",
+  "distribution_artifact_id": 13546661206,
+  "distribution_artifact_sha256": "bf2b84e6edad9cfc56a1ce6dfe8115f5c8912a6c8744da1a4866af3f77583fed",
+  "github_digests_matched": true,
+  "verified_installed_wheel_python_files": 83,
+  "wheel_sha256": "284af2c977da71106d777a94b6af23e8884802b36950e113d5094132a7561977",
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 5916,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6410000000000764,
+    "visible": false
+  },
+  "preflight_endpoint": {
+    "host": "127.0.0.1",
+    "port": 18539,
+    "bind_verified": true
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-j5am60",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "mapped face does not belong to the exact component",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "23d3494e-3c29-427f-9b8f-404126bdc9b2",
+    "session_id": "modeling-smoke-08f3fa6d52d2"
+  },
+  "native_create_mate_count": 0,
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56447,
+      "sha256": "4040864a7032375cdfac6c9edc420dc3bf5228de9ee36c7df38da8d52694c217"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "proposed_mapping_api": "IComponent2.GetCorrespondingEntity with an explicit IEntity input",
+  "exact_native_root_cause": "Not established beyond mapped-face ownership failure in the inactive assembly; no native return payloads were logged",
+  "internal_acceptance_run_id": 42279916240,
+  "public_acceptance": false,
+  "merge_ready": false
+}
