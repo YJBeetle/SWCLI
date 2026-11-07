@@ -282,6 +282,40 @@ def _wait_for_worker_request(
                 consecutive_failures = 0
 
 
+def _preserve_step_receipt(response, request, result, exc):
+    """Keep trusted mutation/first-error evidence after worker postflight fails."""
+    if (request["operation"] != "document.export" or not request["parameters"].get("step_protocol")
+            or not isinstance(result, dict) or not isinstance(result.get("mutation"), dict)
+            or set(result["mutation"]) != {"attempted", "may_have_changed"}
+            or any(type(value) is not bool for value in result["mutation"].values())):
+        return False
+    receipt = deepcopy(result)
+    receipt["ok"] = False
+    error = receipt.get("error")
+    if not isinstance(error, dict) or not isinstance(error.get("type"), str) or not isinstance(error.get("message"), str):
+        receipt["error"] = {"type": type(exc).__name__, "message": str(exc)}
+    warning = {"code": "step-worker-postflight-failed", "message": type(exc).__name__ + ": " + str(exc)}
+    receipt["warnings"] = (receipt.get("warnings") if isinstance(receipt.get("warnings"), list) else []) + [warning]
+    try:
+        validate_operation_result("document.export", receipt)
+    except Exception:
+        # An invalid result cannot erase the trusted mutation boundary or first
+        # native error. Retain each additional field only if its schema permits.
+        minimum = {"ok": False, "action": "document.export", "mutation": receipt["mutation"],
+                   "error": receipt["error"], "warnings": [warning]}
+        for field in ("output", "step_preferences", "preference_restore_errors", "step_output", "document", "artifact"):
+            if field in receipt:
+                candidate = {**minimum, field: receipt[field]}
+                try:
+                    validate_operation_result("document.export", candidate)
+                except Exception:
+                    continue
+                minimum = candidate
+        receipt = minimum
+    response["result"] = receipt
+    return True
+
+
 def _worker_main(
     request_queue: Any,
     response_queue: Any,
@@ -332,6 +366,7 @@ def _worker_main(
             started_at = time.monotonic()
             request_id = str(request["request_id"])
             command_state_failed = False
+            result = None  # A failed postflight must never reuse a previous request receipt.
             try:
                 try:
                     _com_value(app, "RevisionNumber")
@@ -412,6 +447,8 @@ def _worker_main(
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
+                if _preserve_step_receipt(response, request, result, exc):
+                    command_state_failed = True
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

@@ -11,8 +11,9 @@ The development branch enables **native Windows SOLIDWORKS revision `33.5.0`
 only** for the separate public acceptance gate. Other revisions return
 `StepCalibrationRequired`; Wine/non-Windows returns `StepNativePlatformRequired`;
 visible/shared hosts return `StepIsolationRequired`. Internal evidence is
-complete, while public CLI/daemon/SDK/MCP acceptance remains pending. This
-branch is not yet merge-ready.
+complete. Public run `42303929271` also passed on head `ee7f0ea5`; a reviewed
+runtime/peer/worker-postflight safeguard repair now requires one new public
+gate before this branch is merge-ready.
 
 CLI contract:
 
@@ -91,8 +92,17 @@ writes, and reopens the saved source through the CLI. After this host exits,
 an independent observer group reads the exact SHA256-pinned public output
 files with `LoadFile4`, then saves and reopens imported native geometry. Each
 group owns one host with no failure retry or replacement. These prepared paths
-have not run yet. Enabling the exact internally audited revision permits this
-public gate to run; it does not constitute public acceptance.
+passed in public run
+[42303929271](https://github.com/YJBeetle/SWCLI/actions/runs/42303929271), exact
+head `ee7f0ea51cc23924cf84462f7688800dc6bca626`. Original artifact `13546292159`
+has SHA256 `4623ccc98e3cd4f745d31680bbef53560a855e85f6aef982553be0678acfd717`.
+Independent original-file audit correlated all eight frontend request IDs to
+exactly one native SaveAs3 call each, checked raw Part21 headers and wire-line
+vectors, and verified eight native imports/save/readonly reopens. Stale CAS,
+foreign lease, AP242 and readonly writes were rejected; complete preferences,
+source identity and both owned-host lifecycles passed. This retained result
+predates the runtime/peer/postflight review repair; the repaired head needs its
+own public evidence.
 
 The independent observer explicitly scopes neutral-format import settings: it
 resolves `swMultiCAD_Enable3DInterconnect`, `swImportNeutral_SolidandSurface`
@@ -121,3 +131,18 @@ the complete sorted length vector and native save/reopen with unchanged
 precision bounds. The previous 460 mm oracle omitted construction diagonals;
 its failed run and original ZIP remain recorded.
 [Rectangle construction lines](https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_DVE_SKETCH_RECTANGLES.htm).
+
+The native runtime check resolves `ntdll.dll` with `GetModuleHandleW`, requires
+known `NtClose` to resolve, then accepts absent `wine_get_version` only when
+`GetProcAddress` explicitly reports `ERROR_PROC_NOT_FOUND` (127). Missing APIs,
+missing known exports, Wine, other errors and exceptions fail before preference
+setters or SaveAs3. Runner labels do not establish runtime identity.
+
+Before setters, after a successful native export and after preference restoration,
+STEP verifies the
+foreground peer's identity, type, configuration, update stamp, modified flag,
+title and path as well as the source state. A changed peer blocks publication;
+no CAD state is rolled back. Worker command finalization/result-schema failure
+retains a trusted mutation boundary, first native error and valid preference
+receipt, returns failure and retires the worker. An already published output is
+reported in that failure receipt rather than silently retried or rolled back.

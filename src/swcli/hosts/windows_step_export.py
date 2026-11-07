@@ -92,14 +92,37 @@ def _snapshot(app, keys):
 
 
 def _native_windows_runtime():
-    import ctypes
+    """Accept only a known ntdll with explicit ERROR_PROC_NOT_FOUND for Wine."""
     import sys
     if sys.platform != "win32":
         return False
-    # An unreadable runtime identity raises and therefore fails closed. The
-    # Wine export is absent from native ntdll; no platform label from a client
-    # is trusted to establish this calibrated native-Windows scope.
-    return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+        module = kernel.GetModuleHandleW
+        module.argtypes = [wintypes.LPCWSTR]
+        module.restype = wintypes.HMODULE
+        lookup = kernel.GetProcAddress
+        lookup.argtypes = [wintypes.HMODULE, wintypes.LPCSTR]
+        lookup.restype = ctypes.c_void_p
+        ntdll = module("ntdll.dll")
+        if not ntdll or not lookup(ntdll, b"NtClose"):
+            return False
+        ctypes.set_last_error(0)
+        wine = lookup(ntdll, b"wine_get_version")
+        return not wine and ctypes.get_last_error() == 127  # ERROR_PROC_NOT_FOUND
+    except Exception:
+        return False  # Missing APIs, loader failures and unknown lookup results.
+
+
+def _foreground_state(document):
+    if document is None:
+        return None
+    title, path = (_com_value(document, name) for name in ("GetTitle", "GetPathName"))
+    if not isinstance(title, str) or not isinstance(path, str):
+        raise StepExportError("StepPeerStateUnavailable", "foreground document identity is unreadable")
+    return _state(document), title, path
 
 
 @contextmanager
@@ -122,6 +145,11 @@ def step_preferences(app, document, protocol, geometry, result):
     if _com_value(_com_value(document, "SketchManager"), "ActiveSketch") is not None:
         raise StepExportError("StepEditingUnsupported", "finish the active sketch before STEP export")
     foreground = _com_value(app, "ActiveDoc")
+    foreground_before = _foreground_state(foreground)
+    def verify_context():
+        _verify_metadata_state(app, document, state, foreground, changed=False)
+        if _foreground_state(foreground) != foreground_before:
+            raise StepExportError("StepPeerStateChanged", "foreground document state changed during STEP export")
     constants = read_step_constants()
     keys = {name: constants[name] for name in ("swStepAP", "swStepExportPreference")}
     before = _snapshot(app, keys)
@@ -132,7 +160,7 @@ def step_preferences(app, document, protocol, geometry, result):
             or before["swStepExportPreference"] not in {constants[name] for name in STEP_GEOMETRIES.values()}):
         raise StepExportError("StepPreferenceUnsupported", "original STEP preferences are outside the safely restorable profile")
     # Compare the entire snapshot immediately before entering the mutation scope.
-    _verify_metadata_state(app, document, state, foreground, changed=False)
+    verify_context()
     if _snapshot(app, keys) != before:
         raise StepExportError("StepPreferenceConflict", "STEP preferences changed before export")
     attempted = []
@@ -151,10 +179,10 @@ def step_preferences(app, document, protocol, geometry, result):
             expected = {**before, **{n: desired[n] for n in attempted}}
             if observed != expected:
                 raise StepExportError("StepPreferenceReadbackFailed", "STEP preference did not round-trip")
-        _verify_metadata_state(app, document, state, foreground, changed=False)
+        verify_context()
         yield
         if not result.get("error"):
-            _verify_metadata_state(app, document, state, foreground, changed=False)
+            verify_context()
             if _snapshot(app, keys) != desired:
                 raise StepExportError("StepPreferenceReadbackFailed", "STEP preferences changed during native export")
     except BaseException as exc:
@@ -183,6 +211,12 @@ def step_preferences(app, document, protocol, geometry, result):
                 raise StepExportError("StepPreferenceRestoreFailed", "STEP preferences could not be restored; output was not published")
         else:
             result["step_preferences"]["restored"] = True
+        try:
+            verify_context()  # Restoration itself must not change the peer/source.
+        except Exception as exc:
+            if business_error is None and not result.get("error"):
+                raise
+            result.setdefault("warnings", []).append({"code": "step-context-check-failed", "message": str(exc)})
 
 
 def verify_step_output(path, protocol, geometry):

@@ -30,7 +30,8 @@ class StepExportTests(unittest.TestCase):
         self.app = SimpleNamespace(Visible=False, RevisionNumber="34.0")
         self.app.GetUserPreferenceIntegerValue = lambda key: self.values[key]
         self.app.SetUserPreferenceIntegerValue = self.setter
-        self.document = SimpleNamespace(SketchManager=SimpleNamespace(ActiveSketch=None))
+        self.document = SimpleNamespace(SketchManager=SimpleNamespace(ActiveSketch=None),
+                                        GetTitle="source", GetPathName="source.SLDPRT")
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
         self.stack.enter_context(mock.patch.object(step, "read_step_constants", return_value=CONSTANTS))
@@ -305,6 +306,145 @@ class StepExportTests(unittest.TestCase):
                     self.fail("nearby uncalibrated revision must not write")
         self.assertEqual(raised.exception.code, "StepCalibrationRequired")
         self.assertEqual(self.writes, [])
+
+
+    def test_native_probe_requires_known_ntdll_and_explicit_proc_not_found(self):
+        import ctypes
+        import sys
+        kernel = SimpleNamespace(GetModuleHandleW=mock.Mock(return_value=101),
+                                 GetProcAddress=mock.Mock(side_effect=lambda handle, name: 202 if name == b"NtClose" else None))
+        with mock.patch.object(sys, "platform", "win32"), \
+                mock.patch.object(ctypes, "WinDLL", create=True, return_value=kernel) as loader, \
+                mock.patch.object(ctypes, "set_last_error", create=True) as reset, \
+                mock.patch.object(ctypes, "get_last_error", create=True, return_value=127):
+            self.assertTrue(step._native_windows_runtime())
+        loader.assert_called_once_with("kernel32.dll", use_last_error=True)
+        kernel.GetModuleHandleW.assert_called_once_with("ntdll.dll")
+        self.assertEqual(kernel.GetProcAddress.call_args_list,
+                         [mock.call(101, b"NtClose"), mock.call(101, b"wine_get_version")])
+        reset.assert_called_once_with(0)
+
+    def test_unknown_runtime_probe_never_sets_preferences_or_calls_saveas(self):
+        import ctypes
+        import sys
+        self.app.RevisionNumber = "33.5.0"
+        cases = [dict(platform="darwin"), dict(platform="linux"), dict(module=None), dict(known=None),
+                 dict(wine=303, error=0), dict(error=0), dict(error=5), dict(error=126),
+                 dict(failure=OSError("loader failure")), dict(failure=AttributeError("no WinDLL")),
+                 dict(no_exports=True), dict(lookup_failure=True)]
+        for case in cases:
+            with self.subTest(case=case), ExitStack() as stack, tempfile.TemporaryDirectory() as directory:
+                def lookup(handle, name):
+                    if case.get("lookup_failure"):
+                        raise OSError("unknown lookup failure")
+                    return case.get("known", 202) if name == b"NtClose" else case.get("wine")
+                kernel = (object() if case.get("no_exports") else SimpleNamespace(
+                    GetModuleHandleW=mock.Mock(return_value=case.get("module",101)), GetProcAddress=mock.Mock(side_effect=lookup)))
+                stack.enter_context(mock.patch.object(sys, "platform", case.get("platform","win32")))
+                loader = stack.enter_context(mock.patch.object(ctypes, "WinDLL", create=True,
+                    return_value=kernel, side_effect=case.get("failure")))
+                stack.enter_context(mock.patch.object(ctypes, "set_last_error", create=True))
+                stack.enter_context(mock.patch.object(ctypes, "get_last_error", create=True, return_value=case.get("error",127)))
+                self.assertFalse(step._native_windows_runtime())
+                self.document.SaveAs3 = mock.Mock()
+                self.document.ClearSelection2 = mock.Mock()
+                stack.enter_context(mock.patch.dict("sys.modules", {"pythoncom": ModuleType("pythoncom"),
+                    "win32com": ModuleType("win32com"), "win32com.client": ModuleType("win32com.client")}))
+                stack.enter_context(mock.patch.object(docs, "_export_source_state", return_value={
+                    "document": {"type":1, "path":"source.SLDPRT", "modified":False}, "needs_rebuild":0}))
+                with step.step_host_scope(self.app, isolated=True):
+                    if case.get("platform") in ("darwin","linux"):
+                        with self.assertRaises(step.StepExportError):
+                            with step.step_preferences(self.app,self.document,"ap214","wireframe",{}):
+                                self.fail("non-Windows must not write")
+                        loader.assert_not_called()
+                    else:
+                        value = docs.export_active_windows_document(str(Path(directory)/"output.step"), app=self.app,
+                            document=self.document, step_protocol="ap214", step_geometry="wireframe")
+                        self.assertEqual(value["error"]["type"], "StepNativePlatformRequired")
+                        self.assertEqual(value["mutation"], {"attempted":False,"may_have_changed":False})
+                self.assertEqual(self.writes, [])
+                self.document.SaveAs3.assert_not_called()
+                self.document.ClearSelection2.assert_not_called()
+
+    def test_foreground_peer_stamp_configuration_modified_and_path_drift_block_success(self):
+        peer = SimpleNamespace(GetTitle="foreground", GetPathName="")
+        self.app.ActiveDoc = peer
+        for field, changed in (("stamp",6),("modified",True),("configuration","Other"),("path","changed.SLDPRT")):
+            with self.subTest(field=field):
+                values = dict(stamp=5,modified=False,configuration="Default")
+                peer.GetPathName = ""
+                self.stack.enter_context(mock.patch.object(step,"_state",side_effect=lambda obj:
+                    (1,values["stamp"],values["modified"],values["configuration"]) if obj is peer else (1,5,False,"Default")))
+                result = {}
+                with self.assertRaises(step.StepExportError) as raised:
+                    with self.scope(result):
+                        if field == "path":
+                            peer.GetPathName = changed
+                        else:
+                            values[field] = changed
+                self.assertEqual(raised.exception.code,"StepPeerStateChanged")
+                self.assertTrue(result["step_preferences"]["restored"])
+                self.assertEqual(self.values,{999:203,777:0})
+
+    def test_foreground_peer_change_during_preference_restore_blocks_publication(self):
+        peer = SimpleNamespace(GetTitle="foreground",GetPathName="")
+        self.app.ActiveDoc = peer
+        def setter(key,value):
+            accepted = self.setter(key,value)
+            if key == 777 and value == 0:
+                peer.GetPathName = "changed.SLDPRT"
+            return accepted
+        self.app.SetUserPreferenceIntegerValue = setter
+        result = {}
+        with self.assertRaises(step.StepExportError) as raised:
+            with self.scope(result):
+                pass
+        self.assertEqual(raised.exception.code,"StepPeerStateChanged")
+        self.assertTrue(result["step_preferences"]["restored"])
+        self.assertEqual(self.values,{999:203,777:0})
+
+    def test_worker_postflight_retains_step_first_error_and_mutation_and_quarantines(self):
+        from test_native_sequence import NativeSequenceTests
+        from swcli.hosts.native_sequence import NativeCommandRestoreFailed
+        from swcli.daemon import server
+        from contextlib import contextmanager
+        failure = NativeCommandRestoreFailed(RuntimeError("command restore failed"), None)
+        app = SimpleNamespace(GetProcessID=lambda:1234,RevisionNumber="33.5.0",ActiveDoc=object())
+        request = {"request_id":"postflight","operation":"document.export", "parameters":{"step_protocol":"ap214"}}
+        original = {"ok":False,"action":"document.export","output":"output.step",
+                    "mutation":{"attempted":True,"may_have_changed":True},
+                    "error":{"type":"ExportFailed","message":"first save error","save_errors":8}}
+        @contextmanager
+        def fail_finalization(*args,**kwargs):
+            yield
+            raise failure
+        with mock.patch.object(server,"native_api_sequence",fail_finalization):
+            responses,lifecycle,wait=NativeSequenceTests().run_worker(app,True,lambda *a,**k:original,[request,request,None])
+        reply=responses.put.call_args.args[0]
+        self.assertEqual(wait.call_count,1)
+        self.assertEqual(reply["error"]["code"],"NativeCommandRestoreFailed")
+        self.assertEqual(reply["result"]["error"],original["error"])
+        self.assertEqual(reply["result"]["mutation"],original["mutation"])
+        self.assertEqual(lifecycle.put.call_args.args[0]["event"],"host-disconnected")
+        validate_operation_result("document.export",reply["result"])
+
+    def test_worker_schema_failure_retains_trusted_step_receipt_only(self):
+        from swcli.daemon import server
+        original={"ok":True,"action":"document.export","output":"output.step",
+                  "mutation":{"attempted":True,"may_have_changed":True}, "unrecognized":"invalid",
+                  "step_preferences":{"before":{"swStepAP":203,"swStepExportPreference":0},
+                      "requested":{"swStepAP":214,"swStepExportPreference":1},
+                      "after":{"swStepAP":203,"swStepExportPreference":0},"restored":True}}
+        reply={"success":False,"error":{"code":"OperationResultInvalid","message":"invalid payload"}}
+        request={"operation":"document.export","parameters":{"step_protocol":"ap214"}}
+        self.assertTrue(server._preserve_step_receipt(reply,request,original,RuntimeError("schema failed")))
+        receipt=reply["result"]
+        self.assertFalse(receipt["ok"])
+        self.assertEqual(receipt["mutation"],original["mutation"])
+        self.assertEqual(receipt["step_preferences"],original["step_preferences"])
+        self.assertNotIn("unrecognized",receipt)
+        validate_operation_result("document.export",receipt)
 
 
     def test_unsaved_source_rejected_before_preferences_or_native_save(self):

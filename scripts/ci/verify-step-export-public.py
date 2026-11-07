@@ -162,6 +162,8 @@ def main(argv=None):
         report["source_sketch_oracle"] = verify_source_sketch(observed_sketch)
         foreground = cli("create-foreground", "document", "create", "--type", "part")["document"]["document_id"]
         documents[foreground] = None
+        report["foreground_before"] = cli("foreground-before", "document", "inspect", "--document", foreground,
+                                          operation="document.inspect")["document"]
         for protocol in ("ap203", "ap214"):
             for geometry in ("solid-surface", "wireframe", "wireframe-sketches"):
                 path = output / (protocol + "-" + geometry + ".step")
@@ -187,6 +189,9 @@ def main(argv=None):
         persist()
         checked(reply["success"], "MCP public STEP export failed")
         verify_output(path, "ap203", "wireframe", reply["result"], "mcp")
+        report["foreground_after"] = cli("foreground-after", "document", "inspect", "--document", foreground,
+                                         operation="document.inspect")["document"]
+        checked(report["foreground_before"] == report["foreground_after"], "foreground peer state changed during public exports")
         base = ["document", "export", str(output / "rejected.step"), "--step-protocol", "ap214",
                 "--step-geometry", "solid-surface"]
         cli("stale-cas", *base, *document_context(document, lease, stamp(document) + 1), error="DocumentUpdateConflict")
