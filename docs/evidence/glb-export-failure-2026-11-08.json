@@ -1,0 +1,229 @@
+{
+  "run_id": 42405530053,
+  "head": "0a00751e44823ca46237000479754634bf50a418",
+  "run_conclusion": "failure",
+  "request_id": "7712054a-7f17-495b-a30a-7d37690bd042",
+  "document_type": 1,
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 3424,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.5470000000000255,
+    "visible": false
+  },
+  "native_original_zip": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined/run-42405530053/original-native-artifact.zip",
+    "size_bytes": 9159929,
+    "sha256": "a55c00d7e4b7d07cbece2acd0ef5847138efc074f9ddaa3bfead0aef9e967ec9"
+  },
+  "glb": {
+    "original_path": "/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined/run-42405530053/original/swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.invalid-native.glb",
+    "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+    "size_bytes": 3800,
+    "zip_crc32": "66faabfe",
+    "matches_original_zip_member": true,
+    "header_length_matches": true,
+    "chunks": [
+      {
+        "offset": 12,
+        "kind_hex": "4a534f4e",
+        "payload_bytes": 3772
+      },
+      {
+        "offset": 3792,
+        "kind_hex": "42494e00",
+        "payload_bytes": 0
+      }
+    ],
+    "buffers": [
+      {
+        "byteLength": 720
+      }
+    ],
+    "buffer_views": [
+      {
+        "buffer": 0,
+        "byteOffset": 0,
+        "byteLength": 144,
+        "target": 34963
+      },
+      {
+        "buffer": 0,
+        "byteOffset": 144,
+        "byteLength": 288,
+        "byteStride": 12,
+        "target": 34962
+      },
+      {
+        "buffer": 0,
+        "byteOffset": 432,
+        "byteLength": 288,
+        "byteStride": 12,
+        "target": 34962
+      }
+    ],
+    "accessors": [
+      {
+        "bufferView": 0,
+        "byteOffset": 0,
+        "componentType": 5125,
+        "count": 36,
+        "type": "SCALAR",
+        "min": [
+          0
+        ],
+        "max": [
+          23
+        ]
+      },
+      {
+        "bufferView": 1,
+        "byteOffset": 0,
+        "componentType": 5126,
+        "count": 24,
+        "type": "VEC3",
+        "min": [
+          -0.019999999552965164,
+          -0.014999999664723873,
+          0.0
+        ],
+        "max": [
+          0.019999999552965164,
+          0.014999999664723873,
+          0.009999999776482582
+        ]
+      },
+      {
+        "bufferView": 2,
+        "byteOffset": 0,
+        "componentType": 5126,
+        "count": 24,
+        "type": "VEC3",
+        "min": [
+          -1.0,
+          -1.0,
+          -1.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    ],
+    "extensions_used": [],
+    "extensions_required": [],
+    "primitive_extensions": [
+      {}
+    ],
+    "archive_external_sidecars": [],
+    "archive_siblings": [
+      {
+        "name": "component-export.3MF",
+        "size_bytes": 11836
+      },
+      {
+        "name": "component-export.AMF",
+        "size_bytes": 1499
+      },
+      {
+        "name": "component-export.invalid-native.glb",
+        "size_bytes": 3800
+      },
+      {
+        "name": "component-export.STL",
+        "size_bytes": 684
+      },
+      {
+        "name": "component.SLDPRT",
+        "size_bytes": 50709
+      },
+      {
+        "name": "modeling-events-modeling-smoke-2e62bb93ef37.jsonl",
+        "size_bytes": 1575720
+      },
+      {
+        "name": "modeling.json",
+        "size_bytes": 2408830
+      }
+    ],
+    "archive_includes_hidden_files": false,
+    "sidecar_scope": "absence is limited to uploaded visible files; export-time hidden files were not inventoried"
+  },
+  "native_save": {
+    "attempted": true,
+    "saved": true,
+    "errors": 0,
+    "warnings": 0,
+    "save_api": "IModelDocExtension.SaveAs3",
+    "call_count": 1,
+    "duration_ms": 16.000000000076398,
+    "worker_pid": 936,
+    "balanced_native_trace_rows": 108,
+    "error": "ExportVerificationFailed"
+  },
+  "code": {
+    "baseline_main": "960839e52d0c433c817e71e02493a27681f7e858",
+    "executed_sources": [
+      {
+        "path": "src/swcli/hosts/windows_documents.py",
+        "sha256": "3fb0e4e449cfb3611005e463c46c476d1ea2f7e906a3914ba6c84f5e540a50a1"
+      },
+      {
+        "path": "src/swcli/hosts/windows_save_as.py",
+        "sha256": "84cd59919884f050fc70c46f22dcc7fd7a6d0e20fdd6b3932a2f84154e90eb09"
+      },
+      {
+        "path": "src/swcli/hosts/export_validation.py",
+        "sha256": "9d13f39c32fc99a5cb55aa1e22d6ff9e0692f3263cf5416a33dd4e24a2b9e315"
+      },
+      {
+        "path": "scripts/ci/verify-runtime-sets.py",
+        "sha256": "bc32e1734f7c4c9bee26f1f9021dfd74abfe485edf72e15de75bd72560000dce"
+      }
+    ]
+  },
+  "current_validator_accepts_glb": false,
+  "other_container_validation": {
+    "AMF": true,
+    "STL": true,
+    "3MF": true
+  },
+  "diagnosis": "Retained native output declares 720 embedded bytes but stores an empty BIN. Upstream cause is unproven.",
+  "evidence_gaps": [
+    "actual temporary path and export-time directory/file I/O",
+    "loaded translator and dependency paths/versions at export time",
+    "installed GLTF export option IDs and actual read-only preference values"
+  ],
+  "historical_case_comparison": [
+    {
+      "run_id": 42265919228,
+      "head": "d6eff718a9a6a38a0bcdd6724a9916c72256c4f7",
+      "api": "IModelDoc2.SaveAs3",
+      "zip_sha256": "bdfcbf0e992c951acc7a2508e6c7a38cffa7bc0613ec9f0847ef9c6931231ee7",
+      "member": "swcli-native-smoke/image-quality/calibration/cylinder-coarse.glb",
+      "glb_sha256": "be886c6cb8853fc6e4c516531ed08a874894749bf0e375e7337f434a104e9c51",
+      "declared_buffer_bytes": 3696,
+      "actual_bin_bytes": 0,
+      "staging": ".cylinder-coarse.<uuid>.swcli.glb",
+      "scope": "historical API comparison only; does not establish the current modern-API cause"
+    },
+    {
+      "run_id": 42301795947,
+      "head": "0a5afc1508574800adb2c82561a9b1d32fe8b979",
+      "api": "IModelDoc2.SaveAs3",
+      "zip_sha256": "c49857f607eb2efc09b16c5366a46f4e08685f0341fba46168ce95940ff77b0a",
+      "member": "swcli-native-smoke/image-quality/calibration/cylinder-coarse.invalid-native.glb",
+      "glb_sha256": "be886c6cb8853fc6e4c516531ed08a874894749bf0e375e7337f434a104e9c51",
+      "declared_buffer_bytes": 3696,
+      "actual_bin_bytes": 0,
+      "staging": "swcli-<uuid>.glb (internal plain staging)",
+      "scope": "historical API comparison only; does not establish the current modern-API cause"
+    }
+  ],
+  "production_fix_verified": false
+}

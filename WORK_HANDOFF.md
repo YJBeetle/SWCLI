@@ -1,3 +1,11 @@
+# GLB 首失败诊断交接
+
+独立分支 `codex/glb-export-repair`，main 基线 `960839e52d0c433c817e71e02493a27681f7e858`。首阶段离线审计已完成，已确认本次原生 GLB 声明 720 字节 buffer 而 BIN 为 0。上游首因仍待实际暂存路径、隐藏 sidecar、导出时加载模块和文件 I/O 证据。
+
+详见 [诊断与验证方案](docs/handoffs/glb-export-repair.md) 和 [机器可读审计](docs/evidence/glb-export-failure-2026-11-08.json)。本阶段变更为交接文档和审计记录，未派发新 CI。STL 与现代 SaveAs3 负责人的分支和原件保持原有状态。
+
+## 继承的历史交接原文
+
 # 逐路集成交接
 
 - main 已合入工程图出详图两个默认标量；代码、验收范围与原件摘要见 [出详图交接](docs/handoffs/detailing.md) 和 docs/evidence/detailing-main-integration-2026-11-07.json。
