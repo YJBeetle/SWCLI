@@ -223,3 +223,13 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 关联56项通过，完整portable1878项/45.784s通过（32 skipped）；SDK generated --check、diff检查通过。记录`docs/evidence/units-profile/lease-exit-fix/`。窄质心<=1e-12mm及V/S/count/state/identity/CAS完全未变，src/swcli产品P1源未修改。本次中文提交推送后只对相关修复head做一次必要public gate，正常记录run后结束等待，不持续盯CI。无新范围/字段/计划，无待审批动作，无可合tip。
 
 最小相关修复提交 `577309005a858c11543b5def253dca36e5d0c598` 已推送；仅对该head手动触发一次必要public gate：[42361728509](https://github.com/YJBeetle/SWCLI/actions/runs/42361728509)，参数 `units_calibration=true,units_public_acceptance=true,native_full=false`。实际head已核对，初始原件 `docs/evidence/units-profile/lease-exit-42361728509/run-initial.json`。旧失败及approved bound原件保留，不改其状态；本次无几何阈值、V/S、count、state/identity/CAS或src/swcli功能变化。正常运行记录链接后结束等待，由统筹后续一次性快照跟进，不持续poll/automation，不新增范围或代理。无待审批动作，无可合tip或public通过声明。
+
+## 新原件最终审计通过：交统筹review的精确可合子集
+
+只使用本轮新run `42361728509 / 577309005a858c11543b5def253dca36e5d0c598` 原件，workflow与internal/public均success。新artifact ID13571025062，373398 bytes，官方/下载ZIP digest一致：`92c718be6f704c350075ce4de8fbce5e621d81de40e77ae5b915d95d8e882e6c`。原ZIP完整路径`/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/lease-exit-42361728509/original.zip`，原始解压同目录original/；metadata与三个原report在`docs/evidence/units-profile/lease-exit-42361728509/`。没有复用旧run原件作为通过。
+
+独立标准库审计器 `docs/verification/audit-units-42361728509.py` 已复跑audit_success=true，98 CLI事件/三类case/15预期拒绝，5656 internal+5003 public native边界及预算均通过，public组44.359s，native PID9108单次关闭后句柄确认退出，PID库存[]恢复[]；合法owner token与竞争session有原CLI事件关联。原ZIP每份source/copy hash重算一致，全profile/state严格一致；V/S/count精确、质心仅获批绝对≤1e-12 mm，没有relative或通用kernel宽阈值。审计器10项边界/负向自检通过，且强制当前src/scripts-ci/workflow与验收head相同及changed-write白名单仍空。
+
+完整可复跑**绝对路径命令**、head/artifact/digest/报告hash/精确范围及缺口位于 `docs/verification/units-42361728509-handoff.md`。最终可合tip为本轮完成审计文档提交（精确SHA由最终回复给出），其后相对验证head仅docs/auditor与本地原件忽略规则，无操作源码变化，可由独立命令复核。最终review/merge仍由统筹本人办理，本线程不合main不发布、不新增代理、不扩范围、不重复CI。
+
+可合只限九字段read/raw5/linkage、公开precision=2 noop、lease/stamp/完整CAS/readonly/闭域拒写、save/reopen及owned生命周期的上述三fixture子集。changed-write/scalar/system切换/写持久性仍未验收、白名单空；P1异常故障注入是portable/mock证据，本轮native是正常正向/拒绝覆盖。不得宣称九字段写能力或全系列/发布已完成。旧失败原件原状态全部保留，正式发布仍待用户确认。

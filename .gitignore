@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 build/
 dist/
+# Original ZIP/native files for the pinned units acceptance run stay local.
+evidence/units-profile/lease-exit-42361728509/
