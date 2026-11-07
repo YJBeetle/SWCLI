@@ -762,3 +762,30 @@ runtimes, other revisions and `dimensions`/`tables` writes return
 Public CLI/Notes-object inheritance acceptance remains pending its dedicated
 gate. Never infer subtype inheritance, table-template behavior or persistence
 from portable tests alone. Saving remains a separate explicitly authorized step.
+
+
+## Part image quality and GLB
+
+`swcli document image-quality --document d-ab12cd --json` observes document
+Image Quality, with normalized `shaded_mode`, `shaded_deviation_mm`,
+`optimize_edge_length`, two observed toggles, raw `native` values and
+`deviation_range`. It supports parts only and preserves the selected background
+handle, foreground, configuration, dirty flag and update stamp.
+
+`document image-quality-set FIELD VALUE --if-quality '<complete quality JSON>'
+--if-update-stamp N --lease TOKEN --document ID` edits one field on SOLIDWORKS
+33.5.0 with native Windows CPython 3.12.10 x64. Presets accept `coarse` and
+`fine`, and edge optimization accepts `true` or `false`. Changed
+`shaded_deviation_mm` writes require a verified fine-to-custom profile. The
+exact calibrated targets in millimeters are `0.018750000000000003` and
+`0.03186887195995491`, each with its corresponding native fine value and range.
+The result records the custom mode transition. Use the entire observed `quality`
+object as `expected_quality`, including native values and range. Obtain a fresh
+snapshot and stamp before submitting another write. A failed setter may have
+modified the document. Inspect the mutation receipt and re-read before deciding
+what to do next.
+
+These fields are document display properties. GLTF/GLB Export Options (views,
+cameras, lights, motion, exploded views, Draco) have no verified API mapping in
+this profile. The exporter has no newly supported GLB options object or triangle
+budget. Do not use Image Quality or STL-specific options as a replacement.

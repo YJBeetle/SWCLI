@@ -157,3 +157,12 @@ When operation/result schemas change, run `python scripts/dev/generate-sdk.py`
 from the source checkout, then `python scripts/ci/verify-sdk-types.py` with mypy
 installed. CI checks generation drift and representative consumer acceptance
 and refusal. Generated data shapes do not replace native functional gates.
+
+
+`client.document.image_quality(...)` reads the part-only display-quality
+snapshot. The generated `image_quality_set(field=..., value=...,
+expected_quality=..., expected_update_stamp=..., lease_id=...)` method requires
+the complete typed snapshot and context. The daemon admits writes only on the
+calibrated native Windows runtime and checks changed custom values against the
+verified native profiles. MCP uses the same exact operation names
+and payload through `execute`, with no automatic host start or write retry.

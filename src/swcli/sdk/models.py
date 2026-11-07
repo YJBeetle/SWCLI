@@ -841,6 +841,87 @@ class DocumentLineFontSetResult(_DocumentLineFontSetResultRequired, total=False)
     finalization_error: DocumentCreateResultError
 
 
+DocumentImageQualityParameters = DocumentFontScopesParameters
+
+
+class DocumentImageQualityResultQualityNative(TypedDict):
+    shaded_mode: int
+    shaded_deviation_m: float
+    optimize_edge_length: bool
+    save_tessellation: bool
+    apply_to_referenced_parts: bool
+
+
+class DocumentImageQualityResultQualityDeviationRange(TypedDict):
+    status: int
+    bounds_m: List[float]
+
+
+class DocumentImageQualityResultQuality(TypedDict):
+    shaded_mode: Literal['coarse', 'fine', 'custom', 'other']
+    shaded_deviation_mm: float
+    optimize_edge_length: bool
+    save_tessellation: bool
+    apply_to_referenced_parts: bool
+    native: DocumentImageQualityResultQualityNative
+    deviation_range: DocumentImageQualityResultQualityDeviationRange
+
+
+class _DocumentImageQualityResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.image-quality']
+
+
+class DocumentImageQualityResult(_DocumentImageQualityResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    quality: DocumentImageQualityResultQuality
+    finalization_error: DocumentCreateResultError
+
+
+class DocumentImageQualitySetParameters(TypedDict):
+    field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length']
+    value: Union[str, float, bool]
+    expected_quality: DocumentImageQualityResultQuality
+
+
+class DocumentImageQualitySetResultLinkedChangesItemVariant1(TypedDict):
+    field: Literal['shaded_deviation_mm']
+    before: float
+    after: float
+    reason: Literal['shaded-mode-coupling']
+
+
+class DocumentImageQualitySetResultLinkedChangesItemVariant2(TypedDict):
+    field: Literal['shaded_mode']
+    before: Literal['coarse', 'fine', 'custom']
+    after: Literal['custom']
+    reason: Literal['shaded-deviation-coupling']
+
+
+class _DocumentImageQualitySetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.image-quality-set']
+
+
+class DocumentImageQualitySetResult(_DocumentImageQualitySetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length']
+    before: DocumentImageQualityResultQuality
+    quality: DocumentImageQualityResultQuality
+    observed_quality: DocumentImageQualityResultQuality
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_return: JSONValue
+    finalization_error: DocumentCreateResultError
+    linked_changes: List[Union[DocumentImageQualitySetResultLinkedChangesItemVariant1, DocumentImageQualitySetResultLinkedChangesItemVariant2]]
+
+
 DocumentAnnotationOptionsParameters = DocumentFontScopesParameters
 
 

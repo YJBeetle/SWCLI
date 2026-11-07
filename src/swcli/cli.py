@@ -25,6 +25,7 @@ from .document_tolerances import TOLERANCE_FIELDS
 from .document_font_scopes import WRITABLE_FONT_SCOPES
 from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_line_font import LINE_FONT_FIELDS
+from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, validate_value
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
@@ -285,6 +286,17 @@ def build_parser() -> argparse.ArgumentParser:
     line_writer.add_argument("value", type=int)
     line_writer.add_argument("--if-options", required=True, help="complete native integer snapshot as JSON")
     line_writer.add_argument("--json", action="store_true", dest="as_json")
+    image_reader = document_commands.add_parser("image-quality", help="read bounded part image quality; independent of GLB export options")
+    add_document_selector(image_reader)
+    image_reader.add_argument("--json", action="store_true", dest="as_json")
+    image_editor = document_commands.add_parser("image-quality-set", help="edit one part image quality field with a complete CAS snapshot")
+    add_document_target(image_editor)
+    image_editor.add_argument("--if-update-stamp", type=int, dest="expected_update_stamp", required=True)
+    image_editor.add_argument("--lease", dest="lease_id", required=True)
+    image_editor.add_argument("field", choices=tuple(IMAGE_QUALITY_FIELDS))
+    image_editor.add_argument("value")
+    image_editor.add_argument("--if-quality", required=True, dest="expected_quality", help="complete JSON quality snapshot from image-quality")
+    image_editor.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -948,8 +960,9 @@ def _capabilities_mismatch(payload: Any, *, include_schemas: bool = True) -> Opt
         if (
             not isinstance(operation_schema, dict)
             or not operation_schema_fields.issubset(operation_schema)
-            or set(operation_schema) - operation_schema_fields - {"allOf"}
+            or set(operation_schema) - operation_schema_fields - {"allOf", "description"}
                 - ({"x-swcli-font-write-profiles"} if operation == "document.font-scope-set" else set())
+            or ("description" in operation_schema and not isinstance(operation_schema["description"], str))
         ):
             return f"operation schema fields are invalid for {operation}"
         if (
@@ -1413,6 +1426,29 @@ def _typed_operation(
             return ("document.line-font-set", {"field": args.field, "value": args.value,
                     "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
+        if command == "image-quality":
+            return ("document.image-quality", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "image-quality-set":
+            def unique_members(pairs):
+                result = {}
+                for key, item in pairs:
+                    if key in result:
+                        raise ValueError("duplicate image quality JSON member: " + key)
+                    result[key] = item
+                return result
+            def invalid_constant(token):
+                raise ValueError("image quality JSON numbers must be finite: " + token)
+            expected = json.loads(args.expected_quality, object_pairs_hook=unique_members, parse_constant=invalid_constant)
+            validate_quality(expected)
+            if args.field == "optimize_edge_length":
+                if args.value not in ("true", "false"):
+                    raise ValueError("image quality boolean must be true or false")
+                value = args.value == "true"
+            else:
+                value = float(args.value) if args.field == "shaded_deviation_mm" else args.value
+            validate_value(args.field, value)
+            return ("document.image-quality-set", {"field": args.field, "value": value, "expected_quality": expected},
+                    args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

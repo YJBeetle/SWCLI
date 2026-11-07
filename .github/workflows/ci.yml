@@ -115,6 +115,16 @@ on:
         required: false
         default: false
         type: boolean
+      image_quality_calibration:
+        description: Internal image-quality/GLB calibration on codex/docprops-export-options only (exclusive with native_full)
+        required: false
+        default: false
+        type: boolean
+      image_quality_public_acceptance:
+        description: Public document image-quality acceptance on codex/docprops-export-options only (exclusive with other native selections)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -352,13 +362,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Image Quality GLB calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy, native-profile]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'image_quality_calibration' || needs.native-profile.outputs.profile == 'image_quality_public_acceptance')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
@@ -493,6 +503,19 @@ jobs:
           scripts/ci/windows/prepare-test-runtime.ps1 `
             -AssetsRoot "$env:PRIVATE_ROOT\assets" `
             -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Select Python for internal calibration
+        if: ${{ inputs.image_quality_calibration || inputs.image_quality_public_acceptance }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install internal GLB decoder
+        if: ${{ inputs.image_quality_calibration || inputs.image_quality_public_acceptance }}
+        shell: powershell
+        run: |
+          python -m pip install --only-binary=:all: "DracoPy==2.2.0" "numpy==2.2.6"
+          if ($LASTEXITCODE -ne 0) { throw "Internal GLB decoder installation failed" }
 
       - name: Install built SWCLI wheel
         id: client_install
@@ -649,6 +672,22 @@ jobs:
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\visible" -VisibleSmoke
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\hidden" -Hidden -Suite full -PropertyFixtureDirectory "$env:SWCLI_SMOKE_ROOT\properties-calibration" -AnnotationFixtureDirectory "$env:SWCLI_SMOKE_ROOT\annotation-fixtures"
+
+      - name: Run only internal image-quality GLB calibration
+        id: image_quality_calibration
+        if: ${{ inputs.image_quality_calibration }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\image-quality" -Hidden -ImageQualityCalibration
+
+      - name: Run only public document image-quality acceptance
+        id: image_quality_public_acceptance
+        if: ${{ inputs.image_quality_public_acceptance }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\image-quality-public" -Hidden -ImageQualityPublicAcceptance
 
       - name: Measure streamed data and remaining disk
         if: always()

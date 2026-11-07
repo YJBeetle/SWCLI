@@ -41,3 +41,7 @@ from swcli.sdk.models import DocumentExportResult
 def export_qualified_stl(client: Client) -> Response[DocumentExportResult]:
     return client.document.export(output="curved.stl", stl_options=PROFILES["fine"], strict=True,
         document_id="d-ab12cd", expected_update_stamp=161, lease_id="l-ab12cd34ef56")
+def observe_quality(client: Client) -> None:
+    quality = client.document.image_quality(document_id="d-ab12cd").require_result()["quality"]
+    client.document.image_quality_set(field="optimize_edge_length", value=False,
+        expected_quality=quality, expected_update_stamp=0, lease_id="l-ab12cd34ef56")

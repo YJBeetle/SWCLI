@@ -34,6 +34,7 @@ from .operations import (
     OPERATIONS,
     UPDATE_STAMP_OPERATIONS,
     execute_operation,
+    preserve_image_quality_finalization_failure,
 )
 from .timeouts import validate_timeout
 
@@ -482,6 +483,10 @@ def _worker_main(
                                   "mutation": result["mutation"], "error": result["error"],
                                   "warnings": result.get("warnings", [])}
                     response["result"] = result
+                if request["operation"] in ("document.image-quality", "document.image-quality-set") and isinstance(result, dict):
+                    response["result"] = preserve_image_quality_finalization_failure(
+                        str(request["operation"]), result, exc,
+                        session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

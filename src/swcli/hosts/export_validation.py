@@ -218,6 +218,21 @@ def _glb(path: Path, size: int) -> bool:
         return False
     if model.get("asset", {}).get("version") != "2.0":
         return False
+    # An embedded buffer must have real bytes, not merely POSITION/accessor
+    # declarations. Khronos permits only up to three extra BIN padding bytes.
+    buffers = model.get("buffers", [])
+    if not isinstance(buffers, list):
+        return False
+    binary_lengths = [length for kind, length in chunks if kind == b"BIN\x00"]
+    for index, buffer in enumerate(buffers):
+        if (not isinstance(buffer, dict) or type(buffer.get("byteLength")) is not int
+                or buffer["byteLength"] < 1):
+            return False
+        if "uri" not in buffer:
+            if index != 0 or not binary_lengths or not 0 <= binary_lengths[0] - buffer["byteLength"] <= 3:
+                return False
+        elif not isinstance(buffer["uri"], str) or not buffer["uri"]:
+            return False
     meshes = model.get("meshes")
     return isinstance(meshes, list) and any(
         isinstance(mesh, dict) and isinstance(mesh.get("primitives"), list)

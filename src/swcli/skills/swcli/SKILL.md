@@ -65,6 +65,11 @@ retry writes or refresh leases/CAS implicitly.
 - Before modeling, editing features, observing entities or creating drawings,
   read the [modeling rules](references/modeling-rules.md) and only the relevant
   workflow section of the usage guide. These preserve native scope and stale-handle boundaries.
+- For part display quality, discover `document.image-quality` separately from
+  export operations. `document.image-quality-set` permits only its verified native Windows
+  revision/runtime and bounded targets; other writes fail closed. A complete quality CAS snapshot, lease
+  and update stamp are mandatory. Do not equate these settings with GLB export
+  options or claim GLB subdivision control without decoded mesh evidence.
 - For MCP previews or file delivery, use `execute` with `document.render` or
   `document.export`. Check both CAD success and `artifact.content.status`;
   consume the returned image/resource block, not a client-side host path.

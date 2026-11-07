@@ -17,6 +17,7 @@ from .document_font_scopes import (WRITABLE_FONT_SCOPES, NATIVE_FONT_WRITE_PROFI
 from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_VALUES, LINE_FONT_SNAPSHOT, validate_edit as validate_line_font_edit
 from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema, value_schema as dimension_value_schema, validate_value as validate_dimension_value, validate_format
+from .document_image_quality import IMAGE_QUALITY_FIELDS, quality_schema, value_schema as quality_value_schema, validate_quality, validate_value as validate_quality_value
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
@@ -68,6 +69,7 @@ def _operation(
     selected_document: Optional[bool] = None,
     temporary_activation: bool = False,
     parameter_conditions: Optional[list[Dict[str, Any]]] = None,
+    description: Optional[str] = None,
 ) -> OperationSpec:
     schema = {
         "$schema": JSON_SCHEMA_DIALECT,
@@ -83,6 +85,8 @@ def _operation(
             "lease_id": lease_id,
         },
     }
+    if description is not None:
+        schema["description"] = description
     if parameter_conditions:
         schema["allOf"] = parameter_conditions
     return OperationSpec(
@@ -236,6 +240,22 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                                "then": {"properties": {"value": {"enum": values}}}}
                               for field, values in LINE_FONT_VALUES.items()],
         **_DOCUMENT_WRITE_CONTEXT,
+    ),
+    "document.image-quality": _operation("document.image-quality", description="Part-only document display quality observation; independent of GLB format options and not proof of GLB tessellation control.", **_DOCUMENT_READ_CONTEXT),
+    "document.image-quality-set": _operation(
+        "document.image-quality-set",
+        {"field": _string(enum=list(IMAGE_QUALITY_FIELDS)),
+         "value": {"anyOf": [_string(), _number(), _boolean()]},
+         "expected_quality": quality_schema()},
+        description="Part display quality writes on SOLIDWORKS 33.5.0 with native Windows CPython 3.12.10 x64. Changed custom deviations require a verified fine-to-custom value and native range profile. Requires lease, stamp and complete quality CAS.",
+        required=("field", "value", "expected_quality"),
+        document_id="optional", expected_update_stamp="required", lease_id="required",
+        parameter_conditions=[{"oneOf": [
+            {"type": "object", "additionalProperties": False,
+             "properties": {"field": {"type": "string", "const": field},
+                            "value": quality_value_schema(field), "expected_quality": quality_schema()},
+             "required": ["field", "value", "expected_quality"]}
+            for field in IMAGE_QUALITY_FIELDS]}],
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -702,6 +722,9 @@ def validate_operation_request(
     if operation == "document.dimension-format-set":
         validate_dimension_value(parameters["field"], parameters["value"])
         validate_format(parameters["expected_format"])
+    if operation == "document.image-quality-set":
+        validate_quality_value(parameters["field"], parameters["value"])
+        validate_quality(parameters["expected_quality"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

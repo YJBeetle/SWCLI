@@ -9,10 +9,15 @@ param(
     [string]$PropertyFixtureDirectory,
     [string]$AnnotationFixtureDirectory,
     [string]$ToleranceFixtureDirectory,
-    [string]$DimensionFormatFixtureDirectory
+    [string]$DimensionFormatFixtureDirectory,
+    [switch]$ImageQualityCalibration,
+    [switch]$ImageQualityPublicAcceptance
 )
 
 $ErrorActionPreference = "Stop"
+if (($ImageQualityCalibration -or $ImageQualityPublicAcceptance) -and (-not $Hidden -or $VisibleSmoke -or $PropertyFixtureDirectory -or $AnnotationFixtureDirectory -or $ToleranceFixtureDirectory -or $DimensionFormatFixtureDirectory -or ($ImageQualityCalibration -and $ImageQualityPublicAcceptance))) {
+    throw "Image-quality calibration requires only its own hidden host/profile"
+}
 if ($VisibleSmoke -and $Hidden) { throw "VisibleSmoke cannot use a hidden host" }
 if ($ToleranceFixtureDirectory -and -not $Hidden) { throw "Tolerance verification requires the initial hidden host" }
 if ($AnnotationFixtureDirectory -and -not $Hidden) { throw "Annotation verification requires the initial hidden host" }
@@ -346,9 +351,15 @@ $daemonStdout = Join-Path $Workspace "swclid.stdout.log"
 $daemonStderr = Join-Path $Workspace "swclid.stderr.log"
 $daemonArguments = @("-m", "swcli", "daemon", "serve", "--startup-timeout", "120")
 if (-not $Hidden) { $daemonArguments += "--visible" }
+$previousGlbStagingCalibration = [Environment]::GetEnvironmentVariable("SWCLI_GLB_PLAIN_STAGING_CALIBRATION", "Process")
+$previousQualityCalibration = [Environment]::GetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", "Process")
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
-    if ($AnnotationFixtureDirectory -or $ToleranceFixtureDirectory -or $DimensionFormatFixtureDirectory) {
+    if ($ImageQualityCalibration) { $env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION = "1" }
+    else { Remove-Item Env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION -ErrorAction SilentlyContinue }
+    if ($ImageQualityCalibration) { $env:SWCLI_IMAGE_QUALITY_CALIBRATION = "1" }
+    else { Remove-Item Env:SWCLI_IMAGE_QUALITY_CALIBRATION -ErrorAction SilentlyContinue }
+    if ($AnnotationFixtureDirectory -or $ToleranceFixtureDirectory -or $DimensionFormatFixtureDirectory -or $ImageQualityCalibration -or $ImageQualityPublicAcceptance) {
         $env:SWCLI_TRACE_NATIVE_CALLS = "1"
     }
     else {
@@ -364,6 +375,8 @@ try {
 }
 finally {
     [Environment]::SetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", $previousNativeTrace, "Process")
+    [Environment]::SetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", $previousQualityCalibration, "Process")
+    [Environment]::SetEnvironmentVariable("SWCLI_GLB_PLAIN_STAGING_CALIBRATION", $previousGlbStagingCalibration, "Process")
 }
 # Pin the OS handle while it is alive; preflight exits long before we check it.
 $null = $daemon.Handle
@@ -420,6 +433,32 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Installed public dimension format acceptance failed; preserve original report/trace" }
         $stop = Invoke-SwCliJson -Name "dimension-format-stop" -Arguments @("daemon", "stop", "--json")
         Assert-OwnedDaemonExit -Process $daemon -Name "dimension-format-public"
+        $started = $false
+        return
+    }
+
+    if ($ImageQualityCalibration -or $ImageQualityPublicAcceptance) {
+        # Independent property persistence group precedes the separate GLB
+        # experiment. Both keep their own hard 1800s watchdog, same owned host;
+        # the overall CI step remains capped at 35 minutes.
+        $acceptanceArguments = @()
+        if ($ImageQualityPublicAcceptance) { $acceptanceArguments = @("--public-acceptance") }
+        & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
+            @acceptanceArguments --document-properties --output-dir (Join-Path $Workspace "properties-calibration") `
+            --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+        if ($LASTEXITCODE -ne 0) { throw "Image-quality document-properties group failed; stop before any GLB experiment" }
+        if ($ImageQualityPublicAcceptance) {
+            Invoke-SwCliJson -Name "quality-public-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+            Assert-OwnedDaemonExit -Process $daemon -Name "quality-public"
+            $started = $false
+            return
+        }
+        & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
+            --output-dir (Join-Path $Workspace "calibration") `
+            --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+        if ($LASTEXITCODE -ne 0) { throw "Internal image-quality calibration failed; retain first report and trace" }
+        Invoke-SwCliJson -Name "quality-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
+        Assert-OwnedDaemonExit -Process $daemon -Name "quality"
         $started = $false
         return
     }

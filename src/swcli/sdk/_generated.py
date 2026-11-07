@@ -260,6 +260,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentLineFontSetResult]", self._client._execute('document.line-font-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def image_quality(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentImageQualityResult]:
+        """document.image-quality; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentImageQualityResult]", self._client._execute('document.image-quality', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def image_quality_set(self, *, field: Literal['shaded_mode', 'shaded_deviation_mm', 'optimize_edge_length'], value: Union[str, float, bool], expected_quality: models.DocumentImageQualityResultQuality, document_id: Optional[str] = None, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentImageQualitySetResult]:
+        """document.image-quality-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_quality'] = expected_quality
+        return cast("Response[models.DocumentImageQualitySetResult]", self._client._execute('document.image-quality-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def annotation_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationOptionsResult]:
         """document.annotation-options; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

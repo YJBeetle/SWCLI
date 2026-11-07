@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import sys
+import os
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -828,7 +830,10 @@ def export_active_windows_document(
             }
             return result
 
+        plain_glb_calibration = (export_format == "GLB"
+            and os.environ.get("SWCLI_GLB_PLAIN_STAGING_CALIBRATION") == "1")
         temporary_output_path = output_path.with_name(
+            f"swcli-{uuid4().hex}.glb" if plain_glb_calibration else
             f".{output_path.stem}.{uuid4().hex}.swcli{output_path.suffix}"
         )
         export_path = temporary_output_path
@@ -841,7 +846,7 @@ def export_active_windows_document(
                 app, export_format == "STL" and before["document"]["type"] == 2)
         with preference_scope:
             document.ClearSelection2(True)
-            save_error = int(native_call("export", "IModelDoc2.SaveAs3",
+            save_error = int(native_call("document-export" if export_format == "GLB" else "export", "IModelDoc2.SaveAs3",
                                          lambda: document.SaveAs3(str(export_path), 0, 1)))
             if save_error != 0:
                 result["error"] = {"type": "ExportFailed", "message": "SOLIDWORKS failed to export the active document",
@@ -869,6 +874,17 @@ def export_active_windows_document(
                     "signature_valid": signature_valid,
                 },
             }
+            if plain_glb_calibration:
+                # Internal owned-fixture diagnostics only. Preserve rejected
+                # native bytes separately; never publish them as a valid export
+                # or overwrite evidence. Recording errors cannot mask the cause.
+                diagnostic = output_path.with_name(output_path.stem + ".invalid-native.glb")
+                try:
+                    with export_path.open("rb") as source, diagnostic.open("xb") as target:
+                        shutil.copyfileobj(source, target)
+                    result["error"]["diagnostic_file"] = str(diagnostic)
+                except OSError as exc:
+                    result["error"]["diagnostic_recording_error"] = str(exc)
             return result
 
         if stl_options is not None:

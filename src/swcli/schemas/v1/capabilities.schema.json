@@ -96,6 +96,7 @@
           "$schema": {"const": "https://json-schema.org/draft/2020-12/schema"},
           "$id": {"type": "string", "minLength": 1},
           "title": {"type": "string", "minLength": 1},
+          "description": {"type": "string"},
           "type": {"const": "object"},
           "additionalProperties": {"const": false},
           "properties": {"type": "object"},

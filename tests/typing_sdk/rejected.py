@@ -12,3 +12,6 @@ client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0}])  # E: typeddict-i
 bad_empty_parameters: DocumentListParameters = {"unexpected": True}  # E: typeddict-unknown-key
 client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0], axis_mm=[0.0, -5.0, 0.0, 15.0], angle_deg=360.0)  # E: call-arg
 client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0], axis_mm="y-axis", angle_deg=360.0, document_id="d-ab12cd", expected_update_stamp=12)  # E: arg-type
+
+quality = client.document.image_quality().require_result()["quality"]
+client.document.image_quality_set(field="optimize_edge_length", value=True, expected_quality=quality)  # E: call-arg

@@ -1,0 +1,67 @@
+{
+  "success": true,
+  "scope": "public document-property persistence on tested native Windows only; NO GLB coverage",
+  "run_conclusion": "success",
+  "profile": "public",
+  "head": "950c83396784a9f647e9ea0d06d1771a5f00d1c5",
+  "artifact_digest": "sha256:8d15490737bf826350a754559ef2f617769ba216b74e68fafe01a42ea186a70c",
+  "report_sha256": "250cb4a0cf706a1a17069e0e88abadce9154e802ac638c4cd27dd4dc756e2d86",
+  "trace_sha256": "16b0c64881282ca89ceef41487db14d76d39cae9f5fe4faa82ef4e1d3c826dea",
+  "native_request_proofs": 58,
+  "sdk_request_proofs": 2,
+  "analytic_measurements": 16,
+  "files": [
+    {
+      "name": "cylinder-baseline.SLDPRT",
+      "sha256": "5a58cd5d8d7344065a6446eba277d84170d0e0987d9d448c33dbb30dfcf5355c"
+    },
+    {
+      "name": "cylinder-coarse.SLDPRT",
+      "sha256": "67641c9a08db328d6836fb1ce6b6c97d5df3415b35496165c163811bdb1c00e2"
+    },
+    {
+      "name": "cylinder-fine.SLDPRT",
+      "sha256": "c81c62709e721c6275bd12d15fbee6765bbb1800281ed1bb7d58233894ef82db"
+    },
+    {
+      "name": "cylinder-custom.SLDPRT",
+      "sha256": "e5fef6103ea3049e302f667deee849db9b10bbc1f76a570e7265c923a612abd5"
+    },
+    {
+      "name": "box-baseline.SLDPRT",
+      "sha256": "c2066addbce74f456c1cad645086d7b39d54b8c9b434a8c3c64c2e9ab71a1a3b"
+    },
+    {
+      "name": "box-coarse.SLDPRT",
+      "sha256": "8767b20edc520f3542071b4b98252c688817d9566a444606da26e3e633e4da95"
+    },
+    {
+      "name": "box-fine.SLDPRT",
+      "sha256": "8569579b15aa944e0a2c688426af195635ab711311a7d47c8148a6bc5b6869f3"
+    },
+    {
+      "name": "box-custom.SLDPRT",
+      "sha256": "2688bfdce54765d174c6c76accac5d575979396f44b4c16bbcff8ada5cfd69cb"
+    }
+  ],
+  "meshes": [],
+  "cleanup_no_new_resources": true,
+  "public_acceptance_passed": true,
+  "mcp_request_proofs": 2,
+  "public_runtime_guard_verified": true,
+  "reviewer": "coordinator personally",
+  "public_run": 42361573569,
+  "artifact_id": 13570318875,
+  "all_extracted_zip_entries_verified": 34,
+  "integration_base": "00f4538",
+  "integration_portable": {
+    "ran": 2135,
+    "passed": 2101,
+    "skipped": 34,
+    "log_sha256": "3278d7a1b717dce296a6443fb31ca0b2797a6e0cd518668508f649c045209500"
+  },
+  "integration_sdk": "passed; 11 consumer typing refusals",
+  "glb_export_parameters_supported": false,
+  "glb_mesh_control_proven": false,
+  "release_eligible": false
+}

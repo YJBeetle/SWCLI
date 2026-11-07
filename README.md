@@ -494,6 +494,15 @@ Lease boundaries are deliberately narrow:
 - `lease status` hides the token from other sessions but reports the owning
   `session_id` for coordination. It is not a multi-tenant privacy boundary.
 
+`document image-quality` reads the part display-quality snapshot, including raw
+values and the native deviation range. `document image-quality-set` requires a
+complete `--if-quality` snapshot, `--if-update-stamp` and `--lease`. Writes are
+scoped to SOLIDWORKS 33.5.0 on native Windows with CPython 3.12.10 x64. Presets
+accept `coarse` and `fine`, edge optimization accepts booleans, and changed
+custom deviations require a verified native profile. See the
+[calibrated profiles and evidence](docs/image-quality-calibration.md). GLB
+format options and tessellation control remain unsupported.
+
 `document close` refuses to close a modified document unless `--discard` is
 explicitly supplied, matching the CLI's conservative lifecycle policy.
 
@@ -566,6 +575,8 @@ verification and any strict checks pass. This core operation selects format
 only from the explicit output extension and does not interpret source naming
 conventions.
 
+GLB container verification rejects missing/short embedded BIN buffers; mesh
+accessor declarations alone cannot supply the missing geometry.
 Mesh exports use bounded container/basic-geometry checks, not a guarantee of
 watertightness, tessellation accuracy, materials or geometric equivalence.
 Native translator availability and tessellation settings belong to the host;
