@@ -65,7 +65,7 @@ class TableCalibrationTests(unittest.TestCase):
         case = {"geometry_reopened": before}
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
-            with self.assertRaisesRegex(RuntimeError, 'exact geometry comparison'):
+            with self.assertRaisesRegex(RuntimeError, 'geometry comparison'):
                 gate.record_geometry_check(output, case, 'bom.box_border', actual)
             recorded = json.loads((output / 'geometry-observations.jsonl').read_text())
             self.assertEqual(recorded['before'], before)
@@ -73,7 +73,24 @@ class TableCalibrationTests(unittest.TestCase):
             self.assertFalse(recorded['exact_equal'])
             self.assertEqual(case['geometry_checks'], [recorded])
 
-    def test_part_control_keeps_exact_readonly_comparison_and_stops_before_any_table_setter(self):
+    def test_approved_centroid_change_keeps_original_values_hex_and_delta(self):
+        from copy import deepcopy
+        before = dict(solid_body_count=1, volume_mm3=11999.999999999998, surface_area_mm2=3799.9999999999995,
+                      centroid_mm=dict(x=-7.058607893785837e-16, y=6.286572655403011e-16, z=5.0))
+        after = deepcopy(before)
+        after['centroid_mm']['y'] = 8.271806125530278e-16
+        case = dict(geometry_reopened=before)
+        with tempfile.TemporaryDirectory() as temporary:
+            gate.record_geometry_check(Path(temporary), case, 'before-first-table-write', after)
+        row = case['geometry_checks'][0]
+        self.assertTrue(row['passed'])
+        self.assertFalse(row['exact_equal'])
+        self.assertEqual(row['before'], before)
+        self.assertEqual(row['after'], after)
+        self.assertEqual(row['centroid_delta_mm']['y'], after['centroid_mm']['y'] - before['centroid_mm']['y'])
+        self.assertEqual(row['after_hex']['centroid_mm.y'], after['centroid_mm']['y'].hex())
+
+    def test_part_control_retains_strict_fields_and_stops_beyond_centroid_bound(self):
         import math
         from copy import deepcopy
         for changed in (False, True):
@@ -85,7 +102,7 @@ class TableCalibrationTests(unittest.TestCase):
                                 centroid_mm=dict(x=0.0, y=0.0, z=5.0))
                 actual = deepcopy(expected)
                 if changed:
-                    actual['centroid_mm']['y'] = math.nextafter(0.0, 1.0)
+                    actual['centroid_mm']['y'] = math.nextafter(1e-12, math.inf)
                 measured = dict(ok=True, action='document.measure', metrics=actual, bodies=[dict(actual)])
                 case = dict(geometry_reopened=expected)
                 with mock.patch.object(gate.fixtures, 'measure_part_windows', return_value=measured) as measure:
@@ -119,6 +136,7 @@ class TableCalibrationTests(unittest.TestCase):
         fake.setUp()
         self.addCleanup(fake.doCleanups)
         fake.kind = 2
+        fake.native.update({200: True, 201: 0, 202: 0})
         fake.register()
         docs = [fake.document, fake.foreground]
         fake.app.GetDocuments = lambda: tuple(docs)
@@ -168,14 +186,27 @@ class TableCalibrationTests(unittest.TestCase):
             if fail:
                 with self.assertRaisesRegex(RuntimeError, 'table scalar write failed'):
                     gate.calibrate_case(fake.app, output, {}, 'front', False, call, case,
-                        {'host': {'process_id': 123}}, {'document': None}, profile_kind='assembly',
+                        {'host': {'process_id': 123, 'revision': '33.5.0'}}, {'document': None}, profile_kind='assembly',
                         drawing_template=output / 'base.drwdot', swconst=output / 'swconst.tlb')
             else:
                 gate.calibrate_case(fake.app, output, {}, 'front', False, call, case,
-                    {'host': {'process_id': 123}}, {'document': None}, profile_kind='assembly',
+                    {'host': {'process_id': 123, 'revision': '33.5.0'}}, {'document': None}, profile_kind='assembly',
                     drawing_template=output / 'base.drwdot', swconst=output / 'swconst.tlb')
         self.assertIs(operations.set_document_table_option_windows, original_handler)
         return fake, case, calls
+
+    def test_internal_revalidation_does_not_expand_existing_ad_transitions(self):
+        for (revision, kind), fields in adapter._CALIBRATED_PROFILES.items():
+            for field, pairs in fields.items():
+                for before, after in pairs:
+                    gate.require_existing_transition(kind, revision, field, before, after)
+        for kind in (2, 3):
+            with self.subTest(kind=kind):
+                with self.assertRaisesRegex(RuntimeError, 'expand an existing assembly/drawing transition'):
+                    gate.require_existing_transition(kind, '33.5.0', 'bom.box_border', 1, 2)
+                with self.assertRaisesRegex(RuntimeError, 'expand an existing assembly/drawing transition'):
+                    gate.require_existing_transition(kind, '33.5.1', 'bom.box_border', 0, 1)
+        gate.require_existing_transition(1, '33.5.0', 'bom.box_border', 0, 1)
 
     def test_fake_assembly_checks_cas_noop_readonly_persistence_and_new_save_target(self):
         with tempfile.TemporaryDirectory() as directory:

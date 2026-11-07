@@ -39,7 +39,9 @@ class DocumentTableTests(unittest.TestCase):
         self.foreground_modified = False
         self.foreground = SimpleNamespace(GetType=lambda: 1, GetTitle=lambda: "Peer", GetPathName=lambda: "",
             GetSaveFlag=lambda: self.foreground_modified, GetUpdateStamp=lambda: 8,
-            GetActiveConfiguration=lambda: SimpleNamespace(Name="Default"))
+            GetActiveConfiguration=lambda: SimpleNamespace(Name="Default"), Extension=SimpleNamespace(),
+            IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False,
+            SketchManager=SimpleNamespace(ActiveSketch=None))
         self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda: (self.document, self.foreground),
             IsSame=lambda first, second: int(first is second), RevisionNumber=lambda: "33.5.0",
             ActivateDoc3=mock.Mock(), SetUserPreferenceToggle=mock.Mock(), SetUserPreferenceIntegerValue=mock.Mock())
@@ -278,6 +280,116 @@ class DocumentTableTests(unittest.TestCase):
         self.document.GetTitle.assert_called_once_with()
         self.extension.SetUserPreferenceInteger.assert_called_once()
         self.document.SetSaveFlag.assert_not_called()
+
+    def test_setter_turning_target_readonly_blocks_later_dirty_mutation(self):
+        self.kind = 2
+        self.native[200] = True
+        self.register()
+        expected = self.read()['options']
+        self.document.IsOpenedReadOnly = lambda: self.extension.SetUserPreferenceToggle.call_count > 0
+        with mock.patch.object(adapter, '_native_windows_runtime', return_value=True):
+            result = adapter.set_document_table_option_windows(app=self.app, document=self.document,
+                field='all.use_template_settings', value=False, expected_options=expected)
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['type'], 'ValueError')
+        self.assertEqual(result['mutation'], dict(attempted=True, may_have_changed=True))
+        self.assertTrue(result['native_returned'])
+        self.extension.SetUserPreferenceToggle.assert_called_once_with(200, 0, False)
+        self.document.SetSaveFlag.assert_not_called()
+        self.assertIs(self.native[200], False)
+        self.assertFalse(self.modified)
+
+    def test_peer_drift_during_target_state_reads_blocks_dirty_mutation(self):
+        import inspect
+        for occurrence in (1, 2):
+            with self.subTest(occurrence=occurrence):
+                fixture = DocumentTableTests()
+                fixture.setUp()
+                self.addCleanup(fixture.doCleanups)
+                fixture.kind = 2
+                fixture.native[200] = True
+                fixture.register()
+                expected = fixture.read()['options']
+                target_reads = []
+
+                def save_flag():
+                    if fixture.extension.SetUserPreferenceToggle.called and any(
+                            frame.function == '_verify_metadata_state' for frame in inspect.stack()):
+                        target_reads.append(True)
+                        if len(target_reads) == occurrence:
+                            fixture.foreground_modified = True
+                    return fixture.modified
+
+                fixture.document.GetSaveFlag = save_flag
+                with mock.patch.object(adapter, '_native_windows_runtime', return_value=True):
+                    result = adapter.set_document_table_option_windows(app=fixture.app, document=fixture.document,
+                        field='all.use_template_settings', value=False, expected_options=expected)
+                self.assertFalse(result['ok'])
+                self.assertEqual(result['mutation'], dict(attempted=True, may_have_changed=True))
+                self.assertIn('foreground peer', result['error']['message'])
+                self.assertTrue(result['native_returned'])
+                self.assertGreaterEqual(len(target_reads), occurrence)
+                fixture.extension.SetUserPreferenceToggle.assert_called_once_with(200, 0, False)
+                fixture.document.SetSaveFlag.assert_not_called()
+                self.assertIs(fixture.native[200], False)
+                self.assertFalse(fixture.modified)
+
+    def test_exact_public_profile_postsetter_target_and_peer_drifts_block_dirty_mutation(self):
+        for drift in ('view-only', 'identity', 'configuration', 'sketch', 'extension', 'peer-permission', 'peer-sketch', 'peer-extension'):
+            with self.subTest(drift=drift):
+                fixture = DocumentTableTests()
+                fixture.setUp()
+                self.addCleanup(fixture.doCleanups)
+                fixture.kind = 2
+                fixture.native[200] = True
+                fixture.register()
+                expected = fixture.read()['options']
+
+                def setter(preference, option, value):
+                    fixture.native[preference] = value
+                    if drift == 'view-only': fixture.document.IsOpenedViewOnly = lambda: True
+                    if drift == 'identity': fixture.title = 'Other'
+                    if drift == 'configuration': fixture.configuration.Name = 'Other'
+                    if drift == 'sketch': fixture.document.SketchManager.ActiveSketch = object()
+                    if drift == 'extension': fixture.document.Extension = SimpleNamespace()
+                    if drift == 'peer-permission': fixture.foreground.IsOpenedReadOnly = lambda: True
+                    if drift == 'peer-sketch': fixture.foreground.SketchManager.ActiveSketch = object()
+                    if drift == 'peer-extension': fixture.foreground.Extension = SimpleNamespace()
+                    return True
+
+                fixture.extension.SetUserPreferenceToggle.side_effect = setter
+                with mock.patch.object(adapter, '_native_windows_runtime', return_value=True):
+                    result = adapter.set_document_table_option_windows(app=fixture.app, document=fixture.document,
+                        field='all.use_template_settings', value=False, expected_options=expected)
+                self.assertFalse(result['ok'])
+                self.assertEqual(result['mutation'], dict(attempted=True, may_have_changed=True))
+                fixture.extension.SetUserPreferenceToggle.assert_called_once_with(200, 0, False)
+                fixture.document.SetSaveFlag.assert_not_called()
+                self.assertIs(fixture.native[200], False)
+
+    def test_dirty_marking_must_roundtrip_dirty_flag_and_preserve_configuration(self):
+        for fault in ('no-effect', 'configuration'):
+            with self.subTest(fault=fault):
+                fixture = DocumentTableTests()
+                fixture.setUp()
+                self.addCleanup(fixture.doCleanups)
+                fixture.kind = 2
+                fixture.native[200] = True
+                fixture.register()
+                expected = fixture.read()['options']
+                def dirty():
+                    if fault == 'configuration':
+                        fixture.modified = True
+                        fixture.configuration.Name = 'Other'
+                fixture.document.SetSaveFlag.side_effect = dirty
+                with mock.patch.object(adapter, '_native_windows_runtime', return_value=True):
+                    result = adapter.set_document_table_option_windows(app=fixture.app, document=fixture.document,
+                        field='all.use_template_settings', value=False, expected_options=expected)
+                self.assertFalse(result['ok'])
+                self.assertEqual(result['mutation'], dict(attempted=True, may_have_changed=True))
+                self.assertIn('mark the document for saving', result['error']['message'])
+                fixture.extension.SetUserPreferenceToggle.assert_called_once_with(200, 0, False)
+                fixture.document.SetSaveFlag.assert_called_once()
 
     def test_descriptor_failure_after_verified_write_retains_receipt_and_observed_values(self):
         with mock.patch("swcli.daemon.operations._with_document", side_effect=RuntimeError("descriptor unavailable after write")):

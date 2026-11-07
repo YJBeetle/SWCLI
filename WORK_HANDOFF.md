@@ -4,8 +4,9 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **装配体/工程图正常路径已完成含严格 native guard 的公开验收。** 原候选 tip `5a4d861d9caf7c4b79ef9f288630aa06247e50d1` 须补本轮 worker late-fault 回执独立修复后交统筹 review。正常路径原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`。零件写入继续关闭，系列完整验收仍待完成。
-- 内部 `42301331238` 和公开 `42366316568` 的新原件均已审核。后续提交只增加原计划零件的严格 pre-write 对照，候选 tip 与后续诊断 head 分开记录。默认完整计划保留零件精确几何断言。
+- **本轮正在补齐健康路径保护与零件完整验证，暂不可合并。** 已有装配体/工程图公开原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，不能替代本轮新 adapter 的 native 验收。worker late-fault 独立修复 `1d44a42` 保留，交统筹本人审查。
+- 用户于 2026-11-08 明确批准“允许，仅限表格路线的质心界限”：每轴绝对差 `<=1e-12 mm`。其余几何 V/S/实体数、身份、状态、lease/CAS 等严格规则不变，原值/hex/delta 和旧失败均保留。见 `docs/verification/table-defaults-centroid-decision-2026-11-08.md`。
+- 零件 public profile 仍关闭；下一轮为一个 internal `all` 原生组，覆盖零件3项及已有装配体/工程图8项、保存重开与新保护。原件成功审核后才固定完整 profile/pin，并做一次新 exact-head public all gate。不得用 portable 或旧 head 原件宣称已完成。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -191,3 +192,12 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 已证明此次差异先于任何 candidate table setter，具体重开/访问模式/前后台或 kernel 数值路径仍未分离。当前没有保持原 exact 规则及测量语义的已证实有效修复，零件继续阻断，不无差异重跑。
 - 完整原值、全部原始文件 hash、路径和可复跑原件检查命令见 `docs/verification/table-defaults-part-42405733149.md`，脚本 `audit-table-defaults-part-42405733149.py`。原件位于 ignored `run-42405733149/`。
 - 统筹随后发现 post-setter writable/peer 再确认缺口，健康路径修复另作提交和一次既有 [2,3] public gate。worker late-fault 修复 `1d44a42` 继续保留，当前暂不能合。
+
+
+## 2026-11-08 表格专属质心许可与健康路径修复
+
+- 明确许可和实现范围见 `docs/verification/table-defaults-centroid-decision-2026-11-08.md`。此前 `42405733149` 仍是按旧严格规则失败，不改写、不追认。
+- adapter 捕获并核对目标/前台 peer 的 Extension、身份、编辑上下文和 peer permissions；目标 state 读取前后均核对完整 peer。绑定每个 setter 后、实际 mutation 前再核对 writable/context/peer，避免健康 setter 后 drift 再进入 SetSaveFlag。显式 dirty marking 仍必须确认 dirty=true 和原 type/config，单次 setter、partial mutation/首错规则不变。
+- 内部重验的装配体/工程图转换不得超出已有8项 profile；零件仅在内部 candidate bypass 下执行原计划3项，公开入口不扩值、不提前开放。
+- 最终完整 portable **1880 tests / 33 skips 通过**；相关52项通过。日志 `docs/verification/table-defaults-evidence/approved-rule-guards-final-full-portable.log`。旧 pinned `[2,3]` 原件本地 preflight 复核仍通过：8 setters，原 report/trace digest 不变。这不证明新 adapter 原生通过。
+- 后续单次 dispatch 保存 inputs/run/head/快照后交接，不持续轮询、不加 native 预算、不组内重启或重试、不建自动化。本工作树不 merge main/release。

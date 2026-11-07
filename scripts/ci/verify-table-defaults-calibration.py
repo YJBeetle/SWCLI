@@ -14,7 +14,7 @@ from pathlib import Path
 
 from swcli.daemon.documents import DocumentRegistry
 from swcli.daemon import operations
-from swcli.document_tables import TABLE_FIELDS
+from swcli.document_tables import TABLE_FIELDS, LINE_WEIGHTS
 from swcli.hosts import windows_document_tables as adapter
 from swcli.hosts.native_trace import trace_native_request
 from swcli.hosts.windows import _com_value
@@ -30,15 +30,21 @@ spec.loader.exec_module(fixtures)
 harness, checked = fixtures.harness, fixtures.checked
 
 
-def record_geometry_check(output, case, field, actual):
-    """Persist both operands before the unchanged exact-geometry assertion."""
-    before = case["geometry_reopened"]
-    row = dict(field=field, before=before, after=actual, exact_equal=actual == before)
+geometry_spec = importlib.util.spec_from_file_location("_table_geometry_rule",
+    Path(__file__).with_name("gate_support") / "table_defaults_geometry.py")
+geometry = importlib.util.module_from_spec(geometry_spec)
+geometry_spec.loader.exec_module(geometry)
+
+
+def record_geometry_check(output, case, field, actual, *, baseline=None):
+    """Persist both original operands and the table-only approved comparison."""
+    before = case["geometry_reopened"] if baseline is None else baseline
+    row = dict(field=field, before=before, after=actual, **geometry.compare_table_geometry(before, actual))
     case.setdefault("geometry_checks", []).append(row)
     with (output / "geometry-observations.jsonl").open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, allow_nan=False) + "\n")
         stream.flush()
-    checked(actual == before, "table fixture exact geometry comparison failed at " + field)
+    checked(row["passed"], "table fixture geometry comparison failed at " + field)
 
 
 def verify_part_before_write(app, document, output, case):
@@ -56,11 +62,20 @@ def verify_part_before_write(app, document, output, case):
     record_geometry_check(output, case, "before-first-table-write", measured["metrics"])
 
 
+def require_existing_transition(kind, revision, field, before, after):
+    """Part remains candidate-only; the existing eight A/D transitions cannot expand."""
+    if kind in (2, 3):
+        checked((before, after) in adapter._CALIBRATED_PROFILES.get((revision, kind), {}).get(field, ()),
+                "internal calibration would expand an existing assembly/drawing transition")
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live,
                    *, profile_kind, drawing_template, swconst):
     fixtures.prepare_case(app, output, constants, plane, reverse, call, case, report, live,
                           profile_kind=profile_kind, drawing_template=drawing_template)
     case.update(success=False, preparation_only=False, internal_calibration_only=True, writes=[])
+    if profile_kind == "part":
+        record_geometry_check(output, case, "fixture-readonly-reopen", case["geometry_reopened"], baseline=case["geometry"])
     path = Path(case["path"])
     opened, document = call("open-table-fixture-writable", lambda: open_windows_document_with_handle(str(path), app=app))
     live["document"] = document
@@ -122,6 +137,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             value = not current[field]["value"] if spec["kind"] == "Toggle" else (
                 "normal" if current[field]["value"] != "normal" else "thick")
             expected = deepcopy(current)
+            require_existing_transition(kind, report["host"]["revision"], field, expected[field]["native_value"],
+                                        value if spec["kind"] == "Toggle" else LINE_WEIGHTS[value])
             changed = call("internal-table-write:" + field, lambda: execute("document.table-option-set",
                 dict(field=field, value=value, expected_options=expected)))
             case["writes"].append(changed)

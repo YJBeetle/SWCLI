@@ -27,6 +27,12 @@ spec.loader.exec_module(helpers)
 modeling, require = helpers.modeling, helpers.require
 
 
+geometry_spec = importlib.util.spec_from_file_location("_table_geometry_rule",
+    Path(__file__).with_name("gate_support") / "table_defaults_geometry.py")
+geometry = importlib.util.module_from_spec(geometry_spec)
+geometry_spec.loader.exec_module(geometry)
+
+
 class TableSmoke(modeling.ModelingSmoke):
     def __init__(self, **kwargs):
         super().__init__(request_timeout_seconds=600, depth_request_timeout_seconds=600, **kwargs)
@@ -184,6 +190,12 @@ def verify_clients(gate, trace, document, kind, current, field, value):
     gate.record.setdefault('client_contracts', []).append(dict(document_type=kind, sdk_read=dict(read.raw), sdk_noop=dict(noop.raw), mcp_read=mcp, mcp_noop=mcp_noop))
 
 
+def record_table_geometry(case, phase, before, after):
+    row = dict(field=phase, before=before, after=after, **geometry.compare_table_geometry(before, after))
+    case.setdefault('geometry_checks', []).append(row)
+    require(row['passed'], 'public table geometry comparison failed at ' + phase)
+
+
 def run(gate, fixtures, trace, internal, proof):
     require(internal.get('success') is True and internal.get('full_acceptance_eligible') is False
             and internal.get('diagnostic_case') == 'document-table-defaults-internal', 'internal candidate evidence is incomplete')
@@ -256,7 +268,7 @@ def run(gate, fixtures, trace, internal, proof):
             require(after_refusal['options'] == current['options'] and after_refusal['document'] == current['document'], 'complete-snapshot CAS refusal changed native state')
         verify_clients(gate, trace, document, kind, current, field, value)
         if kind == 1:
-            helpers.same_geometry(case['geometry_initial'], helpers.geometry(gate, document))
+            record_table_geometry(case, 'after-public-writes', case['geometry_initial'], helpers.geometry(gate, document))
         saved = case['saved'] = helpers.save_copy(gate, document, 'public-table-defaults.' + suffix, suffix)
         case['final_options'] = current['options']
         gate.close(document)
@@ -273,7 +285,7 @@ def run(gate, fixtures, trace, internal, proof):
                 and hashlib.sha256(source.read_bytes()).hexdigest() == source_hash
                 and hashlib.sha256(Path(saved['path']).read_bytes()).hexdigest() == saved['sha256'], 'public table gate changed source/saved file or read-only state')
         if kind == 1:
-            helpers.same_geometry(case['geometry_initial'], helpers.geometry(gate, fresh))
+            record_table_geometry(case, 'saved-reopen', case['geometry_initial'], helpers.geometry(gate, fresh))
         gate.close(fresh)
         gate.close(peer)
         gate.require_empty(after_case='tables-' + suffix)

@@ -2,11 +2,17 @@
 
 from collections import Counter
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
 from swcli.document_tables import TABLE_FIELDS, validate_table_options
 from swcli.result_schemas import validate_operation_result
+
+
+geometry_spec = importlib.util.spec_from_file_location('_table_evidence_geometry', Path(__file__).with_name('table_defaults_geometry.py'))
+geometry = importlib.util.module_from_spec(geometry_spec)
+geometry_spec.loader.exec_module(geometry)
 
 
 def require(condition, message):
@@ -65,15 +71,21 @@ def audit(directory, native_trace, *, report_sha256):
             raw_before, raw_after = changed['before'][field]['native_value'], current[field]['native_value']
             profile[field] = [[raw_before, raw_after], [raw_after, raw_after]]
         if kind == 1:
-            geometry = case.get('geometry_checks', [])
-            require([row['field'] for row in geometry] == ['before-first-table-write'] + fields + ['saved-reopen'],
-                    'missing exact part geometry operands')
+            checks = case.get('geometry_checks', [])
+            require([row['field'] for row in checks] == ['fixture-readonly-reopen', 'before-first-table-write'] + fields + ['saved-reopen'],
+                    'missing table part geometry operands')
             measured = case.get('geometry_before_table_write_measurement', {})
-            require(case.get('geometry_before_table_write_context_unchanged') is True
-                    and measured.get('ok') is True and measured.get('metrics') == case['geometry_reopened'],
+            require(case.get('geometry_before_table_write_context_unchanged') is True and measured.get('ok') is True
+                    and geometry.compare_table_geometry(case['geometry_reopened'], measured['metrics'])['passed'],
                     'part pre-write measurement/context did not match the readonly baseline')
-            require(all(row['exact_equal'] is True and row['before'] == row['after'] == case['geometry_reopened']
-                        for row in geometry), 'part geometry exact comparison failed')
+            for row in checks:
+                comparison = geometry.compare_table_geometry(row['before'], row['after'])
+                require(comparison['passed'] and {key: row.get(key) for key in comparison} == comparison,
+                        'table part geometry comparison/record failed')
+                baseline = case['geometry'] if row['field'] == 'fixture-readonly-reopen' else case['geometry_reopened']
+                require(row['before'] == baseline, 'table part geometry baseline differs')
+            require(checks[0]['after'] == case['geometry_reopened'] and checks[1]['after'] == measured['metrics'],
+                    'table part initial geometry observations differ')
         require(current == case['final_options'] == case['persisted']['options'] and case['persisted']['ok'] is True,
                 'saved/reopened scalar values differ')
         require(case['save_defaults']['ok'] is True and case['save_defaults']['api_saved'] is True

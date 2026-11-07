@@ -93,30 +93,67 @@ def _identity(document):
     return values
 
 
+def _permissions(document):
+    values = (_com_value(document, "IsOpenedReadOnly"), _com_value(document, "IsOpenedViewOnly"))
+    if any(type(value) is not bool for value in values):
+        raise RuntimeError("table document permissions are unreadable")
+    return values
+
+
 def _capture(app, document):
     foreground = _com_value(app, "ActiveDoc")
-    return dict(state=_state(document), identity=_identity(document), foreground=foreground,
+    peer = foreground if foreground is not None and not _same(app, foreground, document) else None
+    extension = _com_value(document, "Extension")
+    peer_extension = _com_value(peer, "Extension") if peer is not None else None
+    if extension is None or (peer is not None and peer_extension is None):
+        raise RuntimeError("table document extension identity is unreadable")
+    return dict(state=_state(document), identity=_identity(document), extension=extension, foreground=foreground,
                 foreground_state=_state(foreground) if foreground is not None else None,
                 foreground_identity=_identity(foreground) if foreground is not None else None,
-                edit=_edit_context(document))
+                foreground_extension=peer_extension, foreground_edit=_edit_context(peer) if peer is not None else None,
+                foreground_permissions=_permissions(peer) if peer is not None else None, edit=_edit_context(document))
 
 
-def _verify(app, document, snapshot, *, state=None):
-    if _identity(document) != snapshot["identity"]:
+def _verify_identity_and_peer(app, document, snapshot):
+    if (_identity(document) != snapshot["identity"]
+            or not _same(app, _com_value(document, "Extension"), snapshot["extension"])):
         raise RuntimeError("table operation changed document identity")
     documents = _com_value(app, "GetDocuments")
     if not isinstance(documents, (list, tuple)) or not any(_same(app, document, item) for item in documents):
         raise RuntimeError("table document is no longer open")
+    _verify_context(app, document, snapshot["edit"])
     foreground = snapshot["foreground"]
     if not _same(app, foreground, _com_value(app, "ActiveDoc")):
         raise RuntimeError("table operation changed the foreground document")
-    if foreground is not None and not _same(app, foreground, document) and (
-            _state(foreground) != snapshot["foreground_state"] or
-            _identity(foreground) != snapshot["foreground_identity"]):
-        raise RuntimeError("table operation changed the background document's foreground peer")
-    _verify_context(app, document, snapshot["edit"])
+    if foreground is not None and not _same(app, foreground, document):
+        identity = _identity(foreground)
+        extension = _com_value(foreground, "Extension")
+        _verify_context(app, foreground, snapshot["foreground_edit"])
+        permissions = _permissions(foreground)
+        if (_state(foreground) != snapshot["foreground_state"] or identity != snapshot["foreground_identity"]
+                or not _same(app, extension, snapshot["foreground_extension"])
+                or permissions != snapshot["foreground_permissions"]):
+            raise RuntimeError("table operation changed the background document's foreground peer")
+    if not _same(app, foreground, _com_value(app, "ActiveDoc")):
+        raise RuntimeError("table operation changed the foreground document during verification")
+
+
+def _verify(app, document, snapshot, *, state=None, writable=False):
+    _verify_identity_and_peer(app, document, snapshot)
     _verify_metadata_state(app, document, snapshot["state"] if state is None else state,
-                           foreground, changed=False)
+                           snapshot["foreground"], changed=False)
+    if writable:
+        _require_writable(document)
+    # Target state/permission reads may dispatch events that change the peer.
+    _verify_identity_and_peer(app, document, snapshot)
+
+
+def _verify_before_mutation(app, document, snapshot, *, state=None):
+    _verify(app, document, snapshot, state=state, writable=True)
+    if not _writable_context(app, snapshot["edit"]):
+        raise ValueError("table default editing requires a normal drawing sheet or no active model sketch")
+    _require_writable(document)
+    _verify_identity_and_peer(app, document, snapshot)
 
 
 def _read_options(document, constants):
@@ -176,18 +213,16 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
         # Includes every readable raw scalar and explicit unavailable entries.
         if before != expected:
             raise DocumentTableConflict("document table defaults no longer match expected_options")
-        _verify(app, document, snapshot)
+        _verify(app, document, snapshot, writable=True)
         if type(before[field]["value"]) is type(value) and before[field]["value"] == value:
             result.update(ok=True, options=before, changed=False)
             return result
-        if not _writable_context(app, snapshot["edit"]):
-            raise ValueError("table default editing requires a normal drawing sheet or no active model sketch")
-        _require_writable(document)
-        extension = _com_value(document, "Extension")
         method = "SetUserPreference" + spec["kind"]
+        setter = getattr(snapshot["extension"], method)
+        _verify_before_mutation(app, document, snapshot)
         result["mutation"] = {"attempted": True, "may_have_changed": True}
         returned = native_call("document-tables", "IModelDocExtension." + method,
-                               lambda: getattr(extension, method)(constants[spec["symbol"]], 0, native))
+                               lambda: setter(constants[spec["symbol"]], 0, native))
         if type(returned) is bool:
             result["native_returned"] = returned
         # Toggle documentation describes a state return; the baseline native
@@ -197,7 +232,7 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
             raise RuntimeError("native table setter did not return success")
         post_setter = _state(document)
         after = _read_options(document, constants)
-        _verify(app, document, snapshot, state=post_setter)
+        _verify(app, document, snapshot, state=post_setter, writable=True)
         if after[field] != {"value": value, "native_value": native}:
             raise RuntimeError("native table setter did not round-trip the requested value")
         if any(after[key] != before[key] for key in TABLE_FIELDS if key != field):
@@ -205,12 +240,17 @@ def _edit_table_option(*, app, document, field, value, expected_options, calibra
         # Check type/configuration/foreground before marking dirty at most once.
         if (post_setter[0], post_setter[3]) != (snapshot["state"][0], snapshot["state"][3]):
             raise RuntimeError("table setter changed document type or configuration")
-        _verify_metadata_state(app, document, snapshot["state"], snapshot["foreground"], changed=True)
+        if not post_setter[2]:
+            mark_dirty = document.SetSaveFlag
+            _verify_before_mutation(app, document, snapshot, state=post_setter)
+            native_call("document-metadata", "IModelDoc2.SetSaveFlag", mark_dirty)
         post_write = _state(document)
+        if not post_write[2] or (post_write[0], post_write[3]) != (snapshot["state"][0], snapshot["state"][3]):
+            raise RuntimeError("table write did not preserve context and mark the document for saving")
         final = _read_options(document, constants)
         if final != after:
             raise RuntimeError("table defaults changed while marking the document for saving")
-        _verify(app, document, snapshot, state=post_write)
+        _verify(app, document, snapshot, state=post_write, writable=True)
         result.update(ok=True, options=after, changed=True)
     except Exception as exc:
         result["error"] = _error(exc)

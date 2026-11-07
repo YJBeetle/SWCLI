@@ -75,8 +75,12 @@ normal drawing-sheet or inactive model-sketch context, exact document identity,
 configuration, update stamp, open-document membership and foreground identity.
 Readback checks the requested value, all unrequested table fields and editing
 context. A background edit also preserves its foreground peer's dirty flag,
-update stamp, configuration and identity. It marks the target dirty at most once,
-then performs a final observation that may not alter the stamp or dirty flag.
+update stamp, configuration, identity, extension identity, editing context and
+read-only/view-only flags. Target-state reads are bracketed by full peer and
+identity checks. Both preference mutation and explicit dirty marking recheck
+writability and editing context immediately beforehand. It marks the target
+dirty at most once, verifies the dirty flag and configuration, then performs a
+final observation that may not alter the stamp or dirty flag.
 
 Every failure returns `mutation.attempted` and `mutation.may_have_changed`.
 A Boolean setter return is retained as `native_returned`. Once a setter is
@@ -104,7 +108,7 @@ The branch-only `CI` dispatch input `table_defaults_calibration` defaults to
 false and requires `table_defaults_head` to equal this branch's exact SHA.
 `table_defaults_mode` selects `internal` (default) or `public`.
 `table_defaults_document_types` records the internal plan explicitly (`all` by
-default, or the independent `assembly-drawing` scope). Excluded document types
+default, or the diagnostic `assembly-drawing` / `part` scope). Excluded document types
 stay closed; their failed or incomplete runs do not become accepted evidence. Both use the
 dedicated `swcli-table-defaults-calibration` concurrency group and skip unrelated
 portable/package/full native jobs in that manual run. Internal mode runs only
@@ -114,6 +118,24 @@ part, assembly and explicit-template drawing fixtures. It checks each supported
 scalar, no-op, stale full CAS, geometry/feature health, new-file save/reopen and
 read-only rejection. Failure stops the remaining plan; the wrapper limits calls
 to 600 seconds and the group to 1800 seconds and preserves original evidence.
+
+On 2026-11-08 the user explicitly approved a table-route-only centroid bound:
+`abs(after[axis] - before[axis]) <= 1e-12 mm` independently for x, y and z.
+Volume, surface area and solid count remain exactly equal; every metric must be
+finite and retain its expected shape and type. This rule is isolated in
+`gate_support/table_defaults_geometry.py`; other feature/annotation routes do
+not import it. Internal checks cover created-to-readonly-reopen, writable
+pre-write, every field and saved-file reopen. Public before/after and saved-file
+reopen use the same rule. Original numeric operands, exact-equality result,
+hexadecimal values and signed deltas remain in the report. Analytic fixture
+checks still compare against the independent construction dimensions; their
+preexisting reference tolerances do not replace the stricter before/after rule.
+Historical failed runs keep their original criteria and failed status.
+
+The new internal full plan revalidates only the existing eight assembly/drawing
+transitions; differing initial values fail before any additional transition.
+Part remains candidate-only until successful original internal evidence is
+audited, followed by a new exact-head public gate including all three types.
 
 The internal report retains `full_acceptance_eligible: false`. A green internal
 run must first pass independent checks of its original ZIP/GitHub artifact
