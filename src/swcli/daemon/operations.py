@@ -1022,6 +1022,20 @@ def entity_inspect(context: OperationContext, values: Dict[str, Any]) -> Dict[st
 
 
 @_register_handler
+def entity_reference_create(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from .topology_references import reference_operation
+    return reference_operation(context, values, observe=_observe_entities,
+                               register=_register_entities, with_document=_with_document)
+
+
+@_register_handler
+def entity_reference_resolve(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from .topology_references import reference_operation
+    return reference_operation(context, values, observe=_observe_entities,
+                               register=_register_entities, with_document=_with_document)
+
+
+@_register_handler
 def feature_fillet(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     from ..hosts.windows_fillets import create_edge_fillet_windows_with_handle
     from ..hosts.windows_feature_inspection import _state

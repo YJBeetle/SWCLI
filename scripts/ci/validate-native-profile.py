@@ -3,6 +3,7 @@ import json
 import os
 
 FEATURE_REFS = {
+    "native_topology_targeted": "refs/heads/codex/swcli-topology-references",
     "image_quality_calibration": "refs/heads/codex/docprops-export-options",
     "image_quality_public_acceptance": "refs/heads/codex/docprops-export-options",
     "dimension_format_public": "refs/heads/codex/docprops-dimension-format",

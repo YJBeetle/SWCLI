@@ -1570,6 +1570,9 @@ _RESULT_FIELDS["dimension.set"] = (
 
 
 _RESULT_FIELDS.update(entity_result_fields())
+from .topology_references import reference_result_fields
+from .entity_contracts import _ENTITY, _OBSERVATION
+_RESULT_FIELDS.update(reference_result_fields(_ENTITY, _OBSERVATION))
 
 _RESULT_FIELDS["feature.fillet"] = (
     {
@@ -1698,6 +1701,13 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             "diagnostics": {"properties": {"healthy": {"const": True}, "truncated": {"const": False},
                                             "issue_count": {"const": 0}, "issues": {"maxItems": 0}}},
         }
+    if name in ("entity.reference-create", "entity.reference-resolve"):
+        schema["then"]["properties"] = {
+            "observation": {"required": ["after"],
+                            "properties": {"unchanged": {"const": True}}},
+        }
+        schema["else"]["not"] = {"anyOf": [{"required": [key]} for key in
+                                           ("reference", "entity_id", "entity", "resolution", "topology_verified")]}
     if name == "feature.fillet":
         schema["required"].append("entity_id")
         schema["then"]["properties"] = {
@@ -3010,6 +3020,12 @@ def validate_operation_result(name: str, result: Any) -> None:
                         rel_tol=0, abs_tol=1e-9)
                 or result["after_volume_mm3"] == result["before_volume_mm3"]):
             raise OperationResultInvalid("feature.fillet: inconsistent radius/volume evidence")
+    if name in ("entity.reference-create", "entity.reference-resolve"):
+        from .topology_references import validate_reference_result
+        try:
+            validate_reference_result(name, result)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise OperationResultInvalid(name + ": " + str(exc)) from exc
     if name in ("entity.list", "entity.inspect"):
         _validate_entity_semantics(name, result)
     if name in ("feature.list", "feature.inspect"):

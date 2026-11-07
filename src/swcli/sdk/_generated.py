@@ -491,6 +491,22 @@ class EntityOperations:
         return cast("Response[models.EntityInspectResult]", self._client._execute('entity.inspect', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
 
 
+    def reference_create(self, *, entity_id: str, kind: Union[Literal['face', 'edge'], Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.EntityReferenceCreateResult]:
+        """entity.reference-create; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['entity_id'] = entity_id
+        if kind is not UNSET:
+            parameters['kind'] = kind
+        return cast("Response[models.EntityReferenceCreateResult]", self._client._execute('entity.reference-create', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def reference_resolve(self, *, reference: str, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.EntityReferenceResolveResult]:
+        """entity.reference-resolve; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['reference'] = reference
+        return cast("Response[models.EntityReferenceResolveResult]", self._client._execute('entity.reference-resolve', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
 class FeatureOperations:
     def __init__(self, client: Dispatcher) -> None:
         self._client = client

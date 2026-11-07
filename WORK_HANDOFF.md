@@ -17,3 +17,5 @@
 - 集成收尾保护：线型/尺寸格式在CommandInProgress恢复或late validator异常后仍保留修改回执及首错；恢复失败退休worker。真实handler/adapter的便携故障注入48关联通过，组合2094项/33skip通过。不是原生故障现场证明，原健康native原件保持。
 
 - 文档图像品质：严格native宿主修复950c833/公开42361573569由本人复核；仅已证实零件品质字段，GLB细分控制仍未解决，不能当作已完成功能。
+
+- 持久拓扑引用：f325943/公开42361455599原件由本人复核，单实体零件完整面/边 census 双射；非任意拓扑永久稳定保证。组合2160项便携测试完成（34跳过），SDK及14个类型拒绝例通过。见 docs/handoffs/topology-references.md 与 docs/evidence/topology-references-main-integration-2026-11-08.json。

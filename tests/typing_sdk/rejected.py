@@ -15,3 +15,6 @@ client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.
 
 quality = client.document.image_quality().require_result()["quality"]
 client.document.image_quality_set(field="optimize_edge_length", value=True, expected_quality=quality)  # E: call-arg
+client.entity.reference_create(entity_id="e-ab12cd", kind="vertex")  # E: arg-type
+client.entity.reference_resolve(reference=42)  # E: arg-type
+client.entity.reference_resolve(reference="swref1.token", lease_id="l-ab12cd34ef56")  # E: call-arg

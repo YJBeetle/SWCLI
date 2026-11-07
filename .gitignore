@@ -8,3 +8,5 @@ dist/
 
 /artifacts/detailing/
 /artifacts/font-scopes/
+# Persistent local calibration evidence (never release input).
+/.task-evidence/

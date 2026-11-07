@@ -110,6 +110,11 @@ on:
         required: false
         default: false
         type: boolean
+      native_topology_targeted:
+        description: Run only bounded topology reference calibration on its development branch
+        required: false
+        default: false
+        type: boolean
       native_full:
         description: Run complete installed SOLIDWORKS functional verification
         required: false
@@ -362,13 +367,13 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Image Quality GLB calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ inputs.native_topology_targeted && 'Targeted topology reference verification' || inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Image Quality GLB calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy, native-profile]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'image_quality_calibration' || needs.native-profile.outputs.profile == 'image_quality_public_acceptance')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references') || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'image_quality_calibration' || needs.native-profile.outputs.profile == 'image_quality_public_acceptance')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
-      group: ${{ inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
@@ -689,6 +694,17 @@ jobs:
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\image-quality-public" -Hidden -ImageQualityPublicAcceptance
 
+      - name: Run targeted topology reference calibration and public proof
+        id: topology_targeted
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references' }}
+        timeout-minutes: 65
+        shell: powershell
+        run: |
+          python -I scripts/ci/run-topology-targeted.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\topology-targeted" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Targeted topology proof failed; retain original report, traces and native files" }
+
       - name: Measure streamed data and remaining disk
         if: always()
         shell: powershell
@@ -738,6 +754,16 @@ jobs:
               --host windows --scope windows-stl-options-internal-calibration `
               --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
               --stage "stl-options-internal=${{ steps.stl_options_targeted.outcome }}" `
+              --stage "cleanup=${{ steps.native_cleanup.outcome }}"
+            exit $LASTEXITCODE
+          }
+          if ($env:SWCLI_NATIVE_PROFILE -eq "native_topology_targeted") {
+            python scripts/ci/summarize-tests.py `
+              --evidence-root "$env:SWCLI_SMOKE_ROOT\topology-targeted" `
+              --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
+              --host windows --scope windows-targeted-topology-references `
+              --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
+              --stage "topology-targeted=${{ steps.topology_targeted.outcome }}" `
               --stage "cleanup=${{ steps.native_cleanup.outcome }}"
             exit $LASTEXITCODE
           }
