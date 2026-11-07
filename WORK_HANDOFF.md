@@ -163,3 +163,11 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - 在既有 internal 文档类型选择中加 `part`，只执行原计划零件，避免重跑已验装配体/工程图。通用默认仍 all，600/1800 秒、单 owned host 和首错停组为硬限制。
 - 审计器要求零件有完整 pre-write 数据及 exact/context 通过标记。新增单 ULP 质心变化在首个 table setter 前即被拒绝的测试，以及独立原件审核对 pre-write context/metrics 篡改的拒绝测试。Windows plain-child 测试覆盖 part/assembly-drawing 的参数路由和 exit 0/7，均不启动 CAD。
 - 相关 44 tests / 4 platform skips 通过，既有 pinned internal [2,3] 原件审核继续通过，workflow YAML 解析通过。零件 profile 保持关闭。下一组单次 internal/part run 将补齐可写 handle 的因果对照，完成原件可用后再处理首因或确认后续最小修复。
+
+
+## 零件首写前严格对照的单次必要验证
+
+- 装配体/工程图经验证的候选 tip 固定 `5a4d861d9caf7c4b79ef9f288630aa06247e50d1`，对应公开 run `42366316568` / 产品 head `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`。统筹本人 review/合并使用该候选及其新原件。
+- 后续零件诊断提交 `6396034fe941b28d90ced2b941ae0d6c26907be9` 已推送，产品 adapter/profile 与候选一致。该提交增加 pre-write exact 对照和 part-only CI 选择，尚待其自身原件。
+- [42405733149](https://github.com/YJBeetle/SWCLI/actions/runs/42405733149) 单次 dispatch，精确 head `6396034fe941b28d90ced2b941ae0d6c26907be9`，mode `internal`，`table_defaults_calibration=true`，`native_full=false`，类型参数 `part`。单次快照 `in_progress`，metadata 与输入保存在 ignored `run-42405733149/`。
+- 本轮验证会在任何 candidate table setter 前读取当前可写 handle，与原只读基线严格比较。该数据用于判断先前的 exact centroid 阻断是否在首写前已存在。原有全部 post-write/save-reopen exact 检查和首错停组规则继续执行。结果待完成原件核验。
