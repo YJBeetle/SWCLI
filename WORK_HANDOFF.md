@@ -1,6 +1,6 @@
 # 尺寸显示格式交接
 
-公开42305495076/head9fe8d9d已success，原ZIP与完整回执/trace独立审计通过。统筹随后指出原生探针对未知ntdll误接受的阻断，局部严格修复与46项定向、1865项便携测试及打包安装检查已过，需修复head的必要公开gate后交终审。
+公开42305495076/head9fe8d9d成功原件的独立审计已过。统筹提出的严格原生探针修复e1d1870已推送，46项定向、1865项便携（32跳过）、打包安装和SDK生成检查通过。必要公开42361878938/head e1d1870唯一快照in_progress，同head便携42361857745也在运行。最新可合结论待该公开gate及统筹终审。
 
 ## 分支与范围
 
@@ -155,3 +155,11 @@
 - 统筹随后发现合并前阻断。旧探针仅检查wine_get_version属性缺失，会把无可核导出的ntdll对象接受为原生。现按已合STL机制核GetModuleHandleW(ntdll.dll)、已知NtClose导出，清last_error后查询wine_get_version，只有缺失且error=127才接受；缺模块/已知导出、Wine、非127与异常全拒绝。
 - 新正向测试经完整公开handler确认合法探针可写。反例经公开handler核零preference setter/dirty/save。当前46项定向与全套1865项便携通过，32项平台跳过；构建安装及installed CLI/schema/product skill、SDK生成检查通过。原日志 ../evidence/strict-native-*.log。
 - 原成功原件已完成审计，最新探针修复需一次必要公开gate。当前可审查代码包括adapter与catalog、daemon handler、CLI/schema/SDK，以及scripts/ci/verify-dimension-format-public.py、verify-dimension-format-calibration.py、gate_support/dimension_box.py和tests/test_dimension_format*.py。最终可合tip以探针修复head公开验收及统筹本人review为准。
+
+## 严格探针修复 head 交接
+
+- 精确产品head `e1d18709587f5c62e6757caad81bd188c027dd99`，沿用已审计9fe8d9d三字段行为，仅收紧原生环境判定。必要公开运行 https://github.com/YJBeetle/SWCLI/actions/runs/42361878938 ，唯一快照in_progress，head完全匹配，public=true、internal=false、native_full=false。
+- 同head自动Windows便携CI https://github.com/YJBeetle/SWCLI/actions/runs/42361857745 快照in_progress。本地1865项通过、32平台跳过；46项定向、打包安装与SDK生成检查通过。
+- 已完成原件审计的head仍为 `9fe8d9d0fedc19eb47bdb4fee55c940b06238605`，最新探针修复head需上述gate完成后核新原件。故当前交付审查候选e1d1870，最终可合tip以其公开证据和统筹本人review为准。
+- 本次交接文档提交在e1d1870之后，仅更新WORK_HANDOFF.md。相关审计脚本绝对路径 `/Users/YJBeetle/.codex/worktrees/docprops-dimension-format/evidence/public-42305495076/audit_public.py`，结果同目录audit.json，原件original.zip，公开回执extracted/dimension-public/dimension-format-public/dimension-format-public.json，trace为extracted/dimension-public/swclid.stderr.log。
+- 正常运行已记录一次快照，当前系列继续通过统筹分次快照推进。
