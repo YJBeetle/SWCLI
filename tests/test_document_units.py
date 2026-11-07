@@ -20,7 +20,7 @@ class DocumentUnitsTests(unittest.TestCase):
         self.configuration = SimpleNamespace(Name="Default")
         self.document = SimpleNamespace(
             GetType=lambda: 1, GetSaveFlag=lambda: self.modified,
-            GetUpdateStamp=lambda: 7, GetActiveConfiguration=lambda: self.configuration,
+            GetUpdateStamp=lambda: 7, ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration),
             GetTitle=lambda: "Background part", GetPathName=lambda: "",
             IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False,
             SketchManager=SimpleNamespace(ActiveSketch=None),

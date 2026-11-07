@@ -37,7 +37,7 @@ class FontScopesInheritanceTests(unittest.TestCase):
         return SimpleNamespace(GetType=lambda: kind, GetFirstAnnotation2=lambda: inherited,
             GetFirstView=lambda: SimpleNamespace(GetFirstAnnotation3=lambda: inherited, GetNextView=lambda: None),
             GetTitle=lambda: 'generated', GetUpdateStamp=lambda: 7, GetSaveFlag=lambda: False,
-            GetActiveConfiguration=lambda: SimpleNamespace(Name='Default'))
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name='Default')))
 
     def test_inherited_font_uses_typed_dispatch_null_once_without_retry(self):
         pointer = object()

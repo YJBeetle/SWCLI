@@ -222,7 +222,7 @@ class StlExportFailureEvidenceTests(unittest.TestCase):
             doc.IsOpenedReadOnly = lambda: False
             doc.IsOpenedViewOnly = lambda: False
             doc.GetUpdateStamp = lambda: 5
-            doc.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
+            doc.ConfigurationManager = SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default"))
             return original(output, stl_options={**OPTIONS, "encoding": encoding}, **kwargs)
         @contextmanager
         def transaction(app, options, evidence, **kwargs):

@@ -40,7 +40,7 @@ class DetailingTests(unittest.TestCase):
                                     GetReferencedModelName=lambda: "")
         self.foreground = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: False,
             GetUpdateStamp=lambda: 8, GetTitle=lambda: "Foreground", GetPathName=lambda: "",
-            GetActiveConfiguration=lambda: SimpleNamespace(Name="Default"))
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default")))
         self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda: (self.document, self.foreground),
             IsSame=lambda a, b: int(a is b), ActivateDoc3=mock.Mock(), RevisionNumber=lambda: "test-revision")
         self.registry = DocumentRegistry(self.app)

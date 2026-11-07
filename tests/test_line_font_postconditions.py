@@ -157,7 +157,7 @@ class LineFontPostconditions(unittest.TestCase):
                     if drift == "access":
                         self.fx.foreground.IsOpenedReadOnly = lambda: True
                     elif drift == "configuration":
-                        self.fx.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Other")
+                        self.fx.foreground.ConfigurationManager = SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Other"))
                     else:
                         self.fx.foreground.SketchManager.ActiveSketch = object()
                     return returned

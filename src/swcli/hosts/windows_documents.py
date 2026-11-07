@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..artifact_content import capture_content
 from .windows_save_as import save_as3
+from .windows_configurations import active_configuration_name
 from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
@@ -399,9 +400,9 @@ def open_windows_document(
 
 def _inspect_configurations(document: Any) -> Dict[str, Any]:
     names = list(_com_value(document, "GetConfigurationNames") or ())
-    active = _com_value(document, "GetActiveConfiguration")
+    active = active_configuration_name(document, allow_absent=_com_value(document, "GetType") == 3)
     return {
-        "active": str(_com_value(active, "Name")) if active is not None else None,
+        "active": active,
         "names": [str(name) for name in names],
         "count": len(names),
     }
@@ -814,7 +815,7 @@ def export_active_windows_document(
             if readonly or viewonly:
                 raise StlOptionsError("DocumentReadOnly", "STL options refuse read-only or view-only sources")
             option_state = (_com_value(document, "GetUpdateStamp"),
-                            _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+                            active_configuration_name(document))
             if type(option_state[0]) is not int or not isinstance(option_state[1], str) or not option_state[1]:
                 raise StlOptionsError("SourceStateUnavailable", "source stamp/configuration is not observable")
             result["stl_source_state"] = {
@@ -902,7 +903,7 @@ def export_active_windows_document(
         after = _export_source_state(document)
         if stl_options is not None:
             observed_option_state = (_com_value(document, "GetUpdateStamp"),
-                                     _com_value(_com_value(document, "GetActiveConfiguration"), "Name"))
+                                     active_configuration_name(document))
             result["stl_source_state"]["after"] = {
                 **after, "configuration": observed_option_state[1], "update_stamp": observed_option_state[0]}
             result["stl_source_state"]["unchanged"] = (
@@ -949,7 +950,7 @@ def export_active_windows_document(
         if "stl_source_state" in result and "after" not in result["stl_source_state"]:
             try:
                 state = {**_export_source_state(document),
-                         "configuration": _com_value(_com_value(document, "GetActiveConfiguration"), "Name"),
+                         "configuration": active_configuration_name(document),
                          "update_stamp": _com_value(document, "GetUpdateStamp")}
                 result["stl_source_state"]["after"] = state
                 result["stl_source_state"]["unchanged"] = state == result["stl_source_state"]["before"]
