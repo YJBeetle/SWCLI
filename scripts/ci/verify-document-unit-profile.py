@@ -88,7 +88,7 @@ def run(gate,fixtures,prior_pids):
         require(type(source) is int and 0<=source<=8,'native source precision outside bounded noop acceptance')
         value=0 if source!=0 else 8
         case['noop']=edit(gate,document,before,value=source)
-        case['lease_refusal']=edit(gate,document,before,value=value,session=gate.session+'-contender',lease='l-not-owned',error='DocumentLeaseConflict')
+        case['lease_refusal']=edit(gate,document,before,value=value,session=gate.session+'-contender',lease=gate.leases[document],error='DocumentLeaseConflict')
         case['stamp_refusal']=edit(gate,document,before,value=value,stamp=baseline['update_stamp']+1,error='DocumentUpdateConflict')
         wrong=deepcopy(before['unit_profile']);wrong['linkage']['swUnitsTimeUnits']+=(-1 if wrong['linkage']['swUnitsTimeUnits']==2147483647 else 1)
         case['cas_refusal']=edit(gate,document,before,value=value,snapshot=wrong,error='DocumentUnitProfileConflict')

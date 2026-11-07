@@ -206,3 +206,18 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 修复提交`9d1d54633a0ad7f9a8149342f6d3b58b0e55b05f`已中文提交推送。仅触发一次：[42303169518](https://github.com/YJBeetle/SWCLI/actions/runs/42303169518)，参数 `units_calibration=true,units_public_acceptance=true,native_full=false`。实际head已核对，初始原始run元数据在`docs/evidence/units-profile/approved-bound-42303169518/run-initial.json`。本次覆盖P1产品修复以及用户已批准的仅质心绝对1e-12mm界限；V/S/实体数及所有state/identity/CAS仍严格相等，原解析几何与raw/hex/delta全部保留。
 
 正常运行已记录链接，本轮结束等待，不持续sleep/poll、不建automation、不新建review agent、不新扩字段/计划、不触碰main/VM/DockerSW/MacSW。旧失败原件保留、不翻绿；新run未完成前无可合tip、无新native/public通过声明。后续由统筹分次取完成/失败原件审核，正式发布前仍由用户确认。原几何口径授权阻断已解决，无待审批动作。
+
+## 获批窄界限run42303169518：内部通过，公开首因是非法测试token
+
+精确head`9d1d54633a0ad7f9a8149342f6d3b58b0e55b05f`，workflow最终failure，step=Verify public document unit profile CLI。内部calibrate三类全部success/cleanup_errors空；原始part比较保存centroid_absolute_limit_mm=1e-12，V/S/count精确，accepted_under_units_centroid_bound=true，当前严格helper独立审计通过。质心例外没有扩到relative或V/S，也不是本轮首失败。
+
+原始Windows artifact ID `13545229213`，ZIP SHA256 `885a31ad601536c74093c968550a11242c2ce7d870aeb78a890ff50f6487ebc9`与GitHub digest一致。本地ZIP `evidence/units-profile/approved-bound-42303169518/original.zip`及original/解压原件保留；run/job/artifact、内部report、host-report、公共CLI完整report及first-failure.json位于`docs/evidence/units-profile/approved-bound-42303169518/`。
+
+首业务失败：public脚本用`l-not-owned`作竞争token，违反真实协议`^l-[0-9a-hjkmnp-tv-z]{12}$`，因此在protocol层返回ValueError，没有走到预期DocumentLeaseConflict。此前FakeCLI只模拟业务，漏掉协议语法。清理次因：stop返回success、daemon进程结束后立即采样仍见owned native PID6592；报告未等待native进程退出，不直接据此断言真实持久泄漏。
+
+仅相关最小修复：
+
+- 竞争session使用gate实际已获取的合法owner token，按同文档/不同session验证真实lease所有权拒绝；不申请竞争lease、不绕过公开gate。FakeCLI在本组操作前执行真实server.validate_request，新增旧非法token应在协议层拒绝、合法token应进入DocumentLeaseConflict的测试。
+- 公开宿主wrapper从本次CLI报告核owned_by_daemon/hidden/unshared、新PID不在before库存，捕获该PID的SYNCHRONIZE句柄。仍只请求一次daemon stop；daemon退出后对这个已保留句柄单次WaitForSingleObject（10秒），确认native退出后再做原sorted(before)==sorted(after)严格库存核验；无API重试、native进程kill、回滚或宿主重启。捕获失败也仍单次关闭自己的daemon并保留首业务失败，退出超时仍失败，句柄关闭有证据。
+
+关联56项通过，完整portable1878项/45.784s通过（32 skipped）；SDK generated --check、diff检查通过。记录`docs/evidence/units-profile/lease-exit-fix/`。窄质心<=1e-12mm及V/S/count/state/identity/CAS完全未变，src/swcli产品P1源未修改。本次中文提交推送后只对相关修复head做一次必要public gate，正常记录run后结束等待，不持续盯CI。无新范围/字段/计划，无待审批动作，无可合tip。

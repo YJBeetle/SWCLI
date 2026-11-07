@@ -17,6 +17,18 @@ evidence=importlib.util.module_from_spec(spec);spec.loader.exec_module(evidence)
 def group_expired(started,now):return now-started>1800
 
 
+def capture_owned_native_process(pid):
+    import win32api
+    import win32con
+    return win32api.OpenProcess(win32con.SYNCHRONIZE,False,pid)
+
+
+def wait_owned_native_process(handle):
+    import win32event
+    status=win32event.WaitForSingleObject(handle,10000)
+    evidence.require(status==win32event.WAIT_OBJECT_0,'owned native host exit was not confirmed within 10s')
+
+
 def execute(args):
     fixture=json.loads((args.fixture_dir/'report.json').read_text())
     evidence.require(fixture.get('success') is True,'native calibration must succeed before starting public host')
@@ -27,7 +39,7 @@ def execute(args):
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
     endpoint=f'127.0.0.1:{port}';report['endpoint']=endpoint;save()
-    started=time.monotonic();daemon=worker=None;ready=False
+    started=time.monotonic();daemon=worker=None;ready=False;native_process=None
     failure=None
     with (output/'daemon.stdout').open('wb') as stdout,(output/'daemon.stderr').open('wb') as stderr:
         try:
@@ -60,6 +72,17 @@ def execute(args):
             if worker is not None and worker.poll() is None:worker.kill();worker.wait()
             if daemon is not None and ready and daemon.poll() is None:
                 try:
+                    cli=json.loads((output/'cli/public-unit-profile.json').read_text())
+                    host=cli['host'];pid=host['process_id']
+                    evidence.require(type(pid) is int and pid>0 and pid not in before
+                        and host.get('owned_by_daemon') is True and host.get('visible') is False
+                        and host.get('shared_interactive') is False,'native process ownership is not proven')
+                    report['owned_native_pid']=pid;save()
+                    native_process=capture_owned_native_process(pid)
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='capture-owned-native-process',type=type(error).__name__,message=str(error)))
+                    if failure is None:failure=error
+                try:
                     # Exactly one shutdown request, never restart/reattach/fallback.
                     stop=[sys.executable,'-I','-m','swcli','--endpoint',endpoint,'--request-timeout','10','daemon','stop','--json']
                     report['stop_command']=stop
@@ -70,6 +93,9 @@ def execute(args):
                     report['stop_exit_code']=result.returncode
                     evidence.require(result.returncode==0,'owned daemon shutdown failed')
                     evidence.require(daemon.wait(timeout=30)==0,'owned daemon exit failed')
+                    evidence.require(native_process is not None,'owned native process handle unavailable')
+                    wait_owned_native_process(native_process)
+                    report['owned_native_exit_confirmed']=True;save()
                     after=report['pids_after']=solidworks_process_ids()
                     evidence.require(sorted(after)==sorted(before),'owned public host leaked or changed preexisting PID inventory')
                 except BaseException as error:
@@ -82,6 +108,11 @@ def execute(args):
                 try:daemon.wait(timeout=30)
                 except BaseException as error:report['cleanup_errors'].append(dict(stage='owned-daemon-exit',message=str(error)))
                 report['cleanup_errors'].append(dict(stage='owned-daemon-termination',message='graceful shutdown was not confirmed'))
+            if native_process is not None:
+                try:native_process.Close()
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='close-native-process-handle',message=str(error)))
+                    if failure is None:failure=error
             report['duration_seconds']=time.monotonic()-started
             if report['duration_seconds']>1800:
                 report['cleanup_errors'].append(dict(stage='group-budget',message='public group exceeded 1800s including shutdown'))

@@ -1,0 +1,67 @@
+{
+  "success": false,
+  "profile": "units-public-host-v1",
+  "full_acceptance_eligible": false,
+  "cleanup_errors": [
+    {
+      "type": "RuntimeError",
+      "message": "owned public host leaked or changed preexisting PID inventory"
+    }
+  ],
+  "source_commit": "9d1d54633a0ad7f9a8149342f6d3b58b0e55b05f",
+  "pids_before": [],
+  "endpoint": "127.0.0.1:64052",
+  "daemon_command": [
+    "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+    "-I",
+    "-m",
+    "swcli",
+    "daemon",
+    "serve",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "64052",
+    "--startup-timeout",
+    "120",
+    "--tray",
+    "off"
+  ],
+  "daemon_pid": 6128,
+  "public_command": [
+    "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+    "-I",
+    "D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-document-unit-profile.py",
+    "--output-dir",
+    "D:\\a\\_temp\\swcli-native-smoke\\units-public-acceptance\\cli",
+    "--fixture-dir",
+    "D:\\a\\_temp\\swcli-native-smoke\\units-calibration",
+    "--endpoint",
+    "127.0.0.1:64052",
+    "--prior-pids",
+    "D:\\a\\_temp\\swcli-native-smoke\\units-public-acceptance\\prior-pids.json"
+  ],
+  "public_exit_code": 1,
+  "failure": {
+    "type": "RuntimeError",
+    "message": "public CLI acceptance failed; see original records"
+  },
+  "stop_command": [
+    "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+    "-I",
+    "-m",
+    "swcli",
+    "--endpoint",
+    "127.0.0.1:64052",
+    "--request-timeout",
+    "10",
+    "daemon",
+    "stop",
+    "--json"
+  ],
+  "stop_exit_code": 0,
+  "pids_after": [
+    6592
+  ],
+  "duration_seconds": 14.25
+}

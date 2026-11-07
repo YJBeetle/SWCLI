@@ -1,6 +1,7 @@
 """Owned public-host lifecycle, no restart and no stop at an unproven endpoint."""
 import importlib.util
 import itertools
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -24,14 +25,19 @@ class PublicRunnerTests(unittest.TestCase):
             if '-m' in command:
                 if ready:kw['stdout'].write(b'{"action": "daemon.serve"}\n');kw['stdout'].flush()
                 return self.daemon
+            cli=self.args.output_dir/'cli';cli.mkdir()
+            (cli/'public-unit-profile.json').write_text(json.dumps(dict(host=dict(process_id=123,owned_by_daemon=True,visible=False,shared_interactive=False))))
             return SimpleNamespace(pid=322,returncode=worker_code,poll=lambda:worker_code)
         self.popen=mock.Mock(side_effect=popen)
         def stop(command,**kw):
             self.daemon.returncode=0
             return SimpleNamespace(returncode=0,stdout=b'{"success":true}',stderr=b'')
         self.stop=mock.Mock(side_effect=stop)
+        self.native_process=SimpleNamespace(Close=mock.Mock())
+        self.capture=mock.Mock(return_value=self.native_process)
+        self.native_wait=mock.Mock(side_effect=lambda handle:self.assertEqual(self.stop.call_count,1))
     def invoke(self,clock=None):
-        with mock.patch.object(runner,'solidworks_process_ids',return_value=[]),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.stop),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
+        with mock.patch.object(runner,'capture_owned_native_process',self.capture),mock.patch.object(runner,'wait_owned_native_process',self.native_wait),mock.patch.object(runner,'solidworks_process_ids',return_value=[]),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.stop),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
             runner.execute(self.args)
     def test_success_creates_one_daemon_one_worker_and_shutdown_once(self):
         self.setup_case();self.invoke()
@@ -54,3 +60,20 @@ class PublicRunnerTests(unittest.TestCase):
     def test_group_budget_boundary(self):
         self.assertFalse(runner.group_expired(0,1800))
         self.assertTrue(runner.group_expired(0,1801))
+
+    def test_native_process_exit_wait_is_once_after_shutdown_and_handle_closed(self):
+        self.setup_case();self.invoke()
+        self.capture.assert_called_once_with(123)
+        self.native_wait.assert_called_once_with(self.native_process)
+        self.native_process.Close.assert_called_once()
+        report=json.loads((self.args.output_dir/'host-report.json').read_text())
+        self.assertTrue(report['owned_native_exit_confirmed'])
+    def test_native_exit_timeout_remains_failure_no_api_retry(self):
+        self.setup_case();self.native_wait.side_effect=RuntimeError('native exit timeout')
+        with self.assertRaisesRegex(RuntimeError,'native exit timeout'):self.invoke()
+        self.stop.assert_called_once();self.native_wait.assert_called_once()
+        self.native_process.Close.assert_called_once()
+    def test_native_capture_failure_still_stops_daemon_once_and_preserves_first_failure(self):
+        self.setup_case(worker_code=1);self.capture.side_effect=RuntimeError('capture failed')
+        with self.assertRaisesRegex(RuntimeError,'public CLI acceptance failed'):self.invoke()
+        self.stop.assert_called_once();self.native_wait.assert_not_called()

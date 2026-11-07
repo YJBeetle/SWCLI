@@ -10,6 +10,8 @@ import unittest
 from unittest import mock
 from tests.test_document_units_smoke import UnitsCLI
 from swcli.document_unit_profile import FIELDS,LINKAGE,snapshot
+from swcli.cli import _typed_operation
+from swcli.daemon.server import validate_request,PROTOCOL_VERSION
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('unit_profile_public_test',ROOT/'scripts/ci/verify-document-unit-profile.py')
@@ -22,6 +24,12 @@ def profile(kind):
 class ProfileCLI(UnitsCLI):
     def dispatch(self,args):
         if args.command=='document' and args.document_command in ('unit-profile','unit-profile-set'):
+            operation,parameters,_,document_id,stamp,lease=_typed_operation(args)
+            try:
+                validate_request(dict(api_version=PROTOCOL_VERSION,request_id='public-gate-test',operation=operation,
+                    parameters=parameters,document_id=document_id,expected_update_stamp=stamp,lease_id=lease,session_id=args.session))
+            except ValueError as error:
+                return dict(ok=False,error=dict(type='ValueError',message=str(error)))
             d=self.documents[args.document_id]
             state=d.setdefault('unit_profile',profile(d['type']))
             result=dict(ok=True,action='document.'+args.document_command,session_id=args.session,document=self.descriptor(d,args.session))
@@ -142,3 +150,18 @@ class UnitPublicGateTests(unittest.TestCase):
                 result=json.loads((self.output/'public-unit-profile.json').read_text())
                 self.assertFalse(result['success'])
                 self.assertFalse(result['unit_cases'][0]['comparison_reopened']['accepted_under_units_centroid_bound'])
+
+    def test_contender_uses_real_valid_owner_token_and_reaches_lease_authorization(self):
+        self.execute()
+        result=json.loads((self.output/'public-unit-profile.json').read_text())
+        for case in result['unit_cases']:
+            self.assertEqual(case['lease_refusal']['error']['type'],'DocumentLeaseConflict')
+        contenders=[call for call in self.fake.calls if getattr(call,'document_command',None)=='unit-profile-set' and call.session.endswith('-contender')]
+        self.assertEqual(len(contenders),3)
+        self.assertTrue(all(call.lease_id=='l-0123456789ab' for call in contenders))
+    def test_protocol_rejects_old_invalid_probe_token_before_business_layer(self):
+        args=self.fake.parser.parse_args(['--session','contender','document','unit-profile-set','linear.precision','0','--if-snapshot',json.dumps(profile(1)),'--if-update-stamp','1','--document','d-000001','--lease','l-not-owned'])
+        result=self.fake.dispatch(args)
+        self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['type'],'ValueError')
+        self.assertIn('lease_id must',result['error']['message'])
