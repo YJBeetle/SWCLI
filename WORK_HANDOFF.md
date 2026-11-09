@@ -27,3 +27,5 @@
 - 表格默认设置：三类型公共42419965068/head9bb806b已成功，统筹已亲审原件及组合检查（2582项/35skip、SDK31拒绝例通过）；仅零件/装配3字段、工程图5字段的11条精确转换。历史交接见docs/handoffs/tables-initial.md，集成审计另记；当前系列未发布。
 
 - 表格最终集成范围与机器记录见docs/handoffs/tables.md及docs/evidence/table-defaults-main-integration-2026-11-10.json；主CI保持原22输入，表格专项独立手动入口。
+
+- 表格公共42419965068最终审核器与原件明细见docs/verification/table-defaults-public-42419965068.md；负责人纯文档tip c488b4c已合入，精确产品仍9bb806b，未改变生产实现或native结论。
