@@ -1,0 +1,105 @@
+{
+  "failed_run": {
+    "id": 42420883808,
+    "head": "51f70cbf83ed277c519cbcdd7b6697f11e8c18a1",
+    "conclusion": "failure",
+    "scope": "Windows portable unit tests; native job skipped",
+    "original_logs_zip": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42420883808/original-workflow-logs.zip",
+    "logs_zip_sha256": "102ef4fcf901035ca1d7d1611e03378fca34e82bf6d7a15040d8a177b2dda086",
+    "logs_zip_digest_scope": "computed locally for original GitHub run-logs response",
+    "python_versions": [
+      "3.9",
+      "3.14"
+    ],
+    "failure_count_per_version": 4
+  },
+  "repair": {
+    "commit": "7a6decd",
+    "cause": "Windows DirEntry.stat cached st_dev/st_ino are zero; strict fstat comparison rejected real files",
+    "change": "fresh os.stat(path,follow_symlinks=False); create destination only after source identity passes",
+    "reference": "https://docs.python.org/3/library/os.html#os.DirEntry.stat",
+    "identity_check_retained": true,
+    "native_windows_portable_confirmation": "pending new CI"
+  },
+  "getter": {
+    "upstream_product": "b9c5e3cacc38d5aa0cef9d56160d9307285524d8",
+    "upstream_handoff": "992c283",
+    "local_product": "9978f26",
+    "local_handoff": "fe36661",
+    "product_files_match_upstream": true,
+    "gate_order": [
+      "modern_api_contract",
+      "getter_two_configurations",
+      "stl_configuration_observation",
+      "native_tests"
+    ],
+    "fixture_values_mm": {
+      "A": 16,
+      "B": 20
+    },
+    "states": [
+      "saved",
+      "read-only-reopened"
+    ],
+    "native_timeout_seconds": 600,
+    "group_timeout_seconds": 1800
+  },
+  "validation": {
+    "portable_tests": 2579,
+    "portable_skipped": 27,
+    "portable_seconds": 74.168,
+    "diagnostics_and_routing_tests": 13,
+    "getter_tests": 9,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "actionlint": "passed",
+    "yaml_routes": "passed",
+    "installed_resources": "passed"
+  },
+  "tested_file_sha256": {
+    "src/swcli/hosts/glb_runtime_diagnostics.py": "ce9d285993a702405b44a7b39d93fdc9c3eb9dc47c8faaed9cb7d6ebe1c17ca4",
+    "src/swcli/hosts/windows_documents.py": "c1be3a6696b3e56df2095ed410d022a9494143f7b89d033e7594a14bb33ea5a4",
+    "src/swcli/hosts/windows_save_as.py": "84cd59919884f050fc70c46f22dcc7fd7a6d0e20fdd6b3932a2f84154e90eb09",
+    "src/swcli/hosts/windows_configurations.py": "c337ff31ddfe98839e3a556b81e1b6de4ce6c50b756d8f75f38651ddba52539e",
+    "src/swcli/hosts/windows_dimensions.py": "c26f89a7536362f1b6d1876741b49194f0e3dac936d96870cf0404b78090183d",
+    "src/swcli/daemon/server.py": "7d9fe7836b8ec8227331752ef8a92229164965fda276e65eb959a91d852c8bed",
+    "src/swcli/daemon/operations.py": "d03f133bdcf1609f319d206a6425cf63f62ed2bcd14dbd14b7eb13d8498ce3a5",
+    "scripts/ci/verify-native-getter-configurations.py": "bbacf594eee788fd7fca9635af1e6023dbcc12cd30fe75d657386eb0cb9f1921",
+    "scripts/ci/verify-stl-options.py": "fe9cbd8eda7a0b8c87c051292749888065ebd47925494ed32504c2dd7326965e",
+    ".github/workflows/ci.yml": "ffcf1341e1e477247a111f83d2e0834d9973cd105fe6781dd1f2670632872b41",
+    "tests/test_glb_runtime_diagnostics.py": "c18c4d2d87b980265af4bd910a9b9adcd0e66329eae64c29437ca7ea36307e00",
+    "tests/test_native_getter_configurations.py": "11bd0f4b1367ccb189cae41982ad62c08b29c5ff7f0a610208503bf3d1639a80"
+  },
+  "logs": {
+    "diagnostics-and-routing-targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/diagnostics-and-routing-targeted.log",
+      "sha256": "cc2f10af859021cb795fa3b459a8b832366d2cd3cff730031673b8e14ee17785"
+    },
+    "getter-targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/getter-targeted.log",
+      "sha256": "d0ab1dd43e2e3a29ddc06d756ae4702874ccf5a5279c1cbb8656a100cf3a9bc7"
+    },
+    "combined-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/combined-portable.log",
+      "sha256": "1e5f8c2b66361dee2a89b15f7b7676b342399c7c57c171a41be8f75d4558ad9f"
+    },
+    "combined-sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/combined-sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    },
+    "combined-actionlint.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/combined-actionlint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "combined-installed.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/combined-installed.log",
+      "sha256": "08897a2cf91d4a85ba58bc75c0c1f4d7b7f8691de42c64656e154451506cb6e4"
+    },
+    "windows-identity-regression-before-fix.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/windows-identity-regression-before-fix.log",
+      "sha256": "530dc1a5c0cf5d8165657c03164ed3a199bab49ed1084b07e14071d6398e7fcf"
+    }
+  },
+  "state": "candidate for coordinator final diff review; no native dispatch in this update",
+  "baseline_main": "960839e52d0c433c817e71e02493a27681f7e858"
+}

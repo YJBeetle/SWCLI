@@ -1,5 +1,13 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-10 修复与组合接线
+
+Windows push 42420883808 的两版单元测试都在取证复制阶段失败。DirEntry.stat 在 Windows 返回零设备/文件ID，使原严格身份比较误拒绝并留下空副本。新代码改用新鲜 os.stat(..., follow_symlinks=False)，在源身份检查通过后才创建目标副本，保留原竞态拒绝逻辑。两个新回归先复现旧错误再验证修复。[Python 对该 Windows 行为的说明](https://docs.python.org/3/library/os.html#os.DirEntry.stat)
+
+已纳入 getter 产品 b9c5e3c 与交接992c283，组合 full 在原 GLB 步骤前执行两配置A16/B20的saved/只读重开proof，以及原STL八场景现代配置trace门禁。顺序、精确分支、默认关闭、依赖及首错停止均有静态检查。完整2579项OK（27跳过），SDK strict6源文件/31拒绝例、actionlint和安装资源检查通过。原日志及逐文件hash见 [本次检查回执](../evidence/glb-runtime-portable-repair-2026-11-10.json)。
+
+本轮将最终head交统筹亲审，尚未派发组合native_full。后续各节保留此前诊断与设计记录。
+
 ## 运行时取证实现与组合验收前置
 
 现代 API 产品 `0a00751e44823ca46237000479754634bf50a418` 已在本分支与 main `960839e52d0c433c817e71e02493a27681f7e858` 合并，merge 为 `0e288dd`。两侧 CI 分组、交接历史和 main 三组偏好晚期错误保护均保留。main 新增三偏好夹具已适配 ConfigurationManager.ActiveConfiguration，保留配置漂移、首错误与 worker receipt 断言。

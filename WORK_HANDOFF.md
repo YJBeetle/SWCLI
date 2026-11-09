@@ -1,3 +1,15 @@
+# GLB 取证修复及两配置组合候选（2026-11-10）
+
+轻量 push run 42420883808 / 51f70cb 的原日志已保存，原 ZIP SHA256 为 `102ef4fcf901035ca1d7d1611e03378fca34e82bf6d7a15040d8a177b2dda086`。两版 Windows Python 各有4个取证复制断言失败，native job 跳过。原因是 Windows DirEntry.stat 的 st_dev/st_ino 缓存值为零，与真实 fstat 比较产生误拒绝。修复 `7a6decd` 改为新鲜 os.stat(..., follow_symlinks=False)，原身份/竞态保护保留，身份通过后才创建副本。Windows零身份及真实身份变化两个回归均先复现旧失败，再通过修复。
+
+原 getter 精确产品 b9c5e3c 已 cherry-pick 为9978f26，交接992c283为fe36661。三个产品文件与上游逐字节相同。现有 full job 顺序为 modern_api_contract → getter_two_configurations（saved/RO各A16/B20）→ stl_configuration_observation（原public八场景的现代配置trace）→ 原native_tests。各步骤默认只在本分支full运行，任一首失败阻止后续，600/1800边界保留。STL步骤补装其已有MCP/Pillow依赖，artifact沿用原根。
+
+整合后2579项便携OK（27跳过，74.168s），13项GLB取证/路由、9项getter检查通过；SDK生成器/strict6文件及31类型拒绝例、actionlint、YAML/互斥/分支路由、安装资源检查均过。main960839e三偏好保护、现代保存/配置/尺寸迁移和Windows夹具修复均保留。
+
+[最终检查回执](docs/evidence/glb-runtime-portable-repair-2026-11-10.json)记录原日志、逐文件源码SHA256和检查日志SHA256。日志根为 `/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/`。本轮未派发native_full，最终head交统筹亲核后由统筹授权一次组合运行。生产暂存名、单次保存、null/BYREF和严格BIN门禁保持原有逻辑。原GLB空BIN的上游原因仍待运行时证据。
+
+## 此前交接历史
+
 # GLB 运行时取证候选交接
 
 main 960839e 与现代 API 精确产品 0a00751 已合并为 0e288dd。当前新增默认关闭的 GLB 有界取证，保留原暂存命名与一次 SaveAs3。manifest 绑定原请求、worker/SOLIDWORKS PID，保存前后复制同前缀含隐藏文件并记录 hash，读取实际模块路径/版本，按实际 SW2025 typelib 只读采集相关枚举偏好。文件访问监控明确 unknown。详细边界见 [GLB 交接](docs/handoffs/glb-export-repair.md)。

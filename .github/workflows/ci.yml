@@ -681,6 +681,26 @@ jobs:
           python -I scripts/ci/verify-modern-api-contract.py --output-dir "$env:SWCLI_SMOKE_ROOT\modern-api-contract" --sldworks "C:\Program Files\SOLIDWORKS\sldworks.tlb" --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Installed modern API contract verification failed; preserve first evidence" }
 
+      - name: Observe saved current dimensions in two configurations
+        id: getter_two_configurations
+        if: ${{ needs.native-profile.outputs.profile == 'full' && github.ref == 'refs/heads/codex/glb-export-repair' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-native-getter-configurations.py --output-dir "$env:SWCLI_SMOKE_ROOT\getter-two-configurations" --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Two-configuration getter first failure; preserve original report/trace and stop" }
+
+      - name: Verify existing legal STL source configuration protection
+        id: stl_configuration_observation
+        if: ${{ needs.native-profile.outputs.profile == 'full' && github.ref == 'refs/heads/codex/glb-export-repair' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          python -m pip install "mcp>=1.30,<2" "Pillow>=10.4"
+          if ($LASTEXITCODE -ne 0) { throw "Existing STL public-client dependencies could not be installed" }
+          python -I scripts/ci/verify-stl-options.py --output-dir "$env:SWCLI_SMOKE_ROOT\stl-configuration-observation" --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" --phase public
+          if ($LASTEXITCODE -ne 0) { throw "Existing STL source-configuration first failure; preserve original evidence and stop" }
+
       - name: Run real SOLIDWORKS modeling and export smoke test
         id: native_tests
         if: ${{ needs.native-profile.outputs.profile == 'full' }}

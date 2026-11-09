@@ -217,6 +217,25 @@ class GlbNativeObservationTests(unittest.TestCase):
         self.assertFalse(any('Set' in call[0] for call in app.mock_calls))
         self.assertFalse(diagnostics._related("swMaximumRadius"))
 
+    def test_combined_full_precedes_glb_with_both_getter_and_stl_proofs(self):
+        workflow = Path('.github/workflows/ci.yml').read_text()
+        ids = ('modern_api_contract', 'getter_two_configurations',
+               'stl_configuration_observation', 'native_tests')
+        positions = [workflow.index('        id: ' + step) for step in ids]
+        self.assertEqual(positions, sorted(positions))
+        for step, script in (('getter_two_configurations', 'verify-native-getter-configurations.py'),
+                             ('stl_configuration_observation', 'verify-stl-options.py')):
+            block = workflow.split('        id: ' + step, 1)[1].split('      - name:', 1)[0]
+            self.assertIn("needs.native-profile.outputs.profile == 'full' && github.ref == 'refs/heads/codex/glb-export-repair'", block)
+            self.assertIn('timeout-minutes: 31', block)
+            self.assertIn(script, block)
+            self.assertIn('if ($LASTEXITCODE -ne 0) { throw', block)
+            self.assertNotIn('always()', block)
+        stl = workflow.split('        id: stl_configuration_observation', 1)[1].split('      - name:', 1)[0]
+        self.assertIn('--phase public', stl)
+        self.assertLess(stl.index('python -m pip install'), stl.index('python -I'))
+        self.assertIn('stl-configuration-observation', stl)
+
     def test_ci_enables_observation_only_on_glb_branch_without_a_new_input(self):
         workflow=Path('.github/workflows/ci.yml').read_text()
         self.assertIn("SWCLI_GLB_RUNTIME_DIAGNOSTICS: ${{ github.ref == 'refs/heads/codex/glb-export-repair' && '1' || '' }}",workflow)
