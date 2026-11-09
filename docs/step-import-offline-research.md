@@ -100,3 +100,24 @@ python scripts/ci/verify-step-export-calibration.py `
 只有统筹审核这份方案后才安排一次必要原生验证。本轮不 dispatch，不以旧 head 或离线几何一致性替代新 head 的原生证据。
 
 便携验证：48 项 STEP 回归通过；全量 1867 项通过，26 项跳过。最新原件报告的 head、success 与八个文件 hash，以及上述三个运行的原 ZIP hash 均已重新核对。便携结果不构成新 head 的原生验收。
+
+## 已接线的独立手动诊断入口（2026-11-10，待统筹亲审）
+
+采用现有 `ci.yml` 内的独立 profile，避免为新 workflow 修改 main。输入 `native_step_import_diagnostic` 默认 false；仅手动、精确仓库/专用分支、`native_step_import_head == github.sha` 可进入。`native_full`、`native_step_targeted`、`native_step_public_targeted` 必须全部 false。独立 concurrency group 为 `swcli-step-export-diagnostic-{ref}`，不取消其他运行。内部、公开和完整测试不能同时执行。
+
+本模式调用 `prepare-step-import-original.py prepare`，顺序在分发包下载、私有路径初始化、凭据配置、私有输入读取及 CAD 安装之前。它先要求：
+
+- event/完整 head/checkout/workflow SHA 一致，workflow 路径及分支固定，当前 `run_attempt=1`；重跑原工作流被拒绝。runner temp 必须等于原路径 `D:\a\_temp`，不能修改原报告来迁就另一条路径。
+- GitHub 当前运行元数据与审核 head 一致；原运行 `42413805736` 来自相同仓库和分支、`workflow_dispatch`、CI workflow ID `362005755`、head `060f261...`、原 attempt 1、completed/failure。
+- 原 artifact 的 ID `13591430613`、名称、源 run/仓库/head、未过期状态、GitHub SHA256 摘要与固定 ZIP digest 全部一致。下载 ZIP 再核字节数和摘要；保留原始 ZIP，不覆盖或重打包。
+- 原 report 字节直接从固定 ZIP 保留，success/head/完整八项顺序、路径、协议、模式、CLI/SDK/MCP 来源和八个固定 SHA256 均核对。ZIP 成员拒绝逃逸路径、大小写重复、链接；所有目标先核验，遇到不同既有字节时一个文件也不开始复制；只对不存在的目标使用独占创建，或复用 hash 完全相同的文件，不覆盖。
+
+安装完成后，`prepare-step-import-original.py verify` 在 reader 前重新核对同一上下文、保留 ZIP/report 和全部八个目标文件 hash。之后只有一次 `python -I ...verify-step-export-calibration.py --export-report ...`；独立输出目录 `step-original-import-diagnostic`，原生 trace 开启，外层 step 31 分钟，原有 600/1800 秒 watchdog 不变。General profile、MapConfigurationData 只读、首错停和单 host 机制沿用 `96d09b3`，没有新增 CAD API 调用重试、导出或回退分支。
+
+原 ZIP、源/当前运行元数据、GitHub artifact 摘要、八个文件 receipt 和诊断结果上传为 `swcli-step-original-import-diagnostic-{run_id}-{attempt}`。上下文显式 `full_acceptance_eligible=false`、`production_public_acceptance=false`，summary scope 为 `windows-step-original-import-diagnostic`。安装/清理错误与 reader 的首次业务错误保留在各自报告中；不能把原件写出历史或这次诊断归为当前生产公开验收。
+
+入口先提交、推送并发精确 head 给统筹；亲审后仅一次必要 dispatch，输入 head 填该完整提交 SHA。当前文档不表示已经发起诊断。
+
+GitHub 元数据字段与 ZIP 摘要依据 [官方 artifact API](https://docs.github.com/en/rest/actions/artifacts)；手动分支入口依据 [官方 workflow_dispatch 说明](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。
+
+接线便携验证：56 项 STEP 回归通过；全量 1875 项，26 项跳过，其余通过。13,824 种门禁组合通过；actionlint v1.7.12 和拒绝重复键的 YAML 解析通过。固定原 ZIP 已离线复验八个指定 receipt/文件身份。仍未执行这次诊断。

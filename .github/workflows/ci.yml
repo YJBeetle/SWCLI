@@ -55,6 +55,17 @@ on:
         default: false
         type: boolean
 
+      native_step_import_diagnostic:
+        description: Read back the fixed original STEP outputs once, diagnostic only (no exports)
+        required: false
+        default: false
+        type: boolean
+      native_step_import_head:
+        description: Reviewed full commit SHA for the original-output diagnostic
+        required: false
+        default: ''
+        type: string
+
 permissions:
   contents: read
 
@@ -243,21 +254,38 @@ jobs:
           retention-days: 14
 
   solidworks-e2e:
-    name: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'Internal STEP export calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'Public STEP export acceptance' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha && 'Original STEP import diagnostic' || github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'Internal STEP export calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'Public STEP export acceptance' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) || (github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.test.result == 'success' && needs.package.result == 'success' && ((github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic) || (github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_import_diagnostic && github.ref == 'refs/heads/codex/swcli-step-export-options') || (github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha) || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
     timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
     concurrency:
-      group: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && format('swcli-step-export-internal-{0}', github.ref) || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && format('swcli-step-export-public-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha && format('swcli-step-export-diagnostic-{0}', github.ref) || github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && format('swcli-step-export-internal-{0}', github.ref) || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && format('swcli-step-export-public-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
+      DIAGNOSTIC_WORKFLOW_SHA: ${{ github.workflow_sha }}
       SW_MEDIA_PATH: ${{ inputs.media_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso' }}
       SW_ASSETS_PATH: ${{ inputs.assets_path || 'Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack' }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Verify fixed original STEP source ZIP and all eight outputs
+        id: step_original_preflight
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_DIAGNOSTIC_HEAD: ${{ inputs.native_step_import_head }}
+        run: |
+          python -I scripts/ci/prepare-step-import-original.py prepare `
+            --output-dir "$env:RUNNER_TEMP\swcli-step-import-original" `
+            --expected-head "$env:EXPECTED_DIAGNOSTIC_HEAD"
+          if ($LASTEXITCODE -ne 0) { throw "Original STEP authentication failed before private inputs or CAD" }
 
       - name: Download built SWCLI distributions
         id: native_distribution
@@ -393,7 +421,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Installed SWCLI resources are invalid" }
 
       - name: Prepare property fixtures for public CLI verification
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic) }}
         id: property_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -405,7 +433,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Property fixture preparation failed; see original report/trace" }
 
       - name: Prepare annotation fixtures for public CLI verification
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic) }}
         id: annotation_fixtures
         timeout-minutes: 10
         shell: powershell
@@ -419,7 +447,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Annotation fixture preparation failed; see original report/trace" }
 
       - name: Run real SOLIDWORKS modeling and export smoke test
-        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted) }}
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic) }}
         id: native_tests
         shell: powershell
         run: |
@@ -428,7 +456,7 @@ jobs:
 
       - name: Calibrate STEP protocol and geometry with save/reopen evidence
         id: step_calibration
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && !inputs.native_full && !inputs.native_step_public_targeted && !inputs.native_step_import_diagnostic && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         env:
@@ -442,7 +470,7 @@ jobs:
 
       - name: Accept public STEP CLI daemon SDK and MCP contracts
         id: step_public
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_import_diagnostic && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         run: |
@@ -452,7 +480,7 @@ jobs:
 
       - name: Read back actual public STEP geometry and native save reopen
         id: step_public_readback
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_import_diagnostic && github.ref == 'refs/heads/codex/swcli-step-export-options' }}
         timeout-minutes: 31
         shell: powershell
         env:
@@ -464,8 +492,27 @@ jobs:
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
           if ($LASTEXITCODE -ne 0) { throw "Actual public STEP output readback failed; original evidence is preserved" }
 
+      - name: Diagnose original STEP imports once without exporting
+        id: step_original_diagnostic
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha }}
+        timeout-minutes: 31
+        shell: powershell
+        env:
+          SWCLI_TRACE_NATIVE_CALLS: "1"
+          EXPECTED_DIAGNOSTIC_HEAD: ${{ inputs.native_step_import_head }}
+        run: |
+          python -I scripts/ci/prepare-step-import-original.py verify `
+            --output-dir "$env:RUNNER_TEMP\swcli-step-import-original" `
+            --expected-head "$env:EXPECTED_DIAGNOSTIC_HEAD"
+          if ($LASTEXITCODE -ne 0) { throw "Original STEP bytes or diagnostic context changed before reader" }
+          python -I scripts/ci/verify-step-export-calibration.py `
+            --export-report "$env:RUNNER_TEMP\swcli-step-import-original\source-public-report.json" `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\step-original-import-diagnostic" `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
+          if ($LASTEXITCODE -ne 0) { throw "Original STEP reader failed; preserve first error and partial evidence, no retry" }
+
       - name: Measure streamed data and remaining disk
-        if: always()
+        if: ${{ always() && (!inputs.native_step_import_diagnostic || steps.step_original_preflight.outcome == 'success') }}
         shell: powershell
         run: |
           scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-smoke.json"
@@ -486,7 +533,7 @@ jobs:
 
       - name: Remove private test inputs and stop services
         id: native_cleanup
-        if: always()
+        if: ${{ always() && (!inputs.native_step_import_diagnostic || steps.step_original_preflight.outcome == 'success') }}
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
 
@@ -499,7 +546,7 @@ jobs:
           python scripts/ci/summarize-tests.py `
             --evidence-root "$env:RUNNER_TEMP\swcli-native-smoke" `
             --output-dir "$env:RUNNER_TEMP\swcli-test-summary" `
-            --host windows --scope "${{ github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'windows-step-internal-calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'windows-step-public-acceptance' || 'windows-installed-full' }}" `
+            --host windows --scope "${{ github.event_name == 'workflow_dispatch' && inputs.native_step_import_diagnostic && !inputs.native_full && !inputs.native_step_targeted && !inputs.native_step_public_targeted && github.ref == 'refs/heads/codex/swcli-step-export-options' && inputs.native_step_import_head == github.sha && 'windows-step-original-import-diagnostic' || github.event_name == 'workflow_dispatch' && inputs.native_step_targeted && 'windows-step-internal-calibration' || github.event_name == 'workflow_dispatch' && inputs.native_step_public_targeted && 'windows-step-public-acceptance' || 'windows-installed-full' }}" `
             --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
             --stage "distributions=${{ steps.native_distribution.outcome }}" `
             --stage "media-tools=${{ steps.media_tools.outcome }}" `
@@ -516,6 +563,8 @@ jobs:
             --stage "step-calibration=${{ steps.step_calibration.outcome }}" `
             --stage "step-public=${{ steps.step_public.outcome }}" `
             --stage "step-public-readback=${{ steps.step_public_readback.outcome }}" `
+            --stage "step-original-authentication=${{ steps.step_original_preflight.outcome }}" `
+            --stage "step-original-diagnostic=${{ steps.step_original_diagnostic.outcome }}" `
             --stage "cleanup=${{ steps.native_cleanup.outcome }}"
 
       - name: Upload SWCLI-generated smoke evidence
@@ -530,6 +579,18 @@ jobs:
             ${{ runner.temp }}\swcli-hosted-media\*.json
             ${{ runner.temp }}\swcli-hosted-media\cache-size.txt
             ${{ runner.temp }}\swcli-hosted-media\winfsp\winfsp-install.log
+          if-no-files-found: warn
+          retention-days: 14
+
+
+      - name: Retain immutable original STEP and diagnostic provenance
+        if: ${{ always() && inputs.native_step_import_diagnostic }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-step-original-import-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/swcli-step-import-original
+            ${{ runner.temp }}/swcli-native-smoke/step-original-import-diagnostic
           if-no-files-found: warn
           retention-days: 14
 
