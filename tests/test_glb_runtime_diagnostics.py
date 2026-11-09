@@ -69,6 +69,41 @@ class GlbDiagnosticsTests(unittest.TestCase):
             self.assertEqual(self.modules.call_args_list,[mock.call(3424),mock.call(3424)])
             self.preferences.assert_called_once_with(app)
 
+    def test_windows_cached_direntry_zero_ids_do_not_reject_the_real_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            staging = root / ".fixture.uuid.GLB"
+            staging.write_bytes(b"original native bytes")
+            actual = os.stat(staging, follow_symlinks=False)
+            cached = SimpleNamespace(st_mode=actual.st_mode, st_size=actual.st_size,
+                st_mtime_ns=actual.st_mtime_ns, st_file_attributes=0, st_dev=0, st_ino=0)
+            entry = SimpleNamespace(name=staging.name, path=str(staging),
+                stat=mock.Mock(return_value=cached), is_symlink=lambda: False)
+            evidence = diagnostics._Evidence(object(), staging, root / "final.GLB")
+            with mock.patch.object(diagnostics.os, "scandir") as scan:
+                scan.return_value.__enter__.return_value = [entry]
+                row, = evidence._files("after")
+            self.assertEqual(row["status"], "copied", row)
+            self.assertEqual((evidence.directory / row["copy"]).read_bytes(), staging.read_bytes())
+            self.assertEqual(row["sha256"], hashlib.sha256(staging.read_bytes()).hexdigest())
+            entry.stat.assert_not_called()
+
+    def test_true_source_identity_change_never_creates_an_empty_copy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            staging = root / ".fixture.uuid.GLB"
+            staging.write_bytes(b"native bytes")
+            actual = os.stat(staging, follow_symlinks=False)
+            changed = SimpleNamespace(st_mode=actual.st_mode, st_size=actual.st_size,
+                st_mtime_ns=actual.st_mtime_ns, st_file_attributes=0,
+                st_dev=actual.st_dev, st_ino=actual.st_ino + 1)
+            evidence = diagnostics._Evidence(object(), staging, root / "final.GLB")
+            with mock.patch.object(diagnostics.os, "stat", return_value=changed):
+                row, = evidence._files("after")
+            self.assertEqual(row["status"], "unknown")
+            self.assertIn("source identity changed", row["error"]["message"])
+            self.assertEqual(list(evidence.directory.glob("*.bin")), [])
+
     def test_symlinks_and_copy_budget_are_recorded_without_reading_external_bytes(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)

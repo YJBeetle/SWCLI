@@ -166,7 +166,9 @@ class _Evidence:
                 row = {"name": entry.name}
                 rows.append(row)
                 try:
-                    observed = entry.stat(follow_symlinks=False)
+                    # Windows DirEntry.stat caches zero device/inode IDs.
+                    # A fresh path stat is required for comparison with fstat.
+                    observed = os.stat(entry.path, follow_symlinks=False)
                     row.update(size_bytes=observed.st_size, mtime_ns=observed.st_mtime_ns,
                                file_attributes=getattr(observed, "st_file_attributes", None))
                     if (not stat.S_ISREG(observed.st_mode) or entry.is_symlink() or
@@ -179,22 +181,23 @@ class _Evidence:
                     row["copy"] = destination.name
                     digest = hashlib.sha256()
                     copied = 0
-                    with open(entry.path, "rb") as source, destination.open("xb") as target:
+                    with open(entry.path, "rb") as source:
                         before = os.fstat(source.fileno())
                         if not stat.S_ISREG(before.st_mode) or (before.st_dev, before.st_ino) != (observed.st_dev, observed.st_ino):
                             raise RuntimeError("source identity changed before evidence copy")
-                        while True:
-                            if time.monotonic() - started > PHASE_SECONDS:
-                                raise RuntimeError("evidence copy exceeded time bound")
-                            data = source.read(min(1024 * 1024, remaining + 1))
-                            if not data:
-                                break
-                            if len(data) > remaining:
-                                raise RuntimeError("same-prefix byte budget exceeded")
-                            target.write(data)
-                            digest.update(data)
-                            copied += len(data)
-                            remaining -= len(data)
+                        with destination.open("xb") as target:
+                            while True:
+                                if time.monotonic() - started > PHASE_SECONDS:
+                                    raise RuntimeError("evidence copy exceeded time bound")
+                                data = source.read(min(1024 * 1024, remaining + 1))
+                                if not data:
+                                    break
+                                if len(data) > remaining:
+                                    raise RuntimeError("same-prefix byte budget exceeded")
+                                target.write(data)
+                                digest.update(data)
+                                copied += len(data)
+                                remaining -= len(data)
                         after = os.fstat(source.fileno())
                     row.update(copy=destination.name, copied_bytes=copied, sha256=digest.hexdigest(),
                                status="copied", stable_while_reading=(observed.st_size == before.st_size == copied == after.st_size
