@@ -1,0 +1,38 @@
+{
+  "pywin32_version": 312,
+  "source_ref": "b312",
+  "source_files": [
+    {
+      "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+      "git_blob_sha": "b4aae20a8c3c95b7fd3a764d2c2212880862f5f8"
+    },
+    {
+      "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+      "git_blob_sha": "b4aae20a8c3c95b7fd3a764d2c2212880862f5f8"
+    },
+    {
+      "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/dynamic.py",
+      "git_blob_sha": "3738da9031bfb49b76eea3a2de5a216534dc816d"
+    }
+  ],
+  "reproduction": "Executed the exact fetched factory/base constructor/dynamic function against a controlled IDispatch fixture",
+  "generic_factory": {
+    "queried_interface": "IEntity",
+    "advertised_interface": "advertised-default-face",
+    "preserved_exact_pointer": false,
+    "native_typeinfo_reads": 1,
+    "wrapper_queries": [
+      [
+        "advertised-default-face",
+        "dispatch"
+      ]
+    ]
+  },
+  "explicit_official_dynamic_binding": {
+    "preserved_exact_pointer": true,
+    "native_typeinfo_reads": 0,
+    "wrapper_queries": []
+  },
+  "limitation": "The fixture demonstrates the factory rebinding path; original native logs do not record actual returned typeinfo GUID or generated-class selection",
+  "native_owner_root_cause_confirmed": false
+}

@@ -186,3 +186,17 @@
 - 新 trace 标签区分 GetCorresponding(source-face)、OriginalMapped.IsSame(component-body-face)、IEntity(original-mapped).GetComponent 和 OriginalMapped.owner-IsSame(target-component)，用于下次原件确认实际映射与 owner 路径。
 - 48 项针对性通过。正向回归令体面/IFace2 wrapper 缺少 owner 而原始 mapped 有精确 owner，并核对实际 mate 输入和私有引用捕获对象均为原始 mapped；反向回归证明体面 owner 正确不能掩盖原始 mapped 的空/错 owner，失败时映射与 owner 调用各仅一次。
 - 完整便携执行 1867 项，26 平台跳过，其余通过；SDK generator / strict mypy / 8 负向消费场景通过。日志 `evidence/portable/original-mapped-*.log`。本轮有具体源码替换证据和官方契约依据，拟仅对这个候选发一次必要公开 gate，实际后台修复效果继续待原件核验。
+
+## 保留原始 mapped wrapper 的公开 gate 已启动
+- 精确 tip `619812c391b289cd17addaa56eaf0598d38619e7` 已 push 并核对远端。唯一新 dispatch [run 42420475994](https://github.com/YJBeetle/SWCLI/actions/runs/42420475994)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`。首次快照确认精确 head，状态 `in_progress`，记录 `evidence/public-run-42420475994.json`。
+- 本节为本地交接状态。本轮结束等待，新的原始映射上下文路径及完整公开流程待原件审查。
+
+## 第六次公开失败原件核验与接口绑定离线定位
+- [run 42420475994](https://github.com/YJBeetle/SWCLI/actions/runs/42420475994) / `619812c391b289cd17addaa56eaf0598d38619e7` 已失败，原始公开 ZIP `evidence/run-42420475994/swcli-assembly-mates-42420475994-1-13593448953.zip` 的 GitHub digest `34f5cd4ad40cd870449a7084768a2d3d03473c77ea2eb6f633d28d98f2c8b80b` 已匹配。分发 ZIP `swcli-dist-13593715197.zip` digest `9fc9d28c421adc16483646b5ef8426dbb396c9ca34ea8ba392eaf900f81c1c64` 也已匹配，83 个安装 Python 文件与 wheel/Git blob 一致。
+- GetCorresponding(source-face) 和 IEntity(original-mapped).GetComponent 的 begin/end 各 1 次，后者返回空。owner-IsSame(target-component) 未到达，CreateMate 实际 begin=0/end=0/error=0。首错为后台 mate-targets 的 `original mapped face has no component in the selected assembly context`。宿主 PID 3456 / revision 33.5.0，server 正常退出 0，清理错误为空，退出后原生进程目录为空。fixture 原 PRT 已保留。收据 `docs/verification/assembly-mates-public-original-mapped-failure-2026-11-10.json`。
+- 完整 GitHub job 原日志保存在 `evidence/run-42420475994/github-job-128548315921.raw.log`，59387 字节，SHA `f0181bca935127a5523333d8c71f499008c726644f71778ce85f8997173068f8`。原安装日志确认 pywin32 312。
+- 离线审计发现 _dispatch 先用官方 IID QueryInterface，再把查询结果交给通用 win32com.client.Dispatch。已安装版本的 b312 官方源码表明该工厂重新读取对象自身 GetTypeInfo，并可选生成类，生成类构造器会再次 QueryInterface。因此旧代码没有保证官方指定接口的绑定被保留。原日志不含实际返回的 typeinfo GUID 或生成类选择，不能据此宣称已确认空 owner 的原生根因。
+- 对 b312 官方工厂/构造器/dynamic 函数执行受控离线复现。自报不同默认接口的 fixture 经通用工厂会被重新查询另一 IID，显式官方 ITypeInfo 动态绑定保留原查询指针，且无对象自报 GetTypeInfo 读取或包装器再次 QueryInterface。来源、Git blob SHA、结果与局限在 `docs/verification/assembly-mates-official-interface-binding-2026-11-10.json` 及 evidence 中。
+- 最小候选只修正接口包装保证：缓存官方 IID + ITypeInfo，以 dynamic.Dispatch(queried,typeinfo=official) 绑定，并要求包装结果保留查询所得 PyIDispatch。维持原始 mapped、同一映射/owner API、完整 owner/body/reference/geometry/CAS 与后台保护。新增 BindOfficialTypeInfo.<interface> trace。没有切换多套业务 API。
+- 针对性 48 项通过，新增绑定回归证明官方 metadata 传入、不会进入通用工厂/读取对象自身 typeinfo/再次 QueryInterface，包装器替换查询指针时拒绝。完整执行 1867 项，26 平台跳过，其余通过；SDK generator / strict mypy / 8 负向消费场景通过。日志 `evidence/portable/official-binding-*.log`。
+- 本轮已有确切的包装保证缺口与已安装版本的离线源码复现，允许仅对此候选一次必要公开 gate；候选能否改变原生 owner 返回仍待该原件，不能先认定修复有效。600/1800、原始首错/partial、身份与几何断言继续保留，未修改 main 发布或 worker 保护。

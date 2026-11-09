@@ -519,26 +519,44 @@ class ClientContractTests(unittest.TestCase):
         self.scene.doc.CreateMate.assert_not_called()
 
 class DispatchInterfaceTests(unittest.TestCase):
-    def test_nested_object_need_not_implement_get_type_info(self):
-        raw=object()
-        target=NS(_oleobj_=NS(GetTypeInfo=mock.Mock(side_effect=RuntimeError('Invalid index')),
-                             QueryInterface=mock.Mock(return_value=raw)))
-        interface=NS(GetDocumentation=lambda memid:('IFace2',),
-                     GetTypeAttr=lambda:NS(typekind=4,iid='official-face-iid'))
-        library=NS(GetLibAttr=lambda:('official-library',0,0,33,0,0),
-                   GetTypeInfoCount=lambda:1,GetTypeInfo=lambda index:interface)
-        application_info=NS(GetContainingTypeLib=lambda:(library,0))
-        app=NS(_oleobj_=NS(GetTypeInfo=mock.Mock(return_value=application_info)))
-        modules={'pythoncom':NS(TKIND_DISPATCH=4,IID_IDispatch='dispatch-iid'),
-                 'win32com.client':NS(Dispatch=lambda native:native)}
-        with mock.patch.dict(sys.modules,modules),mock.patch.dict(api._INTERFACE_IIDS,{},clear=True), \
-             mock.patch.object(api,'_official_library',return_value=library) as resolve:
-            result=api._dispatch(target,'IFace2',app=app)
-        resolve.assert_called_once_with(app)
-        self.assertIs(result,raw)
+    def test_nested_binding_preserves_queried_pointer_and_official_metadata(self):
+        raw = NS(GetTypeInfo=mock.Mock(side_effect=AssertionError("no native type info")),
+                 QueryInterface=mock.Mock(side_effect=AssertionError("no wrapper requery")))
+        target = NS(_oleobj_=NS(
+            GetTypeInfo=mock.Mock(side_effect=RuntimeError("Invalid index")),
+            QueryInterface=mock.Mock(return_value=raw)))
+        interface = NS(GetDocumentation=lambda memid: ("IFace2",),
+                       GetTypeAttr=lambda: NS(typekind=4, iid="official-face-iid"))
+        library = NS(GetLibAttr=lambda: ("official-library", 0, 0, 33, 0, 0),
+                     GetTypeInfoCount=lambda: 1, GetTypeInfo=lambda index: interface)
+        generic = mock.Mock(side_effect=AssertionError("no automatic dispatch-class selection"))
+        for preserve_pointer in (True, False):
+            pointer = raw if preserve_pointer else object()
+            wrapper = NS(_oleobj_=pointer)
+            dynamic = mock.Mock(return_value=wrapper)
+            modules = {
+                "pythoncom": NS(TKIND_DISPATCH=4, IID_IDispatch="dispatch-iid"),
+                "win32com.client": NS(Dispatch=generic),
+                "win32com.client.dynamic": NS(Dispatch=dynamic),
+            }
+            with self.subTest(preserve_pointer=preserve_pointer), \
+                 mock.patch.dict(sys.modules, modules), \
+                 mock.patch.dict(api._INTERFACE_BINDINGS, {}, clear=True), \
+                 mock.patch.object(api, "_official_library", return_value=library):
+                if preserve_pointer:
+                    self.assertIs(api._dispatch(target, "IFace2", app=object()), wrapper)
+                else:
+                    with self.assertRaisesRegex(api.MateError, "replaced the queried dispatch"):
+                        api._dispatch(target, "IFace2", app=object())
+            dynamic.assert_called_once_with(raw, typeinfo=interface)
+        generic.assert_not_called()
         target._oleobj_.GetTypeInfo.assert_not_called()
-        target._oleobj_.QueryInterface.assert_called_once_with('official-face-iid','dispatch-iid')
-        app._oleobj_.GetTypeInfo.assert_not_called()
+        raw.GetTypeInfo.assert_not_called()
+        raw.QueryInterface.assert_not_called()
+        self.assertEqual(target._oleobj_.QueryInterface.call_args_list, [
+            mock.call("official-face-iid", "dispatch-iid"),
+            mock.call("official-face-iid", "dispatch-iid"),
+        ])
 
     def test_library_is_derived_from_exact_host_process_image_and_handle_is_closed(self):
         import tempfile

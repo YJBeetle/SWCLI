@@ -124,7 +124,7 @@ def relation(first, second, kind):
     return dict(distance_mm=distance, parallel_error=parallel)
 
 
-_INTERFACE_IIDS = {}
+_INTERFACE_BINDINGS = {}
 _OFFICIAL_LIBRARIES = {}
 
 
@@ -166,25 +166,31 @@ def _dispatch(native, interface, *, app):
     wrapper, or invent an IID when the installed official library lacks it.
     """
     import pythoncom
-    from win32com.client import Dispatch
+    from win32com.client.dynamic import Dispatch as dynamic_dispatch
     # Load by exact owning installation, without GetTypeInfo on either a face
     # object or the application. Nested dispatch need not be self describing.
     library = _official_library(app)
     attributes = library.GetLibAttr()
     key = (str(attributes[0]), attributes[3], attributes[4], interface)
-    if key not in _INTERFACE_IIDS:
+    if key not in _INTERFACE_BINDINGS:
         matches = []
         for index in range(library.GetTypeInfoCount()):
             info = native_call("assembly-mates", "TypeLib.GetTypeInfo", lambda: library.GetTypeInfo(index))
             if info.GetDocumentation(-1)[0] == interface:
                 attr = info.GetTypeAttr()
                 require(attr.typekind == pythoncom.TKIND_DISPATCH, "required interface is not Automation dispatch: " + interface)
-                matches.append(attr.iid)
+                matches.append((attr.iid, info))
         require(len(matches) == 1, "official type library does not identify exactly one " + interface)
-        _INTERFACE_IIDS[key] = matches[0]
+        _INTERFACE_BINDINGS[key] = matches[0]
+    iid, typeinfo = _INTERFACE_BINDINGS[key]
     queried = native_call("assembly-mates", "QueryInterface." + interface,
-                          lambda: native._oleobj_.QueryInterface(_INTERFACE_IIDS[key], pythoncom.IID_IDispatch))
-    return Dispatch(queried)
+                          lambda: native._oleobj_.QueryInterface(iid, pythoncom.IID_IDispatch))
+    # Bind the selected official interface metadata to this exact PyIDispatch.
+    # The generic factory may select a generated class and query another IID.
+    wrapped = native_call("assembly-mates", "BindOfficialTypeInfo." + interface,
+                          lambda: dynamic_dispatch(queried, typeinfo=typeinfo))
+    require(wrapped._oleobj_ is queried, "interface factory replaced the queried dispatch pointer")
+    return wrapped
 
 
 def _face(app, assembly, source, component, native, index, body, assembly_faces):

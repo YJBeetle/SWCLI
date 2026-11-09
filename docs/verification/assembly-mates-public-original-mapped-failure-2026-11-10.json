@@ -1,0 +1,80 @@
+{
+  "run_id": 42420475994,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42420475994",
+  "head": "619812c391b289cd17addaa56eaf0598d38619e7",
+  "artifact_id": 13593448953,
+  "artifact_sha256": "34f5cd4ad40cd870449a7084768a2d3d03473c77ea2eb6f633d28d98f2c8b80b",
+  "distribution_artifact_id": 13593715197,
+  "distribution_artifact_sha256": "9fc9d28c421adc16483646b5ef8426dbb396c9ca34ea8ba392eaf900f81c1c64",
+  "github_digests_matched": true,
+  "installed_python_files_verified": 83,
+  "wheel_sha256": "fa9730c5026c7cda7564e902b8769e895f9ab59713d1fa318749b80bd5572324",
+  "github_job_log": {
+    "path": "github-job-128548315921.raw.log",
+    "size_bytes": 59387,
+    "sha256": "f0181bca935127a5523333d8c71f499008c726644f71778ce85f8997173068f8",
+    "installed_pywin32": 312
+  },
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 3456,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.609000000000151,
+    "visible": false
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-yw60x9",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "original mapped face has no component in the selected assembly context",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "37c8ebdb-1366-4429-bff6-e6dc4a56bb05",
+    "session_id": "modeling-smoke-d7e2dd33317d"
+  },
+  "mapping_owner_trace": {
+    "Component2.GetCorresponding(source-face)": {
+      "begin": 1,
+      "end": 1
+    },
+    "IEntity(original-mapped).GetComponent": {
+      "begin": 1,
+      "end": 1
+    },
+    "OriginalMapped.owner-IsSame(target-component)": {}
+  },
+  "create_mate_counts": {
+    "begin": 0,
+    "end": 0,
+    "error": 0
+  },
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56466,
+      "sha256": "82bfa8606b7daa57375c86d1c535e0b4e7f233628b9e6ea8a51c2319ad7feb1a"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "conclusion": "Original GetCorresponding mapping reached IEntity(original-mapped).GetComponent and returned None; exact owner comparison and CreateMate were not reached",
+  "unresolved": "Logs do not expose the typeinfo GUID/class selected by generic Dispatch after QueryInterface; offline source audit confirms the helper did not guarantee exact interface binding",
+  "public_acceptance": false,
+  "merge_ready": false
+}

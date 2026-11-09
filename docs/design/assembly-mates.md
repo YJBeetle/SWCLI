@@ -45,6 +45,9 @@ GetBody 与组件体一致。身份匹配只作验证，原始 mapped wrapper �
 GetComponent 必须返回指定组件，任何空 owner 或错误实例都拒绝。
 私有原生持久引用必须即时往返成功并保持精确 COM 身份；响应只发布摘要以参加
 完整 CAS，不发布可解析 token，也不承诺跨更新、关闭重开或拓扑变化稳定。
+面、实体和配合定义的 IID 及 ITypeInfo 从宿主安装的官方类型库取得。
+QueryInterface 返回的 PyIDispatch 使用显式官方 ITypeInfo 动态绑定，包装器必须保留该指针，
+以保证后续方法按选定接口契约调用。原生对象身份继续通过 IsSame 核验。
 本分支不依赖尚未验收的独立稳定引用分支。
 
 写入参数为 `kind`、`alignment`、两个 `{component, face_index}` 的 `targets`，以及
