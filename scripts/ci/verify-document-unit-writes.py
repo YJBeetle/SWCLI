@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import time
 from pathlib import Path, PureWindowsPath
 
 from swcli import document_unit_profile as catalog
@@ -28,6 +29,11 @@ class WriteGate(public.DurableGate):
         return self._clients
 
     def run_command(self,command,**options):
+        started=time.monotonic()
+        try:return self._run_transport_command(command,**options)
+        finally:self.record['events'][-1]['transport_elapsed_seconds']=time.monotonic()-started
+
+    def _run_transport_command(self,command,**options):
         # Lifecycle status remains the existing CLI. All typed CAD operations
         # in SDK/MCP phases use the actual SDK/stdio transport, no COM shortcuts.
         if self.transport=='cli' or 'daemon' in command:
@@ -160,6 +166,15 @@ def edit(gate,document,before,field,value,*,changed=False,after=None,error=None,
     return result
 
 
+def source_noop_is_candidate(before,field):
+    # A readable enum is not necessarily in this field's finite write targets.
+    # In particular drawing mass-properties length may read inch while only
+    # mm/m have write evidence. Never broaden the product to exercise a noop.
+    row=before['values'][field]
+    try:return catalog.target(field,row['value'])==row['native_value']
+    except ValueError:return False
+
+
 def uncalibrated_custom_target(before):
     if before['values']['system']['native_value']!=4:return None
     for field in catalog.FIELDS:
@@ -208,6 +223,7 @@ def run(gate,fixtures,prior_pids):
     planned=[(transport,key,expected,path) for transport in ('cli','sdk','mcp') for key,expected,path in planned]
     for index,(transport,key,expected,path) in enumerate(planned):
         gate.transport=transport
+        case_started=time.monotonic()
         case=dict(transport=transport,document_type=key[0],domain=list(key),success=False,source_sha256=expected['source_sha256'])
         gate.record['unit_cases'].append(case);gate.checkpoint('unit-write-source-preflight')
         opened=case['open']=gate.command('document','open',str(path))
@@ -221,7 +237,10 @@ def run(gate,fixtures,prior_pids):
         if key[0]==1:case['geometry_before']=public.geometry(gate,document)
         field,value=expected['field'],expected['value']
         same=before['unit_profile']['values'][field]['value']
-        case['noop']=edit(gate,document,before,field,same)
+        noop_before=source_noop_is_candidate(before['unit_profile'],field)
+        case['noop_phase']='before-write' if noop_before else 'after-write'
+        if noop_before:case['noop']=edit(gate,document,before,field,same)
+        else:case['read_only_source_value']=same
         case['lease_refusal']=edit(gate,document,before,field,value,error='DocumentLeaseConflict',session=gate.session+'-contender')
         case['stamp_refusal']=edit(gate,document,before,field,value,error='DocumentUpdateConflict',stamp=before['document']['update_stamp']+1)
         wrong=deepcopy(before['unit_profile']);wrong['linkage']['swUnitsTimeUnits']+=-1 if wrong['linkage']['swUnitsTimeUnits']==2147483647 else 1
@@ -236,6 +255,8 @@ def run(gate,fixtures,prior_pids):
         observed=case['after_write']=public.read(gate,document)
         require(observed['document']==case['write']['document'] and catalog.typed_key(observed['unit_profile'])==catalog.typed_key(expected['after']),
                 'public changed result differs on guarded reread')
+        if not noop_before:
+            case['noop']=edit(gate,document,observed,field,value)
         if key[0]==1:
             case['geometry_after_write']=public.geometry(gate,document)
             public.evidence.record_exact_geometry(case['geometry_before'],case['geometry_after_write'],case,'comparison_after_write',lambda:gate.checkpoint('unit-write-geometry'),'public unit write changed geometry')
@@ -264,7 +285,7 @@ def run(gate,fixtures,prior_pids):
             case['geometry_readonly']=public.geometry(gate,fresh)
             public.evidence.record_exact_geometry(case['geometry_before'],case['geometry_readonly'],case,'comparison_readonly',lambda:gate.checkpoint('unit-write-readonly-geometry'),'public unit write reopen changed geometry')
         gate.close(fresh);gate.close(reopened_front);gate.close(foreground);gate.require_empty(after_case='unit-write-%03d'%index)
-        case['success']=True;gate.checkpoint('unit-write-verified')
+        case['success']=True;case['duration_seconds']=time.monotonic()-case_started;gate.checkpoint('unit-write-verified')
     require(gate.health()['host']==host,'public unit writes replaced native host')
     gate.record.update(success=True,state='completed',changed_write_acceptance=True)
 

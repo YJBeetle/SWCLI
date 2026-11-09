@@ -24,6 +24,9 @@ def fixture_report(directory):
     cases=[];transitions={}
     for kind,suffix in ((1,'SLDPRT'),(2,'SLDASM'),(3,'SLDDRW')):
         state=profile(kind);state['values']['system']=catalog.observe('system',3 if kind==3 else 5)
+        # Real native drawing source retained stored mass-property inches even
+        # after the explicit IPS -> MMGS -> Custom preparation.
+        if kind==3:state['values']['mass_properties.length_unit']=catalog.observe('mass_properties.length_unit',3)
         case=dict(document_type=kind,success=True,write_diagnostic_success=True,initial_profile=deepcopy(state),write_steps=[])
         def add(field,value,role):
             nonlocal state
@@ -134,3 +137,47 @@ class WritePublicGateTests(unittest.TestCase):
     def test_wrong_native_fixture_bytes_or_escaping_path_stop_before_cad(self):
         for relative,digest in (('../outside.SLDPRT','a'*64),(self.report['cases'][0]['write_steps'][0]['source_file'],'a'*64)):
             with self.subTest(relative=relative),self.assertRaises(RuntimeError):public.file_in_fixture(self.fixtures,relative,digest)
+
+    def test_readable_drawing_inches_noop_moves_after_measured_changed_target(self):
+        with self.assertRaises(ValueError):catalog.target('mass_properties.length_unit','inch')
+        self.execute()
+        cases=[c for c in self.gate.record['unit_cases'] if c['document_type']==3 and c['write']['field']=='mass_properties.length_unit']
+        deferred=[c for c in cases if c['noop_phase']=='after-write']
+        self.assertEqual(len(deferred),3)  # one identical source for CLI/SDK/MCP
+        for case in deferred:
+            self.assertEqual(case['read_only_source_value'],'inch')
+            self.assertTrue(case['success']);self.assertFalse(case['noop']['changed'])
+            self.assertEqual(case['noop']['document'],case['after_write']['document'])
+            self.assertTrue(case['noop']['document']['modified'])
+            self.assertEqual(case['noop']['unit_profile'],case['write']['unit_profile'])
+        self.assertFalse(any(c.document_command=='unit-profile-set' and c.field=='mass_properties.length_unit' and c.value=='inch' for c in self.fake.calls if getattr(c,'document_command',None)=='unit-profile-set'))
+        self.assertEqual(self.fake.changed_attempts,417)
+        with self.assertRaises(ValueError):catalog.target('mass_properties.length_unit','inch')
+
+    def test_original_native_drawing_inches_noop_rejects_before_worker_or_setter(self):
+        from swcli import cli
+        from swcli.daemon import server
+        snapshot=json.loads((ROOT/'docs/evidence/units-profile/public-writes-42423042929/first-failure-source-profile.json').read_text())
+        self.assertEqual(snapshot['document_type'],3)
+        self.assertEqual(snapshot['values']['mass_properties.length_unit'],dict(value='inch',native_value=3))
+        self.assertFalse(public.source_noop_is_candidate(snapshot,'mass_properties.length_unit'))
+        self.assertEqual(catalog.target('mass_properties.length_unit','mm'),0)
+        output=io.StringIO();requests=[]
+        def protocol_boundary(operation,parameters,**options):
+            request=dict(api_version=PROTOCOL_VERSION,request_id='original-inch-noop',operation=operation,parameters=parameters,
+                         document_id=options['document_id'],expected_update_stamp=options['expected_update_stamp'],lease_id=options['lease_id'])
+            requests.append(request)
+            handler=object.__new__(server.SwclidRequestHandler)
+            handler.rfile=io.BytesIO(json.dumps(request).encode()+b'\n');handler.wfile=io.BytesIO()
+            handler.server=mock.Mock(manager=mock.Mock());handler.server.security=server.ServerSecurity();handler.server.workspace=None
+            handler.connection=mock.Mock();handler.handle()
+            handler.server.manager.assert_not_called()
+            self.assertEqual(handler.server.manager.mock_calls,[])
+            return json.loads(handler.wfile.getvalue())
+        args=['document','unit-profile-set','mass_properties.length_unit','inch','--if-snapshot',json.dumps(snapshot),'--if-update-stamp','103','--document','d-012345','--lease','l-0123456789ab','--json']
+        with mock.patch.object(cli,'call_daemon',side_effect=protocol_boundary) as daemon, mock.patch('sys.stdout',new=output):
+            self.assertNotEqual(cli.main(args),0)
+        daemon.assert_called_once();self.assertEqual(len(requests),1)
+        result=json.loads(output.getvalue());self.assertFalse(result['ok'])
+        self.assertEqual(result['error']['type'],'ValueError')
+        self.assertEqual(result['error']['message'],'unsupported candidate unit target')

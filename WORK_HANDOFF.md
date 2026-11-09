@@ -287,3 +287,14 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 人工域与三通路验收业务head`ac8e7f26ced8148d16fe236280082d4f78ec9290`已中文提交推送。仅触发一次必要公共验证 [42423042929](https://github.com/YJBeetle/SWCLI/actions/runs/42423042929)，head/ref/event已核；输入三个units开关true、native_full=false。一次正常快照在`docs/evidence/units-profile/public-writes-42423042929/`：route/wheel success，Win3.9/3.14前置运行中，尚无公共native结果。首次run元数据HTTP EOF只补读该元数据，没有原生重试或重复dispatch。
 
 正常快照后结束本轮，不持续poll、不建代理/automation。后续必须下载本run新原ZIP/digest并分别核CLI/SDK/MCP各139实际case、真实租约/完整CAS及拒绝、137受限域/26受审后态、保存RO/配置/状态/raw geometry、同一owned host/单worker、600/1800及MCP frontend/owned CAD清理。未到/失败不能以内部139或合成417补齐；若触硬预算先交时间分布评估，不拆组/少测/改限。当前公共验收仍未完成，main/release仍交统筹本人，未合/未发布。其后交接tip只docs，不改变ac8e7f26操作源。
+
+
+## 42423042929 首错已审：可读 inch 不是合法 noop 写目标
+
+官方 artifact13596036567 / 19290057 bytes，下载与官方ZIP SHA256一致`924c3bab00df410f36761d0ddd4fc03bf2fb554fb8ae3f7d53f5eb58230c72d8`；公共reportSHA`6b8ed34c531bec9c4df8f8caae514bc16ed9743a66a24272d29a1881a2767c12`。原ZIP/日志ZIP/安全解压在`evidence/units-profile/public-writes-42423042929/`，不改旧failure原件。标准库独立审计`docs/verification/audit-units-public-failure-42423042929.py`复跑audit_success=true；metadata/真实源快照/审计JSON见同名docs/evidence。详细可重现说明`docs/verification/units-public-failure-42423042929.md`。
+
+首错CLI117/drawing25：真实源mass_properties.length_unit=inch/native3，原计划changed target=mm/native0。门禁把可读inch当noop目标，daemon协议校验返回ValueError unsupported candidate unit target，未到业务worker/native setter。更正此前“客户端前拒绝/零daemon”说法：到达daemon validation，零worker/零setter；原件不重写。CLI仅116/139闭环（part46/asm46/drawing24），SDK0/MCP0。116真实changed True，lease/stamp/CAS/RO各116及closed98；232公共原生文件hash、92part几何比较核过。单worker/owned退出确认/PID []恢复[]，public1487.031秒、最大完成native边界2.047秒，无nativeAPI error；内部139成功503.75秒独立记录，不补公共未到达部分。
+
+只修门禁noop顺序：当前源属于合法候选保留原前置noop，否则成功合法changed write+完整guarded reread后，以实际合法目标noop，完整snapshot/raw/linkage/document/stamp/dirty状态严格不变。inch继续不可写，137域/26后态不变。真实drawing inch源反例覆盖三路后置noop及417changed次数；原ZIP快照经真实CLI解析/daemon handler返回同一ValueError，一次validation请求、业务worker manager零调用。增加transport/case耗时记录供硬预算时交原分布，600/1800、139x3、同ownedhost/单worker、lease/CAS/负向/RO/几何/单次清理不改，无拆组/少测/重试/回滚。
+
+关联60项/14.361秒、完整1936项/63.407秒（26skipped）、SDK generated --check、三个改动文件Python3.9 AST及diff检查通过；日志/hash在`fix-validation.json`。src/.github/workflows与main property/PyYAML修复未修改。推送后只触发一次新公共验证并保存精确head/run一次快照即结束；公共全验收仍未完成，不合main/不发布、不用VM/代理/automation。
