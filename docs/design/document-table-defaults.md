@@ -55,7 +55,8 @@ does not open Wine support. On 33.5.0 the part and assembly template toggles adm
 true to false and the drawing toggle admits false to true. All three document types
 admit thin to normal for each applicable border. Only the resulting values
 admit same-value requests. Part admission was added only after auditing full internal run `42415716434`;
-public all-type acceptance is still required.
+public all-type run `42419965068` passed on head `9bb806b454cdcbcb225135886482a2e555044444`,
+and its original ZIP was independently audited on 2026-11-10.
 
 Every write first requires a native runtime proof. The adapter checks
 `sys.platform == "win32"`, obtains the loaded `ntdll.dll` through kernel32
@@ -94,9 +95,9 @@ Callers must inspect the current host/document state following a partial failure
 
 The official `SetUserPreferenceToggle` help describes the return as the enabled
 state, while the baseline annotation adapter records a successful disable as
-`True` on its calibrated host. This new table field is not assumed to share that
-behavior: a `False` return is retained and fails closed without retry. Internal
-calibration must resolve that field-specific ambiguity before public promotion.
+`True` on its calibrated host. The admitted table transitions were individually observed returning `True` in
+internal and public native runs; this evidence is limited to the exact pinned
+version/type/pairs. A `False` return is retained and fails closed without retry.
 
 ## Evidence and remaining boundary
 
@@ -136,9 +137,9 @@ Historical failed runs keep their original criteria and failed status.
 The new internal full plan revalidates only the existing eight assembly/drawing
 transitions; differing initial values fail before any additional transition.
 Full original internal run `42415716434` was independently audited before adding
-the exact three part transitions and observed no-ops. A new exact-head public
-gate including all three types is still required; internal success does not
-prove that public route.
+the exact three part transitions and observed no-ops. Subsequent exact-head
+public run `42419965068` covered all three types and was independently audited
+from its original ZIP; it is separate evidence from internal success.
 
 The internal report retains `full_acceptance_eligible: false`. A green internal
 run must first pass independent checks of its original ZIP/GitHub artifact
@@ -161,7 +162,8 @@ require exactly one setter for a changed field, zero for no-op/refusal, complete
 readback ordering and no application preference setters. The wrapper confirms
 owned daemon shutdown after the empty-document check.
 
-A successful scoped public gate is recorded separately from the internal run;
+The successful all-type public gate `42419965068` is recorded separately from
+the internal run in `docs/verification/table-defaults-public-42419965068.md`;
 it is not a full-modeling or release gate. Profiles and evidence still require
 coordinator review before main integration. No release or main merge is
 performed here.
@@ -181,7 +183,7 @@ existing table objects, Excel-based BOMs and templates outside owned fixtures.
 - [GetExecutablePath](https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetExecutablePath.html): installation directory semantics.
 - [System options and document properties](https://help.solidworks.com/2025/english/api/sldworksapiprogguide/overview/System_Options_and_Document_Properties.htm): application versus document API ownership.
 
-- [SetUserPreferenceToggle return semantics](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SetUserPreferenceToggle.html): Boolean state wording; deliberately unresolved for new table fields pending native evidence.
+- [SetUserPreferenceToggle return semantics](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SetUserPreferenceToggle.html): Boolean state wording; native evidence records `True` only for the admitted version/type/transitions and does not generalize to untested pairs.
 
 - [GetModuleHandleW](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew) and [GetProcAddress](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress) define the native module/export lookup used for runtime admission.
 - [Windows system errors](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-) defines ERROR_PROC_NOT_FOUND (127), required for the negative Wine-export lookup.

@@ -4,9 +4,9 @@
 
 - 工作树 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI`；分支 `codex/docprops-table-defaults`；基线 `3bda2c00489dde6a3d1e4521c548f751b1d1c197`。只提交、推送本分支；main 合并由主协调负责，不发版。
 - 五个非字体默认设置：`all.use_template_settings`、`bom.box_border`、`bom.grid_border`、`general.box_border`、`general.grid_border`。前三区分 part/assembly/drawing，General 仅 drawing。未实现表格实例插入/编辑、字体、图层、padding 或其他表格族。
-- **健康路径保护与零件完整 internal 已通过，仍待全量 public，暂不可合并。** 已有装配体/工程图公开原件对应 `5ab5afce5fb4f19b41beda2a3e5c0fb629919f9b`，不能替代本轮新 adapter 的 native 验收。worker late-fault 独立修复 `1d44a42` 保留，交统筹本人审查。
+- **完整三类型public已success且原ZIP独立审核通过，交统筹本人最终review/集成。** 受测产品head `9bb806b454cdcbcb225135886482a2e555044444`，run `42419965068`；本次仅增加文档/可复跑审计器，产品/测试保持同head。worker late-fault `1d44a42`及f188健康保护均保留，本分支不自行merge main/release。
 - 用户于 2026-11-08 明确批准“允许，仅限表格路线的质心界限”：每轴绝对差 `<=1e-12 mm`。其余几何 V/S/实体数、身份、状态、lease/CAS 等严格规则不变，原值/hex/delta 和旧失败均保留。见 `docs/verification/table-defaults-centroid-decision-2026-11-08.md`。
-- 完整 internal `42415716434` / `f1881a7` 已success且原ZIP独立审核通过：11 setters / 237 getters、完整3类型及save/reopen。已人工固定实测零件3项和原有A/D8项及同值pair；public all验收尚未完成，不能把内部通过当公共通过。
+- 完整 internal `42415716434` / `f1881a7` 已success且原ZIP独立审核通过：11 setters / 237 getters、完整3类型及save/reopen。已人工固定实测零件3项和原有A/D8项及同值pair；后续public all `42419965068`已独立通过；内部和公开两套原件分别保存。
 - 没有触碰 VM、DockerSW、MacSW、其他任务工作树、main、release 或凭据。此前所有权与 artifact 上传边界的自动审批问题已通过只读查证和收窄路径解决，无待批常规动作。
 
 ## 接口和行为
@@ -227,3 +227,12 @@ Report SHA256（依上表顺序）：`afb23a5832c588778117ca30d562b8f0029cad9bd5
 - [public all run 42419965068](https://github.com/YJBeetle/SWCLI/actions/runs/42419965068) 单次dispatch，参数 `native_full=false`、calibration=true、mode=public、types=all、head=9bb806b454cdcbcb225135886482a2e555044444。固定内部run42415716434/artifact13591813168/原ZIP7e1d8fcd...为前置proof。
 - 仅取一次状态快照 **in_progress**，metadata/inputs/snapshot已保存在ignored `run-42419965068/`。公开组拥有独立600秒native/1800秒group预算；新part3转换和A/D新guard旧8转换均走CLI/daemon/worker，SDK/MCP同daemon，包含readonly和独立save/reopen。首错即停组并保留原始回执/日志，不重试/回滚/换host。
 - 内部原ZIP审核命令及所有12文件hash见 `docs/verification/table-defaults-internal-42415716434.md`，脚本 `audit-table-defaults-internal-42415716434.py`。公开run尚无已审核完成原件，不能声称公共通过或可合并。此处停止watcher/poll/dispatch，待原件可用再逐次审核，最终review/merge由统筹本人做；本任务不改main、不发版。
+
+
+## 2026-11-10 完整公开原件审核通过，交统筹本人review
+
+- public `42419965068` / `9bb806b454cdcbcb225135886482a2e555044444` success；artifact13593611864，官方/本地原ZIP `413268d6b2a31d6426da517305b711408bc13e6164b5b2a4e6b2fe0f18d29906`。
+- 独立审核覆盖完整[1,2,3]、77个表格请求、11 setters/346 getters、158CLI/316journal、各6个SDK/MCP read+noop；f188保护在14个mutation前执行、六peer状态和12handle清理、3份distinct save/RO新ID重开均通过。只有6个预期lease/stamp顶层error，无内部native error/意外首错。
+- 最大请求1.7346332s/native组59.5613414s/gate60.288499s，独立600/1800预算，无retry/rollback/换host；同worker4628/owned host808、空catalog、daemon_exit_confirmed。零件V/S/实体数严格相等，y写后差2.7572687085100926e-16mm，saved-reopen与初值精确相等；只用表格1e-12许可，旧原件保留。
+- 完整报告及永久原件路径/全部11文件hash/复跑命令：`docs/verification/table-defaults-public-42419965068.md`；审计器 `audit-table-defaults-public-42419965068.py`。新原ZIP ignored绝对根 `/Users/YJBeetle/.codex/worktrees/docprops-table-defaults/SWCLI/docs/verification/table-defaults-evidence/run-42419965068/`。4项临时反例拒绝通过，原ZIP复核再次通过。
+- 本次只提交docs/WORK_HANDOFF，不新增CI、不改产品或测试，不碰统筹的隔离集成工作树/主ci.yml/独立工作流调整。统筹本人可立即在本工作树复跑审计，再完成集成源码/工作流review与main合并；我不自行合main或发布。
