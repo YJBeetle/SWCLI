@@ -298,3 +298,6 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 只修门禁noop顺序：当前源属于合法候选保留原前置noop，否则成功合法changed write+完整guarded reread后，以实际合法目标noop，完整snapshot/raw/linkage/document/stamp/dirty状态严格不变。inch继续不可写，137域/26后态不变。真实drawing inch源反例覆盖三路后置noop及417changed次数；原ZIP快照经真实CLI解析/daemon handler返回同一ValueError，一次validation请求、业务worker manager零调用。增加transport/case耗时记录供硬预算时交原分布，600/1800、139x3、同ownedhost/单worker、lease/CAS/负向/RO/几何/单次清理不改，无拆组/少测/重试/回滚。
 
 关联60项/14.361秒、完整1936项/63.407秒（26skipped）、SDK generated --check、三个改动文件Python3.9 AST及diff检查通过；日志/hash在`fix-validation.json`。src/.github/workflows与main property/PyYAML修复未修改。推送后只触发一次新公共验证并保存精确head/run一次快照即结束；公共全验收仍未完成，不合main/不发布、不用VM/代理/automation。
+
+
+noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提交推送；只触发一次必要新公共验收 [42664223806](https://github.com/YJBeetle/SWCLI/actions/runs/42664223806)。已核head/ref/workflow_dispatch，三个units=true、native_full=false，600/1800与CLI/SDK/MCP各139不变。初始run/jobs/精确参数在`docs/evidence/units-profile/public-noop-42664223806/`。该唯一快照in_progress，route/wheel成功、Win3.9/3.14前置运行中，尚无公共CAD结果。正常快照后结束等待，不持续poll、不重复dispatch/新代理，不合main/发布或触碰VM/其他路线。此后提交只docs，操作源固定64af40c。若后续失败保留首错与各transport实际完成边界，硬预算先交已新增的transport/case耗时分布，不改预算/拆组/少测。
