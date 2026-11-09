@@ -1,0 +1,98 @@
+{
+  "reviewed_at": "2026-11-09T17:17:20.087640+00:00",
+  "reviewer": "coordinator personally; no review subagent",
+  "main_base": "960839e52d0c433c817e71e02493a27681f7e858",
+  "native_run": 42419965068,
+  "native_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42419965068",
+  "native_head": "9bb806b454cdcbcb225135886482a2e555044444",
+  "artifact_id": 13593611864,
+  "artifact_zip_sha256": "413268d6b2a31d6426da517305b711408bc13e6164b5b2a4e6b2fe0f18d29906",
+  "internal_run": 42415716434,
+  "internal_head": "f1881a7421200e46028652538892c15a366f2ef8",
+  "accepted_revision": "33.5.0",
+  "accepted_host": "native Windows only; Wine/unknown fail closed",
+  "accepted_document_types": [
+    1,
+    2,
+    3
+  ],
+  "accepted_fields_by_type": {
+    "1": [
+      "all.use_template_settings",
+      "bom.box_border",
+      "bom.grid_border"
+    ],
+    "2": [
+      "all.use_template_settings",
+      "bom.box_border",
+      "bom.grid_border"
+    ],
+    "3": [
+      "all.use_template_settings",
+      "bom.box_border",
+      "bom.grid_border",
+      "general.box_border",
+      "general.grid_border"
+    ]
+  },
+  "scope": "11 observed directional transitions and matching target no-ops only; no reverse/thick/wider-version scope",
+  "original_review": {
+    "native_table_requests": 77,
+    "native_setters": 11,
+    "native_getters": 346,
+    "native_requests": 168,
+    "sdk_contracts": 6,
+    "mcp_bridge_contracts": 6,
+    "daemon_exit_confirmed": true,
+    "report_sha256": "988237e3201f9c40588e05cd96d1da48bc04cf9d61f6498dfd23f9d6d718fefe",
+    "native_trace_sha256": "05e9f85aee867ebf294a6cd7a36e6fabd9ed0060d419ad4fa29e982b9025b36e",
+    "original_file_sha256": {
+      "public/daemon-stop.json": "1390d77aac81f23fb8918bc454644976fc30c22d5a7bd27c4c76eb7707d45abf",
+      "public/daemon.native.stderr.jsonl": "05e9f85aee867ebf294a6cd7a36e6fabd9ed0060d419ad4fa29e982b9025b36e",
+      "public/daemon.stdout.jsonl": "67288d7d4f43aa4a21c777a154fcbf4f7255fc040991c377962522d65bcd0590",
+      "public/gate/public-table-defaults.SLDASM": "d99276bc2499ca3fd1dfe9d1dfd8b68094407570c5113736cfb2e55b568fd534",
+      "public/gate/public-table-defaults.SLDDRW": "756972ca86eb687670fbe5bbb0e9a240f7d084f7429cee372a716eefb83076a8",
+      "public/gate/public-table-defaults.SLDPRT": "7f60f9fecf7bcb8a12118610852ed88b73589fdab3371fafcedb321061a51f95",
+      "public/gate/table-defaults-public-events-modeling-smoke-764b0bdd9eb4.jsonl": "edce0d36b36c2cc523bbc1c7414a68d802f9ab7dbd6f4bc00b26ae2ab3289841",
+      "public/gate/table-defaults-public.json": "988237e3201f9c40588e05cd96d1da48bc04cf9d61f6498dfd23f9d6d718fefe",
+      "public/gate.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "public/gate.stdout.log": "d494316a9fd27cb826c280d454762395f4fc5aae8e09cc211e46dc231959556a",
+      "public/wrapper-result.json": "f25b7bea2105fa77f47c0edf95eb206be628bc0c3a02677bfce019623cdf8ae3"
+    }
+  },
+  "geometry_rule": "Only table centroid per axis absolute <=1e-12 mm by explicit user approval. Original doubles/hex/deltas retained; V/S/body/context/state/CAS exact.",
+  "portable": {
+    "tests": 2582,
+    "skipped": 35,
+    "result": "OK",
+    "source": "integration checkout PYTHONPATH=src:tests; local current-source install"
+  },
+  "sdk": {
+    "strict_source_files": 6,
+    "consumer_typing_refusals": 31,
+    "result": "passed"
+  },
+  "existing_operation_contracts_preserved": 84,
+  "added_operations": [
+    "document.table-options",
+    "document.table-option-set"
+  ],
+  "integration_notes": [
+    "Main CI remains byte-identical to base (22 dispatch inputs); table four inputs/job moved to independent manual-only table-defaults.yml with exact branch/head and digest preflight before private inputs.",
+    "Prior worker tolerance/line/dimension/preference/image-quality receipt protection and request-local result reset retained.",
+    "Shared CLI/catalog/result changes are additive. SDK regenerated from combined schema.",
+    "Existing file-transfer/workspace/tag-release/recover-release code unchanged.",
+    "Initial associated invocation included one nonexistent test module; preserved log. Subsequent full discovery passed all actual tests.",
+    "One additive conflict resolution briefly duplicated lease_guarded keyword; removed incoming duplicate and retained base semantics before test execution. No native or pushed change had this issue."
+  ],
+  "full_suite_native_acceptance": false,
+  "release_created": false,
+  "release_requires_user_confirmation": true,
+  "exact_native_source_sha256": {
+    "src/swcli/hosts/windows_document_tables.py": "7227d0424c1559250953820793ad24643095fa7fc0620c80333a3b6d2be863f5",
+    "src/swcli/document_tables.py": "aee329fc2efb8a866c1de1314261928d06e9cf32fd4adc8686a684de9e5a3fe3",
+    "src/swcli/document_table_profiles.py": "5128d076fd0adc535012cf31c47abb69931264fa3202af74bb9bdb11554dc463",
+    "scripts/ci/verify-table-defaults-public.py": "5863033f2f1cdbbac8469800f4a60b057aa850c43b17c97934840425fe23c94a",
+    "scripts/ci/gate_support/table_defaults_geometry.py": "2ed752b01366d3855400505b6375c3a096239513c46f3b6d29c467993287c10d"
+  }
+}

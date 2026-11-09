@@ -145,6 +145,35 @@ def _preserve_preference_receipt(response, operation, result, error):
     return response
 
 
+def _preserve_table_receipt(response, operation, result, error):
+    """Retain this request's trusted table boundary after a worker late fault."""
+    if (operation != "document.table-option-set" or not isinstance(result, dict)
+            or type(result.get("action")) is not str or result["action"] != operation):
+        return response
+    mutation = result.get("mutation")
+    if (not isinstance(mutation, dict) or set(mutation) != {"attempted", "may_have_changed"}
+            or any(type(value) is not bool for value in mutation.values())):
+        return response
+    partial = dict(result)
+    partial["ok"] = False
+    partial["mutation"] = dict(mutation)
+    worker_error = {"type": type(error).__name__, "message": _safe_error_text(error)}
+    previous = result.get("error")
+    if (result.get("ok") is False and isinstance(previous, dict)
+            and isinstance(previous.get("type"), str) and isinstance(previous.get("message"), str)):
+        partial["error"] = {"type": _safe_error_text(previous["type"]),
+                            "message": _safe_error_text(previous["message"]), "worker_error": worker_error}
+    else:
+        partial["error"] = worker_error
+    try:
+        validate_operation_result(operation, partial)
+    except Exception:
+        partial = {"ok": False, "action": operation, "mutation": dict(mutation), "error": partial["error"]}
+    response["result"] = partial
+    return response
+
+
+
 def _success_response(
     request_id: str, result: Any, *, duration_ms: float = 0.0
 ) -> Dict[str, Any]:
@@ -485,6 +514,7 @@ def _worker_main(
                 response = _preserve_tolerance_receipt(response, str(request["operation"]), result, exc)
                 response = _preserve_option_receipt(response, str(request["operation"]), result, exc)
                 response = _preserve_preference_receipt(response, str(request["operation"]), result, exc)
+                response = _preserve_table_receipt(response, str(request["operation"]), result, exc)
                 if (request["operation"] == "document.font-scope-set"
                         and isinstance(result, dict)
                         and isinstance(result.get("mutation"), dict)
@@ -688,6 +718,16 @@ class WorkerManager:
                     self._recovery_required["code"],
                     self._recovery_required["message"],
                 )
+                self._remember_response(request, response)
+                return response
+            if request.get("operation") == "document.table-option-set" and self.host_platform != "windows":
+                message = "document table writes have no accepted native evidence for this Wine host platform"
+                response = _error_response(request["request_id"], "DocumentTableCalibrationRequired", message)
+                response["result"] = {
+                    "ok": False, "action": "document.table-option-set",
+                    "error": {"type": "DocumentTableCalibrationRequired", "message": message},
+                    "mutation": {"attempted": False, "may_have_changed": False},
+                }
                 self._remember_response(request, response)
                 return response
             if self._process is None or not self._process.is_alive():

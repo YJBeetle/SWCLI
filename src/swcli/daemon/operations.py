@@ -26,6 +26,7 @@ from ..hosts.windows_documents import (
 from ..hosts.windows_custom_properties import (
     read_document_properties_windows, read_property_summary_windows, edit_document_property_windows,
 )
+from ..hosts.windows_document_tables import read_document_table_options_windows, set_document_table_option_windows
 from ..hosts.windows_document_summary import read_document_summary_windows, set_document_summary_windows
 from ..hosts.windows_document_detailing import (
     read_document_detailing_options_windows, set_document_detailing_option_windows,
@@ -445,6 +446,36 @@ def document_property_set(context: OperationContext, values: Dict[str, Any]) -> 
 @_register_handler
 def document_property_delete(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     return _edit_document_property(context, values)
+
+
+def _with_table_document(context: OperationContext, result: Dict[str, Any]) -> Dict[str, Any]:
+    # Stop native observation after the first adapter failure. In particular,
+    # re-describing a closed target must not erase an entered setter's receipt.
+    result["session_id"] = context.session_id
+    if result.get("ok") is False:
+        return result
+    try:
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as exc:
+        result.pop("document", None)
+        result.update(ok=False, error={"type": type(exc).__name__, "message": str(exc)})
+        return result
+
+
+@_register_handler
+def document_table_options(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_table_options_windows(app=context.app, document=context.entry.document)
+    return _with_table_document(context, result)
+
+
+@_register_handler
+def document_table_option_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_table_option_windows(app=context.app, document=context.entry.document, **values)
+    return _with_table_document(context, result)
 
 
 @_register_handler

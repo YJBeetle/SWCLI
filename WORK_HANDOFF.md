@@ -22,4 +22,8 @@
 
 - 总注释字体七字段、显示十字段（工程图五项）及GB往返六标准36转换：42361904486原件由本人复核；三setter描述符和worker异常回执已补保护。组合2520项测试完成（34跳过），SDK及31类型拒绝例通过。主CI保持不变，手动专项迁至独立document-preferences.yml。见docs/handoffs/document-preferences.md及docs/evidence/document-preferences-main-integration-2026-11-08.json。
 
-- main自动CI42406720872暴露Windows测试夹具句柄清理、CRLF分类假设和PyYAML未安装三类问题；仅测试/CI依赖修复，30关联与2520本地项（34skip）通过，新Windows CI待核。原日志及两摘要ZIP已核官方digest留存，详见docs/evidence/main-windows-portable-fixture-fix-2026-11-08.json。
+- main自动CI42406720872暴露Windows测试夹具句柄清理、CRLF分类假设和PyYAML未安装三类问题；仅测试/CI依赖修复，30关联与2520本地项（34skip）通过，新Windows CI42412228332已成功。原日志及两摘要ZIP已核官方digest留存，详见docs/evidence/main-windows-portable-fixture-fix-2026-11-08.json。
+
+- 表格默认设置：三类型公共42419965068/head9bb806b已成功，统筹已亲审原件及组合检查（2582项/35skip、SDK31拒绝例通过）；仅零件/装配3字段、工程图5字段的11条精确转换。历史交接见docs/handoffs/tables-initial.md，集成审计另记；当前系列未发布。
+
+- 表格最终集成范围与机器记录见docs/handoffs/tables.md及docs/evidence/table-defaults-main-integration-2026-11-10.json；主CI保持原22输入，表格专项独立手动入口。

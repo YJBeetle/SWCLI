@@ -20,6 +20,7 @@ from .document_detailing import DETAILING_FIELDS, detailing_options_schema
 from .document_preferences_schemas import (
     document_preference_result_fields, validate_document_preference_result_values,
 )
+from .document_tables import TABLE_FIELDS, TABLE_OPTIONS_SCHEMA, validate_table_options
 from .hosts.windows_document_summary import SUMMARY_FIELDS, EDITABLE_SUMMARY_FIELDS
 from .entity_contracts import (
     entity_result_fields, entity_success_conditions, without_entity_ids, validate_entity_semantics,
@@ -602,6 +603,14 @@ _RESULT_FIELDS = {
                       "reason": {"const": "shaded-deviation-coupling"}}, ("field", "before", "after", "reason")),
          ]}}},
         ("session_id", "document", "field", "before", "quality", "changed", "mutation", "linked_changes"),
+    ),
+    "document.table-options": (
+        {"options": TABLE_OPTIONS_SCHEMA}, ("session_id", "document", "options"),
+    ),
+    "document.table-option-set": (
+        {"field": {"enum": list(TABLE_FIELDS)}, "before": TABLE_OPTIONS_SCHEMA,
+         "options": TABLE_OPTIONS_SCHEMA, "changed": BOOL, "mutation": METADATA_MUTATION, "native_returned": BOOL},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation"),
     ),
     "document.annotation-options": (
         {"options": DOCUMENT_ANNOTATION_OPTIONS},
@@ -3058,6 +3067,28 @@ def validate_operation_result(name: str, result: Any) -> None:
             raise OperationResultInvalid(name + ": " + str(exc)) from exc
     if name in _DOCUMENT_PREFERENCE_OPERATIONS:
         _validate_document_preference_result(name, result)
+    if name in ("document.table-options", "document.table-option-set"):
+        for key in ("before", "options"):
+            if key in result:
+                try:
+                    validate_table_options(result[key])
+                    for field, entry in result[key].items():
+                        if "document" in result:
+                            unavailable = result["document"]["type"] not in TABLE_FIELDS[field]["types"]
+                            if unavailable != ("unavailable" in entry):
+                                raise ValueError("inconsistent table field applicability")
+                except ValueError as error:
+                    raise OperationResultInvalid(name + ": " + str(error)) from error
+        if name.endswith("-set") and result["ok"] is True:
+            before, after, field = result["before"], result["options"], result["field"]
+            changed = before[field] != after[field]
+            if ("unavailable" in after[field] or changed != result["changed"]
+                    or result["mutation"] != {"attempted": changed, "may_have_changed": changed}
+                    or (changed and result.get("native_returned") is not True)
+                    or (not changed and "native_returned" in result)
+                    or any(before[key] != after[key] for key in TABLE_FIELDS if key != field)
+                    or (changed and result["document"]["modified"] is not True)):
+                raise OperationResultInvalid(name + ": inconsistent table edit lifecycle")
     if name in ("document.annotation-options", "document.annotation-option-set"):
         for key in ("before", "options"):
             if key not in result:

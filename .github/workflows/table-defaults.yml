@@ -1,0 +1,232 @@
+name: Table default verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      table_defaults_calibration:
+        description: Run only bounded table-default internal/public verification on its own branch
+        required: false
+        default: false
+        type: boolean
+      table_defaults_document_types:
+        description: Explicit internal calibration scope; excluded types stay closed
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - assembly-drawing
+          - part
+      table_defaults_mode:
+        description: Internal calibration or public CLI/daemon acceptance using audited internal proof
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - public
+      table_defaults_head:
+        description: Exact table-default branch head (required for calibration)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  table-defaults-calibration:
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-table-defaults' && inputs.table_defaults_calibration && inputs.table_defaults_head == github.sha }}
+    permissions:
+      contents: read
+      actions: read
+    runs-on: windows-2025
+    timeout-minutes: 120
+    concurrency:
+      group: swcli-table-defaults-calibration
+      cancel-in-progress: false
+    env:
+      SW_MEDIA_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/SolidWorks.2025.SP5.0.Premium.DVD.iso
+      SW_ASSETS_PATH: Share/Software/DS.SolidWorks.2025.SP5.0.Premium-SSQ/crack
+    steps:
+      - name: Check out the requested branch head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.table_defaults_head }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Install candidate SWCLI
+        shell: powershell
+        run: |
+          python -m pip install .
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate installation failed' }
+          python -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw 'Installed resources are invalid' }
+      - name: Verify table wrapper exit codes without CAD
+        shell: powershell
+        run: |
+          python -I -c "from swcli.hosts.windows_document_tables import _native_windows_runtime; assert _native_windows_runtime(), 'Native Windows table runtime proof failed'"
+          if ($LASTEXITCODE -ne 0) { throw 'Table native runtime proof failed before private runtime setup' }
+          python -m unittest discover -s tests -p test_table_defaults_process_exit.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Table process exit-code regression failed before private runtime setup' }
+      - name: Check pinned internal run and original artifact provenance
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -I scripts/ci/verify-table-defaults-proof.py remote --env-output $env:GITHUB_ENV
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned internal proof preflight failed before private runtime setup' }
+      - name: Download the pinned original internal calibration artifact
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.TABLE_INTERNAL_RUN }}
+          name: ${{ env.TABLE_INTERNAL_ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/table-defaults-internal-proof
+          digest-mismatch: error
+      - name: Independently audit internal reports traces and native fixture hashes
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        shell: powershell
+        run: |
+          python -I scripts/ci/verify-table-defaults-proof.py local --directory "$env:RUNNER_TEMP\table-defaults-internal-proof"
+          if ($LASTEXITCODE -ne 0) { throw 'Original internal artifact audit failed before native acceptance' }
+      - name: Initialize private paths
+        shell: powershell
+        run: |
+          "PROBE_ROOT=$env:RUNNER_TEMP\swcli-hosted-media" >> $env:GITHUB_ENV
+          "PRIVATE_ROOT=$env:RUNNER_TEMP\swcli-private-runtime" >> $env:GITHUB_ENV
+          "RCLONE_CONFIG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.conf" >> $env:GITHUB_ENV
+          "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
+          "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
+          "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+
+      - name: Measure disposable runner disk
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\before.json"
+
+      # Installation snapshots are disabled until fresh-runner native core
+      # registration and equation behavior are proven equivalent to installation.
+      - name: Free disposable runner disk for installation
+        shell: powershell
+        run: |
+          $targetGiB = 48 + [Math]::Max(0, [int]"8" - 8)
+          scripts/ci/windows/free-space.ps1 -Profile "auto" -MinFreeGiB $targetGiB
+
+      - name: Measure disk after runner cleanup
+        shell: powershell
+        run: scripts/ci/windows/measure-runner.ps1 -OutputPath "$env:PROBE_ROOT\after-cleanup.json"
+
+      - name: Install rclone, WinFsp, and ImDisk
+        id: media_tools
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-media-dependencies.ps1
+          scripts/ci/windows/install-winfsp.ps1 -Directory "$env:PROBE_ROOT\winfsp"
+
+      - name: Prepare protected Google Drive configuration
+        id: private_config
+        shell: powershell
+        env:
+          RCLONE_CONFIG_B64: ${{ secrets.RCLONE_CONFIG_B64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RCLONE_CONFIG_B64)) {
+            throw "Missing secret: RCLONE_CONFIG_B64"
+          }
+          New-Item -ItemType Directory -Force -Path $env:PROBE_ROOT | Out-Null
+          [IO.File]::WriteAllBytes($env:RCLONE_CONFIG_FILE, [Convert]::FromBase64String($env:RCLONE_CONFIG_B64))
+          if (-not (rclone --config $env:RCLONE_CONFIG_FILE listremotes | Select-String -SimpleMatch "gdrive:" -Quiet)) {
+            throw "gdrive: remote is unavailable"
+          }
+
+      - name: Stream Google Drive through WinFsp
+        id: drive_mount
+        shell: powershell
+        run: |
+          $cacheBytes = [int64]8 * 1GB
+          scripts/ci/windows/mount-google-drive.ps1 `
+            -ConfigPath $env:RCLONE_CONFIG_FILE `
+            -RemotePath "gdrive:" `
+            -DriveLetter R `
+            -CacheDirectory $env:RCLONE_CACHE_DIR `
+            -CacheMaxBytes $cacheBytes `
+            -LogPath $env:RCLONE_LOG_FILE `
+            -PidPath "$env:PROBE_ROOT\rclone.pid"
+
+      - name: Mount complete streamed ISO with ImDisk proxy
+        id: iso_mount
+        shell: powershell
+        run: |
+          scripts/ci/windows/probe-imdisk.ps1 `
+            -ImagePath "R:\$env:SW_MEDIA_PATH" `
+            -StateDirectory "$env:PROBE_ROOT\imdisk" `
+            -DriveLetter S
+
+      - name: Fetch private smoke-test runtime
+        id: private_fetch
+        shell: powershell
+        run: |
+          $assets = "$env:PRIVATE_ROOT\assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          rclone --config $env:RCLONE_CONFIG_FILE copy "gdrive:$env:SW_ASSETS_PATH" $assets `
+            --include "/SolidWorks_Flexnet_Server/**" `
+            --include "/SOLIDWORKS Corp/SOLIDWORKS/**" `
+            --include "/sw2025_network_serials_licensing.reg" `
+            --exclude "*" `
+            --transfers 4 `
+            --checkers 8 `
+            --log-level NOTICE
+          foreach ($required in @(
+            "$assets\sw2025_network_serials_licensing.reg",
+            "$assets\SolidWorks_Flexnet_Server",
+            "$assets\SOLIDWORKS Corp\SOLIDWORKS"
+          )) {
+            if (-not (Test-Path -LiteralPath $required)) { throw "Missing private test input: $required" }
+          }
+
+      - name: Install native SOLIDWORKS
+        id: native_install
+        shell: powershell
+        run: |
+          scripts/ci/windows/install-solidworks.ps1 `
+            -MediaRoot $env:SW_MEDIA_ROOT `
+            -LicensingRegistryFile "$env:PRIVATE_ROOT\assets\sw2025_network_serials_licensing.reg" `
+            -LogDirectory "$env:PRIVATE_ROOT\install-logs" `
+            -InventoryPath "$env:SWCLI_SMOKE_ROOT\vba-runtime.json"
+
+      - name: Apply private runtime overlay and start test license service
+        id: runtime_setup
+        shell: powershell
+        run: |
+          scripts/ci/windows/prepare-test-runtime.ps1 `
+            -AssetsRoot "$env:PRIVATE_ROOT\assets" `
+            -StateDirectory "$env:PRIVATE_ROOT\state"
+
+      - name: Calibrate only bounded table defaults
+        if: ${{ inputs.table_defaults_mode != 'public' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          $drawingTemplate = & python -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw 'Drawing template discovery failed' }
+          scripts/ci/windows/calibrate-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults" -DrawingTemplate $drawingTemplate -DocumentTypes "${{ inputs.table_defaults_document_types || 'all' }}"
+      - name: Accept only proven table defaults through public CLI daemon SDK and MCP
+        if: ${{ inputs.table_defaults_mode == 'public' }}
+        timeout-minutes: 35
+        shell: powershell
+        run: |
+          scripts/ci/windows/accept-table-defaults.ps1 -OutputDirectory "$env:SWCLI_SMOKE_ROOT\table-defaults\public" -FixtureDirectory "$env:RUNNER_TEMP\table-defaults-internal-proof\calibration" -InternalReportSha256 $env:TABLE_INTERNAL_REPORT_SHA256 -InternalHead $env:TABLE_INTERNAL_HEAD -InternalRun $env:TABLE_INTERNAL_RUN
+      - name: Remove private inputs and stop disposable services
+        if: ${{ always() && env.PRIVATE_ROOT != '' && env.PROBE_ROOT != '' }}
+        shell: powershell
+        run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+      - name: Upload original calibration evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: table-defaults-${{ inputs.table_defaults_mode || 'internal' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/swcli-native-smoke/table-defaults/
+          if-no-files-found: warn
+          retention-days: 14

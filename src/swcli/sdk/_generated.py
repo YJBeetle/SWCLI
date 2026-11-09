@@ -284,6 +284,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentImageQualitySetResult]", self._client._execute('document.image-quality-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def table_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentTableOptionsResult]:
+        """document.table-options; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentTableOptionsResult]", self._client._execute('document.table-options', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def table_option_set(self, *, field: Literal['all.use_template_settings', 'bom.box_border', 'bom.grid_border', 'general.box_border', 'general.grid_border'], value: Union[str, bool], expected_options: Dict[str, JSONValue], document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentTableOptionSetResult]:
+        """document.table-option-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_options'] = expected_options
+        return cast("Response[models.DocumentTableOptionSetResult]", self._client._execute('document.table-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def annotation_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentAnnotationOptionsResult]:
         """document.annotation-options; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

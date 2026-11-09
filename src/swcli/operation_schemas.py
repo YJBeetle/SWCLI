@@ -23,6 +23,7 @@ from .document_detailing import DETAILING_FIELDS, detailing_options_schema, vali
 from .document_preferences_schemas import (
     document_preference_parameters, validate_document_preference_request,
 )
+from .document_tables import TABLE_FIELDS, TABLE_OPTIONS_SCHEMA, table_value_schema, validate_table_value, validate_table_options
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -295,6 +296,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                             "value": quality_value_schema(field), "expected_quality": quality_schema()},
              "required": ["field", "value", "expected_quality"]}
             for field in IMAGE_QUALITY_FIELDS]}],
+    ),
+    "document.table-options": _operation("document.table-options", **_DOCUMENT_READ_CONTEXT),
+    "document.table-option-set": _operation(
+        "document.table-option-set",
+        {"field": _string(enum=list(TABLE_FIELDS)), "value": {"anyOf": [_string(), _boolean()]},
+         "expected_options": deepcopy(TABLE_OPTIONS_SCHEMA)},
+        required=("field", "value", "expected_options"),
+        parameter_conditions=[{
+            "if": {"properties": {"field": {"const": field}}},
+            "then": {"properties": {"value": table_value_schema(field)}},
+        } for field in TABLE_FIELDS],
+        document_id="required", expected_update_stamp="required", lease_id="required",
     ),
     "document.annotation-options": _operation("document.annotation-options", **_DOCUMENT_READ_CONTEXT),
     "document.annotation-option-set": _operation(
@@ -784,6 +797,9 @@ def validate_operation_request(
     if operation == "document.image-quality-set":
         validate_quality_value(parameters["field"], parameters["value"])
         validate_quality(parameters["expected_quality"])
+    if operation == "document.table-option-set":
+        validate_table_value(parameters["field"], parameters["value"])
+        validate_table_options(parameters["expected_options"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

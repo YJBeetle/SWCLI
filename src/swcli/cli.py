@@ -33,6 +33,7 @@ from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
 from .document_display_options import DISPLAY_FIELDS
 from .document_drafting_standard import NAMED_DRAFTING_STANDARDS
 from .document_preferences_schemas import validate_document_preference_request
+from .document_tables import TABLE_FIELDS
 from .daemon.client import DEFAULT_ENDPOINT, call_daemon
 from .daemon.main import (
     configure_parser as configure_daemon_parser,
@@ -349,6 +350,16 @@ def build_parser() -> argparse.ArgumentParser:
     image_editor.add_argument("value")
     image_editor.add_argument("--if-quality", required=True, dest="expected_quality", help="complete JSON quality snapshot from image-quality")
     image_editor.add_argument("--json", action="store_true", dest="as_json")
+    table_reader = document_commands.add_parser("table-options", help="read bounded document table defaults")
+    add_document_selector(table_reader)
+    table_reader.add_argument("--json", action="store_true", dest="as_json")
+    table_editor = document_commands.add_parser("table-option-set", help="edit one table default (native acceptance required)")
+    add_document_selector(table_editor)
+    add_lease_token(table_editor)
+    table_editor.add_argument("field", choices=tuple(TABLE_FIELDS))
+    table_editor.add_argument("value", help="true/false or thin/normal/thick")
+    table_editor.add_argument("--if-options-json", required=True, help="complete options object from table-options")
+    table_editor.add_argument("--json", action="store_true", dest="as_json")
     annotations_parser = document_commands.add_parser("annotation-options", help="read seven document annotation scalar options")
     add_document_selector(annotations_parser)
     annotations_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1558,6 +1569,17 @@ def _typed_operation(
             validate_value(args.field, value)
             return ("document.image-quality-set", {"field": args.field, "value": value, "expected_quality": expected},
                     args.as_json, args.document_id, args.expected_update_stamp, args.lease_id)
+        if command == "table-options":
+            return ("document.table-options", {}, args.as_json, args.document_id, args.expected_update_stamp, None)
+        if command == "table-option-set":
+            value = args.value
+            if TABLE_FIELDS[args.field]["kind"] == "Toggle":
+                if value not in ("true", "false"):
+                    raise ValueError("table boolean value must be true or false")
+                value = value == "true"
+            return ("document.table-option-set", {"field": args.field, "value": value,
+                    "expected_options": json.loads(args.if_options_json)}, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "annotation-options":
             return ("document.annotation-options", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

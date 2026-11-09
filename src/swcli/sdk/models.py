@@ -937,6 +937,46 @@ class DocumentImageQualitySetResult(_DocumentImageQualitySetResultRequired, tota
     linked_changes: List[Union[DocumentImageQualitySetResultLinkedChangesItemVariant1, DocumentImageQualitySetResultLinkedChangesItemVariant2]]
 
 
+DocumentTableOptionsParameters = DocumentFontScopesParameters
+
+
+class _DocumentTableOptionsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.table-options']
+
+
+class DocumentTableOptionsResult(_DocumentTableOptionsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+
+
+class DocumentTableOptionSetParameters(TypedDict):
+    field: Literal['all.use_template_settings', 'bom.box_border', 'bom.grid_border', 'general.box_border', 'general.grid_border']
+    value: Union[str, bool]
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentTableOptionSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.table-option-set']
+
+
+class DocumentTableOptionSetResult(_DocumentTableOptionSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['all.use_template_settings', 'bom.box_border', 'bom.grid_border', 'general.box_border', 'general.grid_border']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    native_returned: bool
+
+
 DocumentAnnotationOptionsParameters = DocumentFontScopesParameters
 
 
