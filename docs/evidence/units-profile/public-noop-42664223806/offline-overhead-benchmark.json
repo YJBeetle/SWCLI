@@ -1,0 +1,101 @@
+{
+  "benchmark_kind": "offline fake daemon; not Windows or native runtime proof",
+  "python": "3.14.10 (main, Oct 25 2026, 17:12:00) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "report_sha256": "a3d4228f24e140e41fe9053c76b09c4152d06e6f3eb44c1f28d52b1a81e751ab",
+  "cli": {
+    "fresh_cli_process": {
+      "strategy": "one fresh actual CLI subprocess per request",
+      "calls": 20,
+      "requests_received": 20,
+      "total_seconds": 3.0644232469494455,
+      "median_seconds": 0.14625658350996673,
+      "samples_seconds": [
+        0.16881733300397173,
+        0.15188154199859127,
+        0.22234491698327474,
+        0.15990862500621006,
+        0.14090745800058357,
+        0.14287604100536555,
+        0.1398357909929473,
+        0.16600883298087865,
+        0.152949165989412,
+        0.14664591700420715,
+        0.14096137500018813,
+        0.14172316598705947,
+        0.15360841699293815,
+        0.1458672500157263,
+        0.1458024579915218,
+        0.13964458397822455,
+        0.14110441601951607,
+        0.1483226249984,
+        0.14411875000223517,
+        0.1710945829981938
+      ]
+    },
+    "same_cli_main_process": {
+      "strategy": "direct cli.main function calls in benchmark parent; lower-bound measurement only, not a CLI subprocess transport",
+      "calls": 20,
+      "requests_received": 20,
+      "total_seconds": 0.17325645804521628,
+      "median_seconds": 0.005742937515606172,
+      "samples_seconds": [
+        0.06280216699815355,
+        0.005590165994362906,
+        0.005800167011329904,
+        0.007523500011302531,
+        0.005306583974743262,
+        0.005238166981143877,
+        0.005776500009233132,
+        0.00586333402316086,
+        0.005996833002427593,
+        0.005409374978626147,
+        0.006207917002029717,
+        0.005234875017777085,
+        0.005214500008150935,
+        0.00784633299917914,
+        0.005682499991962686,
+        0.005987540993373841,
+        0.005122208007378504,
+        0.0051010829920414835,
+        0.005709375021979213,
+        0.005843333026859909
+      ]
+    }
+  },
+  "serialization": {
+    "original_pretty": {
+      "report_bytes": 25999056,
+      "samples": 5,
+      "total_seconds": 0.46814091596752405,
+      "median_seconds": 0.08967679197667167,
+      "samples_seconds": [
+        0.11562762499670498,
+        0.08416258299257606,
+        0.09001325001008809,
+        0.08967679197667167,
+        0.08866066599148326
+      ],
+      "complete_roundtrip_equal": true
+    },
+    "compact_equivalent": {
+      "report_bytes": 19307244,
+      "samples": 5,
+      "total_seconds": 0.5719337899645325,
+      "median_seconds": 0.08392191599705257,
+      "samples_seconds": [
+        0.07655616698320955,
+        0.07566029101144522,
+        0.08392191599705257,
+        0.24979720800183713,
+        0.085998207970988
+      ],
+      "complete_roundtrip_equal": true
+    }
+  },
+  "product_files_changed": false,
+  "notes": [
+    "Same-process measurement is direct function invocation in the benchmark parent. It is only a lower-bound diagnostic and neither a fresh CLI subprocess nor an implemented persistent frontend.",
+    "Every CLI call still creates one actual TCP request and returns actual CLI JSON.",
+    "Compact JSON retains every value and raw response; this only measures encoding overhead."
+  ]
+}

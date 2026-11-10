@@ -1,0 +1,209 @@
+{
+  "audit_success": true,
+  "run_id": 42664223806,
+  "head_sha": "64af40c908c01ca20027d06799eaec702627e5ee",
+  "artifact_id": 13698368440,
+  "zip_sha256": "5ac6169f03d869379d349e48c116d5ec7a204f7ab47d7fe68f7f933c875f34a9",
+  "public_report_sha256": "a3d4228f24e140e41fe9053c76b09c4152d06e6f3eb44c1f28d52b1a81e751ab",
+  "first_error": {
+    "type": "RuntimeError",
+    "message": "public group exceeded 1800s"
+  },
+  "public_overall_accepted": false,
+  "completed": {
+    "cli": {
+      "cases": 139,
+      "part": 46,
+      "assembly": 46,
+      "drawing": 47
+    },
+    "sdk": {
+      "cases": 15,
+      "part": 15,
+      "assembly": 0,
+      "drawing": 0
+    },
+    "mcp": {
+      "cases": 0
+    }
+  },
+  "pending": {
+    "transport": "sdk",
+    "case_in_transport": 16,
+    "field": "angular.precision",
+    "value": 1,
+    "source_open_reply_durable": true,
+    "foreground_create_native_ended": true,
+    "foreground_create_reply_durable": false,
+    "changed_setter_reached": false
+  },
+  "old_inch_noop_fix": [
+    {
+      "case": 117,
+      "transport": "cli",
+      "changed_target": "mm",
+      "noop_changed": false
+    }
+  ],
+  "negative_receipts": {
+    "DocumentLeaseConflict": 154,
+    "DocumentUpdateConflict": 154,
+    "DocumentUnitProfileConflict": 154,
+    "ValueError": 154,
+    "UnitProfileCalibrationRequired": 128
+  },
+  "native_setter_calls": 154,
+  "native_error_events": 0,
+  "expected_operation_error_events": 308,
+  "trace_events": 633590,
+  "max_native_boundary_seconds": 1.780999999999949,
+  "public_native_files_checked": 308,
+  "part_geometry_comparisons": 122,
+  "part_geometry_nonexact": 68,
+  "public_group_seconds": 1801.344,
+  "owned_native_exit_confirmed": false,
+  "cleanup_errors": [
+    {
+      "type": "RuntimeError",
+      "message": "owned daemon shutdown failed"
+    },
+    {
+      "stage": "owned-daemon-termination",
+      "message": "graceful shutdown was not confirmed"
+    },
+    {
+      "stage": "group-budget",
+      "message": "public group exceeded 1800s including shutdown"
+    }
+  ],
+  "pids_before": [],
+  "pids_after": null,
+  "internal": {
+    "success": true,
+    "steps": 139,
+    "duration_seconds": 466.9060000000002
+  },
+  "timing": {
+    "cli": {
+      "completed_cases": 139,
+      "case_seconds": 1657.4570000000003,
+      "transport_seconds": 1594.3679999999974,
+      "events": 4677,
+      "case_median_seconds": 11.719000000000051,
+      "operations": {
+        "daemon.status": {
+          "count": 1,
+          "seconds": 0.26500000000010004,
+          "median_seconds": 0.26500000000010004
+        },
+        "document.close": {
+          "count": 556,
+          "seconds": 181.35000000000014,
+          "median_seconds": 0.32799999999997453
+        },
+        "document.create": {
+          "count": 278,
+          "seconds": 141.26499999999942,
+          "median_seconds": 0.5074999999999363
+        },
+        "document.lease": {
+          "count": 1504,
+          "seconds": 416.77899999999795,
+          "median_seconds": 0.28099999999994907
+        },
+        "document.list": {
+          "count": 140,
+          "seconds": 38.455999999999904,
+          "median_seconds": 0.28099999999994907
+        },
+        "document.measure": {
+          "count": 138,
+          "seconds": 41.39600000000087,
+          "median_seconds": 0.29700000000002547
+        },
+        "document.open": {
+          "count": 278,
+          "seconds": 140.8869999999995,
+          "median_seconds": 0.5
+        },
+        "document.save-as": {
+          "count": 139,
+          "seconds": 73.20800000000077,
+          "median_seconds": 0.5309999999999491
+        },
+        "document.unit-profile": {
+          "count": 695,
+          "seconds": 236.29799999999977,
+          "median_seconds": 0.3430000000000746
+        },
+        "document.unit-profile-set": {
+          "count": 948,
+          "seconds": 324.46399999999903,
+          "median_seconds": 0.32799999999997453
+        }
+      }
+    },
+    "sdk": {
+      "completed_cases": 15,
+      "case_seconds": 90.5619999999999,
+      "transport_seconds": 45.32199999999875,
+      "events": 538,
+      "case_median_seconds": 5.969000000000051,
+      "operations": {
+        "document.close": {
+          "count": 60,
+          "seconds": 4.441000000000713,
+          "median_seconds": 0.06300000000010186
+        },
+        "document.create": {
+          "count": 30,
+          "seconds": 7.550000000000637,
+          "median_seconds": 0.25
+        },
+        "document.lease": {
+          "count": 164,
+          "seconds": 3.277999999999338,
+          "median_seconds": 0.016000000000076398
+        },
+        "document.list": {
+          "count": 15,
+          "seconds": 0.23500000000012733,
+          "median_seconds": 0.016000000000076398
+        },
+        "document.measure": {
+          "count": 45,
+          "seconds": 1.9949999999989814,
+          "median_seconds": 0.047000000000025466
+        },
+        "document.open": {
+          "count": 30,
+          "seconds": 7.954000000000178,
+          "median_seconds": 0.26549999999997453
+        },
+        "document.save-as": {
+          "count": 15,
+          "seconds": 4.264999999999873,
+          "median_seconds": 0.28099999999994907
+        },
+        "document.unit-profile": {
+          "count": 75,
+          "seconds": 6.1720000000000255,
+          "median_seconds": 0.07799999999997453
+        },
+        "document.unit-profile-set": {
+          "count": 104,
+          "seconds": 9.43199999999888,
+          "median_seconds": 0.07799999999997453
+        }
+      }
+    },
+    "mcp": {
+      "completed_cases": 0,
+      "case_seconds": 0,
+      "transport_seconds": 0,
+      "events": 0,
+      "case_median_seconds": null,
+      "operations": {}
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "independent_audit_repeat_equal": true,
+  "negative_checks": {
+    "wrong_archive_digest_rejected": true,
+    "wrong_head_rejected": true
+  },
+  "diagnostics_python39_ast_files": 3,
+  "diff_check": true,
+  "operational_source_changes": [],
+  "new_public_dispatch": false,
+  "portable_rerun": false,
+  "previous_portable_baseline": {
+    "head": "64af40c908c01ca20027d06799eaec702627e5ee",
+    "tests": 1936,
+    "skipped": 26,
+    "success": true
+  },
+  "artifacts": {
+    "original.zip": {
+      "bytes": 22180727,
+      "sha256": "5ac6169f03d869379d349e48c116d5ec7a204f7ab47d7fe68f7f933c875f34a9"
+    },
+    "actions-logs.zip": {
+      "bytes": 198640,
+      "sha256": "3d2159cdc5972f2802799386d6e89e232863e4d8fbfe90f39c88aabd8cb83888"
+    },
+    "native-job.original.log": {
+      "bytes": 75273,
+      "sha256": "f4dc2101e56a2fe440e60b79c3e5a48309a20305d4f93bc22ee91b009c50eef1"
+    },
+    "public-step.excerpt.log": {
+      "bytes": 4048,
+      "sha256": "ec550ff13b926c702cb51e32e8759ff8e6a855dc9a3dc562ee63913ea1a823b1",
+      "derived_excerpt": true,
+      "note": "Derived step excerpt with normalized line endings; full original job bytes remain in native-job.original.log and actions-logs.zip."
+    }
+  },
+  "validation_stage": "original audit and proposal before approved implementation"
+}
