@@ -1,0 +1,62 @@
+{
+  "checked_utc": "2026-11-10T17:30:07.583691+00:00",
+  "head_sha": "085ae73570f023706319738d1130fd21256e4144",
+  "remote_head_sha": "085ae73570f023706319738d1130fd21256e4144",
+  "root_locked_hashes_match": true,
+  "complete_local_checks_pass": true,
+  "business_changed_paths": [
+    "scripts/ci/gate_support/unit_cli_frontend.py",
+    "scripts/ci/gate_support/unit_cli_worker.py",
+    "tests/test_unit_cli_frontend.py",
+    "tests/test_unit_cli_stdio.py"
+  ],
+  "same_head_workflow_dispatch_count": 0,
+  "active_units_manual_runs": [],
+  "workflow_sha256": "13c45095bacb226a84a9d4a610b5a74e564a80d578e56b9c6b93b5a0f9d028c7",
+  "concurrency": {
+    "expression": "${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}",
+    "resolved_units_group": "swcli-units-read-cas-refs/heads/codex/docprops-units-expanded",
+    "main_other_native_group": "swcli-hosted-windows-solidworks",
+    "cancel_in_progress": false,
+    "workflow_level_concurrency": false,
+    "shared_cancel_with_main_or_other_refs": false
+  },
+  "requested_inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  },
+  "command": [
+    "gh",
+    "workflow",
+    "run",
+    "ci.yml",
+    "--repo",
+    "YJBeetle/SWCLI",
+    "--ref",
+    "codex/docprops-units-expanded",
+    "-f",
+    "units_calibration=true",
+    "-f",
+    "units_write_calibration=true",
+    "-f",
+    "units_public_acceptance=true",
+    "-f",
+    "native_full=false"
+  ],
+  "original_query_evidence": {
+    "same-head-manual.original.json": {
+      "path": "evidence/units-profile/public-stdio-42865595677/same-head-manual.original.json",
+      "sha256": "a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915"
+    },
+    "branch-manual.original.json": {
+      "path": "evidence/units-profile/public-stdio-42865595677/branch-manual.original.json",
+      "sha256": "c419c34532e68e8882c4159968205e7e1e1c65d605a4619f4e8932251d75d52b"
+    },
+    "recent-ci.original.json": {
+      "path": "evidence/units-profile/public-stdio-42865595677/recent-ci.original.json",
+      "sha256": "e8b4694e84e012af67cef923eeb189e61ff2e1dea866b1d77674c8207c022fc4"
+    }
+  }
+}

@@ -347,3 +347,12 @@ noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提
 只改两CI helper和关联测试：真实TextIOWrapper(BytesIO,newline=None)按平台写出，stdout UTF8、stderr该-I子进程实际codec/errors；-I忽略PYTHON环境变量，不假定stderr一定UTF8。严格base64保存原stdout/stderr，文本/codec只审计；parent直接用原bytes构造CompletedProcess，不decode再encode或normalize比较。未知/坏字节保原件并拒绝。保留中文/LF/CRLF/孤立CR标准writer输出及CP932非roundtrip bytes，identity/序号/argv/RPC/fsync/无重发重启、三cold probe、417/600-1800/几何/宿主收尾不改。产品src/workflow/其他业务helper不改。
 
 最终90关联25.396s、完整1966项101.419s（26skip）、SDK生成/strict6/consumer拒绝8项、Python3.9 AST4文件/diff全过；源码和原日志SHA见stdio-fix-validation.json。统筹亲跑stdio/frontend17项9.866s通过并锁四文件SHA，本地逐一匹配；条件批准同SHA且全部检查过/无其他业务变化后，中文提交推送再自行必要一次units-write-public，派前remote=精确head/干净/同head未派/独立并发核对。详细说明`docs/verification/units-portable-stdio-42818564935.md`。尚无新Windows/CAD证明，VM/main/release未动；新公共正常一次快照即停，不持续poll。
+
+
+## 条件批准四SHA未变：stdio修复唯一次新公共42865595677
+
+四文件与root锁定SHA、90关联/1966完整/SDK/AST/diff条件逐一匹配；审计与修复已分开中文提交推送（b413238原件审计，业务head`085ae73570f023706319738d1130fd21256e4144`平台writer+B64原字节修复）。相对a53业务路径只有这四文件，src/workflow/geometry/预算/其他helper均无diff，原473b失败证据及0CAD结论保留。
+
+按条件批准只派一次 [42865595677](https://github.com/YJBeetle/SWCLI/actions/runs/42865595677)，已核官方head/event/ref。派前remote=085ae/工作区干净/官方同head manual count0/单位分支无未完成manual；单位ref独立并发组、cancel=false、无workflow级共享取消，不cancel main/其他路线。实际三个units=true、native_full=false由此一次初始snapshot已完成route job官方日志核实，Validated native route: units-write-public。
+
+初始run/jobs/receipt/preflight/actual-route原件在`docs/evidence/units-profile/public-stdio-42865595677/`，原查询与route日志在同名evidence目录。该唯一快照in_progress，route/wheel success，Win3.9/3.14前置in_progress；尚无新Windows完整结果或公共native证明。正常快照即停止等待，不连续poll、不再dispatch；VM/main/release均未动。此后只文档快照提交，业务源固定085ae。后续必须先核本run Windows前置、原ZIP/digest，再分别核CLI/SDK/MCP各139+三额外fresh读、同host/worker、全部守护/持久化/geometry/600-1800及真实helper/native退出，不把本地writer仿真或旧run局部算作通过。
