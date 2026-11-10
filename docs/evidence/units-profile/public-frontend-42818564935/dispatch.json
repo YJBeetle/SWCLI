@@ -1,0 +1,77 @@
+{
+  "run_id": 42818564935,
+  "head_sha": "473b26a06e09538a4565cc0adb765988f61b44ee",
+  "ref": "codex/docprops-units-expanded",
+  "event": "workflow_dispatch",
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42818564935",
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  },
+  "inputs_verification": "official route job env and units-write-public success, not merely requested flags",
+  "expected_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139,
+    "total": 417
+  },
+  "extra_fresh_cli_read_probes": {
+    "part": 1,
+    "assembly": 1,
+    "drawing": 1
+  },
+  "cli_process_strategy": "isolated-reused-cli-main; not per-command cold start",
+  "budgets": {
+    "native_seconds": 600,
+    "public_group_seconds": 1800
+  },
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "updated_at": "2026-11-10T12:46:14Z",
+    "jobs": [
+      {
+        "id": 129837879502,
+        "name": "Windows / Python 3.9",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 129837879889,
+        "name": "Validate manual units routing before private native setup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 129837879938,
+        "name": "Windows / Python 3.14",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 129837880099,
+        "name": "Build wheel",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 129837882476,
+        "name": "Validate release tag before private native runtime",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "snapshot_policy": "one initial run/job snapshot then stop; completed route log read only to verify actual inputs; no continuous polling",
+  "public_native_accepted": false,
+  "coordinator_approval": {
+    "source": "explicit coordinator message after exact tip/code/log SHA review",
+    "approved_head": "473b26a06e09538a4565cc0adb765988f61b44ee",
+    "reported_independent_tests": 54,
+    "reported_seconds": 21.406,
+    "reported_skipped": 1,
+    "environment_note": "Coordinator first had installed main and saw CLI identity mismatch; after installing exact units source all associated tests passed. Not a product failure and identity guard unchanged."
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "checked_utc": "2026-11-10T12:46:07.633438+00:00",
+  "head_sha": "473b26a06e09538a4565cc0adb765988f61b44ee",
+  "remote_head_sha": "473b26a06e09538a4565cc0adb765988f61b44ee",
+  "same_head_workflow_dispatch_count": 0,
+  "active_units_manual_runs": [],
+  "workflow_sha256": "13c45095bacb226a84a9d4a610b5a74e564a80d578e56b9c6b93b5a0f9d028c7",
+  "concurrency": {
+    "expression": "${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}",
+    "resolved_units_group": "swcli-units-read-cas-refs/heads/codex/docprops-units-expanded",
+    "other_main_native_group": "swcli-hosted-windows-solidworks",
+    "cancel_in_progress": false,
+    "workflow_level_concurrency": false,
+    "shared_cancel_with_main_or_other_refs": false
+  },
+  "requested_inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  },
+  "command": [
+    "gh",
+    "workflow",
+    "run",
+    "ci.yml",
+    "--repo",
+    "YJBeetle/SWCLI",
+    "--ref",
+    "codex/docprops-units-expanded",
+    "-f",
+    "units_calibration=true",
+    "-f",
+    "units_write_calibration=true",
+    "-f",
+    "units_public_acceptance=true",
+    "-f",
+    "native_full=false"
+  ],
+  "original_query_evidence": {
+    "same-head-manual-runs.original.json": {
+      "path": "evidence/units-profile/public-frontend-42818564935/same-head-manual-runs.original.json",
+      "sha256": "a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915"
+    },
+    "branch-manual-runs.original.json": {
+      "path": "evidence/units-profile/public-frontend-42818564935/branch-manual-runs.original.json",
+      "sha256": "b303a8da491e3016a14b2bca760a02e2bf7fa960c6cb7f41811dd3eb24e28e92"
+    }
+  }
+}

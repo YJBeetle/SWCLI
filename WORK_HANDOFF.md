@@ -325,3 +325,14 @@ noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提
 最终关联84项/23.473s通过，完整1960项/75.689s通过（26skipped），SDK生成/strict6/consumer负向8项通过，改动8个CI/test文件Python3.9 AST/diff通过。原日志/hash/源码SHA在implementation-validation.json。真实fresh与已实现隔离helper的假daemon TCP各20次逐字节一致，median约0.143092/0.006465s，starts1/exit_waits1/exit0；只作本机协议/进程证据，不保证Windows1800整组。产品src/域/schema/workflow/main property-PyYAML/geometry不改，VM未用，未合main或发版。已把未实施历史提案标注后续实现，旧run failure/unconfirmed不翻绿。
 
 本次待中文逻辑提交推送后交root亲审精确head；尚未发新的public CI。root审核后才一次必要新公共验收，正常一次快照即停；不以旧CLI139/SDK15或本地1960项补SDK/MCP缺口。
+
+
+## 统筹亲审后唯一新公共验证42818564935：初始快照即停
+
+统筹核473b26a的5个CI实现/3测试与日志SHA后批准精确tip`473b26a06e09538a4565cc0adb765988f61b44ee`唯一新dispatch；另报告其正确安装本分支后54关联/21.406s（1skip）通过。其首次已安装main造成identity mismatch属于环境错配，纠正安装后通过，不归为产品失败、不放宽identity guard；本路本地84/1960及SDK证据仍独立保留。
+
+派前核本地/远端同为该精确head、干净状态、同head workflow_dispatch数量0、单位分支没有未完成manual run。原workflow SHA/concurrency表达式及查询摘要在`docs/evidence/units-profile/public-frontend-42818564935/preflight.json`：单位并发组`swcli-units-read-cas-refs/heads/codex/docprops-units-expanded`，与main/其他ref不共享，cancel-in-progress=false且无workflow级共享取消。未cancel任何run，不重跑旧head。
+
+只派一次 [42818564935](https://github.com/YJBeetle/SWCLI/actions/runs/42818564935)，精确head/event/ref已核；三个units=true、native_full=false。初始一次run/jobs/原dispatch回执与actual route inputs验证在同名docs/evidence目录。初始快照in_progress，route success，Windows3.9/3.14和wheel前置in_progress；从此同一次snapshot的已完成route job官方原日志核实际ROUTE_* env以及Validated native route: units-write-public，非仅复述请求flags。原查询JSON/route原日志保留同名evidence目录。gh初次拒绝输出控制字符，只用允许原字符并重定向文件补取该日志，不是新状态poll或再次dispatch。
+
+正常快照后停止等待，不连续poll，不用VM，不合main/发版。新run尚无public native结果，旧42664223806的failure、CLI139/SDK15/MCP0和owned退出unconfirmed全保留。后续必须核本run新ZIP/digest、CLI/SDK/MCP各139+三额外独立读探针、同ownedhost/worker、600/1800、原始完整JSON/原生持久化/geometry与helper/native真实退出；原生API首次失败不重试，强制收尾不得翻绿。此后提交仅元数据/交接文档，业务源固定473b26a。
