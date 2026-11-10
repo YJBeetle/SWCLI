@@ -6,6 +6,8 @@
 
 29关联、2599完整（27skip）及SDK strict6/31拒绝通过；源码对照确认产品src/CI/STL不变，读取窗口仅附加证据参数。见 [身份准入回执](docs/evidence/getter-identity-admission-2026-11-10.json) 和 [详细交接](docs/handoffs/glb-export-repair.md)。本轮仅本地提交，等待统筹小范围原生API验证，无新VM/CI/push。
 
+GLB另有 [同一owned host强类型对照方案](docs/verification/glb-typed-same-host-control-plan.md)：先只读核装机interop签名/MarshalAs，再由原Python持有接口显式封送到C#，保存前核PID与同文档/Extension身份；不经ROT、不另建host。此项目前仅文档，未实现或执行桥接。
+
 ## 此前交接历史
 
 # 无参重建绑定最小修正，待统筹再次本地验证（2026-11-10）
