@@ -34,5 +34,13 @@
     "wrapper_queries": []
   },
   "limitation": "The fixture demonstrates the factory rebinding path; original native logs do not record actual returned typeinfo GUID or generated-class selection",
-  "native_owner_root_cause_confirmed": false
+  "native_owner_root_cause_confirmed": false,
+  "native_validation": {
+    "run_id": 42663685871,
+    "head": "b368fd401a947ac932323616b17d00d65b62a864",
+    "interface_binding_guard_passed": true,
+    "owner_returned_none": true,
+    "create_mate_count": 0,
+    "fixes_native_owner_failure": false
+  }
 }

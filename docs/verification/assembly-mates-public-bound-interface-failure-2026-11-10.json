@@ -1,0 +1,117 @@
+{
+  "run_id": 42663685871,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42663685871",
+  "head": "b368fd401a947ac932323616b17d00d65b62a864",
+  "job_id": 129323195737,
+  "artifact_id": 13697181867,
+  "artifact_sha256": "5663a704e052633cffdbe909828576f99bb7ef1be876713bdd9c63bb434bacee",
+  "distribution_artifact_id": 13696120609,
+  "distribution_artifact_sha256": "93e6b4bf339d1e0dcc5c2f3a9e1ddfd8f925311927831cffb292b13f38e7cb79",
+  "github_digests_matched": true,
+  "installed_python_files_verified": 83,
+  "wheel_sha256": "049b7061c8e9603a8c7d60c10ca9f73c381f73a68c01b07a314e79f791b4743a",
+  "github_job_log": {
+    "path": "github-job-129323195737.raw.log",
+    "size_bytes": 59388,
+    "sha256": "d3642616e178372ece9b9b1d0f804f59b299a8f6a8c463f8f3456a9d72cda5eb",
+    "installed_pywin32": 312
+  },
+  "host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 7484,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.6870000000001255,
+    "visible": false
+  },
+  "first_failure": {
+    "action": "assembly.mate-targets",
+    "document": {
+      "active": false,
+      "current": false,
+      "document_id": "d-nyfwax",
+      "modified": true,
+      "path": "",
+      "title": "Assem1",
+      "type": 2,
+      "update_stamp": 124
+    },
+    "error": {
+      "message": "original mapped face has no component in the selected assembly context",
+      "type": "MateObservationUnavailable"
+    },
+    "ok": false,
+    "request_id": "ff352efb-3575-4129-9863-b6a9f0bb9609",
+    "session_id": "modeling-smoke-c12d9a485c5d"
+  },
+  "request_trace_phases": {
+    "Component2.GetCorresponding(source-face)": {
+      "begin": 1,
+      "end": 1
+    },
+    "OriginalMapped.IsSame(component-body-face)": {
+      "begin": 3,
+      "end": 3
+    },
+    "QueryInterface.IEntity": {
+      "begin": 1,
+      "end": 1
+    },
+    "BindOfficialTypeInfo.IEntity": {
+      "begin": 1,
+      "end": 1
+    },
+    "IEntity(original-mapped).GetComponent": {
+      "begin": 1,
+      "end": 1
+    },
+    "OriginalMapped.owner-IsSame(target-component)": {},
+    "QueryInterface.IFace2": {},
+    "IModelDocExtension.GetPersistReference3": {},
+    "AssemblyDoc.CreateMateData": {},
+    "SldWorks.CommandInProgress.enter": {
+      "begin": 1,
+      "end": 1
+    },
+    "SldWorks.CommandInProgress.restore": {
+      "begin": 1,
+      "end": 1
+    }
+  },
+  "queried_dispatch_pointer_guard_passed": true,
+  "official_typeinfo_binding_passed": true,
+  "mapped_to_entity_native_identity_guard_passed": true,
+  "owner_present": false,
+  "exact_owner_comparison_reached": false,
+  "mapped_face_body_and_geometry_checks_reached": false,
+  "private_reference_capture_reached": false,
+  "create_mate_counts": {
+    "begin": 0,
+    "end": 0,
+    "error": 0
+  },
+  "mate_partial_mutation": false,
+  "fixture_files": [
+    {
+      "name": "coincident-aligned-component.SLDPRT",
+      "size_bytes": 56910,
+      "sha256": "8b496cc18e98a2e46d305620518fc0b49f5a5eb7fd1727c4be760792e01afd5b"
+    }
+  ],
+  "cleanup_errors": [],
+  "owned_server_exit_code": 0,
+  "native_processes_after_stop": [],
+  "conclusion": "Explicit IEntity QI/typeinfo binding and pointer-retention guards passed; GetComponent returned None without a COM exception; binding candidate did not resolve the native owner failure",
+  "unresolved_differences": [
+    "The internal successful run observed an active assembly; this public read targets an inactive assembly",
+    "The public worker enters native_api_sequence/CommandInProgress; private calibration does not wrap the case in that scope and its flag value was not recorded",
+    "The component.GetCorresponding return is wrapped upstream before the local IEntity QI; actual upstream Python wrapper class/cache/typeinfo selection is not logged"
+  ],
+  "public_acceptance": false,
+  "merge_ready": false,
+  "new_runtime_fix": null,
+  "new_dispatch": null
+}

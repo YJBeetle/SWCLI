@@ -200,3 +200,20 @@
 - 最小候选只修正接口包装保证：缓存官方 IID + ITypeInfo，以 dynamic.Dispatch(queried,typeinfo=official) 绑定，并要求包装结果保留查询所得 PyIDispatch。维持原始 mapped、同一映射/owner API、完整 owner/body/reference/geometry/CAS 与后台保护。新增 BindOfficialTypeInfo.<interface> trace。没有切换多套业务 API。
 - 针对性 48 项通过，新增绑定回归证明官方 metadata 传入、不会进入通用工厂/读取对象自身 typeinfo/再次 QueryInterface，包装器替换查询指针时拒绝。完整执行 1867 项，26 平台跳过，其余通过；SDK generator / strict mypy / 8 负向消费场景通过。日志 `evidence/portable/official-binding-*.log`。
 - 本轮已有确切的包装保证缺口与已安装版本的离线源码复现，允许仅对此候选一次必要公开 gate；候选能否改变原生 owner 返回仍待该原件，不能先认定修复有效。600/1800、原始首错/partial、身份与几何断言继续保留，未修改 main 发布或 worker 保护。
+
+## 官方接口绑定候选的必要公开 gate 已启动
+- 精确 tip `b368fd401a947ac932323616b17d00d65b62a864` 已 push 并核对远端。唯一新 dispatch [run 42663685871](https://github.com/YJBeetle/SWCLI/actions/runs/42663685871)，输入 `assembly_mates_calibration=true`、`assembly_mates_stage=public`、`native_full=false`。首次快照确认精确 head，状态 `in_progress`，记录 `evidence/public-run-42663685871.json`。
+- 本节为本地交接状态。本轮结束等待，官方 ITypeInfo 绑定及原始映射的 owner 返回、完整公开流程均待原件审查。
+
+## 指定接口绑定后的第七次公开失败
+- [run 42663685871](https://github.com/YJBeetle/SWCLI/actions/runs/42663685871) / `b368fd401a947ac932323616b17d00d65b62a864` 的公开 job 129323195737 失败，Windows 3.9/3.14 与打包成功。原始公开 ZIP `evidence/run-42663685871/swcli-assembly-mates-42663685871-1-13697181867.zip` 的官方 digest 为 `5663a704e052633cffdbe909828576f99bb7ef1be876713bdd9c63bb434bacee`，分发原 ZIP `swcli-dist-13696120609.zip` digest 为 `93e6b4bf339d1e0dcc5c2f3a9e1ddfd8f925311927831cffb292b13f38e7cb79`。均已匹配，wheel/安装报告的 83 个 Python 文件逐一匹配精确源码。
+- 完整原始 job 日志 `evidence/run-42663685871/github-job-129323195737.raw.log` 为 59388 字节，SHA `d3642616e178372ece9b9b1d0f804f59b299a8f6a8c463f8f3456a9d72cda5eb`，确认 pywin32 312。上一轮和上上轮原件继续保留。
+- 新 trace 确认 GetCorresponding(source-face)、QueryInterface.IEntity、BindOfficialTypeInfo.IEntity 和 IEntity(original-mapped).GetComponent 各有一次 begin/end。查询指针保留检查与 mapped/IEntity 原生身份检查通过，之后 owner 仍返回 None，原生调用没有 COM 异常。精确 owner 比较、映射面自身的体/几何验证、私有引用捕获和 CreateMateData 尚未到达。CreateMate 实际 begin=0/end=0/error=0。
+- 宿主 PID 7484 / revision 33.5.0，server 正常退出 0，清理错误为空，退出后原生进程目录为空。fixture 原 PRT 已保留。首因及到达边界收据 `docs/verification/assembly-mates-public-bound-interface-failure-2026-11-10.json`。绑定保证候选已实际执行，未解决 owner 失败。原离线复现记录已附上此原生失败结果。
+- 继续离线审计了 b312 上游返回对象包装链和 private/public 请求作用域。现有日志未记录 GetCorresponding 返回端包装类/cache 选择，私有成功组的 CommandInProgress 值也未记录；active 状态、请求作用域及上游包装差异均未建立因果证明。离线边界 `docs/verification/assembly-mates-bound-interface-offline-audit-2026-11-10.json`。本轮尚无可证明的新运行时修复，未调度新的 CI，也未放宽任何断言。
+
+## 交 root 排 VM 的只读对照方案
+- 已收到用户允许必要时启动其当前关闭 VM/SW 的授权转述。资源由 root 统一安排，本路没有启动或操作 VM/SW。
+- 可审查方案为 `docs/verification/assembly-mates-local-readonly-context-probe-2026-11-10.md`，运行时代码固定 b368fd4，精确 wheel 与三个已核验只读输入的 SHA/路径均列出。
+- 同一 visible owned 公开 worker、同一 session/current、同一已打开文件集合，root 仅在两个只读文件窗口间控制前台。先读取 active ASM 一次，成功后才读取 background ASM 一次，首错即停；业务操作零 CreateMate/零 CreateMateData/零 CAD 数据写入，600/1800 预算由 root 监督。document use 只设置 session current，不能代替真实窗口激活。
+- 输入是内部已保存且含两条配合的 ASM，与 CI 的新建未保存零配合 ASM 有已知差异；方案用于缩小上下文因素，完整功能仍需 CI。等待 root 完成其它安排后分配，本路继续保留阻断和当前所有保护。

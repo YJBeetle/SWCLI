@@ -1,0 +1,48 @@
+{
+  "runtime_head": "b368fd401a947ac932323616b17d00d65b62a864",
+  "native_run": 42663685871,
+  "confirmed": "IEntity binding/pointer guards passed; exact owner is unavailable",
+  "offline_comparability": [
+    {
+      "factor": "active document",
+      "private": "active assembly",
+      "public": "inactive assembly behind Part2",
+      "causal_proof": false
+    },
+    {
+      "factor": "CommandInProgress",
+      "private": "case is not wrapped in native_api_sequence; actual flag value was not recorded",
+      "public": "worker scope enters and restores CommandInProgress",
+      "causal_proof": false
+    },
+    {
+      "factor": "upstream return wrapping",
+      "private": "generic client wrapping used by COM acquisition",
+      "public": "component.GetCorresponding return is wrapped before local IEntity binding; actual wrapper class/cache path not logged",
+      "causal_proof": false
+    }
+  ],
+  "source_files": [
+    {
+      "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+      "git_blob_sha": "b4aae20a8c3c95b7fd3a764d2c2212880862f5f8",
+      "sections": [
+        "CDispatch._wrap_dispatch_",
+        "DispatchBaseClass._get_good_single_object_"
+      ]
+    },
+    {
+      "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/dynamic.py",
+      "git_blob_sha": "3738da9031bfb49b76eea3a2de5a216534dc816d",
+      "sections": [
+        "CDispatch._wrap_dispatch_",
+        "CDispatch._get_good_single_object_"
+      ]
+    }
+  ],
+  "no_new_fix_proven": true,
+  "new_runtime_change": null,
+  "new_gate": null,
+  "root_allocated_vm_probe": "docs/verification/assembly-mates-local-readonly-context-probe-2026-11-10.md",
+  "vm_started_or_used": false
+}
