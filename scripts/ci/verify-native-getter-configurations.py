@@ -124,11 +124,45 @@ def observe_current(app, document, dimension, configuration, expected_mm, record
         record["success"] = True
 
 
-def select_fixture_configuration(document, name, call):
-    # This is fixture setup BETWEEN read windows; never called from observe_current.
-    require(call("prepare-select-" + name, lambda: document.ShowConfiguration2(name)) is True,
-            "fixture configuration selection failed")
-    require(active_configuration_name(document) == name, "fixture selected another configuration")
+def preparation_edit_state(document):
+    try:
+        manager = _com_value(document, "SketchManager")
+        require(manager is not None, "sketch manager is unavailable")
+        return dict(status="observed", active_sketch=_com_value(manager, "ActiveSketch") is not None)
+    except Exception as error:
+        return dict(status="unknown", error=dict(type=type(error).__name__, message=str(error)))
+
+
+def select_fixture_configuration(app, document, name, call, record):
+    # Fixture setup BETWEEN read windows. Never recover a failed Show by reading
+    # its resulting state: reject its original return before any postflight call.
+    record.update(target=name, show_attempted=False,
+                  before_edit_state=preparation_edit_state(document))
+    before = configuration_object(document)
+    before_name = _com_value(before, "Name")
+    record["before_name"] = before_name
+    require(isinstance(before_name, str) and bool(before_name.strip()), "fixture current configuration is unreadable")
+    record["skipped_already_current"] = before_name == name
+    if before_name != name:
+        record["show_attempted"] = True
+        try:
+            status = call("prepare-select-" + name, lambda: document.ShowConfiguration2(name))
+        except Exception as error:
+            record["show_exception"] = dict(type=type(error).__name__, message=str(error))
+            raise
+        record["show_return_type"] = type(status).__name__
+        record["show_return_value"] = json_value(status)
+        require(status is True, "fixture configuration selection failed")
+    after = configuration_object(document)
+    record.update(after_name=_com_value(after, "Name"),
+                  same_active_object=same(app, after, configuration_object(document)),
+                  same_before_after_object=same(app, before, after),
+                  after_edit_state=preparation_edit_state(document))
+    require(record["after_name"] == name and record["same_active_object"],
+            "fixture selected another or unstable configuration")
+    require(record["same_before_after_object"] is record["skipped_already_current"],
+            "fixture configuration identity did not match the preparation transition")
+    record["success"] = True
 
 
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
@@ -141,6 +175,12 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     live["document"] = document
     require(made["ok"] and document is not None, "part fixture creation failed")
     original_name = active_configuration_name(document)
+    case["configuration_A"] = original_name
+    preparation = case.setdefault("configuration_preparation", [])
+    def select(name, phase):
+        record = dict(phase=phase)
+        preparation.append(record)
+        select_fixture_configuration(app, document, name, call, record)
     require(original_name != "Getter_B", "fixture initial configuration collides with B")
     circle, sketch = call("prepare-circle", lambda: create_circle_sketch_windows_with_handle(
         app=app, document=document, plane="front", radius_mm=8))
@@ -149,12 +189,13 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         app=app, document=document, sketch_feature=sketch, diameter_mm=16))
     require(created["ok"] and dimension is not None, "driving fixture failed")
     case["unsaved_native_name"] = _com_value(dimension, "FullName")
+    case["after_dimension_creation_edit_state"] = preparation_edit_state(document)
     manager = _com_value(document, "ConfigurationManager")
     second_name = "Getter_B"
     added = call("prepare-second-configuration", lambda: manager.AddConfiguration2(
         second_name, "getter fixture", "", 0, "", "diagnostic only", True))
     require(added is not None and _com_value(added, "Name") == second_name, "second configuration creation failed")
-    select_fixture_configuration(document, second_name, call)
+    select(second_name, "seed-B")
     status = call("prepare-B-value", lambda: dimension.SetSystemValue3(
         .020, enums["swSetValue_InSpecificConfigurations"], second_name))
     require(type(status) is int and status == 0, "B seed write failed")
@@ -162,9 +203,10 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     names = _com_value(document, "GetConfigurationNames")
     require(isinstance(names, (tuple, list)) and len(names) == 2 and set(names) == {original_name, second_name},
             "fixture must have exactly two configurations")
-    select_fixture_configuration(document, original_name, call)
+    select(original_name, "rebuild-A")
     require(call("prepare-rebuild-A", lambda: document.EditRebuild3()) is True, "A rebuild failed")
-    case.update(configuration_A=original_name, configuration_B=second_name)
+    case.update(configuration_A=original_name, configuration_B=second_name,
+                preparation_complete_edit_state=preparation_edit_state(document))
     path = output / "two-configurations.SLDPRT"
     case["save"] = call("prepare-save-native", lambda: save_as_native_windows(str(path), document=document))
     require(case["save"]["ok"] and case["save"]["api_saved"] and case["save"]["save_errors"] == 0
@@ -182,7 +224,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             require(opened["ok"] and opened["read_only"] is True and opened["api_errors"] == opened["api_warnings"] == 0
                     and _com_value(document, "GetSaveFlag") is False, "readonly reopen failed")
         for label, name, expected in (("A", original_name, 16.), ("B", second_name, 20.)):
-            select_fixture_configuration(document, name, call)
+            select(name, phase + "-" + label)
             dimension = call("bind-existing-dimension-" + phase + label, lambda: document.Parameter(native_name))
             require(dimension is not None and _com_value(dimension, "FullName") == native_name, "exact dimension name binding failed")
             row = dict(phase=phase, label=label)

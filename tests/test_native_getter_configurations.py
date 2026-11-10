@@ -29,6 +29,7 @@ class Document:
         self.readonly = readonly
         self.getters, self.setters, self.selections = [], [], []
         self.dimension = Dimension(self)
+        self.SketchManager = SimpleNamespace(ActiveSketch=None)
     def GetType(self): return 1
     def GetUpdateStamp(self): return self.stamp
     def GetSaveFlag(self): return False
@@ -46,6 +47,8 @@ class Document:
         return self.configurations[name]
     def ShowConfiguration2(self, name):
         self.selections.append(name)
+        if self.ConfigurationManager.ActiveConfiguration.Name == name:
+            return False
         self.ConfigurationManager.ActiveConfiguration = self.configurations[name]
         return True
     def Parameter(self, name):
@@ -138,6 +141,88 @@ class GetterFixtureTests(unittest.TestCase):
         doc.dimension.GetSystemValue3.assert_called_once_with(3,"A")
         self.assertEqual(doc.setters, []); self.assertEqual(doc.selections, [])
 
+    def test_already_active_configuration_skips_show_and_records_unchanged_identity(self):
+        doc = Document()
+        doc.ShowConfiguration2 = mock.Mock(return_value=False)
+        record = {}
+        getter.select_fixture_configuration(app_for(doc), doc, "A", lambda name, fn: fn(), record)
+        doc.ShowConfiguration2.assert_not_called()
+        self.assertFalse(record["show_attempted"])
+        self.assertTrue(record["skipped_already_current"] and record["same_before_after_object"])
+        self.assertEqual((record["before_name"], record["after_name"]), ("A", "A"))
+        self.assertNotIn("show_return_value", record)
+        self.assertEqual(record["after_edit_state"], dict(status="observed", active_sketch=False))
+
+    def test_different_configuration_selects_once_and_checks_post_state(self):
+        doc = Document()
+        doc.configurations["B"] = SimpleNamespace(Name="B")
+        original = doc.ShowConfiguration2
+        doc.ShowConfiguration2 = mock.Mock(side_effect=original)
+        record = {}
+        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+        doc.ShowConfiguration2.assert_called_once_with("B")
+        self.assertEqual((record["before_name"], record["after_name"]), ("A", "B"))
+        self.assertEqual((record["show_return_type"], record["show_return_value"]), ("bool", True))
+        self.assertTrue(record["same_active_object"])
+        self.assertFalse(record["same_before_after_object"])
+
+    def test_false_and_invalid_returns_never_read_after_or_retry_even_if_target_became_current(self):
+        for value in (False, 1, -1, None, "True"):
+            with self.subTest(value=value):
+                doc = Document()
+                doc.configurations["B"] = SimpleNamespace(Name="B")
+                def misleading(name):
+                    doc.ConfigurationManager.ActiveConfiguration = doc.configurations[name]
+                    return value
+                doc.ShowConfiguration2 = mock.Mock(side_effect=misleading)
+                record = {}
+                with mock.patch.object(getter, "configuration_object", wraps=getter.configuration_object) as read_config:
+                    with self.assertRaisesRegex(RuntimeError, "configuration selection failed"):
+                        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+                self.assertEqual(read_config.call_count, 1)
+                doc.ShowConfiguration2.assert_called_once_with("B")
+                self.assertEqual(record["show_return_type"], type(value).__name__)
+                self.assertEqual(record["show_return_value"], value)
+                self.assertNotIn("after_name", record)
+                self.assertNotIn("success", record)
+
+    def test_true_return_with_name_or_object_drift_is_rejected(self):
+        for drift in ("name", "active-object", "already-active-object"):
+            with self.subTest(drift=drift):
+                doc = Document()
+                first = doc.configurations["A"]
+                target = SimpleNamespace(Name="B")
+                doc.configurations["B"] = target
+                doc.ShowConfiguration2 = mock.Mock(return_value=True)
+                record = {}
+                if drift == "name":
+                    reads = [first, first, first]
+                elif drift == "active-object":
+                    reads = [first, target, SimpleNamespace(Name="B")]
+                else:
+                    target = first
+                    alias = SimpleNamespace(Name="A")
+                    reads = [first, alias, alias]
+                with mock.patch.object(getter, "configuration_object", side_effect=reads):
+                    with self.assertRaises(RuntimeError):
+                        getter.select_fixture_configuration(app_for(doc), doc, target.Name, lambda name, fn: fn(), record)
+                self.assertNotIn("success", record)
+                self.assertLessEqual(doc.ShowConfiguration2.call_count, 1)
+
+    def test_first_show_exception_is_retained_without_postflight_calls(self):
+        doc = Document()
+        original = ValueError("first selection exception")
+        doc.ShowConfiguration2 = mock.Mock(side_effect=original)
+        record = {}
+        with mock.patch.object(getter, "configuration_object", wraps=getter.configuration_object) as read_config:
+            with self.assertRaises(ValueError) as caught:
+                getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+        self.assertIs(caught.exception, original)
+        self.assertEqual(read_config.call_count, 1)
+        doc.ShowConfiguration2.assert_called_once_with("B")
+        self.assertEqual(record["show_exception"]["type"], "ValueError")
+        self.assertNotIn("after_name", record)
+
     def test_saved_and_reopened_distinct_values_and_renamed_fullname(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary); swconst = output / "swconst.tlb"; swconst.write_bytes(b"mock typelib")
@@ -163,6 +248,12 @@ class GetterFixtureTests(unittest.TestCase):
                     mock.patch.object(getter,"open_windows_document_with_handle",side_effect=reopen):
                 getter.calibrate_case(app,output,{},"front",False,lambda name, fn:fn(),case,report,live,profile_kind="part")
             self.assertTrue(case["success"])
+            self.assertEqual(case["after_dimension_creation_edit_state"], dict(status="observed", active_sketch=False))
+            self.assertEqual(case["preparation_complete_edit_state"], dict(status="observed", active_sketch=False))
+            self.assertEqual(len(case["configuration_preparation"]), 6)
+            self.assertEqual(sum(row["show_attempted"] for row in case["configuration_preparation"]), 3)
+            self.assertEqual(case["configuration_preparation"][0]["before_name"], "Getter_B")
+            self.assertFalse(case["configuration_preparation"][0]["show_attempted"])
             self.assertNotEqual(case["native_name"],case["unsaved_native_name"])
             self.assertEqual([d.getters for d in documents], [[(3,"A"),(3,"Getter_B")]]*2)
             self.assertEqual(doc.setters,[(.020,3,"Getter_B")])
