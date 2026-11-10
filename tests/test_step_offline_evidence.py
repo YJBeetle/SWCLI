@@ -60,14 +60,21 @@ class StepOfflineEvidenceTests(unittest.TestCase):
     def test_returned_interface_observations_are_explicit_and_read_only(self):
         iid='expected-step-iid'
         info=SimpleNamespace(GetDocumentation=lambda index:('IImportStepData','','',0),GetTypeAttr=lambda:(iid,))
-        dispatch=SimpleNamespace(GetTypeInfoCount=lambda:1,GetTypeInfo=lambda:info,QueryInterface=mock.Mock(return_value=object()))
+        def query(requested,wrapper=None):
+            if wrapper is None:
+                raise TypeError("There is no interface object registered that supports this IID")
+            self.assertEqual((requested,wrapper),(iid,'IUnknown-wrapper'))
+            return object()
+        dispatch=SimpleNamespace(GetTypeInfoCount=lambda:1,GetTypeInfo=lambda:info,QueryInterface=mock.Mock(side_effect=query))
         value=SimpleNamespace(_oleobj_=dispatch,MapConfigurationData=False)
-        result=observe_dispatch(value,{'IImportStepData':iid},lambda label,fn:fn(),'data',step_mapping=True)
+        with mock.patch.dict('sys.modules',{'pythoncom':SimpleNamespace(IID_IUnknown='IUnknown-wrapper')}):
+            result=observe_dispatch(value,{'IImportStepData':iid},lambda label,fn:fn(),'data',step_mapping=True)
         self.assertTrue(result['returned'])
         self.assertEqual(result['typeinfo']['value']['iid'],iid)
         self.assertTrue(result['interfaces']['IImportStepData']['value'])
         self.assertIs(result['map_configuration_data']['value'],False)
-        dispatch.QueryInterface.assert_called_once_with(iid)
+        dispatch.QueryInterface.assert_called_once_with(iid,'IUnknown-wrapper')
+        self.assertEqual(result['interface_query_wrapper'],'IUnknown')
         none=observe_dispatch(None,{},lambda label,fn:fn(),'model')
         self.assertFalse(none['returned'])
         self.assertNotIn('typeinfo',none)
@@ -77,7 +84,8 @@ class StepOfflineEvidenceTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location(module_name,ROOT/'scripts/ci/verify-step-export-calibration.py')
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         first=RuntimeError('first LoadFile4 native failure')
-        bad=SimpleNamespace(_oleobj_=SimpleNamespace(GetTypeInfoCount=mock.Mock(side_effect=ValueError('no metadata'))))
+        bad=SimpleNamespace(_oleobj_=SimpleNamespace(GetTypeInfoCount=mock.Mock(side_effect=ValueError('no metadata')),
+            QueryInterface=mock.Mock(side_effect=RuntimeError('diagnostic interface failure'))))
         class Variant:
             value=0
             def __init__(self,*args):pass
@@ -87,10 +95,11 @@ class StepOfflineEvidenceTests(unittest.TestCase):
         app.GetUserPreferenceToggle=lambda code:True
         app.GetUserPreferenceIntegerValue=lambda code:0
         with tempfile.TemporaryDirectory() as directory, mock.patch.dict('sys.modules',{
-                'pythoncom':SimpleNamespace(VT_BYREF=1,VT_I4=2),
+                'pythoncom':SimpleNamespace(VT_BYREF=1,VT_I4=2,IID_IUnknown='IUnknown-wrapper'),
                 'win32com':SimpleNamespace(client=SimpleNamespace(VARIANT=Variant)),
                 'win32com.client':SimpleNamespace(VARIANT=Variant)}):
             root=Path(directory); target=root/'part.step';target.write_bytes(wire_fixture())
+            (root/'import-interface-contract.json').write_text('{"interfaces": {"IImportStepData": "installed-step-iid"}}')
             case={}
             with self.assertRaises(RuntimeError) as caught:
                 module._verify_imported_geometry(app,target,root,'part','wireframe',codes,lambda label,fn:fn(),case,{'document':None})
@@ -104,6 +113,8 @@ class StepOfflineEvidenceTests(unittest.TestCase):
             app.SetUserPreferenceIntegerValue.assert_not_called()
             app.GetImportFileData.assert_called_once_with(str(target))
             app.LoadFile4.assert_called_once()
+            self.assertEqual(case['import_data_observation']['interfaces']['IImportStepData']['status'],'unknown')
+            bad._oleobj_.QueryInterface.assert_called_once_with('installed-step-iid','IUnknown-wrapper')
 
     def test_null_failed_import_is_explicitly_unavailable_not_zero_geometry(self):
         spec=importlib.util.spec_from_file_location('step_null_import_test',ROOT/'scripts/ci/verify-step-export-calibration.py')
@@ -192,3 +203,21 @@ class StepOfflineEvidenceTests(unittest.TestCase):
                 self.assertIsNone(live['document'])
             self.assertEqual(app.LoadFile4.call_count,2)
             self.assertEqual(len(list(root.glob('*-imported.SLDPRT'))),2)
+
+    def test_query_interface_keeps_com_refusal_separate_from_unknown_diagnostics(self):
+        class ComError(Exception):
+            def __init__(self,code):self.hresult=code
+        for failure,expected in ((ComError(-2147467262),{'status':'observed','value':False}),
+                                 (ComError(-2147467259),None),(TypeError('wrapper failure'),None)):
+            dispatch=SimpleNamespace(GetTypeInfoCount=lambda:0,QueryInterface=mock.Mock(side_effect=failure))
+            value=SimpleNamespace(_oleobj_=dispatch)
+            with mock.patch.dict('sys.modules',{'pythoncom':SimpleNamespace(IID_IUnknown='IUnknown-wrapper')}):
+                result=observe_dispatch(value,{'IImportStepData':'installed-step-iid'},lambda label,fn:fn(),'data',step_mapping=True)
+            observed=result['interfaces']['IImportStepData']
+            if expected is not None:
+                self.assertEqual(observed,expected)
+            else:
+                self.assertEqual(observed['status'],'unknown')
+                self.assertEqual(observed['error']['type'],type(failure).__name__)
+            self.assertEqual(result['map_configuration_data']['status'],'unknown')
+            dispatch.QueryInterface.assert_called_once_with('installed-step-iid','IUnknown-wrapper')

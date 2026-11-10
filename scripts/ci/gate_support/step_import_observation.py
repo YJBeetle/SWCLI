@@ -69,9 +69,24 @@ def observe_dispatch(value,interfaces,call,label,*,step_mapping=False):
         return {"count":count,"name":info.GetDocumentation(-1)[0],"iid":str(info.GetTypeAttr()[0])}
     result["typeinfo"]=probe(call,label+".typeinfo",typeinfo)
     result["interfaces"]={}
+    def supports(iid):
+        import pythoncom
+        # Request the actual installed IID once. useIID only selects an
+        # IUnknown Python wrapper when pywin32 lacks that interface class;
+        # never reinterpret it as IDispatch or invoke a custom vtable.
+        try:
+            found=getattr(value,"_oleobj_",value).QueryInterface(iid,pythoncom.IID_IUnknown)
+        except Exception as exc:
+            if getattr(exc,"hresult",None)==-2147467262:  # E_NOINTERFACE
+                return False
+            raise
+        if found is None:
+            raise ValueError("QueryInterface returned no object without E_NOINTERFACE")
+        return True
+    if interfaces:
+        result["interface_query_wrapper"]="IUnknown"
     for name,iid in interfaces.items():
-        result["interfaces"][name]=probe(call,label+".query-interface."+name,
-            lambda:getattr(value,"_oleobj_",value).QueryInterface(iid) is not None)
+        result["interfaces"][name]=probe(call,label+".query-interface."+name,lambda:supports(iid))
     if step_mapping:
         matched=result["interfaces"].get("IImportStepData",{})
         if matched.get("status")=="observed" and matched.get("value") is True:

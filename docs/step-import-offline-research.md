@@ -135,3 +135,5 @@ GitHub 元数据字段与 ZIP 摘要依据 [官方 artifact API](https://docs.gi
 General profile、MapConfigurationData 只读、固定源和八文件要求、工作流互斥、单 host、首错停及 600/1800 秒均未改变；没有重试失败的 CAD API。只有这个实质下载修复完成关联/完整便携验证后，才对新 head 安排一次必要诊断。它依然不是生产公开验收。
 
 修复验证：58 项 STEP 回归通过；全量 1877 项，26 项跳过，其余通过。本轮按统筹 0 CAD 要求只提交取件修复，不新增派发。工作流、权限和 secret 均未改变。
+
+后续 [42813151084 原件详细审计](step-import-diagnostic-42813151084.md) 已确认取件成功、第一项实体完整读回、第二项线框 LoadFile4 None/error1、完整恢复和退出；另定位 pywin32312 的接口包装取证缺陷。该取证修正不等于导入修复，本轮不派发。
