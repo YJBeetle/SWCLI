@@ -34,6 +34,7 @@ class CLIFrontendTests(unittest.TestCase):
                 else:
                     before=profile(1);document=dict(document_id='d-012345',title='part',path='',type=1,update_stamp=103,modified=False,active=False,current=False)
                     result=dict(ok=True,action=request['operation'],session_id=request['session_id'],document=document,unit_profile=before)
+                    if outer.mode=='unicode':document['title']='中文UTF8\n嵌入LF\r\n嵌入CRLF\r孤立CR'
                     if outer.mode=='delay':time.sleep(0.2)
                     if request['operation']=='document.unit-profile-set':
                         if outer.mode in ('DocumentLeaseConflict','DocumentUpdateConflict','DocumentUnitProfileConflict','ValueError','UnitProfileCalibrationRequired','partial'):
@@ -100,7 +101,7 @@ class CLIFrontendTests(unittest.TestCase):
 
     def fault_client(self,body):
         path=self.root/'fault.py'
-        prefix="import sys,json,os,time\nfrom swcli import __version__,cli\nfrom pathlib import Path\nimport hashlib\nprint(json.dumps(dict(kind='ready',pid=os.getpid(),swcli_version=__version__,cli_main_sha256=hashlib.sha256(Path(cli.__file__).read_bytes()).hexdigest())),flush=True)\nrequest=json.loads(sys.stdin.readline())\n"
+        prefix="import sys,json,os,time\nfrom swcli import __version__,cli\nfrom pathlib import Path\nimport hashlib\nprint(json.dumps(dict(kind='ready',pid=os.getpid(),swcli_version=__version__,cli_main_sha256=hashlib.sha256(Path(cli.__file__).read_bytes()).hexdigest(),stdio_capture=dict(stdout_encoding='utf-8',stderr_encoding=sys.stderr.encoding,stderr_errors=sys.stderr.errors,newline='platform-default',raw_bytes='base64'))),flush=True)\nrequest=json.loads(sys.stdin.readline())\n"
         path.write_text(prefix+body);client=frontend.CLIFrontend(self.root,helper_path=path);self.addCleanup(client.close);return client
 
     def test_eof_partial_frame_and_wrong_sequence_poison_frontend_and_preserve_bytes(self):
@@ -150,3 +151,25 @@ class CLIFrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'first MCP exit failure'):gate.cleanup()
         gate._clients.close.assert_called_once();gate._cli_frontend.close.assert_called_once()
         self.assertEqual([e['message'] for e in gate.record['cleanup_errors']],['first MCP exit failure','second CLI exit failure'])
+
+    def test_actual_cli_utf8_json_with_embedded_newlines_matches_raw_bytes(self):
+        self.mode='unicode';value=self.compare(self.argv(write=False))
+        self.assertEqual(value['document']['title'],'中文UTF8\n嵌入LF\r\n嵌入CRLF\r孤立CR')
+        self.assertEqual(self.client.metadata['ready']['stdio_capture']['stdout_encoding'],'utf-8')
+
+    def test_actual_parser_stderr_unicode_and_embedded_newlines_matches_raw_bytes(self):
+        argv=['document','unit-profile','--未知参数 中文\n第二行\r\n孤立\r结尾']
+        fresh=subprocess.run([sys.executable,'-I','-m','swcli',*argv],capture_output=True,timeout=30)
+        reused=self.client.invoke(argv,timeout=30)
+        self.assertEqual((fresh.returncode,fresh.stdout,fresh.stderr),(reused.returncode,reused.stdout,reused.stderr))
+        self.assertEqual(fresh.returncode,2);self.assertIn(b'unrecognized arguments',fresh.stderr);self.assertEqual(self.requests,[])
+
+    def test_invalid_base64_or_inconsistent_text_is_unknown_without_retry(self):
+        for stdout,encoded in [('{}','%%%%'),('different','e30=')]:
+            body="print(json.dumps(dict(kind='reply',sequence=request['sequence'],returncode=0,stdout="+repr(stdout)+",stderr='',stdout_b64="+repr(encoded)+",stderr_b64='',exception=None)),flush=True)\ntime.sleep(2)\n"
+            client=self.fault_client(body)
+            with self.assertRaises(frontend.FrontendError) as caught:client.invoke(self.argv(),timeout=2)
+            self.assertTrue(caught.exception.outcome_unknown);self.assertIn(encoded,caught.exception.raw_frame)
+            with self.assertRaises(frontend.FrontendError):client.invoke(self.argv(),timeout=1)
+            client.close();self.assertEqual(client.metadata['starts'],1);self.assertEqual(client.metadata['exit_waits'],1)
+        self.assertEqual(self.requests,[])

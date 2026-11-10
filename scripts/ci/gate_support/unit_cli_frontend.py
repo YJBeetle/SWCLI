@@ -1,5 +1,7 @@
 """One retained CI CLI subprocess; no restart, retry, SDK routing, or CAD access."""
 import hashlib
+import base64
+import codecs
 from datetime import datetime,timezone
 import json
 import os
@@ -18,12 +20,21 @@ class FrontendError(RuntimeError):
     outcome_unknown=True
 
 
+def output_bytes(reply,capture):
+    # Raw bytes are authoritative. In particular Windows legacy codecs can have
+    # multiple byte spellings for one character: never decode then re-encode.
+    out=base64.b64decode(reply['stdout_b64'],validate=True)
+    err=base64.b64decode(reply['stderr_b64'],validate=True)
+    if out.decode('utf-8',errors='strict')!=reply['stdout'] or err.decode(capture['stderr_encoding'],errors='strict')!=reply['stderr']:raise ValueError('CLI frontend raw/text audit differs')
+    return out,err
+
+
 class CLIFrontend:
     def __init__(self,directory,*,helper_path=None,startup_timeout=30,metadata=None):
         self.sequence=0;self.poisoned=False;self.closed=False;self.partial=bytearray();self.frames=queue.Queue();self.lock=threading.Lock()
         path=Path(helper_path or Path(__file__).with_name('unit_cli_worker.py')).resolve()
         self.metadata=metadata if metadata is not None else {}
-        self.metadata.update(strategy='isolated-reused-cli-main',command=[sys.executable,'-I',str(path)],helper_path=str(path),helper_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),cold_start_per_command=False,starts=1,exit_confirmed=False)
+        self.metadata.update(strategy='isolated-reused-cli-main',command=[sys.executable,'-I',str(path)],helper_path=str(path),helper_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),cold_start_per_command=False,output_strategy='platform-text-writers-raw-bytes-base64',starts=1,exit_confirmed=False)
         self.errors=(directory/'cli-helper.stderr.log').open('wb')
         self.metadata['launch_utc_timestamp']=datetime.now(timezone.utc).timestamp()
         try:self.process=subprocess.Popen(self.metadata['command'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=self.errors,env={**os.environ,'PYTHONIOENCODING':'utf-8'})
@@ -34,6 +45,9 @@ class CLIFrontend:
         try:
             ready=self._receive(startup_timeout)
             if ready.get('kind')!='ready' or ready.get('pid')!=self.process.pid or ready.get('swcli_version')!=__version__ or ready.get('cli_main_sha256')!=hashlib.sha256(Path(cli.__file__).read_bytes()).hexdigest():raise ValueError('CLI frontend identity mismatch')
+            capture=ready.get('stdio_capture')
+            if type(capture) is not dict or capture.get('stdout_encoding')!='utf-8' or capture.get('newline')!='platform-default' or capture.get('raw_bytes')!='base64' or type(capture.get('stderr_encoding')) is not str or type(capture.get('stderr_errors')) is not str:raise ValueError('CLI frontend stdio capture contract mismatch')
+            codecs.lookup(capture['stderr_encoding'])
             self.metadata['ready']=ready
         except BaseException:
             self.poisoned=True
@@ -78,13 +92,14 @@ class CLIFrontend:
         self.sequence=sequence;self.last_frame=None
         try:
             self.process.stdin.write(raw);self.process.stdin.flush();reply=self._receive(timeout)
-            if reply.get('kind')!='reply' or type(reply.get('sequence')) is not int or reply['sequence']!=self.sequence or type(reply.get('returncode')) is not int or type(reply.get('stdout')) is not str or type(reply.get('stderr')) is not str or reply.get('exception') is not None:raise ValueError('CLI frontend reply sequence/contract/exception mismatch')
+            if reply.get('kind')!='reply' or type(reply.get('sequence')) is not int or reply['sequence']!=self.sequence or type(reply.get('returncode')) is not int or type(reply.get('stdout')) is not str or type(reply.get('stderr')) is not str or type(reply.get('stdout_b64')) is not str or type(reply.get('stderr_b64')) is not str or reply.get('exception') is not None:raise ValueError('CLI frontend reply sequence/contract/exception mismatch')
+            raw_out,raw_err=output_bytes(reply,self.metadata['ready']['stdio_capture'])
         except BaseException as cause:
             self.poisoned=True
             if isinstance(cause,FrontendError):raise
             error=FrontendError(str(cause));error.raw_frame=getattr(self,'last_frame',None);raise error from cause
         if after_receive:after_receive(self.last_frame)
-        return subprocess.CompletedProcess(argv,reply['returncode'],reply['stdout'].encode(),reply['stderr'].encode())
+        return subprocess.CompletedProcess(argv,reply['returncode'],raw_out,raw_err)
 
     def close(self):
         if self.closed:return

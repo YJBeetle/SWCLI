@@ -336,3 +336,14 @@ noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提
 只派一次 [42818564935](https://github.com/YJBeetle/SWCLI/actions/runs/42818564935)，精确head/event/ref已核；三个units=true、native_full=false。初始一次run/jobs/原dispatch回执与actual route inputs验证在同名docs/evidence目录。初始快照in_progress，route success，Windows3.9/3.14和wheel前置in_progress；从此同一次snapshot的已完成route job官方原日志核实际ROUTE_* env以及Validated native route: units-write-public，非仅复述请求flags。原查询JSON/route原日志保留同名evidence目录。gh初次拒绝输出控制字符，只用允许原字符并重定向文件补取该日志，不是新状态poll或再次dispatch。
 
 正常快照后停止等待，不连续poll，不用VM，不合main/发版。新run尚无public native结果，旧42664223806的failure、CLI139/SDK15/MCP0和owned退出unconfirmed全保留。后续必须核本run新ZIP/digest、CLI/SDK/MCP各139+三额外独立读探针、同ownedhost/worker、600/1800、原始完整JSON/原生持久化/geometry与helper/native真实退出；原生API首次失败不重试，强制收尾不得翻绿。此后提交仅元数据/交接文档，业务源固定473b26a。
+
+
+## 42818564935 portable失败：平台文本writer字节修复已获条件批准
+
+官方terminal run/jobs/artifacts已各取一次；复用root原failed.log，原日志SHA`8d614a43c26f600194b6c0fa3e503475acacd73b2cba5667359dfeb11be848a4`。四个官方原ZIP各一次下载且digest全核同（dist13766028046、package summary13765898140、portable3.14 13765683939、portable3.9 13764544642），清单与独立审计在`docs/evidence/units-profile/public-frontend-42818564935/`，原件/解压/failed.original.log在同名evidence目录。旧initial记录不改；原473b run仍failure。
+
+两Windows各1960测试只失败同两frontend compare：fresh CRLF vs旧StringIO LF；3.9耗245.823s/skip11，3.14耗184.297s/skip4。最早3.14 actual_cli_read记录UTC12:49:09.9024458Z。native job skipped，私有/公共CLI/SDK/MCP各0CAD，无native ZIP；非identity/原生API首错，不拿旧run局部补齐。标准库独立审计复跑一致，坏head/原ZIP拒绝。
+
+只改两CI helper和关联测试：真实TextIOWrapper(BytesIO,newline=None)按平台写出，stdout UTF8、stderr该-I子进程实际codec/errors；-I忽略PYTHON环境变量，不假定stderr一定UTF8。严格base64保存原stdout/stderr，文本/codec只审计；parent直接用原bytes构造CompletedProcess，不decode再encode或normalize比较。未知/坏字节保原件并拒绝。保留中文/LF/CRLF/孤立CR标准writer输出及CP932非roundtrip bytes，identity/序号/argv/RPC/fsync/无重发重启、三cold probe、417/600-1800/几何/宿主收尾不改。产品src/workflow/其他业务helper不改。
+
+最终90关联25.396s、完整1966项101.419s（26skip）、SDK生成/strict6/consumer拒绝8项、Python3.9 AST4文件/diff全过；源码和原日志SHA见stdio-fix-validation.json。统筹亲跑stdio/frontend17项9.866s通过并锁四文件SHA，本地逐一匹配；条件批准同SHA且全部检查过/无其他业务变化后，中文提交推送再自行必要一次units-write-public，派前remote=精确head/干净/同head未派/独立并发核对。详细说明`docs/verification/units-portable-stdio-42818564935.md`。尚无新Windows/CAD证明，VM/main/release未动；新公共正常一次快照即停，不持续poll。
