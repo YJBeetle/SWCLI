@@ -1,0 +1,167 @@
+{
+  "local_failure": {
+    "source_commit": "28a1d0bda7a7efc96e92885f1def491464bc204f",
+    "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-28a1d0b-01",
+    "original_files": {
+      "local-supervisor.json": {
+        "size_bytes": 819,
+        "sha256": "a8bf4689ee82b4a4f1ecb17aeac4683015de209c1ea3614f30f86b34357e4a4d"
+      },
+      "worker.stdout.log": {
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "report.json": {
+        "size_bytes": 4515,
+        "sha256": "02fb64ed05afdbeff0b89d405af1bfba59e2ab27e381bc94e64aa7aa93e2863c"
+      },
+      "worker.stderr.log": {
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "trace.jsonl": {
+        "size_bytes": 2590,
+        "sha256": "9d602432d4c25308ea98e84d29bac0b8b5540a43cf2533181cf5ecaa0bb0579e"
+      }
+    },
+    "host": {
+      "process_id": 3648,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "local_supervisor": {
+      "source_head": "28a1d0bda7a7efc96e92885f1def491464bc204f",
+      "source_archive_sha256": "665e4cacf9654772421c36f5aae897905b9816f6f2d26d0b294c9066d19eddf6",
+      "execution_kind": "authorized-local-private-single-fixture",
+      "ci_acceptance": false,
+      "full_acceptance_eligible": false,
+      "public_acceptance": false,
+      "pids_before": [],
+      "native_timeout_seconds": 600,
+      "group_timeout_seconds": 1800,
+      "python": "C:\\Workspace\\SWCLI\\.venv\\Scripts\\python.exe",
+      "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "success": false,
+      "worker_pid": 10100,
+      "worker_exit": 1,
+      "failure": null,
+      "elapsed_seconds": 20.77230141599989,
+      "pids_after": [],
+      "report_sha256": "02fb64ed05afdbeff0b89d405af1bfba59e2ab27e381bc94e64aa7aa93e2863c"
+    },
+    "failure": {
+      "type": "RuntimeError",
+      "message": "native identity is unreadable",
+      "phase": "cross-configuration IsSame(B,A) after successful B rebuild and one Show(A) returning bool True",
+      "raw_IsSame_return": "not retained; do not infer actual int 2"
+    },
+    "rebuild_preparation": [
+      {
+        "label": "B",
+        "attempted": true,
+        "return_type": "bool",
+        "return_value": true,
+        "success": true
+      }
+    ],
+    "configuration_preparation": [
+      {
+        "phase": "seed-B",
+        "target": "Getter_B",
+        "show_attempted": false,
+        "before_edit_state": {
+          "status": "observed",
+          "active_sketch": false
+        },
+        "before_name": "Getter_B",
+        "skipped_already_current": true,
+        "after_name": "Getter_B",
+        "same_active_object": true,
+        "same_before_after_object": true,
+        "after_edit_state": {
+          "status": "observed",
+          "active_sketch": false
+        },
+        "success": true
+      },
+      {
+        "phase": "rebuild-A",
+        "target": "默认",
+        "show_attempted": true,
+        "before_edit_state": {
+          "status": "observed",
+          "active_sketch": false
+        },
+        "before_name": "Getter_B",
+        "skipped_already_current": false,
+        "show_return_type": "bool",
+        "show_return_value": true
+      }
+    ],
+    "observations": [],
+    "cleanup_errors": [],
+    "ci_public_full_acceptance": false
+  },
+  "repair": {
+    "scope": "diagnostic two-configuration fixture and tests",
+    "identity_raw_evidence": "append role and native return type/value, persist complete report before validating; exceptions persist without replacing the original error",
+    "native_identity_values": "installed swconst must prove exact int NotSame=0, Same=1, Unsupported=2; bool and unknown reject",
+    "cross_configuration_negative_comparison": "not called or used for admission; no unknown-to-False coercion",
+    "preparation_admission": [
+      "exact target Name",
+      "exact expected two-configuration set before and after",
+      "bound document equals foreground before preparation",
+      "foreground document stable across preparation",
+      "stable active configuration after preparation",
+      "already-current zero-Show path also retains original same-configuration identity"
+    ],
+    "show_failure": "single Show and strict True unchanged; no postflight recovery",
+    "worker_identity": "report native_call_worker_pid records os.getpid separately; existing supervisor trace PID guard unchanged",
+    "persistence": "in-memory report fields assigned sequentially; checkpoint writes report.json before IsSame value validation; no extra CAD operation"
+  },
+  "source_audit": {
+    "product_src_ci_and_stl_unchanged": true,
+    "unchanged_function_asts": [
+      "audit_read_trace",
+      "deadline_reason",
+      "supervise",
+      "rebuild_fixture",
+      "preparation_edit_state"
+    ],
+    "read_window_guard_ast_equal_after_removing_only_evidence_parameters": true,
+    "read_window_single_Get3_and_state_config_foreground_assertions_unchanged": true
+  },
+  "validation": {
+    "targeted_tests": 29,
+    "portable_tests": 2599,
+    "portable_skipped": 27,
+    "portable_seconds": 78.904,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "git_diff_check": "passed",
+    "regression": "exact old functions reproduce synthetic cross-configuration int 2 rejection and loss of prior after_name; not the missing old native raw value"
+  },
+  "tested_file_sha256": {
+    "scripts/ci/verify-native-getter-configurations.py": "f4330bb3dfc9732c7605f1b41eb7ed6579d5eb2e804019ccf8a31429b6ba68c0",
+    "tests/test_native_getter_configurations.py": "3bcd69713f35e0abff95f96540dd717b59734fc3fc66238e4f52bb8d5928a57d"
+  },
+  "logs": {
+    "targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/identity-gate-28a1d0b/targeted.log",
+      "sha256": "8482423b97ddfe4fa46e01c9d806bf35d1683cf5a99b976bd49ab5ad6d574252"
+    },
+    "full-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/identity-gate-28a1d0b/full-portable.log",
+      "sha256": "b91809d3ee11a7e2bd6047c3f27eacd8da2f8cb8cb61fb1153c9fd3b6915f3c7"
+    },
+    "sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/identity-gate-28a1d0b/sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    },
+    "regression-before-fix.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/identity-gate-28a1d0b/regression-before-fix.log",
+      "sha256": "08ca63eb0af3191662cc80b10c179cbeaa057ade248492483645f2454f499721"
+    }
+  },
+  "state": "offline implementation complete; local commit only, no VM/CI/push by this lane; native acceptance pending coordinator controlled diagnosis"
+}

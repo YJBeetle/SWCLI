@@ -1,5 +1,17 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-10 身份比较准入修正
+
+统筹的精确 `28a1d0bda7a7efc96e92885f1def491464bc204f` 本地单样件报告已核SHA256 `02fb64ed05afdbeff0b89d405af1bfba59e2ab27e381bc94e64aa7aa93e2863c`。原件目录为 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-28a1d0b-01/`。B重建已实测bool True，Show A单次返回bool True；随后旧夹具跨配置比较IsSame(B,A)的严格0/1检查报native identity is unreadable。原返回值/类型未保存，不能补写为int2。observations仍空，保存/四窗/STL/GLB均未到达。原件及cleanup结果保留，不把本地准备通过算公共验收。
+
+统筹批准的修正仅在诊断夹具：每次IsSame先追加角色，逐项保存真实返回类型/值及分类，然后将完整report.json checkpoint写出，再严格判断；异常也记录并保持原异常，即使随后checkpoint失败仍不覆盖首错。准备字段按读取得到的顺序保存，消除dict.update参数求值失败导致after_name等已取得字段丢失。
+
+跨B/A的负向身份比较不再调用或作为准入，也不会把Unsupported转False。准入改为前后精确两配置集合、目标Name、切换前绑定document与foreground相同、切换前后foreground身份相同、切后稳定active配置身份。已是当前配置时仍0Show且保留同配置对象恒等检查；需要切换时仍仅1Show且严格True，失败不通过读取后状态恢复。所有必须相同的比较对0、2、bool、None和未知值均不能放行。装机swconst新增核对NotSame=0/Same=1/Unsupported=2的严格int枚举。
+
+读取窗口保留同配置和foreground恒等保护、原单次Get3/单BSTR/唯一数组/mm、metadata与状态比较；只为两个既有IsSame附加角色/原值和checkpoint。去掉这两个调用的新增证据参数后，整个observe_current函数AST与28a1d0b完全一致；audit_read_trace、supervise、600/1800预算及重建/编辑状态函数AST也保持。产品src、CI、原STL门禁逐字节不变。报告另记native_call_worker_pid=os.getpid，监督器启动PID与实际原生调用PID不混称；本次没有改变既有监督器PID准入条件。
+
+旧函数先以合成int2复现误拒绝及after_name丢失；这不是回填旧现场。新增文档/配置集合/配置身份漂移、正向身份2/bool/None/未知/异常拒绝、晚期异常保留前字段及磁盘checkpoint、0Show/1Show与读取窗口保护反例。29项关联、2599项完整回归OK（27环境跳过，78.904s），SDK strict6文件/31类型拒绝例通过。详见 [身份准入回执](../evidence/getter-identity-admission-2026-11-10.json)。本轮本地提交，不push、不派CI或操作VM，交统筹按精确新head继续独立目录小范围诊断。
+
 ## 2026-11-10 本地首错：无参重建绑定
 
 统筹在其独占Windows VM中，以精确 `70d8c9ecf3c02b099ca9c2cc64fe1880061cea44` 和明确local/private driver，仅运行一个两配置样件。原件目录为 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-70d8c9e-01/`。原report SHA256已重算匹配 `5a607ed5119064a7e2c92c19cdbdcd0772723d9c810b26315ac49d36ea37c1a0`；SW33.5.0、owned host3928、worker2832，Python3.14.7 x64。运行31.386s首错停止，supervisor的pids before/after均空，worker_exit=1，report.cleanup_errors=[]。这是本地私有诊断，ci/public/full acceptance标记均false。

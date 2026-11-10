@@ -91,7 +91,11 @@ class Dimension:
 
 
 def app_for(document):
-    return SimpleNamespace(ActiveDoc=document, IsSame=lambda a,b: int(a is b), GetProcessID=lambda: 123,
+    def identity(first, second):
+        if hasattr(first, "Name") and hasattr(second, "Name") and first.Name != second.Name:
+            return 2  # Unsupported is not a negative identity proof.
+        return int(first is second)
+    return SimpleNamespace(ActiveDoc=document, IsSame=identity, GetProcessID=lambda: 123,
                            GetDocumentCount=lambda: 0)
 
 
@@ -158,11 +162,189 @@ class GetterFixtureTests(unittest.TestCase):
         doc.dimension.GetSystemValue3.assert_called_once_with(3,"A")
         self.assertEqual(doc.setters, []); self.assertEqual(doc.selections, [])
 
+    def test_identity_records_exact_supported_results_and_role(self):
+        for value, expected in ((0, False), (1, True)):
+            with self.subTest(value=value):
+                app = SimpleNamespace(IsSame=mock.Mock(return_value=value))
+                row = {}
+                self.assertIs(getter.same(app, object(), object(), row, "test-role"), expected)
+                app.IsSame.assert_called_once()
+                self.assertEqual(row["identity_checks"][0], dict(
+                    role="test-role", attempted=True, return_type="int", return_value=value,
+                    equality="same" if expected else "not-same"))
+
+    def test_identity_unknown_and_invalid_results_are_durable_before_rejection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/"report.json"
+            for value in (2, True, False, None, 3, -1, 1.0, "1"):
+                with self.subTest(value=value):
+                    app = SimpleNamespace(IsSame=mock.Mock(return_value=value))
+                    row = {}
+                    def persist(): path.write_text(json.dumps(row))
+                    with self.assertRaisesRegex(RuntimeError, "unreadable or unsupported"):
+                        getter.same(app, object(), object(), row, "required-positive", persist=persist)
+                    app.IsSame.assert_called_once()
+                    saved = json.loads(path.read_text())["identity_checks"][0]
+                    self.assertEqual(saved["return_type"], type(value).__name__)
+                    self.assertEqual(saved["return_value"], value)
+                    self.assertEqual(saved["role"], "required-positive")
+                    self.assertNotIn("same", saved)
+                    self.assertNotIn("success", row)
+
+    def test_identity_exception_is_retained_even_if_checkpoint_fails(self):
+        original = ValueError("first native identity failure")
+        app = SimpleNamespace(IsSame=mock.Mock(side_effect=original))
+        row = {}
+        def persist(): raise OSError("checkpoint failure")
+        with self.assertRaises(ValueError) as caught:
+            getter.same(app, object(), object(), row, "failed-comparison", persist=persist)
+        self.assertIs(caught.exception, original)
+        app.IsSame.assert_called_once()
+        saved = row["identity_checks"][0]
+        self.assertEqual(saved["exception"]["message"], "first native identity failure")
+        self.assertEqual(saved["persistence_exception"]["type"], "OSError")
+        self.assertNotIn("return_value", saved)
+
+    def test_identity_checkpoint_failure_refuses_without_native_retry(self):
+        app = SimpleNamespace(IsSame=mock.Mock(return_value=1))
+        row = {}
+        def persist(): raise OSError("checkpoint failure")
+        with self.assertRaisesRegex(OSError, "checkpoint failure"):
+            getter.same(app, object(), object(), row, "durability-required", persist=persist)
+        app.IsSame.assert_called_once()
+        self.assertEqual(row["identity_checks"][0]["return_value"], 1)
+
+    def test_switch_never_queries_cross_configuration_negative_identity(self):
+        doc = Document(); doc.configurations["B"] = SimpleNamespace(Name="B")
+        app = app_for(doc); comparisons = []; native = app.IsSame
+        def identity(first, second):
+            comparisons.append((first, second))
+            return native(first, second)
+        app.IsSame = identity
+        row = {}
+        getter.select_fixture_configuration(app, doc, "B", lambda name, fn: fn(), row, expected_names=("A", "B"))
+        self.assertTrue(row["success"] and row["same_document_before"] and row["same_document_after"])
+        self.assertFalse(any(hasattr(a, "Name") and hasattr(b, "Name") and a.Name != b.Name for a,b in comparisons))
+        self.assertNotIn("same_before_after_object", row)
+        self.assertEqual([r["role"] for r in row["identity_checks"]],
+                         ["prepared-document-vs-foreground", "foreground-across-preparation", "stable-current-configuration"])
+
+    def test_preparation_foreground_drift_refuses_before_or_after_single_show(self):
+        for phase in ("before", "after"):
+            with self.subTest(phase=phase):
+                doc = Document(); doc.configurations["B"] = SimpleNamespace(Name="B")
+                app = app_for(doc); native = doc.ShowConfiguration2
+                if phase == "before": app.ActiveDoc = Document()
+                def show(name):
+                    result = native(name)
+                    if phase == "after": app.ActiveDoc = Document()
+                    return result
+                doc.ShowConfiguration2 = mock.Mock(side_effect=show)
+                row = {}
+                with self.assertRaisesRegex(RuntimeError, "foreground document"):
+                    getter.select_fixture_configuration(app, doc, "B", lambda name, fn: fn(), row, expected_names=("A", "B"))
+                self.assertEqual(doc.ShowConfiguration2.call_count, int(phase == "after"))
+                self.assertNotIn("success", row)
+                self.assertEqual(row["before_name"], "A")
+                if phase == "after": self.assertEqual(row["after_name"], "B")
+
+    def test_preparation_configuration_set_drift_refuses_and_retains_reads(self):
+        for phase in ("before", "after"):
+            for names in (("A",), ("A", "B", "C"), ("A", "A"), ("A", 1), None):
+                with self.subTest(phase=phase, names=names):
+                    doc = Document(); doc.configurations["B"] = SimpleNamespace(Name="B")
+                    counts = []
+                    def read_names():
+                        counts.append(1)
+                        return names if phase == "before" or len(counts) == 2 else ("A", "B")
+                    doc.GetConfigurationNames = read_names
+                    native = doc.ShowConfiguration2
+                    doc.ShowConfiguration2 = mock.Mock(side_effect=native)
+                    row = {}
+                    with self.assertRaisesRegex(RuntimeError, "configuration set changed"):
+                        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), row, expected_names=("A", "B"))
+                    self.assertEqual(doc.ShowConfiguration2.call_count, int(phase == "after"))
+                    self.assertEqual(row[phase+"_configuration_names"], getter.json_value(names))
+                    self.assertNotIn("success", row)
+                    if phase == "after": self.assertEqual(row["show_return_value"], True)
+
+    def test_late_identity_failure_preserves_earlier_preparation_fields_on_disk(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/"report.json"
+            for value in (0, 2, True, None, 3):
+                with self.subTest(value=value):
+                    doc = Document(); doc.configurations["B"] = SimpleNamespace(Name="B")
+                    app = app_for(doc); native = app.IsSame
+                    def identity(first, second):
+                        return value if hasattr(first, "Name") else native(first, second)
+                    app.IsSame = identity
+                    row = {}
+                    def persist(): path.write_text(json.dumps(row))
+                    with self.assertRaises(RuntimeError):
+                        getter.select_fixture_configuration(app, doc, "B", lambda name, fn: fn(), row,
+                                                            expected_names=("A", "B"), persist=persist)
+                    saved = json.loads(path.read_text())
+                    self.assertEqual((saved["before_name"], saved["after_name"]), ("A", "B"))
+                    self.assertEqual(saved["show_return_type"], "bool")
+                    self.assertIs(saved["show_return_value"], True)
+                    self.assertEqual(saved["after_configuration_names"], ["A", "B"])
+                    self.assertTrue(saved["same_document_before"] and saved["same_document_after"])
+                    self.assertEqual(saved["identity_checks"][-1]["return_value"], value)
+                    self.assertNotIn("success", saved)
+
+    def test_late_identity_exception_is_durable_without_losing_prior_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/"report.json"
+            doc = Document(); doc.configurations["B"] = SimpleNamespace(Name="B")
+            app = app_for(doc); native = app.IsSame; original = ValueError("late identity failure")
+            def identity(first, second):
+                if hasattr(first, "Name"): raise original
+                return native(first, second)
+            app.IsSame = identity
+            row = {}
+            def persist(): path.write_text(json.dumps(row))
+            with self.assertRaises(ValueError) as caught:
+                getter.select_fixture_configuration(app, doc, "B", lambda name, fn: fn(), row,
+                                                    expected_names=("A", "B"), persist=persist)
+            self.assertIs(caught.exception, original)
+            saved = json.loads(path.read_text())
+            self.assertEqual((saved["before_name"], saved["after_name"]), ("A", "B"))
+            self.assertIs(saved["show_return_value"], True)
+            self.assertEqual(saved["identity_checks"][-1]["exception"]["message"], "late identity failure")
+            self.assertNotIn("success", saved)
+
+    def test_read_window_required_identities_still_reject_unknown_and_invalid(self):
+        for role in ("configuration", "foreground"):
+            for value in (2, True, False, None, 3):
+                with self.subTest(role=role, value=value):
+                    doc = Document(); app = app_for(doc); count = []
+                    def identity(first, second):
+                        count.append(1)
+                        return value if len(count) == (1 if role == "configuration" else 2) else 1
+                    app.IsSame = identity
+                    row = {}
+                    with self.assertRaisesRegex(RuntimeError, "unreadable or unsupported"):
+                        self.observe(doc, app, row)
+                    self.assertEqual(doc.getters, [(3, "A")])
+                    self.assertEqual(doc.selections, [])
+                    self.assertEqual(row["identity_checks"][-1]["return_value"], value)
+                    self.assertNotIn("success", row)
+
+    def test_preparation_invalid_expected_set_has_zero_native_selection(self):
+        for expected in (("A",), ("A", "A"), ("A", 1), ("B", "C")):
+            with self.subTest(expected=expected):
+                doc = Document(); row = {}
+                doc.ShowConfiguration2 = mock.Mock()
+                with self.assertRaisesRegex(RuntimeError, "invalid expected"):
+                    getter.select_fixture_configuration(app_for(doc), doc, "A", lambda name, fn: fn(), row, expected_names=expected)
+                doc.ShowConfiguration2.assert_not_called()
+
     def test_already_active_configuration_skips_show_and_records_unchanged_identity(self):
         doc = Document()
+        doc.configurations["B"] = SimpleNamespace(Name="B")
         doc.ShowConfiguration2 = mock.Mock(return_value=False)
         record = {}
-        getter.select_fixture_configuration(app_for(doc), doc, "A", lambda name, fn: fn(), record)
+        getter.select_fixture_configuration(app_for(doc), doc, "A", lambda name, fn: fn(), record, expected_names=("A", "B"))
         doc.ShowConfiguration2.assert_not_called()
         self.assertFalse(record["show_attempted"])
         self.assertTrue(record["skipped_already_current"] and record["same_before_after_object"])
@@ -176,12 +358,12 @@ class GetterFixtureTests(unittest.TestCase):
         original = doc.ShowConfiguration2
         doc.ShowConfiguration2 = mock.Mock(side_effect=original)
         record = {}
-        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record, expected_names=("A", "B"))
         doc.ShowConfiguration2.assert_called_once_with("B")
         self.assertEqual((record["before_name"], record["after_name"]), ("A", "B"))
         self.assertEqual((record["show_return_type"], record["show_return_value"]), ("bool", True))
         self.assertTrue(record["same_active_object"])
-        self.assertFalse(record["same_before_after_object"])
+        self.assertNotIn("same_before_after_object", record)
 
     def test_false_and_invalid_returns_never_read_after_or_retry_even_if_target_became_current(self):
         for value in (False, 1, -1, None, "True"):
@@ -195,7 +377,7 @@ class GetterFixtureTests(unittest.TestCase):
                 record = {}
                 with mock.patch.object(getter, "configuration_object", wraps=getter.configuration_object) as read_config:
                     with self.assertRaisesRegex(RuntimeError, "configuration selection failed"):
-                        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+                        getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record, expected_names=("A", "B"))
                 self.assertEqual(read_config.call_count, 1)
                 doc.ShowConfiguration2.assert_called_once_with("B")
                 self.assertEqual(record["show_return_type"], type(value).__name__)
@@ -222,18 +404,19 @@ class GetterFixtureTests(unittest.TestCase):
                     reads = [first, alias, alias]
                 with mock.patch.object(getter, "configuration_object", side_effect=reads):
                     with self.assertRaises(RuntimeError):
-                        getter.select_fixture_configuration(app_for(doc), doc, target.Name, lambda name, fn: fn(), record)
+                        getter.select_fixture_configuration(app_for(doc), doc, target.Name, lambda name, fn: fn(), record, expected_names=("A", "B"))
                 self.assertNotIn("success", record)
                 self.assertLessEqual(doc.ShowConfiguration2.call_count, 1)
 
     def test_first_show_exception_is_retained_without_postflight_calls(self):
         doc = Document()
+        doc.configurations["B"] = SimpleNamespace(Name="B")
         original = ValueError("first selection exception")
         doc.ShowConfiguration2 = mock.Mock(side_effect=original)
         record = {}
         with mock.patch.object(getter, "configuration_object", wraps=getter.configuration_object) as read_config:
             with self.assertRaises(ValueError) as caught:
-                getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record)
+                getter.select_fixture_configuration(app_for(doc), doc, "B", lambda name, fn: fn(), record, expected_names=("A", "B"))
         self.assertIs(caught.exception, original)
         self.assertEqual(read_config.call_count, 1)
         doc.ShowConfiguration2.assert_called_once_with("B")
@@ -290,7 +473,7 @@ class GetterFixtureTests(unittest.TestCase):
     def assert_complete_saved_fixture(self, document_type):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary); swconst = output / "swconst.tlb"; swconst.write_bytes(b"mock typelib")
-            doc = document_type(); app = app_for(doc); documents = [doc]; live = {}; case = {}; report = {"host":{"process_id":123}}
+            doc = document_type(); app = app_for(doc); documents = [doc]; live = {}; case = {}; report = {"host":{"process_id":123}, "cases":[case]}
             def save(path, *, document):
                 Path(path).write_bytes(b"saved fixture")
                 document.path, document.title = path, "two-configurations.SLDPRT"
@@ -312,6 +495,10 @@ class GetterFixtureTests(unittest.TestCase):
                     mock.patch.object(getter,"open_windows_document_with_handle",side_effect=reopen):
                 getter.calibrate_case(app,output,{},"front",False,lambda name, fn:fn(),case,report,live,profile_kind="part")
             self.assertTrue(case["success"])
+            saved_report = json.loads((output/"report.json").read_text())
+            self.assertEqual(saved_report["native_call_worker_pid"], os.getpid())
+            self.assertEqual(len(saved_report["cases"][0]["observations"]), 4)
+            self.assertEqual(saved_report["cases"][0]["observations"][-1]["identity_checks"][-1]["return_value"], 1)
             self.assertEqual(doc.rebuilds, [True, True])
             self.assertEqual(case["rebuild_preparation"], [
                 dict(label=label, attempted=True, return_type="bool", return_value=True, success=True)
@@ -346,9 +533,11 @@ class GetterFixtureTests(unittest.TestCase):
             info=SimpleNamespace(GetTypeAttr=lambda:SimpleNamespace(typekind=0,cVars=len(items)),
                 GetVarDesc=lambda index:Var(index,items[index][1]), GetDocumentation=lambda index:(items[index][0],))
             return SimpleNamespace(TKIND_ENUM=0,LoadTypeLib=lambda path:SimpleNamespace(GetTypeInfoCount=lambda:1,GetTypeInfo=lambda index:info))
-        good=[("swSpecifyConfiguration",3),("swSetValue_InSpecificConfigurations",3),("swDimensionParamTypeDoubleLinear",0)]
+        good=[("swSpecifyConfiguration",3),("swSetValue_InSpecificConfigurations",3),("swDimensionParamTypeDoubleLinear",0),
+              ("swObjectNotSame",0),("swObjectSame",1),("swObjectUnsupported",2)]
         self.assertEqual(getter.read_constants(library(good),"mock"),dict(good))
-        for values in (good[:-1],good+[good[0]],[(good[0][0],1)]+good[1:],[(good[0][0],True)]+good[1:]):
+        for values in (good[:-1],good+[good[0]],[(good[0][0],1)]+good[1:],[(good[0][0],True)]+good[1:],
+                       good[:-1]+[("swObjectUnsupported",3)], good[:-2]+[("swObjectSame",True)]+good[-1:]):
             with self.assertRaises(RuntimeError): getter.read_constants(library(values),"mock")
 
     def test_budgets_and_failed_worker_cannot_claim_cleanup(self):

@@ -1,3 +1,13 @@
+# 两配置身份门禁修正已完成离线验证（2026-11-10）
+
+28a1d0b本地原件已核：B重建和Show A单次bool True通过，首错为跨B/A配置的IsSame检查，原返回值缺失不能补写为2，保存和四个Get3读取窗口仍未到达。
+
+本次诊断夹具先逐项保存并checkpoint写出IsSame原类型/值/角色，再严格判定。跨配置负向比较退出准入，改核精确目标/两配置集合、切换前绑定文档/foreground、切换前后同document及切后稳定config。必须相同的比较遇到0/2/bool/None/未知/异常仍失败；0Show/单Show和读取窗口原保护保留。报告单列native_call_worker_pid，不改监督器PID准入或预算。
+
+29关联、2599完整（27skip）及SDK strict6/31拒绝通过；源码对照确认产品src/CI/STL不变，读取窗口仅附加证据参数。见 [身份准入回执](docs/evidence/getter-identity-admission-2026-11-10.json) 和 [详细交接](docs/handoffs/glb-export-repair.md)。本轮仅本地提交，等待统筹小范围原生API验证，无新VM/CI/push。
+
+## 此前交接历史
+
 # 无参重建绑定最小修正，待统筹再次本地验证（2026-11-10）
 
 统筹的精确70d8c9e单样件原件已核SHA：创建B后已current，0Show跳过与对象身份通过；随后prepare-rebuild-B的 `document.EditRebuild3()` 因动态绑定已返回bool而追加调用失败。布尔原值未记录，四个读取窗口、保存、STL/GLB仍未到达；不能回填旧CI缺测或声称getter通过。

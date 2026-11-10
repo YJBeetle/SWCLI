@@ -31,7 +31,8 @@ require = harness.checked
 
 
 def read_constants(pythoncom, path):
-    wanted = {"swSpecifyConfiguration", "swSetValue_InSpecificConfigurations", "swDimensionParamTypeDoubleLinear"}
+    wanted = {"swSpecifyConfiguration", "swSetValue_InSpecificConfigurations", "swDimensionParamTypeDoubleLinear",
+              "swObjectNotSame", "swObjectSame", "swObjectUnsupported"}
     library = pythoncom.LoadTypeLib(str(path))
     found = {}
     for index in range(library.GetTypeInfoCount()):
@@ -45,14 +46,32 @@ def read_constants(pythoncom, path):
                 require(name not in found and type(item.value) is int, "ambiguous native configuration enum")
                 found[name] = item.value
     require(set(found) == wanted and found["swSpecifyConfiguration"] == _SPECIFY_CONFIGURATION
-            and found["swDimensionParamTypeDoubleLinear"] == 0,
+            and found["swDimensionParamTypeDoubleLinear"] == 0
+            and (found["swObjectNotSame"], found["swObjectSame"], found["swObjectUnsupported"]) == (0, 1, 2),
             "installed swSpecifyConfiguration differs from the getter")
     return found
 
 
-def same(app, first, second):
-    status = native_call("getter-identity", "ISldWorks.IsSame", lambda: app.IsSame(first, second))
-    require(type(status) is int and status in (0, 1), "native identity is unreadable")
+def same(app, first, second, record, role, *, persist=None):
+    row = dict(role=role, attempted=True)
+    record.setdefault("identity_checks", []).append(row)
+    try:
+        status = native_call("getter-identity", "ISldWorks.IsSame", lambda: app.IsSame(first, second))
+    except Exception as error:
+        row["exception"] = dict(type=type(error).__name__, message=str(error))
+        if persist is not None:
+            try:
+                persist()
+            except Exception as persistence_error:
+                row["persistence_exception"] = dict(type=type(persistence_error).__name__, message=str(persistence_error))
+        raise
+    row["return_type"] = type(status).__name__
+    row["return_value"] = json_value(status)
+    row["equality"] = ({0: "not-same", 1: "same", 2: "unsupported"}.get(status, "unknown")
+                       if type(status) is int else "invalid-type")
+    if persist is not None:
+        persist()
+    require(type(status) is int and status in (0, 1), "native identity is unreadable or unsupported")
     return status == 1
 
 
@@ -93,7 +112,7 @@ class CapturedDimension:
         return value
 
 
-def observe_current(app, document, dimension, configuration, expected_mm, record, *, request_id, expected_native_name):
+def observe_current(app, document, dimension, configuration, expected_mm, record, *, request_id, expected_native_name, persist=None):
     record.update(request_id=request_id, expected_configuration=configuration, expected_mm=expected_mm)
     with trace_native_request(request_id, "diagnostic.getter-current-configuration"):
         before_config = configuration_object(document)
@@ -117,8 +136,10 @@ def observe_current(app, document, dimension, configuration, expected_mm, record
                 and descriptor["driven_state"] == 2 and descriptor["read_only"] is False
                 and descriptor["native_name"] == expected_native_name, "native getter value/metadata mismatch")
         record["after"] = state(document)
-        record["same_configuration_object"] = same(app, before_config, configuration_object(document))
-        record["same_foreground_object"] = same(app, foreground, _com_value(app, "ActiveDoc"))
+        record["same_configuration_object"] = same(
+            app, before_config, configuration_object(document), record, "read-window-configuration", persist=persist)
+        record["same_foreground_object"] = same(
+            app, foreground, _com_value(app, "ActiveDoc"), record, "read-window-foreground", persist=persist)
         require(record["before"] == record["after"] and record["same_configuration_object"]
                 and record["same_foreground_object"], "read changed config identity/state/foreground")
         record["success"] = True
@@ -133,15 +154,35 @@ def preparation_edit_state(document):
         return dict(status="unknown", error=dict(type=type(error).__name__, message=str(error)))
 
 
-def select_fixture_configuration(app, document, name, call, record):
-    # Fixture setup BETWEEN read windows. Never recover a failed Show by reading
-    # its resulting state: reject its original return before any postflight call.
-    record.update(target=name, show_attempted=False,
-                  before_edit_state=preparation_edit_state(document))
+def fixture_configuration_names(document, expected_names, record, key):
+    names = _com_value(document, "GetConfigurationNames")
+    record[key] = json_value(names)
+    require(type(names) in (tuple, list) and len(names) == 2
+            and all(isinstance(name, str) and bool(name.strip()) for name in names)
+            and set(names) == set(expected_names), "fixture configuration set changed")
+
+
+def select_fixture_configuration(app, document, name, call, record, *, expected_names, persist=None):
+    # Fixture preparation BETWEEN read windows. A failed Show is never recovered
+    # by reading its resulting state. Different configuration objects are not
+    # compared across a switch; document and stable current identities must match.
+    record["target"] = name
+    record["show_attempted"] = False
+    record["expected_names"] = json_value(expected_names)
+    require(type(expected_names) in (tuple, list) and len(expected_names) == 2
+            and all(isinstance(item, str) and bool(item.strip()) for item in expected_names)
+            and len(set(expected_names)) == 2 and name in expected_names, "invalid expected fixture configurations")
+    record["before_edit_state"] = preparation_edit_state(document)
     before = configuration_object(document)
     before_name = _com_value(before, "Name")
     record["before_name"] = before_name
     require(isinstance(before_name, str) and bool(before_name.strip()), "fixture current configuration is unreadable")
+    fixture_configuration_names(document, expected_names, record, "before_configuration_names")
+    require(before_name in expected_names, "fixture current configuration is outside the expected set")
+    foreground = _com_value(app, "ActiveDoc")
+    record["same_document_before"] = same(
+        app, document, foreground, record, "prepared-document-vs-foreground", persist=persist)
+    require(record["same_document_before"], "fixture foreground document differs")
     record["skipped_already_current"] = before_name == name
     if before_name != name:
         record["show_attempted"] = True
@@ -154,14 +195,20 @@ def select_fixture_configuration(app, document, name, call, record):
         record["show_return_value"] = json_value(status)
         require(status is True, "fixture configuration selection failed")
     after = configuration_object(document)
-    record.update(after_name=_com_value(after, "Name"),
-                  same_active_object=same(app, after, configuration_object(document)),
-                  same_before_after_object=same(app, before, after),
-                  after_edit_state=preparation_edit_state(document))
-    require(record["after_name"] == name and record["same_active_object"],
-            "fixture selected another or unstable configuration")
-    require(record["same_before_after_object"] is record["skipped_already_current"],
-            "fixture configuration identity did not match the preparation transition")
+    record["after_name"] = _com_value(after, "Name")
+    require(record["after_name"] == name, "fixture selected another configuration")
+    fixture_configuration_names(document, expected_names, record, "after_configuration_names")
+    record["after_edit_state"] = preparation_edit_state(document)
+    record["same_document_after"] = same(
+        app, foreground, _com_value(app, "ActiveDoc"), record, "foreground-across-preparation", persist=persist)
+    require(record["same_document_after"], "fixture preparation changed foreground document")
+    record["same_active_object"] = same(
+        app, after, configuration_object(document), record, "stable-current-configuration", persist=persist)
+    require(record["same_active_object"], "fixture selected an unstable configuration")
+    if record["skipped_already_current"]:
+        record["same_before_after_object"] = same(
+            app, before, after, record, "unchanged-current-configuration", persist=persist)
+        require(record["same_before_after_object"], "fixture current configuration identity changed without selection")
     record["success"] = True
 
 
@@ -181,6 +228,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     import pythoncom
     case.update(preparation_only=True, public_acceptance=False, observations=[])
     report["source_commit"] = os.environ.get("GITHUB_SHA")
+    report["native_call_worker_pid"] = os.getpid()
+    def persist():
+        (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     case["swconst_sha256"] = hashlib.sha256(SWCONST.read_bytes()).hexdigest()
     enums = case["configuration_constants"] = call("read-configuration-enums", lambda: read_constants(pythoncom, SWCONST))
     made, document = call("prepare-part", lambda: create_part_windows_with_handle(app=app))
@@ -193,7 +243,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     def select(name, phase):
         record = dict(phase=phase)
         preparation.append(record)
-        select_fixture_configuration(app, document, name, call, record)
+        select_fixture_configuration(app, document, name, call, record,
+                                     expected_names=(original_name, "Getter_B"), persist=persist)
     def rebuild(label):
         record = dict(label=label)
         rebuilds.append(record)
@@ -247,7 +298,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             row = dict(phase=phase, label=label)
             case["observations"].append(row)
             call("observe-" + phase + label, lambda: observe_current(app, document, dimension, name, expected, row,
-                 request_id="getters-" + phase + "-" + label, expected_native_name=native_name))
+                 request_id="getters-" + phase + "-" + label, expected_native_name=native_name, persist=persist))
             require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, "observation changed saved bytes")
     case["final_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     require(_com_value(app, "GetProcessID") == report["host"]["process_id"], "fixture host changed")
