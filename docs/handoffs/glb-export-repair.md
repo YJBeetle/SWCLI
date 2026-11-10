@@ -1,5 +1,33 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-10 组合首失败与最小夹具修正
+
+唯一一次组合运行 [42663675963](https://github.com/YJBeetle/SWCLI/actions/runs/42663675963)，精确 head `dd5a3ec5dd06594005d4b6f4b232c5460da1df13`，结论 failure。六份官方 artifact ZIP 已保存，尺寸、CRC 与 GitHub SHA256 digest 均匹配；安装原日志仅保留本地。native 原 ZIP 为 `original-native.zip`，184115 bytes，artifact `13697876346`，SHA256 `ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6`。原件根为 `/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/`，run/jobs/artifacts JSON、完整日志 ZIP 和解压报告均保留。dist wheel 的127个包文件与该 head 逐字节相同。
+
+| 阶段 | 本次实际范围 |
+| --- | --- |
+| Windows Python3.9/3.14 portable、package | 通过，含之前 Windows 文件身份取证复制修复 |
+| installed modern API contract | 通过；只读类型库，model_calls=0，native_binding_accepted=false |
+| 两配置 getter | 准备阶段失败，四个 saved/RO A/B 读窗口均未进入 |
+| 原 STL 八场景配置观察 | CI skipped |
+| 原 full19组及 GLB 运行时取证 | CI skipped，没有新 GLB/BIN/manifest 证据 |
+
+SW 为33.5.0、owned PID8652。`AddConfiguration2(..., Options=0, ...)` 返回非空对象且 Name=Getter_B 的检查已过；首错为随后 `prepare-select-Getter_B` 的返回值未满足 `is True`，报 `RuntimeError: fixture configuration selection failed`。旧原件没有记录返回原值/类型、切换前 current 和准备编辑状态，不能把它写成“实际False”或“当时B已经激活”。尚未到 B seed、保存、重开或本诊断的 Get3 观察窗；不据此判断产品 getter 绑定或 GLB 失败。清理 trace 的 CloseDoc/ExitApp/进程等待等均结束，report.cleanup_errors=[]；原 supervisor.cleanup_proven=false 保持原值，不提升为清理验收通过。
+
+官方 [2025 configuration options](https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swConfigurationOptions2_e.html) 说明 DontActivate 位为128，未设置时会激活新配置。因此“创建已激活B又重复Show”是有依据的候选解释，仍是推断。[ShowConfiguration2](https://help.solidworks.com/2025/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~ShowConfiguration2.html) 的官方 Boolean 契约未承诺已激活目标时的专门返回行为，不能用模拟False补填原现场。
+
+最小修正提交 `70d8c9ecf3c02b099ca9c2cc64fe1880061cea44` 仅改诊断夹具和测试。选择前记录实际 current Name/编辑状态；已是目标时零Show并核对象身份，确需切换时仅一次Show且仍严格True，然后验证目标Name、稳定active对象和前后身份变化。False、非bool和异常均保留首错，不读后状态尝试恢复，不重试。记录原始返回类型/值、准备阶段及末尾编辑状态。产品Get3/SaveAs3/GLB、原STL计划、读窗口/trace审核和600/1800预算均保持不变；五个核心函数AST与七个产品/CI文件已比较不变。
+
+合成已激活目标返回False的反例在旧夹具上先复现9项中1error；修正后14项关联通过。完整2584项OK（27环境跳过，74.208s）；SDK strict6源文件/31类型拒绝例、actionlint和安装资源no-COM通过。原件摘要、源码及日志hash见 [机器回执](../evidence/getter-preparation-first-failure-2026-11-10.json)。本次没有使用VM或派发新运行，main及其他路线未修改。
+
+### 交统筹的小范围原生 API 验证方案
+
+1. 由统筹统一启动并核对Windows VM、实际SOLIDWORKS版本、进程归属和已有文档；材料集中 `C:\Workspace`。本路不自行启动或抢占VM，不运行本地整套full。若VM版本与CI的33.5.0不同，记录差异，结果仅作该环境验证。
+2. 用自有临时零件和精确修正代码，先验证创建B后的实际current和编辑状态；目标已经当前时必须0Show，切换至另一个配置时必须1Show、原始boolTrue及后Name/对象身份通过。任何失败保留首次报告/trace/原始类型值并停止，不通过重试/重启覆盖首错。启动入口由统筹选择，不能伪造GITHUB_ACTIONS绕过CI入口限制。
+3. 若首项通过，沿用原夹具A16/B20、保存及只读重开四窗，原Get3次数/单BSTR/唯一数组/mm、Name/type/driven/readonly、配置/修改戳/前台和清理断言全部保留。准备时配置切换仍在读窗外，不扩大公共支持域。
+4. 如统筹安排单独GLB验证，只使用保留的原零件输入并在调用前后核原件hash，单次现代SaveAs3与原暂存模式/参数保持，启用既有有界manifest/隐藏文件/模块/类型库只读观察。保留原GLB字节并照原严格BIN检查判定；未知状态明确unknown，不改偏好或扫描试探API。该步是新观察设计，不代表修复或公共验收。
+5. 完成原件审查后，由统筹决定精确新head的一次必要组合CI；顺序仍为modern contract → 两配置 → STL → 原full。不得同head无信息重跑，原失败ZIP/运行结论保持。只有通过统筹亲审才进入后续main集成；发版仍需用户最终确认。
+
 ## 2026-11-10 修复与组合接线
 
 Windows push 42420883808 的两版单元测试都在取证复制阶段失败。DirEntry.stat 在 Windows 返回零设备/文件ID，使原严格身份比较误拒绝并留下空副本。新代码改用新鲜 os.stat(..., follow_symlinks=False)，在源身份检查通过后才创建目标副本，保留原竞态拒绝逻辑。两个新回归先复现旧错误再验证修复。[Python 对该 Windows 行为的说明](https://docs.python.org/3/library/os.html#os.DirEntry.stat)

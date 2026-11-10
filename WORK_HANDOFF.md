@@ -1,3 +1,15 @@
+# 组合首失败已归档，最小夹具修正待统筹原生验证（2026-11-10）
+
+组合 run42663675963 / dd5a3ec 失败于两配置夹具准备：prepare-select-Getter_B 返回值未满足is True。原值/类型和切换前current未记录，不能补写为False或已激活B。installed modern contract通过；四个Get3读窗口、STL前置和原full/GLB均未到达。六份官方ZIP的尺寸/CRC/SHA与GitHub匹配，原wheel127个包文件与dd5a3ec逐字节一致。native原ZIP SHA256为 `ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6`。
+
+最小修正 `70d8c9ecf3c02b099ca9c2cc64fe1880061cea44` 只改诊断夹具与测试：选择前记录current/编辑状态，已是目标则0Show，确需切换仅1Show且严格True+后Name/身份核验。返回False/类型非法/异常不读取后状态吞错，不重试。产品Get3、SaveAs3、GLB、读窗口和600/1800预算不变。旧反例先复现1error，修正后14关联/2584完整（27skip）通过，SDK strict6/31拒绝、actionlint、安装资源通过。
+
+原件在 `/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/`；详见 [首失败与检查回执](docs/evidence/getter-preparation-first-failure-2026-11-10.json) 和 [小范围原生 API 验证方案](docs/handoffs/glb-export-repair.md)。VM及下一次组合CI由统筹统一安排，本轮未使用VM或新派发，不改main，不宣称新增getter/GLB原生通过。
+
+统筹最新通报已按精确 `70d8c9e` 准备在其管理的SW33.5.0.0053虚拟机中，以独立local/private driver复用harness.run+calibrate_case验证单零件四窗；本路等待其原件结果，不派新组合CI，不更改该产品提交。该通报不是本路观察到的原生通过。
+
+## 此前交接历史
+
 # GLB 取证修复及两配置组合候选（2026-11-10）
 
 轻量 push run 42420883808 / 51f70cb 的原日志已保存，原 ZIP SHA256 为 `102ef4fcf901035ca1d7d1611e03378fca34e82bf6d7a15040d8a177b2dda086`。两版 Windows Python 各有4个取证复制断言失败，native job 跳过。原因是 Windows DirEntry.stat 的 st_dev/st_ino 缓存值为零，与真实 fstat 比较产生误拒绝。修复 `7a6decd` 改为新鲜 os.stat(..., follow_symlinks=False)，原身份/竞态保护保留，身份通过后才创建副本。Windows零身份及真实身份变化两个回归均先复现旧失败，再通过修复。

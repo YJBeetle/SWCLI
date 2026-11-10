@@ -1,0 +1,286 @@
+{
+  "failed_run": {
+    "run_id": 42663675963,
+    "head": "dd5a3ec5dd06594005d4b6f4b232c5460da1df13",
+    "modern_contract": {
+      "success": true,
+      "evidence_kind": "installed-typelib-readonly",
+      "model_calls": 0,
+      "native_binding_accepted": false,
+      "sldworks": {
+        "path": "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb",
+        "sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+        "library": {
+          "guid": "{83A33D31-27C5-11CE-BFD4-00400513BB57}",
+          "lcid": 0,
+          "syskind": 3,
+          "major": 33,
+          "minor": 0
+        },
+        "interfaces": {
+          "IDimension": {
+            "iid": "{83A33D3A-27C5-11CE-BFD4-00400513BB57}",
+            "typekind": 4,
+            "members": {
+              "GetSystemValue3": [
+                [
+                  "WhichConfigurations",
+                  "Config_names"
+                ]
+              ]
+            }
+          },
+          "IModelDocExtension": {
+            "iid": "{99F4D4AF-F268-4EE1-8C55-041F7BECF879}",
+            "typekind": 4,
+            "members": {
+              "SaveAs3": [
+                [
+                  "Name",
+                  "Version",
+                  "Options",
+                  "ExportData",
+                  "AdvancedSaveAsOptions",
+                  "Errors",
+                  "Warnings"
+                ]
+              ]
+            }
+          },
+          "IConfigurationManager": {
+            "iid": "{8DB64337-F36E-47CC-BBBC-B4B979D31505}",
+            "typekind": 4,
+            "members": {
+              "ActiveConfiguration": [
+                []
+              ]
+            }
+          }
+        }
+      },
+      "swconst": {
+        "path": "C:\\Program Files\\SOLIDWORKS\\swconst.tlb",
+        "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+        "library": {
+          "guid": "{4687F359-55D0-4CD3-B6CF-2EB42C11F989}",
+          "lcid": 0,
+          "syskind": 3,
+          "major": 33,
+          "minor": 0
+        },
+        "constants": {
+          "swThisConfiguration": 1,
+          "swSpecifyConfiguration": 3
+        }
+      }
+    },
+    "first_failure": {
+      "type": "RuntimeError",
+      "message": "fixture configuration selection failed",
+      "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 323, in run\n    case_runner(app, output, constants, plane, reverse, call, case, report, live,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-native-getter-configurations.py\", line 157, in calibrate_case\n    select_fixture_configuration(document, second_name, call)\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-native-getter-configurations.py\", line 129, in select_fixture_configuration\n    require(call(\"prepare-select-\" + name, lambda: document.ShowConfiguration2(name)) is True,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 33, in checked\n    raise RuntimeError(message)\nRuntimeError: fixture configuration selection failed\n"
+    },
+    "host": {
+      "process_id": 8652,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "getter_preparation_calls": [
+      "read-official-swconst",
+      "acquire-owned-host",
+      "wait-ready",
+      "capture-owned-process",
+      "read-configuration-enums",
+      "prepare-part",
+      "prepare-circle",
+      "prepare-driving-diameter",
+      "prepare-second-configuration",
+      "prepare-select-Getter_B",
+      "CloseDoc",
+      "ExitApp",
+      "WaitForOwnedProcess",
+      "CloseProcessHandle",
+      "CoUninitialize"
+    ],
+    "readonly_window_count": 0,
+    "show_return_raw": "not retained; only result-is-True rejection is evidenced",
+    "pre_show_current_configuration": "not retained",
+    "preparation_edit_state": "not retained",
+    "inference": "Options=0 requests activating new configuration; redundant Show of Getter_B is an evidence-backed candidate, not an old observed state",
+    "scope": {
+      "modern_contract": "passed, model_calls=0, native_binding_accepted=false",
+      "two_configurations": "failed during preparation before B seed/save/read windows",
+      "stl_source_configuration": "skipped",
+      "original_full": "skipped",
+      "glb_runtime_evidence": "not reached"
+    },
+    "cleanup": {
+      "report_cleanup_errors": [],
+      "trace_completed_cleanup": [
+        "CloseDoc",
+        "ExitApp",
+        "WaitForOwnedProcess",
+        "CloseProcessHandle",
+        "CoUninitialize"
+      ],
+      "original_supervisor": {
+        "success": false,
+        "worker_exit": 1,
+        "failure": null,
+        "cleanup_proven": false,
+        "read_trace_proof": [],
+        "native_timeout_seconds": 600,
+        "group_timeout_seconds": 1800,
+        "full_acceptance_eligible": false
+      }
+    },
+    "original_native_sha256": "ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6",
+    "wheel_source_match_count": 127,
+    "original_paths": {
+      "native": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-native.zip",
+      "jobs": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/jobs.json",
+      "getter_report": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original/swcli-native-smoke/getter-two-configurations/report.json",
+      "trace": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original/swcli-native-smoke/getter-two-configurations/trace.jsonl",
+      "logs": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-workflow-logs.zip"
+    }
+  },
+  "original_artifacts": {
+    "head": "dd5a3ec5dd06594005d4b6f4b232c5460da1df13",
+    "artifacts": [
+      {
+        "id": 13697876346,
+        "name": "swcli-windows-hosted-42663675963-1",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-native.zip",
+        "sha256": "ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6",
+        "github_digest": "sha256:ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6",
+        "size_bytes": 184115
+      },
+      {
+        "id": 13697078091,
+        "name": "swcli-install-logs-42663675963-1",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-install.zip",
+        "sha256": "40e89bdac8b7f627b39edb8c64881ca22fe9a705f8c451b576a39be5b82c7d7e",
+        "github_digest": "sha256:40e89bdac8b7f627b39edb8c64881ca22fe9a705f8c451b576a39be5b82c7d7e",
+        "size_bytes": 3242118
+      },
+      {
+        "id": 13696111318,
+        "name": "swcli-portable-summary-3.9-42663675963-1",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-swcli-portable-summary-3.9-42663675963-1.zip",
+        "sha256": "b22c99bfb70a59f11ae6a86d2e5d50a98ed023c4170eaca3033d49606a4913aa",
+        "github_digest": "sha256:b22c99bfb70a59f11ae6a86d2e5d50a98ed023c4170eaca3033d49606a4913aa",
+        "size_bytes": 1070
+      },
+      {
+        "id": 13695512956,
+        "name": "swcli-package-summary-42663675963-1",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-swcli-package-summary-42663675963-1.zip",
+        "sha256": "f02b3b99f419fb0b7c5efccab901a3ed1484971709e2f9e2e5257eee255c8c44",
+        "github_digest": "sha256:f02b3b99f419fb0b7c5efccab901a3ed1484971709e2f9e2e5257eee255c8c44",
+        "size_bytes": 1012
+      },
+      {
+        "id": 13695393040,
+        "name": "swcli-dist",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-dist.zip",
+        "sha256": "330aae74155ffcc2d1e9547d0c0afeafd4e6e0145a61f954c141ebfa95b122fb",
+        "github_digest": "sha256:330aae74155ffcc2d1e9547d0c0afeafd4e6e0145a61f954c141ebfa95b122fb",
+        "size_bytes": 2232597
+      },
+      {
+        "id": 13694419783,
+        "name": "swcli-portable-summary-3.14-42663675963-1",
+        "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/original-swcli-portable-summary-3.14-42663675963-1.zip",
+        "sha256": "7d34b69c29c7e5dfaf9b6a2f9dfb5779bba75dc59434bd6415339b30dc71afef",
+        "github_digest": "sha256:7d34b69c29c7e5dfaf9b6a2f9dfb5779bba75dc59434bd6415339b30dc71afef",
+        "size_bytes": 1058
+      }
+    ],
+    "workflow_logs_sha256": "094ffa3d5283e5e1efc5cee48e42f89960973c8f154f0069632fb3832bf6f4e8"
+  },
+  "wheel_source_audit": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/wheel-source-audit.json",
+    "sha256": "de49e341a833fdb1bfddf289432d6940220a10a351349ab5f14ca7812486a296",
+    "wheel_sha256": "66b4dada1a4d8c5062300b1081215129fc9ecb9ce0f482764ee25a6182bc3832",
+    "matched_package_files": 127,
+    "comparison_head": "dd5a3ec5dd06594005d4b6f4b232c5460da1df13"
+  },
+  "repair": {
+    "commit": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+    "scope": "diagnostic fixture preparation and tests only",
+    "skip_current_before_show": true,
+    "different_configuration_single_show_strict_true": true,
+    "false_or_invalid_return_has_no_postflight_or_retry": true,
+    "record_raw_return_type_value_and_preparation_state": true,
+    "unchanged_function_asts": [
+      "observe_current",
+      "audit_read_trace",
+      "deadline_reason",
+      "supervise",
+      "read_constants"
+    ],
+    "byte_identical_paths": [
+      "src/swcli/hosts/windows_dimensions.py",
+      "src/swcli/hosts/windows_configurations.py",
+      "src/swcli/hosts/windows_documents.py",
+      "src/swcli/hosts/windows_save_as.py",
+      "src/swcli/hosts/glb_runtime_diagnostics.py",
+      "scripts/ci/verify-stl-options.py",
+      ".github/workflows/ci.yml"
+    ],
+    "native_validation": "not executed; coordinator owns VM and next combined CI"
+  },
+  "validation": {
+    "getter_tests": 14,
+    "portable_tests": 2584,
+    "portable_skipped": 27,
+    "portable_seconds": 74.208,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "actionlint": "passed with exit code 0",
+    "installed_resources": "passed, no COM activation",
+    "synthetic_old_code_regression": "9 tests, 1 expected error; already-current False is a synthetic counterexample, not the old native raw return"
+  },
+  "tested_file_sha256": {
+    "scripts/ci/verify-native-getter-configurations.py": "29b51d1eac4c13579fb46662d7b604ce619e5223cd1e06bd4bbf4eb5aa70b165",
+    "tests/test_native_getter_configurations.py": "ccaa6141cb1e32446dab67c0b5452b4716b29b613209f7a398b7ee7b6dd3f6c3",
+    "src/swcli/hosts/windows_dimensions.py": "c26f89a7536362f1b6d1876741b49194f0e3dac936d96870cf0404b78090183d",
+    "src/swcli/hosts/windows_configurations.py": "c337ff31ddfe98839e3a556b81e1b6de4ce6c50b756d8f75f38651ddba52539e",
+    "src/swcli/hosts/windows_documents.py": "c1be3a6696b3e56df2095ed410d022a9494143f7b89d033e7594a14bb33ea5a4",
+    "src/swcli/hosts/windows_save_as.py": "84cd59919884f050fc70c46f22dcc7fd7a6d0e20fdd6b3932a2f84154e90eb09",
+    "src/swcli/hosts/glb_runtime_diagnostics.py": "ce9d285993a702405b44a7b39d93fdc9c3eb9dc47c8faaed9cb7d6ebe1c17ca4",
+    "scripts/ci/verify-stl-options.py": "fe9cbd8eda7a0b8c87c051292749888065ebd47925494ed32504c2dd7326965e",
+    ".github/workflows/ci.yml": "ffcf1341e1e477247a111f83d2e0834d9973cd105fe6781dd1f2670632872b41"
+  },
+  "logs": {
+    "getter-noop-regression-before-fix.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-noop-regression-before-fix.log",
+      "sha256": "c9b2591ed07266dd38b86abf0f68f9366703aa366e42200ae7480bd1a0e639a0"
+    },
+    "getter-preparation-targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-preparation-targeted.log",
+      "sha256": "15ee4cfeb9189925a016ce367306656819177269cfdd3401cf66e6a60fdfd854"
+    },
+    "getter-preparation-full-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-preparation-full-portable.log",
+      "sha256": "298e77fac851fc351d16fe25266ce7d10dacac5bc647b09fcfaff7b4b609b0ff"
+    },
+    "getter-preparation-sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-preparation-sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    },
+    "getter-preparation-actionlint.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-preparation-actionlint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "getter-preparation-installed.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/getter-preparation-installed.log",
+      "sha256": "08897a2cf91d4a85ba58bc75c0c1f4d7b7f8691de42c64656e154451506cb6e4"
+    }
+  },
+  "references": {
+    "configuration_options": "https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swConfigurationOptions2_e.html",
+    "show_configuration": "https://help.solidworks.com/2025/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~ShowConfiguration2.html"
+  },
+  "state": "offline repair complete; no VM use or new dispatch in this update; no new getter read-window or GLB native acceptance"
+}
