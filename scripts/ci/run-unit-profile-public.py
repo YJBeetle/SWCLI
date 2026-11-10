@@ -1,6 +1,8 @@
 """One owned public-CLI host with 1800s group and 600s request budgets."""
 import argparse
+from datetime import datetime,timezone
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +14,8 @@ from swcli.host_processes import solidworks_process_ids
 
 spec=importlib.util.spec_from_file_location('_unit_public_evidence',Path(__file__).with_name('calibrate-document-unit-profile.py'))
 evidence=importlib.util.module_from_spec(spec);spec.loader.exec_module(evidence)
+spec=importlib.util.spec_from_file_location('_units_owned_native',Path(__file__).parent/'gate_support/unit_owned_native.py')
+owned_native=importlib.util.module_from_spec(spec);spec.loader.exec_module(owned_native)
 
 
 def group_expired(started,now):return now-started>1800
@@ -40,11 +44,40 @@ def execute(args):
         reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
     endpoint=f'127.0.0.1:{port}';report['endpoint']=endpoint;save()
     started=time.monotonic();daemon=worker=None;ready=False;native_process=None
-    failure=None
+    failure=None;enhanced=bool(getattr(args,'write_acceptance',False));native_capture_attempted=False;frontend_process=None;frontend_capture_attempted=False
+    def capture_early(required=False):
+        nonlocal native_process,native_capture_attempted
+        if not enhanced or native_capture_attempted:return
+        try:observed=json.loads((output/'cli/public-unit-profile.json').read_text())
+        except (FileNotFoundError,json.JSONDecodeError):
+            if required:raise RuntimeError('native ownership report unavailable')
+            return
+        if 'host' not in observed:
+            if required:raise RuntimeError('native ownership is not yet proven')
+            return
+        native_capture_attempted=True;host=observed['host'];pid=host['process_id']
+        evidence.require(type(pid) is int and pid>0 and pid not in before and host.get('owned_by_daemon') is True and host.get('visible') is False and host.get('shared_interactive') is False,'native process ownership is not proven')
+        native_process,identity=owned_native.capture(pid,report['daemon_launch_utc_timestamp'])
+        report.update(owned_native_pid=pid,owned_native_identity=identity,native_handle_captured_early=True);save()
+    def capture_frontend_if_available():
+        nonlocal frontend_process,frontend_capture_attempted
+        if not enhanced or frontend_capture_attempted:return
+        try:observed=json.loads((output/'cli/public-unit-profile.json').read_text())
+        except (FileNotFoundError,json.JSONDecodeError):return
+        frontend=observed.get('cli_frontend')
+        if not frontend or 'ready' not in frontend:return
+        frontend_capture_attempted=True
+        helper=(Path(__file__).parent/'gate_support/unit_cli_worker.py').resolve()
+        evidence.require(frontend['helper_path']==str(helper) and frontend['helper_sha256']==hashlib.sha256(helper.read_bytes()).hexdigest() and frontend['pid']==frontend['ready']['pid'] and frontend['command']==[sys.executable,'-I',str(helper)],'CLI frontend ownership metadata differs')
+        if frontend.get('exit_confirmed') is True:
+            report['cli_frontend_exit_confirmed_by_public']=frontend;save();return
+        frontend_process,identity=owned_native.capture(frontend['pid'],frontend['launch_utc_timestamp'],sys.executable,terminate_right=False)
+        report['cli_frontend_retained_identity']=identity;save()
     with (output/'daemon.stdout').open('wb') as stdout,(output/'daemon.stderr').open('wb') as stderr:
         try:
             command=[sys.executable,'-I','-m','swcli','daemon','serve','--host','127.0.0.1','--port',str(port),'--startup-timeout','120','--tray','off']
             report['daemon_command']=command;save()
+            report['daemon_launch_utc_timestamp']=datetime.now(timezone.utc).timestamp();save()
             daemon=subprocess.Popen(command,stdout=stdout,stderr=stderr,env={**os.environ,'SWCLI_TRACE_NATIVE_CALLS':'1'})
             report['daemon_pid']=daemon.pid;save()
             while time.monotonic()-started<=180:
@@ -59,8 +92,10 @@ def execute(args):
             with (output/'public.stdout').open('wb') as public_stdout,(output/'public.stderr').open('wb') as public_stderr:
                 worker=subprocess.Popen(command,stdout=public_stdout,stderr=public_stderr)
                 while worker.poll() is None:
+                    capture_early();capture_frontend_if_available()
                     evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
                     time.sleep(1)
+                capture_early(required=True)
                 evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
                 report['public_exit_code']=worker.returncode;save()
                 evidence.require(worker.returncode==0,'public CLI acceptance failed; see original records')
@@ -70,16 +105,22 @@ def execute(args):
             try:save()
             except BaseException as evidence_error:report['evidence_error']=str(evidence_error)
         finally:
-            if worker is not None and worker.poll() is None:worker.kill();worker.wait()
+            if worker is not None and worker.poll() is None:
+                try:worker.kill();worker.wait(timeout=10)
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='owned-public-process-exit',type=type(error).__name__,message=str(error)))
+                    if failure is None:failure=error
             if daemon is not None and ready and daemon.poll() is None:
                 try:
-                    cli=json.loads((output/'cli/public-unit-profile.json').read_text())
-                    host=cli['host'];pid=host['process_id']
-                    evidence.require(type(pid) is int and pid>0 and pid not in before
-                        and host.get('owned_by_daemon') is True and host.get('visible') is False
-                        and host.get('shared_interactive') is False,'native process ownership is not proven')
-                    report['owned_native_pid']=pid;save()
-                    native_process=capture_owned_native_process(pid)
+                    if enhanced:evidence.require(native_process is not None,'no native handle retained before public exit; do not reopen PID')
+                    else:
+                        cli=json.loads((output/'cli/public-unit-profile.json').read_text())
+                        host=cli['host'];pid=host['process_id']
+                        evidence.require(type(pid) is int and pid>0 and pid not in before
+                            and host.get('owned_by_daemon') is True and host.get('visible') is False
+                            and host.get('shared_interactive') is False,'native process ownership is not proven')
+                        report['owned_native_pid']=pid;save()
+                        native_process=capture_owned_native_process(pid)
                 except BaseException as error:
                     report['cleanup_errors'].append(dict(stage='capture-owned-native-process',type=type(error).__name__,message=str(error)))
                     if failure is None:failure=error
@@ -105,10 +146,40 @@ def execute(args):
             if daemon is not None and daemon.poll() is None:
                 # Only our retained Python process; never send stop to an
                 # unproven endpoint after startup failure. Native leftovers fail.
-                daemon.terminate()
-                try:daemon.wait(timeout=30)
-                except BaseException as error:report['cleanup_errors'].append(dict(stage='owned-daemon-exit',message=str(error)))
+                try:
+                    daemon.terminate();daemon.wait(timeout=30)
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='owned-daemon-exit',type=type(error).__name__,message=str(error)))
+                    if failure is None:failure=error
                 report['cleanup_errors'].append(dict(stage='owned-daemon-termination',message='graceful shutdown was not confirmed'))
+            if enhanced and native_process is not None and not report.get('owned_native_exit_confirmed'):
+                try:
+                    if not owned_native.exited(native_process):
+                        report['forced_native_termination_attempted']=True
+                        report['cleanup_errors'].append(dict(stage='forced-native-termination',message='emergency termination of this retained owned host; acceptance remains failed'));save()
+                        owned_native.terminate(native_process,report['owned_native_identity'])
+                        report['forced_native_termination_returned']=True
+                    wait_owned_native_process(native_process)
+                    report['owned_native_exit_confirmed']=True
+                    after=report['pids_after']=solidworks_process_ids()
+                    evidence.require(sorted(after)==sorted(before),'owned native exit changed preexisting PID inventory')
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='owned-native-emergency-exit',type=type(error).__name__,message=str(error)))
+                    if failure is None:failure=error
+            if frontend_process is not None:
+                try:
+                    # Read-only retained handle: EOF on public-parent exit must close it.
+                    # No helper PID search, replacement, or extra termination rights.
+                    wait_owned_native_process(frontend_process)
+                    report['cli_frontend_exit_confirmed_by_wrapper']=True
+                except BaseException as error:
+                    report['cleanup_errors'].append(dict(stage='cli-frontend-exit',type=type(error).__name__,message=str(error)))
+                    if failure is None:failure=error
+                finally:
+                    try:frontend_process.Close()
+                    except BaseException as error:
+                        report['cleanup_errors'].append(dict(stage='close-cli-frontend-handle',type=type(error).__name__,message=str(error)))
+                        if failure is None:failure=error
             if native_process is not None:
                 try:native_process.Close()
                 except BaseException as error:

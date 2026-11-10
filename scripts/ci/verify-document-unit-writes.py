@@ -90,13 +90,17 @@ class WriteGate(public.DurableGate):
             stream.write(json.dumps(row,ensure_ascii=False,allow_nan=False)+'\n');stream.flush();os.fsync(stream.fileno())
 
     def cleanup(self):
-        self.transport='cli'
-        try:return super().cleanup()
-        finally:
-            try:
-                if hasattr(self,'_clients'):self._clients.close()
-            finally:
-                if hasattr(self,'_cli_frontend'):self._cli_frontend.close()
+        self.transport='cli';failure=None;result=None
+        try:result=super().cleanup()
+        except BaseException as error:failure=error
+        for name,stage in (('_clients','sdk-mcp-frontend-exit'),('_cli_frontend','cli-frontend-exit')):
+            if not hasattr(self,name):continue
+            try:getattr(self,name).close()
+            except BaseException as error:
+                self.record['cleanup_errors'].append(dict(stage=stage,type=type(error).__name__,message=str(error)))
+                if failure is None:failure=error
+        if failure is not None:raise failure
+        return result
 
 
 def domain(before, field, value):

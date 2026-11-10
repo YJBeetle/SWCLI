@@ -142,3 +142,11 @@ class CLIFrontendTests(unittest.TestCase):
         with mock.patch.object(frontend.subprocess,'Popen',wraps=subprocess.Popen) as popen:
             with self.assertRaisesRegex(ValueError,'identity mismatch'):frontend.CLIFrontend(self.root,helper_path=path,metadata=metadata)
         self.assertEqual(popen.call_count,1);self.assertTrue(metadata['exit_confirmed']);self.assertEqual(metadata['exit_waits'],1);self.assertEqual(self.requests,[])
+
+    def test_later_frontend_cleanup_error_preserves_first_exit_failure_and_records_both(self):
+        gate=public.WriteGate(directory=self.root,host_directory=str(self.root),endpoint=self.endpoint,request_timeout_seconds=600)
+        gate._clients=mock.Mock();gate._cli_frontend=mock.Mock()
+        gate._clients.close.side_effect=RuntimeError('first MCP exit failure');gate._cli_frontend.close.side_effect=RuntimeError('second CLI exit failure')
+        with self.assertRaisesRegex(RuntimeError,'first MCP exit failure'):gate.cleanup()
+        gate._clients.close.assert_called_once();gate._cli_frontend.close.assert_called_once()
+        self.assertEqual([e['message'] for e in gate.record['cleanup_errors']],['first MCP exit failure','second CLI exit failure'])

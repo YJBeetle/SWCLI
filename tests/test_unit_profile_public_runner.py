@@ -37,7 +37,7 @@ class PublicRunnerTests(unittest.TestCase):
         self.capture=mock.Mock(return_value=self.native_process)
         self.native_wait=mock.Mock(side_effect=lambda handle:self.assertEqual(self.stop.call_count,1))
     def invoke(self,clock=None):
-        with mock.patch.object(runner,'capture_owned_native_process',self.capture),mock.patch.object(runner,'wait_owned_native_process',self.native_wait),mock.patch.object(runner,'solidworks_process_ids',return_value=[]),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.stop),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
+        with mock.patch.object(runner,'capture_owned_native_process',self.capture),mock.patch.object(runner,'wait_owned_native_process',self.native_wait),mock.patch.object(runner,'solidworks_process_ids',return_value=getattr(self,'inventory',[])),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.stop),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
             runner.execute(self.args)
     def test_success_creates_one_daemon_one_worker_and_shutdown_once(self):
         self.setup_case();self.invoke()
@@ -77,3 +77,129 @@ class PublicRunnerTests(unittest.TestCase):
         self.setup_case(worker_code=1);self.capture.side_effect=RuntimeError('capture failed')
         with self.assertRaisesRegex(RuntimeError,'public CLI acceptance failed'):self.invoke()
         self.stop.assert_called_once();self.native_wait.assert_not_called()
+
+
+class WritePublicEmergencyExitTests(unittest.TestCase):
+    setup_case=PublicRunnerTests.setup_case
+    def invoke(self,clock=None):
+        self.args.write_acceptance=True
+        self.identity=dict(pid=123,image=runner.owned_native.EXPECTED_CI_IMAGE,creation_utc='this-run',creation_timestamp=1.0)
+        self.verified_capture=mock.Mock(return_value=(self.native_process,self.identity),side_effect=getattr(self,'capture_side_effect',getattr(self,'capture_error',None)))
+        self.emergency=mock.Mock();self.is_exited=mock.Mock(return_value=False)
+        with mock.patch.object(runner.owned_native,'capture',self.verified_capture),mock.patch.object(runner.owned_native,'terminate',self.emergency),mock.patch.object(runner.owned_native,'exited',self.is_exited):
+            return PublicRunnerTests.invoke(self,clock)
+
+    def test_write_normal_exit_retains_identity_without_emergency_or_legacy_capture(self):
+        self.setup_case();self.invoke();self.verified_capture.assert_called_once();self.capture.assert_not_called();self.emergency.assert_not_called()
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertTrue(report['native_handle_captured_early']);self.assertEqual(report['owned_native_identity'],self.identity)
+
+    def test_budget_first_error_survives_active_document_and_single_proven_handle_termination(self):
+        self.setup_case();original=self.popen.side_effect
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:
+                result.returncode=None;result.poll=lambda:result.returncode
+                result.kill=mock.Mock(side_effect=lambda:setattr(result,'returncode',-9));result.wait=mock.Mock(return_value=-9)
+            return result
+        self.popen.side_effect=popen
+        self.stop.side_effect=lambda *a,**k:SimpleNamespace(returncode=1,stdout=b'{"success":false,"error":{"code":"ActiveDocument"}}',stderr=b'')
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1801,1802])
+        self.verified_capture.assert_called_once();self.stop.assert_called_once();self.daemon.terminate.assert_called_once();self.emergency.assert_called_once_with(self.native_process,self.identity);self.native_wait.assert_called_once_with(self.native_process)
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertFalse(report['success']);self.assertTrue(report['forced_native_termination_attempted']);self.assertTrue(report['owned_native_exit_confirmed']);self.assertEqual(report['pids_after'],[]);self.assertEqual(report['failure']['message'],'public group exceeded 1800s');self.assertTrue(report['cleanup_errors'])
+
+    def test_capture_identity_failure_never_terminates_native(self):
+        self.setup_case(worker_code=1);self.capture_error=RuntimeError('identity mismatch')
+        with self.assertRaisesRegex(RuntimeError,'identity mismatch'):self.invoke()
+        self.verified_capture.assert_called_once();self.emergency.assert_not_called();self.stop.assert_called_once();self.native_wait.assert_not_called()
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertFalse(report.get('owned_native_exit_confirmed',False));self.assertFalse(report.get('forced_native_termination_attempted',False))
+
+    def test_unknown_host_ownership_never_opens_or_kills_a_native_handle(self):
+        self.setup_case();original=self.popen.side_effect
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:
+                path=self.args.output_dir/'cli/public-unit-profile.json';report=json.loads(path.read_text());report['host']['shared_interactive']=True;path.write_text(json.dumps(report))
+            return result
+        self.popen.side_effect=popen
+        with self.assertRaisesRegex(RuntimeError,'ownership is not proven'):self.invoke()
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once()
+
+
+    def test_python_termination_error_does_not_replace_budget_first_error(self):
+        self.setup_case();original=self.popen.side_effect
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:
+                result.returncode=None;result.poll=lambda:result.returncode;result.kill=mock.Mock(side_effect=lambda:setattr(result,'returncode',-9));result.wait=mock.Mock(return_value=-9)
+            return result
+        self.popen.side_effect=popen
+        self.stop.side_effect=lambda *a,**k:SimpleNamespace(returncode=1,stdout=b'{"success":false,"error":{"code":"ActiveDocument"}}',stderr=b'')
+        self.daemon.terminate.side_effect=RuntimeError('retained Python exit denied')
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1801,1802])
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertEqual(report['failure']['message'],'public group exceeded 1800s');self.assertTrue(any(e.get('message')=='retained Python exit denied' for e in report['cleanup_errors']));self.emergency.assert_called_once_with(self.native_process,self.identity);self.assertFalse(report['success'])
+
+    def test_preexisting_native_pid_is_not_opened_or_terminated(self):
+        self.setup_case();self.inventory=[123]
+        with self.assertRaisesRegex(RuntimeError,'ownership is not proven'):self.invoke()
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once()
+
+    def test_frontend_retained_readonly_handle_is_waited_once_without_termination_rights(self):
+        import hashlib
+        import sys
+        self.setup_case();original=self.popen.side_effect;front=SimpleNamespace(Close=mock.Mock());helper=(ROOT/'scripts/ci/gate_support/unit_cli_worker.py').resolve()
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:
+                path=self.args.output_dir/'cli/public-unit-profile.json';value=json.loads(path.read_text());value['cli_frontend']=dict(pid=999,ready=dict(pid=999),helper_path=str(helper),helper_sha256=hashlib.sha256(helper.read_bytes()).hexdigest(),launch_utc_timestamp=1.0,command=[sys.executable,'-I',str(helper)]);path.write_text(json.dumps(value))
+                polls=iter([None,0]);result.poll=lambda:next(polls,0)
+            return result
+        self.popen.side_effect=popen
+        self.capture_side_effect=lambda pid,*a,**k:(self.native_process,dict(pid=123)) if pid==123 else (front,dict(pid=999))
+        with mock.patch.object(runner.time,'sleep'):self.invoke()
+        self.assertEqual(self.verified_capture.call_count,2);self.assertEqual(self.verified_capture.call_args_list[1].kwargs,dict(terminate_right=False))
+        self.assertEqual(self.verified_capture.call_args_list[1].args,(999,1.0,sys.executable));self.assertEqual(self.native_wait.call_count,2);self.emergency.assert_not_called();front.Close.assert_called_once()
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertTrue(report['cli_frontend_exit_confirmed_by_wrapper'])
+
+
+class NativeIdentityTests(unittest.TestCase):
+    def setUp(self):
+        self.native=runner.owned_native;self.handle=SimpleNamespace(Close=mock.Mock())
+        self.api=SimpleNamespace(OpenProcess=mock.Mock(return_value=self.handle),TerminateProcess=mock.Mock())
+        self.constants=SimpleNamespace(SYNCHRONIZE=0x100000,PROCESS_TERMINATE=1)
+        self.identity=dict(pid=123,image=self.native.EXPECTED_CI_IMAGE,creation_timestamp=200.0,creation_utc='identity')
+
+    def capture(self,identity):
+        with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=identity):
+            return self.native.capture(123,100.0)
+
+    def test_full_path_case_identity_validates_and_retains_exact_handle(self):
+        handle,identity=self.capture(self.identity);self.assertIs(handle,self.handle);self.assertEqual(identity,self.identity);self.handle.Close.assert_not_called()
+
+    def test_wrong_pid_old_or_future_creation_and_other_installation_close_without_kill(self):
+        for change in (dict(pid=999),dict(creation_timestamp=99.0),dict(creation_timestamp=float('inf')),dict(image=r'C:\Other\SLDWORKS.exe')):
+            self.handle.Close.reset_mock()
+            with self.subTest(change=change),self.assertRaises(RuntimeError):self.capture({**self.identity,**change})
+            self.handle.Close.assert_called_once();self.api.TerminateProcess.assert_not_called()
+
+    def test_termination_rechecks_same_handle_identity_and_never_reopens_pid(self):
+        with mock.patch.dict('sys.modules',win32api=self.api),mock.patch.object(self.native,'process_identity',return_value=self.identity):self.native.terminate(self.handle,self.identity)
+        self.api.TerminateProcess.assert_called_once_with(self.handle,1);self.api.OpenProcess.assert_not_called()
+        self.api.TerminateProcess.reset_mock()
+        with mock.patch.dict('sys.modules',win32api=self.api),mock.patch.object(self.native,'process_identity',return_value={**self.identity,'creation_timestamp':201}):
+            with self.assertRaisesRegex(RuntimeError,'identity changed'):self.native.terminate(self.handle,self.identity)
+        self.api.TerminateProcess.assert_not_called()
+
+    def test_frontend_handle_can_only_request_query_and_wait_rights(self):
+        import sys
+        with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value={**self.identity,'image':sys.executable}):
+            self.native.capture(123,100.0,sys.executable,terminate_right=False)
+        self.assertEqual(self.api.OpenProcess.call_args.args[0]&self.constants.PROCESS_TERMINATE,0)
+
+    def test_windows_identity_queries_pid_full_image_and_creation_on_the_same_handle(self):
+        import ctypes
+        from datetime import datetime,timezone
+        query=mock.Mock(side_effect=lambda handle,flags,buffer,size:(setattr(buffer,'value',self.native.EXPECTED_CI_IMAGE) or True))
+        kernel=SimpleNamespace(QueryFullProcessImageNameW=query)
+        process=SimpleNamespace(GetProcessId=mock.Mock(return_value=123),GetProcessTimes=mock.Mock(return_value=dict(CreationTime=datetime(2026,11,10,tzinfo=timezone.utc))))
+        with mock.patch.dict('sys.modules',win32process=process),mock.patch.object(ctypes,'WinDLL',return_value=kernel,create=True):identity=self.native.process_identity(4321)
+        self.assertEqual(identity['pid'],123);self.assertEqual(identity['image'],self.native.EXPECTED_CI_IMAGE);self.assertEqual(query.call_args.args[:2],(4321,0));process.GetProcessId.assert_called_once_with(4321);process.GetProcessTimes.assert_called_once_with(4321)
