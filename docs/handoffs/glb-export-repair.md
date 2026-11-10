@@ -1,5 +1,15 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-11 saved-A数值首错与独立预置证明计划
+
+统筹精确7119626本地单样件原件已核report SHA256 `8217746e38b75b1a7b52cadc64d682760b91397d99f684feb5ffbf56a2ab695b`。身份准备必要比较均严格int1，两次重建及现代SLDPRT保存true/0/0通过；第一个saved-A窗口实际GetSystemValue3(3,'默认')单次返回tuple[.02]，descriptor20mm，期望16，首错为native getter value/metadata mismatch。B及只读重开未到达；不得称四窗读取通过。原生调用worker84、监督器launch2604、SW3012，分别记录。
+
+官方SetSystemValue3 2025正文与可读Get3正文均允许Config_names为single BSTR或BSTR array。装机33类型库实证两者该参数为VARIANT，并不证明具体封送语义。当前不能断言BSTR非法、seed一定写错或产品Get3一定选错；不调整A期望、不重试API。本路产品和夹具仍保持7119626源码。
+
+建议先在原文件只读副本中、0 setter/Get3/rebuild/save地定位A草图，使用既有纯圆弧几何路径GetRadius：A半径10mm指向夹具真实几何为20；A半径8mm则与原Get3的20构成独立矛盾。若后续新夹具采用一次显式SAFEARRAY(BSTR) seed候选，必须先独立几何证明A半径8/B半径10，不能以被测Get3自证；每个saved/RO目标窗口前仍需独立几何检查，原Get3单次单BSTR及期望不变。此项只有方案，未实施。
+
+原件及阶段边界见 [saved-A首失败回执](../evidence/getter-saved-A-value-first-failure-2026-11-11.json)，绑定事实、官方来源、最小单变量候选及拟补反例见 [独立几何证明方案](../verification/getter-independent-geometry-proof-plan.md)。本轮没有VM/CI操作。
+
 ## 2026-11-10 身份比较准入修正
 
 统筹的精确 `28a1d0bda7a7efc96e92885f1def491464bc204f` 本地单样件报告已核SHA256 `02fb64ed05afdbeff0b89d405af1bfba59e2ab27e381bc94e64aa7aa93e2863c`。原件目录为 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-28a1d0b-01/`。B重建已实测bool True，Show A单次返回bool True；随后旧夹具跨配置比较IsSame(B,A)的严格0/1检查报native identity is unreadable。原返回值/类型未保存，不能补写为int2。observations仍空，保存/四窗/STL/GLB均未到达。原件及cleanup结果保留，不把本地准备通过算公共验收。

@@ -1,3 +1,11 @@
+# 两配置已到saved-A数值首错，独立几何证明待安排（2026-11-11）
+
+统筹7119626本地原件已核：身份准备、重建及现代原生保存通过；首个saved-A单次Get3返回20mm，期望16，B和只读重开均未到达。不能把夹具或产品选择器任一方预认首因，single BSTR在官方契约中允许。
+
+本路未改fixture/产品/CI。已准备 [原件首失败回执](docs/evidence/getter-saved-A-value-first-failure-2026-11-11.json) 和 [不依赖Get3的圆弧几何证明计划](docs/verification/getter-independent-geometry-proof-plan.md)：先读原A圆半径区分真实预置问题与Get3矛盾，再决定一次显式数组seed候选；不改期望、不自动重试。零CAD装机interop工具另行交接，暂不实现桥接或操作VM/CI。
+
+## 此前交接历史
+
 # 两配置身份门禁修正已完成离线验证（2026-11-10）
 
 28a1d0b本地原件已核：B重建和Show A单次bool True通过，首错为跨B/A配置的IsSame检查，原返回值缺失不能补写为2，保存和四个Get3读取窗口仍未到达。

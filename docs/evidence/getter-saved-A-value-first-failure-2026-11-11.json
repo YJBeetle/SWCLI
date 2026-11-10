@@ -1,0 +1,140 @@
+{
+  "local_run": {
+    "source_commit": "711962699978568b2c2b117fded9cf83fdbb4e93",
+    "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-7119626-01",
+    "report_sha256": "8217746e38b75b1a7b52cadc64d682760b91397d99f684feb5ffbf56a2ab695b",
+    "local_supervisor_sha256": "14b4a93c7b1c9973fb3a6d945b440aba8300744e4afe8574b1095525e0864cbc",
+    "host": {
+      "process_id": 3012,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "native_call_worker_pid": 84,
+    "supervisor_launch_pid": 2604,
+    "cleanup_errors": [],
+    "pids_before": [],
+    "pids_after": []
+  },
+  "reached": {
+    "preparation_identity": "required comparisons retained as strict int 1",
+    "B_A_rebuilds": [
+      {
+        "label": "B",
+        "attempted": true,
+        "return_type": "bool",
+        "return_value": true,
+        "success": true
+      },
+      {
+        "label": "A",
+        "attempted": true,
+        "return_type": "bool",
+        "return_value": true,
+        "success": true
+      }
+    ],
+    "modern_native_save": {
+      "ok": true,
+      "action": "document.save-as",
+      "output": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-7119626-01\\two-configurations.SLDPRT",
+      "document_before": {
+        "title": "零件1",
+        "path": "",
+        "type": 1,
+        "modified": true,
+        "update_stamp": 142
+      },
+      "save_attempted": true,
+      "api_saved": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "save_error_names": [],
+      "document": {
+        "title": "two-configurations.SLDPRT",
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-7119626-01\\two-configurations.SLDPRT",
+        "type": 1,
+        "modified": false,
+        "update_stamp": 142
+      },
+      "file_verification": {
+        "non_empty": true,
+        "minimum_size_valid": true
+      },
+      "artifact": {
+        "kind": "native-document",
+        "format": "SLDPRT",
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-7119626-01\\two-configurations.SLDPRT",
+        "size_bytes": 86295
+      }
+    },
+    "saved_A_observation": {
+      "phase": "saved",
+      "label": "A",
+      "request_id": "getters-saved-A",
+      "expected_configuration": "默认",
+      "expected_mm": 16.0,
+      "before": {
+        "metadata": [
+          1,
+          142,
+          false,
+          "默认"
+        ],
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-7119626-01\\two-configurations.SLDPRT",
+        "title": "two-configurations.SLDPRT",
+        "readonly": false
+      },
+      "dimension_name": "D1",
+      "dimension_native_type": 0,
+      "get3_calls": [
+        {
+          "which": 3,
+          "config_names": "默认",
+          "config_names_type": "str",
+          "return_type": "tuple",
+          "count": 1,
+          "values": [
+            0.02
+          ]
+        }
+      ],
+      "descriptor": {
+        "kind": "diameter",
+        "unit": "millimeter",
+        "value": 20.0,
+        "driven_state": 2,
+        "read_only": false,
+        "configuration": "默认",
+        "native_name": "D1@草图1@two-configurations.Part"
+      }
+    },
+    "saved_B_and_readonly_A_B": "not reached",
+    "STL_GLB_full_matrix": "not run by this single local fixture"
+  },
+  "failure": {
+    "type": "RuntimeError",
+    "message": "native getter value/metadata mismatch",
+    "unresolved": [
+      "fixture seed scope/context",
+      "GetSystemValue3 configuration argument binding/selection"
+    ],
+    "do_not_infer": "No independent A16/B20 geometry proof was retained; single BSTR is allowed by official documentation and is not proven illegal."
+  },
+  "retained_typelib_evidence": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/installed-dimension-contract.json",
+    "sha256": "ced3b7c6c1748f8daba03a4b2a35152e68ec00e44f59ce38db49535c75db3dec",
+    "sldworks_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+    "recollection": "not performed by this lane"
+  },
+  "review": {
+    "product_getter_fixture_ci_unchanged": true,
+    "independent_proof_plan": "docs/verification/getter-independent-geometry-proof-plan.md",
+    "candidate_seed_array_implemented": false,
+    "native_or_VM_activity_by_this_lane": false
+  },
+  "references": {
+    "SetSystemValue3_2025": "https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.interop.sldworks~SolidWorks.interop.sldworks.IDimension~SetSystemValue3.html",
+    "GetSystemValue3_readable_2020": "https://help.solidworks.com/2020/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDimension~GetSystemValue3.html",
+    "circle_geometry_2025": "https://help.solidworks.com/2025/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketchArc_members.html?id=2.2.1.359.0"
+  }
+}
