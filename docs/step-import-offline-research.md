@@ -121,3 +121,17 @@ python scripts/ci/verify-step-export-calibration.py `
 GitHub 元数据字段与 ZIP 摘要依据 [官方 artifact API](https://docs.github.com/en/rest/actions/artifacts)；手动分支入口依据 [官方 workflow_dispatch 说明](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)。
 
 接线便携验证：56 项 STEP 回归通过；全量 1875 项，26 项跳过，其余通过。13,824 种门禁组合通过；actionlint v1.7.12 和拒绝重复键的 YAML 解析通过。固定原 ZIP 已离线复验八个指定 receipt/文件身份。仍未执行这次诊断。
+
+## 首次固定原件诊断失败与最小下载修复（2026-11-10）
+
+[诊断 42664273210](https://github.com/YJBeetle/SWCLI/actions/runs/42664273210) 精确 head `671b388ef48ee3d1f1c602cef46c0c56b0c5e205`、workflow_dispatch、attempt 1。官方日志显示当前运行、旧运行和 artifact 元数据已经验证并保存，失败在 `actions/artifacts/13591430613/zip` 下载请求。私有输入、安装、运行环境准备和 reader 均 skipped，没有调用 GetImportFileData / LoadFile4，没有实际接口、选项、配置映射、返回模型或部分几何观测；这些字段均 unavailable，不能记录成零几何。
+
+本次原诊断 ZIP artifact `13695299906` SHA256 `7f3f827cbad03b2568501c5ddd22e1f7d728b007c4de052a588ff8a8044695f7`，仅含 diagnostic-run/source-run/source-artifact 三份元数据。官方 summary ZIP artifact `13695613449` SHA256 `36baf40dd977e88a9e14801fadb4d981149c5f89f7e6150df3fbc1b1d1d9282e`。两者已下载、核对 GitHub 摘要与源 head，原 ZIP/日志保存在 `step-evidence/diagnostic-original-42664273210/`，不改写。
+
+原脚本只记录泛化请求错误，原失败的 HTTP 状态未保存。对同一旧请求的无 CAD 复现明确返回 HTTP 415：`Unsupported 'Accept' header: 'application/octet-stream'. Must accept 'application/json'.` 这是已经证实的请求合同缺陷；不能声称原日志直接记录了 415，或将其归因于权限不足/文件数据/CAD。官方 [artifact API](https://docs.github.com/en/rest/actions/artifacts) 的 ZIP 请求仍采用 JSON API Accept，然后重定向至 ZIP；返回原字节和请求头协商是两件事。
+
+最小修复仅为 GitHub 请求统一使用 `application/vnd.github+json`；`binary=True` 仅控制成功响应不做 JSON 解码。失败保留 HTTP 状态、退出码和受限结构化消息，移除凭据/URL，不回显 stderr，不自动重试。修正请求的本地只读下载已得到与旧原 ZIP 逐字节相同的内容，SHA256 仍为 `de9e6312b9fbfa0c4b0001ae1f54ce5c36d24ea3f59ee435b691716bef1666e7`，八项 receipt/文件身份全部通过。
+
+General profile、MapConfigurationData 只读、固定源和八文件要求、工作流互斥、单 host、首错停及 600/1800 秒均未改变；没有重试失败的 CAD API。只有这个实质下载修复完成关联/完整便携验证后，才对新 head 安排一次必要诊断。它依然不是生产公开验收。
+
+修复验证：58 项 STEP 回归通过；全量 1877 项，26 项跳过，其余通过。本轮按统筹 0 CAD 要求只提交取件修复，不新增派发。工作流、权限和 secret 均未改变。

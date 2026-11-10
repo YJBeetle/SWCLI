@@ -164,12 +164,28 @@ def verify_files(files, *, target=lambda row: Path(row['path'])):
 
 class GitHub:
     def api(self, path, *, binary=False):
-        command = ['gh', 'api', '--hostname', 'github.com', 'repos/' + REPOSITORY + '/' + path]
-        if binary:
-            command += ['-H', 'Accept: application/octet-stream']
+        command = ['gh', 'api', '--hostname', 'github.com', 'repos/' + REPOSITORY + '/' + path,
+                   '-H', 'Accept: application/vnd.github+json']
         response = subprocess.run(command, capture_output=True, timeout=60)
-        # Never surface stderr, authorization, or signed download URLs.
-        require(response.returncode == 0, 'GitHub evidence request failed: ' + path)
+        # The API negotiates JSON even when its successful response redirects
+        # to raw ZIP bytes. binary controls decoding, not the Accept header.
+        if response.returncode:
+            try:
+                payload = json.loads(response.stdout)
+            except (ValueError, TypeError):
+                payload = {}
+            message = str(payload.get('message', 'No structured GitHub error'))
+            for key in ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN'):
+                secret = os.environ.get(key)
+                if secret:
+                    message = message.replace(secret, '[REDACTED]')
+            message = re.sub(r'https?://\S+', '[URL omitted]', message)
+            status = str(payload.get('status', 'unknown'))
+            if not re.fullmatch('[0-9]{3}', status):
+                status = 'unknown'
+            # Never surface stderr, authorization, or signed download URLs.
+            detail = dict(path=path, exit_code=response.returncode, http_status=status, message=message[:1024])
+            raise RuntimeError('GitHub evidence request failed: ' + json.dumps(detail))
         return response.stdout if binary else json.loads(response.stdout)
 
 

@@ -171,3 +171,28 @@ class StepOriginalImportTests(unittest.TestCase):
                 original.prepare(Path(directory).resolve()/'new',dict(run_id=42,head_sha='a'*40),api)
             self.assertEqual(api.api.call_count,2)
             restore.assert_not_called()
+
+
+    def test_archive_accepts_json_and_returns_unmodified_bytes_once(self):
+        raw=b'PK original archive bytes'
+        with mock.patch.object(original.subprocess,'run',return_value=mock.Mock(returncode=0,stdout=raw)) as request:
+            self.assertEqual(original.GitHub().api('actions/artifacts/13591430613/zip',binary=True),raw)
+            self.assertIn('Accept: application/vnd.github+json',request.call_args.args[0])
+            self.assertNotIn('Accept: application/octet-stream',request.call_args.args[0])
+            self.assertEqual(request.call_args.kwargs['timeout'],60)
+            request.assert_called_once()
+
+    def test_archive_http_error_retains_status_without_secret_url_stderr_or_retry(self):
+        response=mock.Mock(returncode=1,stdout=json.dumps(dict(status='415',
+            message='Unsupported Accept auth-secret https://blob.example/file?sig=signed-secret')).encode(),
+            stderr=b'private stderr-secret')
+        with mock.patch.dict(original.os.environ,{'GH_TOKEN':'auth-secret'}), \
+                mock.patch.object(original.subprocess,'run',return_value=response) as request:
+            with self.assertRaises(RuntimeError) as caught:
+                original.GitHub().api('actions/artifacts/13591430613/zip',binary=True)
+            error=str(caught.exception)
+            self.assertIn('415',error)
+            self.assertIn('Unsupported Accept',error)
+            for secret in ('auth-secret','signed-secret','stderr-secret','blob.example'):
+                self.assertNotIn(secret,error)
+            request.assert_called_once()
