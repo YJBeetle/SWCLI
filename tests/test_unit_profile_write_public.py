@@ -103,6 +103,9 @@ class WritePublicGateTests(unittest.TestCase):
         self.assertTrue(self.gate.record['changed_write_acceptance'])
         self.assertEqual(len(self.gate.record['unit_cases']),417)
         self.assertEqual(self.fake.changed_attempts,417)
+        self.assertEqual([p['document_type'] for p in self.gate.record['cold_start_coverage']['probes']],[1,2,3])
+        self.assertTrue(all(p['equal'] for p in self.gate.record['cold_start_coverage']['probes']))
+        self.assertEqual(self.gate.record['cli_process_strategy'],'isolated-reused-cli-main')
         self.assertEqual(self.fake.documents,{})
         self.assertTrue(any(c.get('custom_closed_refusal') for c in self.gate.record['unit_cases']))
 
@@ -181,3 +184,17 @@ class WritePublicGateTests(unittest.TestCase):
         result=json.loads(output.getvalue());self.assertFalse(result['ok'])
         self.assertEqual(result['error']['type'],'ValueError')
         self.assertEqual(result['error']['message'],'unsupported candidate unit target')
+
+    def test_independent_cold_probe_snapshot_drift_stops_before_changed_setter(self):
+        import subprocess
+        def run(command,**options):
+            result=self.fake.run(command,**options)
+            if self.gate.cold_probe:
+                payload=json.loads(result.stdout);payload['unit_profile']['linkage']['swUnitsTimeUnits']+=1
+                return subprocess.CompletedProcess(command,result.returncode,json.dumps(payload).encode(),result.stderr)
+            return result
+        with mock.patch.object(catalog,'CALIBRATED_UNIT_WRITES',self.domains),mock.patch.object(catalog,'CALIBRATED_UNIT_SYSTEM_RESULTS',self.results),mock.patch.object(self.gate,'run_command',side_effect=run),mock.patch.object(self.gate,'checkpoint'),mock.patch('sys.stdout',new=io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError,'fresh CLI probe differs'):
+                try:public.run(self.gate,self.fixtures,[])
+                finally:self.gate.cleanup()
+        self.assertEqual(self.fake.changed_attempts,0)

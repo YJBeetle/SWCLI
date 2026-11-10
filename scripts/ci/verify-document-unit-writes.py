@@ -16,11 +16,20 @@ public=importlib.util.module_from_spec(spec);spec.loader.exec_module(public)
 require=public.require
 spec=importlib.util.spec_from_file_location('_unit_public_transports',Path(__file__).parent/'gate_support/unit_public_transports.py')
 transports=importlib.util.module_from_spec(spec);spec.loader.exec_module(transports)
+spec=importlib.util.spec_from_file_location('_unit_cli_frontend',Path(__file__).parent/'gate_support/unit_cli_frontend.py')
+frontend=importlib.util.module_from_spec(spec);spec.loader.exec_module(frontend)
 
 
 class WriteGate(public.DurableGate):
     transport='cli'
     wire_sequence=0
+    cold_probe=False
+
+    def cli_frontend(self):
+        if not hasattr(self,'_cli_frontend'):
+            metadata=self.record['cli_frontend']={}
+            self._cli_frontend=frontend.CLIFrontend(self.directory,metadata=metadata)
+        return self._cli_frontend
 
     def clients(self):
         if not hasattr(self,'_clients'):
@@ -36,9 +45,21 @@ class WriteGate(public.DurableGate):
     def _run_transport_command(self,command,**options):
         # Lifecycle status remains the existing CLI. All typed CAD operations
         # in SDK/MCP phases use the actual SDK/stdio transport, no COM shortcuts.
-        if self.transport=='cli' or 'daemon' in command:
-            self.record['events'][-1]['transport']='cli'
+        if self.cold_probe or 'daemon' in command:
+            self.record['events'][-1].update(transport='cli',cli_process_strategy='fresh-subprocess',cold_start_probe=self.cold_probe)
             return super().run_command(command,**options)
+        if self.transport=='cli':
+            event=self.record['events'][-1];event.update(transport='cli',cli_process_strategy='isolated-reused-cli-main')
+            client=self.cli_frontend()
+            def before_send(request):
+                event.update(cli_frontend_request=request,cli_frontend_request_json=client.last_request);self.checkpoint('cli.frontend.request.started',event=event)
+            def after_receive(raw):
+                event['cli_frontend_reply']=raw;self.checkpoint('cli.frontend.reply.received',event=event)
+            try:return client.invoke(command[command.index('--endpoint'):],timeout=options['timeout'],before_send=before_send,after_receive=after_receive)
+            except BaseException as error:
+                for attribute in ('raw_frame','partial_stdout','outcome_unknown'):
+                    if hasattr(error,attribute):event['cli_frontend_'+attribute]=getattr(error,attribute)
+                raise
         event=self.record['events'][-1]
         request=self.clients().prepare(command)
         event.update(transport=self.transport,wire_request=request)
@@ -55,7 +76,11 @@ class WriteGate(public.DurableGate):
 
     def checkpoint(self,stage,*,event=None):
         self.record['stage']=stage
-        if event is None:return super().checkpoint(stage)
+        if event is None:
+            # Same complete history and semantic checkpoints; only JSON whitespace changes.
+            raw=(json.dumps(self.record,ensure_ascii=True,allow_nan=False,separators=(',',':'))+'\n').encode()
+            with self.record_path.open('wb') as stream:stream.write(raw);stream.flush();os.fsync(stream.fileno())
+            return
         # Every complete raw request/reply is durable before/after transport IO.
         # Semantic/intent/final checkpoints still persist the complete report.
         self.wire_sequence+=1
@@ -68,7 +93,10 @@ class WriteGate(public.DurableGate):
         self.transport='cli'
         try:return super().cleanup()
         finally:
-            if hasattr(self,'_clients'):self._clients.close()
+            try:
+                if hasattr(self,'_clients'):self._clients.close()
+            finally:
+                if hasattr(self,'_cli_frontend'):self._cli_frontend.close()
 
 
 def domain(before, field, value):
@@ -189,6 +217,7 @@ def uncalibrated_custom_target(before):
 def run(gate,fixtures,prior_pids):
     gate.record.update(profile='units-public-writes-v1',success=False,full_acceptance_eligible=False,
                        changed_write_acceptance=False,changed_write_attempted=True,unit_cases=[])
+    gate.record.update(cli_process_strategy='isolated-reused-cli-main',cold_start_coverage=dict(strategy='one extra fresh python -I -m swcli read per document type; not 139 cold starts',probes=[]))
     # Capture ownership before evidence preflight so a preflight failure still
     # leaves the wrapper enough proof to stop this exact owned host once.
     from swcli import document_unit_write_domains as admission
@@ -234,6 +263,16 @@ def run(gate,fixtures,prior_pids):
         before=case['read']=public.read(gate,document)
         require(catalog.typed_key(before['unit_profile'])==catalog.typed_key(expected['before']),
                 'public source differs from independently calibrated complete profile')
+        probes=gate.record['cold_start_coverage']['probes']
+        if transport=='cli' and not any(p['document_type']==key[0] for p in probes):
+            helper_event=gate.record['events'][-1]
+            gate.cold_probe=True
+            try:cold=public.read(gate,document)
+            finally:gate.cold_probe=False
+            require(cold==before,'fresh CLI probe differs from unchanged helper snapshot/state/contract')
+            probe_event=gate.record['events'][-1]
+            probes.append(dict(document_type=key[0],helper_stdout=helper_event['stdout'],fresh_stdout=probe_event['stdout'],helper_document=before['document'],snapshot=before['unit_profile'],equal=True))
+            gate.checkpoint('unit-write-cold-start-probe')
         if key[0]==1:case['geometry_before']=public.geometry(gate,document)
         field,value=expected['field'],expected['value']
         same=before['unit_profile']['values'][field]['value']
