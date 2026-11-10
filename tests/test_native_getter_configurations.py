@@ -27,7 +27,7 @@ class Document:
         self.values = values or {"A": .016}
         self.path, self.title, self.stamp = "", "Unsaved", 7
         self.readonly = readonly
-        self.getters, self.setters, self.selections = [], [], []
+        self.getters, self.setters, self.selections, self.rebuilds = [], [], [], []
         self.dimension = Dimension(self)
         self.SketchManager = SimpleNamespace(ActiveSketch=None)
     def GetType(self): return 1
@@ -37,7 +37,9 @@ class Document:
     def GetTitle(self): return self.title
     def IsOpenedReadOnly(self): return self.readonly
     def GetConfigurationNames(self): return tuple(self.configurations)
-    def EditRebuild3(self): return True
+    def EditRebuild3(self):
+        self.rebuilds.append(True)
+        return True
     def add_configuration(self, *args):
         assert args == ("Getter_B", "getter fixture", "", 0, "", "diagnostic only", True)
         name = args[0]
@@ -54,6 +56,21 @@ class Document:
     def Parameter(self, name):
         assert name == self.dimension.FullName, "must bind saved name after rename"
         return self.dimension
+
+
+class RebuildBinding:
+    def __init__(self, binding, value=True, error=None):
+        self.binding, self.value, self.error = binding, value, error
+        self.reads = self.evaluations = 0
+    def evaluate(self):
+        self.evaluations += 1
+        if self.error is not None:
+            raise self.error
+        return self.value
+    @property
+    def EditRebuild3(self):
+        self.reads += 1
+        return self.evaluate() if self.binding == "value" else self.evaluate
 
 
 class Dimension:
@@ -223,16 +240,63 @@ class GetterFixtureTests(unittest.TestCase):
         self.assertEqual(record["show_exception"]["type"], "ValueError")
         self.assertNotIn("after_name", record)
 
+    def test_preparation_rebuild_accepts_value_or_callable_once(self):
+        for binding in ("value", "callable"):
+            with self.subTest(binding=binding):
+                doc, record, calls = RebuildBinding(binding), {}, []
+                def call(name, function):
+                    calls.append(name)
+                    return function()
+                getter.rebuild_fixture(doc, "B", call, record)
+                self.assertEqual((doc.reads, doc.evaluations), (1, 1))
+                self.assertEqual(calls, ["prepare-rebuild-B"])
+                self.assertEqual(record, dict(attempted=True, return_type="bool", return_value=True, success=True))
+
+    def test_preparation_rebuild_false_and_invalid_values_refuse_without_retry(self):
+        for binding in ("value", "callable"):
+            for value in (False, 0, 1, -1, None, "True"):
+                with self.subTest(binding=binding, value=value):
+                    doc, record = RebuildBinding(binding, value), {}
+                    with self.assertRaisesRegex(RuntimeError, "B rebuild failed"):
+                        getter.rebuild_fixture(doc, "B", lambda name, function: function(), record)
+                    self.assertEqual((doc.reads, doc.evaluations), (1, 1))
+                    self.assertEqual(record["return_type"], type(value).__name__)
+                    self.assertEqual(record["return_value"], value)
+                    self.assertNotIn("success", record)
+
+    def test_preparation_rebuild_retains_first_exception_for_either_binding(self):
+        for binding in ("value", "callable"):
+            with self.subTest(binding=binding):
+                original = ValueError("first rebuild failure")
+                doc, record = RebuildBinding(binding, error=original), {}
+                with self.assertRaises(ValueError) as caught:
+                    getter.rebuild_fixture(doc, "A", lambda name, function: function(), record)
+                self.assertIs(caught.exception, original)
+                self.assertEqual((doc.reads, doc.evaluations), (1, 1))
+                self.assertEqual(record, dict(attempted=True, exception=dict(type="ValueError", message="first rebuild failure")))
+                self.assertNotIn("return_value", record)
+
     def test_saved_and_reopened_distinct_values_and_renamed_fullname(self):
+        self.assert_complete_saved_fixture(Document)
+
+    def test_saved_fixture_with_boolean_noarg_rebuild_binding(self):
+        class BooleanRebuildDocument(Document):
+            @property
+            def EditRebuild3(self):
+                self.rebuilds.append(True)
+                return True
+        self.assert_complete_saved_fixture(BooleanRebuildDocument)
+
+    def assert_complete_saved_fixture(self, document_type):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary); swconst = output / "swconst.tlb"; swconst.write_bytes(b"mock typelib")
-            doc = Document(); app = app_for(doc); documents = [doc]; live = {}; case = {}; report = {"host":{"process_id":123}}
+            doc = document_type(); app = app_for(doc); documents = [doc]; live = {}; case = {}; report = {"host":{"process_id":123}}
             def save(path, *, document):
                 Path(path).write_bytes(b"saved fixture")
                 document.path, document.title = path, "two-configurations.SLDPRT"
                 return dict(ok=True, api_saved=True, save_errors=0, save_warnings=0)
             def reopen(path, **kwargs):
-                opened = Document(values=doc.values.copy(), readonly=True)
+                opened = document_type(values=doc.values.copy(), readonly=True)
                 opened.configurations["Getter_B"] = SimpleNamespace(Name="Getter_B")
                 opened.path, opened.title = path, doc.title
                 documents.append(opened); app.ActiveDoc = opened
@@ -248,6 +312,11 @@ class GetterFixtureTests(unittest.TestCase):
                     mock.patch.object(getter,"open_windows_document_with_handle",side_effect=reopen):
                 getter.calibrate_case(app,output,{},"front",False,lambda name, fn:fn(),case,report,live,profile_kind="part")
             self.assertTrue(case["success"])
+            self.assertEqual(doc.rebuilds, [True, True])
+            self.assertEqual(case["rebuild_preparation"], [
+                dict(label=label, attempted=True, return_type="bool", return_value=True, success=True)
+                for label in ("B", "A")])
+            self.assertEqual(documents[1].rebuilds, [])
             self.assertEqual(case["after_dimension_creation_edit_state"], dict(status="observed", active_sketch=False))
             self.assertEqual(case["preparation_complete_edit_state"], dict(status="observed", active_sketch=False))
             self.assertEqual(len(case["configuration_preparation"]), 6)

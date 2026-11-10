@@ -1,5 +1,17 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-10 本地首错：无参重建绑定
+
+统筹在其独占Windows VM中，以精确 `70d8c9ecf3c02b099ca9c2cc64fe1880061cea44` 和明确local/private driver，仅运行一个两配置样件。原件目录为 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-70d8c9e-01/`。原report SHA256已重算匹配 `5a607ed5119064a7e2c92c19cdbdcd0772723d9c810b26315ac49d36ea37c1a0`；SW33.5.0、owned host3928、worker2832，Python3.14.7 x64。运行31.386s首错停止，supervisor的pids before/after均空，worker_exit=1，report.cleanup_errors=[]。这是本地私有诊断，ci/public/full acceptance标记均false。
+
+本次实际观察到AddConfiguration2后Getter_B已经current，show_attempted=false、前后Name相同、两次IsSame均true，active_sketch=false；70d的预先跳过路径在该宿主通过。该结果不补填旧CI42663675963缺失的current/raw return。prepare-B-value结束后，prepare-rebuild-B在 `document.EditRebuild3()` 产生 `TypeError: 'bool' object is not callable`：动态绑定已经返回bool，随后Python追加调用失败。布尔原值未保留，不能声称实际True或重建成功；保存及四个读取窗口仍未到达，没有新增STL/GLB验收。
+
+本次仅将两处B/A无参重建统一交给项目既有 `_com_value(document, "EditRebuild3")`，与windows_documents重建惯例一致；不做bool强转，仍严格要求 `status is True`，每个边界仅一次求值。新增重建准备记录保留attempted、真实返回类型/值或首个异常，再原样失败；False/非法类型/异常无fallback、无重试。脚本其余无参SOLIDWORKS成员已使用_com_value；剩余直接无参调用只是显式类型库接口GetTypeInfoCount/GetTypeAttr，没有新增动态文档无参调用。
+
+完整布尔绑定夹具在旧代码上先复现同一TypeError。修正后18项关联通过：布尔属性和真正callable各跑完整saved/RO四窗，B/A各仅一次重建；两种绑定的False/0/1/-1/None/string拒绝及原异常保留均通过。完整2588项OK（27环境跳过，79.421s），SDK strict6文件/31类型拒绝例通过，diff检查通过。产品src、CI和STL原门禁逐字节未变；读取窗口、配置选择、trace审核、常量和600/1800预算七个函数AST不变。原件/源码/日志hash详见 [无参绑定修正回执](../evidence/getter-rebuild-binding-2026-11-10.json)。
+
+本路只完成离线修正与本地提交，不push或派CI，不操作VM。统筹继续安排精确新提交的小范围原生API验证；任何本地通过也不替代完整CI。原70d失败文件保留，后续结果写入独立目录，不覆盖原件。
+
 ## 2026-11-10 组合首失败与最小夹具修正
 
 唯一一次组合运行 [42663675963](https://github.com/YJBeetle/SWCLI/actions/runs/42663675963)，精确 head `dd5a3ec5dd06594005d4b6f4b232c5460da1df13`，结论 failure。六份官方 artifact ZIP 已保存，尺寸、CRC 与 GitHub SHA256 digest 均匹配；安装原日志仅保留本地。native 原 ZIP 为 `original-native.zip`，184115 bytes，artifact `13697876346`，SHA256 `ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6`。原件根为 `/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/run-42663675963/`，run/jobs/artifacts JSON、完整日志 ZIP 和解压报告均保留。dist wheel 的127个包文件与该 head 逐字节相同。

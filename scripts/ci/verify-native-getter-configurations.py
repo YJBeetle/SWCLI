@@ -165,6 +165,18 @@ def select_fixture_configuration(app, document, name, call, record):
     record["success"] = True
 
 
+def rebuild_fixture(document, label, call, record):
+    record["attempted"] = True
+    try:
+        status = call("prepare-rebuild-" + label, lambda: _com_value(document, "EditRebuild3"))
+    except Exception as error:
+        record["exception"] = dict(type=type(error).__name__, message=str(error))
+        raise
+    record.update(return_type=type(status).__name__, return_value=json_value(status))
+    require(status is True, label + " rebuild failed")
+    record["success"] = True
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
     import pythoncom
     case.update(preparation_only=True, public_acceptance=False, observations=[])
@@ -177,10 +189,15 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     original_name = active_configuration_name(document)
     case["configuration_A"] = original_name
     preparation = case.setdefault("configuration_preparation", [])
+    rebuilds = case.setdefault("rebuild_preparation", [])
     def select(name, phase):
         record = dict(phase=phase)
         preparation.append(record)
         select_fixture_configuration(app, document, name, call, record)
+    def rebuild(label):
+        record = dict(label=label)
+        rebuilds.append(record)
+        rebuild_fixture(document, label, call, record)
     require(original_name != "Getter_B", "fixture initial configuration collides with B")
     circle, sketch = call("prepare-circle", lambda: create_circle_sketch_windows_with_handle(
         app=app, document=document, plane="front", radius_mm=8))
@@ -199,12 +216,12 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     status = call("prepare-B-value", lambda: dimension.SetSystemValue3(
         .020, enums["swSetValue_InSpecificConfigurations"], second_name))
     require(type(status) is int and status == 0, "B seed write failed")
-    require(call("prepare-rebuild-B", lambda: document.EditRebuild3()) is True, "B rebuild failed")
+    rebuild("B")
     names = _com_value(document, "GetConfigurationNames")
     require(isinstance(names, (tuple, list)) and len(names) == 2 and set(names) == {original_name, second_name},
             "fixture must have exactly two configurations")
     select(original_name, "rebuild-A")
-    require(call("prepare-rebuild-A", lambda: document.EditRebuild3()) is True, "A rebuild failed")
+    rebuild("A")
     case.update(configuration_A=original_name, configuration_B=second_name,
                 preparation_complete_edit_state=preparation_edit_state(document))
     path = output / "two-configurations.SLDPRT"

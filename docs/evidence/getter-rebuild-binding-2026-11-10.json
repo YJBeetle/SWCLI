@@ -1,0 +1,165 @@
+{
+  "local_failure": {
+    "source_commit": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+    "execution_kind": "authorized-local-private-single-fixture",
+    "ci_acceptance": false,
+    "public_acceptance": false,
+    "full_acceptance_eligible": false,
+    "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-70d8c9e-01",
+    "original_files": {
+      "local-supervisor.json": {
+        "size_bytes": 819,
+        "sha256": "327dc9f7391d9c630e86242bbd064c76ed6d2a77f6fd25a4c23394884f2d8214"
+      },
+      "worker.stdout.log": {
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "report.json": {
+        "size_bytes": 3421,
+        "sha256": "5a607ed5119064a7e2c92c19cdbdcd0772723d9c810b26315ac49d36ea37c1a0"
+      },
+      "worker.stderr.log": {
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "trace.jsonl": {
+        "size_bytes": 2436,
+        "sha256": "17700f8e5d1fa2ec64bfb46b83c447ffa9fc9d65d205ea15863aeca0d48988c8"
+      }
+    },
+    "host": {
+      "process_id": 3928,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "worker_pid": 2832,
+    "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "elapsed_seconds": 31.385623582999983,
+    "configuration_preparation": [
+      {
+        "phase": "seed-B",
+        "target": "Getter_B",
+        "show_attempted": false,
+        "before_edit_state": {
+          "status": "observed",
+          "active_sketch": false
+        },
+        "before_name": "Getter_B",
+        "skipped_already_current": true,
+        "after_name": "Getter_B",
+        "same_active_object": true,
+        "same_before_after_object": true,
+        "after_edit_state": {
+          "status": "observed",
+          "active_sketch": false
+        },
+        "success": true
+      }
+    ],
+    "failure": {
+      "type": "TypeError",
+      "message": "'bool' object is not callable",
+      "phase": "prepare-rebuild-B",
+      "native_boolean_value": "not retained; TypeError establishes a Boolean was called as a Python function, not its value or rebuild success"
+    },
+    "reached": "B is current after AddConfiguration2; zero-Show skip and stable configuration identity observed; B value preparation ended; B rebuild boundary failed",
+    "not_reached": [
+      "native fixture save",
+      "saved/reopened A/B getter observation windows",
+      "STL",
+      "GLB",
+      "full matrix"
+    ],
+    "observations": [],
+    "cleanup_errors": [],
+    "local_supervisor": {
+      "source_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+      "source_archive_sha256": "06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53",
+      "execution_kind": "authorized-local-private-single-fixture",
+      "ci_acceptance": false,
+      "full_acceptance_eligible": false,
+      "public_acceptance": false,
+      "pids_before": [],
+      "native_timeout_seconds": 600,
+      "group_timeout_seconds": 1800,
+      "python": "C:\\Workspace\\SWCLI\\.venv\\Scripts\\python.exe",
+      "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "success": false,
+      "worker_pid": 2832,
+      "worker_exit": 1,
+      "failure": null,
+      "elapsed_seconds": 31.385623582999983,
+      "pids_after": [],
+      "report_sha256": "5a607ed5119064a7e2c92c19cdbdcd0772723d9c810b26315ac49d36ea37c1a0"
+    },
+    "old_ci_inference_boundary": "This local observation does not backfill current/raw return values missing from CI 42663675963."
+  },
+  "repair": {
+    "base_commit": "8232447e2481b50e79342193de49910fe2af833b",
+    "scope": "diagnostic fixture preparation and tests only",
+    "call": "existing _com_value(document, EditRebuild3) once at each B/A preparation boundary",
+    "return_requirement": "status is True; no bool coercion, fallback or retry",
+    "retained_evidence": [
+      "attempted",
+      "raw return type",
+      "JSON-safe raw return value",
+      "original exception type/message"
+    ],
+    "unchanged_function_asts": [
+      "observe_current",
+      "audit_read_trace",
+      "deadline_reason",
+      "supervise",
+      "read_constants",
+      "select_fixture_configuration",
+      "preparation_edit_state"
+    ],
+    "product_src_ci_and_stl_unchanged": true,
+    "noarg_audit": {
+      "remaining_direct_noarg_solidworks_calls": [],
+      "remaining_explicit_typelib_calls": [
+        "library.GetTypeInfoCount",
+        "info.GetTypeAttr"
+      ]
+    },
+    "native_validation": "pending coordinator controlled local single-fixture run; no VM use or new CI by this lane"
+  },
+  "validation": {
+    "regression_before_fix": "one full Boolean-binding fixture test reproduces TypeError bool object is not callable before fix",
+    "targeted_tests": 18,
+    "portable_tests": 2588,
+    "portable_skipped": 27,
+    "portable_seconds": 79.421,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "git_diff_check": "passed"
+  },
+  "tested_file_sha256": {
+    "scripts/ci/verify-native-getter-configurations.py": "dba3afa08a407df7d521ede984714b01d999960c0c1d45a873a807c8d8bb2d84",
+    "tests/test_native_getter_configurations.py": "dfd7f9ea6d1a7f7705bed20775888225e302929028690e63994a630d1004f154"
+  },
+  "logs": {
+    "regression-before-fix.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/rebuild-binding-70d8c9e/regression-before-fix.log",
+      "sha256": "84c3e5d45ad2b4fbcffbbf8c6bfe842af7c66cc98c3881b6a96b7e7622ed7aae"
+    },
+    "targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/rebuild-binding-70d8c9e/targeted.log",
+      "sha256": "dbb0f5bf7c40a67fd4dfb7864788aea09ca95a39050757964c66f06c2ae412e3"
+    },
+    "full-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/rebuild-binding-70d8c9e/full-portable.log",
+      "sha256": "c443efab75d0dd535c068447202ef91b3d498952ce1ed250539ea66257ca817f"
+    },
+    "sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/rebuild-binding-70d8c9e/sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    },
+    "source-audit.json": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261110/rebuild-binding-70d8c9e/source-audit.json",
+      "sha256": "2f74596a3b42dedfcc7ed49c418ddca80502a73b98b88f3960501ab941a81638"
+    }
+  },
+  "state": "offline fix complete; local commit only; no new push, workflow dispatch, VM operation, main integration or release in this update"
+}

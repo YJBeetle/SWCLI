@@ -1,3 +1,13 @@
+# 无参重建绑定最小修正，待统筹再次本地验证（2026-11-10）
+
+统筹的精确70d8c9e单样件原件已核SHA：创建B后已current，0Show跳过与对象身份通过；随后prepare-rebuild-B的 `document.EditRebuild3()` 因动态绑定已返回bool而追加调用失败。布尔原值未记录，四个读取窗口、保存、STL/GLB仍未到达；不能回填旧CI缺测或声称getter通过。
+
+仅改诊断夹具两处无参重建，使用项目既有 `_com_value(document, "EditRebuild3")`，每边界一次且严格True；记录原始类型/值或首异常，False不吞、不重试。布尔绑定完整反例先复现旧错误，修正后18关联/2588完整（27skip）及SDK strict6/31拒绝通过。产品src/CI/STL和读窗口/配置选择/预算不变。
+
+本轮本地提交，不push、不派CI、不操作VM；由统筹使用精确新head继续独立目录的小范围原生API验证。原件目录、hash和全部检查见 [无参绑定回执](docs/evidence/getter-rebuild-binding-2026-11-10.json) 与 [详细交接](docs/handoffs/glb-export-repair.md)。
+
+## 此前交接历史
+
 # 组合首失败已归档，最小夹具修正待统筹原生验证（2026-11-10）
 
 组合 run42663675963 / dd5a3ec 失败于两配置夹具准备：prepare-select-Getter_B 返回值未满足is True。原值/类型和切换前current未记录，不能补写为False或已激活B。installed modern contract通过；四个Get3读窗口、STL前置和原full/GLB均未到达。六份官方ZIP的尺寸/CRC/SHA与GitHub匹配，原wheel127个包文件与dd5a3ec逐字节一致。native原ZIP SHA256为 `ab38c312bb92b06c5efbc443dba4f9cd98ebee1d40150c59ebedc31ca2f4b2c6`。
