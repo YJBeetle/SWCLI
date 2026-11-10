@@ -156,9 +156,19 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
         self.popen.side_effect=popen
         self.capture_side_effect=lambda pid,*a,**k:(self.native_process,dict(pid=123)) if pid==123 else (front,dict(pid=999))
         with mock.patch.object(runner.time,'sleep'):self.invoke()
-        self.assertEqual(self.verified_capture.call_count,2);self.assertEqual(self.verified_capture.call_args_list[1].kwargs,dict(terminate_right=False))
+        self.assertEqual(self.verified_capture.call_count,2);self.assertIs(self.verified_capture.call_args_list[1].kwargs['terminate_right'],False);self.assertTrue(callable(self.verified_capture.call_args_list[1].kwargs['observe']))
         self.assertEqual(self.verified_capture.call_args_list[1].args,(999,1.0,sys.executable));self.assertEqual(self.native_wait.call_count,2);self.emergency.assert_not_called();front.Close.assert_called_once()
         report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertTrue(report['cli_frontend_exit_confirmed_by_wrapper'])
+
+
+    def test_wrapper_keeps_observation_and_first_error_when_capture_fails(self):
+        self.setup_case();self.args.write_acceptance=True
+        value=dict(requested_pid=123,expected_image=runner.owned_native.EXPECTED_CI_IMAGE,observed_identity=dict(pid=123,image=r'C:\Other\SLDWORKS.exe',creation_timestamp=1.0),image_query=dict(returned_chars=29,image_length_py_chars=29))
+        error=RuntimeError('native full image differs from this CI installation');error.identity_observation=value;error.identity_handle_close_error='close detail'
+        def capture(*args,**options):options['observe'](value);raise error
+        with mock.patch.object(runner.owned_native,'capture',side_effect=capture),mock.patch.object(runner.owned_native,'terminate') as terminate:
+            with self.assertRaisesRegex(RuntimeError,'full image differs'):PublicRunnerTests.invoke(self)
+        report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertEqual(report['failure']['message'],str(error));self.assertEqual(report['identity_observations'][0]['role'],'native-host');self.assertEqual(report['identity_observations'][0]['observed_identity']['image'],value['observed_identity']['image']);self.assertEqual(report['identity_capture_failure']['handle_close_error'],'close detail');terminate.assert_not_called()
 
 
 class NativeIdentityTests(unittest.TestCase):
@@ -203,3 +213,71 @@ class NativeIdentityTests(unittest.TestCase):
         process=SimpleNamespace(GetProcessId=mock.Mock(return_value=123),GetProcessTimes=mock.Mock(return_value=dict(CreationTime=datetime(2026,11,10,tzinfo=timezone.utc))))
         with mock.patch.dict('sys.modules',win32process=process),mock.patch.object(ctypes,'WinDLL',return_value=kernel,create=True):identity=self.native.process_identity(4321)
         self.assertEqual(identity['pid'],123);self.assertEqual(identity['image'],self.native.EXPECTED_CI_IMAGE);self.assertEqual(query.call_args.args[:2],(4321,0));process.GetProcessId.assert_called_once_with(4321);process.GetProcessTimes.assert_called_once_with(4321)
+
+    def test_observation_is_fsynced_before_exact_path_validation_and_no_handle_is_exposed(self):
+        bad={**self.identity,'image':r'C:\Other\SLDWORKS.exe'}
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'observation.json'
+            def observe(value):
+                self.assertNotIn('handle',value);self.assertNotIn('handle',value.get('image_query',{}))
+                # JSON serialization rejects any accidental PyHANDLE capability.
+                with path.open('w') as stream:
+                    stream.write(json.dumps(value));stream.flush()
+                    import os
+                    os.fsync(stream.fileno())
+            original=self.native.validate_identity
+            def validate(*args):
+                self.assertTrue(path.is_file());saved=json.loads(path.read_text());self.assertEqual(saved['observed_identity'],bad);self.assertEqual(saved['expected_image'],self.native.EXPECTED_CI_IMAGE);return original(*args)
+            with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=bad),mock.patch.object(self.native,'validate_identity',side_effect=validate):
+                with self.assertRaisesRegex(RuntimeError,'full image differs'):self.native.capture(123,100,observe=observe)
+        self.handle.Close.assert_called_once();self.api.TerminateProcess.assert_not_called()
+
+    def test_observation_write_failure_stops_before_validation_and_preserves_first_error(self):
+        observe=mock.Mock(side_effect=OSError('observation fsync failed'))
+        with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=self.identity),mock.patch.object(self.native,'validate_identity') as validate:
+            with self.assertRaisesRegex(OSError,'observation fsync failed') as caught:self.native.capture(123,100,observe=observe)
+        self.assertEqual(caught.exception.identity_observation['capture_status']['phase'],'persisting');validate.assert_not_called();observe.assert_called_once();self.handle.Close.assert_called_once();self.api.TerminateProcess.assert_not_called()
+
+    def test_observer_cannot_mutate_identity_to_admit_another_image(self):
+        bad={**self.identity,'image':r'C:\Other\SLDWORKS.exe'}
+        def observe(value):value['observed_identity']['image']=self.native.EXPECTED_CI_IMAGE
+        with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=bad):
+            with self.assertRaisesRegex(RuntimeError,'full image differs'):self.native.capture(123,100,observe=observe)
+        self.assertEqual(bad['image'],r'C:\Other\SLDWORKS.exe');self.handle.Close.assert_called_once();self.api.TerminateProcess.assert_not_called()
+
+    def test_validation_error_remains_first_if_failed_handle_close_also_fails(self):
+        self.handle.Close.side_effect=RuntimeError('handle close failed');bad={**self.identity,'image':r'C:\Other\SLDWORKS.exe'}
+        with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=bad):
+            with self.assertRaisesRegex(RuntimeError,'full image differs') as caught:self.native.capture(123,100,observe=mock.Mock())
+        self.assertEqual(caught.exception.identity_handle_close_error,'handle close failed');self.api.TerminateProcess.assert_not_called()
+
+    def test_query_observation_keeps_actual_size_raw_buffer_and_stable_identity_separate(self):
+        import ctypes,base64
+        from datetime import datetime,timezone
+        image=self.native.EXPECTED_CI_IMAGE
+        def query(handle,flags,buffer,size):buffer.value=image;size._obj.value=len(image);return True
+        kernel=SimpleNamespace(QueryFullProcessImageNameW=mock.Mock(side_effect=query))
+        process=SimpleNamespace(GetProcessId=mock.Mock(return_value=123),GetProcessTimes=mock.Mock(return_value=dict(CreationTime=datetime(2026,11,11,tzinfo=timezone.utc))))
+        observation={}
+        with mock.patch.dict('sys.modules',win32process=process),mock.patch.object(ctypes,'WinDLL',return_value=kernel,create=True):identity=self.native.process_identity(4321,observation=observation)
+        self.assertEqual(set(identity),{'pid','image','creation_utc','creation_timestamp'})
+        data=observation['image_query'];self.assertEqual(data['image'],image);self.assertEqual(data['returned_chars'],len(image));self.assertEqual(data['input_capacity_chars'],32768);self.assertTrue(data['nul_at_returned_index']);self.assertEqual(data['argtypes'],['HANDLE','DWORD','LPWSTR','PDWORD'])
+        self.assertEqual(len(base64.b64decode(data['buffer_prefix_b64'],validate=True)),(len(image)+1)*ctypes.sizeof(ctypes.c_wchar));kernel.QueryFullProcessImageNameW.assert_called_once()
+
+    @unittest.skipUnless(__import__('sys').platform=='win32','read-only actual Windows current-process API')
+    def test_windows_current_process_query_has_complete_image_without_assuming_venv_entry_is_image(self):
+        import ctypes,json,os,sys
+        from ctypes import wintypes
+        import win32api
+        observation={};probe=dict(sys_executable=sys.executable,sys_base_executable=getattr(sys,'_base_executable',None))
+        try:
+            identity=self.native.process_identity(win32api.GetCurrentProcess(),observation=observation);probe['identity']=identity
+            kernel=ctypes.WinDLL('kernel32',use_last_error=True);module=kernel.GetModuleFileNameW;module.argtypes=[wintypes.HMODULE,wintypes.LPWSTR,wintypes.DWORD];module.restype=wintypes.DWORD
+            buffer=ctypes.create_unicode_buffer(32768);length=module(None,buffer,len(buffer));probe.update(module_image=buffer.value,module_returned_chars=length,module_last_error=None if length else ctypes.get_last_error())
+        finally:
+            # Even an API/comparison failure must leave the actual raw observation.
+            print('units.current-process-image-observation '+json.dumps(dict(**probe,query=observation.get('image_query')),ensure_ascii=True))
+        self.assertTrue(0<length<len(buffer));self.assertEqual(identity['pid'],os.getpid());self.assertTrue(os.path.samefile(identity['image'],buffer.value))
+        query=observation['image_query'];self.assertEqual(query['ctypes_bytes']['DWORD'],4);self.assertEqual(query['ctypes_bytes']['BOOL'],4);self.assertEqual(query['ctypes_bytes']['wchar'],2);self.assertEqual(query['returned_chars'],len(identity['image'].encode('utf-16-le'))//2);self.assertTrue(query['nul_at_returned_index'])
+        # sys.executable may be a venv redirector: it is recorded, never used as
+        # a self-observer equality predicate or to weaken native SLDWORKS checks.

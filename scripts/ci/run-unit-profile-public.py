@@ -45,6 +45,13 @@ def execute(args):
     endpoint=f'127.0.0.1:{port}';report['endpoint']=endpoint;save()
     started=time.monotonic();daemon=worker=None;ready=False;native_process=None
     failure=None;enhanced=bool(getattr(args,'write_acceptance',False));native_capture_attempted=False;frontend_process=None;frontend_capture_attempted=False
+    def observe_identity(role,value):
+        report.setdefault('identity_observations',[]).append(dict(role=role,**value));save()
+    def capture_identity(role,*arguments,**options):
+        try:return owned_native.capture(*arguments,**options,observe=lambda value:observe_identity(role,value))
+        except BaseException as error:
+            report['identity_capture_failure']=dict(role=role,type=type(error).__name__,message=str(error),observation=getattr(error,'identity_observation',None),observation_error=getattr(error,'identity_observation_error',None),handle_close_error=getattr(error,'identity_handle_close_error',None))
+            raise
     def capture_early(required=False):
         nonlocal native_process,native_capture_attempted
         if not enhanced or native_capture_attempted:return
@@ -57,7 +64,7 @@ def execute(args):
             return
         native_capture_attempted=True;host=observed['host'];pid=host['process_id']
         evidence.require(type(pid) is int and pid>0 and pid not in before and host.get('owned_by_daemon') is True and host.get('visible') is False and host.get('shared_interactive') is False,'native process ownership is not proven')
-        native_process,identity=owned_native.capture(pid,report['daemon_launch_utc_timestamp'])
+        native_process,identity=capture_identity('native-host',pid,report['daemon_launch_utc_timestamp'])
         report.update(owned_native_pid=pid,owned_native_identity=identity,native_handle_captured_early=True);save()
     def capture_frontend_if_available():
         nonlocal frontend_process,frontend_capture_attempted
@@ -71,7 +78,7 @@ def execute(args):
         evidence.require(frontend['helper_path']==str(helper) and frontend['helper_sha256']==hashlib.sha256(helper.read_bytes()).hexdigest() and frontend['pid']==frontend['ready']['pid'] and frontend['command']==[sys.executable,'-I',str(helper)],'CLI frontend ownership metadata differs')
         if frontend.get('exit_confirmed') is True:
             report['cli_frontend_exit_confirmed_by_public']=frontend;save();return
-        frontend_process,identity=owned_native.capture(frontend['pid'],frontend['launch_utc_timestamp'],sys.executable,terminate_right=False)
+        frontend_process,identity=capture_identity('cli-frontend',frontend['pid'],frontend['launch_utc_timestamp'],sys.executable,terminate_right=False)
         report['cli_frontend_retained_identity']=identity;save()
     with (output/'daemon.stdout').open('wb') as stdout,(output/'daemon.stderr').open('wb') as stderr:
         try:

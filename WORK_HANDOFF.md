@@ -356,3 +356,14 @@ noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提
 按条件批准只派一次 [42865595677](https://github.com/YJBeetle/SWCLI/actions/runs/42865595677)，已核官方head/event/ref。派前remote=085ae/工作区干净/官方同head manual count0/单位分支无未完成manual；单位ref独立并发组、cancel=false、无workflow级共享取消，不cancel main/其他路线。实际三个units=true、native_full=false由此一次初始snapshot已完成route job官方日志核实，Validated native route: units-write-public。
 
 初始run/jobs/receipt/preflight/actual-route原件在`docs/evidence/units-profile/public-stdio-42865595677/`，原查询与route日志在同名evidence目录。该唯一快照in_progress，route/wheel success，Win3.9/3.14前置in_progress；尚无新Windows完整结果或公共native证明。正常快照即停止等待，不连续poll、不再dispatch；VM/main/release均未动。此后只文档快照提交，业务源固定085ae。后续必须先核本run Windows前置、原ZIP/digest，再分别核CLI/SDK/MCP各139+三额外fresh读、同host/worker、全部守护/持久化/geometry/600-1800及真实helper/native退出，不把本地writer仿真或旧run局部算作通过。
+
+
+## 42865595677原生阶段身份首错：先补观测，不改准入/不派native
+
+已单次取官方terminal metadata，复用root原failed日志SHA38c14c1bdb3cc942bbf702b71231bb205afc0833816be7d3e9d9a02ae2d101be。native13790060166 ZIP10930120bytes/SHA207a75330e6bb35b368f2d5ba054ec908bfa661205e068c3c8f275a32d246c75、install logs13789251418 ZIP3215896bytes/SHA2a52d351cc9f74cbc4be2e94a761a591748f3dceedbe6981c6a72f6f2b0f4cec均官方/下载相符。原件/安全解压在evidence/units-profile/public-stdio-42865595677，terminal/meta/独立image-failure-audit.json同名docs目录。
+
+Win3.9/3.14/轮包/route已success；本次首错wrapper capture_early native-host完整image准入，5.813s，不是helper或600/1800。公共CLI1开始但完整0/139，SDK/MCP0/139，3cold probes0。raw status/list完成，open native operation ended但回执未持久；82trace/worker6536、0setter/0nativeAPIerror。内部139成功259.579s/owned退出确认，独立核278文件hash和92part几何（67nonexact保原窄界限），不补公共。公共stop ActiveDocument、native/helper退出均未确认，原件不翻绿。上次stdio在Windows前置及真实CLI list CRLF/B64已通过，仍不是417通过。
+
+MSI INSTALLDIR/注册路径及安装COM验证与原expected常量一致；实际Query返回image/len/size/creation未保存，不能把差异先判成安装路径错误/截断/别名。统筹批准只补diagnostic：before validation持久化observed PID/fullimage/creation、expected/repr、Query输入/输出字符数、类型实际宽度/NUL/有界raw wchar B64。callback只JSON deep copy，不拿handle且不能篡改判据；稳定identity仍四字段，校验/原constant/同handle重核/终止AST不变。观测fsync失败先停，首错不被close/观测次错覆盖。Windows-only只读当前Python API探针对照独立module image，记录venv入口/base事实而不误判；不CAD/别PID/VM。
+
+最终97关联25.036s（1skip）、完整1973项78.009s（27skip）、SDK生成/strict6/consumer8、Python3.9 AST3/diff通过，源码与日志SHA见identity-observer-validation.json。Windows真实API probe尚待push轻量检查，本地mock不是Windows证明。具体说明docs/verification/units-image-admission-42865595677.md。按统筹要求先发精确diff/head并可中文push轻量Windows，暂不再派native；路径修法和可信receipt绑定待真实observed数据。预算/域/geometry/417与cold probe策略、main/其他路线均不变。
