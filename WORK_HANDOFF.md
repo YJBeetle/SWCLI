@@ -301,3 +301,27 @@ workflow 仅修改 native job 的 concurrency group：只有 `workflow_dispatch 
 
 
 noop最小修复业务head`64af40c908c01ca20027d06799eaec702627e5ee`已中文提交推送；只触发一次必要新公共验收 [42664223806](https://github.com/YJBeetle/SWCLI/actions/runs/42664223806)。已核head/ref/workflow_dispatch，三个units=true、native_full=false，600/1800与CLI/SDK/MCP各139不变。初始run/jobs/精确参数在`docs/evidence/units-profile/public-noop-42664223806/`。该唯一快照in_progress，route/wheel成功、Win3.9/3.14前置运行中，尚无公共CAD结果。正常快照后结束等待，不持续poll、不重复dispatch/新代理，不合main/发布或触碰VM/其他路线。此后提交只docs，操作源固定64af40c。若后续失败保留首错与各transport实际完成边界，硬预算先交已新增的transport/case耗时分布，不改预算/拆组/少测。
+
+
+## 42664223806硬预算首错与前端开销方案：未实施、未重跑
+
+本次新原ZIP artifact13698368440/22180727bytes，官方及下载SHA256一致`5ac6169f03d869379d349e48c116d5ec7a204f7ab47d7fe68f7f933c875f34a9`；报告SHA`a3d4228f24e140e41fe9053c76b09c4152d06e6f3eb44c1f28d52b1a81e751ab`。原ZIP/官方logs ZIP/安全解压/整作业日志在`evidence/units-profile/public-noop-42664223806/`。标准库独立审计`docs/verification/audit-units-public-budget-42664223806.py`两次相同，错误digest/head两个负向检查通过；完整metadata/audit/timing在同名docs/evidence。日志摘录为派生文件，官方整作业字节和ZIP完整保留。
+
+首因公共1800s watchdog（最终1801.344s），CLI139完整，SDK15完整/16已source-open回执并发create，MCP0。SDK16 create native operation end但wire回复未持久记录，无第155次setter，不能计完整。旧inch非法noop修复在CLI117真实通过；未到的SDK/MCP drawing不外推。154完整case/308文件hash、真实lease/stamp/CAS/RO各154+closed128、122part几何（68nonexact保原批准界限）逐项核过。633590 trace、154setter、单worker，native APIerror0，308仅预期lease/stamp operationerror，最大完成边界1.781s。内部139成功466.906s独立记录。公共超时后stop被ActiveDocument拒绝，daemon终止、owned native退出未确认、pids_after缺失，不能称清理通过。
+
+按统筹“先交硬预算分布”的指令，没有改预算/步骤/域/guards/geometry或先派CI。CLI139case1657.457s/4677调用1594.368s；SDK15case90.562s/538调用45.322s。离线真实fresh CLI subprocess20次median约0.146s；父进程cli.main函数直调约0.006s，只是下界、不是常驻CLI或逐次进程验收。现有本机Python3.12对原26MB完整报告pretty/compact各5次编码写入fsync回读，median约0.349/0.083s，内容全等；3.14差异小，不混用结论，均非Windows保证。
+
+亲审提案`docs/verification/units-public-budget-42664223806-review.md`：只去WriteGate完整报告缩进保持全部字段/检查点/fsync；另需root决定能否接受单隔离CLI helper进程调用真实main/parser/RPC、减少每command冷启动的策略变化。明确失去逐command冷启动/进程隔离覆盖，不得以SDK或函数直调改名假称原CLI策略。拟定IPC序号/原stdout-stderr/失败不重发或重启/一次关闭/相同600-1800与139x3要求及关联+全套portable后必要一次新public。尚未实施任何候选，操作源保持64af40c，仅文档/独立诊断。root统一占用Windows VM，本路不碰VM/main/其他路线、不发版。
+
+用户已在本聊天明确授权向统筹chat发送本次证据和首因，随后成功送达上述原件/审计/提案绝对路径；此前自动审批拒绝发送的请求未绕过。等待root亲审前端策略，不无差异重跑。
+
+
+## 统筹批准后实施：隔离CLI复用与本run身份句柄收尾，待root审核再派CI
+
+统筹随后亲审并明确批准第1项compact、CI专用隔离CLI前端及最小owned native清理方案。实现/证据说明`docs/verification/units-public-budget-fix-review.md`。仅单位WriteGate改成一个隔离python -I helper逐帧调用真实CLI main/parser/RPC，报告明示isolated-reused-cli-main，不宣称139次冷启动；每文档类型额外一个真正独立python -I -m swcli只读探针对照同未变完整snapshot/state，两份raw stdout单独记录。请求JSON原文/回复frame/CLI stdout-stderr-returncode逐次fsync，序号/EOF/异常/超时/unknown和partial保留，无重发/重启；helper路径/hash/PID/安装CLI SHA/一次退出wait明确。SDK/MCP各139、同ownedhost/worker、417/600/1800与所有guards不变。compact仅去完整semantic报告缩进，全部字段/历史/检查点/fsync保留，其他门禁仍逐次CLI进程。
+
+单位write wrapper运行中尽早抓取并持续持有native句柄：owned/hidden/unshared、PID不在原库存、GetProcessId/CreationTime窗/本CI完整已安装SLDWORKS.exe路径验证；不在失败后重开PID寻找替代。一次正常stop失败后，只对同一handle重核identity并最多一次TerminateProcess+wait/库存，首错与ActiveDocument/forced/清理次错都保留；强制退出即使确认也不翻绿，无身份不kill。helper父进程正常一次wait，wrapper另只读持有已核helper Python handle确认EOF退出，不申请其TERMINATE权限、不碰未知PID/树/按名清理。
+
+最终关联84项/23.473s通过，完整1960项/75.689s通过（26skipped），SDK生成/strict6/consumer负向8项通过，改动8个CI/test文件Python3.9 AST/diff通过。原日志/hash/源码SHA在implementation-validation.json。真实fresh与已实现隔离helper的假daemon TCP各20次逐字节一致，median约0.143092/0.006465s，starts1/exit_waits1/exit0；只作本机协议/进程证据，不保证Windows1800整组。产品src/域/schema/workflow/main property-PyYAML/geometry不改，VM未用，未合main或发版。已把未实施历史提案标注后续实现，旧run failure/unconfirmed不翻绿。
+
+本次待中文逻辑提交推送后交root亲审精确head；尚未发新的public CI。root审核后才一次必要新公共验收，正常一次快照即停；不以旧CLI139/SDK15或本地1960项补SDK/MCP缺口。
