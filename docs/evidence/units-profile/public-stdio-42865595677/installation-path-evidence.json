@@ -1,0 +1,17 @@
+{
+  "source": "original official MSI log plus installer COM verification at this exact run head; not QueryFullProcessImageName output",
+  "artifact_id": 13789251418,
+  "official_zip_digest": "sha256:2a52d351cc9f74cbc4be2e94a761a591748f3dceedbe6981c6a72f6f2b0f4cec",
+  "original_zip": "evidence/units-profile/public-stdio-42865595677/original-install-logs.zip",
+  "msi_log_sha256": "233eee6250d308226e82ee20f187e02b7bf8ef52766a2f81a90fbcfd20decd9f",
+  "msi_install_dir_raw": "C:\\Program Files\\SOLIDWORKS\\",
+  "failed_head_expected_image_raw": "C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe",
+  "normalized_path_agrees": true,
+  "com_path_value_lines": [
+    "MSI (s) (A4:54) [17:47:41:386]: Executing op: RegAddValue(,Value=C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe,)",
+    "MSI (s) (A4:54) [17:47:41:388]: Executing op: RegAddValue(,Value=C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe,3,)",
+    "MSI (s) (A4:54) [17:47:41:388]: Executing op: RegAddValue(,Value=C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe,1,)"
+  ],
+  "installer_verified_com_registration": true,
+  "query_observed_image_available": false
+}

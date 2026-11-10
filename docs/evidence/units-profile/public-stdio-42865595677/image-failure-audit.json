@@ -1,0 +1,68 @@
+{
+  "audit_success": true,
+  "run_id": 42865595677,
+  "head_sha": "085ae73570f023706319738d1130fd21256e4144",
+  "native_artifact_id": 13790060166,
+  "native_zip_sha256": "207a75330e6bb35b368f2d5ba054ec908bfa661205e068c3c8f275a32d246c75",
+  "failed_log_sha256": "38c14c1bdb3cc942bbf702b71231bb205afc0833816be7d3e9d9a02ae2d101be",
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "native full image differs from this CI installation"
+  },
+  "first_boundary": "wrapper native-host identity admission",
+  "actual_returned_image_available": false,
+  "deeper_mismatch_cause_established": false,
+  "installer_and_expected_path_agree": true,
+  "public": {
+    "started_cli_cases": 1,
+    "completed_cases": {
+      "cli": 0,
+      "sdk": 0,
+      "mcp": 0
+    },
+    "cold_probes_completed": 0,
+    "native_setter_calls": 0,
+    "native_trace_events": 82,
+    "native_api_errors": 0,
+    "source_open_native_ended": true,
+    "source_open_reply_durable": false,
+    "max_native_boundary_seconds": 1.0779999999999745
+  },
+  "cleanup": {
+    "owned_native_exit_confirmed": false,
+    "helper_exit_confirmed": false,
+    "pids_after": null,
+    "stop_error": "ActiveDocument",
+    "errors": [
+      {
+        "stage": "capture-owned-native-process",
+        "type": "RuntimeError",
+        "message": "no native handle retained before public exit; do not reopen PID"
+      },
+      {
+        "type": "RuntimeError",
+        "message": "owned daemon shutdown failed"
+      },
+      {
+        "stage": "owned-daemon-termination",
+        "message": "graceful shutdown was not confirmed"
+      }
+    ],
+    "unknown_native_termination_attempted": false
+  },
+  "internal": {
+    "success": true,
+    "steps": 139,
+    "duration_seconds": 259.57899999999995,
+    "native_files_checked": 278,
+    "part_geometry_comparisons": 92,
+    "part_geometry_nonexact": 67,
+    "owned_exit_confirmed": true
+  },
+  "stdio": {
+    "windows_portable_jobs_passed": true,
+    "completed_cli_list_raw_crlf_b64_verified": true,
+    "observed_isolated_stderr_codec": "cp1252"
+  },
+  "public_native_accepted": false
+}
