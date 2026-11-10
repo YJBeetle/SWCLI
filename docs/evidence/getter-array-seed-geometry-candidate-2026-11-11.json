@@ -1,0 +1,201 @@
+{
+  "native_basis": {
+    "kind": "coordinator-owned readonly original A geometry, private diagnostic only",
+    "source_commit": "711962699978568b2c2b117fded9cf83fdbb4e93",
+    "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-geometry-7119626-02",
+    "files": {
+      "local-supervisor.json": {
+        "size_bytes": 2000,
+        "sha256": "bab692ce6f77abbd583aa5bcb48152bc492469898c84884aa74d3ebe1bf73635"
+      },
+      "worker.stdout.log": {
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "report.json": {
+        "size_bytes": 3024,
+        "sha256": "5a03ba2feea9c08c4513c04aabe21d1586bf922144d7de5d2587b0b5f011829c"
+      },
+      "worker.stderr.log": {
+        "size_bytes": 23006,
+        "sha256": "fb5c7bd00840a40493dd158aa00cb66451c89fdaf6c4d8817b6bd06332327f62"
+      },
+      "trace.jsonl": {
+        "size_bytes": 2029,
+        "sha256": "6b0b8d86f5aebcaa83465b5297c2055cfb2bee44161f8757e67de9a820c99a92"
+      }
+    },
+    "host": {
+      "process_id": 936,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "native_call_worker_pid": 4324,
+    "supervisor_launch_pid": 3228,
+    "before": {
+      "metadata": [
+        1,
+        142,
+        false,
+        "默认"
+      ],
+      "path": "C:\\Workspace\\SWCLI-series-20261111\\getter-geometry-input\\two-configurations.SLDPRT",
+      "title": "two-configurations.SLDPRT",
+      "readonly": true
+    },
+    "after": {
+      "metadata": [
+        1,
+        142,
+        false,
+        "默认"
+      ],
+      "path": "C:\\Workspace\\SWCLI-series-20261111\\getter-geometry-input\\two-configurations.SLDPRT",
+      "title": "two-configurations.SLDPRT",
+      "readonly": true
+    },
+    "geometry": {
+      "radius_mm": 10.0,
+      "diameter_mm": 20.0,
+      "center_mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "complete_circle": true,
+      "segments": 1
+    },
+    "source_sha256": "80455d6d94ea72776e44605b20e56c1fcc09879d558250569db7f3cadd744257",
+    "final_sha256": "80455d6d94ea72776e44605b20e56c1fcc09879d558250569db7f3cadd744257",
+    "native_geometry_trace": {
+      "calls": [
+        "diagnostic.original-circle-geometry",
+        "GetType",
+        "GetUpdateStamp",
+        "GetSaveFlag",
+        "ConfigurationManager",
+        "ActiveConfiguration",
+        "Name",
+        "GetPathName",
+        "GetTitle",
+        "IsOpenedReadOnly",
+        "ConfigurationManager",
+        "ActiveConfiguration",
+        "Name",
+        "ActiveDoc",
+        "ConfigurationManager",
+        "ActiveConfiguration",
+        "FeatureByName",
+        "Name",
+        "GetTypeName2",
+        "GetSpecificFeature2",
+        "GetSketchSegments",
+        "ConstructionGeometry",
+        "GetType",
+        "IsCircle",
+        "GetCenterPoint2",
+        "X",
+        "Y",
+        "Z",
+        "GetRadius",
+        "GetType",
+        "GetUpdateStamp",
+        "GetSaveFlag",
+        "ConfigurationManager",
+        "ActiveConfiguration",
+        "Name",
+        "GetPathName",
+        "GetTitle",
+        "IsOpenedReadOnly",
+        "ActiveDoc",
+        "ISldWorks.IsSame",
+        "ConfigurationManager",
+        "ActiveConfiguration",
+        "ISldWorks.IsSame"
+      ],
+      "GetRadius_count": 1,
+      "forbidden_Get3_set_rebuild_save_count": 0
+    },
+    "cleanup_errors": [],
+    "interpretation": "Original A really has diameter20; prioritize fixture seeding, but this does not accept the product getter as a whole."
+  },
+  "candidate": {
+    "base_commit": "b827c9847792224c9bf565149d0f7454f57911b2",
+    "scope": "owned diagnostic fixture only",
+    "native_result": "not run",
+    "single_variable_seed_change": "plain BSTR -> VARIANT(VT_ARRAY | VT_BSTR, (Getter_B,))",
+    "same_inputs": [
+      "original creator-returned dimension handle",
+      "AddConfiguration2 Options=0 and all arguments",
+      "configuration names",
+      "target .020 meters",
+      "installed specific-configuration enum",
+      "single setter call",
+      "strict int0 return"
+    ],
+    "evidence": [
+      "actual VARIANT type and value shape",
+      "raw setter result or original exception",
+      "initial-A and post-seed B/A independently measured circle radius",
+      "saved and readonly target geometry before each unchanged Get3 window"
+    ],
+    "independent_geometry_windows": 7,
+    "geometry_reference": "existing strict _diameter_circle_verification/_circle_geometry; no descriptor or dimension getter",
+    "admission": "A radius8/B radius10, unique complete nonconstruction centered circle, stable part/config/foreground/edit state and saved source hash",
+    "geometry_trace_guard": "seven correlated successful requests, one native radius read each; no Get3, setter, rebuild, save or unknown call; same worker PID guard retained",
+    "native_claim": "candidate only; zero new VM/CI by this lane"
+  },
+  "source_audit": {
+    "unchanged_function_asts": [
+      "observe_current",
+      "audit_read_trace",
+      "deadline_reason",
+      "read_constants",
+      "same",
+      "state",
+      "select_fixture_configuration",
+      "rebuild_fixture",
+      "preparation_edit_state"
+    ],
+    "product_CI_STL_interop_bytes_unchanged": true,
+    "supervisor_PID_check": "original process.pid binding retained for both read and geometry trace audit",
+    "read_window_protection": "original AST unchanged",
+    "timeouts": [
+      600,
+      1800
+    ]
+  },
+  "validation": {
+    "targeted_tests": 38,
+    "portable_tests": 2620,
+    "portable_skipped": 27,
+    "portable_seconds": 76.161,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "git_diff_check": "passed",
+    "initial_fault_test_log": "six offline scaffold errors from expecting RuntimeError instead of the existing _DimensionError and an untyped mock; corrected tests, original native errors are not translated"
+  },
+  "tested_file_sha256": {
+    "scripts/ci/verify-native-getter-configurations.py": "970af58e7d61da9443d880b36a4cd30e114ed7e68b6570bd7600bb1a72291df6",
+    "tests/test_native_getter_configurations.py": "09c357db9f94f9a7db4f13170ef7d56918fbc035303e63c3b2570f2ea9d646f5"
+  },
+  "logs": {
+    "initial-fault-tests.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/array-seed-geometry/initial-fault-tests.log",
+      "sha256": "cecec2cf931c90f94795e8f9e4361525fd0aaa8c97c4c3b762e853efcf7145c8"
+    },
+    "targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/array-seed-geometry/targeted.log",
+      "sha256": "2bd6f54fcf3b2171b4f771250b2ca706b606f8fdee49f6d72952706ab6c62b7b"
+    },
+    "full-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/array-seed-geometry/full-portable.log",
+      "sha256": "0017188c8b3de5ac5f1f159a21d2d7c4baab79f9f9a8ca33614a906544bb0605"
+    },
+    "sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/array-seed-geometry/sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    }
+  },
+  "state": "ready for coordinator review of exact local commit; no push/VM/CI by this lane"
+}

@@ -8,6 +8,7 @@ import tempfile
 from types import SimpleNamespace, ModuleType
 import unittest
 from unittest import mock
+from swcli.hosts.windows_dimensions import _DimensionError
 
 ROOT = Path(__file__).resolve().parents[1]
 def load(name, filename):
@@ -30,6 +31,11 @@ class Document:
         self.getters, self.setters, self.selections, self.rebuilds = [], [], [], []
         self.dimension = Dimension(self)
         self.SketchManager = SimpleNamespace(ActiveSketch=None)
+        arc = SimpleNamespace(ConstructionGeometry=False, GetType=lambda:1, IsCircle=lambda:1,
+                              GetRadius=lambda:self.values[self.ConfigurationManager.ActiveConfiguration.Name]/2,
+                              GetCenterPoint2=lambda:SimpleNamespace(X=0.,Y=0.,Z=0.))
+        self.native_sketch = SimpleNamespace(GetSketchSegments=lambda:(arc,))
+        self.sketch_feature = SimpleNamespace(Name="Sketch", GetTypeName2=lambda:"ProfileFeature", GetSpecificFeature2=lambda:self.native_sketch)
     def GetType(self): return 1
     def GetUpdateStamp(self): return self.stamp
     def GetSaveFlag(self): return False
@@ -53,9 +59,22 @@ class Document:
             return False
         self.ConfigurationManager.ActiveConfiguration = self.configurations[name]
         return True
+    def FeatureByName(self, name):
+        assert name == "Sketch"
+        return self.sketch_feature
     def Parameter(self, name):
         assert name == self.dimension.FullName, "must bind saved name after rename"
         return self.dimension
+
+
+class ArrayVariant:
+    def __init__(self, varianttype, value):
+        self.varianttype, self.value = varianttype, value
+
+
+def variant_modules():
+    return {"pythoncom":SimpleNamespace(VT_ARRAY=8192,VT_BSTR=8),
+            "win32com":ModuleType("win32com"), "win32com.client":SimpleNamespace(VARIANT=ArrayVariant)}
 
 
 class RebuildBinding:
@@ -85,8 +104,9 @@ class Dimension:
         self.document.getters.append((which, name))
         return (self.document.values[name],)
     def SetSystemValue3(self, value, which, name):
+        assert name.varianttype == 8192 | 8 and tuple(name.value) == ("Getter_B",)
         self.document.setters.append((value, which, name))
-        self.document.values[name] = value
+        self.document.values[name.value[0]] = value
         return 0
 
 
@@ -459,6 +479,148 @@ class GetterFixtureTests(unittest.TestCase):
                 self.assertEqual(record, dict(attempted=True, exception=dict(type="ValueError", message="first rebuild failure")))
                 self.assertNotIn("return_value", record)
 
+    def test_seed_passes_explicit_single_BSTR_array_once_on_original_dimension(self):
+        dimension = SimpleNamespace(SetSystemValue3=mock.Mock(return_value=0))
+        row = {}; calls = []
+        def call(name, function): calls.append(name); return function()
+        with mock.patch.dict("sys.modules", variant_modules()):
+            getter.seed_fixture_configuration(dimension,.020,3,"Getter_B",call,row)
+        dimension.SetSystemValue3.assert_called_once()
+        value,which,argument = dimension.SetSystemValue3.call_args.args
+        self.assertEqual((value,which,argument.varianttype,argument.value),(.020,3,8200,("Getter_B",)))
+        self.assertEqual(calls,["prepare-B-value"])
+        self.assertEqual(row["config_names"],["Getter_B"])
+        self.assertTrue(row["success"])
+
+    def test_seed_rejects_status_or_exception_once_without_fallback(self):
+        for status in (False,True,1,-1,None,0.0):
+            with self.subTest(status=status):
+                dimension = SimpleNamespace(SetSystemValue3=mock.Mock(return_value=status));row={}
+                with mock.patch.dict("sys.modules",variant_modules()):
+                    with self.assertRaisesRegex(RuntimeError,"B seed write failed"):
+                        getter.seed_fixture_configuration(dimension,.020,3,"Getter_B",lambda name,fn:fn(),row)
+                dimension.SetSystemValue3.assert_called_once()
+                self.assertEqual(row["return_type"],type(status).__name__)
+                self.assertEqual(row["return_value"],status)
+                self.assertNotIn("success",row)
+        original = ValueError("first seed exception")
+        dimension = SimpleNamespace(SetSystemValue3=mock.Mock(side_effect=original));row={}
+        def persist(): raise OSError("checkpoint failure")
+        with mock.patch.dict("sys.modules",variant_modules()):
+            with self.assertRaises(ValueError) as caught:
+                getter.seed_fixture_configuration(dimension,.020,3,"Getter_B",lambda name,fn:fn(),row,persist=persist)
+        self.assertIs(caught.exception,original)
+        dimension.SetSystemValue3.assert_called_once()
+        self.assertEqual(row["exception"]["message"],"first seed exception")
+        self.assertEqual(row["persistence_exception"]["type"],"OSError")
+
+    def test_seed_invalid_constructed_variant_refuses_before_mutation(self):
+        for kind in ("variant-type","multiple-names","wrong-name"):
+            with self.subTest(kind=kind):
+                def variant(vt,value):
+                    return ArrayVariant(12 if kind=="variant-type" else vt,
+                                        ("Getter_B","A") if kind=="multiple-names" else ("A",) if kind=="wrong-name" else value)
+                modules=variant_modules();modules["win32com.client"].VARIANT=variant
+                dimension=SimpleNamespace(SetSystemValue3=mock.Mock());row={}
+                with mock.patch.dict("sys.modules",modules):
+                    with self.assertRaisesRegex(RuntimeError,"explicit BSTR array"):
+                        getter.seed_fixture_configuration(dimension,.020,3,"Getter_B",lambda name,fn:fn(),row)
+                dimension.SetSystemValue3.assert_not_called()
+                self.assertFalse(row["attempted"])
+
+    def prove_geometry(self, doc, app=None, row=None, **kwargs):
+        row={} if row is None else row
+        getter.observe_fixture_geometry(app or app_for(doc),doc,"Sketch","A",16.,row,
+                                        request_id="test-independent-circle",**kwargs)
+        return row
+
+    def test_geometry_proof_is_independent_of_all_dimension_getters_and_writes(self):
+        doc=Document()
+        doc.dimension.GetSystemValue3=mock.Mock(side_effect=AssertionError("Get3 forbidden"))
+        doc.dimension.SetSystemValue3=mock.Mock(side_effect=AssertionError("Set3 forbidden"))
+        doc.EditRebuild3=mock.Mock(side_effect=AssertionError("rebuild forbidden"))
+        with mock.patch.object(getter,"_descriptor",side_effect=AssertionError("descriptor forbidden")),              mock.patch.object(getter,"save_as_native_windows",side_effect=AssertionError("save forbidden")):
+            row=self.prove_geometry(doc)
+        self.assertTrue(row["success"])
+        self.assertEqual(row["geometry"]["actual_radius_mm"],8.)
+        self.assertEqual(row["before"],row["after"])
+        self.assertEqual(len(row["identity_checks"]),3)
+        doc.dimension.GetSystemValue3.assert_not_called();doc.dimension.SetSystemValue3.assert_not_called()
+        doc.EditRebuild3.assert_not_called()
+
+    def test_geometry_wrong_radius_circle_shape_or_feature_stops_before_Get3(self):
+        for kind in ("A-is-20","construction","partial","multiple","nan","bool-radius","center","wrong-feature","missing-feature"):
+            with self.subTest(kind=kind):
+                doc=Document();row={};arc=doc.native_sketch.GetSketchSegments()[0]
+                if kind=="A-is-20": doc.values["A"] = .020
+                elif kind=="construction": arc.ConstructionGeometry=True
+                elif kind=="partial": arc.IsCircle=lambda:0
+                elif kind=="multiple": doc.native_sketch.GetSketchSegments=lambda:(arc,arc)
+                elif kind=="nan": arc.GetRadius=lambda:float('nan')
+                elif kind=="bool-radius": arc.GetRadius=lambda:True
+                elif kind=="center": arc.GetCenterPoint2=lambda:SimpleNamespace(X=.001,Y=0.,Z=0.)
+                elif kind=="wrong-feature": doc.sketch_feature.Name="Other"
+                else: doc.FeatureByName=lambda name:None
+                with self.assertRaises((RuntimeError, _DimensionError)): self.prove_geometry(doc,row=row)
+                self.assertNotIn("success",row)
+                self.assertEqual(doc.getters,[]);self.assertEqual(doc.setters,[]);self.assertEqual(doc.rebuilds,[])
+                if kind=="A-is-20": self.assertEqual(row["geometry"]["actual_radius_mm"],10.)
+
+    def test_geometry_state_config_foreground_and_unknown_identity_still_refuse(self):
+        for kind in ("stamp","configuration-object","foreground","readonly","unknown-identity"):
+            with self.subTest(kind=kind):
+                doc=Document();app=app_for(doc);arc=doc.native_sketch.GetSketchSegments()[0];native=arc.GetRadius;row={}
+                def radius():
+                    value=native()
+                    if kind=="stamp": doc.stamp+=1
+                    elif kind=="configuration-object": doc.ConfigurationManager.ActiveConfiguration=SimpleNamespace(Name="A")
+                    elif kind=="foreground": app.ActiveDoc=Document()
+                    elif kind=="readonly": doc.readonly=True
+                    return value
+                arc.GetRadius=radius
+                if kind=="unknown-identity": app.IsSame=lambda a,b:2
+                with self.assertRaises(RuntimeError): self.prove_geometry(doc,app,row)
+                self.assertNotIn("success",row)
+                self.assertEqual(doc.getters,[]);self.assertEqual(doc.setters,[])
+
+    def test_geometry_source_hash_and_native_exception_are_preserved(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source=Path(temporary)/"source.SLDPRT";source.write_bytes(b"source bytes")
+            digest=__import__('hashlib').sha256(source.read_bytes()).hexdigest()
+            doc=Document();row={};arc=doc.native_sketch.GetSketchSegments()[0];native=arc.GetRadius
+            def changed(): source.write_bytes(b"intervening bytes");return native()
+            arc.GetRadius=changed
+            with self.assertRaisesRegex(RuntimeError,"changed saved bytes"):
+                self.prove_geometry(doc,row=row,source_path=source,expected_sha256=digest)
+            self.assertNotEqual(row["source_sha256_before"],row["source_sha256_after"])
+            self.assertNotIn("success",row)
+        doc=Document();row={};error=ValueError("first radius error")
+        doc.native_sketch.GetSketchSegments()[0].GetRadius=mock.Mock(spec=(),side_effect=error)
+        with self.assertRaises(ValueError) as caught: self.prove_geometry(doc,row=row)
+        self.assertIs(caught.exception,error)
+        self.assertEqual(row["feature_name"],"Sketch")
+        doc.native_sketch.GetSketchSegments()[0].GetRadius.assert_called_once()
+
+    def test_geometry_failed_seed_cannot_reach_save_or_product_observation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output=Path(temporary);swconst=output/"swconst.tlb";swconst.write_bytes(b"fixture typelib")
+            doc=Document();app=app_for(doc);case={};report={"host":{"process_id":123},"cases":[case]};live={}
+            native=doc.dimension.SetSystemValue3
+            def wrong_scope(value,which,names):
+                status=native(value,which,names)
+                doc.values["A"]=value
+                return status
+            doc.dimension.SetSystemValue3=mock.Mock(side_effect=wrong_scope)
+            with mock.patch.dict("sys.modules",variant_modules()),                  mock.patch.object(getter,"SWCONST",swconst,create=True),                  mock.patch.object(getter,"read_constants",return_value={"swSpecifyConfiguration":3,"swSetValue_InSpecificConfigurations":3}),                  mock.patch.object(getter,"create_part_windows_with_handle",return_value=({"ok":True},doc)),                  mock.patch.object(getter,"create_circle_sketch_windows_with_handle",return_value=({"ok":True},doc.sketch_feature)),                  mock.patch.object(getter,"create_circle_diameter_windows_with_handle",return_value=({"ok":True},doc.dimension)),                  mock.patch.object(getter,"save_as_native_windows") as save,                  mock.patch.object(getter,"observe_current") as observe:
+                with self.assertRaisesRegex(RuntimeError,"independent circle geometry mismatch"):
+                    getter.calibrate_case(app,output,{},"front",False,lambda name,fn:fn(),case,report,live,profile_kind="part")
+            save.assert_not_called();observe.assert_not_called();doc.dimension.SetSystemValue3.assert_called_once()
+            self.assertEqual(case["observations"],[])
+            self.assertEqual([r["phase"] for r in case["geometry_proofs"]],["initial-A","seed-B","seed-A"])
+            saved=json.loads((output/"report.json").read_text())["cases"][0]
+            self.assertEqual(saved["geometry_proofs"][-1]["geometry"]["actual_radius_mm"],10.)
+            self.assertNotIn("success",saved["geometry_proofs"][-1])
+
     def test_saved_and_reopened_distinct_values_and_renamed_fullname(self):
         self.assert_complete_saved_fixture(Document)
 
@@ -485,11 +647,11 @@ class GetterFixtureTests(unittest.TestCase):
                 documents.append(opened); app.ActiveDoc = opened
                 return dict(ok=True, read_only=True, api_errors=0, api_warnings=0), opened
             app.CloseDoc = lambda title: None
-            with mock.patch.dict("sys.modules", {"pythoncom":ModuleType("pythoncom")}), \
+            with mock.patch.dict("sys.modules", variant_modules()), \
                     mock.patch.object(getter,"SWCONST",swconst,create=True), \
                     mock.patch.object(getter,"read_constants",return_value={"swSpecifyConfiguration":3,"swSetValue_InSpecificConfigurations":3}), \
                     mock.patch.object(getter,"create_part_windows_with_handle",return_value=({"ok":True},doc)), \
-                    mock.patch.object(getter,"create_circle_sketch_windows_with_handle",return_value=({"ok":True},object())), \
+                    mock.patch.object(getter,"create_circle_sketch_windows_with_handle",return_value=({"ok":True},doc.sketch_feature)), \
                     mock.patch.object(getter,"create_circle_diameter_windows_with_handle",return_value=({"ok":True},doc.dimension)), \
                     mock.patch.object(getter,"save_as_native_windows",side_effect=save), \
                     mock.patch.object(getter,"open_windows_document_with_handle",side_effect=reopen):
@@ -512,13 +674,25 @@ class GetterFixtureTests(unittest.TestCase):
             self.assertFalse(case["configuration_preparation"][0]["show_attempted"])
             self.assertNotEqual(case["native_name"],case["unsaved_native_name"])
             self.assertEqual([d.getters for d in documents], [[(3,"A"),(3,"Getter_B")]]*2)
-            self.assertEqual(doc.setters,[(.020,3,"Getter_B")])
+            self.assertEqual(len(doc.setters),1)
+            self.assertEqual(doc.setters[0][:2],(.020,3))
+            self.assertEqual((doc.setters[0][2].varianttype,doc.setters[0][2].value),(8200,("Getter_B",)))
+            self.assertEqual([row["geometry"]["actual_radius_mm"] for row in case["geometry_proofs"]], [8.,10.,8.,8.,10.,8.,10.])
             self.assertEqual(documents[1].setters,[])
             self.assertEqual(case["saved_sha256"],case["final_sha256"])
             self.assertIsNone(live["document"])
             trace = output / "stderr.log"; trace.write_text(self.stream.getvalue())
             proof = getter.audit_read_trace(trace,case["observations"],os.getpid())
             self.assertEqual(len(proof),4)
+            self.assertEqual(len(getter.audit_geometry_trace(trace,case["geometry_proofs"],os.getpid())),7)
+            with self.assertRaisesRegex(RuntimeError,"seven independent"):
+                getter.audit_geometry_trace(trace,case["geometry_proofs"][:-1],os.getpid())
+            with self.assertRaisesRegex(RuntimeError,"worker/request"):
+                getter.audit_geometry_trace(trace,case["geometry_proofs"],999)
+            trace.write_text(self.stream.getvalue().replace('"call": "GetRadius"','"call": "IDimension.GetSystemValue3"'))
+            with self.assertRaisesRegex(RuntimeError,"geometry proof contains"):
+                getter.audit_geometry_trace(trace,case["geometry_proofs"],os.getpid())
+            trace.write_text(self.stream.getvalue())
             with self.assertRaisesRegex(RuntimeError,"correlation"): getter.audit_read_trace(trace,case["observations"],999)
             with self.assertRaisesRegex(RuntimeError,"four distinct"): getter.audit_read_trace(trace,case["observations"][:3],os.getpid())
             bad = self.stream.getvalue().replace('"call": "IDimension.GetSystemValue3"','"call": "ShowConfiguration2"')
@@ -539,6 +713,21 @@ class GetterFixtureTests(unittest.TestCase):
         for values in (good[:-1],good+[good[0]],[(good[0][0],1)]+good[1:],[(good[0][0],True)]+good[1:],
                        good[:-1]+[("swObjectUnsupported",3)], good[:-2]+[("swObjectSame",True)]+good[-1:]):
             with self.assertRaises(RuntimeError): getter.read_constants(library(values),"mock")
+
+    def test_successful_worker_without_geometry_trace_cannot_pass_supervisor(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            args=SimpleNamespace(output_dir=Path(temporary)/"evidence",swconst=Path(temporary)/"swconst")
+            worker=mock.Mock(returncode=0,pid=123);worker.poll.return_value=0
+            def launch(*values,**options):
+                report=dict(success=True,cleanup_errors=[],cases=[dict(observations=[],geometry_proofs=[])])
+                (args.output_dir/"report.json").write_text(json.dumps(report))
+                return worker
+            with mock.patch.object(getter.subprocess,"Popen",side_effect=launch),                  mock.patch.object(getter,"audit_read_trace",return_value=[dict(request_id="read-proof")]),                  mock.patch.object(getter,"audit_geometry_trace",side_effect=RuntimeError("geometry proof absent")):
+                self.assertEqual(getter.supervise(args),1)
+            receipt=json.loads((args.output_dir/"supervisor.json").read_text())
+            self.assertFalse(receipt["success"] or receipt["cleanup_proven"])
+            self.assertEqual(receipt["failure"],"geometry proof absent")
+            worker.terminate.assert_not_called()
 
     def test_budgets_and_failed_worker_cannot_claim_cleanup(self):
         self.assertIn("600",getter.deadline_reason([],600,600,0))

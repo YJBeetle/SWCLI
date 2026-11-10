@@ -17,7 +17,7 @@ import time
 from swcli.hosts.windows import _com_value
 from swcli.hosts.windows_configurations import active_configuration_name
 from swcli.hosts.windows_custom_properties import _state
-from swcli.hosts.windows_dimensions import _descriptor, create_circle_diameter_windows_with_handle, _SPECIFY_CONFIGURATION
+from swcli.hosts.windows_dimensions import _descriptor, create_circle_diameter_windows_with_handle, _SPECIFY_CONFIGURATION, _diameter_circle_verification
 from swcli.hosts.windows_parts import create_part_windows_with_handle
 from swcli.hosts.windows_sketches import create_circle_sketch_windows_with_handle
 from swcli.hosts.windows_native_files import save_as_native_windows
@@ -224,6 +224,87 @@ def rebuild_fixture(document, label, call, record):
     record["success"] = True
 
 
+def seed_fixture_configuration(dimension, value_m, which, name, call, record, *, persist=None):
+    import pythoncom
+    from win32com.client import VARIANT
+    record["attempted"] = False
+    record["value_m"] = value_m
+    record["which"] = which
+    record["target"] = name
+    variant_type = pythoncom.VT_ARRAY | pythoncom.VT_BSTR
+    argument = VARIANT(variant_type, (name,))
+    record["argument_type"] = type(argument).__name__
+    record["variant_type"] = argument.varianttype
+    record["config_names"] = json_value(argument.value)
+    require(type(argument.varianttype) is int and argument.varianttype == variant_type
+            and type(argument.value) in (tuple, list) and tuple(argument.value) == (name,),
+            "fixture seed requires exactly one explicit BSTR array")
+    record["attempted"] = True
+    try:
+        status = call("prepare-B-value", lambda: dimension.SetSystemValue3(value_m, which, argument))
+    except Exception as error:
+        record["exception"] = dict(type=type(error).__name__, message=str(error))
+        if persist is not None:
+            try:
+                persist()
+            except Exception as persistence_error:
+                record["persistence_exception"] = dict(type=type(persistence_error).__name__, message=str(persistence_error))
+        raise
+    record["return_type"] = type(status).__name__
+    record["return_value"] = json_value(status)
+    if persist is not None:
+        persist()
+    require(type(status) is int and status == 0, "B seed write failed")
+    record["success"] = True
+
+
+def observe_fixture_geometry(app, document, sketch_name, configuration, expected_diameter_mm, record, *,
+                             request_id, persist=None, source_path=None, expected_sha256=None):
+    record["request_id"] = request_id
+    record["expected_configuration"] = configuration
+    record["expected_diameter_mm"] = expected_diameter_mm
+    if source_path is not None:
+        record["source_sha256_before"] = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        require(record["source_sha256_before"] == expected_sha256, "geometry proof source bytes changed")
+    with trace_native_request(request_id, "diagnostic.getter-fixture-geometry"):
+        before_config = configuration_object(document)
+        foreground = _com_value(app, "ActiveDoc")
+        record["before"] = state(document)
+        record["before_edit_state"] = preparation_edit_state(document)
+        require(record["before"]["metadata"][0] == 1 and type(record["before"]["readonly"]) is bool,
+                "geometry proof requires an observable part context")
+        require(record["before_edit_state"] == dict(status="observed", active_sketch=False), "geometry proof requires a finished sketch")
+        require(record["before"]["metadata"][3] == configuration, "geometry proof has another current configuration")
+        record["same_document_before"] = same(
+            app, document, foreground, record, "geometry-bound-document", persist=persist)
+        require(record["same_document_before"], "geometry proof has another foreground document")
+        feature = native_call("fixture-geometry", "IModelDoc2.FeatureByName", lambda: document.FeatureByName(sketch_name))
+        require(feature is not None, "geometry proof sketch feature is missing")
+        record["feature_name"] = _com_value(feature, "Name")
+        record["feature_type"] = _com_value(feature, "GetTypeName2")
+        require(record["feature_name"] == sketch_name and record["feature_type"] == "ProfileFeature",
+                "geometry proof sketch feature differs")
+        sketch = _com_value(feature, "GetSpecificFeature2")
+        require(sketch is not None, "geometry proof native sketch is missing")
+        record["geometry"] = _diameter_circle_verification(sketch, expected_diameter_mm / 2, 0., 0.)
+        if persist is not None:
+            persist()
+        require(record["geometry"]["passed"] is True, "fixture independent circle geometry mismatch")
+        record["after"] = state(document)
+        record["after_edit_state"] = preparation_edit_state(document)
+        record["same_configuration_object"] = same(
+            app, before_config, configuration_object(document), record, "geometry-current-configuration", persist=persist)
+        record["same_foreground_object"] = same(
+            app, foreground, _com_value(app, "ActiveDoc"), record, "geometry-foreground", persist=persist)
+        require(record["before"] == record["after"] and record["before_edit_state"] == record["after_edit_state"]
+                and record["same_configuration_object"] and record["same_foreground_object"],
+                "geometry proof changed state/configuration/foreground")
+    if source_path is not None:
+        record["source_sha256_after"] = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        require(record["source_sha256_after"] == expected_sha256, "geometry proof changed saved bytes")
+    record["success"] = True
+
+
 def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
     import pythoncom
     case.update(preparation_only=True, public_acceptance=False, observations=[])
@@ -240,6 +321,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     case["configuration_A"] = original_name
     preparation = case.setdefault("configuration_preparation", [])
     rebuilds = case.setdefault("rebuild_preparation", [])
+    geometry_proofs = case.setdefault("geometry_proofs", [])
     def select(name, phase):
         record = dict(phase=phase)
         preparation.append(record)
@@ -249,30 +331,43 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         record = dict(label=label)
         rebuilds.append(record)
         rebuild_fixture(document, label, call, record)
+    def geometry(name, expected, phase, source_path=None, expected_sha256=None):
+        record = dict(phase=phase)
+        geometry_proofs.append(record)
+        call("prove-circle-" + phase, lambda: observe_fixture_geometry(
+            app, document, case["sketch_name"], name, expected, record,
+            request_id="getter-fixture-geometry-" + phase, persist=persist,
+            source_path=source_path, expected_sha256=expected_sha256))
     require(original_name != "Getter_B", "fixture initial configuration collides with B")
     circle, sketch = call("prepare-circle", lambda: create_circle_sketch_windows_with_handle(
         app=app, document=document, plane="front", radius_mm=8))
+    case["circle_creation"] = circle
     require(circle["ok"] and sketch is not None, "circle fixture failed")
+    case["sketch_name"] = _com_value(sketch, "Name")
+    require(isinstance(case["sketch_name"], str) and bool(case["sketch_name"].strip()), "fixture sketch name is unreadable")
     created, dimension = call("prepare-driving-diameter", lambda: create_circle_diameter_windows_with_handle(
         app=app, document=document, sketch_feature=sketch, diameter_mm=16))
+    case["diameter_creation"] = created
     require(created["ok"] and dimension is not None, "driving fixture failed")
     case["unsaved_native_name"] = _com_value(dimension, "FullName")
     case["after_dimension_creation_edit_state"] = preparation_edit_state(document)
+    geometry(original_name, 16., "initial-A")
     manager = _com_value(document, "ConfigurationManager")
     second_name = "Getter_B"
     added = call("prepare-second-configuration", lambda: manager.AddConfiguration2(
         second_name, "getter fixture", "", 0, "", "diagnostic only", True))
     require(added is not None and _com_value(added, "Name") == second_name, "second configuration creation failed")
     select(second_name, "seed-B")
-    status = call("prepare-B-value", lambda: dimension.SetSystemValue3(
-        .020, enums["swSetValue_InSpecificConfigurations"], second_name))
-    require(type(status) is int and status == 0, "B seed write failed")
+    seed_fixture_configuration(dimension, .020, enums["swSetValue_InSpecificConfigurations"], second_name,
+                               call, case.setdefault("B_seed", {}), persist=persist)
     rebuild("B")
+    geometry(second_name, 20., "seed-B")
     names = _com_value(document, "GetConfigurationNames")
     require(isinstance(names, (tuple, list)) and len(names) == 2 and set(names) == {original_name, second_name},
             "fixture must have exactly two configurations")
     select(original_name, "rebuild-A")
     rebuild("A")
+    geometry(original_name, 16., "seed-A")
     case.update(configuration_A=original_name, configuration_B=second_name,
                 preparation_complete_edit_state=preparation_edit_state(document))
     path = output / "two-configurations.SLDPRT"
@@ -293,6 +388,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                     and _com_value(document, "GetSaveFlag") is False, "readonly reopen failed")
         for label, name, expected in (("A", original_name, 16.), ("B", second_name, 20.)):
             select(name, phase + "-" + label)
+            geometry(name, expected, phase + "-" + label, path, digest)
             dimension = call("bind-existing-dimension-" + phase + label, lambda: document.Parameter(native_name))
             require(dimension is not None and _com_value(dimension, "FullName") == native_name, "exact dimension name binding failed")
             row = dict(phase=phase, label=label)
@@ -345,6 +441,33 @@ def audit_read_trace(path, observations, worker_pid):
     return proof
 
 
+def audit_geometry_trace(path, observations, worker_pid):
+    phases = {"initial-A", "seed-B", "seed-A", "saved-A", "saved-B", "reopened-readonly-A", "reopened-readonly-B"}
+    expected = {"getter-fixture-geometry-" + phase for phase in phases}
+    require(len(observations) == 7 and {row["request_id"] for row in observations} == expected
+            and all(row.get("success") is True for row in observations), "seven independent circle proofs are required")
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.startswith('{')]
+    allowed = {"diagnostic.getter-fixture-geometry", "ConfigurationManager", "ActiveConfiguration", "Name", "ActiveDoc",
+               "GetType", "GetUpdateStamp", "GetSaveFlag", "GetPathName", "GetTitle", "IsOpenedReadOnly", "ISldWorks.IsSame",
+               "IModelDoc2.FeatureByName", "GetTypeName2", "GetSpecificFeature2", "GetSketchSegments", "ConstructionGeometry",
+               "IsCircle", "GetCenterPoint2", "X", "Y", "Z", "GetRadius", "SketchManager", "ActiveSketch"}
+    proof = []
+    for observation in observations:
+        rows = [r for r in records if r.get("event") == "swcli.native-call" and r.get("request_id") == observation["request_id"]]
+        require(rows and all(r["worker_pid"] == worker_pid and r["operation"] == "diagnostic.getter-fixture-geometry" for r in rows),
+                "geometry trace worker/request correlation mismatch")
+        begins = [(r["sequence"], r["call"]) for r in rows if r["phase"] == "begin"]
+        ends = [(r["sequence"], r["call"]) for r in rows if r["phase"] == "end"]
+        require(sorted(begins) == sorted(ends) and len(set(begins)) == len(begins)
+                and all(r["phase"] in ("begin", "end") for r in rows), "geometry trace failed or incomplete")
+        calls = [name for _, name in begins]
+        require(set(calls) <= allowed and calls.count("GetRadius") == 1
+                and calls.count("GetSketchSegments") == 1 and calls.count("IModelDoc2.FeatureByName") == 1
+                and calls.count("ISldWorks.IsSame") == 3, "geometry proof contains getter/mutation/unknown/missing native calls")
+        proof.append(dict(request_id=observation["request_id"], calls=calls, worker_pid=worker_pid))
+    return proof
+
+
 def supervise(args):
     args.output_dir.mkdir(parents=True, exist_ok=False)
     command = [sys.executable, "-I", str(Path(__file__).resolve()), "--worker",
@@ -352,6 +475,7 @@ def supervise(args):
     started, wall = time.monotonic(), time.time()
     failure = None
     proof = []
+    geometry_proof = []
     with (args.output_dir / "worker.stdout.log").open("w") as out, (args.output_dir / "worker.stderr.log").open("w") as err:
         process = subprocess.Popen(command, stdout=out, stderr=err,
                                    env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})
@@ -369,6 +493,7 @@ def supervise(args):
                 report = json.loads((args.output_dir / "report.json").read_text())
                 require(report["success"] is True and not report["cleanup_errors"], "owned fixture cleanup failed")
                 proof = audit_read_trace(args.output_dir / "worker.stderr.log", report["cases"][0]["observations"], process.pid)
+                geometry_proof = audit_geometry_trace(args.output_dir / "worker.stderr.log", report["cases"][0]["geometry_proofs"], process.pid)
         except Exception as error:
             failure = str(error)
         finally:
@@ -380,7 +505,7 @@ def supervise(args):
                     failure = (failure or "worker failed") + "; Python worker termination unconfirmed"
     record = dict(success=process.returncode == 0 and failure is None, worker_exit=process.returncode,
                   failure=failure, cleanup_proven=failure is None and process.returncode == 0,
-                  read_trace_proof=proof, native_timeout_seconds=600, group_timeout_seconds=1800,
+                  read_trace_proof=proof, geometry_trace_proof=geometry_proof, native_timeout_seconds=600, group_timeout_seconds=1800,
                   full_acceptance_eligible=False)
     (args.output_dir / "supervisor.json").write_text(json.dumps(record, indent=2) + "\n")
     return 0 if record["success"] else 1

@@ -1,3 +1,13 @@
+# 显式BSTR数组seed候选已通过离线验证（2026-11-11）
+
+统筹原saved-A独立圆几何已证实实际半径10mm/直径20，源hash/state保持，0 Get3/Set/rebuild/save。原数值首错应先定位fixture seed，不能据此称Get3整体通过。
+
+按授权仅改B seed参数形状为显式单元素VARIANT BSTR数组，原dimension handle、Options/名称/目标/枚举保持，单次setter严格int0。新增initial-A、seed-B/A及saved/readonly A/B共7个独立几何准备窗，以真实圆半径8/10证明预置，不用Get3自证；seed阶段不符在保存前停止，保存/重开后的几何不符在对应Get3窗前停止。原Get3读窗/期望和预算不变，监督器增加禁止Get3/写入的几何trace硬门禁，PID绑定不变。
+
+38关联、2620完整（27skip）与SDK strict6/31拒绝通过；产品src/CI/STL/interop工具不变。详见 [候选与原件回执](docs/evidence/getter-array-seed-geometry-candidate-2026-11-11.json) 和 [详细交接](docs/handoffs/glb-export-repair.md)。本轮仅本地提交，不push/VM/CI，待统筹亲审精确head进行一次小范围诊断。
+
+## 此前交接历史
+
 # 两配置已到saved-A数值首错，独立几何证明待安排（2026-11-11）
 
 统筹7119626本地原件已核：身份准备、重建及现代原生保存通过；首个saved-A单次Get3返回20mm，期望16，B和只读重开均未到达。不能把夹具或产品选择器任一方预认首因，single BSTR在官方契约中允许。

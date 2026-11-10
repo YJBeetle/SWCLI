@@ -1,5 +1,17 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-11 显式BSTR数组seed候选与独立几何门禁
+
+统筹对原saved-A的独立几何原件已核report SHA256 `5a03ba2feea9c08c4513c04aabe21d1586bf922144d7de5d2587b0b5f011829c`：原SLDPRT hash `80455d6d94ea72776e44605b20e56c1fcc09879d558250569db7f3cadd744257` 前后相同，默认A实际为唯一完整非构造圆、半径10mm/直径20、中心0。前后state相同、config/foreground身份严格int1，原生trace独立重算GetRadius一次且0 Get3/Set/rebuild/save。原件路径 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-geometry-7119626-02/`。该结果支持先定位fixture seed，不证明产品Get3整体通过；此前01 warning误拒绝仍保留，未据此改变本fixture原只读重开门禁。
+
+经统筹授权，本次候选只将fixture B写入的Config_names从str改为 `VARIANT(VT_ARRAY | VT_BSTR, (second_name,))`。原creator返回的dimension handle、AddConfiguration2全部参数/Options=0、名称、20mm目标、装机枚举3及单次setter严格int0均保持。记录实际VARIANT类型/VT/唯一名称，以及setter原返回类型/值或首异常；不重试、无BSTR/current/all回退。官方允许两种配置名称形式，故此仍是待原生验证的封送对照候选，不称已修复。
+
+新增7个独立几何准备窗：initial-A=半径8，seed-B=10、seed-A=8，saved A/B及readonly reopened A/B各8/10。每次按当前document与实际草图名重新定位ProfileFeature，调用既有严格圆弧几何校验，完全不调用_descriptor/GetSystemValue3。要求唯一完整非构造圆、中心0、有限半径、part/readonly/edit-context可观察且已退出编辑，前后document/config/foreground/state及保存文件hash保持。seed阶段预置不符在首次保存前停止；保存/重开后的几何不符则在对应产品Get3窗前停止。每个原Get3窗口本身及A16/B20期望、单BSTR/单次Get3、元数据和身份保护均未变。
+
+监督器新增独立几何trace硬门禁：7个不同请求齐全，每窗GetRadius一次/同一worker，拒绝Get3、setter/rebuild/save或其他未知调用；原读窗口trace规则、process.pid身份绑定和600/1800预算保持。模拟B seed同时污染A为20会在seed-A几何证明处停止，0保存、0产品观察。
+
+38项关联、2620项完整回归OK（27环境跳过，76.161s），SDK strict6文件/31类型拒绝例通过。observe_current/audit_read_trace等9个函数AST不变，产品src/CI/STL/interop工具字节不变。原件、源码及日志hash见 [候选回执](../evidence/getter-array-seed-geometry-candidate-2026-11-11.json)。本轮本地提交，不push/VM/CI；由统筹亲审后安排一次新小范围原生诊断，失败仍首停。
+
 ## 2026-11-11 saved-A数值首错与独立预置证明计划
 
 统筹精确7119626本地单样件原件已核report SHA256 `8217746e38b75b1a7b52cadc64d682760b91397d99f684feb5ffbf56a2ab695b`。身份准备必要比较均严格int1，两次重建及现代SLDPRT保存true/0/0通过；第一个saved-A窗口实际GetSystemValue3(3,'默认')单次返回tuple[.02]，descriptor20mm，期望16，首错为native getter value/metadata mismatch。B及只读重开未到达；不得称四窗读取通过。原生调用worker84、监督器launch2604、SW3012，分别记录。

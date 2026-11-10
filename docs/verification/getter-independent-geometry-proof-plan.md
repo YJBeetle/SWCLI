@@ -1,5 +1,11 @@
 # 两配置夹具的独立几何证明方案（2026-11-11）
 
+## 当前候选实现（2026-11-11，待原生）
+
+统筹原A只读独立几何已证明实际直径20、源hash及状态保持，原生trace中0 Get3/Set/rebuild/save。因此已按授权实现单变量显式BSTR数组seed候选及7个独立几何准备窗；原handle/Options/名称/目标/枚举与Get3读窗不变。38关联/2620完整（27skip）/SDK通过，仅离线证据。详见 [候选回执](../evidence/getter-array-seed-geometry-candidate-2026-11-11.json)。未使用VM或派CI，原生有效性待统筹精确head诊断。
+
+## 实施前设计与原件边界
+
 状态：只读审查及下一次私有验证的候选设计；本轮不改fixture期望、产品Get3或setter，不操作VM/CI。零CADinterop工具另行提交，桥接不实现。
 
 ## 最新原件与未定边界
