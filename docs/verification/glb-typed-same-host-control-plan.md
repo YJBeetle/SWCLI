@@ -2,6 +2,8 @@
 
 状态：只读检查及诊断设计，尚未实现或运行C# helper。本路未操作VM/CI，不改生产保存绑定、暂存命名、偏好或容器校验。执行由统筹安排，原600秒native/1800秒group边界保留。
 
+2026-11-11：统筹先收敛为 [装机interop零CAD反射工具](installed-interop-metadata-check.md)，消费已有类型库原件，不重复采集；下述跨进程桥接仍仅设计，暂不实现。
+
 ## 已核对的基准原件
 
 统筹本地 `glb-host-control-70d8c9e-01` 位于 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/`。report SHA256为 `7bcb3bc4119a67e7576abd91548455aa7c85280ed0d95767634501431fded19f`，与local-supervisor记录匹配。40×30×10零件的SLDPRT SHA为 `4f975836ffbf38a58d05802c943701c8bab67f0ae0388b1e913e0a8f1df0f7b5`。STL684B、3MF10821B、AMF1476B均由当前严格校验重放通过。

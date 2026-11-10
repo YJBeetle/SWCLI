@@ -4,6 +4,8 @@
 
 本路未改fixture/产品/CI。已准备 [原件首失败回执](docs/evidence/getter-saved-A-value-first-failure-2026-11-11.json) 和 [不依赖Get3的圆弧几何证明计划](docs/verification/getter-independent-geometry-proof-plan.md)：先读原A圆半径区分真实预置问题与Get3矛盾，再决定一次显式数组seed候选；不改期望、不自动重试。零CAD装机interop工具另行交接，暂不实现桥接或操作VM/CI。
 
+零CAD工具已准备：`scripts/ci/inspect-installed-interop-contract.py` 及同目录PowerShell反射脚本，直接消费已留存类型库原件，不重复采集、不连ROT/实例化SW。12工具检查/2611完整（27skip）及SDK strict6/31拒绝通过；PowerShell和实际装机interop尚未在本路执行，交统筹先审脚本。见 [使用与边界](docs/verification/installed-interop-metadata-check.md) 和 [离线回执](docs/evidence/installed-interop-metadata-portable-2026-11-11.json)。
+
 ## 此前交接历史
 
 # 两配置身份门禁修正已完成离线验证（2026-11-10）

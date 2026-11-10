@@ -1,0 +1,46 @@
+{
+  "scope": "new zero-CAD metadata inspection utility; existing getter, production and CI unchanged",
+  "retained_typelib_source": "existing root installed-dimension-contract.json; bytes/hash comparison only, no repeated LoadTypeLib",
+  "collector": {
+    "python": "stdlib only",
+    "powershell": "existing Windows PowerShell Desktop required; reflection-only assembly load and CustomAttributeData",
+    "no_dependencies_installed": true,
+    "no_CAD_instance_or_ROT_access": true,
+    "no_typed_bridge_implemented": true,
+    "native_binding_and_null_marshaling_accepted": false
+  },
+  "validation": {
+    "targeted_tests": 12,
+    "portable_tests": 2611,
+    "portable_skipped": 27,
+    "portable_seconds": 98.791,
+    "sdk_strict_source_files": 6,
+    "sdk_negative_consumers": 31,
+    "git_diff_check": "passed"
+  },
+  "tested_file_sha256": {
+    "scripts/ci/inspect-installed-interop-contract.py": "f0a3dd43f4ad0b1cc1518f5d6708678405e7a7a65317e29b98e93e3cf964c863",
+    "scripts/ci/inspect-installed-interop-metadata.ps1": "de2fee02d0a8d3de83079e0b952d4181f610e270ef376438c6763cb863bd7eef",
+    "tests/test_installed_interop_contract.py": "cb2b47b3ecc59331f23130a9b686b73b481572c066850532bb32a9dcea149094"
+  },
+  "logs": {
+    "interop-targeted.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/metadata-and-seed-review/interop-targeted.log",
+      "sha256": "db40b71b32bd368c00e188aad93f64d9fa6a0d799f5646d074cc2e5674b7f8ae"
+    },
+    "full-portable.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/metadata-and-seed-review/full-portable.log",
+      "sha256": "c05b9d1b45134927e8b528c0f8418499da9eda9da8627949dd652932287b220f"
+    },
+    "sdk.log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/metadata-and-seed-review/sdk.log",
+      "sha256": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+    }
+  },
+  "limitations": [
+    "Local host has no Windows PowerShell Desktop; .ps1 syntax/runtime and installed interop reflection have not been executed here.",
+    "Portable tests use stable mock metadata, not installed assembly or CAD runtime.",
+    "Script is ready for coordinator review and one controlled zero-CAD Windows execution; collection success is not binding/export acceptance."
+  ],
+  "state": "local commit only; no push, VM operation or CI dispatch by this lane"
+}
