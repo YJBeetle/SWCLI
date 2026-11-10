@@ -1,0 +1,147 @@
+{
+  "audit_success": true,
+  "run_id": 42902927609,
+  "head_sha": "e2f787666c504e72c289825a7753f27f6bdbb049",
+  "event": "push",
+  "run_attempt": 1,
+  "conclusion": "success",
+  "windows": {
+    "3.9": {
+      "job_id": 130133366083,
+      "artifact_id": 13802729441,
+      "artifact_bytes": 1073,
+      "official_and_download_zip_sha256": "7ba0026806436d58fff9fde2ec198f357e7ada1719367e9f9e8c03aabea3f92e",
+      "original_job_log_sha256": "21d684e0b8ef896ab098e1461bc3b5bf31d9022b134ded04aa72494dd1123a31",
+      "unit_tests": 1973,
+      "seconds": 160.412,
+      "skipped": 11,
+      "probe_test_passed": true,
+      "self_pid_and_samefile_assertions_passed": true,
+      "raw_query_module_paths_exact_equal": true,
+      "raw_buffer_verified": true,
+      "observation_log_utc": "2026-11-10T21:16:48.8242816Z",
+      "observation": {
+        "sys_executable": "C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe",
+        "sys_base_executable": "C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe",
+        "identity": {
+          "pid": 2064,
+          "image": "C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe",
+          "creation_utc": "2026-11-10T21:14:24.198000+00:00",
+          "creation_timestamp": 1794345264.198
+        },
+        "module_image": "C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe",
+        "module_returned_chars": 55,
+        "module_last_error": null,
+        "query": {
+          "api": "QueryFullProcessImageNameW",
+          "argtypes": [
+            "HANDLE",
+            "DWORD",
+            "LPWSTR",
+            "PDWORD"
+          ],
+          "restype": "BOOL",
+          "flags": 0,
+          "input_capacity_chars": 32768,
+          "ctypes_bytes": {
+            "HANDLE": 8,
+            "DWORD": 4,
+            "BOOL": 4,
+            "wchar": 2
+          },
+          "byteorder": "little",
+          "success": true,
+          "last_error": null,
+          "returned_chars": 55,
+          "image": "C:\\hostedtoolcache\\windows\\Python\\3.9.13\\x64\\python.exe",
+          "image_repr": "'C:\\\\hostedtoolcache\\\\windows\\\\Python\\\\3.9.13\\\\x64\\\\python.exe'",
+          "image_length_py_chars": 55,
+          "image_length_utf16_units": 55,
+          "nul_at_returned_index": true,
+          "buffer_prefix_b64": "QwA6AFwAaABvAHMAdABlAGQAdABvAG8AbABjAGEAYwBoAGUAXAB3AGkAbgBkAG8AdwBzAFwAUAB5AHQAaABvAG4AXAAzAC4AOQAuADEAMwBcAHgANgA0AFwAcAB5AHQAaABvAG4ALgBlAHgAZQAAAA=="
+        }
+      },
+      "summary_totals": {
+        "phases": 6,
+        "pass": 3,
+        "fail": 0,
+        "skip": 3
+      }
+    },
+    "3.14": {
+      "job_id": 130133365639,
+      "artifact_id": 13803896789,
+      "artifact_bytes": 1062,
+      "official_and_download_zip_sha256": "bf74b4ff67491c2db9b7f82eb88ebca2057b579981ab48b3d6b9c4ee4e01a03f",
+      "original_job_log_sha256": "470b0e2ace5ab8d0037cb0b3004d1d5ff80c555ec5d985914e812afe70e04dc9",
+      "unit_tests": 1973,
+      "seconds": 202.445,
+      "skipped": 4,
+      "probe_test_passed": true,
+      "self_pid_and_samefile_assertions_passed": true,
+      "raw_query_module_paths_exact_equal": true,
+      "raw_buffer_verified": true,
+      "observation_log_utc": "2026-11-10T21:17:11.8501279Z",
+      "observation": {
+        "sys_executable": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+        "sys_base_executable": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+        "identity": {
+          "pid": 9984,
+          "image": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+          "creation_utc": "2026-11-10T21:14:15.860000+00:00",
+          "creation_timestamp": 1794345255.86
+        },
+        "module_image": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+        "module_returned_chars": 56,
+        "module_last_error": null,
+        "query": {
+          "api": "QueryFullProcessImageNameW",
+          "argtypes": [
+            "HANDLE",
+            "DWORD",
+            "LPWSTR",
+            "PDWORD"
+          ],
+          "restype": "BOOL",
+          "flags": 0,
+          "input_capacity_chars": 32768,
+          "ctypes_bytes": {
+            "HANDLE": 8,
+            "DWORD": 4,
+            "BOOL": 4,
+            "wchar": 2
+          },
+          "byteorder": "little",
+          "success": true,
+          "last_error": null,
+          "returned_chars": 56,
+          "image": "C:\\hostedtoolcache\\windows\\Python\\3.14.10\\x64\\python.exe",
+          "image_repr": "'C:\\\\hostedtoolcache\\\\windows\\\\Python\\\\3.14.10\\\\x64\\\\python.exe'",
+          "image_length_py_chars": 56,
+          "image_length_utf16_units": 56,
+          "nul_at_returned_index": true,
+          "buffer_prefix_b64": "QwA6AFwAaABvAHMAdABlAGQAdABvAG8AbABjAGEAYwBoAGUAXAB3AGkAbgBkAG8AdwBzAFwAUAB5AHQAaABvAG4AXAAzAC4AMQA0AC4AMQAwAFwAeAA2ADQAXABwAHkAdABoAG8AbgAuAGUAeABlAAAA"
+        }
+      },
+      "summary_totals": {
+        "phases": 6,
+        "pass": 5,
+        "fail": 0,
+        "skip": 1
+      }
+    }
+  },
+  "native_job_skipped": true,
+  "solidworks_image_observed": false,
+  "solidworks_mismatch_resolved": false,
+  "public_acceptance_completed": {
+    "cli": 0,
+    "sdk": 0,
+    "mcp": 0
+  },
+  "notes": [
+    "Python self-query only; no CAD/native result from this run.",
+    "samefile and self PID assertions are evidenced by the exact Windows test pass; this audit does not call Windows APIs.",
+    "Original job logs have locally pinned SHA256; official artifact digests apply to summary ZIPs."
+  ]
+}
