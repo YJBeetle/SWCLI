@@ -7,6 +7,7 @@ actual Python argument/signature, never presented as native-memory inspection.
 import hashlib
 from pathlib import Path
 from types import CodeType, MethodType
+from gate_support.step_binding_observation import snapshot_state
 
 PACKAGE_SHA = {
     'dynamic': 'b217819b4d9b1cbd474b463b4181a683e311d2cf0a2a14fd1dd1b00595bb7797',
@@ -49,6 +50,11 @@ def attest_package():
     compiled = compile(bodies['dynamic'],str(dynamic.__file__),'exec',dont_inherit=True)
     cls = next(x for x in compiled.co_consts if isinstance(x,CodeType) and x.co_name == 'CDispatch')
     expected = {x.co_name:x for x in cls.co_consts if isinstance(x,CodeType)}
+    result['runtime_return_handlers'] = {}
+    for name in ('_get_good_object_','_get_good_single_object_','_wrap_dispatch_'):
+        actual = getattr(dynamic.CDispatch,name)
+        require(code_key(actual.__code__) == code_key(expected[name]),'runtime return helper differs: '+name)
+        result['runtime_return_handlers'][name] = code_digest(actual.__code__)
     result['runtime_handlers'] = {}
     for name in HANDLERS:
         actual = getattr(dynamic.CDispatch,name)
@@ -157,6 +163,8 @@ class NullDispatchBinding:
         representation = state.get('_olerepr_')
         require(type(representation) in (build.DispatchItem,build.LazyDispatchItem), 'unknown method-map implementation')
         require(type(representation).MakeFuncMethod is build.DispatchItem.MakeFuncMethod, 'custom method generator')
+        evidence['existing_python_state'] = snapshot_state(state,build)
+        persist()
         if 'LoadFile4' not in representation.mapFuncs:
             # Exact b312 lazy metadata path used by normal __getattr__. It only
             # binds type information. Never continue to unknown-member Invoke.

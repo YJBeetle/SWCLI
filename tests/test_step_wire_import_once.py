@@ -109,6 +109,8 @@ class StepWireImportOnceTests(unittest.TestCase):
     def run_case(self,**options):
         neutral_3d_candidate=options.pop('neutral_3d_candidate',False)
         null_candidate=options.pop('null_import_data_candidate',False)
+        installed_candidate=options.pop('installed_tlb_null_binding_candidate',False)
+        installed_dispid=options.pop('installed_dispid',227)
         binding_route=options.pop('binding_route','typed')
         binding_wrapper=options.pop('binding_wrapper','dynamic')
         binding_unknown=options.pop('binding_unknown',False)
@@ -121,29 +123,38 @@ class StepWireImportOnceTests(unittest.TestCase):
         class Variant:
             def __init__(self,kind,value):self.varianttype=kind;self.value=value
         binding_modules=None;package=None;raw_app=app
-        if null_candidate:
+        if null_candidate or installed_candidate:
             from test_step_null_binding import environment
             raw_app,binding_modules,package=environment(m.step_null_binding,route=binding_route,target=app,lazy=True,unknown=binding_unknown,wrong_type=binding_wrong_type,wrapper=binding_wrapper)
             binding_modules[2].VARIANT=Variant
+            raw_app._oleobj_.dispid=installed_dispid
+            if installed_candidate and binding_unknown:raw_app._lazydata_=None
+            app.binding_raw=raw_app
         client=SimpleNamespace(GetActiveObject=mock.Mock(side_effect=Failure()),DispatchEx=mock.Mock(return_value=raw_app),VARIANT=Variant)
         info=SimpleNamespace(GetDocumentation=lambda *args:('IImportStepData',),GetTypeAttr=lambda:(m.STEP_IID,))
         com=SimpleNamespace(CoInitialize=mock.Mock(),CoUninitialize=mock.Mock(),LoadTypeLib=lambda path:SimpleNamespace(GetTypeInfoOfGuid=lambda iid:info),
-                            IID_IUnknown='safe-wrapper',VT_BYREF=1,VT_I4=2,com_error=Failure)
+                            IID_IUnknown='safe-wrapper',VT_BYREF=16384,VT_I4=3,com_error=Failure)
+        if installed_candidate:
+            from test_step_null_binding import Endpoint
+            com.IID_IDispatch='dispatch';com.TypeIIDs={'dispatch':Endpoint}
         meta=dict(path=m.INPUT,sha256=m.INPUT_SHA,readonly=True,metadata={'attributes':1},original_source=m.SOURCE)
         handle=SimpleNamespace(Close=mock.Mock())
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory).resolve();output=root/'out';output.mkdir();swconst=root/'swconst.tlb';swconst.write_bytes(b'constants');(root/'sldworks.tlb').write_bytes(b'library')
             hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (swconst,root/'sldworks.tlb')}
             with ExitStack() as binding_patches:
-                if null_candidate:
+                if null_candidate or installed_candidate:
                     binding_patches.enter_context(mock.patch.object(m.step_null_binding,'modules',return_value=binding_modules))
                     binding_patches.enter_context(mock.patch.object(m.step_null_binding,'attest_package',return_value=package))
+                if installed_candidate:
+                    from test_step_explicit_null_binding import contract
+                    binding_patches.enter_context(mock.patch.object(m.step_explicit_null_binding,'installed_contract',return_value=contract()))
                 with mock.patch.object(m,'_native_windows_runtime',return_value=True),mock.patch.object(m.importlib.metadata,'version',return_value='312'), \
                         mock.patch.object(m,'input_metadata',return_value=meta),mock.patch.object(m,'LIBRARY_HASHES',hashes), \
                         mock.patch.object(m,'native_pids',return_value=[]),mock.patch.object(m,'_read_native_enum_constants',return_value=const), \
                         mock.patch.object(m.harness,'capture_process',return_value=handle),mock.patch.object(m.harness,'wait_process') as wait, \
                         mock.patch.dict('sys.modules',{'pythoncom':com,'win32com':SimpleNamespace(client=client),'win32com.client':client}):
-                    result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst,neutral_3d_candidate=neutral_3d_candidate,null_import_data_candidate=null_candidate))
+                    result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst,neutral_3d_candidate=neutral_3d_candidate,null_import_data_candidate=null_candidate,installed_tlb_null_binding_candidate=installed_candidate))
             report=json.loads((output/'report.json').read_text());trace=[json.loads(x) for x in (output/'trace.jsonl').read_text().splitlines()]
             waits=wait.call_count
         for name in TRAPS:getattr(app,name).assert_not_called();getattr(app.doc,name).assert_not_called()
@@ -483,3 +494,80 @@ class StepWireImportOnceTests(unittest.TestCase):
         self.assertEqual(r['failure']['message'],'original client Load error')
         self.assertTrue(r['cases'][0]['preferences']['restore_errors'])
         self.assertIsNone(r['cases'][0]['geometry']['value'])
+
+
+    def test_installed_explicit_mode_has_two_variables_one_invoke_and_same_60f_full_vector(self):
+        for wrapper in ('dynamic','client'):
+            with self.subTest(wrapper=wrapper):
+                _,app,code,r,trace=self.run_case(installed_tlb_null_binding_candidate=True,binding_wrapper=wrapper,binding_unknown=True)
+                self.assertEqual(code,0);self.assertEqual(r['diagnostic_case'],'step-wire-installed-explicit-null-once')
+                c=r['cases'][0];p=c['preferences'];e=c['explicit_installed_binding']
+                self.assertIn('two-variable',c['scope']);self.assertFalse(e['single_null_causal_claim'])
+                self.assertEqual(e['changed_variables_from_60f1cf8'],['invocation binding','ImportData semantic value'])
+                self.assertEqual(p['changed_from_60f1cf8'],[]);self.assertEqual(len(p['writes']),5)
+                self.assertEqual([x['name'] for x in p['restore']],list(reversed([x['name'] for x in p['writes']])))
+                self.assertTrue(p['restored']);self.assertEqual(app.values,app.before)
+                self.assertEqual(len(app.loads),1);actual=app.loads[0][2]
+                self.assertEqual((actual.varianttype,actual.value),(9,None));self.assertIsNot(actual,app.data)
+                self.assertEqual(app.data_calls,1);self.assertEqual(app.data.mapping_reads,1);app.data._oleobj_.QueryInterface.assert_called_once()
+                self.assertEqual(app.binding_raw.lookups,0);self.assertEqual(app.binding_raw.lazy_reads,0)
+                self.assertEqual(app.binding_raw._olerepr_.mapFuncs,{})
+                self.assertEqual(app.binding_raw._oleobj_.metadata_calls,[('GetIDsOfNames',(0,'LoadFile4'))])
+                self.assertEqual([x[0] for x in app.binding_raw._oleobj_.calls],['Invoke'])
+                self.assertEqual(c['geometry']['value']['segment_count'],12);self.assertEqual(c['geometry']['value']['total_length_mm'],320)
+                self.assertEqual(len(app.closes),1)
+                self.assertEqual([x['call'] for x in trace if x['phase']=='begin'].count('LoadFile4'),1)
+                self.assertFalse(e['original_bound_method_used'])
+
+    def test_installed_explicit_bad_name_id_is_zero_load_with_all_owned_restored(self):
+        for dispid in (228,None,True,Failure('name lookup first error')):
+            with self.subTest(dispid=type(dispid).__name__):
+                _,app,code,r,trace=self.run_case(installed_tlb_null_binding_candidate=True,installed_dispid=dispid)
+                self.assertEqual(code,1);self.assertEqual(app.loads,[]);self.assertEqual(app.values,app.before)
+                c=r['cases'][0];self.assertTrue(c['preferences']['restored']);self.assertEqual(c['load_return']['state'],'not-attempted')
+                self.assertFalse(c['explicit_installed_binding']['explicit_invoke_attempted'])
+                self.assertEqual(app.binding_raw._oleobj_.calls,[]);self.assertFalse(any(x['call']=='LoadFile4' for x in trace))
+                self.assertIsNone(c['geometry']['value'])
+
+    def test_installed_explicit_native_first_error_does_not_hide_restore_or_close_failures(self):
+        for options in ({'load_failure':Failure('explicit native first error',-8),'restore_fail':'swImportNeutral_CurvesAndPointsOption'},
+                        {'load_error':1,'close_failure':Failure('close first error',-7)}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(installed_tlb_null_binding_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(len(app.loads),1)
+                self.assertEqual(r['failure']['message'],'explicit native first error' if 'load_failure' in options else 'STEP geometry readback failed')
+                c=r['cases'][0];self.assertTrue(c['explicit_installed_binding']['explicit_invoke_attempted'])
+                self.assertIsNone(c['geometry']['value'])
+                if 'restore_fail' in options:self.assertTrue(c['preferences']['restore_errors'])
+                else:self.assertEqual(len(app.closes),1);self.assertEqual(r['cleanup_errors'][0]['stage'],'CloseDoc')
+
+    def test_installed_explicit_mode_preserves_strict_reference_representation_and_first_qi(self):
+        for options in ({'kind':'sketch'},{'lengths':[10]*4+[30]*4+[41]*4},{'qi_failure':TypeError('unknown QI')}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(installed_tlb_null_binding_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(app.values,app.before);c=r['cases'][0]
+                self.assertEqual(c['geometry']['status'],'unavailable');self.assertIsNone(c['geometry']['value'])
+                if 'qi_failure' in options:self.assertEqual(app.loads,[]);self.assertNotIn('explicit_installed_binding',c)
+                elif 'kind' in options:
+                    raw=c['geometry']['raw_observation'];self.assertEqual(raw['segment_count'],12)
+                    self.assertEqual(raw['total_length_mm'],320);self.assertTrue(raw['representation_mismatches'])
+                else:self.assertEqual(len(app.loads),1)
+
+    def test_installed_explicit_supervisor_uses_distinct_root_and_one_mode_with_same_deadline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            m=load();root=Path(directory).resolve();output=root/'new';process=mock.Mock();process.poll.return_value=None
+            def start(command,**kwargs):
+                self.assertEqual(command.count('--installed-tlb-null-binding-candidate'),1)
+                self.assertNotIn('--null-import-data-candidate',command);self.assertNotIn('--neutral-3d-candidate',command)
+                return process
+            with mock.patch.object(m,'INSTALLED_BINDING_EVIDENCE_ROOT',str(root)), \
+                    mock.patch.object(m.subprocess,'Popen',side_effect=start), \
+                    mock.patch.object(m.time,'monotonic',side_effect=[0,1800]),mock.patch.object(m.time,'sleep'):
+                self.assertEqual(m.main(['--output-dir',str(output),'--installed-tlb-null-binding-candidate']),124)
+            process.kill.assert_called_once();process.wait.assert_called_once()
+
+    def test_installed_explicit_mode_is_exclusive_before_any_native_acquisition(self):
+        m=load()
+        with self.assertRaises(SystemExit) as caught:
+            m.main(['--output-dir','unused','--installed-tlb-null-binding-candidate','--null-import-data-candidate'])
+        self.assertEqual(caught.exception.code,2)

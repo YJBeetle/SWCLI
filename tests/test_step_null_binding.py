@@ -1,5 +1,6 @@
 """Fake binding/argument traps; no native pointer or CAD acceptance claim."""
 import hashlib
+import sys
 import importlib.util
 from pathlib import Path
 from types import CodeType, MethodType, SimpleNamespace
@@ -11,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load():
+    ci=str(ROOT/'scripts/ci')
+    if ci not in sys.path:sys.path.insert(0,ci)
     spec=importlib.util.spec_from_file_location('step_null_test',ROOT/'scripts/ci/gate_support/step_null_binding.py')
     m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 
@@ -38,7 +41,11 @@ class LazyDispatchItem(DispatchItem):pass
 
 
 class Endpoint:
-    def __init__(self,target=None):self.target=target;self.calls=[]
+    def __init__(self,target=None):self.target=target;self.calls=[];self.dispid=227;self.metadata_calls=[]
+    def GetIDsOfNames(self,*args):
+        self.metadata_calls.append(('GetIDsOfNames',args))
+        if isinstance(self.dispid,BaseException):raise self.dispid
+        return self.dispid
     def InvokeTypes(self,*args):
         self.calls.append(('InvokeTypes',args))
         return self.target.LoadFile4(*args[5:]) if self.target else 'model'
@@ -74,6 +81,7 @@ class CDispatch:
         return self._get_good_object_(self._oleobj_.InvokeTypes(dispid,0,flags,ret,args,*values),name,clsid)
     def _get_good_object_(self,value,*args):return value
     def _get_good_single_object_(self,value,*args):return value
+    def _wrap_dispatch_(self,value,*args):return value
 
 
 class ClientCDispatch(CDispatch):
@@ -97,7 +105,8 @@ def environment(m,*,route='typed',target=None,lazy=False,unknown=False,wrong_typ
     client=SimpleNamespace(VARIANT=Variant,CDispatch=ClientCDispatch,DispatchEx=client_dispatch_ex,Dispatch=client_dispatch,**{'__WrapDispatch':client_wrap})
     package=dict(verified=True,runtime_handlers={name:m.code_digest(getattr(CDispatch,name).__code__) for name in m.HANDLERS},
         client_wrapper_handlers={name:m.code_digest(getattr(ClientCDispatch,name).__code__) for name in m.CLIENT_HANDLERS},
-        client_factory_handlers={name:m.code_digest(getattr(client,name).__code__) for name in m.CLIENT_FACTORIES})
+        client_factory_handlers={name:m.code_digest(getattr(client,name).__code__) for name in m.CLIENT_FACTORIES},
+        runtime_return_handlers={name:m.code_digest(getattr(CDispatch,name).__code__) for name in ('_get_good_object_','_get_good_single_object_','_wrap_dispatch_')})
     return raw,(dynamic,build,client),package
 
 
@@ -181,7 +190,7 @@ class NullBindingTests(unittest.TestCase):
             m.NullDispatchBinding(raw,Variant,None,{},lambda:None)
 
     def test_package_source_and_runtime_handler_attestation_with_crlf_normalization(self):
-        m=load();source='class CDispatch:\n'+''.join('    def '+name+'(self, *args):\n        return None\n' for name in m.HANDLERS+('_get_good_object_','_get_good_single_object_'))
+        m=load();source='class CDispatch:\n'+''.join('    def '+name+'(self, *args):\n        return None\n' for name in m.HANDLERS+('_get_good_object_','_get_good_single_object_','_wrap_dispatch_'))
         client_source=('class CDispatch(dynamic.CDispatch):\n'+''.join('    def '+name+'(self, *args):\n        return None\n' for name in m.CLIENT_HANDLERS)+
                        ''.join('def '+name+'(*args):\n    return None\n' for name in m.CLIENT_FACTORIES))
         ns={};exec(compile(source,'<fake package>','exec'),ns)
