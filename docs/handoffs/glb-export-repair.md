@@ -10,7 +10,7 @@ b50单次identity report SHA `43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11
 
 ## 2026-11-12 实际PIA零CAD编译首错、最小修正与通过
 
-统筹919a83e实际PIA编译exit1，首错CS0104 Attribute/Environment命名空间冲突；装机PIA SHA与源码前后hash已独立核对，helper/COM/GLB均0。候选仅两处System.Attribute及一处System.Environment全限定名；测试替身加入同名类，旧源码先复现、修后本机0警告/0错误，36条C#断言和19项Python测试通过。修正代码已单独提交b50b603；统筹仅一次实际PIA零CAD编译通过，build SHA `9993fb5b64200a6095084f5a95d49cbb5fe1e5e810af0b7d3bd2f8948e7a38c9`，helper SHA `ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64`。五份源码/PIA哈希和AMD64 PE32+已独立核对，helper执行0；管道/COM/GLB仍无运行结果。本路未VM/CI/push。[首错原件及路径身份分析](../verification/glb-typed-namespace-and-path-audit-2026-11-12.md)明确短/长路径尚无现场失败，不改SameSnapshot严格比较，不静默归一；物理exe文件ID证据仍缺，记录了持有文件句柄/volume+完整FileId/哈希及前后复核的待审只读方案，身份预检前交统筹亲审。
+统筹919a83e实际PIA编译exit1，首错CS0104 Attribute/Environment命名空间冲突；装机PIA SHA与源码前后hash已独立核对，helper/COM/GLB均0。候选仅两处System.Attribute及一处System.Environment全限定名；测试替身加入同名类，旧源码先复现、修后本机0警告/0错误，36条C#断言和19项Python测试通过。修正代码已单独提交b50b603；统筹仅一次实际PIA零CAD编译通过，build SHA `9993fb5b64200a6095084f5a95d49cbb5fe1e5e810af0b7d3bd2f8948e7a38c9`，helper SHA `ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64`。五份源码/PIA哈希和AMD64 PE32+已独立核对，helper执行0；管道/COM/GLB仍无运行结果。本路未VM/CI/push。[首错原件及路径身份分析](../verification/glb-typed-namespace-and-path-audit-2026-11-12.md)明确短/长路径尚无现场失败，不改SameSnapshot严格比较，不静默归一；额外物理exe文件ID方案仅供实际raw路径不匹配后按原件审查，不是本轮零GLB/单次对照的前置要求，不提前增加采集链。既有owned句柄/PID/精确FILETIME、双端raw严格相等、固定exe/PIA hash及canonical身份保护不变，已审源文件稳定读取检查另行保持。
 
 ## 2026-11-12 早期历史线索与box原件对照（后续真实文件见上）
 

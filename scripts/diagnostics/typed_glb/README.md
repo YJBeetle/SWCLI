@@ -49,7 +49,7 @@ helper 的独立 trace 标记真实 helper PID。Python trace 只写 `CSharpBrid
 
 ## 本机证据及限制
 
-.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；70条断言通过（含合成长短路径、只读共享取证状态、部分观察保留，非原生观察）：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python23项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。919a83e实际Windows/PIA编译首错保留；b50b603实际PIA编译通过；其后身份预检已完成contract、三包consumed和局部IUnknown检查，但完整身份因源读取首错未过，GLB0。当前5c754ba尚未实际PIA编译，Windows共享/PInvoke/新协议仍待验证。本机没有PowerShell；统筹原次syntax_exit=0，不能当helper编译通过。当前不改路径比较/归一化，物理文件ID证据仍缺，身份预检前先审阅上述分析。
+.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；70条断言通过（含合成长短路径、只读共享取证状态、部分观察保留，非原生观察）：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python23项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。919a83e实际Windows/PIA编译首错保留；b50b603实际PIA编译通过；其后身份预检已完成contract、三包consumed和局部IUnknown检查，但完整身份因源读取首错未过，GLB0。当前5c754ba尚未实际PIA编译，Windows共享/PInvoke/新协议仍待验证。本机没有PowerShell；统筹原次syntax_exit=0，不能当helper编译通过。当前不改raw路径比较/归一化；额外双端exe文件ID仅是实际不匹配后供统筹取舍的条件设计，不是本轮identity或单次invoke的新增要求，也不提前增加采集链。已审源文件稳定读取检查保持。
 
 本机纯测试（无网络依赖；SDK须已存在）：
 

@@ -77,7 +77,15 @@
     "no_hash_only_acceptance": true,
     "no_silent_normalization": true,
     "python_8_3_path_later_observed": true,
-    "CSharp_raw_path_retained_in_b50_identity": false
+    "CSharp_raw_path_retained_in_b50_identity": false,
+    "additional_exe_file_ID_required_for_this_identity_or_invoke": false,
+    "additional_exe_identity_collection": "conditional only after an actually observed raw-path mismatch and coordinator review; no proactive collection",
+    "existing_guards_unchanged": [
+      "owned process handle/PID/exact FILETIME",
+      "strict equality of both raw snapshots including exe_path",
+      "pinned exe/PIA hashes",
+      "canonical document/Extension identity"
+    ]
   },
   "this_lane_new_native_operations": {
     "VM": 0,

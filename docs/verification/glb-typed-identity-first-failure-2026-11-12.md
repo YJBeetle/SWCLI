@@ -12,7 +12,7 @@ SW2416、实际Python worker6168、supervisor launch7988、helper8512。STL/3MF/
 
 - 仅源文件使用FileMode.Open、**FileAccess.Read**、FileShare.ReadWrite，不加Delete。共享策略允许与SW现有句柄共存；本句柄不能写。exe/PIA仍用原Hash/File.OpenRead策略。依据：[File.OpenRead](https://learn.microsoft.com/en-us/dotnet/api/system.io.file.openread?view=netframework-4.8.1)、[FileShare](https://learn.microsoft.com/en-us/dotnet/api/system.io.fileshare?view=netframework-4.8.1)。
 - 源读取持有普通文件句柄，完整128位FileId及volume、size、creation/write/change时间与属性/links在读前后严格相同；读取后再打开原路径，须仍对应同一个持有文件及状态。未知、目录/reparse/delete-pending、截短/增长、身份/时间变化都拒绝；不通过删除共享或重试消除错误。使用[GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex)。不把读取自身可能改变的access时间用于稳定比较，也不改写或归一时间。
-- 原保存前/后完整源hash、文档状态及SameSnapshot/SaveOnce门禁保持。新SourceRead evidence记录一次完整读的哈希与前/后元数据，complete=false时不冒充通过；源文件身份读取与exe物理身份方案分开，后者仍待审。
+- 原保存前/后完整源hash、文档状态及SameSnapshot/SaveOnce门禁保持。新SourceRead evidence记录一次完整读的哈希与前/后元数据，complete=false时不冒充通过；源文件稳定读取检查与额外exe物理身份条件设计分开；后者不是本轮identity/invoke的新增前置，也不提前增加采集链。
 - Observe用带类型且仅包含已获取字段的observations保留raw路径/标量和失败字段；完整before/after仍只在全部读取成功后赋值。不会用默认0/false回填未知字段，也不把observation.complete当identity_accepted。
 - Python仅对同nonce、合法无role的提前result保留helper首错/HRESULT并终止，不将它当identity ACK；提前success result同样拒绝。NORMAL消费ACK未知仍unknown，不重发/重连/回退。离线报告可从durable首错取失败统计，成功门禁不放宽。
 
