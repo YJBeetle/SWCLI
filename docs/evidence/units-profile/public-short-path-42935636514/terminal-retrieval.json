@@ -1,0 +1,60 @@
+{
+  "run_id": 42935636514,
+  "head_sha": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "metadata_fetches": {
+    "run": 1,
+    "jobs": 1,
+    "artifacts": 1
+  },
+  "native_zip_downloads": 1,
+  "windows_job_log_downloads_each": 1,
+  "portable_summary_downloads_each": 1,
+  "install_zip_available": false,
+  "install_zip_absence_reason": "Upload private installer logs uses if: failure(); this run succeeded and official artifact list contains no installer artifact.",
+  "files": {
+    "units-short-459-remote-before.txt": {
+      "bytes": 82,
+      "sha256": "60bf873a8f58a0a889c478beadd7d639180e6006b651d46a672ceed487d296ad"
+    },
+    "units-short-459-tracked-status.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native.original.log": {
+      "bytes": 70588,
+      "sha256": "4b3c7a246f92db6825b176563050d05bcbad01c2636141e42acca104699babfb"
+    },
+    "original-native.zip": {
+      "bytes": 47688318,
+      "sha256": "c34b58cd4796d7778eae31b01d69bacc1108d9c9c12e22908b6d054c37fb7117"
+    },
+    "route.original.log": {
+      "bytes": 15750,
+      "sha256": "0076fa5c27a4db2b45e56e8c0c2756ff9a9000e5e18f99d6c429945ce79176b5"
+    },
+    "summary-3.9.original.zip": {
+      "bytes": 1071,
+      "sha256": "0bb8091df33452d2d60f2e4398ea7caf905c20c9d03d6cd8f536e0b0b3e902cb"
+    },
+    "windows-3.9.original.log": {
+      "bytes": 405140,
+      "sha256": "43bae8aa989f1c2607584d2d4a4cf5f72894da450b80c640fce15352d9a26104"
+    },
+    "summary-3.14.original.zip": {
+      "bytes": 1061,
+      "sha256": "3c964d83bebfa37b9ccccdc3b91edd6be8365e4307842f8229f336a19673f216"
+    },
+    "windows-3.14.original.log": {
+      "bytes": 535588,
+      "sha256": "437d2ac789396a712e1798fc2f4f952f261e0e03bd4fa99f5ef14324351d8c92"
+    },
+    "units-short-459-remote-after.txt": {
+      "bytes": 82,
+      "sha256": "3515087f26b5220044bd4f6fbfd074858a1fb5f22a3c43b849907156eb2008ac"
+    },
+    "units-short-459-manual-runs-before.json": {
+      "bytes": 168892,
+      "sha256": "32214d54fe63c722bd1cedcb675d38c7d848a4392085c19cd6289451943cd0fe"
+    }
+  }
+}
