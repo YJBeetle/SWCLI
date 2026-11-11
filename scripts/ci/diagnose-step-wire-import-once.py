@@ -34,6 +34,7 @@ reader = importlib.util.module_from_spec(reader_spec)
 reader_spec.loader.exec_module(reader)
 INPUT = r'C:\Workspace\SWCLI-series-20261111\step-qi-input\ap203-wireframe.step'
 EVIDENCE_ROOT = r'C:\Workspace\SWCLI-series-20261111\step-wire-import-evidence'
+NEUTRAL_3D_EVIDENCE_ROOT = r'C:\Workspace\SWCLI-series-20261111\step-wire-neutral-3d-evidence'
 INPUT_SHA = '3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90'
 STEP_IID = '{AD749A73-9AA2-4A3E-BCA5-8FC012114BB0}'
 LIBRARY_HASHES = {
@@ -104,9 +105,10 @@ class ImportOnceApp:
     ALLOWED = frozenset(('GetDocumentCount', 'GetProcessID', 'RevisionNumber', 'Visible', 'StartupProcessCompleted',
                          'ExitApp', 'GetUserPreferenceToggle', 'GetUserPreferenceIntegerValue',
                          'SetUserPreferenceToggle', 'SetUserPreferenceIntegerValue'))
-    def __init__(self, app, constants):
+    def __init__(self, app, constants, *, neutral_3d_candidate=False):
         object.__setattr__(self, '_app', app)
         object.__setattr__(self, '_constants', dict(constants))
+        object.__setattr__(self, '_neutral_3d_candidate', neutral_3d_candidate)
         object.__setattr__(self, '_data_attempted', False)
         object.__setattr__(self, '_load_attempted', False)
         object.__setattr__(self, '_close_attempted', False)
@@ -117,6 +119,8 @@ class ImportOnceApp:
         require(name in self.ALLOWED, 'Forbidden CAD member: ' + name)
         if name in ('SetUserPreferenceToggle','SetUserPreferenceIntegerValue'):
             allowed = PreferenceTransaction.GENERAL + (PreferenceTransaction.EXTRA,)
+            if self._neutral_3d_candidate:
+                allowed += (PreferenceTransaction.CURVE,)
             ids = {self._constants[key] for key in allowed if (key in TOGGLES) == (name == 'SetUserPreferenceToggle')}
             def write(code, value):
                 require(code in ids, 'Unowned diagnostic preference setter is forbidden')
@@ -169,8 +173,11 @@ class PreferenceTransaction:
     """Eight-value CAS; restore only this transaction's attempted writes."""
     GENERAL = ('swMultiCAD_Enable3DInterconnect', 'swImportSolidSurface', 'swImportFreeCurves', 'swImportCurvePreference')
     EXTRA = 'swImportNeutral_FreeCurvesAndPoints'
+    CURVE = 'swImportNeutral_CurvesAndPointsOption'
     def __init__(self, app, constants, call, case, report, output):
         self.app, self.constants, self.call = app, constants, call
+        self.neutral_3d_candidate = app._neutral_3d_candidate
+        self.writable = self.GENERAL + (self.EXTRA,) + ((self.CURVE,) if self.neutral_3d_candidate else ())
         self.case, self.report, self.output = case, report, output
         self.evidence = case['preferences'] = dict(snapshot=None, stages=[], reads=[], writes=[], restore=[], restored=False)
         self.before, self.expected = None, None
@@ -202,7 +209,7 @@ class PreferenceTransaction:
         row['status'] = 'observed';self.persist()
         return dict(row['values'])
     def setter(self, name, value, label, row):
-        require(name in self.GENERAL + (self.EXTRA,), 'Not a writable diagnostic preference')
+        require(name in self.writable, 'Not a writable diagnostic preference')
         kind = 'Toggle' if name in TOGGLES else 'IntegerValue'
         row.update(status='attempted', possible_mutation=True);self.persist()
         try:
@@ -230,6 +237,8 @@ class PreferenceTransaction:
         self.before = before;self.expected = dict(before);self.evidence['snapshot'] = dict(before);self.persist()
         g0,g1 = (self.constants[n] for n in ('swGeneralImportAsSketches','swGeneralImportAs3dCurves'))
         n0,n1 = (self.constants[n] for n in ('swImportNeutralCurvesAndPointsOptions_AsSketches','swImportNeutralCurvesAndPointsOptions_As3DCurves'))
+        if self.neutral_3d_candidate:
+            require(type(n0) is int and type(n1) is int and (n0,n1) == (0,1), 'Official Neutral 0/1 enum contract differs')
         require(before['swImportCurvePreference'] in (g0,g1) and before['swImportNeutral_CurvesAndPointsOption'] in (n0,n1), 'Original curve modes unknown')
         require(before['swImportNeutral_SolidandSurface'] is True and before[self.EXTRA] is False
                 and before['swImportNeutral_CurvesAndPointsOption'] == n0 and before['swImportStepConfigData'] is False,
@@ -240,9 +249,20 @@ class PreferenceTransaction:
         ci = {**before, **dict(zip(self.GENERAL,(False,True,True,g1)))}
         self.evidence['ci_general_readback'] = self.snapshot('verify-exact-ci-general')
         require(self.evidence['ci_general_readback'] == ci, 'Old CI General profile readback mismatch')
-        self.apply(self.EXTRA,True)  # Only new candidate bit relative to the exact CI profile.
+        self.apply(self.EXTRA,True)
+        previous = {**ci,self.EXTRA:True}
+        if self.neutral_3d_candidate:
+            # Verify the prepared previous vector without importing the baseline.
+            self.evidence['d232e35_vector_readback'] = self.snapshot('verify-d232e35-vector-without-import')
+            require(self.evidence['d232e35_vector_readback'] == previous, 'Previous diagnostic vector differs')
+            self.apply(self.CURVE,n1)
         self.evidence['candidate_readback'] = self.snapshot('verify-candidate')
-        require(self.evidence['candidate_readback'] == {**ci,self.EXTRA:True}, 'Candidate differs beyond one reviewed bit')
+        expected_candidate = {**previous,self.CURVE:n1} if self.neutral_3d_candidate else previous
+        require(self.evidence['candidate_readback'] == expected_candidate, 'Candidate differs beyond one reviewed value')
+        if self.neutral_3d_candidate:
+            self.evidence['changed_from_d232e35'] = [key for key in previous if previous[key] != expected_candidate[key]]
+            require(self.evidence['changed_from_d232e35'] == [self.CURVE], 'Neutral candidate changes more than one value')
+        self.persist()
     def restore(self):
         errors = self.evidence['restore_errors'] = []
         if not self.owned:
@@ -274,7 +294,8 @@ class PreferenceTransaction:
 
 def case_runner(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
     require(profile_kind == 'single-wire-import' and live['document'] is None, 'Unexpected diagnostic plan/document')
-    case.update(scope='one-bit import diagnostic hypothesis, not acceptance', geometry=dict(status='unavailable', value=None),
+    case.update(scope='single-variable import diagnostic hypothesis, not acceptance',
+                neutral_3d_candidate=app._neutral_3d_candidate, geometry=dict(status='unavailable', value=None),
                 load_return=dict(state='not-attempted', document_returned=None, errors=None))
     case['input_before'] = call('verify-readonly-input-before', input_metadata)
     strict(case,call,'host-hidden',lambda:harness._com_value(app,'Visible'),lambda x:x is False)
@@ -356,7 +377,9 @@ def worker(args):
     harness._com_value = observed_value
     original_reader_value = reader._com_value
     reader._com_value = observed_value
-    context = dict(production_public_acceptance=False, diagnostic_hypothesis=True, max_loadfile4=1, zero_save=True, zero_new=True, zero_select=True)
+    neutral_3d_candidate = bool(getattr(args,'neutral_3d_candidate',False))
+    diagnostic_case = 'step-wire-neutral-3d-once' if neutral_3d_candidate else 'step-wire-import-once'
+    context = dict(neutral_3d_candidate=neutral_3d_candidate, production_public_acceptance=False, diagnostic_hypothesis=True, max_loadfile4=1, zero_save=True, zero_new=True, zero_select=True)
     try:
         require(_native_windows_runtime(), 'Verified native Windows is required')
         require(importlib.metadata.version('pywin32') == '312', 'Only reviewed pywin32312 wrapper semantics are allowed')
@@ -441,12 +464,12 @@ def worker(args):
                         cleanup_call('partial-acquire.CloseProcessHandle', handle.Close)
                 raise
             acquisition['returned'] = True
-            return ImportOnceApp(app, resolved_constants), owned
+            return ImportOnceApp(app, resolved_constants, neutral_3d_candidate=neutral_3d_candidate), owned
         harness.acquire_resident_app = acquire
         result = harness.run(output, args.swconst, False, case_runner=case_runner,
-                             case_plan=[('single-wire-import', 'front', False)], diagnostic_case='step-wire-import-once')
+                             case_plan=[('single-wire-import', 'front', False)], diagnostic_case=diagnostic_case)
     except BaseException as exc:
-        write_json(output / 'report.json', dict(success=False, diagnostic_case='step-wire-import-once', full_acceptance_eligible=False,
+        write_json(output / 'report.json', dict(success=False, diagnostic_case=diagnostic_case, full_acceptance_eligible=False,
                    cases=[], cleanup_errors=[], failure=dict(**error(exc), traceback=traceback.format_exc())))
         result = 1
     finally:
@@ -480,17 +503,23 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--swconst', type=Path, default=Path(r'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\swconst.tlb'))
+    parser.add_argument('--neutral-3d-candidate', action='store_true',
+                        help='Review-only single import: retain NeutralFree=true; change only Neutral curve enum to official As3DCurves')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     args.output_dir = args.output_dir.resolve()
-    require(ntpath.normcase(str(args.output_dir.parent)) == ntpath.normcase(EVIDENCE_ROOT), 'Evidence must be a new direct child of the fixed Workspace evidence root')
+    evidence_root = NEUTRAL_3D_EVIDENCE_ROOT if args.neutral_3d_candidate else EVIDENCE_ROOT
+    require(ntpath.normcase(str(args.output_dir.parent)) == ntpath.normcase(evidence_root), 'Evidence must be a new direct child of the fixed Workspace evidence root')
     plain(args.output_dir)
     if args.worker:
         return worker(args)
     args.output_dir.mkdir()  # Root prepares parent; never reuse a prior report.
     started = time.monotonic()
     with (args.output_dir / 'worker.stdout.log').open('wb') as stdout, (args.output_dir / 'worker.stderr.log').open('wb') as stderr:
-        process = subprocess.Popen([sys.executable, '-I', __file__, '--worker', '--output-dir', str(args.output_dir), '--swconst', str(args.swconst)], stdout=stdout, stderr=stderr)
+        command = [sys.executable, '-I', __file__, '--worker', '--output-dir', str(args.output_dir), '--swconst', str(args.swconst)]
+        if args.neutral_3d_candidate:
+            command.append('--neutral-3d-candidate')
+        process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
         while process.poll() is None:
             time.sleep(0.25)
             active = None

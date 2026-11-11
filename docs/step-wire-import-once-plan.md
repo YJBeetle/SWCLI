@@ -56,3 +56,7 @@ python -I C:\Workspace\SWCLI-series-20261111\step-wire-import-code\scripts\ci\di
 本地原始默认值与 hosted CI 有三项 General/3DI差异，安装路径也不同；准备旧 CI 向量不能消除环境差异。既有官方语义及 LoadFile4 参数文档歧义见 [原始接口取证审计](step-local-qi-4b0104b-audit.md)。需要因果结论应另行澄清厂商合同或审阅同环境受控方案，不能自行多次导入。
 
 便携验证已通过：14项专用测试、84项 STEP 回归；全量1903项（26项跳过）。这些使用 fake COM/进程，不是实际导入结果。CLI help 和 whitespace 检查通过；原零导入脚本、现有 CI/reader 和生产代码均未改。
+
+## d232e35 首次实际执行之后
+
+root已实际执行一次默认模式，LoadFile4返回part/errors0但严格参考曲线表示失败：两个3D草图各6段。详见[原件独立审计](step-wire-d232e35-audit.md)。此前“未执行”是该准备阶段的历史状态；不得重跑默认baseline。现仅准备[Neutral As3DCurves单变量候选](step-wire-neutral-3d-candidate-plan.md)，尚未执行、未证明修复。

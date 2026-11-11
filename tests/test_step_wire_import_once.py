@@ -91,7 +91,9 @@ class App:
     def GetImportFileData(self,path):self.data_calls+=1;return self.data
     def LoadFile4(self,path,args,data,errors):
         self.loads.append((path,args,data));errors.value=self.load_error
-        if self.foreign_restore:self.values['swImportCurvePreference']=2
+        if self.foreign_restore:
+            key=self.foreign_restore if isinstance(self.foreign_restore,str) else 'swImportCurvePreference'
+            self.values[key]=2
         if self.load_failure:raise self.load_failure
         self.live=None if self.null_document else self.doc
         return self.live
@@ -104,9 +106,12 @@ class App:
 
 class StepWireImportOnceTests(unittest.TestCase):
     def run_case(self,**options):
+        neutral_3d_candidate=options.pop('neutral_3d_candidate',False)
+        neutral_enum_values=options.pop('neutral_enum_values',(0,1))
         m=load();app=App(m,**options)
         const={**app.ids,'swGeneralImportAsSketches':0,'swGeneralImportAs3dCurves':1,
-               'swImportNeutralCurvesAndPointsOptions_AsSketches':0,'swImportNeutralCurvesAndPointsOptions_As3DCurves':1}
+               'swImportNeutralCurvesAndPointsOptions_AsSketches':neutral_enum_values[0],
+               'swImportNeutralCurvesAndPointsOptions_As3DCurves':neutral_enum_values[1]}
         class Variant:
             def __init__(self,kind,value):self.value=value
         client=SimpleNamespace(GetActiveObject=mock.Mock(side_effect=Failure()),DispatchEx=mock.Mock(return_value=app),VARIANT=Variant)
@@ -123,7 +128,7 @@ class StepWireImportOnceTests(unittest.TestCase):
                     mock.patch.object(m,'native_pids',return_value=[]),mock.patch.object(m,'_read_native_enum_constants',return_value=const), \
                     mock.patch.object(m.harness,'capture_process',return_value=handle),mock.patch.object(m.harness,'wait_process') as wait, \
                     mock.patch.dict('sys.modules',{'pythoncom':com,'win32com':SimpleNamespace(client=client),'win32com.client':client}):
-                result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst))
+                result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst,neutral_3d_candidate=neutral_3d_candidate))
             report=json.loads((output/'report.json').read_text());trace=[json.loads(x) for x in (output/'trace.jsonl').read_text().splitlines()]
             waits=wait.call_count
         for name in TRAPS:getattr(app,name).assert_not_called();getattr(app.doc,name).assert_not_called()
@@ -277,3 +282,84 @@ class StepWireImportOnceTests(unittest.TestCase):
                 self.assertEqual(json.loads((output/'report.json').read_text())['failure']['message'],'original failure')
                 self.assertEqual(json.loads((output/'timeout.json').read_text())['owned_exit'],'unknown; root cleanup required')
                 process.kill.assert_called_once();process.wait.assert_called_once()
+
+
+    def test_neutral_3d_candidate_changes_only_official_enum_without_importing_previous_vector(self):
+        m,app,code,r,trace=self.run_case(neutral_3d_candidate=True)
+        self.assertEqual(code,0);self.assertEqual(r['diagnostic_case'],'step-wire-neutral-3d-once')
+        self.assertTrue(r['neutral_3d_candidate']);self.assertEqual(app.values,app.before)
+        p=r['cases'][0]['preferences'];before=p['d232e35_vector_readback'];after=p['candidate_readback']
+        key='swImportNeutral_CurvesAndPointsOption'
+        self.assertEqual(p['changed_from_d232e35'],[key]);self.assertEqual([k for k in before if before[k]!=after[k]],[key])
+        self.assertEqual((before[key],after[key]),(0,1));self.assertTrue(before['swImportNeutral_FreeCurvesAndPoints'])
+        self.assertEqual(after[key],r['constants']['swImportNeutralCurvesAndPointsOptions_As3DCurves'])
+        self.assertEqual([x['name'] for x in p['writes']],['swMultiCAD_Enable3DInterconnect','swImportFreeCurves',
+            'swImportCurvePreference','swImportNeutral_FreeCurvesAndPoints',key])
+        self.assertEqual([x['name'] for x in p['restore']],[x['name'] for x in p['writes']][::-1])
+        self.assertTrue(p['restored']);self.assertEqual(app.loads,[(m.INPUT,'r',app.data)])
+        self.assertEqual(app.data_calls,1);self.assertEqual(app.data.mapping_reads,1)
+        app.data._oleobj_.QueryInterface.assert_called_once()
+        begin=[x['call'] for x in trace if x['phase']=='begin']
+        self.assertLess(begin.index('set-owned-option.'+key),begin.index('GetImportFileData'))
+        self.assertEqual(begin.count('LoadFile4'),1)
+        self.assertEqual(r['cases'][0]['geometry']['value']['segment_count'],12)
+
+    def test_neutral_3d_candidate_partial_refusal_and_restore_failure_keep_first_error(self):
+        key='swImportNeutral_CurvesAndPointsOption'
+        for options in ({'partial_set':key},{'refused_set':key},
+                        {'restore_fail':key,'load_failure':Failure('original load error',-8)}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(neutral_3d_candidate=True,**options)
+                self.assertEqual(code,1);p=r['cases'][0]['preferences']
+                self.assertEqual(p['writes'][-1]['name'],key)
+                if 'restore_fail' in options:
+                    self.assertFalse(p['restored']);self.assertEqual(len(app.loads),1)
+                    self.assertEqual(r['failure']['message'],'original load error')
+                else:
+                    self.assertTrue(p['restored']);self.assertEqual(app.values,app.before)
+                    self.assertEqual(app.data_calls,0);self.assertEqual(app.loads,[])
+                self.assertEqual(len([x for x in app.writes if x==(key,0)]),1)
+
+    def test_neutral_3d_candidate_keeps_sketch_and_bad_geometry_strictly_rejected(self):
+        for options in ({'kind':'sketch'},{'lengths':[10]*4+[30]*3+[40]*2},
+                        {'lengths':[10]*4+[30]*4+[41]*4},{'null_document':True,'load_error':1}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(neutral_3d_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(len(app.loads),1)
+                self.assertEqual(app.values,app.before);g=r['cases'][0]['geometry']
+                self.assertEqual(g['status'],'unavailable');self.assertIsNone(g['value'])
+                if options.get('kind')=='sketch':
+                    self.assertEqual(g['raw_observation']['segment_count'],12)
+                    self.assertEqual(g['raw_observation']['total_length_mm'],320)
+                    self.assertTrue(g['raw_observation']['representation_mismatches'])
+
+    def test_candidate_supervisor_forwards_explicit_mode_with_new_evidence_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            m=load();root=Path(directory).resolve();output=root/'new'
+            process=mock.Mock();process.poll.return_value=None
+            def start(command,**kwargs):
+                self.assertEqual(command.count('--neutral-3d-candidate'),1)
+                self.assertIn('--worker',command)
+                return process
+            with mock.patch.object(m,'NEUTRAL_3D_EVIDENCE_ROOT',str(root)), \
+                    mock.patch.object(m.subprocess,'Popen',side_effect=start), \
+                    mock.patch.object(m.time,'monotonic',side_effect=[0,1800]),mock.patch.object(m.time,'sleep'):
+                self.assertEqual(m.main(['--output-dir',str(output),'--neutral-3d-candidate']),124)
+            process.kill.assert_called_once();process.wait.assert_called_once()
+
+
+    def test_candidate_unknown_official_enum_stops_before_any_setter_or_data(self):
+        for values in ((0,2),(False,True),(0,None)):
+            with self.subTest(values=values):
+                _,app,code,r,_=self.run_case(neutral_3d_candidate=True,neutral_enum_values=values)
+                self.assertEqual(code,1);self.assertEqual(app.writes,[]);self.assertEqual(app.data_calls,0)
+                self.assertEqual(app.loads,[]);self.assertIn('enum contract differs',r['failure']['message'])
+
+    def test_candidate_does_not_overwrite_foreign_neutral_enum_on_cleanup(self):
+        key='swImportNeutral_CurvesAndPointsOption'
+        _,app,code,r,_=self.run_case(neutral_3d_candidate=True,foreign_restore=key,load_error=1,null_document=True)
+        self.assertEqual(code,1);self.assertEqual(app.values[key],2)
+        self.assertEqual([v for n,v in app.writes if n==key],[1])
+        self.assertEqual(r['failure']['message'],'STEP geometry readback failed')
+        self.assertFalse(r['cases'][0]['preferences']['restored'])
+        self.assertEqual(len(app.loads),1)
