@@ -1,0 +1,93 @@
+{
+  "source_base": "95a2edccd26dfa274e0f66468248838d71cf7e53",
+  "scope": "CI identity path admission candidate; raw stable identity and handle cleanup unchanged",
+  "targeted": {
+    "tests": 105,
+    "seconds": 24.938,
+    "skipped": 3,
+    "success": true
+  },
+  "full": {
+    "tests": 2008,
+    "seconds": 74.141,
+    "skipped": 29,
+    "success": true
+  },
+  "sdk": {
+    "generator": true,
+    "strict_files": 6,
+    "negative_consumer_cases": 8,
+    "success": true
+  },
+  "python39_ast_files": 3,
+  "diff_check": true,
+  "source_sha256": {
+    "scripts/ci/gate_support/unit_owned_native.py": "8c8a00de6b5d6966831254970cd022713a45e8b76d92e616f86e1df49e15268b",
+    "tests/test_unit_profile_public_runner.py": "3e33454d3ba2b46f2046fa2cbce447cce8f8b5d7c92a571150272a250bcedc95",
+    "tests/test_unit_image_path_identity.py": "30884ba74b9015d2053ee226cf7856aca10b77569aba345838523794ac425fef"
+  },
+  "logs": {
+    "targeted": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-final-targeted.log",
+      "sha256": "9e8074d4a303f2943ba3f244edee90364a18d797b03a48472be035c9aef8285e",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-final-full.log",
+      "sha256": "37bd7503568d3ff8b1f72f43c7fc785c5efc5b37613de8775d6b3b884d49df40",
+      "exit_code": 0
+    },
+    "sdk": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-sdk.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d",
+      "exit_code": 0
+    },
+    "static": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-static.log",
+      "sha256": "7c13251404ea040335deff8f823f69b3113a9e7d1f071672efe31cedc990a8c0",
+      "exit_code": 0
+    },
+    "static_source": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-static.py",
+      "sha256": "f67a53ae4914d4cc3a4a4904bf4d79ebc8a9299e87d2a04770706854893d1a3d",
+      "exit_code": 0
+    },
+    "original_audit": {
+      "path": "evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation/units-short-image-original-audit-repeat.json",
+      "sha256": "76cacaabd6adebcb0c1afc5e27ed4d52df84e8aa3319e21311dc1454c5869fb9",
+      "exit_code": 0
+    }
+  },
+  "process_identity_ast_unchanged_vs_95a": true,
+  "validate_identity_terminate_exited_expected_constant_ast_unchanged_vs_95a_and_085ae": true,
+  "admission_representation": "OS-expanded image copy; full path predicate unchanged; samefile + recorded device/inode match + usable inode additionally required",
+  "retained_identity_representation": "original raw Query full path four fields; terminate rechecks exact same raw identity on same retained process handle",
+  "expected_image_source_unchanged": true,
+  "raw_and_expanded_stat_comparisons_fsynced_before_admission": true,
+  "expansion_api_calls_per_candidate": 1,
+  "expansion_capacity_chars": 32768,
+  "expansion_retry": false,
+  "new_windows_real_tests": {
+    "added": 2,
+    "executed_here": 0,
+    "skipped_here": 2,
+    "positive": "real GetShortPathNameW/GetLongPathNameW/stat/samefile on own temporary file; explicit skip if volume provides no distinct short representation",
+    "negative": "real different and missing own temporary files"
+  },
+  "actual_windows_candidate_executed": false,
+  "native_candidate_executed": false,
+  "old_original_audit_repeat_equal": true,
+  "old_run_short_long_same_file_still_unproven": true,
+  "old_run_native_exit_still_unconfirmed": true,
+  "new_ci_dispatched": false,
+  "vm_used": false,
+  "product_workflow_wrapper_WriteGate_unchanged": true,
+  "native_seconds": 600,
+  "group_seconds": 1800,
+  "public_cases_required": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139
+  },
+  "extra_cold_probes_required": 3
+}

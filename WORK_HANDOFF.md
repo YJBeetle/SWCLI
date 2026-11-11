@@ -399,3 +399,14 @@ root亲审95a2edc vs c600 metadata/真实CLI契约测试，三SHA匹配，亲跑
 只派一次 https://github.com/YJBeetle/SWCLI/actions/runs/42928824277 ，官方event=workflow_dispatch/head=95a/ref=codex/docprops-units-expanded/attempt1已核。三个units=true/native_full=false不只取请求回执：一次初始run/jobs snapshot里route job130222100992已success，单次读原log核实际ROUTE_* env及Validated native route: units-write-public。初始run in_progress，Win3.9/3.14 in_progress，wheel/route success，tag-policy skipped；尚无新Windows完成或public native通过证明。正常初始快照后停止所有run查询，不poll、不重复dispatch。
 
 metadata/preflight/receipt/route核对在docs/evidence/units-profile/public-sync-preflight-42928824277，原路由日志和派前查询原件在同名evidence目录。此后只本地docs快照提交，业务源仍95a，remote继续95a，不push新业务。无VM/main/release。若本run再次identity拒绝，原Query/expected必须在public Popen前已fsync，首错/未确认退出不翻绿，不重试API或再派。即使run成功仍须root审本run原ZIP/digest、417+3cold、同host/worker、保存RO/hash/严格geometry/CAS及真实helper/native退出后才能决定merge，不借旧内部139/portable补公共缺口。
+
+
+## 42928824277终态首错与获批严格路径候选，本地提交待审
+
+官方本run terminal run/jobs/artifacts各一次，native job130224083602失败public CLI步骤；Win3.9/3.14/轮包/route通过。native13816502372 ZIP10937528/SHA90fb3eb856a671a1cc5c98f56e3fc219d76208203d35a7934e14428cdaa4681b、install13816611572 ZIP3211059/SHA76e85630997b8241e150d55ad7691803b800bc570fdac9e088b52c630e30643a与官方digest相同；原native log本地SHA8143e35f82298445213f362c7815632e16719e0d28935f4ec48d5dc1546f8bd3。原件/安全解压evidence/units-profile/public-sync-preflight-42928824277，独立审计/docs同名目录，root也已重放通过。
+
+本次actual Query终于持久化：C:\PROGRA~1\SOLIDW~1\SLDWORKS.exe，完整33字符/B64/UTF16/NUL，ABI8/4/4/2；expected仍完整长路径。4.891秒在public Popen前被原exact路径谓词拒绝；PID9980/实际creation在窗内，但creation谓词未执行。无public worker/CLI/SDK/MCP/cold，公共trace/setter0。正常stop一次exit0，原receipt stopping=true，无ActiveDocument/未知强杀；daemon.wait返回0从postwait原错误推断；native未有verified handle/wait/pids_after，退出仍不确认，helper未启动，不翻绿。内部139/258.437s/owned退出成功，278文件hash/92几何（67nonexact）独立核过，不补公共。旧ZIP没有short/long同文件证明。
+
+root批准仅准备路径身份候选、local tests/提交供亲审，不dispatch。unit_owned_native新增一次GetLongPathNameW有界32768、DWORD/wchar/返回长度/NUL/raw buffer，失败关闭不扩容重试。实际OS展开完整路径必须满足原expected完整谓词，另os.stat raw/expected + os.path.samefile及非零inode/device证据均同一；不字符串替换/basename/白名单/realpath兜底。raw/展开/文件标识/比较/异常先通过原deepcopy observer fsync，返回仍原raw4字段，同held handle终止严格重核raw不变；admission_identity副本明确标注展开representation。原process_identity AST与95a相同，validate/terminate/exited/expected与95a/085ae相同；输入副本的representation变化如实披露。wrapper/src/workflow/WriteGate/600-1800/417+3cold/域几何无diff。
+
+最终关联105/24.938s（3skip）、full2008/74.141s（29skip）、SDK生成strict6/consumer8、Python3.9 AST3/diff通过。新增两Windows-only真实短长同文件/不同缺失文件探针本机都skip；macOS mock/wchar4不冒充Windows证明。精确源/原日志SHA见docs/evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation.json，审阅说明docs/verification/units-short-image-42928824277-review.md。原audit重复一致/错head拒绝；未新CI/VM/main/release、不push候选，等待root精确head亲审。

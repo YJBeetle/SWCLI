@@ -1,6 +1,7 @@
 """CI units only: one retained, identity-verified native process handle."""
 from datetime import datetime,timezone
 import ntpath
+import os
 import base64
 import sys
 from copy import deepcopy
@@ -31,6 +32,34 @@ def process_identity(handle,*,observation=None):
     return dict(pid=win32process.GetProcessId(handle),image=image.value,creation_utc=created.astimezone(timezone.utc).isoformat(),creation_timestamp=created.timestamp())
 
 
+def image_path_identity(image,expected_image,*,observation):
+    """Collect OS expansion + file identity; never infer an alias from its spelling."""
+    import ctypes
+    from ctypes import wintypes
+    observation.update(raw_image=image,expected_image=expected_image,representation='raw-query-image retained; admission compares OS-expanded full path plus same-file evidence')
+    try:
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        expand=kernel.GetLongPathNameW;expand.argtypes=[wintypes.LPCWSTR,wintypes.LPWSTR,wintypes.DWORD];expand.restype=wintypes.DWORD
+        buffer=ctypes.create_unicode_buffer(32768)
+        query=observation['expansion']=dict(api='GetLongPathNameW',argtypes=['LPCWSTR','LPWSTR','DWORD'],restype='DWORD',input_capacity_chars=len(buffer),ctypes_bytes=dict(DWORD=ctypes.sizeof(wintypes.DWORD),wchar=ctypes.sizeof(ctypes.c_wchar)),byteorder=sys.byteorder)
+        returned=int(expand(image,buffer,len(buffer)));last_error=ctypes.get_last_error() if returned==0 else None
+        expanded=buffer.value;units=len(expanded.encode('utf-16-le',errors='surrogatepass'))//2
+        query.update(returned_chars=returned,last_error=last_error,expanded_image=expanded,expanded_image_repr=repr(expanded),image_length_py_chars=len(expanded),image_length_utf16_units=units,nul_at_returned_index=(buffer[returned]=='\0' if returned<len(buffer) else None),buffer_prefix_b64=base64.b64encode(ctypes.string_at(ctypes.addressof(buffer),min(len(buffer),returned+1)*ctypes.sizeof(ctypes.c_wchar))).decode('ascii'))
+        if returned==0:raise ctypes.WinError(last_error)
+        require(returned<len(buffer),'native expanded image exceeded the single bounded buffer; no retry')
+        require(returned==units and query['nul_at_returned_index'] is True,'native expanded image length or NUL differs')
+        for role,path in (('raw',image),('expected',expected_image)):
+            value=os.stat(path);observation[role+'_stat']=dict(device=value.st_dev,inode=value.st_ino)
+        observation['samefile']=os.path.samefile(image,expected_image)
+        raw=observation['raw_stat'];expected=observation['expected_stat']
+        observation['recorded_file_ids_match']=raw==expected
+        observation['file_ids_available']=all(type(value['device']) is int and value['device']>=0 and type(value['inode']) is int and value['inode']>0 for value in (raw,expected))
+        return expanded
+    except BaseException as error:
+        observation['error']=dict(type=type(error).__name__,message=str(error),errno=getattr(error,'errno',None),winerror=getattr(error,'winerror',None))
+        raise
+
+
 def validate_identity(identity,pid,launched,observed,expected_image):
     require(identity['pid']==pid,'native retained handle PID differs')
     require(ntpath.normcase(ntpath.normpath(identity['image']))==ntpath.normcase(ntpath.normpath(expected_image)),'native full image differs from this CI installation')
@@ -47,11 +76,17 @@ def capture(pid,launched,expected_image=EXPECTED_CI_IMAGE,*,terminate_right=True
     try:
         identity=process_identity(handle,observation=observation);observed=datetime.now(timezone.utc).timestamp()
         observation.update(observed_identity=identity,observed_timestamp=observed,comparison_inputs=dict(actual_image_normalized=ntpath.normcase(ntpath.normpath(identity['image'])),expected_image_normalized=ntpath.normcase(ntpath.normpath(expected_image))))
-        # Persist raw observation BEFORE any PID/image/creation predicate can fail.
+        path_evidence=observation['image_path_identity']={};observation['capture_status']['phase']='resolving-image-path'
+        expanded=image_path_identity(identity['image'],expected_image,observation=path_evidence)
+        admission_identity={**identity,'image':expanded}
+        path_evidence['expanded_matches_expected']=ntpath.normcase(ntpath.normpath(expanded))==ntpath.normcase(ntpath.normpath(expected_image))
+        observation.update(admission_identity=admission_identity,identity_image_representation='returned/retained identity.image is raw Query output; admission_identity.image is OS-expanded',expanded_image_normalized=ntpath.normcase(ntpath.normpath(expanded)))
+        # Persist raw/expanded/stat evidence BEFORE admitting this retained handle.
         if observe:
             emitted=True;observation['capture_status']['phase']='persisting';observe(deepcopy(observation))
         observation['capture_status']['phase']='validating'
-        validate_identity(identity,pid,launched,observed,expected_image)
+        validate_identity(admission_identity,pid,launched,observed,expected_image)
+        require(path_evidence['samefile'] is True and path_evidence['recorded_file_ids_match'] is True and path_evidence['file_ids_available'] is True,'native image paths do not prove the same installed file')
         observation['capture_status']['phase']='verified'
         return handle,identity
     except BaseException as error:

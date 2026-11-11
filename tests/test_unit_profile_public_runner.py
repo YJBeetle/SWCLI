@@ -359,6 +359,10 @@ class NativeIdentityTests(unittest.TestCase):
         self.api=SimpleNamespace(OpenProcess=mock.Mock(return_value=self.handle),TerminateProcess=mock.Mock())
         self.constants=SimpleNamespace(SYNCHRONIZE=0x100000,PROCESS_TERMINATE=1)
         self.identity=dict(pid=123,image=self.native.EXPECTED_CI_IMAGE,creation_timestamp=200.0,creation_utc='identity')
+        def path_identity(image,expected,*,observation):
+            observation.update(samefile=True,recorded_file_ids_match=True,file_ids_available=True)
+            return image
+        patch=mock.patch.object(self.native,'image_path_identity',side_effect=path_identity);patch.start();self.addCleanup(patch.stop)
 
     def capture(self,identity):
         with mock.patch.dict('sys.modules',win32api=self.api,win32con=self.constants),mock.patch.object(self.native,'process_identity',return_value=identity):
