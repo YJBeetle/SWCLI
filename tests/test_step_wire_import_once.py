@@ -110,6 +110,7 @@ class StepWireImportOnceTests(unittest.TestCase):
         neutral_3d_candidate=options.pop('neutral_3d_candidate',False)
         null_candidate=options.pop('null_import_data_candidate',False)
         binding_route=options.pop('binding_route','typed')
+        binding_wrapper=options.pop('binding_wrapper','dynamic')
         binding_unknown=options.pop('binding_unknown',False)
         binding_wrong_type=options.pop('binding_wrong_type',False)
         neutral_enum_values=options.pop('neutral_enum_values',(0,1))
@@ -122,7 +123,7 @@ class StepWireImportOnceTests(unittest.TestCase):
         binding_modules=None;package=None;raw_app=app
         if null_candidate:
             from test_step_null_binding import environment
-            raw_app,binding_modules,package=environment(m.step_null_binding,route=binding_route,target=app,lazy=True,unknown=binding_unknown,wrong_type=binding_wrong_type)
+            raw_app,binding_modules,package=environment(m.step_null_binding,route=binding_route,target=app,lazy=True,unknown=binding_unknown,wrong_type=binding_wrong_type,wrapper=binding_wrapper)
             binding_modules[2].VARIANT=Variant
         client=SimpleNamespace(GetActiveObject=mock.Mock(side_effect=Failure()),DispatchEx=mock.Mock(return_value=raw_app),VARIANT=Variant)
         info=SimpleNamespace(GetDocumentation=lambda *args:('IImportStepData',),GetTypeAttr=lambda:(m.STEP_IID,))
@@ -446,3 +447,39 @@ class StepWireImportOnceTests(unittest.TestCase):
                     mock.patch.object(m.time,'monotonic',side_effect=[0,1800]),mock.patch.object(m.time,'sleep'):
                 self.assertEqual(m.main(['--output-dir',str(output),'--null-import-data-candidate']),124)
             process.kill.assert_called_once();process.wait.assert_called_once()
+
+
+    def test_original_client_wrapper_null_mode_keeps_binding_receiver_and_all_guards(self):
+        for route in ('typed','generic'):
+            with self.subTest(route=route):
+                _,app,code,r,_=self.run_case(null_import_data_candidate=True,binding_wrapper='client',binding_route=route)
+                self.assertEqual(code,0);self.assertEqual(len(app.loads),1);self.assertEqual(app.data_calls,1)
+                app.data._oleobj_.QueryInterface.assert_called_once();self.assertEqual(app.data.mapping_reads,1)
+                c=r['cases'][0];self.assertTrue(c['null_binding']['binding_handlers_inherited'])
+                self.assertTrue(c['null_binding']['return_wrapper_policy_preserved'])
+                self.assertEqual(c['preferences']['changed_from_60f1cf8'],[])
+                self.assertTrue(c['preferences']['restored']);self.assertEqual(app.values,app.before)
+                self.assertEqual(c['geometry']['value']['segment_count'],12)
+                self.assertEqual(len(app.closes),1)
+
+    def test_original_client_unknown_binding_remains_zero_load_and_strict_sketch_still_fails(self):
+        for options in ({'binding_unknown':True},{'binding_wrong_type':True},{'kind':'sketch'}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(null_import_data_candidate=True,binding_wrapper='client',**options)
+                self.assertEqual(code,1);self.assertEqual(app.values,app.before)
+                c=r['cases'][0];self.assertEqual(c['geometry']['status'],'unavailable');self.assertIsNone(c['geometry']['value'])
+                if 'kind' in options:
+                    self.assertEqual(len(app.loads),1);raw=c['geometry']['raw_observation']
+                    self.assertEqual(raw['segment_count'],12);self.assertEqual(raw['total_length_mm'],320)
+                    self.assertTrue(raw['representation_mismatches'])
+                else:
+                    self.assertEqual(app.loads,[]);self.assertFalse(c['null_binding']['bound_method_invocation_attempted'])
+                    self.assertEqual(c['load_return']['state'],'not-attempted')
+
+    def test_original_client_native_first_error_survives_restore_failure(self):
+        _,app,code,r,_=self.run_case(null_import_data_candidate=True,binding_wrapper='client',
+            load_failure=Failure('original client Load error',-8),restore_fail='swImportNeutral_CurvesAndPointsOption')
+        self.assertEqual(code,1);self.assertEqual(len(app.loads),1)
+        self.assertEqual(r['failure']['message'],'original client Load error')
+        self.assertTrue(r['cases'][0]['preferences']['restore_errors'])
+        self.assertIsNone(r['cases'][0]['geometry']['value'])

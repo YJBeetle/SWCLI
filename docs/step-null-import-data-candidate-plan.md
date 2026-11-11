@@ -12,11 +12,11 @@
 
 ## 绑定合同：保留原路径，不人工切换 Invoke / InvokeTypes
 
-新 `gate_support/step_null_binding.py` 只检查绑定，不自行调用Invoke或InvokeTypes。取得的是原raw host正常属性查找生成/缓存的同一个bound LoadFile4方法，验证之后直接调用它；不会另建Dispatch/DumbDispatch、EnsureDispatch/makepy、强制InvokeTypes或换host。**如果现有包装不是受支持的原dynamic.CDispatch，候选零LoadFile4拒绝，不为让它运行而换包装。**
+新 `gate_support/step_null_binding.py` 只检查绑定，不自行调用Invoke或InvokeTypes。取得的是原raw host正常属性查找生成/缓存的同一个bound LoadFile4方法，验证之后直接调用它；不会另建Dispatch/DumbDispatch、EnsureDispatch/makepy、强制InvokeTypes或换host。**当前仅支持精确的原dynamic.CDispatch和经继承/源码证明的原client.CDispatch；其他包装零LoadFile4拒绝，不为让它运行而换包装。**
 
 依据为已核的安装TLB：DISPID227、BSTR/BSTR/输入DISPATCH/in-out BYREF I4。实际Python调用元数据通过如下检查：
 
-1. 在原harness读常量阶段（启动host之前），验证已安装dynamic.py、build.py、client/__init__.py与官方b312源码的SHA256完全相同，只允许CRLF转LF归一化。运行时CDispatch的`__getattr__`、`_LazyAddAttr_`、`_make_method_`、`_ApplyTypes_`字节码与这些已验证源码在**同一解释器**编译出的函数一致，包含参数/常量/异常表，忽略文件名/行表。源码文件hash或运行时方法未知/不同就零host/零Load停止，不能仅凭版本号继续。
+1. 在原harness读常量阶段（启动host之前），验证已安装dynamic.py、build.py、client/__init__.py与官方b312源码的SHA256完全相同，只允许CRLF转LF归一化。运行时dynamic.CDispatch的`__getattr__`、`_LazyAddAttr_`、`_make_method_`、`_ApplyTypes_`字节码与这些已验证源码在**同一解释器**编译出的函数一致，包含参数/常量/异常表，忽略文件名/行表。精确client.CDispatch另核直接单继承、核心处理函数继承身份、自身两个覆盖方法以及三个获取链函数的源码/运行时指纹，保持返回包装策略。源码文件hash或运行时方法未知/不同就零host/零Load停止，不能仅凭版本号继续。
 2. host建立后、factory/QI/getter之后，先读取已有Python方法表。LoadFile4尚未出现在表中时，只允许原b312的只读`_LazyAddAttr_`类型元数据步骤。未得到已知方法表项立即停；**不继续未知成员属性查找**，避免其可能通过一次无参数Invoke探测LoadFile4。类型元数据步骤也受原外层600秒监督。
 3. 验证MapEntry、DISPID、方法名。类型化表项必须实际声明前四项为BSTR/BSTR/DISPATCH/BYREF I4，输入标志1/1/1/3、INVOKE_FUNC、无可选参数；允许已知retval投影形态并记录原始签名。通用路径仅接受已有、已知DISPID227但desc=None的原方法表项，不把typed表改成generic，也不反向改写。
 4. 按原MakeFuncMethod生成源码，**只编译用于比较，不执行另一份方法**。正常getattr得到原bound method后，验证receiver、原缓存函数身份和其实际code与原生成器一致。类型化路径须是原`_ApplyTypes_`，通用路径须是原`_oleobj_.Invoke`，其他代码、代理或实例覆写都拒绝。类型化转换函数须仍是原已核CDispatch函数。调用前再次检查函数/处理函数/载体，改变即拒绝并锁死本候选，不允许换另一拼写再试。
@@ -63,3 +63,8 @@ python -I C:\Workspace\SWCLI-series-20261111\step-wire-null-data-code\scripts\ci
 ## 811bb97 首次实际候选运行之后
 
 统筹已亲审并单次运行811bb97，gate因实际包装为client.CDispatch（而非精确dynamic.CDispatch）在零LoadFile4处停止；原八值恢复、退出正常。详见[原件独立审计与获取链源码核对](step-null-811bb97-audit.md)。前文“未执行”是准备阶段状态；未测到null转换或几何。后续只准备精确支持原client.CDispatch，不重放、不换包装，交统筹亲审。
+
+
+## 原client.CDispatch的窄支持准备（尚未执行）
+
+811bb97原件确认正常获取链返回client.CDispatch。现在只扩展该精确类的准入，不执行重包或切换调用路径；具体新增证明、未知拒绝和统筹后续执行前提见[原client包装候选说明](step-null-client-wrapper-plan.md)。原入口、八项值/r/严格几何要求和监督时限均不变，仍须统筹亲审后决定是否执行。

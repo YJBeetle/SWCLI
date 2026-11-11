@@ -55,6 +55,22 @@ def attest_package():
         require(isinstance(actual.__code__,CodeType) and code_key(actual.__code__) == code_key(expected[name]),
                 'runtime handler differs from verified source: '+name)
         result['runtime_handlers'][name] = code_digest(actual.__code__)
+    client_compiled = compile(bodies['client'],str(client.__file__),'exec',dont_inherit=True)
+    client_cls = next(x for x in client_compiled.co_consts if isinstance(x,CodeType) and x.co_name == 'CDispatch')
+    client_expected = {x.co_name:x for x in client_cls.co_consts if isinstance(x,CodeType)}
+    result['client_wrapper_handlers'] = {}
+    for name in CLIENT_HANDLERS:
+        actual = getattr(client.CDispatch,name)
+        require(code_key(actual.__code__) == code_key(client_expected[name]),'client wrapper differs from verified source: '+name)
+        result['client_wrapper_handlers'][name] = code_digest(actual.__code__)
+    result['client_factory_handlers'] = {}
+    factory_expected = {x.co_name:x for x in client_compiled.co_consts if isinstance(x,CodeType)}
+    for name in CLIENT_FACTORIES:
+        actual = getattr(client,name)
+        require(code_key(actual.__code__) == code_key(factory_expected[name]),'client factory differs from verified source: '+name)
+        result['client_factory_handlers'][name] = code_digest(actual.__code__)
+    verify_handlers(dynamic,result)
+    verify_client_wrapper(dynamic,client,result)
     result['verified'] = True
     return result
 
@@ -74,6 +90,9 @@ def code_key(code):
 
 
 HANDLERS = ('__getattr__','_LazyAddAttr_','_make_method_','_ApplyTypes_')
+CLIENT_HANDLERS = ('_wrap_dispatch_','__dir__')
+CLIENT_FACTORIES = ('DispatchEx','Dispatch','__WrapDispatch')
+INSTANCE_OVERRIDES = HANDLERS + CLIENT_HANDLERS + ('LoadFile4',)
 
 
 def code_digest(code):
@@ -81,11 +100,31 @@ def code_digest(code):
 
 
 def verify_handlers(dynamic, package):
+    require(dynamic.CDispatch.__getattribute__ is object.__getattribute__, 'runtime attribute lookup changed')
     proof = package.get('runtime_handlers',{})
     for name in HANDLERS:
         function = getattr(dynamic.CDispatch,name)
         require(isinstance(getattr(function,'__code__',None),CodeType) and
                 code_digest(function.__code__) == proof.get(name), 'runtime binding handler changed: '+name)
+
+
+def verify_client_wrapper(dynamic, client, package):
+    cls = client.CDispatch
+    require(cls is not dynamic.CDispatch and cls.__bases__ == (dynamic.CDispatch,) and
+            cls.__mro__ == (cls,dynamic.CDispatch,object), 'client wrapper inheritance differs')
+    for name in HANDLERS + ('__getattribute__','_get_good_object_','_get_good_single_object_'):
+        require(getattr(cls,name) is getattr(dynamic.CDispatch,name),'client overrides inherited binding: '+name)
+    require('LoadFile4' not in cls.__dict__ and 'LoadFile4' not in dynamic.CDispatch.__dict__, 'class overrides normal LoadFile4 lookup')
+    for name in CLIENT_HANDLERS:
+        function = getattr(cls,name)
+        require(isinstance(getattr(function,'__code__',None),CodeType) and
+                code_digest(function.__code__) == package.get('client_wrapper_handlers',{}).get(name),
+                'client wrapper handler changed: '+name)
+    for name in CLIENT_FACTORIES:
+        function = getattr(client,name)
+        require(isinstance(getattr(function,'__code__',None),CodeType) and
+                code_digest(function.__code__) == package.get('client_factory_handlers',{}).get(name),
+                'client acquisition/return policy changed: '+name)
 
 
 class NullDispatchBinding:
@@ -100,11 +139,20 @@ class NullDispatchBinding:
         require(package is not None and package.get('verified') is True, 'package source was not verified')
         dynamic, build, client = modules()
         verify_handlers(dynamic,package)
-        self.dynamic, self.package = dynamic,package
-        require(type(raw) is dynamic.CDispatch, 'unsupported wrapper class; do not replace it')
+        self.dynamic, self.client, self.package = dynamic,client,package
+        self.wrapper_class = type(raw)
+        self.is_client_wrapper = type(raw) is getattr(client,'CDispatch',None)
+        require(type(raw) is dynamic.CDispatch or self.is_client_wrapper, 'unsupported wrapper class; do not replace it')
+        if self.is_client_wrapper:
+            verify_client_wrapper(dynamic,client,package)
+            evidence.update(wrapper_family='exact client.CDispatch; inherited dynamic binding',
+                wrapper_mro=[x.__module__+'.'+x.__qualname__ for x in type(raw).__mro__],
+                binding_handlers_inherited=True,return_wrapper_policy_preserved=True)
+        else:
+            evidence['wrapper_family'] = 'exact dynamic.CDispatch'
         require(variant_class is client.VARIANT, 'unverified VARIANT implementation')
         state = object.__getattribute__(raw,'__dict__')
-        require(not any(key in state for key in ('_ApplyTypes_','_LazyAddAttr_','_make_method_','LoadFile4')),
+        require(not any(key in state for key in INSTANCE_OVERRIDES),
                 'instance overrides normal binding')
         representation = state.get('_olerepr_')
         require(type(representation) in (build.DispatchItem,build.LazyDispatchItem), 'unknown method-map implementation')
@@ -177,8 +225,11 @@ class NullDispatchBinding:
 
     def _validate(self, argument):
         verify_handlers(self.dynamic,self.package)
+        require(type(self.raw) is self.wrapper_class, 'wrapper identity changed after inspection')
+        if self.is_client_wrapper:
+            verify_client_wrapper(self.dynamic,self.client,self.package)
         require(code_digest(self.function.__code__) == self.function_digest, 'bound method code changed')
-        require(not any(key in self.state for key in ('_ApplyTypes_','LoadFile4')), 'binding instance changed')
+        require(not any(key in self.state for key in INSTANCE_OVERRIDES), 'binding instance changed')
         require(self.method is not None and self.method.__self__ is self.raw and
                 self.state.get('_builtMethods_',{}).get('LoadFile4') is self.function, 'bound method changed after inspection')
         if self.route == 'generic-Invoke':
