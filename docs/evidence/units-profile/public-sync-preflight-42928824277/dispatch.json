@@ -1,0 +1,77 @@
+{
+  "run_id": 42928824277,
+  "head_sha": "95a2edccd26dfa274e0f66468248838d71cf7e53",
+  "ref": "codex/docprops-units-expanded",
+  "event": "workflow_dispatch",
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42928824277",
+  "run_attempt": 1,
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  },
+  "actual_route_inputs_verified": true,
+  "validated_route": "units-write-public",
+  "preflight_remote_and_head_match": true,
+  "preflight_same_head_dispatches": 0,
+  "preflight_unfinished_ref_manual_runs": 0,
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "updated_at": "2026-11-11T00:07:30Z",
+    "jobs": [
+      {
+        "id": 130222100573,
+        "name": "Windows / Python 3.14",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 130222100849,
+        "name": "Windows / Python 3.9",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 130222100976,
+        "name": "Build wheel",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130222100992,
+        "name": "Validate manual units routing before private native setup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130222102347,
+        "name": "Validate release tag before private native runtime",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "snapshot_policy": "one initial run/jobs snapshot then stop; completed route original log read once to verify actual inputs; no continuous polling",
+  "public_native_accepted": false,
+  "expected_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139,
+    "total": 417
+  },
+  "extra_fresh_cli_read_probes": 3,
+  "cli_strategy": "isolated reused cli.main; not 139 per-command cold starts",
+  "identity_preflight": "one synchronous real CLI status before public worker; raw status and identity persisted before exact PID/image/creation predicates",
+  "health_timeouts": {
+    "requested_cli_timeout_seconds": 600,
+    "effective_health_rpc_timeout_seconds": 10,
+    "effective_health_connect_timeout_seconds": 1,
+    "process_timeout_seconds": "min(600, original 1800 remaining)"
+  },
+  "native_operation_seconds": 600,
+  "public_group_seconds": 1800,
+  "identity_predicates_unchanged": true,
+  "vm_used": false
+}

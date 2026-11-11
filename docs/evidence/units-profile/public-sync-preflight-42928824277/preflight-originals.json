@@ -1,0 +1,14 @@
+{
+  "units-sync-preflight-95a-manual-runs-before.json": {
+    "path": "evidence/units-profile/public-sync-preflight-42928824277/units-sync-preflight-95a-manual-runs-before.json",
+    "sha256": "213d1137d674a624c347e6e2b07177a553538e256eefb1cabf768302f9fd7c33"
+  },
+  "units-sync-preflight-95a-remote.txt": {
+    "path": "evidence/units-profile/public-sync-preflight-42928824277/units-sync-preflight-95a-remote.txt",
+    "sha256": "60bf873a8f58a0a889c478beadd7d639180e6006b651d46a672ceed487d296ad"
+  },
+  "units-sync-preflight-95a-tracked-status.txt": {
+    "path": "evidence/units-profile/public-sync-preflight-42928824277/units-sync-preflight-95a-tracked-status.txt",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

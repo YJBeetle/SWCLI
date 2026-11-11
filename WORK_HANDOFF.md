@@ -390,3 +390,12 @@ root亲跑runner41/0.155s（1skip）并核源/日志hash后指出：当前daemon
 新增测试从wrapper实际command进入真实swcli.cli.main->daemon.main.run，仅mock最终call_daemon，确认一次daemon.health实际10/1并比对报告字段/原JSON；runner+CLI78项/1.668s（1skip）通过。2文件Python3.9AST/diff通过；wrapper完整AST仅report metadata dict差异，src/workflow/identity/transport helper无diff，实际预算/guard/417+3cold均不变。新源码/原日志/contract源SHA在docs/evidence/units-profile/identity-observer-push-42902927609/timeout-semantics-correction-validation.json。先前c600 full1988及SDK证据独立保留，本次不为纯报告语义补正重复整套。
 
 按root要求补正后本地中文提交、交精确head/SHA复核；未push实现/新dispatch/native/VM，actualSW path仍未知。
+
+
+## root复核95a后唯一新公共运行42928824277：初始快照后停止
+
+root亲审95a2edc vs c600 metadata/真实CLI契约测试，三SHA匹配，亲跑runner42项0.385s（1Windows skip）通过，结合c600 full1988/SDK后明确批准精确95a2edccd26dfa274e0f66468248838d71cf7e53提交链push及一次units-write-public。已push该精确head，派前remote=HEAD/受跟踪干净，全部13次同ref manual记录核同head0次、未完成0；原件untracked未stage。workflow SHA13c45095bacb226a84a9d4a610b5a74e564a80d578e56b9c6b93b5a0f9d028c7不变，单位ref独立并发组、cancel=false且无workflow级并发；不cancel其他run。
+
+只派一次 https://github.com/YJBeetle/SWCLI/actions/runs/42928824277 ，官方event=workflow_dispatch/head=95a/ref=codex/docprops-units-expanded/attempt1已核。三个units=true/native_full=false不只取请求回执：一次初始run/jobs snapshot里route job130222100992已success，单次读原log核实际ROUTE_* env及Validated native route: units-write-public。初始run in_progress，Win3.9/3.14 in_progress，wheel/route success，tag-policy skipped；尚无新Windows完成或public native通过证明。正常初始快照后停止所有run查询，不poll、不重复dispatch。
+
+metadata/preflight/receipt/route核对在docs/evidence/units-profile/public-sync-preflight-42928824277，原路由日志和派前查询原件在同名evidence目录。此后只本地docs快照提交，业务源仍95a，remote继续95a，不push新业务。无VM/main/release。若本run再次identity拒绝，原Query/expected必须在public Popen前已fsync，首错/未确认退出不翻绿，不重试API或再派。即使run成功仍须root审本run原ZIP/digest、417+3cold、同host/worker、保存RO/hash/严格geometry/CAS及真实helper/native退出后才能决定merge，不借旧内部139/portable补公共缺口。
