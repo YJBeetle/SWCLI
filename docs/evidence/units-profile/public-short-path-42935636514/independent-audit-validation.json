@@ -1,0 +1,47 @@
+{
+  "run_id": 42935636514,
+  "verified_source_head": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "audit_script": {
+    "path": "docs/verification/audit-units-public-success-42935636514.py",
+    "sha256": "ef5eed53694cc952c42294a7c69dbbca8e18ccd9a6f7abc38bf212e636a640bc"
+  },
+  "pure_validator_dependency": {
+    "path": "docs/verification/audit-units-write-42414478796.py",
+    "sha256": "932693754c6c661ec1a6f6a90b2fae3c0b3a9c253a3a7534d3a8e0843601537a",
+    "source_bound_to_459": true
+  },
+  "result": {
+    "path": "docs/evidence/units-profile/public-short-path-42935636514/public-success-audit.json",
+    "sha256": "137383b0875551c367b7ddbb5a562f24edc6d41561baff158b0cff776a3b29e6"
+  },
+  "logs": {
+    "audit": {
+      "path": "evidence/units-profile/public-short-path-42935636514/independent-audit/units-42935636514-independent-audit-verified.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    "negative_static": {
+      "path": "evidence/units-profile/public-short-path-42935636514/independent-audit/units-42935636514-audit-validation.log",
+      "sha256": "df095d935e96cec56890dbecb1bbb6457558a834c97812e63833f34777cc05a5",
+      "exit_code": 0
+    }
+  },
+  "negative_checks": [
+    "wrong head rejected",
+    "wrong official ZIP digest rejected",
+    "different stat ID rejected despite samefile=true",
+    "raw UTF16 buffer mismatch rejected",
+    "incomplete nine-field snapshot rejected"
+  ],
+  "python39_ast": true,
+  "stdlib_only": true,
+  "product_gate_com_imports": false,
+  "product_workflow_ci_tests_changed": false,
+  "no_new_ci": true,
+  "no_vm": true,
+  "no_main_change": true,
+  "no_release": true,
+  "installer_zip_absent": true,
+  "generic_summary_public_evidence": "Original SKIP preserved; summarizer RECEIPTS does not include public-unit-profile.json. Raw stage and independent unit evidence audited separately.",
+  "integration_scope": "coordinator owns merge/integration; later instruction cancelled further merge analysis; this commit pure evidence only"
+}

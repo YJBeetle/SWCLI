@@ -1,0 +1,407 @@
+{
+  "audit_success": true,
+  "run_id": 42935636514,
+  "head_sha": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "native_artifact_id": 13820837309,
+  "native_zip_sha256": "c34b58cd4796d7778eae31b01d69bacc1108d9c9c12e22908b6d054c37fb7117",
+  "native_zip_bytes": 47688318,
+  "install_zip_available": false,
+  "install_zip_absence_reason": "exact workflow Upload private installer logs uses if: failure(); successful original job skipped it; official artifact list has no install ZIP",
+  "original_native_job_log_sha256": "4b3c7a246f92db6825b176563050d05bcbad01c2636141e42acca104699babfb",
+  "windows": {
+    "3.9": {
+      "job_id": 130244936740,
+      "tests": 2008,
+      "seconds": 252.285,
+      "skipped": 11,
+      "real_positive_probe_passed": true,
+      "real_negative_probe_passed": true,
+      "raw_log_sha256": "43bae8aa989f1c2607584d2d4a4cf5f72894da450b80c640fce15352d9a26104",
+      "summary_zip_sha256": "0bb8091df33452d2d60f2e4398ea7caf905c20c9d03d6cd8f536e0b0b3e902cb",
+      "observation": {
+        "expected": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path ozzr03zn\\Owned native image fixture.exe",
+        "short_returned_chars": 58,
+        "short_image": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\UNITSI~1\\OWNEDN~1.EXE",
+        "expanded": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path ozzr03zn\\Owned native image fixture.exe",
+        "evidence": {
+          "raw_image": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\UNITSI~1\\OWNEDN~1.EXE",
+          "expected_image": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path ozzr03zn\\Owned native image fixture.exe",
+          "representation": "raw-query-image retained; admission compares OS-expanded full path plus same-file evidence",
+          "expansion": {
+            "api": "GetLongPathNameW",
+            "argtypes": [
+              "LPCWSTR",
+              "LPWSTR",
+              "DWORD"
+            ],
+            "restype": "DWORD",
+            "input_capacity_chars": 32768,
+            "ctypes_bytes": {
+              "DWORD": 4,
+              "wchar": 2
+            },
+            "byteorder": "little",
+            "returned_chars": 96,
+            "last_error": null,
+            "expanded_image": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path ozzr03zn\\Owned native image fixture.exe",
+            "expanded_image_repr": "'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\units image path ozzr03zn\\\\Owned native image fixture.exe'",
+            "image_length_py_chars": 96,
+            "image_length_utf16_units": 96,
+            "nul_at_returned_index": true,
+            "buffer_prefix_b64": "QwA6AFwAVQBzAGUAcgBzAFwAcgB1AG4AbgBlAHIAYQBkAG0AaQBuAFwAQQBwAHAARABhAHQAYQBcAEwAbwBjAGEAbABcAFQAZQBtAHAAXAB1AG4AaQB0AHMAIABpAG0AYQBnAGUAIABwAGEAdABoACAAbwB6AHoAcgAwADMAegBuAFwATwB3AG4AZQBkACAAbgBhAHQAaQB2AGUAIABpAG0AYQBnAGUAIABmAGkAeAB0AHUAcgBlAC4AZQB4AGUAAAA="
+          },
+          "raw_stat": {
+            "device": 1422631540,
+            "inode": 41658296553339490
+          },
+          "expected_stat": {
+            "device": 1422631540,
+            "inode": 41658296553339490
+          },
+          "samefile": true,
+          "recorded_file_ids_match": true,
+          "file_ids_available": true
+        }
+      }
+    },
+    "3.14": {
+      "job_id": 130244936949,
+      "tests": 2008,
+      "seconds": 178.279,
+      "skipped": 4,
+      "real_positive_probe_passed": true,
+      "real_negative_probe_passed": true,
+      "raw_log_sha256": "437d2ac789396a712e1798fc2f4f952f261e0e03bd4fa99f5ef14324351d8c92",
+      "summary_zip_sha256": "3c964d83bebfa37b9ccccdc3b91edd6be8365e4307842f8229f336a19673f216",
+      "observation": {
+        "expected": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path f3yavfb9\\Owned native image fixture.exe",
+        "short_returned_chars": 58,
+        "short_image": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\UNITSI~1\\OWNEDN~1.EXE",
+        "expanded": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path f3yavfb9\\Owned native image fixture.exe",
+        "evidence": {
+          "raw_image": "C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\UNITSI~1\\OWNEDN~1.EXE",
+          "expected_image": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path f3yavfb9\\Owned native image fixture.exe",
+          "representation": "raw-query-image retained; admission compares OS-expanded full path plus same-file evidence",
+          "expansion": {
+            "api": "GetLongPathNameW",
+            "argtypes": [
+              "LPCWSTR",
+              "LPWSTR",
+              "DWORD"
+            ],
+            "restype": "DWORD",
+            "input_capacity_chars": 32768,
+            "ctypes_bytes": {
+              "DWORD": 4,
+              "wchar": 2
+            },
+            "byteorder": "little",
+            "returned_chars": 96,
+            "last_error": null,
+            "expanded_image": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\units image path f3yavfb9\\Owned native image fixture.exe",
+            "expanded_image_repr": "'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\units image path f3yavfb9\\\\Owned native image fixture.exe'",
+            "image_length_py_chars": 96,
+            "image_length_utf16_units": 96,
+            "nul_at_returned_index": true,
+            "buffer_prefix_b64": "QwA6AFwAVQBzAGUAcgBzAFwAcgB1AG4AbgBlAHIAYQBkAG0AaQBuAFwAQQBwAHAARABhAHQAYQBcAEwAbwBjAGEAbABcAFQAZQBtAHAAXAB1AG4AaQB0AHMAIABpAG0AYQBnAGUAIABwAGEAdABoACAAZgAzAHkAYQB2AGYAYgA5AFwATwB3AG4AZQBkACAAbgBhAHQAaQB2AGUAIABpAG0AYQBnAGUAIABmAGkAeAB0AHUAcgBlAC4AZQB4AGUAAAA="
+          },
+          "raw_stat": {
+            "device": 9823700658284110452,
+            "inode": 13229323905562870
+          },
+          "expected_stat": {
+            "device": 9823700658284110452,
+            "inode": 13229323905562870
+          },
+          "samefile": true,
+          "recorded_file_ids_match": true,
+          "file_ids_available": true
+        }
+      }
+    }
+  },
+  "public": {
+    "exact_admitted_domains_per_transport": {
+      "cli": 137,
+      "sdk": 137,
+      "mcp": 137
+    },
+    "system_full_result_domains": 26,
+    "actual_source_open_readonly_open_and_save_requests_bound": 1251,
+    "completed_cases": {
+      "cli": 139,
+      "sdk": 139,
+      "mcp": 139
+    },
+    "per_type": {
+      "cli": {
+        "1": 46,
+        "2": 46,
+        "3": 47
+      },
+      "sdk": {
+        "1": 46,
+        "2": 46,
+        "3": 47
+      },
+      "mcp": {
+        "1": 46,
+        "2": 46,
+        "3": 47
+      }
+    },
+    "field_counts": {
+      "cli": {
+        "system": 28,
+        "linear.unit": 6,
+        "linear.precision": 27,
+        "angular.unit": 6,
+        "angular.precision": 27,
+        "mass_properties.length_unit": 6,
+        "mass_properties.mass_unit": 6,
+        "mass_properties.volume_unit": 6,
+        "mass_properties.precision": 27
+      },
+      "sdk": {
+        "system": 28,
+        "linear.unit": 6,
+        "linear.precision": 27,
+        "angular.unit": 6,
+        "angular.precision": 27,
+        "mass_properties.length_unit": 6,
+        "mass_properties.mass_unit": 6,
+        "mass_properties.volume_unit": 6,
+        "mass_properties.precision": 27
+      },
+      "mcp": {
+        "system": 28,
+        "linear.unit": 6,
+        "linear.precision": 27,
+        "angular.unit": 6,
+        "angular.precision": 27,
+        "mass_properties.length_unit": 6,
+        "mass_properties.mass_unit": 6,
+        "mass_properties.volume_unit": 6,
+        "mass_properties.precision": 27
+      }
+    },
+    "negative_receipts": {
+      "DocumentLeaseConflict": 417,
+      "DocumentUpdateConflict": 417,
+      "DocumentUnitProfileConflict": 417,
+      "ValueError": 417,
+      "UnitProfileCalibrationRequired": 342
+    },
+    "native_saved_files_checked": 417,
+    "source_file_references_checked": 417,
+    "part_geometry_comparisons": 276,
+    "part_nonexact_comparisons": 190,
+    "deferred_legal_noops": [
+      {
+        "case": 117,
+        "transport": "cli"
+      },
+      {
+        "case": 256,
+        "transport": "sdk"
+      },
+      {
+        "case": 395,
+        "transport": "mcp"
+      }
+    ],
+    "cold_probes": 3,
+    "events": 14031,
+    "transport_events": {
+      "cli": 4681,
+      "sdk": 4675,
+      "mcp": 4675
+    },
+    "durable_journal_rows": 46764,
+    "cli_frontend_commands": 4676,
+    "cli_frontend_starts": 1,
+    "cli_frontend_exit_confirmed": true,
+    "mcp_closed": true,
+    "requested_lease_ttl_seconds": 600,
+    "remaining_lease_receipt_values": {
+      "600.0": 682,
+      "600.0000000000002": 97,
+      "599.9999999999998": 55
+    },
+    "case_seconds": {
+      "cli": 330.9359999999997,
+      "sdk": 377.01300000000265,
+      "mcp": 483.55500000000166
+    }
+  },
+  "public_trace": {
+    "frames": 1710960,
+    "phases": {
+      "begin": 855480,
+      "end": 854646,
+      "error": 834
+    },
+    "worker_pid": 6088,
+    "actual_typed_requests": 14029,
+    "operations": {
+      "document.list": 418,
+      "document.open": 834,
+      "document.create": 834,
+      "document.lease.acquire": 834,
+      "document.unit-profile": 2088,
+      "document.measure": 414,
+      "document.lease.renew": 3678,
+      "document.unit-profile-set": 2844,
+      "document.save-as": 417,
+      "document.close": 1668
+    },
+    "setter_calls": 417,
+    "native_api_error_events": 0,
+    "expected_operation_errors": {
+      "DocumentLeaseConflict": 417,
+      "DocumentUpdateConflict": 417
+    },
+    "max_native_boundary_seconds": 1.0,
+    "trace_span_seconds": 1346.5469999999998
+  },
+  "identity_proofs": [
+    {
+      "role": "native-host",
+      "pid": 9208,
+      "raw_image": "C:\\PROGRA~1\\SOLIDW~1\\SLDWORKS.exe",
+      "expanded_image": "C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe",
+      "expected_image": "C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe",
+      "file_stat": {
+        "device": 9823700658284110452,
+        "inode": 844424930365935
+      },
+      "samefile": true,
+      "raw_identity_retained": true
+    },
+    {
+      "role": "cli-frontend",
+      "pid": 8500,
+      "raw_image": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+      "expanded_image": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+      "expected_image": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe",
+      "file_stat": {
+        "device": 9823700658284110452,
+        "inode": 1125899907374164
+      },
+      "samefile": true,
+      "raw_identity_retained": true
+    }
+  ],
+  "public_group_seconds": 1355.766,
+  "public_native_pid": 9208,
+  "owned_native_exit_confirmed": true,
+  "cli_frontend_exit_confirmed": true,
+  "normal_stop_exit_code": 0,
+  "forced_native_termination": false,
+  "pids_before": [],
+  "pids_after": [],
+  "cleanup_errors": [],
+  "internal_private": {
+    "audit_success": true,
+    "run_id": 42935636514,
+    "verified_head": "459b0cf88892fe1af013156994568d6e52e6df2e",
+    "artifact_id": 13820837309,
+    "zip_sha256": "c34b58cd4796d7778eae31b01d69bacc1108d9c9c12e22908b6d054c37fb7117",
+    "report_sha256": "64c709a60e12668c0f90f7f81426fbc10043bde7728354c84f2aef1c1295e57e",
+    "revision": "33.5.0",
+    "duration_seconds": 248.4219999999999,
+    "trace_rows": 421302,
+    "completed_native_boundaries": 210651,
+    "max_native_call_seconds": 2.921999999999912,
+    "native_error_events": 0,
+    "setter_calls": 139,
+    "native_files_checked": 281,
+    "cases": [
+      {
+        "document_type": 1,
+        "steps": 46,
+        "scalar_targets": 37,
+        "system_directions": 8,
+        "preparation_targets": [
+          4
+        ],
+        "configuration": "Default",
+        "template_sha256": "61b89d9f632bb058820a8260189408cc75d14eebe5564c1a2c9dd21933b2be65"
+      },
+      {
+        "document_type": 2,
+        "steps": 46,
+        "scalar_targets": 37,
+        "system_directions": 8,
+        "preparation_targets": [
+          4
+        ],
+        "configuration": "Default",
+        "template_sha256": "270cbb48ad74543677f8e53ab87949e86ba399bd49b2bbbd075254087749f54e"
+      },
+      {
+        "document_type": 3,
+        "steps": 47,
+        "scalar_targets": 37,
+        "system_directions": 8,
+        "preparation_targets": [
+          5,
+          4
+        ],
+        "configuration": null,
+        "template_sha256": "8662d4f8719a39fb18ebdc9e1cf363a71162c1c0c6d660db5ce04fe118d25783"
+      }
+    ],
+    "part_geometry_comparisons": 92,
+    "part_nonexact_comparisons": 59,
+    "max_centroid_absolute_delta_mm": 3.970466940254533e-16,
+    "part_raw_baseline_with_hex": {
+      "volume_mm3": {
+        "value": 11999.999999999998,
+        "hex": "0x1.76fffffffffffp+13"
+      },
+      "surface_area_mm2": {
+        "value": 3799.9999999999995,
+        "hex": "0x1.dafffffffffffp+11"
+      },
+      "solid_body_count": 1,
+      "centroid_mm": {
+        "x": {
+          "value": -7.058607893785837e-16,
+          "hex": "-0x1.96e6aaaaaaaacp-51"
+        },
+        "y": {
+          "value": 5.514537417020185e-16,
+          "hex": "0x1.3de4355555556p-51"
+        },
+        "z": {
+          "value": 5.0,
+          "hex": "0x1.4000000000000p+2"
+        }
+      }
+    },
+    "owned_native_pid": 2484,
+    "owned_native_exit_confirmed": true,
+    "pids_before": [],
+    "pids_after": [],
+    "source_byte_forms": {
+      "scripts/ci/calibrate-document-unit-profile.py": "CRLF",
+      "scripts/ci/gate_support/unit_profile_writes.py": "CRLF",
+      "src/swcli/hosts/windows_document_unit_profile.py": "LF",
+      "src/swcli/document_unit_profile.py": "LF"
+    },
+    "registry_lease_coverage": "not exercised by internal direct adapter; required in public validation",
+    "public_write_accepted": false,
+    "template_bytes_in_zip": false,
+    "reviewed_domains_sha256": "ae691bb796fe32caa9a47df78a541dfb1451bbc2fc7bd4679e81196aa2cdb664"
+  },
+  "generic_summary_public_evidence": {
+    "name": "public-evidence",
+    "status": "SKIP",
+    "seconds": null,
+    "evidence": [],
+    "detail": "no public acceptance receipts found"
+  },
+  "public_acceptance_accepted": true,
+  "scope": "bounded SOLIDWORKS33.5.0/three configurations and 137 admitted exact domains; no full native product gate, merge, or release claimed"
+}

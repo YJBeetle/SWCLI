@@ -419,3 +419,16 @@ root完整亲审459b0cf helper/19tests/runner4行适配，核产品src/workflow/
 只派一次 https://github.com/YJBeetle/SWCLI/actions/runs/42935636514 ，官方event workflow_dispatch/head459/ref codex/docprops-units-expanded/attempt1已核；actual route job130244936823已success，单次读取原log核ROUTE_*三units=true/native_full=false及Validated native route: units-write-public。一次初始run/jobs snapshot：run in_progress，Win3.9 job130244936740及3.14 job130244936949 in_progress，wheel130244936395 success、route success、tag-policy skipped。Windows真实路径正负probe尚未在该快照完成，不算通过；既有workflow须portable成功才可native，前置失败不重试native。
 
 meta/preflight/receipt/initial/route审计在docs/evidence/units-profile/public-short-path-42935636514，原route/派前查询原件在同名evidence。初始快照后停止全部CI查询、不poll/不重派，不动VM/main/release。此后仅本地docs快照提交，remote与业务源保持459；旧42928824277 failure/公共0/cold0/原生退出未确认/短长同文件未证明均保留。新run首失败待原件保存后再审，不自行重试API或放宽准入；成功也须root原件审417+3cold/同host-worker/保存RO/hash/strict geometry/CAS及真实退出后才能决定merge。
+
+
+## 42935636514成功原件独立审计完成，纯证据本地提交
+
+本run official terminal run/jobs/artifacts各一次，native13820837309 ZIP47688318/SHA c34b58cd4796d7778eae31b01d69bacc1108d9c9c12e22908b6d054c37fb7117核同。native/Windows3.9与3.14原job日志和两portable summary原ZIP均保存；installer ZIP确无（if:failure上传，本success步骤skip），不借旧run。通用summary public-evidence仍SKIP因RECEIPTS不识别public-unit-profile.json，原样保留并说明，实际units/public/cleanup stages PASS。
+
+独立stdlib audit绑定本source459：CLI/SDK/MCP139各(46/46/47)，每route137精确域和全afterhash匹配静态表，3真实fresh probes；417changed各一次setter、417noop零写、2010negative零写。全部九字段/raw5/link19/CAS/stamp/lease/session/readonly/path/原bytes及1251实际open-save请求、417source引用+417保存hash核过；276公共part geometry(190nonexact)与内部92(59nonexact)保原严格body/V/S和仅逐轴1e-12mm质心。46764journal行/14031commands一致，1710960native frames完整配对/14029typed requests逐ID绑定，单worker6088、原生APIerror0、834error仅预期lease/stamp。内部139/248.422s/281native files独立，不补公共。
+
+public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expected40、samefile和device/inode证明通过，raw identity保留；normal stop0、同retained native wait/readonly helper8500 wait均确认、before/after[]、cleanup[]、无force。两Windows真实短长与不同缺失probe实际ok：各2008项，3.9 252.285s/skip11、3.14 178.279s/skip4，不将macOS mock算Windows。
+
+重放docs/verification/audit-units-public-success-42935636514.py，说明docs/verification/units-public-success-42935636514-review.md，meta/结果/校验SHA在docs/evidence/units-profile/public-short-path-42935636514/{public-success-audit,independent-audit-validation}.json。原件安全展开在同名evidence/original，未stage。错head/digest/伪samefileID/原buffer/缺九字段都拒绝；Python3.9AST/import/diff通过，无产品/gate/COM import。root亦独立基础与trace审计通过。
+
+统筹后续已接管并完成main整合，要求无需继续merge分析或复跑既有测试；本路只完成纯证据本地提交，不碰其integration/main，不push/CI/VM/发布。本459成功仅对应原始有界单位验收，不宣称完整原生产品矩阵或整合后main原生验证；旧failures及当时未确认退出不翻绿。
