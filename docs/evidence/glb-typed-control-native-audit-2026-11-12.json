@@ -1,0 +1,573 @@
+{
+  "schema": "swcli.typed-glb-control-267a34c-offline-audit.v1",
+  "source_head": "267a34c3b889b657c07163cd32b3375c389045c6",
+  "build_original": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-build-267a34c-01",
+  "build_files": {
+    "SolidWorks.Interop.sldworks.dll": {
+      "bytes": 2800000,
+      "sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1"
+    },
+    "TypedGlbBridge.exe": {
+      "bytes": 32256,
+      "sha256": "dd7567afb7f16233a62101712acea31d9e9bbfc0cde6e8ef191b83572c59aede"
+    },
+    "build.json": {
+      "bytes": 1366,
+      "sha256": "13b110daa518b86fa4202c34d5956145eaba59b333fcbbcd64e7f06e663ef3cc"
+    },
+    "compile.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compile.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "coordinator-independent-audit.json": {
+      "bytes": 437,
+      "sha256": "562c3927fd03636de614f8eac106a0da18425f917a620d624dc995766083c4e2"
+    },
+    "launcher-context.json": {
+      "bytes": 1136,
+      "sha256": "55843879766a2e81fff830d1f703e0d1dd77a45fa76757bbc217656d1003c3fd"
+    }
+  },
+  "helper_sha256": "dd7567afb7f16233a62101712acea31d9e9bbfc0cde6e8ef191b83572c59aede",
+  "PE": "AMD64/PE32+",
+  "attempts": {
+    "identity": {
+      "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-identity-267a34c-01",
+      "report_sha256": "1bde576e93376b971451834c2e810b879ba3a22c11ee0a994cd49c3115612aaa",
+      "producer_success": true,
+      "fixture_success": false,
+      "identity_only": true,
+      "source_sha256": "ec3066f6c0f2a97c7f2fb02ab532b13e9e6fb8584f9b0fe16871ce09ed917026",
+      "pids": {
+        "SW": 8236,
+        "python": 2668,
+        "helper": 10212,
+        "launch": 9432
+      },
+      "Python_modern_export_counts": {
+        "STL": 1,
+        "3MF": 1,
+        "AMF": 1,
+        "GLB": 0
+      },
+      "CSharp_save_attempts": 0,
+      "before": {
+        "active_sketch": false,
+        "background": true,
+        "command_in_progress": false,
+        "configuration": "默认",
+        "configurations": [
+          "默认"
+        ],
+        "created_filetime": 134389009518500391,
+        "document_count": 1,
+        "document_type": 1,
+        "exe_path": "C:\\PROGRA~1\\SOLIDW~1\\SOLIDW~1\\SLDWORKS.exe",
+        "exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+        "foreground_same": 1,
+        "modified": false,
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-267a34c-01\\component.SLDPRT",
+        "pid": 8236,
+        "read_only": false,
+        "runtime": "33.5.0",
+        "source_sha256": "ec3066f6c0f2a97c7f2fb02ab532b13e9e6fb8584f9b0fe16871ce09ed917026",
+        "title": "component.SLDPRT",
+        "update_stamp": 144,
+        "user_control": true,
+        "view_only": false,
+        "visible": false
+      },
+      "after": null,
+      "identity_checks": [
+        {
+          "document_iunknown_same": true,
+          "extension_iunknown_same": true,
+          "foreground_same": 1,
+          "phase": "handshake"
+        }
+      ],
+      "source_reads": [
+        {
+          "access": "Read",
+          "after": {
+            "attributes": 32,
+            "change_filetime": 134389009755311386,
+            "creation_filetime": 134389009750698266,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "00000000000000000009000000028c0b",
+            "links": 1,
+            "size_bytes": 67627,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389009754298649
+          },
+          "before": {
+            "attributes": 32,
+            "change_filetime": 134389009755311386,
+            "creation_filetime": 134389009750698266,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "00000000000000000009000000028c0b",
+            "links": 1,
+            "size_bytes": 67627,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389009754298649
+          },
+          "bytes_read": 67627,
+          "complete": true,
+          "error": null,
+          "hresult": null,
+          "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-267a34c-01\\component.SLDPRT",
+          "path_after": {
+            "attributes": 32,
+            "change_filetime": 134389009755311386,
+            "creation_filetime": 134389009750698266,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "00000000000000000009000000028c0b",
+            "links": 1,
+            "size_bytes": 67627,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389009754298649
+          },
+          "phase": "handshake",
+          "sha256": "ec3066f6c0f2a97c7f2fb02ab532b13e9e6fb8584f9b0fe16871ce09ed917026",
+          "share": "ReadWrite (no Delete)",
+          "win32_error": null
+        }
+      ],
+      "native_arguments": null,
+      "api_saved": null,
+      "save_errors": null,
+      "save_warnings": null,
+      "helper_and_owned_cleanup": true,
+      "files": {
+        "component-export.3MF": {
+          "bytes": 10821,
+          "sha256": "afe26156021cbf08d46c18973c9a4f9bc5c963b5df1696d8e313c71751ffb408"
+        },
+        "component-export.AMF": {
+          "bytes": 1476,
+          "sha256": "333987aa64ac6b1110aaff61283180ea35106bbf3b035c99b7a567cbd5dea722"
+        },
+        "component-export.STL": {
+          "bytes": 684,
+          "sha256": "cbdf335df812e97bfc3b8ca25573240dd70dbf493d53a73487d1c95e2620fbb5"
+        },
+        "component.SLDPRT": {
+          "bytes": 67627,
+          "sha256": "ec3066f6c0f2a97c7f2fb02ab532b13e9e6fb8584f9b0fe16871ce09ed917026"
+        },
+        "coordinator-independent-audit.json": {
+          "bytes": 484,
+          "sha256": "22b8dac492f0c665fc5b0b83786be76cbb8ea3dde298217fd74d668da88a18aa"
+        },
+        "launcher-context.json": {
+          "bytes": 965,
+          "sha256": "f0e195116b68a863df0142c3accb77e3d475406798df227090968b43e5b366df"
+        },
+        "local-supervisor.json": {
+          "bytes": 819,
+          "sha256": "856b702e89bbad80a60cdb2707c112ad01a44597d70a957cee6073e17fd7eb32"
+        },
+        "report.json": {
+          "bytes": 40484,
+          "sha256": "1bde576e93376b971451834c2e810b879ba3a22c11ee0a994cd49c3115612aaa"
+        },
+        "swcli-glb-diagnostics-457ca4ab78d4493f91a9c0ea763cf16e/manifest.json": {
+          "bytes": 2284,
+          "sha256": "b59d73c1263544d5d237a34642ace1817b311492242b35ae08c6f35a710f1643"
+        },
+        "trace.jsonl": {
+          "bytes": 2487,
+          "sha256": "d5cbcd3ede688a48529ec956939b1386a4c48b7a913b87ca0c042c9751e72276"
+        },
+        "typed-control-audit.json": {
+          "bytes": 635,
+          "sha256": "58f8694a6d1ae55af6baccabbf8872339e01cffbbe5d5c4ceb77f2c6e0148fb8"
+        },
+        "typed-glb/helper-native.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "typed-glb/helper.json": {
+          "bytes": 4549,
+          "sha256": "d8d0129d81c8dfe3339de1555e3ca378499af46ae863c5db40261be1f93c32b6"
+        },
+        "typed-glb/helper.stderr.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "typed-glb/helper.stdout.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "typed-glb/producer.json": {
+          "bytes": 25288,
+          "sha256": "04f65f84edb793aaed856f0b17655756b8c54775c4c4225fdc76c7374e1f3cb1"
+        },
+        "worker.stderr.log": {
+          "bytes": 41859,
+          "sha256": "5a89755c1c250fec8b1a083277e1c93fe9b962de95f680bab15c6bee0a89057f"
+        },
+        "worker.stdout.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "invoke": {
+      "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-invoke-267a34c-01",
+      "report_sha256": "a1a482bf9c3070b2ea7854281e6f2bf32cb8efda484247fa6ea1dce3ad3f4d42",
+      "producer_success": true,
+      "fixture_success": false,
+      "identity_only": false,
+      "source_sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+      "pids": {
+        "SW": 592,
+        "python": 708,
+        "helper": 5736,
+        "launch": 6176
+      },
+      "Python_modern_export_counts": {
+        "STL": 1,
+        "3MF": 1,
+        "AMF": 1,
+        "GLB": 0
+      },
+      "CSharp_save_attempts": 1,
+      "before": {
+        "active_sketch": false,
+        "background": true,
+        "command_in_progress": false,
+        "configuration": "默认",
+        "configurations": [
+          "默认"
+        ],
+        "created_filetime": 134389010667843240,
+        "document_count": 1,
+        "document_type": 1,
+        "exe_path": "C:\\PROGRA~1\\SOLIDW~1\\SOLIDW~1\\SLDWORKS.exe",
+        "exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+        "foreground_same": 1,
+        "modified": false,
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\component.SLDPRT",
+        "pid": 592,
+        "read_only": false,
+        "runtime": "33.5.0",
+        "source_sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+        "title": "component.SLDPRT",
+        "update_stamp": 144,
+        "user_control": true,
+        "view_only": false,
+        "visible": false
+      },
+      "after": {
+        "active_sketch": false,
+        "background": true,
+        "command_in_progress": false,
+        "configuration": "默认",
+        "configurations": [
+          "默认"
+        ],
+        "created_filetime": 134389010667843240,
+        "document_count": 1,
+        "document_type": 1,
+        "exe_path": "C:\\PROGRA~1\\SOLIDW~1\\SOLIDW~1\\SLDWORKS.exe",
+        "exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+        "foreground_same": 1,
+        "modified": false,
+        "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\component.SLDPRT",
+        "pid": 592,
+        "read_only": false,
+        "runtime": "33.5.0",
+        "source_sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+        "title": "component.SLDPRT",
+        "update_stamp": 144,
+        "user_control": true,
+        "view_only": false,
+        "visible": false
+      },
+      "identity_checks": [
+        {
+          "document_iunknown_same": true,
+          "extension_iunknown_same": true,
+          "foreground_same": 1,
+          "phase": "handshake"
+        },
+        {
+          "document_iunknown_same": true,
+          "extension_iunknown_same": true,
+          "foreground_same": 1,
+          "phase": "before-save"
+        },
+        {
+          "document_iunknown_same": true,
+          "extension_iunknown_same": true,
+          "foreground_same": 1,
+          "phase": "after-normal-return"
+        }
+      ],
+      "source_reads": [
+        {
+          "access": "Read",
+          "after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "before": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "bytes_read": 68164,
+          "complete": true,
+          "error": null,
+          "hresult": null,
+          "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\component.SLDPRT",
+          "path_after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "phase": "handshake",
+          "sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+          "share": "ReadWrite (no Delete)",
+          "win32_error": null
+        },
+        {
+          "access": "Read",
+          "after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "before": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "bytes_read": 68164,
+          "complete": true,
+          "error": null,
+          "hresult": null,
+          "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\component.SLDPRT",
+          "path_after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "phase": "before-save",
+          "sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+          "share": "ReadWrite (no Delete)",
+          "win32_error": null
+        },
+        {
+          "access": "Read",
+          "after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "before": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "bytes_read": 68164,
+          "complete": true,
+          "error": null,
+          "hresult": null,
+          "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\component.SLDPRT",
+          "path_after": {
+            "attributes": 32,
+            "change_filetime": 134389011089198760,
+            "creation_filetime": 134389011083511446,
+            "delete_pending": false,
+            "directory": false,
+            "file_id_128": "0000000000000000000b000000028b59",
+            "links": 1,
+            "size_bytes": 68164,
+            "volume_serial": "3a86aabc86aa77d1",
+            "write_filetime": 134389011087843902
+          },
+          "phase": "after-normal-return",
+          "sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605",
+          "share": "ReadWrite (no Delete)",
+          "win32_error": null
+        }
+      ],
+      "native_arguments": {
+        "advanced_options": "null object; installed PIA MarshalAs(IDispatch)",
+        "export_data": "null object; installed PIA MarshalAs(IDispatch)",
+        "name": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-invoke-267a34c-01\\.component-export.d1023481cbb5419b995c5d557f3b835b.swcli.GLB",
+        "options": 1,
+        "output_codes": "Int32& [In,Out]; initialized Int32.MinValue",
+        "version": 0
+      },
+      "api_saved": true,
+      "save_errors": 0,
+      "save_warnings": 0,
+      "helper_and_owned_cleanup": true,
+      "files": {
+        "component-export.3MF": {
+          "bytes": 10823,
+          "sha256": "27df3cd5efa2058acb45479cc01ddf7a8ffcb97508b8d9d87a6cc361a228d79e"
+        },
+        "component-export.AMF": {
+          "bytes": 1476,
+          "sha256": "333987aa64ac6b1110aaff61283180ea35106bbf3b035c99b7a567cbd5dea722"
+        },
+        "component-export.STL": {
+          "bytes": 684,
+          "sha256": "ba690cedd5f7396b5230ac7db0c8899d4ea91d4b228af45e79e6be6b51809047"
+        },
+        "component-export.invalid-native.glb": {
+          "bytes": 3732,
+          "sha256": "04b83d8e0a2ebccd297fc116d17964e183eb081717ef27e1049d6340abcda2ba"
+        },
+        "component.SLDPRT": {
+          "bytes": 68164,
+          "sha256": "72d3f2cb0d91bd0ba607278527d414aca4c7e0b1d9343f016d6672e9127ca605"
+        },
+        "coordinator-independent-audit.json": {
+          "bytes": 679,
+          "sha256": "b6de209f564d2e9fdb0209558b8dfd457fcffd345de430a6cbbf443bef6fbefd"
+        },
+        "launcher-context.json": {
+          "bytes": 964,
+          "sha256": "27b3d839e2219057ef1c77d4e5a3b8b872ff7993d6e494d6143b2613fb019702"
+        },
+        "local-supervisor.json": {
+          "bytes": 820,
+          "sha256": "22c9a9e515338c24808b90a0c670dcf99050c400f5fb2125c2f44a1622a31baa"
+        },
+        "report.json": {
+          "bytes": 66825,
+          "sha256": "a1a482bf9c3070b2ea7854281e6f2bf32cb8efda484247fa6ea1dce3ad3f4d42"
+        },
+        "swcli-glb-diagnostics-1e3976f8486e4840ad7d1b429ad7ce18/after-1.bin": {
+          "bytes": 3732,
+          "sha256": "04b83d8e0a2ebccd297fc116d17964e183eb081717ef27e1049d6340abcda2ba"
+        },
+        "swcli-glb-diagnostics-1e3976f8486e4840ad7d1b429ad7ce18/manifest.json": {
+          "bytes": 2637,
+          "sha256": "94e78617c0224224aef7a64062e129af788e347183bdf78594b92dcb63552243"
+        },
+        "trace.jsonl": {
+          "bytes": 2479,
+          "sha256": "36ec46c2854281f5b0c53c2e5e6c4bb353259ebbaf8e9d3b3efe6398b505a7e5"
+        },
+        "typed-control-audit.json": {
+          "bytes": 632,
+          "sha256": "eb60d5069feec83bf9310854b1735b57e49fe0d8f3502d7093ffe098e2ac7ef5"
+        },
+        "typed-glb/helper-native.jsonl": {
+          "bytes": 246,
+          "sha256": "8bb193f7af65434fca92e1623a978563347334129203b4578afa1d30d99fb4dc"
+        },
+        "typed-glb/helper.json": {
+          "bytes": 11244,
+          "sha256": "024cd4a6bd7bfbd97c875d92f900ba5818758eacd786fc63bd4bc97d80ed10af"
+        },
+        "typed-glb/helper.stderr.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "typed-glb/helper.stdout.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "typed-glb/producer.json": {
+          "bytes": 48322,
+          "sha256": "7d4c6ade2029c7e7b830939eec50bba9fde0c803259665f5eb70d3fa5e9ba6ef"
+        },
+        "worker.stderr.log": {
+          "bytes": 41667,
+          "sha256": "1433b4e7c4c77bd01ba1089df770cd87b44fd8a6f53df0c87a94dc733d414da4"
+        },
+        "worker.stdout.log": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "glb": {
+        "bytes": 3732,
+        "JSON": 3704,
+        "BIN": 0,
+        "declared_buffer": 720,
+        "sha256": "04b83d8e0a2ebccd297fc116d17964e183eb081717ef27e1049d6340abcda2ba",
+        "strict_valid": false,
+        "byte_identical_to_hidden_Python_baseline": true,
+        "native_input_bytes_are_not_historical_baseline": true,
+        "file_access_monitor": {
+          "status": "unknown",
+          "reason": "no verified PID-scoped bounded OS file-access collector is available"
+        },
+        "module_snapshots": "filtered lists only; not runtime dependency proof"
+      }
+    }
+  },
+  "conclusion": "Changing this part export binding to C# alone did not restore GLB; no underlying API/exporter/environment cause established, no retry authorized."
+}

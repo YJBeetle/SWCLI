@@ -1,5 +1,11 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-12 typed part实际结果及下一候选
+
+267a34c实际PIA编译、identity和一次invoke原件已[独立审计](../verification/glb-typed-control-native-audit-2026-11-12.md)：双端raw8.3路径相同，身份/三轮源读取/状态和清理通过；C#单次True/0/0仍3732B JSON3704/BIN0，SHA与原hidden Python baseline逐字节相同。仅换调用绑定不足以恢复该part，不定底层根因，不重试part/API。
+
+统筹最新收敛为[MarkingJig独立只读副本、OpenDoc7与现有Python现代helper一次对照](../verification/glb-markingjig-readonly-control-plan-2026-11-12.md)的代码/便携准备；不扩C#part门禁、不复制业务二进制入repo/CI、不自行VM。完整引用目前仍未知，必须证明后才可保存；历史generated assembly只作辅助，不作为失败回退。以下保留早期各阶段记录。
+
 ## 2026-11-12 身份预检首错、新候选及用户真实成功原件
 
 b50单次identity report SHA `43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11e5f3bd7f686d4b` 已独立核：源SLDPRT File.OpenRead共享冲突HRESULT -2147024864为真实首错，frame mismatch为后续症状。contract/三包consumed/局部IUnknown true+IsSame1有原件，但before=null、完整identity未过、GLB0；正常helper exit1、marshal known及owned清理已核。Python8.3路径实际保留，C#raw路径未保留，不补填。见[身份首错及候选审计](../verification/glb-typed-identity-first-failure-2026-11-12.md)。
