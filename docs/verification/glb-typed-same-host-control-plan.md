@@ -1,6 +1,6 @@
 # GLB 强类型单次对照：同一 owned host / 同一文档
 
-状态更新（2026-11-12）：b50b603实际PIA零CAD编译通过；其后一次[零GLB身份预检源读取首错](glb-typed-identity-first-failure-2026-11-12.md)停止，完整identity未过。新候选5c754ba仅源文件只读共享取证、部分观察和首错协议修正，23项Python/70条C#纯断言通过，尚未实际PIA编译/原生运行。SameSnapshot/SaveOnce/参数/产品严格门禁不变，路径不静默归一。统筹亲审安排后续，本路无VM/CI/push。用户真实Blender成功文件及条件assembly取舍见[MarkingJig对照](glb-user-markingjig-comparison-2026-11-12.md)。
+状态更新（2026-11-12）：267a34c实际PIA编译及完整identity通过，唯一typed part invoke为C# True/0/0但严格GLB仍BIN0，见[实际审计](glb-typed-control-native-audit-2026-11-12.md)。不重试part/API，不认定底层首因。后续只准备[MarkingJig只读副本现代Python候选](glb-markingjig-readonly-control-plan-2026-11-12.md)，不扩C#part门禁；完整引用仍未知，原生执行由统筹亲审。本路无VM/CI/push。用户成功宿主DockerSW latest与native Windows33.5.0 part上下文均有差异，不单独定因。
 
 2026-11-11：统筹先收敛为 [装机interop零CAD反射工具](installed-interop-metadata-check.md)，消费已有类型库原件，不重复采集；当时的跨进程桥接仅设计，暂不实现。2026-11-12 固定文件采集有限证据通过后，统筹授权按下述既有路线准备源码及便携测试，执行仍待其亲审。
 
@@ -58,4 +58,4 @@ helper获得的是发送者现有能力引用，但仍须逐项验真并记录�
 | 同样true/0/0且BIN0 | Python特有封送不再是唯一解释；继续调查共享现代API/导出器环境，不能仅据此宣称导出器缺陷 |
 | 契约/身份失败、COM异常、false或其他内容失败 | 保留首次原件并停止；不执行第二调用、参数扫描或新host回退 |
 
-当前候选有23项 Python便携测试及70条 C#纯协议断言通过，有b50b603实际Windows/PIA零CAD编译通过及身份预检失败原件；5c754ba尚无实际PIA/原生结果，GLB仍0，不替代现有CI或公开验收。默认 identity 模式有原样件及前三格式 CAD 操作，但 GLB 保存为0；它不是零 CAD，且刻意保留原 fixture 的失败语义，仅独立预检回执可通过。生产仍使用原现代SaveAs3调用；后续操作由统筹安排。
+当前候选有23项 Python便携测试及70条 C#纯协议断言通过，有b50b603实际Windows/PIA零CAD编译通过及身份预检失败原件；其后267a34c已取得完整identity与一次typed GLB失败原件，不替代现有CI或公开验收。默认 identity 模式有原样件及前三格式 CAD 操作，但 GLB 保存为0；它不是零 CAD，且刻意保留原 fixture 的失败语义，仅独立预检回执可通过。生产仍使用原现代SaveAs3调用；后续操作由统筹安排。

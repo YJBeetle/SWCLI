@@ -52,7 +52,8 @@
       "document open source_path (no readonly flag)",
       "document export temporary_output --strict"
     ],
-    "configured_flags_not_runtime_proof": true
+    "configured_flags_not_runtime_proof": true,
+    "role": "static repository configuration clue only; does not replace user-confirmed DockerSW latest runtime"
   },
   "unknown": [
     "actual executed image digest",
@@ -62,5 +63,12 @@
     "export-time host flags",
     "exact job trace"
   ],
-  "next_experiment": "conditional proposal only after actual typed part result; prefer existing real successful source assembly, no implementation/execution"
+  "next_experiment": "typed part actual BIN0 condition met; MarkingJig private readonly copy/OpenDoc7/existing modern Python candidate prepared only, no native execution",
+  "user_confirmed_actual_environment": {
+    "host": "DockerSW",
+    "tag": "latest",
+    "evidence": "direct user confirmation: this successful GLB is exported using DockerSW latest",
+    "generation_digest_known": false
+  },
+  "no_image_resolution_pull_container_or_Docker_CI_actions": true
 }

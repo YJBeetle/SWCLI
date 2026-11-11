@@ -1,6 +1,6 @@
 # GLB 导出器证据缺口与下一最小信息路径
 
-状态更新（2026-11-12）：固定文件采集有限证据、b50b603实际PIA零CAD编译均已核；其后零GLB身份预检在源读取共享冲突首停。新候选5c754ba只读取证/首错处理已交审（23项Python/70条C#纯断言，尚未原生验证），不自动重跑。用户真实Blender成功MarkingJig已只读核定hash/网格，下一步仍按[真实成功差异及条件方案](glb-user-markingjig-comparison-2026-11-12.md)由统筹取舍。以下保留早期评估，不扩大路线。
+状态更新（2026-11-12）：267a34c实际PIA/identity通过，C#单次True/0/0仍空BIN并与原Python baseline逐字节相同，[有限证据已审计](glb-typed-control-native-audit-2026-11-12.md)。下一步只准备MarkingJig只读工作副本/OpenDoc7/现有Python现代SaveAs3候选，完整引用未知就0保存停止。用户确认历史成功环境DockerSW latest；生成时digest/软件版本未知，不拿静态2025配置或当前tag补填，不操作镜像/容器/CI。以下早期评估保留，不当当前候选状态。
 
 ## 官方支持合同能说明什么
 

@@ -1,6 +1,6 @@
 # 单次 typed GLB 调用候选
 
-2026-11-12：b50b603实际PIA零CAD编译通过，随后一次零GLB身份预检在源SLDPRT共享读取首错停止。新[只读共享取证候选5c754ba](../../../docs/verification/glb-typed-identity-first-failure-2026-11-12.md)已准备，Python23项/C#70条断言通过，尚未实际PIA编译或原生运行。SaveAs3仍0次，完整身份准入没有通过；由统筹亲审，不自动重跑。编译首错/通过及严格路径分析见[独立原件审计](../../../docs/verification/glb-typed-namespace-and-path-audit-2026-11-12.md)。用户真实Blender成功原件已对应到[MarkingJig](../../../docs/verification/glb-user-markingjig-comparison-2026-11-12.md)，只保存hash/统计，不复制业务二进制，不否定其历史成功。
+2026-11-12：后续267a34c实际PIA编译及完整identity通过；唯一typed part invoke为C# True/0/0但GLB仍3732B/BIN0，原字节与hidden Python baseline相同。见[实际有限审计](../../../docs/verification/glb-typed-control-native-audit-2026-11-12.md)。早期b50源读取首错原件仍保留；取证修正后这次同host身份/源窗口和清理通过，不升级为GLB成功，不重试part/API。编译首错/通过及严格路径分析见[独立原件审计](../../../docs/verification/glb-typed-namespace-and-path-audit-2026-11-12.md)。用户真实Blender成功原件已对应到[MarkingJig](../../../docs/verification/glb-user-markingjig-comparison-2026-11-12.md)，只保存hash/统计，不复制业务二进制，不否定其历史成功。
 
 ## 唯一调用层变量
 
@@ -49,7 +49,7 @@ helper 的独立 trace 标记真实 helper PID。Python trace 只写 `CSharpBrid
 
 ## 本机证据及限制
 
-.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；70条断言通过（含合成长短路径、只读共享取证状态、部分观察保留，非原生观察）：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python23项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。919a83e实际Windows/PIA编译首错保留；b50b603实际PIA编译通过；其后身份预检已完成contract、三包consumed和局部IUnknown检查，但完整身份因源读取首错未过，GLB0。当前5c754ba尚未实际PIA编译，Windows共享/PInvoke/新协议仍待验证。本机没有PowerShell；统筹原次syntax_exit=0，不能当helper编译通过。当前不改raw路径比较/归一化；额外双端exe文件ID仅是实际不匹配后供统筹取舍的条件设计，不是本轮identity或单次invoke的新增要求，也不提前增加采集链。已审源文件稳定读取检查保持。
+.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；70条断言通过（含合成长短路径、只读共享取证状态、部分观察保留，非原生观察）：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python23项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。919a83e实际Windows/PIA编译首错保留；b50b603实际PIA编译通过；其后身份预检已完成contract、三包consumed和局部IUnknown检查，但完整身份因源读取首错未过，GLB0。后续267a34c实际PIA/identity与单次invoke原件已证明该固定part的共享读取/接口/清理可完成，但GLB内容仍失败；不提升为通用COM支持或GLB成功。本机没有PowerShell；统筹原次syntax_exit=0，不能当helper编译通过。当前不改raw路径比较/归一化；额外双端exe文件ID仅是实际不匹配后供统筹取舍的条件设计，不是本轮identity或单次invoke的新增要求，也不提前增加采集链。已审源文件稳定读取检查保持。
 
 本机纯测试（无网络依赖；SDK须已存在）：
 

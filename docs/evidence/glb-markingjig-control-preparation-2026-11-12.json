@@ -1,0 +1,38 @@
+{
+  "schema": "swcli.markingjig-readonly-candidate.v1",
+  "date": "2026-11-12",
+  "native_typed_part_audit_commit": "9ad981128c4e3591e89726a43c3a7e32ade0d844",
+  "user_confirmed_success_environment": "DockerSW latest; exact generation digest, SWCLI/SW/Wine versions unknown",
+  "prepared_only": true,
+  "business_binaries_copied_to_repo_or_VM": false,
+  "native_OpenDoc7_or_export_executions": 0,
+  "VM_CI_Docker_operations": 0,
+  "inventory_sha256": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d",
+  "inventory_complete_reference_set": false,
+  "candidate_files_sha256": {
+    "scripts/diagnostics/markingjig/README.md": "ed18476e1db0d1fb3a8517ebc00c015a90065a6d80a91930f6da096575206b5c",
+    "scripts/diagnostics/markingjig/markingjig_control.py": "9069653d8932cd466d2fc79293174ea9772488a9c0d5fdae6fa07e57b83ceb5e",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "3d070cd8091738fd33e97a8f24ca9dab50cf9d3ceccb52677c4db4de5b6fa306",
+    "scripts/diagnostics/markingjig/test_markingjig_control.py": "2f31096c2587ed7a3cb8431d6d4ef890b281f72f40be248e54a12f840371b0c7"
+  },
+  "validations": {
+    "candidate_python_tests": 24,
+    "related_typed_python_tests": 23,
+    "static_PIA_contract_compile": "local .NET6/C#5 library build only, no method execution; zero warnings/errors",
+    "actual_PIA_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+    "contract_source": "using SolidWorks.Interop.sldworks;\npublic static class Contract {\n public static void Check(ISldWorks app, IAssemblyDoc assembly, IComponent2 component) {\n  IDocumentSpecification s=(IDocumentSpecification)app.GetOpenDocSpec(\"not executed\");\n  s.DocumentType=2; s.ReadOnly=true; s.Silent=true; s.UseLightWeightDefault=false; s.LightWeight=false; s.ViewOnly=false; s.LoadModel=true; s.AutoRepair=false;\n  IModelDoc2 m=(IModelDoc2)app.OpenDoc7(s); int error=s.Error,warning=s.Warning;\n  bool allUnloaded=assembly.HasUnloadedComponents(); object edit=assembly.GetEditTarget();\n  int count=assembly.GetComponentCount(false),light=assembly.GetLightWeightComponentCount();\n  object list=assembly.GetComponents(false),deps=m.GetDependencies2(true,false,false); int dependencyStrings=m.GetNumDependencies(1,0);\n  int state=component.GetSuppression2(); bool suppressed=component.IsSuppressed(),virt=component.IsVirtual,unloaded=component.HasUnloadedComponents();\n  IModelDoc2 child=(IModelDoc2)component.GetModelDoc2(); object parent=component.GetParent(); string cfg=component.ReferencedConfiguration;\n }\n}\n",
+    "contract_source_sha256": "6b665e89b70dc69bf218e13842380d148ceae74d746148f5fbba17489262460e"
+  },
+  "required_native_evidence": [
+    "OpenDoc7 ReadOnly/initial resolved actual readbacks",
+    "complete dependency counts/arrays and loaded component graph with fixed physical input files or verified virtual ownership",
+    "model state/geometry/hash before-after and one existing modern Python SaveAs3",
+    "strict BIN/accessor/mesh plus owned cleanup"
+  ],
+  "limits": [
+    "available list is not proof of complete references",
+    "unknown/missing/lightweight/config/geometry must stop at zero saves",
+    "no repair/rebuild/resolve/retry/alternate model",
+    "new readonly existing assembly/Python/native Windows differs from both DockerSW latest success and C# fresh part; not single-variable causal test"
+  ]
+}

@@ -1,0 +1,548 @@
+{
+  "schema": "swcli.markingjig-inventory.v1",
+  "source": "MarkingJig.REND.SLDASM",
+  "files": {
+    "MarkingJig.REND.SLDASM": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJig.REND.SLDASM",
+      "size_bytes": 924679,
+      "sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545869,
+        "st_mode": 33188,
+        "st_size": 924679,
+        "st_mtime_ns": 1794353980575637467,
+        "st_ctime_ns": 1794353980575637467,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545869,
+        "st_mode": 33188,
+        "st_size": 924679,
+        "st_mtime_ns": 1794353980575637467,
+        "st_ctime_ns": 1794353980575637467,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545869,
+        "st_mode": 33188,
+        "st_size": 924679,
+        "st_mtime_ns": 1794353980575637467,
+        "st_ctime_ns": 1794353980575637467,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545869,
+        "st_mode": 33188,
+        "st_size": 924679,
+        "st_mtime_ns": 1794353980575637467,
+        "st_ctime_ns": 1794353980575637467,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJig.SLDASM": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJig.SLDASM",
+      "size_bytes": 417167,
+      "sha256": "9e458002b0fe6c480fa214b088f854e478c1b95e30efeb1345c1bf693e303590",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545868,
+        "st_mode": 33261,
+        "st_size": 417167,
+        "st_mtime_ns": 1794353980365469509,
+        "st_ctime_ns": 1794353980365469509,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545868,
+        "st_mode": 33261,
+        "st_size": 417167,
+        "st_mtime_ns": 1794353980365469509,
+        "st_ctime_ns": 1794353980365469509,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545868,
+        "st_mode": 33261,
+        "st_size": 417167,
+        "st_mtime_ns": 1794353980365469509,
+        "st_ctime_ns": 1794353980365469509,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545868,
+        "st_mode": 33261,
+        "st_size": 417167,
+        "st_mtime_ns": 1794353980365469509,
+        "st_ctime_ns": 1794353980365469509,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "M3x6_SHCS.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/M3x6_SHCS.SLDPRT",
+      "size_bytes": 231835,
+      "sha256": "b056d714c1e3ef4319779bdf210811b0252827b057911838ac3194c5b7854820",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517330,
+        "st_mode": 33188,
+        "st_size": 231835,
+        "st_mtime_ns": 1794171596008779707,
+        "st_ctime_ns": 1794171596008779707,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517330,
+        "st_mode": 33188,
+        "st_size": 231835,
+        "st_mtime_ns": 1794171596008779707,
+        "st_ctime_ns": 1794171596008779707,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517330,
+        "st_mode": 33188,
+        "st_size": 231835,
+        "st_mtime_ns": 1794171596008779707,
+        "st_ctime_ns": 1794171596008779707,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517330,
+        "st_mode": 33188,
+        "st_size": 231835,
+        "st_mtime_ns": 1794171596008779707,
+        "st_ctime_ns": 1794171596008779707,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "Magnet_D6x15.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/Magnet_D6x15.SLDPRT",
+      "size_bytes": 94071,
+      "sha256": "e711b7f6707ed914b9bb5f7a9af7f863e0817718b5c98b2d97aeb7932e544434",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 74484715,
+        "st_mode": 33188,
+        "st_size": 94071,
+        "st_mtime_ns": 1792876165308398179,
+        "st_ctime_ns": 1792876165308398179,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 74484715,
+        "st_mode": 33188,
+        "st_size": 94071,
+        "st_mtime_ns": 1792876165308398179,
+        "st_ctime_ns": 1792876165308398179,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 74484715,
+        "st_mode": 33188,
+        "st_size": 94071,
+        "st_mtime_ns": 1792876165308398179,
+        "st_ctime_ns": 1792876165308398179,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 74484715,
+        "st_mode": 33188,
+        "st_size": 94071,
+        "st_mtime_ns": 1792876165308398179,
+        "st_ctime_ns": 1792876165308398179,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJigBlock.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJigBlock.SLDPRT",
+      "size_bytes": 979827,
+      "sha256": "008e01c782a0a27c8d9531e590b3e6b6b5123e86561907fc8f753f671446b481",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545866,
+        "st_mode": 33188,
+        "st_size": 979827,
+        "st_mtime_ns": 1794353980220745211,
+        "st_ctime_ns": 1794353980220745211,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545866,
+        "st_mode": 33188,
+        "st_size": 979827,
+        "st_mtime_ns": 1794353980220745211,
+        "st_ctime_ns": 1794353980220745211,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545866,
+        "st_mode": 33188,
+        "st_size": 979827,
+        "st_mtime_ns": 1794353980220745211,
+        "st_ctime_ns": 1794353980220745211,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545866,
+        "st_mode": 33188,
+        "st_size": 979827,
+        "st_mtime_ns": 1794353980220745211,
+        "st_ctime_ns": 1794353980220745211,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJigBlockPrint.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJigBlockPrint.SLDPRT",
+      "size_bytes": 365574,
+      "sha256": "7faceea972190a6f68bfcabf7d4150e476022235b0aeb274e08c6ab7fce1b4ca",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 74484729,
+        "st_mode": 33188,
+        "st_size": 365574,
+        "st_mtime_ns": 1792876165606826175,
+        "st_ctime_ns": 1792876165606826175,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 74484729,
+        "st_mode": 33188,
+        "st_size": 365574,
+        "st_mtime_ns": 1792876165606826175,
+        "st_ctime_ns": 1792876165606826175,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 74484729,
+        "st_mode": 33188,
+        "st_size": 365574,
+        "st_mtime_ns": 1792876165606826175,
+        "st_ctime_ns": 1792876165606826175,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 74484729,
+        "st_mode": 33188,
+        "st_size": 365574,
+        "st_mtime_ns": 1792876165606826175,
+        "st_ctime_ns": 1792876165606826175,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJigEpoxy.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJigEpoxy.SLDPRT",
+      "size_bytes": 1012111,
+      "sha256": "4ff123be64cba4b84bd285e4491e21ffef10136662444ae03a2c94b238d4262a",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545867,
+        "st_mode": 33188,
+        "st_size": 1012111,
+        "st_mtime_ns": 1794353980242614167,
+        "st_ctime_ns": 1794353980242614167,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81545867,
+        "st_mode": 33188,
+        "st_size": 1012111,
+        "st_mtime_ns": 1794353980242614167,
+        "st_ctime_ns": 1794353980242614167,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545867,
+        "st_mode": 33188,
+        "st_size": 1012111,
+        "st_mtime_ns": 1794353980242614167,
+        "st_ctime_ns": 1794353980242614167,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81545867,
+        "st_mode": 33188,
+        "st_size": 1012111,
+        "st_mtime_ns": 1794353980242614167,
+        "st_ctime_ns": 1794353980242614167,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJigRod.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJigRod.SLDPRT",
+      "size_bytes": 179093,
+      "sha256": "06e7776037a514346a2c30eb121168c8f34f7abda8c8c2199b32bbd694877271",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517337,
+        "st_mode": 33261,
+        "st_size": 179093,
+        "st_mtime_ns": 1794171596024134131,
+        "st_ctime_ns": 1794171596024134131,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517337,
+        "st_mode": 33261,
+        "st_size": 179093,
+        "st_mtime_ns": 1794171596024134131,
+        "st_ctime_ns": 1794171596024134131,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517337,
+        "st_mode": 33261,
+        "st_size": 179093,
+        "st_mtime_ns": 1794171596024134131,
+        "st_ctime_ns": 1794171596024134131,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517337,
+        "st_mode": 33261,
+        "st_size": 179093,
+        "st_mtime_ns": 1794171596024134131,
+        "st_ctime_ns": 1794171596024134131,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "MarkingJigRodPrint.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJigRodPrint.SLDPRT",
+      "size_bytes": 389453,
+      "sha256": "21c6fd1e93a979c3f544c0be12faab06cd911f804e5c74ad9f80b6f23c28131b",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 35816222,
+        "st_mode": 33261,
+        "st_size": 389453,
+        "st_mtime_ns": 1780344078418102928,
+        "st_ctime_ns": 1780344078418102928,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 35816222,
+        "st_mode": 33261,
+        "st_size": 389453,
+        "st_mtime_ns": 1780344078418102928,
+        "st_ctime_ns": 1780344078418102928,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 35816222,
+        "st_mode": 33261,
+        "st_size": 389453,
+        "st_mtime_ns": 1780344078418102928,
+        "st_ctime_ns": 1780344078418102928,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 35816222,
+        "st_mode": 33261,
+        "st_size": 389453,
+        "st_mtime_ns": 1780344078418102928,
+        "st_ctime_ns": 1780344078418102928,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    },
+    "Spirit_Level.SLDPRT": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/Spirit_Level.SLDPRT",
+      "size_bytes": 119743,
+      "sha256": "a51d50471f288aae44ec6ce865477e6cab9827d6d74d7f4d5143cf279c9c89dd",
+      "path_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517339,
+        "st_mode": 33188,
+        "st_size": 119743,
+        "st_mtime_ns": 1794171596025748594,
+        "st_ctime_ns": 1794171596025748594,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 16777232,
+        "st_ino": 81517339,
+        "st_mode": 33188,
+        "st_size": 119743,
+        "st_mtime_ns": 1794171596025748594,
+        "st_ctime_ns": 1794171596025748594,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517339,
+        "st_mode": 33188,
+        "st_size": 119743,
+        "st_mtime_ns": 1794171596025748594,
+        "st_ctime_ns": 1794171596025748594,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 16777232,
+        "st_ino": 81517339,
+        "st_mode": 33188,
+        "st_size": 119743,
+        "st_mtime_ns": 1794171596025748594,
+        "st_ctime_ns": 1794171596025748594,
+        "st_birthtime_ns": null,
+        "st_file_attributes": null,
+        "st_nlink": 1
+      }
+    }
+  },
+  "protected_existing_glb": {
+    "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJig.REND.GLB",
+    "size_bytes": 1858504,
+    "sha256": "375b01a84bd4ca1f9100f9caea44782fb84f228a82a9becd0236186a3315cb6c",
+    "path_before": {
+      "st_dev": 16777232,
+      "st_ino": 81546202,
+      "st_mode": 33188,
+      "st_size": 1858504,
+      "st_mtime_ns": 1794354213736297673,
+      "st_ctime_ns": 1794354213736297673,
+      "st_birthtime_ns": null,
+      "st_file_attributes": null,
+      "st_nlink": 1
+    },
+    "handle_before": {
+      "st_dev": 16777232,
+      "st_ino": 81546202,
+      "st_mode": 33188,
+      "st_size": 1858504,
+      "st_mtime_ns": 1794354213736297673,
+      "st_ctime_ns": 1794354213736297673,
+      "st_birthtime_ns": null,
+      "st_file_attributes": null,
+      "st_nlink": 1
+    },
+    "handle_after": {
+      "st_dev": 16777232,
+      "st_ino": 81546202,
+      "st_mode": 33188,
+      "st_size": 1858504,
+      "st_mtime_ns": 1794354213736297673,
+      "st_ctime_ns": 1794354213736297673,
+      "st_birthtime_ns": null,
+      "st_file_attributes": null,
+      "st_nlink": 1
+    },
+    "path_after": {
+      "st_dev": 16777232,
+      "st_ino": 81546202,
+      "st_mode": 33188,
+      "st_size": 1858504,
+      "st_mtime_ns": 1794354213736297673,
+      "st_ctime_ns": 1794354213736297673,
+      "st_birthtime_ns": null,
+      "st_file_attributes": null,
+      "st_nlink": 1
+    }
+  },
+  "complete_references_proven": false,
+  "purpose": "available fixed candidates only; not a dependency claim",
+  "business_binary_copied": false
+}
