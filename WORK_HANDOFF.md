@@ -370,3 +370,14 @@ MSI INSTALLDIR/注册路径及安装COM验证与原expected常量一致；实际
 
 
 identity观测修复精确业务head`e2f787666c504e72c289825a7753f27f6bdbb049`已交root亲审三文件diff。root本人核before-validation fsync/deepcopy无handle、stable4字段及validate_identity/terminate/exited对085ae AST相同，认可仅push轻量Windows而非native。中文push已完成，唯一该push [42902927609](https://github.com/YJBeetle/SWCLI/actions/runs/42902927609) event/head/ref核过；一次初始listing快照in_progress保存在docs/evidence/units-profile/identity-observer-push-42902927609/。没有workflow_dispatch、private/native/VM操作；native job在该push ref按原workflow不启用。正常快照后停止等待，不busy追；Windows自身API原观测结果尚待后续terminal原件，不把本机skip当通过。原42865595677原失败/public0/3probe0/未确认退出及actual image未知全部保留。此后提交只docs，业务源固定e2f7876。
+
+
+## root批准同步身份预检：实现与本地验证完成，未派native
+
+42902927609 / e2f两Windows原job日志和summaryZIP原件已核：各1973项通过，3.9 160.412s/skip11，3.14 202.445s/skip4；自身Query/module image完整相同，实际ABI8/4/4/2、返回55/56、NUL与rawUTF16LE一致。官方summary ZIP digest同下载，固定原日志SHA并保run/head/job源绑定；独立stdlib audit重复相等、错head拒绝。纯docs证据独立提交push3a38693，不替代未知SW actual image。
+
+root亲审提案/复跑审计后批准最小wrapper同步预检。本次只改run-unit-profile-public.py和test_unit_profile_public_runner.py：daemon ready后/任何public worker前一次真实CLI daemon status，raw bytes/returncode/parsedJSON先fsync，原健康/恢复/owned/hidden/unshared/priorPID后调用原e2f capture及observe/原谓词。任一失败不启动public；成功持续持同handle，public报告每次出现仍核owner/PID，终局要求报告存在，不能提前return跳过。预检与capture耗时计入原1800，request600、process timeout取剩余上限，无重置；原417+3cold/域/几何/src/workflow/helper均不改。至多一次normal stop，无verified handle不终止/重开，第一错误和退出边界保留。
+
+runner41/0.125s（1skip），关联85/26.421s（1skip），完整1988/79.958s（27skip），SDK生成/strict6/consumer8通过；2文件Python3.9AST/diff通过；原identity helper逐字e2f，validate/terminate/exited/constant对085ae及e2f AST一致，ownership predicate表达式也一致。最终源码和原日志SHA在docs/evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation.json。说明docs/verification/units-synchronous-identity-preflight-review.md。
+
+本实现仅本地中文提交交root精确head/diff亲审，未push实现/未新dispatch/native/VM；先前docs push不查新run。Windows同步预检与实际SW映像尚未运行，不把macOS mock和旧Python自身probe算作SW通过。旧42865595677失败/public0/3probe0/未确认退出/actual path未知保持，新的native路由必须root另行明确授权。原件目录evidence/units-profile/identity-observer-push-42902927609仍本地untracked，禁止整目录stage。

@@ -33,11 +33,14 @@ class PublicRunnerTests(unittest.TestCase):
             self.daemon.returncode=0
             return SimpleNamespace(returncode=0,stdout=b'{"success":true}',stderr=b'')
         self.stop=mock.Mock(side_effect=stop)
+        self.status_host=dict(process_id=123,owned_by_daemon=True,visible=False,shared_interactive=False)
+        self.status=mock.Mock(side_effect=lambda *a,**k:SimpleNamespace(returncode=0,stdout=json.dumps(dict(success=True,result=dict(host_connected=True,recovery_required=False,host=self.status_host))).encode(),stderr=b''))
+        self.run_process=lambda command,**options:(self.status if 'status' in command else self.stop)(command,**options)
         self.native_process=SimpleNamespace(Close=mock.Mock())
         self.capture=mock.Mock(return_value=self.native_process)
         self.native_wait=mock.Mock(side_effect=lambda handle:self.assertEqual(self.stop.call_count,1))
     def invoke(self,clock=None):
-        with mock.patch.object(runner,'capture_owned_native_process',self.capture),mock.patch.object(runner,'wait_owned_native_process',self.native_wait),mock.patch.object(runner,'solidworks_process_ids',return_value=getattr(self,'inventory',[])),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.stop),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
+        with mock.patch.object(runner,'capture_owned_native_process',self.capture),mock.patch.object(runner,'wait_owned_native_process',self.native_wait),mock.patch.object(runner,'solidworks_process_ids',return_value=getattr(self,'inventory',[])),mock.patch.object(runner.subprocess,'Popen',self.popen),mock.patch.object(runner.subprocess,'run',self.run_process),mock.patch.object(runner.time,'monotonic',side_effect=itertools.chain(clock or [0,1],itertools.repeat((clock or [0,1])[-1]))):
             runner.execute(self.args)
     def test_success_creates_one_daemon_one_worker_and_shutdown_once(self):
         self.setup_case();self.invoke()
@@ -103,7 +106,7 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
             return result
         self.popen.side_effect=popen
         self.stop.side_effect=lambda *a,**k:SimpleNamespace(returncode=1,stdout=b'{"success":false,"error":{"code":"ActiveDocument"}}',stderr=b'')
-        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1801,1802])
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1,1,1,1801,1802])
         self.verified_capture.assert_called_once();self.stop.assert_called_once();self.daemon.terminate.assert_called_once();self.emergency.assert_called_once_with(self.native_process,self.identity);self.native_wait.assert_called_once_with(self.native_process)
         report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertFalse(report['success']);self.assertTrue(report['forced_native_termination_attempted']);self.assertTrue(report['owned_native_exit_confirmed']);self.assertEqual(report['pids_after'],[]);self.assertEqual(report['failure']['message'],'public group exceeded 1800s');self.assertTrue(report['cleanup_errors'])
 
@@ -114,16 +117,9 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
         report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertFalse(report.get('owned_native_exit_confirmed',False));self.assertFalse(report.get('forced_native_termination_attempted',False))
 
     def test_unknown_host_ownership_never_opens_or_kills_a_native_handle(self):
-        self.setup_case();original=self.popen.side_effect
-        def popen(command,**options):
-            result=original(command,**options)
-            if '-m' not in command:
-                path=self.args.output_dir/'cli/public-unit-profile.json';report=json.loads(path.read_text());report['host']['shared_interactive']=True;path.write_text(json.dumps(report))
-            return result
-        self.popen.side_effect=popen
+        self.setup_case();self.status_host['shared_interactive']=True
         with self.assertRaisesRegex(RuntimeError,'ownership is not proven'):self.invoke()
-        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once()
-
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
 
     def test_python_termination_error_does_not_replace_budget_first_error(self):
         self.setup_case();original=self.popen.side_effect
@@ -135,7 +131,7 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
         self.popen.side_effect=popen
         self.stop.side_effect=lambda *a,**k:SimpleNamespace(returncode=1,stdout=b'{"success":false,"error":{"code":"ActiveDocument"}}',stderr=b'')
         self.daemon.terminate.side_effect=RuntimeError('retained Python exit denied')
-        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1801,1802])
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1,1,1,1801,1802])
         report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertEqual(report['failure']['message'],'public group exceeded 1800s');self.assertTrue(any(e.get('message')=='retained Python exit denied' for e in report['cleanup_errors']));self.emergency.assert_called_once_with(self.native_process,self.identity);self.assertFalse(report['success'])
 
     def test_preexisting_native_pid_is_not_opened_or_terminated(self):
@@ -169,6 +165,172 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
         with mock.patch.object(runner.owned_native,'capture',side_effect=capture),mock.patch.object(runner.owned_native,'terminate') as terminate:
             with self.assertRaisesRegex(RuntimeError,'full image differs'):PublicRunnerTests.invoke(self)
         report=json.loads((self.args.output_dir/'host-report.json').read_text());self.assertEqual(report['failure']['message'],str(error));self.assertEqual(report['identity_observations'][0]['role'],'native-host');self.assertEqual(report['identity_observations'][0]['observed_identity']['image'],value['observed_identity']['image']);self.assertEqual(report['identity_capture_failure']['handle_close_error'],'close detail');terminate.assert_not_called()
+
+
+    def test_preflight_raw_json_and_identity_are_durable_before_public_starts(self):
+        import os
+        self.setup_case();original=self.popen.side_effect;events=[];real_fsync=os.fsync
+        def fsync(fd):
+            for name in ('stdout','stderr'):
+                path=self.args.output_dir/('identity-preflight.'+name)
+                if path.exists() and os.fstat(fd).st_ino==path.stat().st_ino:events.append(name+'-fsync')
+            real_fsync(fd)
+        def capture(pid,launched,**options):
+            durable=json.loads((self.args.output_dir/'host-report.json').read_bytes())
+            self.assertEqual(durable['identity_preflight']['response']['result']['host'],self.status_host)
+            self.assertEqual(durable['identity_preflight']['returncode'],0)
+            self.assertEqual(events,['stdout-fsync','stderr-fsync'])
+            options['observe'](dict(observed_identity=self.identity));events.append('identity-fsync')
+            return self.native_process,self.identity
+        def popen(command,**options):
+            if '-m' not in command:
+                self.assertEqual(events,['stdout-fsync','stderr-fsync','identity-fsync'])
+                durable=json.loads((self.args.output_dir/'host-report.json').read_bytes())
+                self.assertEqual(durable['identity_observations'][0]['observed_identity'],self.identity)
+                self.assertEqual(durable['owned_native_identity'],self.identity);events.append('public-popen')
+            return original(command,**options)
+        self.capture_side_effect=capture;self.popen.side_effect=popen
+        with mock.patch.object(runner.os,'fsync',side_effect=fsync):self.invoke()
+        self.status.assert_called_once();self.stop.assert_called_once()
+        command=self.status.call_args.args[0]
+        self.assertEqual(command[-3:],['daemon','status','--json']);self.assertEqual(command[command.index('--request-timeout')+1],'600')
+        self.assertEqual(self.status.call_args.kwargs['timeout'],600)
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertTrue(report['public_host_matches_preflight'])
+        self.assertEqual(events[-1],'public-popen');self.verified_capture.assert_called_once()
+
+    def test_status_raw_fsync_failure_prevents_capture_and_public(self):
+        import os
+        self.setup_case();real_fsync=os.fsync
+        def fsync(fd):
+            path=self.args.output_dir/'identity-preflight.stdout'
+            if path.exists() and os.fstat(fd).st_ino==path.stat().st_ino:raise OSError('raw status fsync denied')
+            real_fsync(fd)
+        with mock.patch.object(runner.os,'fsync',side_effect=fsync):
+            with self.assertRaisesRegex(OSError,'raw status fsync denied'):self.invoke()
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_parsed_status_fsync_failure_prevents_capture_and_public(self):
+        self.setup_case();original=runner.evidence.durable;failed=False
+        def durable(path,value):
+            nonlocal failed
+            if path.name=='host-report.json' and 'response' in value.get('identity_preflight',{}) and not failed:
+                failed=True;raise OSError('parsed status fsync denied')
+            return original(path,value)
+        with mock.patch.object(runner.evidence,'durable',side_effect=durable):
+            with self.assertRaisesRegex(OSError,'parsed status fsync denied'):self.invoke()
+        self.assertTrue(failed);self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_identity_observation_fsync_failure_does_not_start_public(self):
+        self.setup_case();original=runner.evidence.durable;failed=False
+        def durable(path,value):
+            nonlocal failed
+            if path.name=='host-report.json' and value.get('identity_observations') and not failed:
+                failed=True;raise OSError('identity observation fsync denied')
+            return original(path,value)
+        def capture(pid,launched,**options):
+            options['observe'](dict(observed_identity=self.identity))
+            self.fail('capture must not return after observation fsync error')
+        self.capture_side_effect=capture
+        with mock.patch.object(runner.evidence,'durable',side_effect=durable):
+            with self.assertRaisesRegex(OSError,'identity observation fsync denied'):self.invoke()
+        self.assertEqual(self.popen.call_count,1);self.stop.assert_called_once();self.emergency.assert_not_called();self.native_wait.assert_not_called()
+
+    def test_bad_status_keeps_raw_and_never_captures_or_starts_public(self):
+        for raw,code in ((b'not JSON\r\n',0),(b'{"success":false,"error":{"code":"Disconnected"}}\r\n',1)):
+            with self.subTest(raw=raw):
+                self.setup_case();self.status.side_effect=None;self.status.return_value=SimpleNamespace(returncode=code,stdout=raw,stderr=b'raw stderr\r\n')
+                with self.assertRaises((json.JSONDecodeError,RuntimeError)):self.invoke()
+                self.assertEqual((self.args.output_dir/'identity-preflight.stdout').read_bytes(),raw)
+                self.assertEqual((self.args.output_dir/'identity-preflight.stderr').read_bytes(),b'raw stderr\r\n')
+                self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_disconnected_or_recovery_status_never_captures_or_starts_public(self):
+        for state in (dict(host_connected=False,recovery_required=False),dict(host_connected=True,recovery_required=True)):
+            with self.subTest(state=state):
+                self.setup_case();self.status.side_effect=None;self.status.return_value=SimpleNamespace(returncode=0,stdout=json.dumps(dict(success=True,result=dict(host=self.status_host,**state))).encode(),stderr=b'')
+                with self.assertRaisesRegex(RuntimeError,'already connected, unreplaced'):self.invoke()
+                self.verified_capture.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_status_timeout_preserves_partial_bytes_and_never_starts_public(self):
+        self.setup_case();self.status.side_effect=runner.subprocess.TimeoutExpired(['daemon','status'],600,output=b'partial response',stderr=b'partial stderr')
+        with self.assertRaises(runner.subprocess.TimeoutExpired):self.invoke()
+        self.assertEqual((self.args.output_dir/'identity-preflight.stdout').read_bytes(),b'partial response')
+        self.assertEqual((self.args.output_dir/'identity-preflight.stderr').read_bytes(),b'partial stderr')
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertTrue(report['identity_preflight']['outcome_unknown']);self.assertIsNone(report['identity_preflight']['returncode'])
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_preflight_uses_remaining_original_group_budget_without_reset(self):
+        self.setup_case();self.invoke(clock=[0,1,1500,1501,1502,1503,1504])
+        self.assertEqual(self.status.call_args.kwargs['timeout'],300)
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertEqual(report['duration_seconds'],1504)
+        self.assertEqual(report['identity_preflight']['request_timeout_seconds'],600)
+
+    def test_preflight_budget_exceeded_stops_before_capture_and_public(self):
+        self.setup_case()
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1,1801,1802])
+        self.status.assert_called_once();self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_public_pid_or_owner_drift_is_rejected_without_reopening_handle(self):
+        for change in (dict(process_id=124),dict(owned_by_daemon=False),dict(visible=True),dict(shared_interactive=True)):
+            with self.subTest(change=change):
+                self.setup_case();original=self.popen.side_effect
+                def popen(command,**options):
+                    result=original(command,**options)
+                    if '-m' not in command:
+                        path=self.args.output_dir/'cli/public-unit-profile.json';value=json.loads(path.read_bytes());value['host'].update(change);path.write_text(json.dumps(value))
+                    return result
+                self.popen.side_effect=popen
+                with self.assertRaisesRegex(RuntimeError,'ownership is not proven|differs from the retained'):self.invoke()
+                self.verified_capture.assert_called_once();self.stop.assert_called_once();self.emergency.assert_not_called()
+
+    def test_public_host_is_rechecked_after_an_initial_matching_report(self):
+        self.setup_case();original=self.popen.side_effect
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:
+                polls=iter([None,None,0])
+                result.poll=lambda:next(polls,0)
+                result.kill=mock.Mock();result.wait=mock.Mock(return_value=0)
+            return result
+        def drift(*_):
+            path=self.args.output_dir/'cli/public-unit-profile.json';value=json.loads(path.read_bytes());value['host']['process_id']=124;path.write_text(json.dumps(value))
+        self.popen.side_effect=popen
+        with mock.patch.object(runner.time,'sleep',side_effect=drift):
+            with self.assertRaisesRegex(RuntimeError,'differs from the retained'):self.invoke()
+        self.verified_capture.assert_called_once();self.stop.assert_called_once()
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertTrue(report['public_host_matches_preflight']);self.assertFalse(report['success'])
+
+    def test_status_timeout_remains_first_when_partial_evidence_fails(self):
+        self.setup_case();original=runner.evidence.durable
+        self.status.side_effect=runner.subprocess.TimeoutExpired(['daemon','status'],600,output=b'partial')
+        def durable(path,value):
+            if path.name=='host-report.json' and value.get('identity_preflight',{}).get('outcome_unknown'):raise OSError('timeout evidence unavailable')
+            return original(path,value)
+        with mock.patch.object(runner.evidence,'durable',side_effect=durable):
+            with self.assertRaises(runner.subprocess.TimeoutExpired):self.invoke()
+        self.verified_capture.assert_not_called();self.emergency.assert_not_called();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_identity_capture_time_is_included_before_public_start(self):
+        self.setup_case()
+        with self.assertRaisesRegex(RuntimeError,'public group exceeded 1800s'):self.invoke(clock=[0,1,1,2,1801,1802])
+        self.verified_capture.assert_called_once();self.stop.assert_called_once();self.assertEqual(self.popen.call_count,1)
+
+    def test_missing_public_ownership_report_is_not_skipped_after_preflight(self):
+        self.setup_case();original=self.popen.side_effect
+        def popen(command,**options):
+            result=original(command,**options)
+            if '-m' not in command:(self.args.output_dir/'cli/public-unit-profile.json').unlink()
+            return result
+        self.popen.side_effect=popen
+        with self.assertRaisesRegex(RuntimeError,'native ownership report unavailable'):self.invoke()
+        self.verified_capture.assert_called_once();self.stop.assert_called_once();self.emergency.assert_not_called()
+
+    def test_preflight_identity_first_error_survives_stop_failure_without_native_kill(self):
+        self.setup_case();self.capture_error=RuntimeError('identity mismatch before public')
+        self.stop.side_effect=lambda *a,**k:SimpleNamespace(returncode=1,stdout=b'{"success":false}',stderr=b'stop denied')
+        with self.assertRaisesRegex(RuntimeError,'identity mismatch before public'):self.invoke()
+        self.assertEqual(self.popen.call_count,1);self.stop.assert_called_once();self.emergency.assert_not_called();self.native_wait.assert_not_called();self.capture.assert_not_called()
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertEqual(report['failure']['message'],'identity mismatch before public');self.assertTrue(any(e['message']=='owned daemon shutdown failed' for e in report['cleanup_errors']));self.assertFalse(report.get('owned_native_exit_confirmed',False))
 
 
 class NativeIdentityTests(unittest.TestCase):

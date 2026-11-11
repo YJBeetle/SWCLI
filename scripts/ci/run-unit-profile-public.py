@@ -44,7 +44,7 @@ def execute(args):
         reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
     endpoint=f'127.0.0.1:{port}';report['endpoint']=endpoint;save()
     started=time.monotonic();daemon=worker=None;ready=False;native_process=None
-    failure=None;enhanced=bool(getattr(args,'write_acceptance',False));native_capture_attempted=False;frontend_process=None;frontend_capture_attempted=False
+    failure=None;enhanced=bool(getattr(args,'write_acceptance',False));frontend_process=None;frontend_capture_attempted=False
     def observe_identity(role,value):
         report.setdefault('identity_observations',[]).append(dict(role=role,**value));save()
     def capture_identity(role,*arguments,**options):
@@ -52,9 +52,40 @@ def execute(args):
         except BaseException as error:
             report['identity_capture_failure']=dict(role=role,type=type(error).__name__,message=str(error),observation=getattr(error,'identity_observation',None),observation_error=getattr(error,'identity_observation_error',None),handle_close_error=getattr(error,'identity_handle_close_error',None))
             raise
-    def capture_early(required=False):
-        nonlocal native_process,native_capture_attempted
-        if not enhanced or native_capture_attempted:return
+    def require_owned_host(host):
+        pid=host['process_id']
+        evidence.require(type(pid) is int and pid>0 and pid not in before and host.get('owned_by_daemon') is True and host.get('visible') is False and host.get('shared_interactive') is False,'native process ownership is not proven')
+        return pid
+    def preflight_identity():
+        nonlocal native_process
+        command=[sys.executable,'-I','-m','swcli','--endpoint',endpoint,'--request-timeout','600','daemon','status','--json']
+        remaining=1800-(time.monotonic()-started)
+        evidence.require(remaining>0,'public group exceeded 1800s')
+        preflight=report['identity_preflight']=dict(command=command,request_timeout_seconds=600,process_timeout_seconds=min(600,remaining))
+        save()
+        def persist(stdout,stderr):
+            for name,raw in (('stdout',stdout),('stderr',stderr)):
+                with (output/('identity-preflight.'+name)).open('wb') as stream:
+                    stream.write(raw);stream.flush();os.fsync(stream.fileno())
+            save()
+        try:result=subprocess.run(command,capture_output=True,timeout=preflight['process_timeout_seconds'])
+        except subprocess.TimeoutExpired as error:
+            preflight.update(returncode=None,outcome_unknown=True)
+            try:persist(error.stdout or b'',error.stderr or b'')
+            except BaseException as evidence_error:report['preflight_evidence_error']=str(evidence_error)
+            raise
+        preflight['returncode']=result.returncode
+        persist(result.stdout,result.stderr)
+        payload=preflight['response']=json.loads(result.stdout.decode('utf-8-sig'));save()
+        evidence.require(result.returncode==0 and payload.get('success') is True,'owned host identity preflight status failed')
+        status=payload['result']
+        evidence.require(status.get('host_connected') is True and status.get('recovery_required') is False,'identity preflight needs an already connected, unreplaced host')
+        pid=require_owned_host(status['host'])
+        evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
+        native_process,identity=capture_identity('native-host',pid,report['daemon_launch_utc_timestamp'])
+        report.update(owned_native_pid=pid,owned_native_identity=identity,native_handle_captured_early=True);save()
+    def verify_public_host(required=False):
+        if not enhanced:return
         try:observed=json.loads((output/'cli/public-unit-profile.json').read_text())
         except (FileNotFoundError,json.JSONDecodeError):
             if required:raise RuntimeError('native ownership report unavailable')
@@ -62,10 +93,10 @@ def execute(args):
         if 'host' not in observed:
             if required:raise RuntimeError('native ownership is not yet proven')
             return
-        native_capture_attempted=True;host=observed['host'];pid=host['process_id']
-        evidence.require(type(pid) is int and pid>0 and pid not in before and host.get('owned_by_daemon') is True and host.get('visible') is False and host.get('shared_interactive') is False,'native process ownership is not proven')
-        native_process,identity=capture_identity('native-host',pid,report['daemon_launch_utc_timestamp'])
-        report.update(owned_native_pid=pid,owned_native_identity=identity,native_handle_captured_early=True);save()
+        pid=require_owned_host(observed['host'])
+        evidence.require(native_process is not None and pid==report['owned_native_identity']['pid'],'public native host differs from the retained preflight identity')
+        if not report.get('public_host_matches_preflight'):
+            report['public_host_matches_preflight']=True;save()
     def capture_frontend_if_available():
         nonlocal frontend_process,frontend_capture_attempted
         if not enhanced or frontend_capture_attempted:return
@@ -93,16 +124,19 @@ def execute(args):
                     ready=True;break
                 time.sleep(1)
             evidence.require(ready,'owned daemon readiness deadline exceeded')
+            if enhanced:
+                preflight_identity()
+                evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
             public_script='verify-document-unit-writes.py' if getattr(args,'write_acceptance',False) else 'verify-document-unit-profile.py'
             command=[sys.executable,'-I',str(Path(__file__).with_name(public_script)),'--output-dir',str(output/'cli'),'--fixture-dir',str(args.fixture_dir.resolve()),'--endpoint',endpoint,'--prior-pids',str(output/'prior-pids.json')]
             report['public_command']=command;save()
             with (output/'public.stdout').open('wb') as public_stdout,(output/'public.stderr').open('wb') as public_stderr:
                 worker=subprocess.Popen(command,stdout=public_stdout,stderr=public_stderr)
                 while worker.poll() is None:
-                    capture_early();capture_frontend_if_available()
+                    verify_public_host();capture_frontend_if_available()
                     evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
                     time.sleep(1)
-                capture_early(required=True)
+                verify_public_host(required=True)
                 evidence.require(not group_expired(started,time.monotonic()),'public group exceeded 1800s')
                 report['public_exit_code']=worker.returncode;save()
                 evidence.require(worker.returncode==0,'public CLI acceptance failed; see original records')

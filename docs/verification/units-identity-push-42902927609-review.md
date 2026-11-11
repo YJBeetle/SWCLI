@@ -37,6 +37,8 @@ ZIP SHA 与官方 artifact digest 及大小一致；日志 SHA 是本地原件�
 
 ## 交 root 审阅的最小下一步，仅提案，尚未实施或运行
 
+后续：root已批准最小wrapper同步预检实现，详见 `units-synchronous-identity-preflight-review.md`；本节保留当时提案，未获得新的native派发授权。
+
 当前 wrapper 在启动 public 子进程后以 1 秒间隔观察其 report；child 的 health、list 和 source-open 可在 wrapper 获取 native handle 前连续发生。42865595677 即是在 source-open 途中失败，继而 normal stop 遇到 ActiveDocument。下一步应把身份观察同步提前到 **public 子进程启动之前**，让取证首错不会因为本 wrapper 已经发出文档 open 而触发该收尾问题。
 
 建议只改 CI units wrapper 和其关联测试：
