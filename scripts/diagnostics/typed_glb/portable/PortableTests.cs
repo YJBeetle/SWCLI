@@ -54,6 +54,11 @@ static class PortableTests {
    Core.Send(s,new Message {kind="parcel",nonce="n",role="app",data=Convert.ToBase64String(new byte[Core.MaxParcel])}); s.Position=0;
    Check(Core.Parcel(Core.Receive(s,"n","parcel","app")).Length==Core.MaxParcel);
   }
+  // Hypothetical aliases only: this does not claim native Windows path evidence.
+  Snapshot shortPath=Core.Decode<Snapshot>(Core.Encode(snap)); shortPath.exe_path=@"C:\PROGRA~1\SOLIDW~1\SLDWORKS.exe"; shortPath.exe_sha256=new string('a',64);
+  Snapshot longPath=Core.Decode<Snapshot>(Core.Encode(shortPath)); longPath.exe_path=@"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe";
+  Fails(delegate {Core.SameSnapshot(shortPath,longPath);});
+  Check(shortPath.exe_path!=longPath.exe_path && shortPath.exe_sha256==longPath.exe_sha256);
   Check(typeof(IModelDocExtension).GetMethod("SaveAs3").GetParameters()[5].IsIn && typeof(IModelDocExtension).GetMethod("SaveAs3").GetParameters()[5].IsOut);
   Console.WriteLine("portable assertions="+assertions+"; COM/Windows/installed PIA not executed"); return 0;
  }

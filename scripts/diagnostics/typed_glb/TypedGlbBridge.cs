@@ -42,7 +42,7 @@ namespace TypedGlb {
    MethodInfo m = type.GetMethod("SaveAs3");
    Core.Require(m != null && m.ReturnType == typeof(bool) && (int)m.GetMethodImplementationFlags() == 4099,
                 "SaveAs3 return/implementation metadata differs");
-   DispIdAttribute id = (DispIdAttribute)Attribute.GetCustomAttribute(m, typeof(DispIdAttribute));
+   DispIdAttribute id = (DispIdAttribute)System.Attribute.GetCustomAttribute(m, typeof(DispIdAttribute));
    Core.Require(id != null && id.Value == 315 && m.ReturnParameter.GetCustomAttributes(typeof(MarshalAsAttribute), false).Length == 0,
                 "SaveAs3 DISPID/return marshaling differs");
    ParameterInfo[] ps = m.GetParameters();
@@ -51,7 +51,7 @@ namespace TypedGlb {
    for (int i=0; i<7; ++i) {
     Core.Require(ps[i].ParameterType == types[i] && ps[i].IsIn && ps[i].IsOut == (i>=5) && !ps[i].IsOptional,
                  "SaveAs3 parameter flags/type differ at " + i);
-    MarshalAsAttribute ma = (MarshalAsAttribute)Attribute.GetCustomAttribute(ps[i], typeof(MarshalAsAttribute));
+    MarshalAsAttribute ma = (MarshalAsAttribute)System.Attribute.GetCustomAttribute(ps[i], typeof(MarshalAsAttribute));
     if (i==0 || i==3 || i==4) Core.Require(ma != null && ma.Value == (i==0 ? UnmanagedType.BStr : UnmanagedType.IDispatch), "SaveAs3 parameter marshaling differs");
     else Core.Require(ma == null, "unexpected SaveAs3 parameter marshaling");
    }
@@ -136,7 +136,7 @@ namespace TypedGlb {
      Stopwatch elapsed=Stopwatch.StartNew();
      while (!finished.WaitOne(250)) {
       bool alive; try { using(Process p=Process.GetProcessById(parent)) alive=!p.HasExited; } catch { alive=false; }
-      if (!alive || elapsed.Elapsed.TotalSeconds>=600) Environment.Exit(124);
+      if (!alive || elapsed.Elapsed.TotalSeconds>=600) System.Environment.Exit(124);
      }
     }); guard.IsBackground=true; guard.Start();
     try {

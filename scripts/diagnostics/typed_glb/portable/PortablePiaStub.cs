@@ -2,6 +2,9 @@
 using System;
 using System.Runtime.InteropServices;
 namespace SolidWorks.Interop.sldworks {
+ // Installed PIA also exports these names; importing its namespace must not shadow System.
+ public sealed class Attribute { }
+ public sealed class Environment { }
  public interface IModelDocExtension {
   bool SaveAs3([In,MarshalAs(UnmanagedType.BStr)] string name, [In] int version, [In] int options,
    [In,MarshalAs(UnmanagedType.IDispatch)] object exportData, [In,MarshalAs(UnmanagedType.IDispatch)] object advanced,
