@@ -1,12 +1,24 @@
 # GLB 首失败诊断与待证候选
 
-## 2026-11-12 历史 Blender 成功线索与原件对照
+## 2026-11-12 身份预检首错、新候选及用户真实成功原件
+
+b50单次identity report SHA `43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11e5f3bd7f686d4b` 已独立核：源SLDPRT File.OpenRead共享冲突HRESULT -2147024864为真实首错，frame mismatch为后续症状。contract/三包consumed/局部IUnknown true+IsSame1有原件，但before=null、完整identity未过、GLB0；正常helper exit1、marshal known及owned清理已核。Python8.3路径实际保留，C#raw路径未保留，不补填。见[身份首错及候选审计](../verification/glb-typed-identity-first-failure-2026-11-12.md)。
+
+候选 `5c754ba98182279547fe899848241314667d0587` 已单独提交：仅源文件Read访问/ReadWrite共享（无Delete），严格held文件ID/size/time/路径复核；Observe保留已获raw字段；提前终止result保留首错/HRESULT，不当identity ACK、不重发。SameSnapshot/SaveOnce、exe/PIA读取及产品/CI/builder保持。23项Python/70条C#纯断言通过，尚未实际PIA/Windows共享/PInvoke验证；本路无VM/CI/push，不自动重跑。
+
+用户真实Blender成功文件现已对应[MarkingJig只读元数据](../verification/glb-user-markingjig-comparison-2026-11-12.md)：GLB SHA375b01a8…315cb6c，BIN1836720、42432tris，源SLDASM SHA80bfa9d4…308530；两者LFS指针匹配，业务二进制未复制/提交。实际历史job/runtime/API仍unknown，CI配置tag不作原因。条件assembly取舍已写，只在typed part实际BIN0且统筹认为有必要时考虑一次真实成功源对照，当前不实现/运行。
+
+## 2026-11-12 实际PIA零CAD编译首错、最小修正与通过
+
+统筹919a83e实际PIA编译exit1，首错CS0104 Attribute/Environment命名空间冲突；装机PIA SHA与源码前后hash已独立核对，helper/COM/GLB均0。候选仅两处System.Attribute及一处System.Environment全限定名；测试替身加入同名类，旧源码先复现、修后本机0警告/0错误，36条C#断言和19项Python测试通过。修正代码已单独提交b50b603；统筹仅一次实际PIA零CAD编译通过，build SHA `9993fb5b64200a6095084f5a95d49cbb5fe1e5e810af0b7d3bd2f8948e7a38c9`，helper SHA `ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64`。五份源码/PIA哈希和AMD64 PE32+已独立核对，helper执行0；管道/COM/GLB仍无运行结果。本路未VM/CI/push。[首错原件及路径身份分析](../verification/glb-typed-namespace-and-path-audit-2026-11-12.md)明确短/长路径尚无现场失败，不改SameSnapshot严格比较，不静默归一；物理exe文件ID证据仍缺，记录了持有文件句柄/volume+完整FileId/哈希及前后复核的待审只读方案，身份预检前交统筹亲审。
+
+## 2026-11-12 早期历史线索与box原件对照（后续真实文件见上）
 
 用户确认此前 SWCLI GLB 在 Blender 实际导入可用，具体文件/运行尚未知，不要求复测。已先行[独立核对现有历史原件](../verification/glb-history-offline-2026-11-12.md)：两次同组旧 API assembly 均为真实 BIN720/12三角形，part 均为 BIN0；保存/RO重开零件与首次关闭重开前装配体上下文不同，不能归因未证明的文档/版本/API因素。成功 GLB SHA `4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421` 与未改字节副本已固定；保留旧过宽校验曾误接受 part 与实际 assembly 成功并存的事实，不泛化历史一直失败。离线重放结果逐字节一致，本地提交 a40b77f；无新 CAD/Blender/CI 运行。
 
 ## 2026-11-12 固定文件采集已完成
 
-统筹对 e6fc46c 仅执行一次零 CAD collector，四 required DLL 全为 AMD64，实际版本／hash／双渠道 stat 指纹稳定，metadata helper exit=0；两项旧 XR 背景文件缺失。73 条静态导入只作固定位置存在性观察，签名只解码不验信任。[独立审计](../verification/glb-exporter-native-inventory-audit-2026-11-12.md)不升级为运行依赖或 GLB 支持。既有 [C# 同 host／同 document 候选](../../scripts/diagnostics/typed_glb/README.md)现已准备，19项 Python 协议/包装器/原件审计测试及34条 C#纯断言通过；整份源码仅对测试替身做 C#5 编译。实际 Windows PIA 编译、管道/COM握手和GLB调用仍未执行；交统筹亲审后先零CAD编译，再零GLB保存身份预检，最后另行单次invoke。不扩路线、不回旧API、不修BIN，不把准备通过当GLB修复。
+统筹对 e6fc46c 仅执行一次零 CAD collector，四 required DLL 全为 AMD64，实际版本／hash／双渠道 stat 指纹稳定，metadata helper exit=0；两项旧 XR 背景文件缺失。73 条静态导入只作固定位置存在性观察，签名只解码不验信任。[独立审计](../verification/glb-exporter-native-inventory-audit-2026-11-12.md)不升级为运行依赖或 GLB 支持。既有 [C# 同 host／同 document 候选](../../scripts/diagnostics/typed_glb/README.md)现已准备，19项 Python 协议/包装器/原件审计测试及36条 C#纯断言通过；b50b603实际 Windows PIA 零CAD编译也已通过。helper/管道/COM握手/GLB仍未执行；下一步由统筹亲审零GLB保存身份预检，之后才能另行安排单次invoke。不扩路线、不回旧API、不修BIN，不把准备通过当GLB修复。
 
 
 ## 2026-11-11 局部证据与当时安排（历史）

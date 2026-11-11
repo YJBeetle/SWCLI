@@ -1,0 +1,66 @@
+{
+  "schema": "swcli.user-markingjig-offline-comparison.v1",
+  "user_confirmed_Blender_usable": true,
+  "original_business_binary_copied_or_committed": false,
+  "CAD_Blender_or_export_executions": 0,
+  "files": {
+    "MarkingJig.REND.GLB": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJig.REND.GLB",
+      "size_bytes": 1858504,
+      "sha256": "375b01a84bd4ca1f9100f9caea44782fb84f228a82a9becd0236186a3315cb6c"
+    },
+    "MarkingJig.REND.SLDASM": {
+      "path": "/Volumes/Data/Workspace/Inclinometer/COT/ASM/Casing/MarkingJig/MarkingJig.REND.SLDASM",
+      "size_bytes": 924679,
+      "sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530"
+    }
+  },
+  "git_HEAD": "2f83058dbced4c1dd38fb21600864de17a67ca77",
+  "source_input_commit": "9af435e46181fe46fbe92abc4264545a103c54b6",
+  "LFS_pointers_match": true,
+  "source_and_CI_config_match_input_commit": true,
+  "coordinator_audit_sha256": "bd956b075f823a908042b73fa84a16581bb214204767ec54a61e73dba7d26811",
+  "independently_replayed_strict_mesh": true,
+  "mesh_stats": {
+    "mesh_count": 6,
+    "triangles": 42432,
+    "positions": 55314,
+    "normals": 55314,
+    "camera_count": 1,
+    "animation_count": 0,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "primitive_count": 8,
+  "material_count": 8,
+  "chunks": [
+    {
+      "kind": "JSON",
+      "byteLength": 21756
+    },
+    {
+      "kind": "BIN\u0000",
+      "byteLength": 1836720
+    }
+  ],
+  "configured_pipeline": {
+    "sha256": "d621afb64692520366e0e5da756ee437649b906481c60cb237ba37fd2512c78d",
+    "same_as_input_commit": true,
+    "configured_image": "ghcr.io/yjbeetle/sw-executable:2025-zh-cn-cli",
+    "render_manifest": "MarkingJig.REND.SLDASM",
+    "configured_commands": [
+      "document open source_path (no readonly flag)",
+      "document export temporary_output --strict"
+    ],
+    "configured_flags_not_runtime_proof": true
+  },
+  "unknown": [
+    "actual executed image digest",
+    "actual SWCLI code/version",
+    "actual native save API and arguments",
+    "actual SW runtime/revision",
+    "export-time host flags",
+    "exact job trace"
+  ],
+  "next_experiment": "conditional proposal only after actual typed part result; prefer existing real successful source assembly, no implementation/execution"
+}

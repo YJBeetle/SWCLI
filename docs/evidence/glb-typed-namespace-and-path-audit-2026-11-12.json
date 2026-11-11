@@ -1,0 +1,196 @@
+{
+  "schema": "swcli.typed-glb-namespace-path-audit.v1",
+  "date": "2026-11-12",
+  "baseline_head": "919a83e5ee45bf1786b72e51d23a10808408011b",
+  "native_original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-build-919a83e-01",
+  "native_original_files": {
+    "SolidWorks.Interop.sldworks.dll": {
+      "bytes": 2800000,
+      "sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1"
+    },
+    "build.json": {
+      "bytes": 1326,
+      "sha256": "cfe5664bf34c8f07ed7a663c69f786f9de57a42f76219103128122a9557522ee"
+    },
+    "compile.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "compile.stdout.log": {
+      "bytes": 1460,
+      "sha256": "167b77373488fd211f9f7907c84b28cb6f0f394f909a34f6698a9f3d32ebd6ee"
+    },
+    "coordinator-independent-audit.json": {
+      "bytes": 624,
+      "sha256": "0da7ddc60cf3432cfbcafed70763ed8db51a8770b9f3218c4430b73de4ab795b"
+    },
+    "launcher-context.json": {
+      "bytes": 1731,
+      "sha256": "6a33051af1e653871c8b16578ab7f284d1ef83a7cf676f47010e614471352321"
+    }
+  },
+  "native_original_summary": {
+    "compiler": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "compiler_version": "4.8.9221.0 built by: NET481REL1LAST_25H2",
+    "pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+    "compiler_exit": 1,
+    "success": false,
+    "sources_before_after_match_git_919a83e": true,
+    "powershell_syntax_exit": 0,
+    "helper_executions": 0,
+    "cad_calls": 0
+  },
+  "native_compile_stdout_decoded": "Workspace\\SWCLI-series-20261111\\glb-typed-code-919a83e\\TypedGlbBridge.cs(45,42): error CS0104: “Attribute”是“System.Attribute”和“SolidWorks.Interop.sldworks.Attribute”之间的不明确的引用\nWindows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll: (与前一个错误相关的符号位置)\nWorkspace\\SWCLI-series-20261111\\glb-typed-build-919a83e-01\\SolidWorks.Interop.sldworks.dll: (与前一个错误相关的符号位置)\nWorkspace\\SWCLI-series-20261111\\glb-typed-code-919a83e\\TypedGlbBridge.cs(139,56): error CS0104: “Environment”是“System.Environment”和“SolidWorks.Interop.sldworks.Environment”之间的不明确的引用\nWindows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll: (与前一个错误相关的符号位置)\nWorkspace\\SWCLI-series-20261111\\glb-typed-build-919a83e-01\\SolidWorks.Interop.sldworks.dll: (与前一个错误相关的符号位置)\n",
+  "fix": {
+    "helper_changes": "exactly two System.Attribute and one System.Environment qualification; no other helper change",
+    "portable_stub": "same-named Attribute and Environment placeholder classes in SW namespace",
+    "local_red_compile_errors": [
+      [
+        "139,56",
+        "CS0104"
+      ],
+      [
+        "45,42",
+        "CS0104"
+      ],
+      [
+        "54,49",
+        "CS0104"
+      ]
+    ],
+    "local_red_build_exit": 1,
+    "local_green_build_exit": 0,
+    "local_green_warnings": 0,
+    "local_green_errors": 0,
+    "local_red_log_sha256": "e52816c80e2ccc75ee0e1f5d2505998d763257af36ed818ac6852ef7d2d608cb",
+    "local_green_log_sha256": "825701bdd13e1c6c9f1db7fc06993731b34fe0e3ed757e4155afd72da1ce507e",
+    "portable_csharp_assertions": 36,
+    "python_candidate_tests": 19
+  },
+  "path_analysis": {
+    "actual_short_long_mismatch_observed": false,
+    "hypothetical_mismatch_rejected": true,
+    "raw_paths_preserved": true,
+    "string_comparison_unchanged": true,
+    "physical_exe_file_id_evidence_present": false,
+    "proposed_only": "held read-only file handles, same volume serial plus full file ID and pinned hash, recheck path and process identity; no implementation this turn",
+    "no_hash_only_acceptance": true,
+    "no_silent_normalization": true,
+    "python_8_3_path_later_observed": true,
+    "CSharp_raw_path_retained_in_b50_identity": false
+  },
+  "this_lane_new_native_operations": {
+    "VM": 0,
+    "CI": 0,
+    "helper": 0,
+    "COM": 0,
+    "GLB": 0,
+    "push": false
+  },
+  "corrected_candidate_actual_Windows_PIA_compile": "passed once for b50b603; zero CAD and zero helper execution",
+  "next": "b50 compiled once; later identity source-read first error and 5c754ba candidate have separate audit; no new run by this lane",
+  "fix_commit": "b50b603bae15af295f9fb8b78799d8f31c441d90",
+  "corrected_build": {
+    "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-build-b50b603-01",
+    "independent_summary": {
+      "source_head": "b50b603bae15af295f9fb8b78799d8f31c441d90",
+      "source_five_git_hashes_match": true,
+      "compile_source_before_after_match": true,
+      "build_json_sha256": "9993fb5b64200a6095084f5a95d49cbb5fe1e5e810af0b7d3bd2f8948e7a38c9",
+      "helper_sha256": "ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64",
+      "helper_bytes": 24576,
+      "pe_machine": "0x8664",
+      "pe_optional_magic": "0x20b",
+      "sections": 2,
+      "CLI_header_size": 72,
+      "CLI_runtime_header": [
+        2,
+        5
+      ],
+      "CLI_flags": "0x00000001",
+      "managed_entrypoint_token": "0x0600001f",
+      "pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+      "native_compile": true,
+      "compiler_exit": 0,
+      "launcher_exit": 0,
+      "powershell_syntax_exit": 0,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "cad_operations": 0,
+      "helper_executions": 0,
+      "boundary": "metadata/compile only; helper entrypoint was not executed, no pipe/COM/SaveAs3/GLB acceptance"
+    },
+    "original_files": {
+      "SolidWorks.Interop.sldworks.dll": {
+        "bytes": 2800000,
+        "sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1"
+      },
+      "TypedGlbBridge.exe": {
+        "bytes": 24576,
+        "sha256": "ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64"
+      },
+      "build.json": {
+        "bytes": 1366,
+        "sha256": "9993fb5b64200a6095084f5a95d49cbb5fe1e5e810af0b7d3bd2f8948e7a38c9"
+      },
+      "compile.stderr.log": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "compile.stdout.log": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "launcher-context.json": {
+        "bytes": 1136,
+        "sha256": "51ab7f9bdbda1258de116dfacb3ccf9138c452c118fc5161b4a81d8306016066"
+      }
+    },
+    "build": {
+      "schema": "swcli.typed-glb-build.v1",
+      "success": true,
+      "native_compile": true,
+      "cad_operations": 0,
+      "compiler": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+      "compiler_version": "4.8.9221.0 built by: NET481REL1LAST_25H2",
+      "compiler_sha256": "46809206887326d2d24db1eff1f3064de972c3451abe766b49111450a5e08e00",
+      "pia_origin": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\api\\redist\\SolidWorks.Interop.sldworks.dll",
+      "pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+      "pia_version": "33.5.0.53",
+      "architecture": "x64",
+      "sources": {
+        "BridgeCore.cs": "e0eb4798504618d9e559e60b66419a7ee1c055dff09ed47bc5f1d3112914341d",
+        "TypedGlbBridge.cs": "bd04e0e899b10a2ccdfb836bcd4a5c618af9026905c9a92d31bbed1ccd38747e"
+      },
+      "source_after": {
+        "BridgeCore.cs": "e0eb4798504618d9e559e60b66419a7ee1c055dff09ed47bc5f1d3112914341d",
+        "TypedGlbBridge.cs": "bd04e0e899b10a2ccdfb836bcd4a5c618af9026905c9a92d31bbed1ccd38747e"
+      },
+      "compiler_exit": 0,
+      "helper_machine": "AMD64",
+      "helper_optional_magic": "PE32+",
+      "helper_sha256": "ec22173924cbb8851d877775e67c2e7556e754aba21d9c85f48facc434d3eb64"
+    },
+    "launcher_summary": {
+      "source_head": "b50b603bae15af295f9fb8b78799d8f31c441d90",
+      "sources": {
+        "BridgeCore.cs": "e0eb4798504618d9e559e60b66419a7ee1c055dff09ed47bc5f1d3112914341d",
+        "TypedGlbBridge.cs": "bd04e0e899b10a2ccdfb836bcd4a5c618af9026905c9a92d31bbed1ccd38747e",
+        "build-typed-glb-bridge.ps1": "62e669290b8899c063967adc0f36004a403b177ed7977822f6d9e70b566c39ca",
+        "bridge_control.py": "f6f670087f08e364f034fe4a324dd55585b8eecba33b9aaeb9d78416b22d9552",
+        "run-typed-glb-control.py": "9eb915ff9c3b0fcfd7bfb78a8db58cd2e7f695450b3a278165134e47fcee3a67"
+      },
+      "cad_calls": 0,
+      "helper_executions": 0,
+      "syntax_exit": 0,
+      "exit_code": 0
+    }
+  },
+  "namespace_fix_source_files_sha256_at_b50b603": {
+    "scripts/diagnostics/typed_glb/TypedGlbBridge.cs": "bd04e0e899b10a2ccdfb836bcd4a5c618af9026905c9a92d31bbed1ccd38747e",
+    "scripts/diagnostics/typed_glb/portable/PortablePiaStub.cs": "b2e46c3e294dcf3100082cce4a33ab181145deb1d91bd5a6fd8b2ca881419057",
+    "scripts/diagnostics/typed_glb/portable/PortableTests.cs": "5e6b6219ad51bc9955d99b5749399f5be5330a45213754d23429c31868129cb1"
+  },
+  "unchanged_during_namespace_fix": "product src, CI, existing tests, Python producer/wrapper, core gates/SaveAs3, Windows builder",
+  "later_shared_read_candidate": "5c754ba98182279547fe899848241314667d0587; native compile/runtime unverified"
+}

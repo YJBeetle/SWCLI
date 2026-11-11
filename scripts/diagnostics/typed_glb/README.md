@@ -1,6 +1,6 @@
 # 单次 typed GLB 调用候选
 
-2026-11-12：代码和便携测试已准备，待统筹亲审。未做 Windows 实际 PIA 编译、命名管道验证、COM 身份握手或 GLB 调用。本目录是独立诊断，不修改产品绑定。用户此前在 Blender 实际导入可用的线索及两次真实成功 assembly / 失败 part 原件已先行[独立核对](../../../docs/verification/glb-history-offline-2026-11-12.md)；不能把当前 part 失败泛化为全部历史导出失败，也不把此单次 typed 候选当成对历史成功的否定。
+2026-11-12：b50b603实际PIA零CAD编译通过，随后一次零GLB身份预检在源SLDPRT共享读取首错停止。新[只读共享取证候选5c754ba](../../../docs/verification/glb-typed-identity-first-failure-2026-11-12.md)已准备，Python23项/C#70条断言通过，尚未实际PIA编译或原生运行。SaveAs3仍0次，完整身份准入没有通过；由统筹亲审，不自动重跑。编译首错/通过及严格路径分析见[独立原件审计](../../../docs/verification/glb-typed-namespace-and-path-audit-2026-11-12.md)。用户真实Blender成功原件已对应到[MarkingJig](../../../docs/verification/glb-user-markingjig-comparison-2026-11-12.md)，只保存hash/统计，不复制业务二进制，不否定其历史成功。
 
 ## 唯一调用层变量
 
@@ -31,7 +31,7 @@ helper 仅释放自己取得的 RCW/stream 引用，不做 FinalRelease 循环�
 
 ## 身份与一次调用
 
-从三个包取得实际装机 PIA 接口，helper 内 canonical IUnknown 比较 document↔app.ActiveDoc 及 Extension↔document.Extension，另核 app.IsSame==整数1；只记录结果布尔值，不跨进程比较地址。记录实际 SW PID/精确进程 FILETIME、exe 路径/hash、runtime、文档数、四个实际 host 布尔值、路径/title/type/stamp/dirty/config/配置集合/read-only/view-only/active sketch、源文件 hash。须与 Python 快照及 harness owned PID 一致。
+从三个包取得实际装机 PIA 接口，helper 内 canonical IUnknown 比较 document↔app.ActiveDoc 及 Extension↔document.Extension，另核 app.IsSame==整数1；只记录结果布尔值，不跨进程比较地址。仅源文件采用FileAccess.Read/FileShare.ReadWrite（无Delete），以持有文件句柄的128位ID、size/time和原路径复核保证读取稳定，exe/PIA策略保持。Observe逐项留存已读取raw字段，部分观察不赋值完整before/after，identity失败不放行。记录实际 SW PID/精确进程 FILETIME、exe 路径/hash、runtime、文档数、四个实际 host 布尔值、路径/title/type/stamp/dirty/config/配置集合/read-only/view-only/active sketch、源文件 hash。须与 Python 快照及 harness owned PID 一致。
 
 `--mode identity` 为默认：完成身份握手后 finish，GLB SaveAs3=0；原 fixture 会刻意报失败停止，原 `report.json`/`local-supervisor.json` 保持其失败语义，独立 `typed-control-audit.json` 只表示身份预检是否通过，绝非导出验收。
 
@@ -41,15 +41,15 @@ helper 的独立 trace 标记真实 helper PID。Python trace 只写 `CSharpBrid
 
 ## 后续由统筹逐级安排，本文不授权执行
 
-1. 亲审当前源码/协议/失败处理及唯一变量。先在新目录做 builder 的实际装机 PIA **零 CAD 编译**；失败停在0次保存，不尝试替代声明/动态回退。
-2. 审阅编译 receipt、source hash 和实际 helper 架构后，安排一次默认 identity 模式。它仍创建原 driver 的新样件并做前序 STL/3MF/AMF，**零 GLB 保存不是零 CAD**。未知项止步，保留原件。
+1. b50b603实际PIA零CAD编译已通过并保留原件；5c754ba取证/首错处理源码有变化，先交统筹亲审，不能沿用b50 helper冒充新candidate。实际PIA编译及下一阶段均由统筹安排，无替代声明/动态回退。
+2. b50一次identity已在源读取首错停止；新candidate的编译receipt/source hash/架构及取证代码由统筹审阅后，才能决定下一次identity。它仍创建原 driver 的新样件并做前序 STL/3MF/AMF，**零 GLB 保存不是零 CAD**。未知项止步，保留原件。
 3. 身份与清理原件通过后，另一个新 attempt 才可安排 `--mode invoke` 一次。两个 attempt 是不同新 host，不宣称复用了已经退出的前一 host。
 
 参数要求：`--baseline` 是上述原 driver 的真实 Windows 路径，`--helper` 指新 Windows build 的 EXE，`--output` 是原 baseline 目录旁尚不存在的 sibling；例如选择全新 attempt 名，不能复用已有目录。不自动拷贝、执行 VM、发 CI、重跑或部署。
 
 ## 本机证据及限制
 
-.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；34条断言通过：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python19项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。实际 Windows .NET Framework、PIA、DACL/管道、COM 和 GLB 均**未验证**；本机没有 PowerShell，builder 未经本机 PowerShell 解析器验证。
+.NET SDK6.0.136 / runtime6.0.36，C#语言版本5，整个候选源码连同明确的测试替身编译；70条断言通过（含合成长短路径、只读共享取证状态、部分观察保留，非原生观察）：bool/错误/警告、COMException首错和未知输出、单调用/身份门禁、帧上限/截断/1MiB、精确快照。Python23项测试覆盖一用协议、ACK丢失保守所有权、nonce/role错配、身份失败零invoke、native收据类型和部分输出、原三格式委托/别名恢复/第二GLB拒绝及离线原件与清理审计。919a83e实际Windows/PIA编译首错保留；b50b603实际PIA编译通过；其后身份预检已完成contract、三包consumed和局部IUnknown检查，但完整身份因源读取首错未过，GLB0。当前5c754ba尚未实际PIA编译，Windows共享/PInvoke/新协议仍待验证。本机没有PowerShell；统筹原次syntax_exit=0，不能当helper编译通过。当前不改路径比较/归一化，物理文件ID证据仍缺，身份预检前先审阅上述分析。
 
 本机纯测试（无网络依赖；SDK须已存在）：
 

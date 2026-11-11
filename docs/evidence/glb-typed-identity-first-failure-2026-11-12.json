@@ -1,0 +1,184 @@
+{
+  "schema": "swcli.typed-glb-identity-first-failure.v1",
+  "original_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-typed-identity-b50b603-01",
+  "files": {
+    "component-export.3MF": {
+      "bytes": 10821,
+      "sha256": "e9aa1ef0c2c85a928735aab9918be5094abe5b444e8ff6878838b7332577ca48"
+    },
+    "component-export.AMF": {
+      "bytes": 1476,
+      "sha256": "333987aa64ac6b1110aaff61283180ea35106bbf3b035c99b7a567cbd5dea722"
+    },
+    "component-export.STL": {
+      "bytes": 684,
+      "sha256": "bd60843640726cfc7a7e673b24475a8a575d56ac86a6cf90fb50970f37fa255e"
+    },
+    "component.SLDPRT": {
+      "bytes": 67715,
+      "sha256": "092650e11ea2bc9bcdcc8c10e52b9be2e255d6684ba0fe6c00056fa0b6a64342"
+    },
+    "coordinator-independent-audit.json": {
+      "bytes": 854,
+      "sha256": "f66f5157a6c1ed6b0e0fdb25bc0b099c429faef86d3b8cc78c3f794b3eb51183"
+    },
+    "launcher-context.json": {
+      "bytes": 967,
+      "sha256": "8c1e958ea88dfa10616e75885b2468d006325c19b20bf812913384bad513e150"
+    },
+    "local-supervisor.json": {
+      "bytes": 821,
+      "sha256": "7c678b3c52634085e91a52a22b8bfdcc0a9ee2c61dc3c856bfecdd99b4b4bb2e"
+    },
+    "report.json": {
+      "bytes": 17899,
+      "sha256": "43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11e5f3bd7f686d4b"
+    },
+    "swcli-glb-diagnostics-7629d0920f51482d90add30d1ecdec46/manifest.json": {
+      "bytes": 2297,
+      "sha256": "51597957217657374e9e88293343c8ce9e78f307017e3f98d3cb09fb6a0e0f52"
+    },
+    "trace.jsonl": {
+      "bytes": 2484,
+      "sha256": "bbac3be8d52966ac5f7fb4d56e7cb547d205fb7cb8774893434c14c57d5891da"
+    },
+    "typed-control-audit.json": {
+      "bytes": 581,
+      "sha256": "a3bec988adddb8ff2bdfda01f89dedf4cbe3c4bb323baf2e836d899d75c8683e"
+    },
+    "typed-glb/helper-native.jsonl": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typed-glb/helper.json": {
+      "bytes": 1324,
+      "sha256": "0302d91ac69f85e921b88c84bba15abb7b202f409530d07fcca131d29639df00"
+    },
+    "typed-glb/helper.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typed-glb/helper.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typed-glb/producer.json": {
+      "bytes": 5412,
+      "sha256": "5a3e68977f421005bd008d45d84878b0d2f454836c056cc075719ea7a9970194"
+    },
+    "worker.stderr.log": {
+      "bytes": 41919,
+      "sha256": "06e733822da7108f5eec44666b18698a5d051803179f8fbba33fcee607bd5d18"
+    },
+    "worker.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "source_head": "b50b603bae15af295f9fb8b78799d8f31c441d90",
+  "report_sha256": "43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11e5f3bd7f686d4b",
+  "source_SLDPRT_sha256": "092650e11ea2bc9bcdcc8c10e52b9be2e255d6684ba0fe6c00056fa0b6a64342",
+  "native_save_counts": {
+    "STL": 1,
+    "3MF": 1,
+    "AMF": 1,
+    "GLB": 0
+  },
+  "helper_receipt": {
+    "after": null,
+    "api_saved": null,
+    "arguments": null,
+    "before": null,
+    "begin_utc": null,
+    "ci_acceptance": false,
+    "cleanup_errors": [],
+    "consumed_roles": [
+      "app",
+      "document",
+      "extension"
+    ],
+    "contract_accepted": true,
+    "end_utc": null,
+    "errors_local": -2147483648,
+    "first_error": "System.IO.IOException: 文件“C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-b50b603-01\\component.SLDPRT”正由另一进程使用，因此该进程无法访问此文件。",
+    "helper_pid": 8512,
+    "hresult": -2147024864,
+    "hresult_kind": "managed-exception",
+    "identity_accepted": false,
+    "identity_checks": [
+      {
+        "document_iunknown_same": true,
+        "extension_iunknown_same": true,
+        "foreground_same": 1,
+        "phase": "handshake"
+      }
+    ],
+    "identity_only": true,
+    "local_codes_meaning": "managed locals; native outputs accepted only after normal return",
+    "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-b50b603-01\\.component-export.aad66f744eb9461a808b7e1c45b97085.swcli.GLB",
+    "pia_path": "C:\\Workspace\\SWCLI-series-20261111\\glb-typed-build-b50b603-01\\SolidWorks.Interop.sldworks.dll",
+    "pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+    "post_state_accepted": false,
+    "public_acceptance": false,
+    "python_worker_pid": 6168,
+    "save_attempts": 0,
+    "save_errors": null,
+    "save_warnings": null,
+    "schema": "swcli.typed-glb-helper.v1",
+    "success": false,
+    "warnings_local": -2147483648
+  },
+  "python_expected": {
+    "pid": 2416,
+    "created_filetime": 134388938568169064,
+    "exe_path": "C:\\PROGRA~1\\SOLIDW~1\\SOLIDW~1\\SLDWORKS.exe",
+    "exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+    "runtime": "33.5.0",
+    "document_count": 1,
+    "visible": false,
+    "command_in_progress": false,
+    "user_control": true,
+    "background": true,
+    "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-b50b603-01\\component.SLDPRT",
+    "title": "component.SLDPRT",
+    "document_type": 1,
+    "update_stamp": 144,
+    "modified": false,
+    "configuration": "默认",
+    "configurations": [
+      "默认"
+    ],
+    "read_only": false,
+    "view_only": false,
+    "active_sketch": false,
+    "foreground_same": 1,
+    "source_sha256": "092650e11ea2bc9bcdcc8c10e52b9be2e255d6684ba0fe6c00056fa0b6a64342"
+  },
+  "helper_exit": 1,
+  "marshal_cleanup_known": true,
+  "consumed_roles": [
+    "app",
+    "document",
+    "extension"
+  ],
+  "python_frame_error_is_secondary": {
+    "type": "RuntimeError",
+    "message": "pipe exchange failed: {'type': 'RuntimeError', 'message': 'frame kind/nonce/role mismatch'}"
+  },
+  "source_read_first_error": "System.IO.IOException: 文件“C:\\Workspace\\SWCLI-series-20261110\\glb-typed-identity-b50b603-01\\component.SLDPRT”正由另一进程使用，因此该进程无法访问此文件。",
+  "hresult": -2147024864,
+  "native_pids_before": [],
+  "native_pids_after": [],
+  "cleanup_errors": [],
+  "normal_exit_wait_trace": true,
+  "observation_limits": [
+    "C# before is null: only explicit identity_checks and PIA contract fields are native evidence",
+    "Python 8.3 exe path was actually retained; C# raw path not retained, no alias mismatch observed",
+    "GLB save count zero; this was not a GLB output/native-save failure"
+  ],
+  "candidate_commit": "5c754ba98182279547fe899848241314667d0587",
+  "portable_python_tests": 23,
+  "portable_CSharp_assertions": 70,
+  "candidate_native_compile_or_runtime_verified": false,
+  "no_self_VM_CI_or_rerun": true
+}

@@ -1,6 +1,6 @@
 # GLB 导出器证据缺口与下一最小信息路径
 
-状态更新（2026-11-12）：统筹 e6fc46c 的单次[固定文件采集已完成并独立核对](glb-exporter-native-inventory-audit-2026-11-12.md)，不升级为运行依赖或 GLB 支持；既有 [typed 同 host 候选源码及便携测试](../../scripts/diagnostics/typed_glb/README.md)已准备（Python19项、C#34条断言；测试替身编译），实际 Windows PIA 编译／管道／COM／GLB仍未执行，交统筹先亲审。以下保留此前评估，不扩大新路线。
+状态更新（2026-11-12）：固定文件采集有限证据、b50b603实际PIA零CAD编译均已核；其后零GLB身份预检在源读取共享冲突首停。新候选5c754ba只读取证/首错处理已交审（23项Python/70条C#纯断言，尚未原生验证），不自动重跑。用户真实Blender成功MarkingJig已只读核定hash/网格，下一步仍按[真实成功差异及条件方案](glb-user-markingjig-comparison-2026-11-12.md)由统筹取舍。以下保留早期评估，不扩大路线。
 
 ## 官方支持合同能说明什么
 

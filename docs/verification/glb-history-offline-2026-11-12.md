@@ -1,6 +1,6 @@
 # 历史 GLB 成功与当前失败对照
 
-2026-11-12：用户确认此前 SWCLI 导出的 GLB 曾在 Blender 中实际导入可用。这是重要的历史成功线索，保留为用户的实际使用观察。用户尚未指出具体文件/运行；现有原件中未找到可把该 Blender 使用记录绑定到某一 SHA 的 receipt，**不擅自把下列装配体认作用户当时导入的文件，也不要求用户复测**。
+更新：用户已给出其实际Blender可用的MarkingJig.REND.GLB及源SLDASM，本路只读固定hash/统计、核LFS指针并严格解析通过，见[真实原件对照](glb-user-markingjig-comparison-2026-11-12.md)。业务二进制没有复制到SWCLI。下文两次box assembly的历史成功是另一组已核原件，不冒充用户这份真实文件；最初“文件未对应”的线索现已补足。
 
 本次只读核对已有本地 ZIP、原始 receipt、对应已记录 tested-head 源码和 GLB 字节，没有网络查询/CI重跑/CAD或Blender运行。两次历史成功装配体原件已找到、CRC/外层SHA/已保留副本逐字节核对，使用当前严格 BIN/accessor/mesh 解析重放通过。
 
@@ -53,4 +53,4 @@
 
 [结构化审计](../evidence/glb-history-offline-2026-11-12.json)包含外层ZIP SHA、member CRC、完整GLB SHA/解析、原模型hash、实际document_id与保存/重开事件序号、host原字段、源代码hash及三个近期失败原件。历史原始ZIP仍位于现存 `docprops-export-options/20261107/glb-history-offline/` 两个run目录，未改动。
 
-[复核脚本](audit-glb-history-2026-11-12.py)从这些已有原件重新计算并在临时目录逐字节重放新旧校验；无网络/COM调用。对应最新C#准备见[候选说明](../../scripts/diagnostics/typed_glb/README.md)。用户的Blender文件SHA、确切文档类型、当时软件/宿主状态仍保留未知，不用推测填充，也不在本轮新增运行。
+[复核脚本](audit-glb-history-2026-11-12.py)从这些已有原件重新计算并在临时目录逐字节重放新旧校验；无网络/COM调用。对应最新C#准备见[候选说明](../../scripts/diagnostics/typed_glb/README.md)。用户真实Blender文件SHA及源装配体已对应；其当时实际API/软件版本/宿主状态仍保留未知，不用推测填充，也不在本轮新增运行。
