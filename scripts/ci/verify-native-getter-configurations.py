@@ -358,7 +358,14 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         second_name, "getter fixture", "", 0, "", "diagnostic only", True))
     require(added is not None and _com_value(added, "Name") == second_name, "second configuration creation failed")
     select(second_name, "seed-B")
-    seed_fixture_configuration(dimension, .020, enums["swSetValue_InSpecificConfigurations"], second_name,
+    binding = case["B_seed_binding"] = dict(lookup_name=case["unsaved_native_name"],
+                                          configuration=second_name)
+    seed_dimension = call("bind-existing-dimension-seed-B", lambda: document.Parameter(binding["lookup_name"]))
+    require(seed_dimension is not None, "B seed dimension binding is missing")
+    binding["bound_full_name"] = _com_value(seed_dimension, "FullName")
+    require(binding["bound_full_name"] == binding["lookup_name"], "B seed dimension name binding differs")
+    binding["success"] = True
+    seed_fixture_configuration(seed_dimension, .020, enums["swSetValue_InSpecificConfigurations"], second_name,
                                call, case.setdefault("B_seed", {}), persist=persist)
     rebuild("B")
     geometry(second_name, 20., "seed-B")

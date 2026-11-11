@@ -624,6 +624,48 @@ class GetterFixtureTests(unittest.TestCase):
     def test_saved_and_reopened_distinct_values_and_renamed_fullname(self):
         self.assert_complete_saved_fixture(Document)
 
+    def test_B_seed_rebinds_after_activation_without_using_cached_creator_handle(self):
+        class ConfigurationBoundDocument(Document):
+            def add_configuration(self, *args):
+                configuration = super().add_configuration(*args)
+                self.dimension.SetSystemValue3 = mock.Mock(side_effect=AssertionError("cached creator handle must not seed B"))
+                return configuration
+            def Parameter(self, name):
+                if not self.path:
+                    assert self.ConfigurationManager.ActiveConfiguration.Name == "Getter_B"
+                    assert name == self.dimension.FullName
+                    assert self.getters == self.setters == self.rebuilds == []
+                    return Dimension(self)
+                return super().Parameter(name)
+        self.assert_complete_saved_fixture(ConfigurationBoundDocument)
+
+    def test_B_seed_binding_failure_stops_before_mutation_rebuild_save_or_Get3(self):
+        for kind in ("missing", "wrong-name", "exception"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                output=Path(temporary);swconst=output/"swconst.tlb";swconst.write_bytes(b"fixture typelib")
+                doc=Document();app=app_for(doc);case={};report={"host":{"process_id":123},"cases":[case]};live={}
+                original=ValueError("first seed binding failure")
+                doc.Parameter=mock.Mock(return_value=None if kind=="missing" else SimpleNamespace(FullName="Other"),
+                                        side_effect=original if kind=="exception" else None)
+                with mock.patch.dict("sys.modules",variant_modules()), \
+                        mock.patch.object(getter,"SWCONST",swconst,create=True), \
+                        mock.patch.object(getter,"read_constants",return_value={"swSpecifyConfiguration":3,"swSetValue_InSpecificConfigurations":3}), \
+                        mock.patch.object(getter,"create_part_windows_with_handle",return_value=({"ok":True},doc)), \
+                        mock.patch.object(getter,"create_circle_sketch_windows_with_handle",return_value=({"ok":True},doc.sketch_feature)), \
+                        mock.patch.object(getter,"create_circle_diameter_windows_with_handle",return_value=({"ok":True},doc.dimension)), \
+                        mock.patch.object(getter,"save_as_native_windows") as save, \
+                        mock.patch.object(getter,"observe_current") as observe:
+                    with self.assertRaises(ValueError if kind=="exception" else RuntimeError) as caught:
+                        getter.calibrate_case(app,output,{},"front",False,lambda name,fn:fn(),case,report,live,profile_kind="part")
+                if kind=="exception": self.assertIs(caught.exception,original)
+                doc.Parameter.assert_called_once_with("D1@Sketch@Unsaved")
+                self.assertEqual(doc.ConfigurationManager.ActiveConfiguration.Name,"Getter_B")
+                self.assertEqual(doc.setters,[]);self.assertEqual(doc.rebuilds,[]);self.assertEqual(doc.getters,[])
+                save.assert_not_called();observe.assert_not_called()
+                self.assertEqual([row["phase"] for row in case["geometry_proofs"]],["initial-A"])
+                self.assertNotIn("B_seed",case)
+                self.assertNotIn("success",case["B_seed_binding"])
+
     def test_saved_fixture_with_boolean_noarg_rebuild_binding(self):
         class BooleanRebuildDocument(Document):
             @property
