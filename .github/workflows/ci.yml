@@ -487,6 +487,7 @@ jobs:
           SWCLI_TRACE_NATIVE_CALLS: "1"
         run: |
           python -I scripts/ci/verify-step-export-calibration.py `
+            --sketch-readback-candidate `
             --export-report "$env:SWCLI_SMOKE_ROOT\step-public\report.json" `
             --output-dir "$env:SWCLI_SMOKE_ROOT\step-public-readback" `
             --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"

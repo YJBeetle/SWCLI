@@ -28,7 +28,7 @@ b363751 的当时说明明确以 GetSketchSegments 对错误草图可能返回�
 
 ## 源码候选与严格范围
 
-候选入口是既有 reader 新增的 `--sketch-readback-candidate`，默认关闭，必须同时给 `--export-report`；内部六组合校准路径拒绝该模式。CI YAML尚未启用。主要逻辑在 `gate_support/step_sketch_readback_candidate.py`，原 `read_wireframe(...reference-curves)` 断言本体和默认调用路线不变。
+候选入口是既有 reader 新增的 `--sketch-readback-candidate`，默认关闭，必须同时给 `--export-report`；内部六组合校准路径拒绝该模式。CI接线仅在既有 native_step_public_targeted 读回步骤显式添加该flag，既有输入仍默认false；内部/原件诊断和默认reference路径不变。主要逻辑在 `gate_support/step_sketch_readback_candidate.py`，原 `read_wireframe(...reference-curves)` 断言本体和默认调用路线不变。
 
 - 只接受 native Windows、隐藏owned宿主和rev33.5.0；沿用原owned获取/退出及600秒调用、1800秒整组监督。无宿主替换、重试、自动fallback或回放459。
 - writer必须成功且cleanup[]，source_commit精确等于当前GITHUB_SHA，并提供顺序固定的6 CLI+SDK AP214 solid+MCP AP203 wire共8个唯一输出和hash。旧head、诊断报告、7/8或重复路径拒绝；不是把旧ZIP改名作为新验收。
@@ -45,6 +45,8 @@ b363751 的当时说明明确以 GetSketchSegments 对错误草图可能返回�
 
 **163项相关STEP便携测试通过**，其中24项新候选测试；日志 `step-evidence/step-sketch-all-step.log`（7.916秒）。新覆盖0/1枚举与完整八值CAS、部分setter失败恢复/外部第三值保护、首错独立、恢复失败禁止成功、精确12/18、真实9/260与缺对角线拒绝、错误/警告/未知feature code、空/嵌套/混合/未知特征、保存及只读重开错误、重开后长度/health/hash变化、同head精确8报告、非native拒绝和父进程单flag/监督。原139项也通过，包括原reference严格拒绝及旧候选保护。
 
-建议统筹先亲审这项**验收观察器边界修正**及候选源码。若接受，另在精确新head将既有独立公开门禁reader显式接入此模式，产出新的完整8文件writer+reader原件；首失败保存ZIP并停止，没有实质修复不重跑。即使未来该验收通过，也只证明明确的sketch读回合同，**不宣称As3DCurves已修好，不覆盖b363或459失败，不复用旧成功放行当前head**。
+统筹已亲审并接受这项**验收观察器边界修正**，本轮按指示完成最小CI接线并本地验证。待统筹亲审接线提交、核对队列并授权单次新公共CI后，才可产出该精确新head的完整8文件writer+reader原件；首失败保存ZIP并停止，没有实质修复不重跑。即使未来该验收通过，也只证明明确的sketch读回合同，**不宣称As3DCurves已修好，不覆盖b363或459失败，不复用旧成功放行当前head**。
 
 本轮只有离线审计、只读研究、源码和便携测试；没有VM/CAD/CI/push，未启动原生八文件验收。官方LoadFile4条件文档的既有矛盾、原hosted None/errors1与本机环境差异仍保留为独立未解释事项。
+
+接线验证：既有公开读回步骤仅新增一行 `--sketch-readback-candidate`。去掉该行后整个ci.yml与b55逐字节一致，重复键拒绝的YAML解析结果也相同；9个既有输入、默认false、guard、时限和并发保护均未变化。4项接线测试含13,824种选择组合通过，全部相关STEP **164项通过**（7.549秒）。actionlint1.7.12、PyYAML6.0.3、Python编译、CLI help和diff检查通过；PowerShell续行参数结构由本地测试核验，未执行原生PowerShell/CAD或CI。日志与机器检查保留在 `step-evidence/step-sketch-ci-*`。本提交仍须统筹亲审与队列调度，尚无该新head的原生验收结果。

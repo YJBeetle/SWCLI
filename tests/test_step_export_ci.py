@@ -116,3 +116,30 @@ class StepWorkflowTests(unittest.TestCase):
         self.assertIn("actions: read", job)
         self.assertIn("DIAGNOSTIC_WORKFLOW_SHA: ${{ github.workflow_sha }}", job)
         self.assertIn("swcli-step-original-import-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}", job)
+
+
+    def test_explicit_sketch_observer_is_only_wired_to_fresh_public_readback(self):
+        text=(ROOT/'.github/workflows/ci.yml').read_text()
+        def block(label):
+            return text.split('      - name: '+label+'\n',1)[1].split('\n      - name:',1)[0]
+        observer=block('Read back actual public STEP geometry and native save reopen')
+        writer=block('Accept public STEP CLI daemon SDK and MCP contracts')
+        internal=block('Calibrate STEP protocol and geometry with save/reopen evidence')
+        original=block('Diagnose original STEP imports once without exporting')
+        flag='--sketch-readback-candidate'
+        self.assertEqual(text.count(flag),1)
+        self.assertEqual(observer.count(flag),1)
+        self.assertEqual(expression(observer),expression(writer))
+        self.assertIn('inputs.native_step_public_targeted',expression(observer))
+        self.assertIn('!inputs.native_step_import_diagnostic',expression(observer))
+        self.assertNotIn(flag,writer+internal+original)
+        # The flag must be an argument to this same continued PowerShell command.
+        run=observer.split('        run: |\n',1)[1]
+        command=run.split('          if ($LASTEXITCODE',1)[0].replace('`\n',' ')
+        self.assertEqual(command.count('python -I '),1)
+        self.assertRegex(command,r'verify-step-export-calibration\.py\s+--sketch-readback-candidate\s+--export-report')
+        self.assertIn('$env:SWCLI_SMOKE_ROOT\\step-public\\report.json',command)
+        self.assertIn('$env:SWCLI_SMOKE_ROOT\\step-public-readback',command)
+        self.assertIn('timeout-minutes: 31',observer)
+        self.assertNotIn('continue-on-error',observer)
+        self.assertIn('if ($LASTEXITCODE -ne 0) { throw',run)
