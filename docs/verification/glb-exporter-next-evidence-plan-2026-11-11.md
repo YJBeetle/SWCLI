@@ -1,6 +1,6 @@
 # GLB 导出器证据缺口与下一最小信息路径
 
-状态更新（2026-11-12）：统筹 e6fc46c 的单次[固定文件采集已完成并独立核对](glb-exporter-native-inventory-audit-2026-11-12.md)，不升级为运行依赖或 GLB 支持；现按既有方案准备 typed 同 host 调用层代码及便携测试，尚未新 CAD 执行。以下保留此前评估，不扩大新路线。
+状态更新（2026-11-12）：统筹 e6fc46c 的单次[固定文件采集已完成并独立核对](glb-exporter-native-inventory-audit-2026-11-12.md)，不升级为运行依赖或 GLB 支持；既有 [typed 同 host 候选源码及便携测试](../../scripts/diagnostics/typed_glb/README.md)已准备（Python19项、C#34条断言；测试替身编译），实际 Windows PIA 编译／管道／COM／GLB仍未执行，交统筹先亲审。以下保留此前评估，不扩大新路线。
 
 ## 官方支持合同能说明什么
 
@@ -42,13 +42,13 @@ GLB 中的 `asset.generator=SOLIDWORKSGLTF` 只能识别输出标签，不能反
 | 文件完整但动态依赖／加载路径仍未知 | 明确保留 unknown；需要时设计有界只读加载取证，不能由空 filter 推断缺失 |
 | 未发现可处理的安装差异，仍要区分 Python 动态封送与共享现代写器路径 | 再亲审 typed 传递已有引用的单次保存候选；不先做新参数扫描 |
 
-这一步不能证明 exporter 一定正确，但能以零 CAD 保存的成本补足当前最具体的环境证据缺口。目前不认定“必须实现 typed bridge”，因此本轮不新增桥接代码。
+这一步不能证明 exporter 一定正确，但能以零 CAD 保存的成本补足当前最具体的环境证据缺口。此前本节评估未授权新增桥接；2026-11-12 顶部状态已更新为统筹授权的既有 typed 源码准备，以下保留当时评估。
 
 ## part／assembly 及 typed 路径的信息增益
 
 实际原件已证明旧同组 assembly 有 720 字节 BIN、part 为空；相同 buffer/accessor/mesh 声明不代表 part 的实际网格已存在。旧 API、宿主、文档上下文、安装环境和渲染历史都与当前现代 part 不完全一致。把 part 包成 assembly 再导出会新增文档类型、上下文、解析状态等变量；它能回答“现代 assembly 是否也失败”，但不能直接判定 Python 封送，所以不优先用新 CAD 保存换这个较弱结论。
 
-若后续确实针对封送问题实施 typed 候选，继续采用现有[具体同 host 引用传递设计](glb-typed-same-host-control-plan.md)：固定 x64／装机 PIA，已有 app／document／Extension 经受限一次性跨进程 COM 封送包传递，STA 内验证 SW PID、文档与 Extension canonical IUnknown 身份，先做零保存握手；仅在门禁通过后用相同 Name、Version=0、Options=1、两个 null 和 out Int32 执行唯一 GLB。无 ROT、新建 host、重开替代 document 或备用 API。
+若后续确实针对封送问题实施 typed 候选，继续采用现有[具体同 host 引用传递设计](glb-typed-same-host-control-plan.md)：固定 x64／装机 PIA，已有 app／document／Extension 经受限一次性跨进程 COM 封送包传递，STA 内验证 SW PID、文档与 Extension canonical IUnknown 身份，先做零保存握手；仅在门禁通过后用相同 Name、Version=0、Options=1、两个 null 和装机 [In,Out] `ref Int32` 执行唯一 GLB。无 ROT、新建 host、重开替代 document 或备用 API。
 
 这里“同 host”指 Python 持有者与 typed 消费者在该次运行中确为同一应用和文档。旧局部基线宿主均已清理，新运行不可能复用它们；因此不能宣称历史 Python 失败与新 typed 成功是物理同一 host 的成对实验。严格的同 host 双绑定比较会需要另行设计两次保存及首错边界，不在当前单次调用授权内。
 

@@ -1,8 +1,12 @@
 # GLB 强类型单次对照：同一 owned host / 同一文档
 
-状态：只读检查及诊断设计，尚未实现或运行C# helper。本路未操作VM/CI，不改生产保存绑定、暂存命名、偏好或容器校验。执行由统筹安排，原600秒native/1800秒group边界保留。
+状态更新（2026-11-12）：[C# 同 host 候选源码、包装器与便携测试](../../scripts/diagnostics/typed_glb/README.md)已准备，尚未实际 Windows PIA 编译、管道/COM 身份握手或 GLB 调用。本路未操作 VM/CI/push，不改生产保存绑定、暂存命名、偏好或容器校验。统筹亲审后逐级安排，原600秒native/1800秒group边界保留。
 
-2026-11-11：统筹先收敛为 [装机interop零CAD反射工具](installed-interop-metadata-check.md)，消费已有类型库原件，不重复采集；下述跨进程桥接仍仅设计，暂不实现。
+2026-11-11：统筹先收敛为 [装机interop零CAD反射工具](installed-interop-metadata-check.md)，消费已有类型库原件，不重复采集；当时的跨进程桥接仅设计，暂不实现。2026-11-12 固定文件采集有限证据通过后，统筹授权按下述既有路线准备源码及便携测试，执行仍待其亲审。
+
+用户补充的历史 Blender 实际可用线索已先行[复核现有成功/失败原件](glb-history-offline-2026-11-12.md)：真实 assembly BIN720 成功与 part BIN0 失败并存，不能泛化历史一直失败；用户当时文件 SHA 尚未对应，也不据此改换本候选样件/路径。
+
+完整的源码摘要、离线检查和未执行边界见[准备回执](../evidence/glb-typed-control-preparation-2026-11-12.json)。
 
 ## 已核对的基准原件
 
@@ -29,7 +33,7 @@
 2. C#在单一STA内将包恢复为IStream并从起始位置CoUnmarshalInterface一次，再用装机interop作QI/强类型转换。不能跨进程传一个数值指针后直接GetObjectForIUnknown；也不能用仅限同进程线程的CoMarshalInterThreadInterfaceInStream替代MSHCTX_LOCAL方案。Python保持原三引用与owned进程句柄，等待helper时按需泵送STA消息。
 3. 每个NORMAL包仅允许一次解封并单独ACK；未消费包由发送者CoReleaseMarshalData，已消费包不重复释放封送数据。helper仅释放自己取得的引用，SW文档关闭/ExitApp/owned进程等待仍由原Python driver统一完成。失败保留首错及HRESULT，不用其他连接路径回退。
 
-依据：[pythoncom.CoMarshalInterface](https://timgolden.me.uk/pywin32-docs/pythoncom__CoMarshalInterface_meth.html)、[Microsoft CoMarshalInterface跨进程上下文](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-comarshalinterface)、[NORMAL一次消费及释放规则](https://learn.microsoft.com/en-us/windows/win32/api/wtypesbase/ne-wtypesbase-mshlflags)。这是待验证的具体实现方案，不是现成可运行桥接器。
+依据：[pythoncom.CoMarshalInterface](https://timgolden.me.uk/pywin32-docs/pythoncom__CoMarshalInterface_meth.html)、[Microsoft CoMarshalInterface跨进程上下文](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-comarshalinterface)、[NORMAL一次消费及释放规则](https://learn.microsoft.com/en-us/windows/win32/api/wtypesbase/ne-wtypesbase-mshlflags)。对应候选源码已准备，Windows 实际管道/COM 所有权仍待验证。consume/ACK 丢失保留 consumption_uncertain，不盲目释放或重发；marshal 本身异常单列 unknown。详见候选说明。
 
 ## 保存前的host和document身份准入
 
@@ -44,7 +48,7 @@ helper获得的是发送者现有能力引用，但仍须逐项验真并记录�
 
 ## 唯一一次GLB与判读
 
-全部契约和身份门禁通过才进入一次GLB，使用原staging完整字符串与原Version=0、Options=1（须装机swconst确认），两个对象输入为C# null，Errors/Warnings依装机签名out接收。保存前的ClearSelection及状态检查沿用原流程，不写偏好，不改变hidden/visible，不调整扩展名，不使用旧保存接口。Python原有有界manifest观察包围这一次外部typed调用；C#记录调用开始/结束、实际参数类别、bool返回及out整数/异常HRESULT，不伪造生产Python native-call记录。
+全部契约和身份门禁通过才进入一次GLB，使用原staging完整字符串与原Version=0、Options=1（须装机swconst确认），两个对象输入为C# null，Errors/Warnings依实际装机 PIA 的 [In,Out] Int32& 以 `ref int` 接收并保留未写入哨兵值；早期文档参考的 out-only 写法不作为装机绑定依据。保存前的ClearSelection及状态检查沿用原流程，不写偏好，不改变hidden/visible，不调整扩展名，不使用旧保存接口。Python原有有界manifest观察包围这一次外部typed调用；C#记录调用开始/结束、实际参数类别、bool返回及out整数/异常HRESULT，不伪造生产Python native-call记录。
 
 保留单次保存所有原始字节及同前缀隐藏文件快照、实际模块观察、typelib检查、源文件前后hash、文档/config/foreground状态及owned清理证据。仍以原严格BIN/accessor范围和输出发布要求判断，不修改或补齐GLB数据。
 
@@ -54,4 +58,4 @@ helper获得的是发送者现有能力引用，但仍须逐项验真并记录�
 | 同样true/0/0且BIN0 | Python特有封送不再是唯一解释；继续调查共享现代API/导出器环境，不能仅据此宣称导出器缺陷 |
 | 契约/身份失败、COM异常、false或其他内容失败 | 保留首次原件并停止；不执行第二调用、参数扫描或新host回退 |
 
-本次计划没有运行结果，不替代现有CI或公开验收。生产仍使用原现代SaveAs3调用；后续操作由统筹安排。
+本次有19项 Python便携测试及34条 C#纯协议断言通过，没有实际 Windows/COM/GLB运行结果，不替代现有CI或公开验收。默认 identity 模式有原样件及前三格式 CAD 操作，但 GLB 保存为0；它不是零 CAD，且刻意保留原 fixture 的失败语义，仅独立预检回执可通过。生产仍使用原现代SaveAs3调用；后续操作由统筹安排。

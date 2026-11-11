@@ -1,0 +1,66 @@
+{
+  "schema": "swcli.typed-glb-preparation.v1",
+  "date": "2026-11-12",
+  "scope": "offline review candidate only",
+  "unique_variable": "modern SaveAs3 binding/client path; same new-attempt owned host/document across producer and consumer",
+  "inventory_audit_commit": "927a087d1518c12dfbe8690913ce6ef77d5bb298",
+  "history_audit_commit": "a40b77fadba06e2fcf6b80ce3b917c26d66034ae",
+  "baseline_driver_sha256": "282d75cb4a4097dac4077bb7e70af68d8278c351880d0887ce8220ba46cd36d2",
+  "source_zip_sha256": "06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53",
+  "installed_pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+  "source_files_sha256": {
+    "scripts/diagnostics/typed_glb/BridgeCore.cs": "e0eb4798504618d9e559e60b66419a7ee1c055dff09ed47bc5f1d3112914341d",
+    "scripts/diagnostics/typed_glb/README.md": "7963604be25752861d2c0e44f421c89369e62dfe68bd8dd077680df5d34fe69a",
+    "scripts/diagnostics/typed_glb/TypedGlbBridge.cs": "cd83ffbb3645f82068fb09a77ebe9e66a1b6557497fe7a928f30e384873962aa",
+    "scripts/diagnostics/typed_glb/bridge_control.py": "f6f670087f08e364f034fe4a324dd55585b8eecba33b9aaeb9d78416b22d9552",
+    "scripts/diagnostics/typed_glb/build-typed-glb-bridge.ps1": "62e669290b8899c063967adc0f36004a403b177ed7977822f6d9e70b566c39ca",
+    "scripts/diagnostics/typed_glb/portable/NuGet.Config": "9508cae5f76364f56e80eb97cb16493977243cf38e5cca6284e3d74f83b20a2c",
+    "scripts/diagnostics/typed_glb/portable/PortablePiaStub.cs": "dd3271d3d74f949a0013c2af42d0c3ba346699aa7646e71c29ccd052aa6e0ff6",
+    "scripts/diagnostics/typed_glb/portable/PortableTests.cs": "6b80e45a61f6e5122f66953b3e69f637501405a1ff28f79d9ca989d5f227a079",
+    "scripts/diagnostics/typed_glb/portable/PortableTests.csproj": "ccb329ffbdb78b8cbca7527787eeba614a2b9a8f00d0559484cd545ac8d259e2",
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": "9eb915ff9c3b0fcfd7bfb78a8db58cd2e7f695450b3a278165134e47fcee3a67",
+    "scripts/diagnostics/typed_glb/test_bridge_control.py": "71cbe21dc62df919f142b1ef28c98a9acb73ae644249c49e3ab5eaa4a33e1517"
+  },
+  "validation": {
+    "python_candidate_tests": 19,
+    "python_candidate_failed": 0,
+    "related_tests_run": 45,
+    "related_failed": 0,
+    "related_skipped": 1,
+    "related_skip_reason": "optional native-gate Draco decoder",
+    "dotnet_sdk": "6.0.136",
+    "dotnet_runtime": "6.0.36",
+    "csharp_language_version": "5",
+    "full_candidate_compiled_with_portable_pia_stub": true,
+    "csharp_build_warnings": 0,
+    "csharp_build_errors": 0,
+    "portable_csharp_assertions": 34,
+    "initial_isolated_dotnet_run_command": "build succeeded but SDK run startup path resolved to default missing directory; corrected to explicit build then temporary DLL execution",
+    "PowerShell_parser_checked": false,
+    "product_src_CI_and_existing_tests_unchanged_from_927a087": true,
+    "historical_audit_replay_byte_identical": true
+  },
+  "native": {
+    "actual_installed_PIA_compile": false,
+    "windows_pipe_DACL_PID_verified": false,
+    "COM_identity_handshake": false,
+    "typed_SaveAs3_attempts": 0,
+    "new_CAD_runs": 0,
+    "VM_operations": 0,
+    "CI_operations": 0,
+    "push": false,
+    "GLB_fixed": false
+  },
+  "next_steps_owned_by_coordinator": [
+    "personal source/protocol review",
+    "zero-CAD Windows installed-PIA compilation",
+    "review then one zero-GLB identity attempt with original CAD fixture",
+    "review then separately authorize one invoke attempt"
+  ],
+  "limits": [
+    "portable PIA stub is syntax/protocol evidence only",
+    "NORMAL consume/ACK-loss is unknown; no blind release/resend",
+    "identity mode still creates CAD fixture and preceding three exports; not zero CAD",
+    "historical Blender user file identity remains unknown"
+  ]
+}

@@ -1,11 +1,15 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-12 历史 Blender 成功线索与原件对照
+
+用户确认此前 SWCLI GLB 在 Blender 实际导入可用，具体文件/运行尚未知，不要求复测。已先行[独立核对现有历史原件](../verification/glb-history-offline-2026-11-12.md)：两次同组旧 API assembly 均为真实 BIN720/12三角形，part 均为 BIN0；保存/RO重开零件与首次关闭重开前装配体上下文不同，不能归因未证明的文档/版本/API因素。成功 GLB SHA `4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421` 与未改字节副本已固定；保留旧过宽校验曾误接受 part 与实际 assembly 成功并存的事实，不泛化历史一直失败。离线重放结果逐字节一致，本地提交 a40b77f；无新 CAD/Blender/CI 运行。
+
 ## 2026-11-12 固定文件采集已完成
 
-统筹对 e6fc46c 仅执行一次零 CAD collector，四 required DLL 全为 AMD64，实际版本／hash／双渠道 stat 指纹稳定，metadata helper exit=0；两项旧 XR 背景文件缺失。73 条静态导入只作固定位置存在性观察，签名只解码不验信任。[独立审计](../verification/glb-exporter-native-inventory-audit-2026-11-12.md)不升级为运行依赖或 GLB 支持。现推进既有 C# 同 host／同 document 现代 SaveAs3 调用层候选代码及便携测试，尚未 VM／CI 执行；不扩路线、不回旧 API、不修 BIN。
+统筹对 e6fc46c 仅执行一次零 CAD collector，四 required DLL 全为 AMD64，实际版本／hash／双渠道 stat 指纹稳定，metadata helper exit=0；两项旧 XR 背景文件缺失。73 条静态导入只作固定位置存在性观察，签名只解码不验信任。[独立审计](../verification/glb-exporter-native-inventory-audit-2026-11-12.md)不升级为运行依赖或 GLB 支持。既有 [C# 同 host／同 document 候选](../../scripts/diagnostics/typed_glb/README.md)现已准备，19项 Python 协议/包装器/原件审计测试及34条 C#纯断言通过；整份源码仅对测试替身做 C#5 编译。实际 Windows PIA 编译、管道/COM握手和GLB调用仍未执行；交统筹亲审后先零CAD编译，再零GLB保存身份预检，最后另行单次invoke。不扩路线、不回旧API、不修BIN，不把准备通过当GLB修复。
 
 
-## 2026-11-11 最新局部证据
+## 2026-11-11 局部证据与当时安排（历史）
 
 - 固定 d2a8e606 的 fresh Parameter B seed 私有 part/front fixture 已由统筹单次运行通过；七个独立圆几何窗口及四个目标 Get3 观察窗口、保存只读重开、源哈希及清理均经[独立离线审计](../verification/getter-fresh-binding-native-audit-2026-11-11.md)。不替代 CI/full/public 验收。
 - 已审阅 1beaa471 driver、固定 70d8c9e 的可见启动对照由统筹单次执行，实际 Visible=true/CIP=false 下 part GLB 仍为 JSON3704/BIN0，首错停止。[原件审计](../verification/glb-visible-startup-native-audit-2026-11-11.md)保留三个成功格式、四次现代导出、无 GLB after CAD 读取、原始文件和清理边界。
