@@ -10,7 +10,7 @@
 
 成功保留同一个 verified handle。原先一次 capture 后提前 return 的函数改为独立 `verify_public_host`：每次 public report 可读且带 host 时核原 owner 条件与保留 identity 的 PID，终局必须有可读带 host 的报告；不能因为 preflight 已捕获就跳过。初次匹配标记 `public_host_matches_preflight` 只是记录，不缓存后续核对结果；已经匹配后再出现 PID/owner 漂移仍拒绝，不打开另一个句柄。
 
-预检从原 started 计时，CLI 请求仍600秒；status 子进程总等待上限 min(600, 原1800剩余时间)，结束后及 capture 后、public Popen 前再检查整组预算，没有重置或额外组。原 public 139x3、三额外 cold probe、lease/CAS/完整状态/原生文件持久化、质心窄容差及其他几何规则均不动。
+预检从原 started 计时，CLI 参数请求值 requested_cli_timeout_seconds=600；当前产品 `swcli.daemon.main.run` 的不带 `--details` status 分支实际调用 `call_daemon("daemon.health", timeout_seconds=10.0, connect_timeout_seconds=1.0)`，不转发 CLI 的 args.request_timeout，因此 effective_health_rpc_timeout_seconds=10、effective_health_connect_timeout_seconds=1；来源契约保存在 health_rpc_timeout_contract。原生操作600秒预算不变。status 子进程总等待上限 min(600, 原1800剩余时间)，结束后及 capture 后、public Popen 前再检查整组预算，没有重置或额外组。原 public 139x3、三额外 cold probe、lease/CAS/完整状态/原生文件持久化、质心窄容差及其他几何规则均不动。
 
 收尾策略保持原样：至多一次正常 stop；未验证 native handle 不终止、不重开；已验证同 handle 的应急终止仍保持原重核和失败不翻绿；公共宿主不匹配时绝不终止新发现的 PID。预检失败可以避免由本 public worker 开文档后造成的 ActiveDocument，但不保证 stop 必成功或无 verified handle 时 native 退出可确认；原首错/stop/daemon/native/helper退出边界都保留。
 
@@ -21,3 +21,8 @@ runner 41项/0.125秒通过，Windows 当前进程 API 1项在 macOS 跳过。�
 关联85项/26.421秒通过（1 skip），SDK generator/strict6文件/8 consumer拒绝通过。完整 portable 1988项/79.958秒通过（27 skip），最终源码/日志 hash 见 `docs/evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation.json`。两改动 Python 文件 Python3.9 AST/diff 通过；原 helper 整文件逐字等于 e2f，validate_identity/terminate/exited/EXPECTED_CI_IMAGE AST 与085ae及e2f相等，原 ownership predicate表达式 AST 相等。42902927609 独立原件审计复跑相等，不做新CI结果查询。
 
 原件和本地日志在 `/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/identity-observer-push-42902927609/`。先前纯docs审计已独立提交推送 `3a38693`；本同步实现只做本地中文提交供root审阅，未push实现、未新dispatch/native/VM。真实 Windows/SOLIDWORKS同步预检尚未运行，路径准入首差异仍待取证。root另行明确授权后才可启动新的原生运行。
+
+
+## c6004a5 后的最小取证语义补正
+
+root指出旧 report 的 request_timeout_seconds=600 容易被误读为实际 health RPC 等待；原文“CLI请求仍600”不准确。补正仅 wrapper 报告字段、关联测试和文档，不修改产品 CLI 或任何实际超时。现分别保存 requested_cli_timeout_seconds=600、effective_health_rpc_timeout_seconds=10、effective_health_connect_timeout_seconds=1 与来源契约；process_timeout_seconds=min(600,原1800剩余)保持不变。新增 portable proof 使用 wrapper 实际 command 进入真实 swcli.cli.main -> swcli.daemon.main.run，仅 mock 最终 call_daemon，确认一次 daemon.health 调用实际10/1，完整 JSON 原样输出；不以模拟 subprocess stdout 冒充路由证明。关联 runner+CLI 共78项/1.668秒通过（1 Windows skip），2文件Python3.9 AST/diff通过；wrapper完整AST除报告metadata dict外与c600相等，实际执行/超时/守护均无变化。最终验证和新源码SHA见 timeout-semantics-correction-validation.json，原 c600 完整测试结果保留为历史证据。本次仍未push实现/dispatch/native/VM。

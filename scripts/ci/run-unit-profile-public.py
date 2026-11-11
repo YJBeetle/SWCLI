@@ -61,7 +61,7 @@ def execute(args):
         command=[sys.executable,'-I','-m','swcli','--endpoint',endpoint,'--request-timeout','600','daemon','status','--json']
         remaining=1800-(time.monotonic()-started)
         evidence.require(remaining>0,'public group exceeded 1800s')
-        preflight=report['identity_preflight']=dict(command=command,request_timeout_seconds=600,process_timeout_seconds=min(600,remaining))
+        preflight=report['identity_preflight']=dict(command=command,requested_cli_timeout_seconds=600,effective_health_rpc_timeout_seconds=10.0,effective_health_connect_timeout_seconds=1.0,health_rpc_timeout_contract='swcli.daemon.main.run: status without --details calls daemon.health with fixed 10s response / 1s connect; CLI --request-timeout is not forwarded',process_timeout_seconds=min(600,remaining))
         save()
         def persist(stdout,stderr):
             for name,raw in (('stdout',stdout),('stderr',stderr)):

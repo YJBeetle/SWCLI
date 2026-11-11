@@ -71,7 +71,6 @@
   "identity_predicate_termination_and_constant_ast_unchanged": true,
   "ownership_predicate_ast_unchanged": true,
   "product_and_workflow_unchanged": true,
-  "preflight_request_seconds": 600,
   "preflight_process_timeout": "min(600, 1800 - (monotonic - original_started))",
   "group_seconds": 1800,
   "public_cases_required": {
@@ -85,5 +84,10 @@
   "new_native_ci_dispatched": false,
   "vm_used": false,
   "underlying_solidworks_path_mismatch_resolved": false,
-  "old_failure_and_exit_evidence_preserved": true
+  "old_failure_and_exit_evidence_preserved": true,
+  "requested_cli_timeout_seconds": 600,
+  "effective_health_rpc_timeout_seconds": 10.0,
+  "effective_health_connect_timeout_seconds": 1.0,
+  "timeout_contract": "swcli.daemon.main.run status without --details ignores args.request_timeout and calls daemon.health with fixed 10s/1s",
+  "historical_implementation": "c6004a5 used ambiguous request_timeout_seconds report key; semantic-only correction recorded separately"
 }

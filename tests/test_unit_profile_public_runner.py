@@ -263,7 +263,27 @@ class WritePublicEmergencyExitTests(unittest.TestCase):
         self.setup_case();self.invoke(clock=[0,1,1500,1501,1502,1503,1504])
         self.assertEqual(self.status.call_args.kwargs['timeout'],300)
         report=json.loads((self.args.output_dir/'host-report.json').read_bytes());self.assertEqual(report['duration_seconds'],1504)
-        self.assertEqual(report['identity_preflight']['request_timeout_seconds'],600)
+        self.assertEqual(report['identity_preflight']['requested_cli_timeout_seconds'],600)
+
+    def test_real_cli_status_route_uses_fixed_health_timeout_despite_requested_600(self):
+        import contextlib,io
+        from importlib import import_module
+        from swcli.cli import main
+        self.setup_case();self.invoke()
+        command=self.status.call_args.args[0]
+        report=json.loads((self.args.output_dir/'host-report.json').read_bytes())['identity_preflight']
+        self.assertNotIn('request_timeout_seconds',report)
+        self.assertEqual(report['requested_cli_timeout_seconds'],600)
+        self.assertEqual(report['process_timeout_seconds'],600)
+        self.assertIn('swcli.daemon.main.run',report['health_rpc_timeout_contract'])
+        response=dict(success=True,result=dict(host_connected=True,recovery_required=False,host=self.status_host))
+        daemon=import_module('swcli.daemon.main');stdout=io.StringIO()
+        with mock.patch.object(daemon,'call_daemon',return_value=response) as rpc,contextlib.redirect_stdout(stdout):
+            code=main(command[4:])
+        self.assertEqual(code,0);self.assertEqual(json.loads(stdout.getvalue()),response)
+        rpc.assert_called_once_with('daemon.health',endpoint=command[command.index('--endpoint')+1],timeout_seconds=10.0,connect_timeout_seconds=1.0)
+        self.assertEqual(report['effective_health_rpc_timeout_seconds'],rpc.call_args.kwargs['timeout_seconds'])
+        self.assertEqual(report['effective_health_connect_timeout_seconds'],rpc.call_args.kwargs['connect_timeout_seconds'])
 
     def test_preflight_budget_exceeded_stops_before_capture_and_public(self):
         self.setup_case()

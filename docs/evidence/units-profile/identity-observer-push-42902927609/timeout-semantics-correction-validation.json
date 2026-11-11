@@ -1,0 +1,59 @@
+{
+  "source_base": "c6004a5fdaeecffb525abb3e30e40f00c72a5254",
+  "scope": "preflight timeout report semantics only; no execution or timeout changes",
+  "related": {
+    "modules": [
+      "test_unit_profile_public_runner",
+      "test_cli"
+    ],
+    "tests": 78,
+    "seconds": 1.668,
+    "skipped": 1,
+    "success": true
+  },
+  "new_proof": "test_unit_profile_public_runner.WritePublicEmergencyExitTests.test_real_cli_status_route_uses_fixed_health_timeout_despite_requested_600",
+  "proof": {
+    "route": "actual wrapper command -> swcli.cli.main -> swcli.daemon.main.run; only final call_daemon mocked",
+    "operation": "daemon.health",
+    "calls": 1,
+    "requested_cli_timeout_seconds": 600,
+    "effective_health_rpc_timeout_seconds": 10.0,
+    "effective_health_connect_timeout_seconds": 1.0,
+    "process_timeout_seconds": "min(600, original 1800 remaining)"
+  },
+  "contract_source": {
+    "path": "src/swcli/daemon/main.py",
+    "symbol": "run: status without --details",
+    "sha256": "eef451cd3ab4853d4daefe8d776981799901296ee7def3484ce216321045979c"
+  },
+  "python39_ast_files": 2,
+  "wrapper_ast_equal_to_c600_except_report_metadata_dict": true,
+  "product_cli_daemon_and_workflow_unchanged": true,
+  "identity_and_transport_helpers_unchanged": true,
+  "source_sha256": {
+    "scripts/ci/run-unit-profile-public.py": "3f18ef56930227ff53e3ef34d5f634da741cf9f93cb5ccdce5d0eaf48c2b3997",
+    "tests/test_unit_profile_public_runner.py": "a1e0f25146f8fed8ea666498d1887b91da9211b261a7ca0d25686a2d35236bd0"
+  },
+  "logs": {
+    "related": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/timeout-semantics-correction/units-preflight-timeout-related.log",
+      "sha256": "1dbd7075790d19ba00a40a694586f60c034e87d63d39650e96c60751e1acaa3e",
+      "exit_code": 0
+    },
+    "static": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/timeout-semantics-correction/units-preflight-timeout-static.log",
+      "sha256": "8c120b9701fc4cfaa9d28befa1a16f5833879c3c7f7cc8fed06d682db7cda52a",
+      "exit_code": 0
+    },
+    "static_source": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/timeout-semantics-correction/units-preflight-timeout-static.py",
+      "sha256": "505c1e6737e36466c0776b35c1c62a660b095b326be76987fab81747db78e511",
+      "exit_code": 0
+    }
+  },
+  "diff_check": true,
+  "prior_full_sdk_evidence": "synchronous-preflight-validation.json: c600 full1988/79.958s/skip27 and SDK generator/strict6/consumer8; not rerun for metadata-only correction",
+  "new_native_ci_dispatched": false,
+  "new_windows_native_result": false,
+  "implementation_pushed": false
+}
