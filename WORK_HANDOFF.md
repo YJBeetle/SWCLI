@@ -410,3 +410,12 @@ metadata/preflight/receipt/route核对在docs/evidence/units-profile/public-sync
 root批准仅准备路径身份候选、local tests/提交供亲审，不dispatch。unit_owned_native新增一次GetLongPathNameW有界32768、DWORD/wchar/返回长度/NUL/raw buffer，失败关闭不扩容重试。实际OS展开完整路径必须满足原expected完整谓词，另os.stat raw/expected + os.path.samefile及非零inode/device证据均同一；不字符串替换/basename/白名单/realpath兜底。raw/展开/文件标识/比较/异常先通过原deepcopy observer fsync，返回仍原raw4字段，同held handle终止严格重核raw不变；admission_identity副本明确标注展开representation。原process_identity AST与95a相同，validate/terminate/exited/expected与95a/085ae相同；输入副本的representation变化如实披露。wrapper/src/workflow/WriteGate/600-1800/417+3cold/域几何无diff。
 
 最终关联105/24.938s（3skip）、full2008/74.141s（29skip）、SDK生成strict6/consumer8、Python3.9 AST3/diff通过。新增两Windows-only真实短长同文件/不同缺失文件探针本机都skip；macOS mock/wchar4不冒充Windows证明。精确源/原日志SHA见docs/evidence/units-profile/public-sync-preflight-42928824277/short-path-candidate-validation.json，审阅说明docs/verification/units-short-image-42928824277-review.md。原audit重复一致/错head拒绝；未新CI/VM/main/release、不push候选，等待root精确head亲审。
+
+
+## root亲审严格路径候选后唯一42935636514，初始快照即停
+
+root完整亲审459b0cf helper/19tests/runner4行适配，核产品src/workflow/wrapper对95a无diff，亲跑新路径+runner61项0.407s（3skip）通过，明确准入为OS-expanded整条expected+samefile/stat匹配可用，raw4字段/PID/creation/同handle终止不变，不宣称Windows实际证明已过。批准显式push精确459b0cf88892fe1af013156994568d6e52e6df2e后仅一次原公共native。派前核remote95a、只含已授权74a/ccf/459三提交；受跟踪干净、原件untracked未stage。push后remote=exact459；全部14个同ref manual记录核同head0派、未完0，独立单位ref并发组/无workflow并发/cancel=false与原workflowSHA均不变。
+
+只派一次 https://github.com/YJBeetle/SWCLI/actions/runs/42935636514 ，官方event workflow_dispatch/head459/ref codex/docprops-units-expanded/attempt1已核；actual route job130244936823已success，单次读取原log核ROUTE_*三units=true/native_full=false及Validated native route: units-write-public。一次初始run/jobs snapshot：run in_progress，Win3.9 job130244936740及3.14 job130244936949 in_progress，wheel130244936395 success、route success、tag-policy skipped。Windows真实路径正负probe尚未在该快照完成，不算通过；既有workflow须portable成功才可native，前置失败不重试native。
+
+meta/preflight/receipt/initial/route审计在docs/evidence/units-profile/public-short-path-42935636514，原route/派前查询原件在同名evidence。初始快照后停止全部CI查询、不poll/不重派，不动VM/main/release。此后仅本地docs快照提交，remote与业务源保持459；旧42928824277 failure/公共0/cold0/原生退出未确认/短长同文件未证明均保留。新run首失败待原件保存后再审，不自行重试API或放宽准入；成功也须root原件审417+3cold/同host-worker/保存RO/hash/strict geometry/CAS及真实退出后才能决定merge。
