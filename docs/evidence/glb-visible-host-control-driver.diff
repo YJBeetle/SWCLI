@@ -1,0 +1,187 @@
+--- root-persistent/local-glb-host-control.py
++++ scripts/diagnostics/glb-visible-host-control.py
+@@ -1 +1 @@
+-"""Authorized local/private one-fixture calibration, never a CI/public receipt."""
++"""Review candidate: one owned visible-startup GLB control; never CI/public acceptance."""
+@@ -6,0 +7 @@
++import struct
+@@ -11,0 +13 @@
++from zipfile import ZipFile
+@@ -16 +18,4 @@
+-OUT = BASE / 'glb-host-control-70d8c9e-01'
++OUT = BASE / 'glb-visible-startup-70d8c9e-01'
++SOURCE_ZIP_SHA256 = '06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53'
++VISIBLE_STARTUP = True
++CONTROL_KIND = 'owned-visible-startup-mode; UserControl and Visible differ from hidden mode'
+@@ -18,5 +23,119 @@
+-sys.path.insert(0, str(SOURCE / 'src'))
+-spec = importlib.util.spec_from_file_location('pinned_local_getter', SOURCE / 'scripts/ci/verify-native-getter-configurations.py')
+-module = importlib.util.module_from_spec(spec)
+-spec.loader.exec_module(module)
+-module.SWCONST = SWCONST
++def verify_pinned_source():
++    archive = BASE / 'getter-source-70d8c9e.zip'
++    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
++    checked(digest == SOURCE_ZIP_SHA256, 'pinned source archive changed')
++    with ZipFile(archive) as packed:
++        for name in packed.namelist():
++            if not name.endswith('/'):
++                checked((SOURCE / name).read_bytes() == packed.read(name), 'pinned extracted source changed: ' + name)
++    return digest
++
++
++def load_pinned_module():
++    sys.path.insert(0, str(SOURCE / 'src'))
++    spec = importlib.util.spec_from_file_location('pinned_local_getter', SOURCE / 'scripts/ci/verify-native-getter-configurations.py')
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    module.SWCONST = SWCONST
++    return module
++
++
++def checked(condition, message):
++    if not condition:
++        raise RuntimeError(message)
++
++
++def host_snapshot(app):
++    from swcli.hosts.windows import _com_value
++    snapshot = {name: _com_value(app, name) for name in
++                ('Visible', 'CommandInProgress', 'UserControl', 'UserControlBackground')}
++    checked(all(type(value) is bool for value in snapshot.values()), 'host boolean state is unreadable')
++    snapshot['process_id'] = _com_value(app, 'GetProcessID')
++    checked(type(snapshot['process_id']) is int and snapshot['process_id'] > 0, 'host PID is unreadable')
++    return snapshot
++
++
++def export_snapshot(app, document, source, expected_sha256):
++    from swcli.hosts.windows import _com_value
++    from swcli.hosts.windows_custom_properties import _state
++    host = host_snapshot(app)
++    checked(host['Visible'] is True, 'visible-startup host is no longer visible')
++    identity = app.IsSame(document, _com_value(app, 'ActiveDoc'))
++    checked(type(identity) is int and identity == 1, 'export foreground identity differs or is unknown')
++    state = dict(metadata=list(_state(document)), path=_com_value(document, 'GetPathName'),
++                 title=_com_value(document, 'GetTitle'), readonly=_com_value(document, 'IsOpenedReadOnly'))
++    checked(state['metadata'][0] == 1 and state['metadata'][2] is False and state['readonly'] is False,
++            'export requires the saved clean writable part')
++    manager = _com_value(document, 'SketchManager')
++    checked(manager is not None and _com_value(manager, 'ActiveSketch') is None, 'export sketch is active or unreadable')
++    digest = hashlib.sha256(source.read_bytes()).hexdigest()
++    checked(digest == expected_sha256, 'export source bytes changed')
++    return dict(host=host, document=state, foreground_identity=identity, source_sha256=digest)
++
++
++def observe_export(app, document, source, expected_sha256, expected_host, fmt, exporter, call, row):
++    from swcli.hosts.native_trace import trace_native_request
++    def observe(phase):
++        with trace_native_request('local-control-' + fmt + '-' + phase, 'diagnostic.glb-control-state'):
++            return export_snapshot(app, document, source, expected_sha256)
++    row['before'] = call('observe-before-' + fmt, lambda: observe('before'))
++    checked(row['before']['host'] == expected_host, 'host state changed before export')
++    row['result'] = result = call('export-' + fmt, exporter)
++    # Preserve the first native/content failure; do not perform post-failure CAD reads.
++    checked(result.get('ok') is True, 'first export content/native failure: ' + fmt)
++    row['after'] = call('observe-after-' + fmt, lambda: observe('after'))
++    checked(row['after'] == row['before'], 'export changed host/document/configuration/source state')
++    return result
++
++
++def audit_control_trace(path, worker_pid, *, complete):
++    rows = [json.loads(line) for line in path.read_text(encoding='utf-8-sig').splitlines() if line.startswith('{')]
++    native = [row for row in rows if row.get('event') == 'swcli.native-call']
++    forbidden = [row for row in native if row.get('phase') == 'begin' and
++                 ('SetUserPreference' in row.get('call', '') or
++                  row.get('call') in ('SldWorks.CommandInProgress.enter', 'SldWorks.CommandInProgress.restore'))]
++    checked(not forbidden, 'control trace contains preference or CommandInProgress writes')
++    exports = {}
++    for fmt in ('STL', '3MF', 'AMF', 'GLB'):
++        request = [row for row in native if row.get('request_id') == 'local-export-' + fmt]
++        if not request and not complete:
++            continue
++        checked(request and all(row.get('worker_pid') == worker_pid for row in request), 'export worker/request differs')
++        calls = [row for row in request if row.get('call') == 'IModelDocExtension.SaveAs3']
++        checked(sum(row.get('phase') == 'begin' for row in calls) == 1, 'export must attempt modern SaveAs3 once')
++        if complete:
++            checked(sum(row.get('phase') == 'end' for row in calls) == 1 and
++                    not any(row.get('phase') == 'error' for row in request), 'successful export trace is incomplete')
++        checked(not any(row.get('call') in ('IModelDoc2.SaveAs', 'IModelDoc2.SaveAs2', 'IModelDoc2.SaveAs3')
++                        for row in request), 'obsolete save API appeared')
++        exports[fmt] = dict(modern_save_attempts=1)
++    return dict(worker_pid=worker_pid, preference_setters=0, CommandInProgress_setters=0, exports=exports)
++
++
++def collect_glb_artifacts(output):
++    """Offline diagnostics after worker exit; never replace its first failure."""
++    artifacts = []
++    for path in sorted(output.rglob('*')):
++        if not path.is_file() or (path.suffix.lower() != '.glb' and path.name != 'manifest.json'):
++            continue
++        data = path.read_bytes()
++        row = dict(path=str(path.relative_to(output)), size_bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
++        try:
++            if path.name == 'manifest.json':
++                row['manifest'] = json.loads(data)
++            else:
++                magic, version, total = struct.unpack_from('<4sII', data)
++                checked((magic, version, total) == (b'glTF', 2, len(data)), 'invalid GLB header')
++                chunks = []; offset = 12
++                while offset < len(data):
++                    length, kind = struct.unpack_from('<I4s', data, offset); offset += 8
++                    checked(length % 4 == 0 and offset + length <= len(data), 'invalid GLB chunk')
++                    chunks.append(dict(kind=kind.decode('ascii'), bytes=length))
++                    if kind == b'JSON': row['declared_buffers'] = json.loads(data[offset:offset + length]).get('buffers')
++                    offset += length
++                row['chunks'] = chunks
++        except Exception as error:
++            row['parse_error'] = dict(type=type(error).__name__, message=str(error))
++        artifacts.append(row)
++    return artifacts
++
+@@ -32,0 +152,2 @@
++    verify_pinned_source()
++    module = load_pinned_module()
+@@ -42 +163,7 @@
+-        case.update(preparation_only=True, outputs=[])
++        case.update(preparation_only=True, outputs=[], export_controls=[])
++        report['native_call_worker_pid'] = os.getpid()
++        report['control_kind'] = CONTROL_KIND
++        report['only_visible_property_changed'] = False
++        report['actual_host_before_fixture'] = expected_host = call('observe-owned-visible-host', lambda: host_snapshot(app))
++        module.require(expected_host['Visible'] is True and expected_host['process_id'] == report['host']['process_id'],
++                       'owned visible-startup host state/PID differs')
+@@ -58 +185,4 @@
+-            result=call('export-'+fmt,export)
++            row = dict(format=fmt)
++            case['export_controls'].append(row)
++            result = observe_export(app, doc, output/'component.SLDPRT', case['source_sha256'], expected_host,
++                                    fmt, export, call, row)
+@@ -60 +189,0 @@
+-            module.require(result.get('ok') is True,'first export content/native failure: '+fmt)
+@@ -67 +196 @@
+-    return module.harness.run(OUT,SWCONST,False,case_runner=one_case,case_plan=[('part','front',False)],diagnostic_case='local-private-GLB-host-control')
++    return module.harness.run(OUT,SWCONST,VISIBLE_STARTUP,case_runner=one_case,case_plan=[('part','front',False)],diagnostic_case='local-private-GLB-visible-startup-control')
+@@ -73,0 +203,2 @@
++    archive_digest = verify_pinned_source()
++    module = load_pinned_module()
+@@ -88,0 +220 @@
++        record['launch_pid_kind']='Popen launch/venv redirector; actual native worker recorded separately'
+@@ -113 +245,6 @@
+-    record.update(worker_exit=process.returncode,failure=failure,elapsed_seconds=time.monotonic()-started,pids_after=inventory())
++    try:
++        glb_artifacts = collect_glb_artifacts(OUT)
++    except Exception as error:
++        glb_artifacts = [dict(diagnostic_error=dict(type=type(error).__name__, message=str(error)))]
++    record.update(worker_exit=process.returncode,failure=failure,elapsed_seconds=time.monotonic()-started,pids_after=inventory(),
++                  control_kind=CONTROL_KIND, only_visible_property_changed=False, glb_artifacts=glb_artifacts)
+@@ -115,0 +253,10 @@
++        record['actual_native_call_worker_pid']=json.loads((OUT/'report.json').read_text(encoding='utf-8')).get('native_call_worker_pid')
++        try:
++            report = json.loads((OUT/'report.json').read_text(encoding='utf-8'))
++            record['export_trace_audit'] = audit_control_trace(OUT/'worker.stderr.log', record['actual_native_call_worker_pid'],
++                                                              complete=report.get('success') is True)
++        except Exception as error:
++            record['export_trace_audit_error'] = dict(type=type(error).__name__, message=str(error))
++            if process.returncode == 0 and failure is None:
++                failure = 'offline export trace audit failed: ' + str(error)
++                record['failure'] = failure

@@ -1,0 +1,256 @@
+{
+  "scope": "offline local originals only; no VM/CI; proposed visible-startup control not executed",
+  "historical_runs": [
+    {
+      "run_id": "42173065847",
+      "tested_head_from_repository_verification_document": "254d1ad11847d002f0af07d630beba3350b7f66d",
+      "original_zip": "/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/glb-history-offline/42173065847/original-native.zip",
+      "zip_sha256": "ef7dee25e3d995c5cc918d8a41d8d2cb4fc08a59f574fe6c941e12f8f4c323f4",
+      "host_report": {
+        "language": "english",
+        "owned_by_daemon": true,
+        "platform": "windows",
+        "process_id": 5464,
+        "revision": "33.5.0",
+        "shared_interactive": false,
+        "solidworks_revision": "33.5.0",
+        "startup_wait_seconds": 0.5779999999999745,
+        "visible": false
+      },
+      "visibility_evidence": "startup read cached in daemon; no export-time Visible readback retained",
+      "command_in_progress": "source-inferred true inside owned native_api_sequence; no per-export native-call trace retained in these grouped artifacts",
+      "exports": [
+        {
+          "member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/assembly-export.GLB",
+          "request_id": "bb30b6c3-5d0f-4dee-9fe7-efa897269922",
+          "document_type": 2,
+          "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+          "bytes": 4748,
+          "chunks": [
+            {
+              "type": "JSON",
+              "bytes": 4000
+            },
+            {
+              "type": "BIN\u0000",
+              "bytes": 720
+            }
+          ],
+          "strict_container_valid": true,
+          "decoded_mesh": {
+            "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+            "size_bytes": 4748,
+            "mesh_count": 1,
+            "primitives": [
+              {
+                "mesh": 0,
+                "mode": 4,
+                "draco_decoded": false,
+                "indices": 36,
+                "positions": 24,
+                "normals": 24,
+                "triangles": 12,
+                "bounds_local": [
+                  [
+                    -0.019999999552965164,
+                    -0.014999999664723873,
+                    0.0
+                  ],
+                  [
+                    0.019999999552965164,
+                    0.014999999664723873,
+                    0.009999999776482582
+                  ]
+                ],
+                "decoded_sha256": "72db765969a7c7a8b07d2a6b722796b1e408e20b05c6294d7937c207cfa9c9cb"
+              }
+            ],
+            "triangles": 12,
+            "positions": 24,
+            "normals": 24,
+            "extensions_used": [],
+            "extensions_required": [],
+            "materials": [
+              {
+                "name": "defaultplastic",
+                "pbrMetallicRoughness": {
+                  "baseColorFactor": [
+                    0.5989418101001601,
+                    0.6455552910764322,
+                    0.8591735777059335,
+                    1.0
+                  ],
+                  "metallicFactor": 0.0,
+                  "roughnessFactor": 0.16999999880790712
+                }
+              }
+            ],
+            "camera_count": 1,
+            "animation_count": 0,
+            "scene_extensions": {}
+          }
+        },
+        {
+          "member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.GLB",
+          "request_id": "c53509f4-3fa2-4454-9329-1708c2798ff5",
+          "document_type": 1,
+          "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+          "bytes": 3800,
+          "chunks": [
+            {
+              "type": "JSON",
+              "bytes": 3772
+            },
+            {
+              "type": "BIN\u0000",
+              "bytes": 0
+            }
+          ],
+          "strict_container_valid": false
+        }
+      ]
+    },
+    {
+      "run_id": "42199134982",
+      "tested_head_from_repository_verification_document": "77be93d7d709cdc998f552ff715d75115f020114",
+      "original_zip": "/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/glb-history-offline/42199134982/original-native.zip",
+      "zip_sha256": "bb200e9a0fd5e67381107c69fdc333aabe96086b9cd1898c5a9aa3dfcea060b5",
+      "host_report": {
+        "language": "english",
+        "owned_by_daemon": true,
+        "platform": "windows",
+        "process_id": 8284,
+        "revision": "33.5.0",
+        "shared_interactive": false,
+        "solidworks_revision": "33.5.0",
+        "startup_wait_seconds": 0.5779999999999745,
+        "visible": false
+      },
+      "visibility_evidence": "startup read cached in daemon; no export-time Visible readback retained",
+      "command_in_progress": "source-inferred true inside owned native_api_sequence; no per-export native-call trace retained in these grouped artifacts",
+      "exports": [
+        {
+          "member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/assembly-export.GLB",
+          "request_id": "3e8fa27f-6dba-432b-a289-274d82161f37",
+          "document_type": 2,
+          "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+          "bytes": 4748,
+          "chunks": [
+            {
+              "type": "JSON",
+              "bytes": 4000
+            },
+            {
+              "type": "BIN\u0000",
+              "bytes": 720
+            }
+          ],
+          "strict_container_valid": true,
+          "decoded_mesh": {
+            "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+            "size_bytes": 4748,
+            "mesh_count": 1,
+            "primitives": [
+              {
+                "mesh": 0,
+                "mode": 4,
+                "draco_decoded": false,
+                "indices": 36,
+                "positions": 24,
+                "normals": 24,
+                "triangles": 12,
+                "bounds_local": [
+                  [
+                    -0.019999999552965164,
+                    -0.014999999664723873,
+                    0.0
+                  ],
+                  [
+                    0.019999999552965164,
+                    0.014999999664723873,
+                    0.009999999776482582
+                  ]
+                ],
+                "decoded_sha256": "72db765969a7c7a8b07d2a6b722796b1e408e20b05c6294d7937c207cfa9c9cb"
+              }
+            ],
+            "triangles": 12,
+            "positions": 24,
+            "normals": 24,
+            "extensions_used": [],
+            "extensions_required": [],
+            "materials": [
+              {
+                "name": "defaultplastic",
+                "pbrMetallicRoughness": {
+                  "baseColorFactor": [
+                    0.5989418101001601,
+                    0.6455552910764322,
+                    0.8591735777059335,
+                    1.0
+                  ],
+                  "metallicFactor": 0.0,
+                  "roughnessFactor": 0.16999999880790712
+                }
+              }
+            ],
+            "camera_count": 1,
+            "animation_count": 0,
+            "scene_extensions": {}
+          }
+        },
+        {
+          "member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.GLB",
+          "request_id": "cb03d265-cdb3-4cf0-ac16-0b093cc10e47",
+          "document_type": 1,
+          "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+          "bytes": 3800,
+          "chunks": [
+            {
+              "type": "JSON",
+              "bytes": 3772
+            },
+            {
+              "type": "BIN\u0000",
+              "bytes": 0
+            }
+          ],
+          "strict_container_valid": false
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "Two hidden-mode runs contain strictly valid assembly GLBs and invalid empty-BIN part GLBs in the same group.",
+    "Cached host.visible=false does not prove actual visibility at export time.",
+    "No valid hidden-mode part GLB or visible-mode GLB export was found in this bounded inspected set.",
+    "The modern 42405530053 visible-open profile exports no GLB and cannot establish visible GLB success.",
+    "No official GLB visibility requirement is inferred."
+  ],
+  "modern_ci_failure": {
+    "run_id": "42405530053",
+    "api": "IModelDocExtension.SaveAs3",
+    "glb_sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+    "BIN_bytes": 0,
+    "declared_buffer_bytes": 720,
+    "CIP_evidence": "request 7712054a-7f17-495b-a30a-7d37690bd042 entered, checked, exported once and restored native_api_sequence; raw booleans not logged"
+  },
+  "local_baseline": {
+    "head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+    "report_sha256": "7bcb3bc4119a67e7576abd91548455aa7c85280ed0d95767634501431fded19f",
+    "BIN_bytes": 0,
+    "glb_sha256": "04b83d8e0a2ebccd297fc116d17964e183eb081717ef27e1049d6340abcda2ba",
+    "CIP_evidence": "direct adapter path has no native_api_sequence; actual value was not recorded",
+    "Visible_evidence": "harness input false; actual export-time value not recorded"
+  },
+  "candidate": {
+    "fixture_API_expressions_AST_equal_to_baseline": true,
+    "source_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+    "source_zip_sha256": "06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53",
+    "baseline_driver_sha256": "282d75cb4a4097dac4077bb7e70af68d8278c351880d0887ce8220ba46cd36d2",
+    "experimental_setting": "owned startup visible False to True; changes UserControl and Visible",
+    "pure_Visible_property_experiment": false,
+    "executed": false,
+    "portable_test_count": 9
+  }
+}
