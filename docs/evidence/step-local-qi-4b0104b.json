@@ -1,0 +1,209 @@
+{
+  "source_commit": "4b0104bec301abfcf6163d25f0ff306a26a21e16",
+  "source_archive_sha256": "baacb00023feb4377945ef8b5dc75a1b14275b16fbcdcbc0274b63ae9d6808c0",
+  "source_archive_all_members_equal_reviewed_commit": true,
+  "source_archive_runtime_members": 183,
+  "source_archive_scope": "selected runtime source subset, not whole repository",
+  "report_sha256": "ad362253f064f9fb620b0775379debd598eaa17a2db1712afd498dca92e90f8f",
+  "artifact_path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/step-qi-once-4b0104b-01",
+  "success": true,
+  "verified_scope": "single local STEP data/QI/getter under default VM preferences; not import acceptance",
+  "host": {
+    "process_id": 8604,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "pywin32": "312",
+  "libraries": {
+    "swconst.tlb": {
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\swconst.tlb",
+      "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6"
+    },
+    "sldworks.tlb": {
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\sldworks.tlb",
+      "sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+    }
+  },
+  "input": {
+    "path": "C:\\Workspace\\SWCLI-series-20261111\\step-qi-input\\ap203-wireframe.step",
+    "sha256": "3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90",
+    "readonly": true,
+    "metadata": {
+      "size": 10595,
+      "device": 4217245827768940497,
+      "file_id": 1407374883640942,
+      "mtime_ns": 1794354712113357500,
+      "ctime_ns": 1794354712113357500,
+      "attributes": 33
+    },
+    "original_source": {
+      "run_id": 42413805736,
+      "head": "060f26178b4deabc330ef0959b9ec0f1704159cf",
+      "artifact_id": 13591430613,
+      "zip_sha256": "de9e6312b9fbfa0c4b0001ae1f54ce5c36d24ea3f59ee435b691716bef1666e7"
+    }
+  },
+  "input_all_metadata_checkpoints_equal": true,
+  "local_preferences": {
+    "swMultiCAD_Enable3DInterconnect": true,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": false,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "ci_42813151084_preferences": {
+    "swMultiCAD_Enable3DInterconnect": false,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": true,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 1,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "preference_differences": {
+    "swMultiCAD_Enable3DInterconnect": {
+      "local": true,
+      "ci": false
+    },
+    "swImportFreeCurves": {
+      "local": false,
+      "ci": true
+    },
+    "swImportCurvePreference": {
+      "local": 0,
+      "ci": 1
+    }
+  },
+  "query_result": true,
+  "map_configuration_data": false,
+  "catalog_before": 0,
+  "catalog_after": 0,
+  "call_counts": {
+    "trace.jsonl": {
+      "read-official-swconst": 1,
+      "acquire-owned-host": 1,
+      "wait-ready": 1,
+      "capture-owned-process": 1,
+      "verify-readonly-input-before": 1,
+      "host-hidden": 1,
+      "host-revision": 1,
+      "empty-catalog-before": 1,
+      "swMultiCAD_Enable3DInterconnect": 1,
+      "swImportSolidSurface": 1,
+      "swImportFreeCurves": 1,
+      "swImportNeutral_SolidandSurface": 1,
+      "swImportNeutral_FreeCurvesAndPoints": 1,
+      "swImportStepConfigData": 1,
+      "swImportCurvePreference": 1,
+      "swImportNeutral_CurvesAndPointsOption": 1,
+      "verify-readonly-input-before-data": 1,
+      "GetImportFileData": 1,
+      "IImportStepData.QueryInterface": 1,
+      "MapConfigurationData": 1,
+      "verify-readonly-input-after": 1,
+      "empty-catalog-after": 1,
+      "ExitApp": 1,
+      "WaitForOwnedProcess": 1,
+      "CloseProcessHandle": 1,
+      "CoUninitialize": 1
+    },
+    "observation-trace.jsonl": {
+      "GetProcessID": 2,
+      "RevisionNumber": 2,
+      "GetDocumentCount": 3,
+      "Visible": 1,
+      "ExitApp": 1
+    }
+  },
+  "forbidden_api_counts": {
+    "Load": 0,
+    "Open": 0,
+    "New": 0,
+    "Save": 0,
+    "Select": 0,
+    "SetUserPreference": 0
+  },
+  "cleanup_errors": [],
+  "nohost_before": [],
+  "remaining_native_pids": [],
+  "old_ci_map_configuration_data": "unknown, not retroactively changed",
+  "loadfile4_error1_status": "unresolved; no LoadFile4 invoked here",
+  "orchestration_note": "Root reports two failed long EncodedCommand guest launchers before code directory/CAD; successful fixed Python launcher is first actual API run, not an API retry",
+  "production_public_acceptance": false,
+  "installed_help": {
+    "provenance": "Read-only MacSW2025 installation tree; installed TLB hashes match native report; CHM byte identity against VM not claimed",
+    "files": [
+      {
+        "file": "api/swconst.chm",
+        "sha256": "d9227d92abc44bc964d897641352a2f4efe984453d28c14a4364008a14bf3300",
+        "members": [
+          {
+            "name": "FileOpenOptionsGeneral.htm",
+            "sha256": "6cd594be10a5364dd6f615a16d04b58c0077380db11e1d74fc28c4c678ebbf3f"
+          },
+          {
+            "name": "FileOpenOptionsSTEPIGESACIS.htm",
+            "sha256": "badfec65e3d8a882fb6436c8a2210a3d274fd1e9494933bb2cfe64bfff14d6b7"
+          },
+          {
+            "name": "SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swImportNeutralCurvesAndPointsOptions_e.html",
+            "sha256": "575e3f7bda3e5c2f99eef0878d06ccf5a0ec7da9aad3cee055f5343c7ec6e791"
+          }
+        ]
+      },
+      {
+        "file": "api/sldworksapi.chm",
+        "sha256": "3a46af7f0c11e958661beecc22158fedc360939193f5d967182724c9ddbec24e",
+        "members": [
+          {
+            "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IImportStepData~MapConfigurationData.html",
+            "sha256": "d6f1852daf67a14f75a2d3b5dbee8c5607c16841d61a338eaf010eba5ff9b3ea"
+          },
+          {
+            "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~LoadFile4.html",
+            "sha256": "6df55c42766892a65889160d6dcb166633d7a69795195dcfa3d56b1900c686c2"
+          },
+          {
+            "name": "Import_STEP_File_Example_CSharp.htm",
+            "sha256": "7775a463f09b092e12aab9dd29c6dd13c5116582039288347133a56900044f10"
+          },
+          {
+            "name": "Import_STEP_File_Example_VB.htm",
+            "sha256": "193e996228527ea1dae0dd705f3ba44a4e66bd84cf9cdfe9e69617779b7d0d4a"
+          },
+          {
+            "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetImportFileData.html",
+            "sha256": "e2e820fd66d49420e0896c82e525084bb5b21d9166c24ad85827c056106d1d8c"
+          }
+        ]
+      },
+      {
+        "file": "lang/chinese-simplified/sldworks.chm",
+        "sha256": "27ae6a82721af973bf67acd16964bd34f881fbfe2f83740d5432c2bfa4b8c8bd",
+        "members": [
+          {
+            "name": "c_sw_3d_interconnect.htm",
+            "sha256": "c3960dad94a068cc3c077a9a75b820482d10674bd389423976ab27bb4977347f"
+          },
+          {
+            "name": "t_reading_step_iges_acis_sw.htm",
+            "sha256": "c1ead3ff7e9dd41a8524d3aaedd520c176030da4ee19abacd064f0e2e72a1b28"
+          }
+        ]
+      }
+    ]
+  },
+  "research_findings": {
+    "General": "Installed API table restricts General free-curve toggle to3DI=false and pairs it with General curve enum",
+    "Neutral": "Format-specific STEP/IGES/ACIS page maps free curves/points-as-sketch toggle to Neutral family",
+    "precedence": "Not documented in inspected official pages; do not infer from enum values or readback",
+    "translator": "Official2025 UI help says STEP may use latest conversion technology even with3DI disabled; off is not legacy-route proof",
+    "MapConfigurationData": "Default uses global StepConfigData; explicit object setter overrides for one import only; not a curve-mode selector",
+    "LoadFile4_contract_ambiguity": "Installed method parameter table says null importData when3DI disabled, while installed STEP example passes object with r without selecting3DI state; insufficient basis for a corrective null-argument change"
+  }
+}

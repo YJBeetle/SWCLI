@@ -41,3 +41,7 @@ python -I C:\Workspace\SWCLI-series-20261111\step-qi-code\scripts\ci\diagnose-st
 本脚本不接入工作流，不准备任何新原生 CI。产物成功只代表单原件接口/配置取证，不证明 LoadFile4 error1 已修复或产品验收通过。
 
 便携验证：新增11项零导入 guard/trap 测试通过，合计70项 STEP 回归通过；全量1889项、26项跳过，其余通过。仅测试 fake COM/进程和原时限分支，未启动真实宿主；原件、接口和退出效果仍等待 root 的单次实际执行证明。代码与计划本轮仅本地提交，不推送、不派发。
+
+## root 首次实际执行之后
+
+root 已完成第一次实际单次执行，详见 [本地原件审计及选项语义研究](step-local-qi-4b0104b-audit.md)。单STEP QI=true、对象配置false、零导入/保存/新建/选择/偏好写与退出证据已离线复核。它属于VM默认3DI=true环境；不能替换旧CI3DI=false环境的unknown或证明LoadFile4 error1修复。此前“尚未执行”均为准备阶段历史状态。
