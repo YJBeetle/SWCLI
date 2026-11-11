@@ -1,6 +1,6 @@
 # GLB 导出器证据缺口与下一最小信息路径
 
-状态更新（2026-11-11）：统筹已批准准备[固定清单零 CAD collector](installed-glb-exporter-inventory.md)，首轮装机零 CAD 尝试在 stat／fstat 比较处失败，helper 未启动；[窄比较修正](glb-exporter-stat-ctime-2026-11-11.md)及 observer 已准备，尚未原生重跑；typed bridge 和新 CAD 保存仍未实施。现有可见模式的首次失败已按[原件审计](glb-visible-startup-native-audit-2026-11-11.md)保留。继续禁止盲试参数、改变 scope／绑定参数、补 BIN、回旧 API、自动第二轮或扩大产品计划。
+状态更新（2026-11-12）：统筹 e6fc46c 的单次[固定文件采集已完成并独立核对](glb-exporter-native-inventory-audit-2026-11-12.md)，不升级为运行依赖或 GLB 支持；现按既有方案准备 typed 同 host 调用层代码及便携测试，尚未新 CAD 执行。以下保留此前评估，不扩大新路线。
 
 ## 官方支持合同能说明什么
 

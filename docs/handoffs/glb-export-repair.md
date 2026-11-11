@@ -1,5 +1,10 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-12 固定文件采集已完成
+
+统筹对 e6fc46c 仅执行一次零 CAD collector，四 required DLL 全为 AMD64，实际版本／hash／双渠道 stat 指纹稳定，metadata helper exit=0；两项旧 XR 背景文件缺失。73 条静态导入只作固定位置存在性观察，签名只解码不验信任。[独立审计](../verification/glb-exporter-native-inventory-audit-2026-11-12.md)不升级为运行依赖或 GLB 支持。现推进既有 C# 同 host／同 document 现代 SaveAs3 调用层候选代码及便携测试，尚未 VM／CI 执行；不扩路线、不回旧 API、不修 BIN。
+
+
 ## 2026-11-11 最新局部证据
 
 - 固定 d2a8e606 的 fresh Parameter B seed 私有 part/front fixture 已由统筹单次运行通过；七个独立圆几何窗口及四个目标 Get3 观察窗口、保存只读重开、源哈希及清理均经[独立离线审计](../verification/getter-fresh-binding-native-audit-2026-11-11.md)。不替代 CI/full/public 验收。

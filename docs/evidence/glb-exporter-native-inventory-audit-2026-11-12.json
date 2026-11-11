@@ -1,0 +1,125 @@
+{
+  "scope": "independent offline audit of one successful fixed-file zero-CAD collection; no exporter runtime or GLB acceptance",
+  "artifact_root": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-exporter-inventory-e6fc46c-01",
+  "source_head": "e6fc46c577c3b654a397d2ae8cbb7f3b322dd3cf",
+  "source_hashes_match_exact_git_head": true,
+  "artifacts": {
+    "metadata.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "report.json": {
+      "bytes": 527515,
+      "sha256": "1b98d95526854542c82ad533b0e6923d9ad3690df742e80267cb1d7710e82fb4"
+    },
+    "metadata-request.json": {
+      "bytes": 57122,
+      "sha256": "9b34232e7c8265542e3ca65d0c72eb6d55a1771a45d3687789cb6d4cdc7e627d"
+    },
+    "metadata.json": {
+      "bytes": 16662,
+      "sha256": "4c3ecf34f1bc460616d0a1ecd68d1b480e48ec1eee08e3ed0ccaf7d4d124c029"
+    },
+    "launcher-context.json": {
+      "bytes": 974,
+      "sha256": "871ad45fb627326306bcd3aedc14ecfe1221c83e6cc51e374172b9aa8b2c4640"
+    },
+    "coordinator-independent-audit.json": {
+      "bytes": 1179,
+      "sha256": "34f253f83e35e6e32fd480105d75541aaa2128442cfe443690e6f38e96eb2c76"
+    },
+    "metadata.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "collection_completed": true,
+  "helper_exit_code": 0,
+  "required_files": [
+    {
+      "relative_path": "sldgltfu.dll",
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\sldgltfu.dll",
+      "bytes": 1112960,
+      "sha256": "8fc1a03d7a25beecf9b308934c5d617c3cf7b14f81401784f9793248de53f276",
+      "machine": "AMD64",
+      "file_version": "33.5.0.0053",
+      "product_version": "33.5.0.0053",
+      "static_imports": 26,
+      "embedded_signature_metadata_decoded": true,
+      "signature_trust_verified": false,
+      "before_after_full_fingerprints_equal": true
+    },
+    {
+      "relative_path": "spiop/files/code/bin/SPAXGLTFBase.dll",
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFBase.dll",
+      "bytes": 241944,
+      "sha256": "308870ace4e949dcb67843e3c4993a7ca7bb0772b5260a0c25a181bf3c48ca89",
+      "machine": "AMD64",
+      "file_version": "6.427.0.25092",
+      "product_version": "6.427.0.25092",
+      "static_imports": 12,
+      "embedded_signature_metadata_decoded": true,
+      "signature_trust_verified": false,
+      "before_after_full_fingerprints_equal": true
+    },
+    {
+      "relative_path": "spiop/files/code/bin/SPAXGLTFVisualization.dll",
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFVisualization.dll",
+      "bytes": 282904,
+      "sha256": "1ab6df746e41f8dce25f70b5f98ac861c344da528371591bb6d7f21a6ba2e9d9",
+      "machine": "AMD64",
+      "file_version": "6.427.0.25092",
+      "product_version": "6.427.0.25092",
+      "static_imports": 16,
+      "embedded_signature_metadata_decoded": true,
+      "signature_trust_verified": false,
+      "before_after_full_fingerprints_equal": true
+    },
+    {
+      "relative_path": "spiop/files/code/bin/VisGltf.dll",
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\spiop\\files\\code\\bin\\VisGltf.dll",
+      "bytes": 2772760,
+      "sha256": "f7c1c3f1ee445a416ccff2cf0291652257ee77cdd26a8f16e32b90b827e9ff10",
+      "machine": "AMD64",
+      "file_version": "6.427.3.25060",
+      "product_version": "6.427.3.25060",
+      "static_imports": 19,
+      "embedded_signature_metadata_decoded": true,
+      "signature_trust_verified": false,
+      "before_after_full_fingerprints_equal": true
+    }
+  ],
+  "background_absent": [
+    "SWXRExporter.dll",
+    "SWXRExporter.tlb"
+  ],
+  "required_source_read_rule_counts": {
+    "win_cpython_3_14_7_path_creation_vs_handle_change_time": 8
+  },
+  "dependency_presence_counts": {
+    "static_match": 45,
+    "not_found_in_fixed_paths": 28
+  },
+  "static_import_name_count": 73,
+  "all_existing_source_stat_hash_fingerprints_unchanged": true,
+  "collector_helper_request_fingerprints_unchanged": true,
+  "PS_syntax_exit": 0,
+  "powershell": {
+    "edition": "Desktop",
+    "version": "5.1.26100.9711",
+    "is_64_bit_process": true
+  },
+  "metadata_only_flags": {
+    "target_dll_loads": 0,
+    "cad_activations": 0,
+    "network_verification": false,
+    "signature_verified": false
+  },
+  "limitations": [
+    "No CAD or GLB export was performed by this collection or this offline audit.",
+    "Static import presence is not runtime dependency resolution.",
+    "Decoded CMS metadata is not Authenticode trust/chain/catalog validation.",
+    "Absence of legacy SWXRExporter background files does not imply GLTF export is unavailable.",
+    "No file version/hash is inferred from exe/PIA or the earlier CI installation."
+  ]
+}

@@ -1,6 +1,6 @@
 # 装机 GLB exporter 定点零 CAD 文件采集器
 
-状态更新（2026-11-11）：统筹首轮 17deb54 零 CAD collector 在首 DLL 的 stat／fstat 比较处失败，未启动 metadata helper；另行 PowerShell 语法预检 exit=0。后续独立 probe 和官方 v3.14.7 源码支持[窄 ctime 比较修正及 raw observer](glb-exporter-stat-ctime-2026-11-11.md)。当前候选仅离线验证，尚未原生重跑；不是 exporter、签名信任或运行依赖验收，helper 的实际装机版本／CMS 行为仍未执行。
+状态更新（2026-11-12）：统筹对 e6fc46c 的一次零 CAD 采集已完成，四 required DLL 元数据和前后指纹经[独立审计](glb-exporter-native-inventory-audit-2026-11-12.md)核对。仍不是运行依赖、签名信任或 GLB 验收。17deb54 首次失败及后续 stat probe 保留在[ctime 审计](glb-exporter-stat-ctime-2026-11-11.md)，不覆盖原失败。
 
 ## 固定输入来源
 
@@ -57,4 +57,4 @@ PE 解析记录原始 Machine 数值、I386／AMD64／ARM64／unknown 和 PE32�
 
 反例测试使用合成 PE32／PE32+、临时文件和替代 runner，不读取真实 SOLIDWORKS 安装，也不运行 PowerShell。覆盖普通／延迟 RVA 与 VA32 导入、证书文件偏移、坏 header／RVA／目录／计数、危险名称、空表、文件／父目录 symlink 与 reparse、零 ID、stat-open 竞态、打开后替换、辅助调用后字节／身份变化、原缺项出现、请求篡改、首错保留、伪造辅助契约／文件集合／hash、固定工具缺失以及无搜索／COM／网络／目标 loader 的静态合同。
 
-当前修正只完成 24 项可移植测试；首轮 Windows 失败与后续独立 stat probe 已有原件，PowerShell helper 的实际运行、签署者解码和当前四个 exporter 的完整元数据仍未验证。后续零 CAD 原件须保留 report、metadata request／response、stdout／stderr 和精确执行源码，不将本次测试回执当成装机结果。
+24 项可移植反例测试之后，统筹单次装机采集已完成，PowerShell helper 实际版本读取与 CMS 解码已观察；签名信任、运行依赖解析和 GLB 输出仍未验证。后续零 CAD 原件须保留 report、metadata request／response、stdout／stderr 和精确执行源码，不将本次测试回执当成装机结果。
