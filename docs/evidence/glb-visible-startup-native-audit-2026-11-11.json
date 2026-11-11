@@ -1,0 +1,265 @@
+{
+  "scope": "independent offline audit of one failed visible-startup control; no VM/CI performed",
+  "driver_commit": "1beaa471302ff6d1b75a9db656ea5c9b956e32a1",
+  "driver_sha256": "53679ce7da4c44788e0a03d3d2a7953b6399dae9be17b12a27da5b75d65084b1",
+  "source_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+  "source_archive_sha256": "06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53",
+  "source_archive_files_match_git_head": 245,
+  "artifact_root": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-visible-startup-70d8c9e-01",
+  "artifacts": {
+    "local-supervisor.json": {
+      "bytes": 5366,
+      "sha256": "197da59dadf942896b49ea239b256bc0e727da11104470c86d87bacbc47ea5bf"
+    },
+    "component-export.invalid-native.glb": {
+      "bytes": 3732,
+      "sha256": "7c4b0df7a4fd057b466207ae7af2e114ae38a101fa1777a9f7933a49ba1c75e9"
+    },
+    "component-export.AMF": {
+      "bytes": 1476,
+      "sha256": "02fd43c1e3ed43805a8451e36502f583925cfe3632c5954c36de872c19b0851e"
+    },
+    "worker.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "report.json": {
+      "bytes": 17932,
+      "sha256": "ddd7b9dbbde8de25bbe898366e1da6b692f3cabf0f6ceeaa4cb1207820cee5f2"
+    },
+    "component-export.STL": {
+      "bytes": 684,
+      "sha256": "f571a3629dc76f764f066458f05e214ac819d18250924d2c2274ba43cdd2a578"
+    },
+    "component.SLDPRT": {
+      "bytes": 68089,
+      "sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+    },
+    "component-export.3MF": {
+      "bytes": 10822,
+      "sha256": "d04dc3385a74df4a8e8517d76fb22b34111161790909d20da7bfc5c7f8dfc173"
+    },
+    "worker.stderr.log": {
+      "bytes": 99112,
+      "sha256": "3e7fa6aa7c4f0aae0f37ddee302075fb8168277508fb81bcfbb148e0f105bc38"
+    },
+    "trace.jsonl": {
+      "bytes": 3719,
+      "sha256": "d9bc74c7010c557fc584b1ebd79733f560dffa841e125a1a1d38b6c82d33c45b"
+    },
+    "swcli-glb-diagnostics-f0689f60e1ff4351b07457d35d3db1f4/after-1.bin": {
+      "bytes": 3732,
+      "sha256": "7c4b0df7a4fd057b466207ae7af2e114ae38a101fa1777a9f7933a49ba1c75e9"
+    },
+    "swcli-glb-diagnostics-f0689f60e1ff4351b07457d35d3db1f4/manifest.json": {
+      "bytes": 2648,
+      "sha256": "3696392716e8bbd0f003f07745e8252e3372a9732882c3a1b51966cc451551b0"
+    }
+  },
+  "actual_host_before_and_before_each_export": {
+    "Visible": true,
+    "CommandInProgress": false,
+    "UserControl": true,
+    "UserControlBackground": true,
+    "process_id": 1912
+  },
+  "native_worker_pid": 8176,
+  "launch_pid": 8032,
+  "export_trace": {
+    "STL": {
+      "modern_SaveAs3_attempts": 1,
+      "duration_ms": 277.8056250026566,
+      "all_native_call_begin_end_pairs_complete": true
+    },
+    "3MF": {
+      "modern_SaveAs3_attempts": 1,
+      "duration_ms": 590.2072499957285,
+      "all_native_call_begin_end_pairs_complete": true
+    },
+    "AMF": {
+      "modern_SaveAs3_attempts": 1,
+      "duration_ms": 294.3111249987851,
+      "all_native_call_begin_end_pairs_complete": true
+    },
+    "GLB": {
+      "modern_SaveAs3_attempts": 1,
+      "duration_ms": 242.60700000013458,
+      "all_native_call_begin_end_pairs_complete": true
+    }
+  },
+  "preference_setters": 0,
+  "CommandInProgress_setters": 0,
+  "first_failure": {
+    "type": "ExportVerificationFailed",
+    "format": "GLB",
+    "native_api_saved": true,
+    "save_errors": 0,
+    "save_warnings": 0,
+    "actual_glb_bytes": 3732,
+    "JSON_bytes": 3704,
+    "BIN_bytes": 0,
+    "declared_buffer_bytes": 720,
+    "GLB_after_CAD_snapshot_observed": false
+  },
+  "first_three_export_states_and_source_unchanged": true,
+  "source_file_bytes_unchanged_after_process_exit": true,
+  "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292",
+  "cleanup_errors": [],
+  "native_pids_before": [],
+  "native_pids_after": [],
+  "worker_exit": 1,
+  "module_observation": {
+    "before_count": 443,
+    "after_count": 443,
+    "stored_data": "filtered matches only, empty; not a full module path inventory",
+    "missing_exporter_proven": false,
+    "transient_load_excluded": false
+  },
+  "comparisons": {
+    "hidden_vs_visible_differing_JSON_top_level_fields": [
+      "cameras",
+      "nodes"
+    ],
+    "mesh_buffer_accessor_descriptors_equal_across_hidden_visible_old_part_old_assembly": true,
+    "historical_assembly_actual_BIN_bytes": 720,
+    "historical_assembly_triangles": 12,
+    "part_vs_assembly_is_not_a_matched_modern_same_host_control": true
+  },
+  "installer_evidence": {
+    "origin": "older CI 42405530053, not this local installation",
+    "original_zip": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261108/original-install-logs-42405530053.zip",
+    "zip_sha256": "eced0a0b91ec041025237d28aedc8cbe332b50f6df645ce2769355e9095c8055",
+    "original_UTF16_lines_verified": 25,
+    "excerpt_source_sha256": "0533a82282f219613c6af4429b98a50b260091807b478b0f83556b15ccb57ad7",
+    "relevant_lines": [
+      {
+        "line": 13601,
+        "text": "MSI (s) (28:E4) [19:34:06:619]: Component: sldgltfu.dll; Installed: Absent;   Request: Local;   Action: Local"
+      },
+      {
+        "line": 16665,
+        "text": "MSI (s) (28:E4) [19:34:06:635]: Component: SWXRExporterresu.dll; Installed: Absent;   Request: Local;   Action: Null"
+      },
+      {
+        "line": 17073,
+        "text": "MSI (s) (28:E4) [19:34:06:637]: Component: SWXRExporter.dll; Installed: Absent;   Request: Local;   Action: Null"
+      },
+      {
+        "line": 17074,
+        "text": "MSI (s) (28:E4) [19:34:06:637]: Component: SWXRExporter.tlb; Installed: Absent;   Request: Local;   Action: Null"
+      },
+      {
+        "line": 23618,
+        "text": "MSI (s) (28:E4) [19:34:06:674]: Component: SPAXGLTFBase.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E; Installed: Absent;   Request: Local;   Action: Local"
+      },
+      {
+        "line": 23619,
+        "text": "MSI (s) (28:E4) [19:34:06:674]: Component: SPAXGLTFVisualization.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E; Installed: Absent;   Request: Local;   Action: Local"
+      },
+      {
+        "line": 24425,
+        "text": "MSI (s) (28:E4) [19:34:06:678]: Component: VisGltf.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E; Installed: Absent;   Request: Local;   Action: Local"
+      },
+      {
+        "line": 29791,
+        "text": "\tSW MESSAGE|INFO|CSWReg::ProcessRegSvr|Install Condition for : SWXRExporter.dll is false|C:\\am\\integration_tools\\setupishield\\SWINST\\swreg.cpp|931"
+      },
+      {
+        "line": 29792,
+        "text": "\tSW MESSAGE|INFO|CSWReg::ProcessRegSvr|Uninstall Condition for : SWXRExporter.dll is false|C:\\am\\integration_tools\\setupishield\\SWINST\\swreg.cpp|955"
+      },
+      {
+        "line": 39048,
+        "text": "MSI (s) (28:E4) [19:34:30:890]: Executing op: ComponentRegister(ComponentId={66F277D3-FC9F-413E-AF59-D4B255FF309D},KeyPath=C:\\Program Files\\SOLIDWORKS\\sldgltfu.dll,State=3,,Disk=1,SharedDllRefCount=1,BinaryType=1)"
+      },
+      {
+        "line": 48168,
+        "text": "MSI (s) (28:E4) [19:34:47:903]: Executing op: ComponentRegister(ComponentId={63D79A79-5F02-4032-9F61-4D3A32FE7369},KeyPath=C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFBase.dll,State=3,,Disk=1,SharedDllRefCount=1,BinaryType=1)"
+      },
+      {
+        "line": 48169,
+        "text": "MSI (s) (28:E4) [19:34:47:907]: Executing op: ComponentRegister(ComponentId={9B8DB525-8495-4DC7-8828-521A6DE43687},KeyPath=C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFVisualization.dll,State=3,,Disk=1,SharedDllRefCount=1,BinaryType=1)"
+      },
+      {
+        "line": 48975,
+        "text": "MSI (s) (28:E4) [19:34:50:072]: Executing op: ComponentRegister(ComponentId={03AAAD5C-9D12-4CA1-A110-3B352BC80D5E},KeyPath=C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\VisGltf.dll,State=3,,Disk=1,SharedDllRefCount=1,BinaryType=1)"
+      },
+      {
+        "line": 81281,
+        "text": "MSI (s) (28:E4) [19:35:55:678]: Executing op: FileCopy(SourceName=sldgltfu.dll,SourceCabKey=sldgltfu.dll,DestName=sldgltfu.dll,Attributes=16384,FileSize=1112960,PerTick=65536,,VerifyMedia=1,,,,,CheckCRC=0,Version=33.5.0.53,Language=1033,InstallMode=58982400,,,,,,,)"
+      },
+      {
+        "line": 81282,
+        "text": "MSI (s) (28:E4) [19:35:55:678]: File: C:\\Program Files\\SOLIDWORKS\\sldgltfu.dll;\tTo be installed;\tWon't patch;\tNo existing file"
+      },
+      {
+        "line": 81283,
+        "text": "MSI (s) (28:E4) [19:35:55:678]: Source for file 'sldgltfu.dll' is compressed"
+      },
+      {
+        "line": 102990,
+        "text": "MSI (s) (28:E4) [19:36:13:944]: Executing op: FileCopy(SourceName=SP6F2E~1.DLL|SPAXGLTFBase.dll,SourceCabKey=spaxgltfbase.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E,DestName=SPAXGLTFBase.dll,Attributes=16384,FileSize=241944,PerTick=65536,,VerifyMedia=1,,,,,CheckCRC=0,Version=6.427.0.25092,Language=1033,InstallMode=58982400,,,,,,,)"
+      },
+      {
+        "line": 102991,
+        "text": "MSI (s) (28:E4) [19:36:13:946]: File: C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFBase.dll;\tTo be installed;\tWon't patch;\tNo existing file"
+      },
+      {
+        "line": 102992,
+        "text": "MSI (s) (28:E4) [19:36:13:946]: Source for file 'spaxgltfbase.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E' is compressed"
+      },
+      {
+        "line": 102993,
+        "text": "MSI (s) (28:E4) [19:36:13:948]: Executing op: FileCopy(SourceName=SPC863~1.DLL|SPAXGLTFVisualization.dll,SourceCabKey=spaxgltfvisualization.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E,DestName=SPAXGLTFVisualization.dll,Attributes=16384,FileSize=282904,PerTick=65536,,VerifyMedia=1,,,,,CheckCRC=0,Version=6.427.0.25092,Language=1033,InstallMode=58982400,,,,,,,)"
+      },
+      {
+        "line": 102994,
+        "text": "MSI (s) (28:E4) [19:36:13:948]: File: C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\SPAXGLTFVisualization.dll;\tTo be installed;\tWon't patch;\tNo existing file"
+      },
+      {
+        "line": 102995,
+        "text": "MSI (s) (28:E4) [19:36:13:948]: Source for file 'spaxgltfvisualization.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E' is compressed"
+      },
+      {
+        "line": 105287,
+        "text": "MSI (s) (28:E4) [19:36:15:832]: Executing op: FileCopy(SourceName=VisGltf.dll,SourceCabKey=visgltf.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E,DestName=VisGltf.dll,Attributes=16384,FileSize=2772760,PerTick=65536,,VerifyMedia=1,,,,,CheckCRC=0,Version=6.427.3.25060,Language=1033,InstallMode=58982400,,,,,,,)"
+      },
+      {
+        "line": 105288,
+        "text": "MSI (s) (28:E4) [19:36:15:834]: File: C:\\Program Files\\SOLIDWORKS\\spiop\\files\\code\\bin\\VisGltf.dll;\tTo be installed;\tWon't patch;\tNo existing file"
+      },
+      {
+        "line": 105289,
+        "text": "MSI (s) (28:E4) [19:36:15:834]: Source for file 'visgltf.dll.D5BD7D17_EF2F_4D2A_8A6E_525BC49E6A6E' is compressed"
+      }
+    ],
+    "local_exporter_file_hashes_observed": false
+  },
+  "conclusions": [
+    "Visible startup mode was insufficient for this fixed part and Python modern save path.",
+    "No causal conclusion about Visible or CommandInProgress follows.",
+    "Actual UserControlBackground was also true; intended mode must not replace observed properties.",
+    "No post-failure CAD snapshot was taken; unchanged disk source bytes do not prove post-failure in-memory state.",
+    "Historical assembly has real mesh bytes while failed parts have equal mesh declarations but no BIN; declared descriptors are not actual geometry.",
+    "Current exporter identity/version/dependencies remain unknown; filtered module misses and old CI install actions cannot fill this gap."
+  ],
+  "next_step": {
+    "recommended": "read-only zero-CAD bounded metadata inventory of explicitly identified local exporter files/dependencies before another save",
+    "typed_bridge": "not implemented; conditional only after installed exporter metadata review shows no actionable mismatch",
+    "prohibited_actions": "no parameter sweep, BIN construction, old API fallback, new VM/CI/push in this audit"
+  },
+  "official_sources": [
+    {
+      "url": "https://help.solidworks.com/2025/english/SolidWorks/sldworks/c_glb_gltf_extended_reality_files.htm?id=18.15.12",
+      "scope": "2025 format-level import/export support"
+    },
+    {
+      "url": "https://files.solidworks.com/Supportfiles/Whats_new/2025/English/whatsnew.pdf",
+      "scope": "2025 SP2 UI export options migration, printed pages 172-173"
+    },
+    {
+      "url": "https://help.solidworks.com/2026/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~SaveAs3.html?format=P&value=",
+      "scope": "readable 2026 generic API reference, not a claim to 2025 text or GLB-specific binding acceptance"
+    }
+  ]
+}

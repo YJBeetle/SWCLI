@@ -1,5 +1,12 @@
 # GLB 首失败诊断与待证候选
 
+## 2026-11-11 最新局部证据
+
+- 固定 d2a8e606 的 fresh Parameter B seed 私有 part/front fixture 已由统筹单次运行通过；七个独立圆几何窗口及四个目标 Get3 观察窗口、保存只读重开、源哈希及清理均经[独立离线审计](../verification/getter-fresh-binding-native-audit-2026-11-11.md)。不替代 CI/full/public 验收。
+- 已审阅 1beaa471 driver、固定 70d8c9e 的可见启动对照由统筹单次执行，实际 Visible=true/CIP=false 下 part GLB 仍为 JSON3704/BIN0，首错停止。[原件审计](../verification/glb-visible-startup-native-audit-2026-11-11.md)保留三个成功格式、四次现代导出、无 GLB after CAD 读取、原始文件和清理边界。
+- 本路未操作 VM／CI／push。下一优先级为当前安装 exporter 的零 CAD 定点文件证据，见[信息增益评估](../verification/glb-exporter-next-evidence-plan-2026-11-11.md)；未实施新 collector 或 typed bridge，不再盲试可见状态、CIP、参数、旧 API，也不补写 BIN。以下早期候选与门禁安排保留为历史记录，执行由统筹亲审调度。
+
+
 ## 2026-11-11 显式BSTR数组seed候选与独立几何门禁
 
 统筹对原saved-A的独立几何原件已核report SHA256 `5a03ba2feea9c08c4513c04aabe21d1586bf922144d7de5d2587b0b5f011829c`：原SLDPRT hash `80455d6d94ea72776e44605b20e56c1fcc09879d558250569db7f3cadd744257` 前后相同，默认A实际为唯一完整非构造圆、半径10mm/直径20、中心0。前后state相同、config/foreground身份严格int1，原生trace独立重算GetRadius一次且0 Get3/Set/rebuild/save。原件路径 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-geometry-7119626-02/`。该结果支持先定位fixture seed，不证明产品Get3整体通过；此前01 warning误拒绝仍保留，未据此改变本fixture原只读重开门禁。
