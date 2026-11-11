@@ -1,5 +1,6 @@
 """Portable single-import hypothesis traps. Never a native acceptance claim."""
 import hashlib
+from contextlib import ExitStack
 import importlib.util
 import json
 from pathlib import Path
@@ -107,14 +108,23 @@ class App:
 class StepWireImportOnceTests(unittest.TestCase):
     def run_case(self,**options):
         neutral_3d_candidate=options.pop('neutral_3d_candidate',False)
+        null_candidate=options.pop('null_import_data_candidate',False)
+        binding_route=options.pop('binding_route','typed')
+        binding_unknown=options.pop('binding_unknown',False)
+        binding_wrong_type=options.pop('binding_wrong_type',False)
         neutral_enum_values=options.pop('neutral_enum_values',(0,1))
         m=load();app=App(m,**options)
         const={**app.ids,'swGeneralImportAsSketches':0,'swGeneralImportAs3dCurves':1,
                'swImportNeutralCurvesAndPointsOptions_AsSketches':neutral_enum_values[0],
                'swImportNeutralCurvesAndPointsOptions_As3DCurves':neutral_enum_values[1]}
         class Variant:
-            def __init__(self,kind,value):self.value=value
-        client=SimpleNamespace(GetActiveObject=mock.Mock(side_effect=Failure()),DispatchEx=mock.Mock(return_value=app),VARIANT=Variant)
+            def __init__(self,kind,value):self.varianttype=kind;self.value=value
+        binding_modules=None;package=None;raw_app=app
+        if null_candidate:
+            from test_step_null_binding import environment
+            raw_app,binding_modules,package=environment(m.step_null_binding,route=binding_route,target=app,lazy=True,unknown=binding_unknown,wrong_type=binding_wrong_type)
+            binding_modules[2].VARIANT=Variant
+        client=SimpleNamespace(GetActiveObject=mock.Mock(side_effect=Failure()),DispatchEx=mock.Mock(return_value=raw_app),VARIANT=Variant)
         info=SimpleNamespace(GetDocumentation=lambda *args:('IImportStepData',),GetTypeAttr=lambda:(m.STEP_IID,))
         com=SimpleNamespace(CoInitialize=mock.Mock(),CoUninitialize=mock.Mock(),LoadTypeLib=lambda path:SimpleNamespace(GetTypeInfoOfGuid=lambda iid:info),
                             IID_IUnknown='safe-wrapper',VT_BYREF=1,VT_I4=2,com_error=Failure)
@@ -123,12 +133,16 @@ class StepWireImportOnceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory).resolve();output=root/'out';output.mkdir();swconst=root/'swconst.tlb';swconst.write_bytes(b'constants');(root/'sldworks.tlb').write_bytes(b'library')
             hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (swconst,root/'sldworks.tlb')}
-            with mock.patch.object(m,'_native_windows_runtime',return_value=True),mock.patch.object(m.importlib.metadata,'version',return_value='312'), \
-                    mock.patch.object(m,'input_metadata',return_value=meta),mock.patch.object(m,'LIBRARY_HASHES',hashes), \
-                    mock.patch.object(m,'native_pids',return_value=[]),mock.patch.object(m,'_read_native_enum_constants',return_value=const), \
-                    mock.patch.object(m.harness,'capture_process',return_value=handle),mock.patch.object(m.harness,'wait_process') as wait, \
-                    mock.patch.dict('sys.modules',{'pythoncom':com,'win32com':SimpleNamespace(client=client),'win32com.client':client}):
-                result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst,neutral_3d_candidate=neutral_3d_candidate))
+            with ExitStack() as binding_patches:
+                if null_candidate:
+                    binding_patches.enter_context(mock.patch.object(m.step_null_binding,'modules',return_value=binding_modules))
+                    binding_patches.enter_context(mock.patch.object(m.step_null_binding,'attest_package',return_value=package))
+                with mock.patch.object(m,'_native_windows_runtime',return_value=True),mock.patch.object(m.importlib.metadata,'version',return_value='312'), \
+                        mock.patch.object(m,'input_metadata',return_value=meta),mock.patch.object(m,'LIBRARY_HASHES',hashes), \
+                        mock.patch.object(m,'native_pids',return_value=[]),mock.patch.object(m,'_read_native_enum_constants',return_value=const), \
+                        mock.patch.object(m.harness,'capture_process',return_value=handle),mock.patch.object(m.harness,'wait_process') as wait, \
+                        mock.patch.dict('sys.modules',{'pythoncom':com,'win32com':SimpleNamespace(client=client),'win32com.client':client}):
+                    result=m.worker(SimpleNamespace(output_dir=output,swconst=swconst,neutral_3d_candidate=neutral_3d_candidate,null_import_data_candidate=null_candidate))
             report=json.loads((output/'report.json').read_text());trace=[json.loads(x) for x in (output/'trace.jsonl').read_text().splitlines()]
             waits=wait.call_count
         for name in TRAPS:getattr(app,name).assert_not_called();getattr(app.doc,name).assert_not_called()
@@ -363,3 +377,72 @@ class StepWireImportOnceTests(unittest.TestCase):
         self.assertEqual(r['failure']['message'],'STEP geometry readback failed')
         self.assertFalse(r['cases'][0]['preferences']['restored'])
         self.assertEqual(len(app.loads),1)
+
+
+    def test_null_mode_retains_all_60f_values_and_factory_only_observation(self):
+        for route in ('typed','generic'):
+            with self.subTest(route=route):
+                _,app,code,r,trace=self.run_case(null_import_data_candidate=True,binding_route=route)
+                self.assertEqual(code,0);self.assertEqual(r['diagnostic_case'],'step-wire-null-import-data-once')
+                c=r['cases'][0];p=c['preferences'];e=c['null_binding']
+                self.assertEqual(p['changed_from_60f1cf8'],[])
+                self.assertEqual(p['candidate_readback']['swImportNeutral_CurvesAndPointsOption'],1)
+                self.assertTrue(p['candidate_readback']['swImportNeutral_FreeCurvesAndPoints'])
+                self.assertTrue(p['restored']);self.assertEqual(app.values,app.before)
+                self.assertEqual(len(p['writes']),5);self.assertEqual(len(app.loads),1)
+                self.assertEqual(app.data_calls,1);self.assertEqual(app.data.mapping_reads,1)
+                app.data._oleobj_.QueryInterface.assert_called_once()
+                self.assertIn('observation only',c['GetImportFileData']['role'])
+                self.assertIn('factory observed only',c['load_return']['import_data'])
+                self.assertTrue(e['bound_method_invocation_attempted']);self.assertEqual(e['actual_argument']['effective_vartype'],9)
+                actual=app.loads[0][2];self.assertIsNot(actual,app.data)
+                if route=='typed':self.assertIsNone(actual)
+                else:self.assertEqual(actual.varianttype,9);self.assertIsNone(actual.value)
+                self.assertEqual([x['call'] for x in trace if x['phase']=='begin'].count('LoadFile4'),1)
+
+    def test_null_unknown_binding_stops_before_load_and_restores_all_owned_fields(self):
+        for options in ({'binding_unknown':True},{'binding_wrong_type':True}):
+            with self.subTest(options=options):
+                _,app,code,r,trace=self.run_case(null_import_data_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(app.loads,[]);self.assertEqual(app.values,app.before)
+                c=r['cases'][0];self.assertEqual(c['null_binding']['status'],'unknown')
+                self.assertFalse(c['null_binding']['bound_method_invocation_attempted'])
+                self.assertEqual(c['load_return']['state'],'not-attempted');self.assertIn('NULL binding refused',r['failure']['message'])
+                self.assertFalse(any(x['call']=='LoadFile4' for x in trace));self.assertEqual(app.data_calls,1)
+                self.assertTrue(c['preferences']['restored']);self.assertIsNone(c['geometry']['value'])
+
+    def test_null_native_first_error_restoration_and_close_failures_remain_separate(self):
+        for options in ({'load_failure':Failure('first NULL Load failure',-8),'restore_fail':'swImportNeutral_CurvesAndPointsOption'},
+                        {'load_error':1,'close_failure':Failure('close failure',-7)}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(null_import_data_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(len(app.loads),1)
+                self.assertEqual(r['failure']['message'],'first NULL Load failure' if 'load_failure' in options else 'STEP geometry readback failed')
+                c=r['cases'][0];self.assertTrue(c['null_binding']['bound_method_invocation_attempted']);self.assertIsNone(c['geometry']['value'])
+                if 'restore_fail' in options:self.assertTrue(c['preferences']['restore_errors'])
+                else:self.assertEqual(len(app.closes),1);self.assertEqual(r['cleanup_errors'][0]['stage'],'CloseDoc')
+
+    def test_null_mode_still_rejects_sketch_12_320_and_stops_on_unknown_qi(self):
+        for options in ({'kind':'sketch'},{'qi_failure':TypeError('unknown QI')}):
+            with self.subTest(options=options):
+                _,app,code,r,_=self.run_case(null_import_data_candidate=True,**options)
+                self.assertEqual(code,1);self.assertEqual(app.values,app.before);g=r['cases'][0]['geometry']
+                self.assertEqual(g['status'],'unavailable');self.assertIsNone(g['value'])
+                if 'kind' in options:
+                    self.assertEqual(len(app.loads),1);self.assertEqual(g['raw_observation']['segment_count'],12)
+                    self.assertEqual(g['raw_observation']['total_length_mm'],320)
+                    self.assertTrue(g['raw_observation']['representation_mismatches'])
+                else:self.assertEqual(app.loads,[]);self.assertNotIn('null_binding',r['cases'][0])
+
+    def test_null_supervisor_uses_independent_root_and_forwards_only_one_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            m=load();root=Path(directory).resolve();output=root/'new';process=mock.Mock();process.poll.return_value=None
+            def start(command,**kwargs):
+                self.assertEqual(command.count('--null-import-data-candidate'),1)
+                self.assertNotIn('--neutral-3d-candidate',command)
+                return process
+            with mock.patch.object(m,'NULL_DATA_EVIDENCE_ROOT',str(root)), \
+                    mock.patch.object(m.subprocess,'Popen',side_effect=start), \
+                    mock.patch.object(m.time,'monotonic',side_effect=[0,1800]),mock.patch.object(m.time,'sleep'):
+                self.assertEqual(m.main(['--output-dir',str(output),'--null-import-data-candidate']),124)
+            process.kill.assert_called_once();process.wait.assert_called_once()

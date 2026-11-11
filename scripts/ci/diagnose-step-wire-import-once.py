@@ -24,6 +24,7 @@ if not (SOURCE_ROOT / 'src/swcli/hosts/windows_step_export.py').is_file():
 sys.path.insert(0, str(SOURCE_ROOT / 'src'))
 sys.path.insert(0, str(HERE))
 from gate_support.step_import_observation import TOGGLES, INTEGERS, error
+from gate_support import step_null_binding
 from swcli.hosts.windows_step_export import _native_windows_runtime, _read_native_enum_constants
 
 spec = importlib.util.spec_from_file_location('_step_wire_once_owned', HERE / 'verify-through-all-calibration.py')
@@ -35,6 +36,7 @@ reader_spec.loader.exec_module(reader)
 INPUT = r'C:\Workspace\SWCLI-series-20261111\step-qi-input\ap203-wireframe.step'
 EVIDENCE_ROOT = r'C:\Workspace\SWCLI-series-20261111\step-wire-import-evidence'
 NEUTRAL_3D_EVIDENCE_ROOT = r'C:\Workspace\SWCLI-series-20261111\step-wire-neutral-3d-evidence'
+NULL_DATA_EVIDENCE_ROOT = r'C:\Workspace\SWCLI-series-20261111\step-wire-null-data-evidence'
 INPUT_SHA = '3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90'
 STEP_IID = '{AD749A73-9AA2-4A3E-BCA5-8FC012114BB0}'
 LIBRARY_HASHES = {
@@ -105,10 +107,15 @@ class ImportOnceApp:
     ALLOWED = frozenset(('GetDocumentCount', 'GetProcessID', 'RevisionNumber', 'Visible', 'StartupProcessCompleted',
                          'ExitApp', 'GetUserPreferenceToggle', 'GetUserPreferenceIntegerValue',
                          'SetUserPreferenceToggle', 'SetUserPreferenceIntegerValue'))
-    def __init__(self, app, constants, *, neutral_3d_candidate=False):
+    def __init__(self, app, constants, *, neutral_3d_candidate=False, null_import_data_candidate=False, binding_package=None):
+        require(not null_import_data_candidate or neutral_3d_candidate, 'NULL mode requires the 60f1cf8 preference profile')
         object.__setattr__(self, '_app', app)
         object.__setattr__(self, '_constants', dict(constants))
         object.__setattr__(self, '_neutral_3d_candidate', neutral_3d_candidate)
+        object.__setattr__(self, '_null_import_data_candidate', null_import_data_candidate)
+        object.__setattr__(self, '_binding_package', binding_package)
+        object.__setattr__(self, '_null_binding', None)
+        object.__setattr__(self, '_null_binding_attempted', False)
         object.__setattr__(self, '_data_attempted', False)
         object.__setattr__(self, '_load_attempted', False)
         object.__setattr__(self, '_close_attempted', False)
@@ -135,17 +142,37 @@ class ImportOnceApp:
         data = self._app.GetImportFileData(path)
         object.__setattr__(self, '_data', data)
         return data
+    def prepare_null_binding(self, variant_class, evidence, persist):
+        require(self._null_import_data_candidate and self._data_attempted and self._data is not None,
+                'NULL binding requires explicit mode and prior observed factory')
+        require(not self._null_binding_attempted and not self._load_attempted, 'NULL binding may be prepared once')
+        object.__setattr__(self,'_null_binding_attempted',True)
+        try:
+            binding = step_null_binding.NullDispatchBinding(self._app,variant_class,self._binding_package,evidence,persist)
+        except BaseException as exc:
+            evidence.update(status='unknown',error=error(exc));persist();raise
+        object.__setattr__(self,'_null_binding',binding)
+        return binding.argument
     def LoadFile4(self, path, arguments, data, errors):
-        require(path == INPUT and arguments == 'r' and data is self._data and data is not None and not self._load_attempted,
-                'LoadFile4 requires the same data object/fixed arguments and one attempt')
+        require(path == INPUT and arguments == 'r' and not self._load_attempted,
+                'LoadFile4 requires fixed arguments and one attempt')
+        if self._null_import_data_candidate:
+            require(self._null_binding is not None, 'NULL binding was not verified')
+            self._null_binding.validate(data)
+        else:
+            require(data is self._data and data is not None, 'LoadFile4 requires the same factory object')
         object.__setattr__(self, '_load_attempted', True)
-        document = self._app.LoadFile4(path, arguments, data, errors)
+        if self._null_import_data_candidate:
+            document = self._null_binding.invoke_original(path,arguments,data,errors)
+        else:
+            document = self._app.LoadFile4(path, arguments, data, errors)
         object.__setattr__(self, '_raw_document_type', type(document).__module__ + '.' + type(document).__name__)
         wrapped = ReadOnlyDocument(document) if document is not None else None
         object.__setattr__(self, '_document', wrapped)
         return wrapped
     def release_data(self):
         object.__setattr__(self, '_data', None)
+        object.__setattr__(self, '_null_binding', None)
     def CloseDoc(self, title):
         document = self._document
         require(document is not None and document.title == title and not self._close_attempted,
@@ -295,7 +322,7 @@ class PreferenceTransaction:
 def case_runner(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
     require(profile_kind == 'single-wire-import' and live['document'] is None, 'Unexpected diagnostic plan/document')
     case.update(scope='single-variable import diagnostic hypothesis, not acceptance',
-                neutral_3d_candidate=app._neutral_3d_candidate, geometry=dict(status='unavailable', value=None),
+                neutral_3d_candidate=app._neutral_3d_candidate, null_import_data_candidate=app._null_import_data_candidate, geometry=dict(status='unavailable', value=None),
                 load_return=dict(state='not-attempted', document_returned=None, errors=None))
     case['input_before'] = call('verify-readonly-input-before', input_metadata)
     strict(case,call,'host-hidden',lambda:harness._com_value(app,'Visible'),lambda x:x is False)
@@ -305,6 +332,11 @@ def case_runner(app, output, constants, plane, reverse, call, case, report, live
     first = None;data = None
     try:
         transaction.enter()
+        if app._null_import_data_candidate:
+            fixed_60f = dict(zip(TOGGLES+INTEGERS,(False,True,True,True,True,False,1,1)))
+            changed = [key for key in fixed_60f if transaction.expected[key] != fixed_60f[key]]
+            transaction.evidence['changed_from_60f1cf8'] = changed
+            require(not changed, 'NULL mode must retain the complete 60f1cf8 candidate')
         require(call('verify-input-before-load',input_metadata)==case['input_before'], 'Input changed before data/load')
         case['GetImportFileData'] = dict(status='started',returned=None);transaction.persist()
         try:
@@ -321,10 +353,19 @@ def case_runner(app, output, constants, plane, reverse, call, case, report, live
         strict(case,call,'IImportStepData.QueryInterface',query,lambda x:x is True);transaction.persist()
         strict(case,call,'MapConfigurationData',lambda:data.MapConfigurationData,lambda x:type(x) is bool);transaction.persist()
         require(transaction.snapshot('cas-before-one-load') == transaction.expected, 'Candidate preference CAS changed before LoadFile4')
+        import_argument = data
+        if app._null_import_data_candidate:
+            case['GetImportFileData']['role'] = 'observation only; not the actual ImportData argument'
+            binding_evidence = case['null_binding'] = {}
+            transaction.persist()
+            import_argument = call('verify-original-LoadFile4-binding',lambda:app.prepare_null_binding(VARIANT,binding_evidence,transaction.persist))
+            require(transaction.snapshot('cas-after-null-binding') == transaction.expected, 'Preference CAS changed during binding inspection')
         errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4,0)
-        case['load_return'].update(state='started',arg_string='r',import_data='same factory object',possible_document_mutation=True);transaction.persist()
+        case['load_return'].update(state='started',arg_string='r',
+            import_data='NULL IDispatch; factory observed only' if app._null_import_data_candidate else 'same factory object',
+            possible_document_mutation=True);transaction.persist()
         try:
-            document = call('LoadFile4',lambda:app.LoadFile4(INPUT,'r',data,errors))
+            document = call('LoadFile4',lambda:app.LoadFile4(INPUT,'r',import_argument,errors))
         except BaseException as exc:
             case['load_return'].update(state='raised',errors=errors.value,error=error(exc));transaction.persist();raise
         live['document'] = document
@@ -377,9 +418,11 @@ def worker(args):
     harness._com_value = observed_value
     original_reader_value = reader._com_value
     reader._com_value = observed_value
-    neutral_3d_candidate = bool(getattr(args,'neutral_3d_candidate',False))
-    diagnostic_case = 'step-wire-neutral-3d-once' if neutral_3d_candidate else 'step-wire-import-once'
-    context = dict(neutral_3d_candidate=neutral_3d_candidate, production_public_acceptance=False, diagnostic_hypothesis=True, max_loadfile4=1, zero_save=True, zero_new=True, zero_select=True)
+    null_candidate = bool(getattr(args,'null_import_data_candidate',False))
+    neutral_3d_candidate = bool(getattr(args,'neutral_3d_candidate',False)) or null_candidate
+    diagnostic_case = ('step-wire-null-import-data-once' if null_candidate else
+                       'step-wire-neutral-3d-once' if neutral_3d_candidate else 'step-wire-import-once')
+    context = dict(null_import_data_candidate=null_candidate, neutral_3d_candidate=neutral_3d_candidate, production_public_acceptance=False, diagnostic_hypothesis=True, max_loadfile4=1, zero_save=True, zero_new=True, zero_select=True)
     try:
         require(_native_windows_runtime(), 'Verified native Windows is required')
         require(importlib.metadata.version('pywin32') == '312', 'Only reviewed pywin32312 wrapper semantics are allowed')
@@ -394,7 +437,7 @@ def worker(args):
             context['libraries'][name] = dict(path=str(path), sha256=observed)
         context['code'] = {str(p.relative_to(SOURCE_ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in
                            (Path(__file__).resolve(), Path(harness.__file__).resolve(), HERE / 'gate_support/step_import_observation.py', HERE / 'verify-step-export-calibration.py',
-                            HERE / 'gate_support/step_fixture_checks.py', SOURCE_ROOT / 'src/swcli/hosts/windows_step_export.py')}
+                            HERE / 'gate_support/step_fixture_checks.py', HERE / 'gate_support/step_null_binding.py', SOURCE_ROOT / 'src/swcli/hosts/windows_step_export.py')}
         context['source_snapshot'] = str(SOURCE_ROOT)
         context['python'] = sys.version
         context['pywin32'] = '312'
@@ -404,6 +447,9 @@ def worker(args):
 
         resolved_constants = {}
         def constants(pythoncom, path):
+            if null_candidate:
+                context['binding_package'] = step_null_binding.attest_package()
+                write_json(output / 'null-binding-package.json',context['binding_package'])
             library = pythoncom.LoadTypeLib(str(path.with_name('sldworks.tlb')))
             info = library.GetTypeInfoOfGuid(STEP_IID)  # One expected official IID, never an IID scan.
             require(info.GetDocumentation(-1)[0] == 'IImportStepData' and str(info.GetTypeAttr()[0]).upper() == STEP_IID,
@@ -464,7 +510,8 @@ def worker(args):
                         cleanup_call('partial-acquire.CloseProcessHandle', handle.Close)
                 raise
             acquisition['returned'] = True
-            return ImportOnceApp(app, resolved_constants, neutral_3d_candidate=neutral_3d_candidate), owned
+            return ImportOnceApp(app, resolved_constants, neutral_3d_candidate=neutral_3d_candidate,
+                                 null_import_data_candidate=null_candidate,binding_package=context.get('binding_package')), owned
         harness.acquire_resident_app = acquire
         result = harness.run(output, args.swconst, False, case_runner=case_runner,
                              case_plan=[('single-wire-import', 'front', False)], diagnostic_case=diagnostic_case)
@@ -503,12 +550,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--swconst', type=Path, default=Path(r'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\swconst.tlb'))
-    parser.add_argument('--neutral-3d-candidate', action='store_true',
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--neutral-3d-candidate', action='store_true',
                         help='Review-only single import: retain NeutralFree=true; change only Neutral curve enum to official As3DCurves')
+    modes.add_argument('--null-import-data-candidate', action='store_true',
+                       help='Review-only: retain all 60f1cf8 preferences and normal binding; only actual ImportData is explicit null IDispatch')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     args.output_dir = args.output_dir.resolve()
-    evidence_root = NEUTRAL_3D_EVIDENCE_ROOT if args.neutral_3d_candidate else EVIDENCE_ROOT
+    evidence_root = (NULL_DATA_EVIDENCE_ROOT if args.null_import_data_candidate else
+                     NEUTRAL_3D_EVIDENCE_ROOT if args.neutral_3d_candidate else EVIDENCE_ROOT)
     require(ntpath.normcase(str(args.output_dir.parent)) == ntpath.normcase(evidence_root), 'Evidence must be a new direct child of the fixed Workspace evidence root')
     plain(args.output_dir)
     if args.worker:
@@ -519,6 +570,8 @@ def main(argv=None):
         command = [sys.executable, '-I', __file__, '--worker', '--output-dir', str(args.output_dir), '--swconst', str(args.swconst)]
         if args.neutral_3d_candidate:
             command.append('--neutral-3d-candidate')
+        if args.null_import_data_candidate:
+            command.append('--null-import-data-candidate')
         process = subprocess.Popen(command, stdout=stdout, stderr=stderr)
         while process.poll() is None:
             time.sleep(0.25)
