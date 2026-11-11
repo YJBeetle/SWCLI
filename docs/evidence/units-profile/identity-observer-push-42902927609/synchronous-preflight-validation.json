@@ -1,0 +1,93 @@
+{
+  "source_base": "e2f787666c504e72c289825a7753f27f6bdbb049",
+  "runner": {
+    "tests": 41,
+    "seconds": 0.125,
+    "skipped": 1,
+    "success": true
+  },
+  "targeted": {
+    "tests": 85,
+    "seconds": 26.421,
+    "skipped": 1,
+    "success": true
+  },
+  "full": {
+    "tests": 1988,
+    "seconds": 79.958,
+    "skipped": 27,
+    "success": true
+  },
+  "sdk": {
+    "generator": true,
+    "strict_files": 6,
+    "negative_consumer_cases": 8,
+    "success": true
+  },
+  "python39_ast_files": 2,
+  "diff_check": true,
+  "source_sha256": {
+    "scripts/ci/run-unit-profile-public.py": "8dc5a316e5ee85b818a33acb7336ec318451b69d95e1c2bf990e9e29e124d7c6",
+    "tests/test_unit_profile_public_runner.py": "86aa0b83e98db4c96d45d9976b337a21816a3ba83a9e5638de51717077b4ae24"
+  },
+  "logs": {
+    "runner": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-runner-final.log",
+      "sha256": "918575cb966fe88f733f66cb298966321992b8bd6093dd54b03a76920bc1e973",
+      "exit_code": 0
+    },
+    "targeted": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-targeted.log",
+      "sha256": "5844ecafee53f6007101743574dd2e1f409209417ecefc6381ed880b2fd1b02d",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-full.log",
+      "sha256": "0e977f4fa1e4e51113adcb3079dca2e187877241a2819133d46d18a68de156fd",
+      "exit_code": 0
+    },
+    "sdk": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-sdk.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d",
+      "exit_code": 0
+    },
+    "static": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-static.log",
+      "sha256": "b289efddba4b494965755c838512b49b9d01c7085a45343a8b411159608dc248",
+      "exit_code": 0
+    },
+    "static_source": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-static.py",
+      "sha256": "e7fe1878b27d26e3f5915601a5dedecef67d95c7afcc7284fd30b53a5d9b8fe0",
+      "exit_code": 0
+    },
+    "original_push_audit": {
+      "path": "evidence/units-profile/identity-observer-push-42902927609/synchronous-preflight-validation/units-sync-preflight-original-push-audit.json",
+      "sha256": "21bb05d39dddc4fb30cc861f08d080931fb3b5e8f2471219842b6369d2cb970a",
+      "exit_code": 0
+    }
+  },
+  "owned_native_helper_unchanged": true,
+  "identity_predicate_termination_and_constant_ast_unchanged": true,
+  "ownership_predicate_ast_unchanged": true,
+  "product_and_workflow_unchanged": true,
+  "preflight_process_timeout": "min(600, 1800 - (monotonic - original_started))",
+  "group_seconds": 1800,
+  "public_cases_required": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139
+  },
+  "extra_cold_probes_required": 3,
+  "original_push_audit_repeat_equal": true,
+  "actual_windows_synchronous_preflight_executed": false,
+  "new_native_ci_dispatched": false,
+  "vm_used": false,
+  "underlying_solidworks_path_mismatch_resolved": false,
+  "old_failure_and_exit_evidence_preserved": true,
+  "requested_cli_timeout_seconds": 600,
+  "effective_health_rpc_timeout_seconds": 10.0,
+  "effective_health_connect_timeout_seconds": 1.0,
+  "timeout_contract": "swcli.daemon.main.run status without --details ignores args.request_timeout and calls daemon.health with fixed 10s/1s",
+  "historical_implementation": "c6004a5 used ambiguous request_timeout_seconds report key; semantic-only correction recorded separately"
+}

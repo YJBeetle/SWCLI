@@ -39,6 +39,7 @@ from ..hosts.windows_document_tolerances import read_document_tolerances_windows
 from ..hosts.windows_document_font_scopes import (
     read_document_font_scopes_windows, set_document_font_scope_windows,
 )
+from ..hosts.windows_document_unit_profile import read_document_unit_profile_windows, set_document_unit_profile_windows
 from ..hosts.windows_document_annotations import (
     read_document_annotation_options_windows, set_document_annotation_option_windows,
 )
@@ -774,6 +775,39 @@ def document_dimension_format_set(context: OperationContext, values: Dict[str, A
         })
         result["session_id"] = context.session_id
         return result
+
+
+def _with_unit_profile_document(result: Dict[str, Any], context: OperationContext) -> Dict[str, Any]:
+    # The adapter receipt is the mutation boundary. Descriptor failure must
+    # never turn a possibly changed document into an unqualified worker error.
+    try:
+        if context.documents is None or context.entry is None:
+            raise RuntimeError("document registry unavailable during unit profile finalization")
+        return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+    except Exception as error:
+        result['ok']=False
+        result.setdefault('error',{'type':type(error).__name__,'message':str(error)})
+        result.setdefault('warnings',[]).append({'code':'document-descriptor-unavailable',
+            'message':type(error).__name__+': '+str(error)})
+        result['session_id']=context.session_id
+        return result
+
+
+@_register_handler
+def document_unit_profile(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_unit_profile_windows(app=context.app, document=context.entry.document)
+    return _with_unit_profile_document(result, context)
+
+
+@_register_handler
+def document_unit_profile_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_unit_profile_windows(app=context.app, document=context.entry.document,
+        field=values["field"], value=values["value"], expected_snapshot=values["expected_snapshot"])
+    return _with_unit_profile_document(result, context)
 
 
 @_register_handler

@@ -1,0 +1,54 @@
+{
+  "run_id": 42406393957,
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42406393957",
+  "event": "workflow_dispatch",
+  "ref": "codex/docprops-units-expanded",
+  "head_sha": "4f20723116103c6e5f43def9f3d42b5a91372903",
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": false,
+    "native_full": false
+  },
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "run_updated_at": "2026-11-07T19:28:45Z",
+    "jobs": [
+      {
+        "id": 128504920834,
+        "name": "Validate manual units routing before private native setup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128504921009,
+        "name": "Build wheel",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128504921034,
+        "name": "Windows / Python 3.9",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128504921104,
+        "name": "Windows / Python 3.14",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128504921880,
+        "name": "Validate release tag before private native runtime",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "purpose": "private finite scalar/system write calibration only; no automatic domain authorization",
+  "snapshot_policy": "one normal snapshot then stop; no continuous CI polling",
+  "native_write_accepted": false,
+  "production_write_domains": 0
+}

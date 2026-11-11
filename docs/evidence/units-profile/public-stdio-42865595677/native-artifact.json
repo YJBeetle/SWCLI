@@ -1,0 +1,20 @@
+{
+  "id": 13790060166,
+  "node_id": "MDg6QXJ0aWZhY3QxMzc5MDA2MDE2Ng==",
+  "name": "swcli-windows-hosted-42865595677-1",
+  "size_in_bytes": 10930120,
+  "url": "https://api.github.com/repos/YJBeetle/SWCLI/actions/artifacts/13790060166",
+  "archive_download_url": "https://api.github.com/repos/YJBeetle/SWCLI/actions/artifacts/13790060166/zip",
+  "expired": false,
+  "digest": "sha256:207a75330e6bb35b368f2d5ba054ec908bfa661205e068c3c8f275a32d246c75",
+  "created_at": "2026-11-10T17:57:05Z",
+  "updated_at": "2026-11-10T17:57:05Z",
+  "expires_at": "2026-11-24T17:57:03Z",
+  "workflow_run": {
+    "id": 42865595677,
+    "repository_id": 1377028326,
+    "head_repository_id": 1377028326,
+    "head_branch": "codex/docprops-units-expanded",
+    "head_sha": "085ae73570f023706319738d1130fd21256e4144"
+  }
+}

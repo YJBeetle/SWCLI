@@ -1,0 +1,23 @@
+{
+  "native_executed": false,
+  "source_report_sha256": "98be23a6b37edef57dd63312fd9c13578621d4dd4b1a13313f1b4d5bdc3a2cab",
+  "report_bytes": 1293754,
+  "calls": 1000,
+  "results": [
+    {
+      "checkpoint_each_call": true,
+      "full_report_serializations": 1002,
+      "synthetic_getters": 1000,
+      "durable_trace_events": 2000,
+      "elapsed_seconds": 3.60973491599907
+    },
+    {
+      "checkpoint_each_call": false,
+      "full_report_serializations": 2,
+      "synthetic_getters": 1000,
+      "durable_trace_events": 2000,
+      "elapsed_seconds": 0.07625283299967123
+    }
+  ],
+  "scope": "offline IO/serialization replay only; does not establish Windows/native completion"
+}

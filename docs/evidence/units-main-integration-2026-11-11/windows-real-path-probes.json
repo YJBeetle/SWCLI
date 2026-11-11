@@ -1,0 +1,18 @@
+{
+  "3.9": {
+    "log_sha256": "43bae8aa989f1c2607584d2d4a4cf5f72894da450b80c640fce15352d9a26104",
+    "both_actual_windows_tests_passed_not_skipped": true,
+    "tests": [
+      "test_real_windows_different_and_missing_files_cannot_supply_same_file_proof",
+      "test_real_windows_short_and_long_file_paths_have_same_os_identity"
+    ]
+  },
+  "3.14": {
+    "log_sha256": "437d2ac789396a712e1798fc2f4f952f261e0e03bd4fa99f5ef14324351d8c92",
+    "both_actual_windows_tests_passed_not_skipped": true,
+    "tests": [
+      "test_real_windows_different_and_missing_files_cannot_supply_same_file_proof",
+      "test_real_windows_short_and_long_file_paths_have_same_os_identity"
+    ]
+  }
+}

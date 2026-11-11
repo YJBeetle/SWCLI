@@ -1,0 +1,30 @@
+{
+  "purpose": "Explicit UTF8 independent text-writer newline probe; not an inference that -I honors PYTHONIOENCODING or that Windows stderr is UTF8",
+  "local_isolated_startup": {
+    "stdout_encoding": "utf-8",
+    "stdout_errors": "surrogateescape",
+    "stderr_encoding": "utf-8",
+    "stderr_errors": "backslashreplace",
+    "ignore_environment": 1,
+    "utf8_mode": 0
+  },
+  "writer_comparisons": [
+    {
+      "mode": "platform-default",
+      "newline": null,
+      "fresh_stdout_hex": "e4b8ade69687555446380ae7acace4ba8ce8a18c0d0ae4bf9de7959943520de7bb93e5b0be0a",
+      "text_wrapper_hex": "e4b8ade69687555446380ae7acace4ba8ce8a18c0d0ae4bf9de7959943520de7bb93e5b0be0a",
+      "equal": true,
+      "old_stringio_equal": true
+    },
+    {
+      "mode": "windows-CRLF-emulation",
+      "newline": "\r\n",
+      "fresh_stdout_hex": "e4b8ade69687555446380d0ae7acace4ba8ce8a18c0d0d0ae4bf9de7959943520de7bb93e5b0be0d0a",
+      "text_wrapper_hex": "e4b8ade69687555446380d0ae7acace4ba8ce8a18c0d0d0ae4bf9de7959943520de7bb93e5b0be0d0a",
+      "equal": true,
+      "old_stringio_equal": false
+    }
+  ],
+  "windows_native_verified": false
+}

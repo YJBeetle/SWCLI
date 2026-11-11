@@ -1,0 +1,20 @@
+{
+  "case_number": 117,
+  "transport": "cli",
+  "document_type": 3,
+  "domain": [
+    3,
+    "3500e3f433e80b6a31ac291e848450134a35fe17c01e5fb531d8d22033356e1c",
+    "mass_properties.length_unit",
+    0
+  ],
+  "source_sha256": "82d5f9679252d9061c6e006cb3a22477e68d342c2e45bd38a4e624bd7271dbcd",
+  "source_profile_sha256": "9fc0e1fe459d2283a073de7f0b1a52248cd4fec75bb1b531411bb9dc3b51ec0d",
+  "public_report_sha256": "6b8ed34c531bec9c4df8f8caae514bc16ed9743a66a24272d29a1881a2767c12",
+  "current_read_value": {
+    "native_value": 3,
+    "value": "inch"
+  },
+  "intended_changed_target": "mm",
+  "invalid_noop_target": "inch"
+}

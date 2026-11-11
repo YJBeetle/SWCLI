@@ -1,0 +1,32 @@
+{
+  "run_id": 42279525986,
+  "head": "5f307d1f4fa908acbcc25b59f6be7c32c3ed24fa",
+  "artifact_id": 13536485767,
+  "original_zip_sha256": "c2dc13ce277eee306cce349b5b9a28fd3348b7a8a8dfdf5d9718002d86f278eb",
+  "report_sha256": "f14265571820322d9e4ad104520bdd027154d18c389c8195e6d2568b7eaa2e1f",
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "reopened geometry changed",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 223, in worker\n    record_exact_geometry(case['geometry_before'],reopened_geometry,case,'comparison_reopened',persist,'reopened geometry changed')\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 70, in record_exact_geometry\n    require(before==after,message)\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\calibrate-document-unit-profile.py\", line 22, in require\n    raise RuntimeError(message)\nRuntimeError: reopened geometry changed\n"
+  },
+  "comparisons": {
+    "comparison_after_refusal": {
+      "exact_equal": true,
+      "differences": {}
+    },
+    "comparison_reopened": {
+      "exact_equal": false,
+      "differences": {
+        "centroid_mm.y": {
+          "before": 5.514537417020185e-16,
+          "after": 8.271806125530278e-16,
+          "before_hex": "0x1.3de4355555556p-51",
+          "after_hex": "0x1.dcd6500000001p-51",
+          "delta": 2.7572687085100926e-16
+        }
+      }
+    }
+  },
+  "cleanup_errors": [],
+  "public_cli_executed": false
+}

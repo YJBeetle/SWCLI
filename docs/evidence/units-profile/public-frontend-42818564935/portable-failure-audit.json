@@ -1,0 +1,71 @@
+{
+  "audit_success": true,
+  "run_id": 42818564935,
+  "head_sha": "473b26a06e09538a4565cc0adb765988f61b44ee",
+  "conclusion": "failure",
+  "first_failure": {
+    "timestamp": "2026-11-10T12:49:09.9024458Z",
+    "matrix": "3.14",
+    "test": "test_actual_cli_read_changed_and_all_guard_refusals_match_without_restarts"
+  },
+  "matrices": {
+    "3.9": {
+      "tests": 1960,
+      "failures": 2,
+      "skipped": 11,
+      "seconds": 245.823,
+      "failed_tests": [
+        "test_actual_cli_read_changed_and_all_guard_refusals_match_without_restarts",
+        "test_protocol_and_parser_failures_match_without_business_rpc"
+      ],
+      "first_failure_utc": "2026-11-10T12:50:09.8235009Z"
+    },
+    "3.14": {
+      "tests": 1960,
+      "failures": 2,
+      "skipped": 4,
+      "seconds": 184.297,
+      "failed_tests": [
+        "test_actual_cli_read_changed_and_all_guard_refusals_match_without_restarts",
+        "test_protocol_and_parser_failures_match_without_business_rpc"
+      ],
+      "first_failure_utc": "2026-11-10T12:49:09.9024458Z"
+    }
+  },
+  "first_cause": "actual standalone Windows CLI bytes use CRLF, StringIO helper uses LF; raw byte contract fails",
+  "failed_log_sha256": "8d614a43c26f600194b6c0fa3e503475acacd73b2cba5667359dfeb11be848a4",
+  "failed_worker_source_sha256": "3277abee3f4f3e5a8c6886733324b08e95feecdba02d40e0703fcd363de21e3c",
+  "official_artifacts": [
+    {
+      "id": 13766028046,
+      "name": "swcli-dist",
+      "zip_sha256": "a80489c6a9a35bbb8401676ee4b4239d7e5669166f192086e974f7a87d83bde3"
+    },
+    {
+      "id": 13765898140,
+      "name": "swcli-package-summary-42818564935-1",
+      "zip_sha256": "c6bd22a941b36d48fc23a3e4afd6f1ec30e2c3676d7ebfa356a2d4f8cd78dfe0"
+    },
+    {
+      "id": 13765683939,
+      "name": "swcli-portable-summary-3.14-42818564935-1",
+      "zip_sha256": "fb4ab17b20811cbe39659bbd42988d04e2c76b6f6da688dca4ac40813c84ada2"
+    },
+    {
+      "id": 13764544642,
+      "name": "swcli-portable-summary-3.9-42818564935-1",
+      "zip_sha256": "54fec4142a05823656fae925a79e6d886d361821e86f1fc5eeab838759f49223"
+    }
+  ],
+  "native_job_conclusion": "skipped",
+  "native_job_started": false,
+  "private_cad_cases": 0,
+  "public_cad_cases": {
+    "cli": 0,
+    "sdk": 0,
+    "mcp": 0
+  },
+  "public_native_accepted": false,
+  "package_success": true,
+  "prior_native_runs_not_used": true
+}

@@ -1,0 +1,70 @@
+{
+  "document_type": 3,
+  "linkage": {
+    "swUnitsDecimalRounding": 0,
+    "swUnitsDualLinear": 0,
+    "swUnitsDualLinearDecimalDisplay": 0,
+    "swUnitsDualLinearDecimalPlaces": 2,
+    "swUnitsDualLinearFeetAndInchesFormat": true,
+    "swUnitsDualLinearFractionDenominator": 2,
+    "swUnitsDualLinearRoundToNearestFraction": false,
+    "swUnitsEnergyDecimalPlaces": 2,
+    "swUnitsEnergyUnits": 1,
+    "swUnitsForce": 3,
+    "swUnitsForceDecimalPlaces": 2,
+    "swUnitsLinearDecimalDisplay": 1,
+    "swUnitsLinearFeetAndInchesFormat": true,
+    "swUnitsLinearFractionDenominator": 8,
+    "swUnitsLinearRoundToNearestFraction": false,
+    "swUnitsPowerDecimalPlaces": 2,
+    "swUnitsPowerUnits": 1,
+    "swUnitsTimeDecimalPlaces": 2,
+    "swUnitsTimeUnits": 1
+  },
+  "native_units": {
+    "fraction_base": 1,
+    "fraction_value": 8,
+    "length_unit": 0,
+    "round_to_fraction": 0,
+    "significant_digits": 2
+  },
+  "profile": "document-units-v1",
+  "values": {
+    "angular.precision": {
+      "native_value": 2,
+      "value": 2
+    },
+    "angular.unit": {
+      "native_value": 0,
+      "value": "degrees"
+    },
+    "linear.precision": {
+      "native_value": 2,
+      "value": 2
+    },
+    "linear.unit": {
+      "native_value": 0,
+      "value": "mm"
+    },
+    "mass_properties.length_unit": {
+      "native_value": 3,
+      "value": "inch"
+    },
+    "mass_properties.mass_unit": {
+      "native_value": 2,
+      "value": "g"
+    },
+    "mass_properties.precision": {
+      "native_value": 2,
+      "value": 2
+    },
+    "mass_properties.volume_unit": {
+      "native_value": 4,
+      "value": "mm3"
+    },
+    "system": {
+      "native_value": 4,
+      "value": "custom"
+    }
+  }
+}

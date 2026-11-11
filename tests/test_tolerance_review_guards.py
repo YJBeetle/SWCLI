@@ -200,7 +200,7 @@ class ExclusiveNativeProfileTests(unittest.TestCase):
     def test_actual_gate_conditions_select_only_the_validated_profile(self):
         source=(ROOT/".github/workflows/ci.yml").read_text()
         job=source.split("  solidworks-e2e:",1)[1].split("  release:",1)[0]
-        self.assertIn("needs: [test, package, tag-policy, native-profile]",job)
+        self.assertIn("needs: [test, package, tag-policy, native-profile, units-route]",job)
         self.assertIn("needs.native-profile.result == 'success'",job)
         self.assertNotIn("inputs.calibrate_tolerances",job);self.assertNotIn("inputs.accept_tolerances",job)
         identifiers=("property_fixtures","annotation_fixtures","tolerance_calibration","tolerance_acceptance","native_tests")

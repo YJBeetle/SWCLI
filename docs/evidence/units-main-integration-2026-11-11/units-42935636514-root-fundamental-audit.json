@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "run": 42935636514,
+  "head": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "native_zip_sha256": "c34b58cd4796d7778eae31b01d69bacc1108d9c9c12e22908b6d054c37fb7117",
+  "public_cases": 417,
+  "transport_counts": {
+    "('cli', 1)": 46,
+    "('cli', 2)": 46,
+    "('cli', 3)": 47,
+    "('sdk', 1)": 46,
+    "('sdk', 2)": 46,
+    "('sdk', 3)": 47,
+    "('mcp', 1)": 46,
+    "('mcp', 2)": 46,
+    "('mcp', 3)": 47
+  },
+  "exact_domains_each": 137,
+  "admitted_complete_after_hashes_each": true,
+  "changed_cases": 417,
+  "noops_cases": 0,
+  "source_target_hashes": 834,
+  "part_geometry_comparisons": 276,
+  "standalone_cold": 3,
+  "public_report_sha256": "34d2bd886efb2d94139b4f2e21cd62fc1378abf5ae5587bf09a20c64ee28134b",
+  "native_identity_raw_retained": true,
+  "same_installed_file_proven": true,
+  "owned_exit_and_helper_confirmed": true,
+  "cleanup_errors": [],
+  "duration_seconds": 1355.766,
+  "installation_zip": "absent as expected: failure-only upload",
+  "note": "Fundamental original receipt audit; correlated per-request trace/CAS audit separately required before merge"
+}

@@ -1,0 +1,20 @@
+{
+  "associated_tests": 70,
+  "result": "OK",
+  "seconds": 2.599,
+  "python39_ast": true,
+  "product_source_changed": false,
+  "workflow_or_main_property_tests_changed": false,
+  "raw_logs": {
+    "targeted_tests_sha256": "f7afc8e77db8b04e5d5178189b250490a9fc680a9b549481f81d9afa01de5197",
+    "actions_log_zip_sha256": "2ca35e8894fa6ebe161cdc23ef564e30379ab1f45751d8c7be4c961c5dfaed6c"
+  },
+  "official_log_digest_available": false,
+  "native_replayed": false,
+  "log_member": {
+    "name": "Private finite units write calibration/19_Calibrate bounded document unit profile.txt",
+    "original_sha256": "e3584775c8e66999f2b9a6f8877e30fd4f290127180d4338f7b93d8870feb7b7",
+    "readable_sha256": "63bfc346001702ac7a4df244edcb1b705a75a923227dc90edf343c7c1df45eaa",
+    "readable_transform": "ANSI removed; CRLF to LF; trailing whitespace removed; original ZIP/member unchanged"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "run_id": 42902927609,
+  "head_sha": "e2f787666c504e72c289825a7753f27f6bdbb049",
+  "event": "push",
+  "ref": "codex/docprops-units-expanded",
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42902927609",
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "created_at": "2026-11-10T21:13:29Z"
+  },
+  "purpose": "lightweight Windows portable current-process API observation; no CAD",
+  "native_dispatch_requested": false,
+  "native_enabled_for_this_push_ref_by_unchanged_workflow": false,
+  "windows_current_process_result_known": false,
+  "native_path_mismatch_cause_established": false,
+  "root_review": {
+    "reviewed_head": "e2f787666c504e72c289825a7753f27f6bdbb049",
+    "scope": "observation deepcopy JSON/no handle, pre-validation fsync, stable four-field identity; exact guard AST unchanged vs085ae; Windows self process only",
+    "permission": "push lightweight only, no new private/native dispatch or VM"
+  },
+  "snapshot_policy": "one initial push listing then stop; no busy polling",
+  "old_native_failure": {
+    "run_id": 42865595677,
+    "head_sha": "085ae73570f023706319738d1130fd21256e4144",
+    "public_completed": {
+      "cli": 0,
+      "sdk": 0,
+      "mcp": 0
+    },
+    "cold_probes": 0,
+    "owned_native_exit_confirmed": false,
+    "actual_returned_image_unknown": true
+  }
+}

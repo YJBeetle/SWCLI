@@ -1,0 +1,157 @@
+{
+  "audit_success": true,
+  "run_id": 42406393957,
+  "head_sha": "4f20723116103c6e5f43def9f3d42b5a91372903",
+  "artifact_id": 13588889164,
+  "zip_sha256": "aa850757a3940f0d26ac6ccc8fc20a213842ad2ead2a21bab29b986d7dd5b7ad",
+  "report_sha256": "98be23a6b37edef57dd63312fd9c13578621d4dd4b1a13313f1b4d5bdc3a2cab",
+  "first_failure": "1800s group watchdog; no recorded native/API/assertion failure",
+  "trace_rows": 159548,
+  "completed_boundaries": 79772,
+  "trace_group_seconds": 1800.297,
+  "max_completed_call_seconds": 19.483999999999924,
+  "open_call_ages_at_last_trace": {
+    "79770": 0.5160000000000764,
+    "79772": 0.18800000000010186,
+    "79775": 0.047000000000025466,
+    "79776": 0.0
+  },
+  "native_error_events": 0,
+  "unit_setter_calls": 50,
+  "complete_private_steps": 49,
+  "coverage": [
+    {
+      "document_type": 1,
+      "case_success": true,
+      "completed_private_steps": 46,
+      "completed_targets": {
+        "system": [
+          "custom",
+          "mmgs",
+          "cgs",
+          "mmgs",
+          "mks",
+          "mmgs",
+          "ips",
+          "mmgs",
+          "custom"
+        ],
+        "linear.unit": [
+          "inch",
+          "mm"
+        ],
+        "linear.precision": [
+          0,
+          1,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          2
+        ],
+        "angular.unit": [
+          "radians",
+          "degrees"
+        ],
+        "angular.precision": [
+          0,
+          1,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          2
+        ],
+        "mass_properties.length_unit": [
+          "m",
+          "mm"
+        ],
+        "mass_properties.mass_unit": [
+          "kg",
+          "g"
+        ],
+        "mass_properties.volume_unit": [
+          "m3",
+          "mm3"
+        ],
+        "mass_properties.precision": [
+          0,
+          1,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          2
+        ]
+      },
+      "incomplete_steps": []
+    },
+    {
+      "document_type": 2,
+      "case_success": false,
+      "completed_private_steps": 3,
+      "completed_targets": {
+        "system": [
+          "custom"
+        ],
+        "linear.unit": [
+          "inch",
+          "mm"
+        ]
+      },
+      "incomplete_steps": [
+        {
+          "step": 4,
+          "field": "linear.precision",
+          "value": 0,
+          "setter_success": true,
+          "saved": true,
+          "readonly_completed": false
+        }
+      ]
+    }
+  ],
+  "drawing_reached": false,
+  "native_files_checked": 100,
+  "part_geometry_comparisons": 92,
+  "part_raw_baseline": {
+    "volume_mm3": {
+      "value": 11999.999999999998,
+      "hex": "0x1.76fffffffffffp+13"
+    },
+    "surface_area_mm2": {
+      "value": 3799.9999999999995,
+      "hex": "0x1.dafffffffffffp+11"
+    },
+    "solid_body_count": 1,
+    "centroid_mm": {
+      "x": {
+        "value": -7.058607893785837e-16,
+        "hex": "-0x1.96e6aaaaaaaacp-51"
+      },
+      "y": {
+        "value": 5.514537417020185e-16,
+        "hex": "0x1.3de4355555556p-51"
+      },
+      "z": {
+        "value": 5.0,
+        "hex": "0x1.4000000000000p+2"
+      }
+    }
+  },
+  "source_byte_forms": {
+    "scripts/ci/calibrate-document-unit-profile.py": "CRLF",
+    "scripts/ci/gate_support/unit_profile_writes.py": "CRLF",
+    "src/swcli/hosts/windows_document_unit_profile.py": "LF",
+    "src/swcli/document_unit_profile.py": "LF"
+  },
+  "owned_native_exit_confirmed": false,
+  "public_write_accepted": false,
+  "production_domains_eligible": false
+}

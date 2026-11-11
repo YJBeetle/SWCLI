@@ -1,0 +1,64 @@
+{
+  "audit_success": true,
+  "run_id": 42423042929,
+  "head_sha": "ac8e7f26ced8148d16fe236280082d4f78ec9290",
+  "artifact_id": 13596036567,
+  "zip_sha256": "924c3bab00df410f36761d0ddd4fc03bf2fb554fb8ae3f7d53f5eb58230c72d8",
+  "public_report_sha256": "6b8ed34c531bec9c4df8f8caae514bc16ed9743a66a24272d29a1881a2767c12",
+  "first_error": {
+    "case": 117,
+    "transport": "cli",
+    "document_type": 3,
+    "field": "mass_properties.length_unit",
+    "read_value": "inch",
+    "invalid_noop_target": "inch",
+    "intended_changed_target": "mm",
+    "error": {
+      "message": "unsupported candidate unit target",
+      "type": "ValueError"
+    },
+    "protocol_validation_reached": true,
+    "worker_reached": false,
+    "native_setter_reached": false
+  },
+  "completed": {
+    "cli": {
+      "cases": 116,
+      "part": 46,
+      "assembly": 46,
+      "drawing": 24
+    },
+    "sdk": {
+      "cases": 0
+    },
+    "mcp": {
+      "cases": 0
+    }
+  },
+  "registry_negative_receipts": {
+    "DocumentLeaseConflict": 116,
+    "DocumentUpdateConflict": 116,
+    "DocumentUnitProfileConflict": 116,
+    "ValueError": 116,
+    "UnitProfileCalibrationRequired": 98
+  },
+  "native_setter_calls": 116,
+  "native_error_events": 0,
+  "expected_operation_error_events": 232,
+  "max_native_boundary_seconds": 2.046999999999798,
+  "public_group_seconds": 1487.031,
+  "owned_native_exit_confirmed": true,
+  "pids_before": [],
+  "pids_after": [],
+  "public_native_files_checked": 232,
+  "part_geometry_comparisons": 92,
+  "part_geometry_nonexact": 38,
+  "internal": {
+    "success": true,
+    "steps": 139,
+    "duration_seconds": 503.75
+  },
+  "public_overall_accepted": false,
+  "remaining_cli_cases": 23,
+  "sdk_and_mcp_reached": false
+}

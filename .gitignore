@@ -10,3 +10,12 @@ dist/
 /artifacts/font-scopes/
 # Persistent local calibration evidence (never release input).
 /.task-evidence/
+# Original ZIP/native files for the pinned units acceptance run stay local.
+evidence/units-profile/lease-exit-42361728509/
+/evidence/units-profile/write-implementation-2026-11-08/
+/evidence/units-profile/write-native-42406393957/
+/evidence/units-profile/write-checkpoints-42414478796/
+/evidence/units-profile/public-writes-42423042929/
+/evidence/units-profile/public-noop-42664223806/
+/evidence/units-profile/public-frontend-42818564935/
+/evidence/units-profile/public-stdio-42865595677/

@@ -1,0 +1,31 @@
+{
+  "run_id": 42902927609,
+  "head_sha": "e2f787666c504e72c289825a7753f27f6bdbb049",
+  "metadata_fetches": {
+    "run": 1,
+    "jobs": 1,
+    "artifacts": 1
+  },
+  "summary_zip_downloads_each": 1,
+  "job_log_retrieval": "Initial gh command rejected terminal escape sequences before writing logs; same two log endpoints repeated with --allow-escape-sequences redirected to files; no repeated run/status query.",
+  "raw_directory": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/evidence/units-profile/identity-observer-push-42902927609",
+  "official_digests_apply_to": "summary ZIPs; original job log SHA256 is local hash",
+  "files": {
+    "summary-3.9.original.zip": {
+      "bytes": 1073,
+      "sha256": "7ba0026806436d58fff9fde2ec198f357e7ada1719367e9f9e8c03aabea3f92e"
+    },
+    "windows-3.9.original.log": {
+      "bytes": 397553,
+      "sha256": "21d684e0b8ef896ab098e1461bc3b5bf31d9022b134ded04aa72494dd1123a31"
+    },
+    "summary-3.14.original.zip": {
+      "bytes": 1062,
+      "sha256": "bf74b4ff67491c2db9b7f82eb88ebca2057b579981ab48b3d6b9c4ee4e01a03f"
+    },
+    "windows-3.14.original.log": {
+      "bytes": 525630,
+      "sha256": "470b0e2ace5ab8d0037cb0b3004d1d5ff80c555ec5d985914e812afe70e04dc9"
+    }
+  }
+}

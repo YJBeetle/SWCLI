@@ -1144,6 +1144,85 @@ class DocumentDimensionFormatSetResult(_DocumentDimensionFormatSetResultRequired
     native_return: bool
 
 
+DocumentUnitProfileParameters = DocumentFontScopesParameters
+
+
+class DocumentUnitProfileResultUnitProfileNativeUnits(TypedDict):
+    length_unit: int
+    fraction_base: int
+    fraction_value: int
+    significant_digits: int
+    round_to_fraction: int
+
+
+class DocumentUnitProfileResultUnitProfileLinkage(TypedDict):
+    swUnitsLinearDecimalDisplay: int
+    swUnitsLinearFractionDenominator: int
+    swUnitsLinearRoundToNearestFraction: bool
+    swUnitsLinearFeetAndInchesFormat: bool
+    swUnitsDualLinear: int
+    swUnitsDualLinearDecimalDisplay: int
+    swUnitsDualLinearDecimalPlaces: int
+    swUnitsDualLinearFractionDenominator: int
+    swUnitsDualLinearRoundToNearestFraction: bool
+    swUnitsDualLinearFeetAndInchesFormat: bool
+    swUnitsForce: int
+    swUnitsForceDecimalPlaces: int
+    swUnitsEnergyUnits: int
+    swUnitsEnergyDecimalPlaces: int
+    swUnitsPowerUnits: int
+    swUnitsPowerDecimalPlaces: int
+    swUnitsTimeUnits: int
+    swUnitsTimeDecimalPlaces: int
+    swUnitsDecimalRounding: int
+
+
+class DocumentUnitProfileResultUnitProfile(TypedDict):
+    profile: Literal['document-units-v1']
+    document_type: int
+    values: Dict[str, JSONValue]
+    native_units: DocumentUnitProfileResultUnitProfileNativeUnits
+    linkage: DocumentUnitProfileResultUnitProfileLinkage
+
+
+class _DocumentUnitProfileResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.unit-profile']
+
+
+class DocumentUnitProfileResult(_DocumentUnitProfileResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    unit_profile: DocumentUnitProfileResultUnitProfile
+
+
+class DocumentUnitProfileSetParameters(TypedDict):
+    field: Literal['system', 'linear.unit', 'linear.precision', 'angular.unit', 'angular.precision', 'mass_properties.length_unit', 'mass_properties.mass_unit', 'mass_properties.volume_unit', 'mass_properties.precision']
+    value: Union[str, int]
+    expected_snapshot: DocumentUnitProfileResultUnitProfile
+
+
+class _DocumentUnitProfileSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.unit-profile-set']
+
+
+class DocumentUnitProfileSetResult(_DocumentUnitProfileSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['system', 'linear.unit', 'linear.precision', 'angular.unit', 'angular.precision', 'mass_properties.length_unit', 'mass_properties.mass_unit', 'mass_properties.volume_unit', 'mass_properties.precision']
+    before: DocumentUnitProfileResultUnitProfile
+    unit_profile: DocumentUnitProfileResultUnitProfile
+    observed: DocumentUnitProfileResultUnitProfile
+    native_return_value: Union[bool, int, None]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+
+
 DocumentUnitsParameters = DocumentFontScopesParameters
 
 
@@ -3414,18 +3493,10 @@ class DocumentDraftingStandardResultObservedDefaultsVariant1AnnotationFont(Typed
     native_font: DocumentAnnotationFontResultNativeFont
 
 
-class DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnitsNativeUnits(TypedDict):
-    length_unit: int
-    fraction_base: int
-    fraction_value: int
-    significant_digits: int
-    round_to_fraction: int
-
-
 class DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnits(TypedDict):
     length_unit: Literal['mm', 'inch', 'other']
     decimal_places: int
-    native_units: DocumentDraftingStandardResultObservedDefaultsVariant1LengthUnitsNativeUnits
+    native_units: DocumentUnitProfileResultUnitProfileNativeUnits
 
 
 class DocumentDraftingStandardResultObservedDefaultsVariant1BaseStandards(TypedDict):

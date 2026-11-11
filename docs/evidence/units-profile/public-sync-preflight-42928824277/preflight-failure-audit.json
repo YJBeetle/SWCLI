@@ -1,0 +1,101 @@
+{
+  "audit_success": true,
+  "run_id": 42928824277,
+  "head_sha": "95a2edccd26dfa274e0f66468248838d71cf7e53",
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "native full image differs from this CI installation"
+  },
+  "first_boundary": "synchronous native-host identity admission before public worker",
+  "duration_seconds": 4.891000000000076,
+  "actual_image": "C:\\PROGRA~1\\SOLIDW~1\\SLDWORKS.exe",
+  "expected_image": "C:\\Program Files\\SOLIDWORKS\\SLDWORKS.exe",
+  "query_raw_complete": true,
+  "query": {
+    "api": "QueryFullProcessImageNameW",
+    "argtypes": [
+      "HANDLE",
+      "DWORD",
+      "LPWSTR",
+      "PDWORD"
+    ],
+    "restype": "BOOL",
+    "flags": 0,
+    "input_capacity_chars": 32768,
+    "ctypes_bytes": {
+      "HANDLE": 8,
+      "DWORD": 4,
+      "BOOL": 4,
+      "wchar": 2
+    },
+    "byteorder": "little",
+    "success": true,
+    "last_error": null,
+    "returned_chars": 33,
+    "image": "C:\\PROGRA~1\\SOLIDW~1\\SLDWORKS.exe",
+    "image_repr": "'C:\\\\PROGRA~1\\\\SOLIDW~1\\\\SLDWORKS.exe'",
+    "image_length_py_chars": 33,
+    "image_length_utf16_units": 33,
+    "nul_at_returned_index": true,
+    "buffer_prefix_b64": "QwA6AFwAUABSAE8ARwBSAEEAfgAxAFwAUwBPAEwASQBEAFcAfgAxAFwAUwBMAEQAVwBPAFIASwBTAC4AZQB4AGUAAAA="
+  },
+  "observed_identity": {
+    "pid": 9980,
+    "image": "C:\\PROGRA~1\\SOLIDW~1\\SLDWORKS.exe",
+    "creation_utc": "2026-11-11T00:31:09.533000+00:00",
+    "creation_timestamp": 1794357069.533
+  },
+  "creation_observed_within_window": true,
+  "creation_predicate_executed": false,
+  "short_form_path_observed": true,
+  "short_and_long_same_file_proven": false,
+  "public": {
+    "worker_started": false,
+    "completed_cases": {
+      "cli": 0,
+      "sdk": 0,
+      "mcp": 0
+    },
+    "cold_probes_completed": 0,
+    "native_trace_events": 0,
+    "native_setters": 0
+  },
+  "cleanup": {
+    "stop_exit_code": 0,
+    "stop_receipt_success": true,
+    "daemon_wait_zero_inferred_from_postwait_error": true,
+    "native_exit_confirmed": false,
+    "helper_started": false,
+    "pids_after": null,
+    "unknown_native_termination_attempted": false,
+    "errors": [
+      {
+        "stage": "capture-owned-native-process",
+        "type": "RuntimeError",
+        "message": "no native handle retained before public exit; do not reopen PID"
+      },
+      {
+        "type": "RuntimeError",
+        "message": "owned native process handle unavailable"
+      }
+    ]
+  },
+  "internal": {
+    "success": true,
+    "steps": 139,
+    "duration_seconds": 258.4370000000001,
+    "native_files_checked": 278,
+    "part_geometry_comparisons": 92,
+    "part_geometry_nonexact": 67,
+    "owned_exit_confirmed": true
+  },
+  "artifacts": {
+    "native_id": 13816502372,
+    "native_zip_sha256": "90fb3eb856a671a1cc5c98f56e3fc219d76208203d35a7934e14428cdaa4681b",
+    "install_id": 13816611572,
+    "install_zip_sha256": "76e85630997b8241e150d55ad7691803b800bc570fdac9e088b52c630e30643a",
+    "original_native_job_log_sha256": "8143e35f82298445213f362c7815632e16719e0d28935f4ec48d5dc1546f8bd3"
+  },
+  "installer_expected_long_path_agree": true,
+  "public_native_accepted": false
+}

@@ -1,0 +1,392 @@
+{
+  "status": "IDs exported; native getter/setter applicability NOT calibrated",
+  "source_json": "/private/tmp/docprops-batch-fonts-r2/swconst-enums.json",
+  "source_json_sha256": "a526d78c856b3efa294c1a5379ee23cec09334fd23ef27c7dcb42784a4751eec",
+  "source_report_sha256": "b30213b0cfd24dcf65aeccf91447d6f9ea682c30bc125146497e62df90a3708b",
+  "tlb": {
+    "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\swconst.tlb",
+    "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6"
+  },
+  "official_dp_units": "https://help.solidworks.com/2024/english/api/swconst/DP_Units.htm",
+  "value_enums": [
+    "swUnitSystem_e",
+    "swLengthUnit_e",
+    "swAngleUnit_e",
+    "swUnitsMassPropMass_e",
+    "swUnitsMassPropVolume_e"
+  ],
+  "rows": [
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swMM",
+      "value": 0
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swCM",
+      "value": 1
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swMETER",
+      "value": 2
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swINCHES",
+      "value": 3
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swFEET",
+      "value": 4
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swFEETINCHES",
+      "value": 5
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swANGSTROM",
+      "value": 6
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swNANOMETER",
+      "value": 7
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swMICRON",
+      "value": 8
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swMIL",
+      "value": 9
+    },
+    {
+      "enum": "swLengthUnit_e",
+      "name": "swUIN",
+      "value": 10
+    },
+    {
+      "enum": "swAngleUnit_e",
+      "name": "swDEGREES",
+      "value": 0
+    },
+    {
+      "enum": "swAngleUnit_e",
+      "name": "swDEG_MIN",
+      "value": 1
+    },
+    {
+      "enum": "swAngleUnit_e",
+      "name": "swDEG_MIN_SEC",
+      "value": 2
+    },
+    {
+      "enum": "swAngleUnit_e",
+      "name": "swRADIANS",
+      "value": 3
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsLinear",
+      "value": 47
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsLinearDecimalPlaces",
+      "value": 49
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsAngular",
+      "value": 51
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsAngularDecimalPlaces",
+      "value": 52
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsMassPropLength",
+      "value": 258
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsMassPropMass",
+      "value": 259
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsMassPropVolume",
+      "value": 260
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsMassPropDecimalPlaces",
+      "value": 261
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitSystem",
+      "value": 263
+    },
+    {
+      "enum": "swUserPreferenceOption_e",
+      "name": "swDetailingNoOptionSpecified",
+      "value": 0
+    },
+    {
+      "enum": "swUnitSystem_e",
+      "name": "swUnitSystem_CGS",
+      "value": 1
+    },
+    {
+      "enum": "swUnitSystem_e",
+      "name": "swUnitSystem_MKS",
+      "value": 2
+    },
+    {
+      "enum": "swUnitSystem_e",
+      "name": "swUnitSystem_IPS",
+      "value": 3
+    },
+    {
+      "enum": "swUnitSystem_e",
+      "name": "swUnitSystem_Custom",
+      "value": 4
+    },
+    {
+      "enum": "swUnitSystem_e",
+      "name": "swUnitSystem_MMGS",
+      "value": 5
+    },
+    {
+      "enum": "swUnitsMassPropMass_e",
+      "name": "swUnitsMassPropMass_Milligrams",
+      "value": 1
+    },
+    {
+      "enum": "swUnitsMassPropMass_e",
+      "name": "swUnitsMassPropMass_Grams",
+      "value": 2
+    },
+    {
+      "enum": "swUnitsMassPropMass_e",
+      "name": "swUnitsMassPropMass_Kilograms",
+      "value": 3
+    },
+    {
+      "enum": "swUnitsMassPropMass_e",
+      "name": "swUnitsMassPropMass_Pounds",
+      "value": 4
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Angstroms3",
+      "value": 1
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Nanometers3",
+      "value": 2
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Microns3",
+      "value": 3
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Millimeters3",
+      "value": 4
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Centimeters3",
+      "value": 5
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Meters3",
+      "value": 6
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Microinches3",
+      "value": 7
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Mils3",
+      "value": 8
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Inches3",
+      "value": 9
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Feet3",
+      "value": 10
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_MicroLiters",
+      "value": 11
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_MilliLiters",
+      "value": 12
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_CentiLiters",
+      "value": 13
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_DeciLiters",
+      "value": 14
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_Liters",
+      "value": 15
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_HectoLiters",
+      "value": 16
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_USFluidOunce",
+      "value": 17
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_USPints",
+      "value": 18
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_USGallons",
+      "value": 19
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_IMPGallons",
+      "value": 20
+    },
+    {
+      "enum": "swUnitsMassPropVolume_e",
+      "name": "swUnitsMassPropVolume_IMPCubicYards",
+      "value": 21
+    }
+  ],
+  "linkage_watcher_candidates": [
+    {
+      "enum": "swUserPreferenceToggle_e",
+      "name": "swUnitsLinearRoundToNearestFraction",
+      "value": 62
+    },
+    {
+      "enum": "swUserPreferenceToggle_e",
+      "name": "swUnitsLinearFeetAndInchesFormat",
+      "value": 63
+    },
+    {
+      "enum": "swUserPreferenceToggle_e",
+      "name": "swUnitsDualLinearRoundToNearestFraction",
+      "value": 252
+    },
+    {
+      "enum": "swUserPreferenceToggle_e",
+      "name": "swUnitsDualLinearFeetAndInchesFormat",
+      "value": 253
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsLinearDecimalDisplay",
+      "value": 48
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsLinearFractionDenominator",
+      "value": 50
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsDualLinear",
+      "value": 254
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsDualLinearDecimalDisplay",
+      "value": 255
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsDualLinearDecimalPlaces",
+      "value": 256
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsDualLinearFractionDenominator",
+      "value": 257
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsForce",
+      "value": 262
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsForceDecimalPlaces",
+      "value": 332
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsEnergyUnits",
+      "value": 333
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsEnergyDecimalPlaces",
+      "value": 334
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsPowerUnits",
+      "value": 335
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsPowerDecimalPlaces",
+      "value": 336
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsTimeUnits",
+      "value": 337
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsTimeDecimalPlaces",
+      "value": 338
+    },
+    {
+      "enum": "swUserPreferenceIntegerValue_e",
+      "name": "swUnitsDecimalRounding",
+      "value": 522
+    }
+  ]
+}

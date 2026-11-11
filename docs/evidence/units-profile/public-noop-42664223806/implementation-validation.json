@@ -1,0 +1,69 @@
+{
+  "targeted": {
+    "tests": 84,
+    "seconds": 23.473,
+    "success": true
+  },
+  "full": {
+    "tests": 1960,
+    "seconds": 75.689,
+    "skipped": 26,
+    "success": true
+  },
+  "sdk": {
+    "generated_check": true,
+    "strict_files": 6,
+    "negative_consumer_cases": 8,
+    "success": true
+  },
+  "python39_ast": {
+    "files": 8,
+    "success": true
+  },
+  "logs": {
+    "targeted": {
+      "path": "evidence/units-profile/public-noop-42664223806/implementation-validation/swcli-frontend-final-targeted.log",
+      "sha256": "12ab750ef8e5cac1bcc7376bf62f0f99b2f8622bf4cdba910a1494ddb5f94074",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/public-noop-42664223806/implementation-validation/swcli-frontend-final-full.log",
+      "sha256": "cd8cc369eada9b862c0bce402db258423bb14cae96a0fe8e5ce08033834c119c",
+      "exit_code": 0
+    },
+    "sdk": {
+      "path": "evidence/units-profile/public-noop-42664223806/implementation-validation/swcli-frontend-sdk-types.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d",
+      "exit_code": 0
+    }
+  },
+  "source_sha256": {
+    "scripts/ci/verify-document-unit-writes.py": "aa409742ec0ef54e76264a49e9b582059eae524464e2e158c3c2c03bf1cc390a",
+    "scripts/ci/run-unit-profile-public.py": "120e1ea2f03a1597689b454d14764085ea82f65181029d62327faa5a806ca941",
+    "scripts/ci/gate_support/unit_cli_frontend.py": "c78bd6871c646149bd89bfab30e798182d9173a4b0f84d5e4842042e5ccbbd1b",
+    "scripts/ci/gate_support/unit_cli_worker.py": "3277abee3f4f3e5a8c6886733324b08e95feecdba02d40e0703fcd363de21e3c",
+    "scripts/ci/gate_support/unit_owned_native.py": "0ab1321bb939798641dabc780da66df84670f148975deb0389c45211d8d2d945",
+    "tests/test_unit_cli_frontend.py": "0ac994912d04b1ee642bf7db21df972d69c146e13b17984ec0880b4902dbde65",
+    "tests/test_unit_profile_public_runner.py": "d30882994c1dd3ef730d9f830f3b297dffd4fab2fef8bbe69355d2093c2305fe",
+    "tests/test_unit_profile_write_public.py": "7ed9452078f1b3a47ac15b6258162d1dc3953ca4c337e918d58acd8dae4ce858"
+  },
+  "product_src_changes": false,
+  "workflow_changes": false,
+  "geometry_policy_changes": false,
+  "public_candidate_domains_changed": false,
+  "budgets": {
+    "native_seconds": 600,
+    "group_seconds": 1800
+  },
+  "required_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139
+  },
+  "extra_cold_read_probes_per_document_type": 1,
+  "cli_strategy": "isolated-reused-cli-main; not per-command cold start",
+  "new_public_ci_dispatched": false,
+  "awaiting_root_review": true,
+  "public_native_accepted": false,
+  "isolated_help_imports": true
+}

@@ -1,0 +1,123 @@
+{
+  "audit_success": true,
+  "run_id": 42361728509,
+  "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/42361728509",
+  "verified_head": "577309005a858c11543b5def253dca36e5d0c598",
+  "artifact_id": 13571025062,
+  "official_zip_sha256": "92c718be6f704c350075ce4de8fbce5e621d81de40e77ae5b915d95d8e882e6c",
+  "report_sha256": "97aa3d8a0732687da4ea3dd26fbdf41f94a3d47df642e6b3425912226e0a5a56",
+  "public_report_sha256": "cbd7e2bf7840557cd7e861c8bfcefcaff94dac700700203fbc845c74fc97a3e9",
+  "host_report_sha256": "01a32737fddbd4af13744533faae50fdf89ad8bac8210346565a0c5079a32f8d",
+  "cases": [
+    {
+      "document_type": 1,
+      "source_system": {
+        "value": "mmgs",
+        "native_value": 5
+      },
+      "source_native_units": {
+        "length_unit": 0,
+        "fraction_base": 1,
+        "fraction_value": 0,
+        "significant_digits": 2,
+        "round_to_fraction": 0
+      },
+      "source_sha256": "641d58a4c14b3d11128c65392bccbf3fb51a3158008863322f2246529a901c1c",
+      "copy_sha256": "a47d2661dfffa058a2b6326842d1054585326357c3c32e8a926fa9eb77fbec27",
+      "public_noop_precision": 2,
+      "refusals": {
+        "lease_refusal": "DocumentLeaseConflict",
+        "stamp_refusal": "DocumentUpdateConflict",
+        "cas_refusal": "DocumentUnitProfileConflict",
+        "closed_domain_refusal": "ValueError",
+        "readonly_refusal": "ValueError"
+      }
+    },
+    {
+      "document_type": 2,
+      "source_system": {
+        "value": "mmgs",
+        "native_value": 5
+      },
+      "source_native_units": {
+        "length_unit": 0,
+        "fraction_base": 1,
+        "fraction_value": 0,
+        "significant_digits": 2,
+        "round_to_fraction": 0
+      },
+      "source_sha256": "2423ccbee3be3b1bad1a5732b18af662fbd900a3d778bc1c8811e2673e0a38a4",
+      "copy_sha256": "83fe911f667d392390de38ff240a44e9d83a1bbabb797ad3c82ca4bb5830a75d",
+      "public_noop_precision": 2,
+      "refusals": {
+        "lease_refusal": "DocumentLeaseConflict",
+        "stamp_refusal": "DocumentUpdateConflict",
+        "cas_refusal": "DocumentUnitProfileConflict",
+        "closed_domain_refusal": "ValueError",
+        "readonly_refusal": "ValueError"
+      }
+    },
+    {
+      "document_type": 3,
+      "source_system": {
+        "value": "ips",
+        "native_value": 3
+      },
+      "source_native_units": {
+        "length_unit": 3,
+        "fraction_base": 1,
+        "fraction_value": 8,
+        "significant_digits": 2,
+        "round_to_fraction": 0
+      },
+      "source_sha256": "6e95de0fc6dfe0c31609a9d32b789c99b800761cb121b129fd97928f7c56454a",
+      "copy_sha256": "9c2f5031d64bdba3ea57cee59e6a726996192697889b6099062c196f08b97f02",
+      "public_noop_precision": 2,
+      "refusals": {
+        "lease_refusal": "DocumentLeaseConflict",
+        "stamp_refusal": "DocumentUpdateConflict",
+        "cas_refusal": "DocumentUnitProfileConflict",
+        "closed_domain_refusal": "ValueError",
+        "readonly_refusal": "ValueError"
+      }
+    }
+  ],
+  "cli_events": 98,
+  "expected_cli_errors": {
+    "DocumentLeaseConflict": 3,
+    "DocumentUpdateConflict": 3,
+    "DocumentUnitProfileConflict": 3,
+    "ValueError": 6
+  },
+  "native_trace": {
+    "internal": {
+      "boundaries": 5656,
+      "max_call_seconds": 6.296999999999798,
+      "group_seconds": 31.843000000000075,
+      "expected_context_errors": {}
+    },
+    "public": {
+      "boundaries": 5003,
+      "max_call_seconds": 2.0160000000000764,
+      "group_seconds": 36.108999999999924,
+      "expected_context_errors": {
+        "DocumentLeaseConflict": 3,
+        "DocumentUpdateConflict": 3
+      }
+    }
+  },
+  "owned_native_pid": 9108,
+  "owned_native_exit_confirmed": true,
+  "public_group_seconds": 44.358999999999924,
+  "source_unchanged_from_verified_head": true,
+  "source_tree": "743b75f899decc82ed75e7c95e32c808247a8b36",
+  "coverage": "three native Windows fixtures: nine-field read/raw5/linkage, precision noop, lease/stamp/CAS/closed-domain/readonly refusals, save/reopen and owned lifecycle",
+  "not_accepted": [
+    "changed preference writes",
+    "scalar/system switching",
+    "Wine/macOS/Linux native behavior",
+    "native injection of partial-write failure paths",
+    "full functional/release gate"
+  ],
+  "audit_negative_and_boundary_checks": 10
+}

@@ -1,0 +1,91 @@
+{
+  "kind": "offline macOS actual isolated CLI helper and real TCP fake daemon; not Windows/CAD/group-budget proof",
+  "python": "3.14.10 (main, Oct 25 2026, 17:12:00) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "complete_replies_byte_equal": true,
+  "requests": 40,
+  "helper_startup_seconds": 0.09124441602034494,
+  "helper": {
+    "strategy": "isolated-reused-cli-main",
+    "command": [
+      "/private/tmp/swcli-units-write-env/bin/python",
+      "-I",
+      "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/scripts/ci/gate_support/unit_cli_worker.py"
+    ],
+    "helper_path": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/scripts/ci/gate_support/unit_cli_worker.py",
+    "helper_sha256": "3277abee3f4f3e5a8c6886733324b08e95feecdba02d40e0703fcd363de21e3c",
+    "cold_start_per_command": false,
+    "starts": 1,
+    "exit_confirmed": true,
+    "launch_utc_timestamp": 1794313829.416821,
+    "pid": 84382,
+    "ready": {
+      "kind": "ready",
+      "pid": 84382,
+      "swcli_version": "0.2.4",
+      "cli_module": "/Users/YJBeetle/.codex/worktrees/docprops-units-expanded/SWCLI/src/swcli/cli.py",
+      "cli_main_sha256": "1f0c6b207ffa01bddc2dca127a74750b765c763f7ff0d207964137edf698577e"
+    },
+    "exit_code": 0,
+    "commands": 20,
+    "exit_waits": 1,
+    "normal_eof": true
+  },
+  "timing": {
+    "fresh_subprocess": {
+      "calls": 20,
+      "median_seconds": 0.14309195849637035,
+      "total_seconds": 2.8722515830304474,
+      "samples_seconds": [
+        0.16015899999183603,
+        0.1569876249996014,
+        0.15792404097737744,
+        0.15511554200202227,
+        0.1514229169988539,
+        0.14867325001978315,
+        0.15004054200835526,
+        0.1431428339856211,
+        0.1430410830071196,
+        0.15131237500463612,
+        0.14302808299544267,
+        0.14207762500154786,
+        0.13190129201393574,
+        0.13182687500375323,
+        0.130420708010206,
+        0.1298767500265967,
+        0.14612458299961872,
+        0.13931333299842663,
+        0.12959274998866022,
+        0.1302703749970533
+      ]
+    },
+    "isolated_reused_cli_main": {
+      "calls": 20,
+      "median_seconds": 0.006464854013756849,
+      "total_seconds": 0.181131458026357,
+      "samples_seconds": [
+        0.05474575000698678,
+        0.006715417024679482,
+        0.006580165994819254,
+        0.006721666024532169,
+        0.0065318339911755174,
+        0.008764541998971254,
+        0.0063628749921917915,
+        0.006474125024396926,
+        0.006455583003116772,
+        0.0066676249844022095,
+        0.006194082990987226,
+        0.006311666016699746,
+        0.006379250000463799,
+        0.006063167005777359,
+        0.008745708997594193,
+        0.006221582996658981,
+        0.006445333012379706,
+        0.006181249977089465,
+        0.005903084005694836,
+        0.006666749977739528
+      ]
+    }
+  },
+  "raw_journal": "evidence/units-profile/public-noop-42664223806/actual-frontend-benchmark/transport-events.jsonl",
+  "raw_journal_sha256": "2ed86cdea3acb9ea4b12fe4bf38ba5fbd75bfe5e1ae798eee888c2a2dd0082fb"
+}

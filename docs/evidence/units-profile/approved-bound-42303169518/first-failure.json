@@ -1,0 +1,17 @@
+{
+  "run_id": 42303169518,
+  "head": "9d1d54633a0ad7f9a8149342f6d3b58b0e55b05f",
+  "artifact_id": 13545229213,
+  "original_zip_sha256": "885a31ad601536c74093c968550a11242c2ce7d870aeb78a890ff50f6487ebc9",
+  "report_sha256": "098a410f298a8b0dae6f82db279f4aaa94d4b016addb6b3ab01362cf96b7a3a7",
+  "internal_success": true,
+  "approved_centroid_absolute_limit_mm": 1e-12,
+  "first_business_failure": "invalid synthetic lease token rejected by protocol as ValueError before DocumentLeaseConflict; public gate had not reached later cases",
+  "cleanup_failure": [
+    {
+      "type": "RuntimeError",
+      "message": "owned public host leaked or changed preexisting PID inventory"
+    }
+  ],
+  "public_success": false
+}

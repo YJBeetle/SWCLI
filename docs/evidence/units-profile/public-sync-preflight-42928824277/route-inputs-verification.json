@@ -1,0 +1,20 @@
+{
+  "run_id": 42928824277,
+  "head_sha": "95a2edccd26dfa274e0f66468248838d71cf7e53",
+  "route_job_id": 130222100992,
+  "route_job_success": true,
+  "source": "completed route job original log from the single initial snapshot",
+  "actual_environment": {
+    "ROUTE_EVENT": "workflow_dispatch",
+    "ROUTE_REF": "refs/heads/codex/docprops-units-expanded",
+    "ROUTE_NATIVE_FULL": "false",
+    "ROUTE_UNITS_CALIBRATION": "true",
+    "ROUTE_UNITS_PUBLIC": "true",
+    "ROUTE_UNITS_WRITE": "true"
+  },
+  "validated_route": "units-write-public",
+  "raw_log": {
+    "path": "evidence/units-profile/public-sync-preflight-42928824277/route.original.log",
+    "sha256": "f680f9aaecc8bd69f110d899be709073ad8798a9530be8cad3f29ac9173e6c6e"
+  }
+}

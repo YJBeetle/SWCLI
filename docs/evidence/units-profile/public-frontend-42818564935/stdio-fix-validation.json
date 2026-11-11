@@ -1,0 +1,81 @@
+{
+  "python_executable": "/private/tmp/swcli-units-write-env/bin/python",
+  "targeted": {
+    "tests": 90,
+    "seconds": 25.396,
+    "success": true
+  },
+  "full": {
+    "tests": 1966,
+    "seconds": 101.419,
+    "skipped": 26,
+    "success": true
+  },
+  "sdk": {
+    "generator": true,
+    "strict_files": 6,
+    "negative_typing_cases": 8,
+    "success": true
+  },
+  "python39_ast_files": 4,
+  "diff_check": true,
+  "original_audit_repeat_equal": true,
+  "negative_audit_checks": [
+    "wrong head rejected",
+    "wrong original ZIP rejected"
+  ],
+  "source_sha256": {
+    "scripts/ci/gate_support/unit_cli_frontend.py": "f993cc5dd433c8e9ede1ca510d04c32da6bbf8851d55a65435da54f97513975a",
+    "scripts/ci/gate_support/unit_cli_worker.py": "fb574a822556b46747d6cb00848e5402602054beecbf74833ecbfcd0ada39a6d",
+    "tests/test_unit_cli_frontend.py": "e55db6a6410133ffbbb17ea88ec39b28f4d3f09f27c4c7a8767cb56ddcb112ec",
+    "tests/test_unit_cli_stdio.py": "68985655751244e93908b586b837bdae0f546af6c4b3a124da5e7c78cf30d54e"
+  },
+  "logs": {
+    "targeted": {
+      "path": "evidence/units-profile/public-frontend-42818564935/stdio-fix-validation/swcli-stdio-final-targeted.log",
+      "sha256": "990ffe5c89e0549545262ae75c4af8ef74382c51aab83b4f3e981bf06a6bf955",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/public-frontend-42818564935/stdio-fix-validation/swcli-stdio-final-full.log",
+      "sha256": "3aef58182b69a6f61e55f60040a2e1d18311d077e1122c720c934a5647fbe2be",
+      "exit_code": 0
+    },
+    "sdk": {
+      "path": "evidence/units-profile/public-frontend-42818564935/stdio-fix-validation/swcli-stdio-final-sdk.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d",
+      "exit_code": 0
+    }
+  },
+  "windows_native_verified": false,
+  "new_ci_dispatched": false,
+  "product_source_changed": false,
+  "identity_and_sequence_guards_unchanged": true,
+  "argv_rpc_bytes_unchanged": true,
+  "budgets": {
+    "native_seconds": 600,
+    "group_seconds": 1800
+  },
+  "required_public_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139
+  },
+  "notes": [
+    "Actual Windows 3.9/3.14 portable verification is pending a separately reviewed new head; local CRLF writer emulation is not that evidence.",
+    "An initial new parser stderr test expected unrecognized-arguments from the global parser, which returned invalid-choice. Fresh/helper bytes already matched; test input was moved under document unit-profile to reach the intended parser path. No comparison was relaxed."
+  ],
+  "coordinator_conditional_approval": {
+    "source": "explicit coordinator message after 17 associated tests and source hash review",
+    "reported_tests": 17,
+    "reported_seconds": 9.866,
+    "locked_source_sha256": {
+      "scripts/ci/gate_support/unit_cli_worker.py": "fb574a822556b46747d6cb00848e5402602054beecbf74833ecbfcd0ada39a6d",
+      "scripts/ci/gate_support/unit_cli_frontend.py": "f993cc5dd433c8e9ede1ca510d04c32da6bbf8851d55a65435da54f97513975a",
+      "tests/test_unit_cli_frontend.py": "e55db6a6410133ffbbb17ea88ec39b28f4d3f09f27c4c7a8767cb56ddcb112ec",
+      "tests/test_unit_cli_stdio.py": "68985655751244e93908b586b837bdae0f546af6c4b3a124da5e7c78cf30d54e"
+    },
+    "local_source_still_matches": true,
+    "conditions": "complete portable/SDK/Python3.9AST/diff success; no other business/source/workflow/geometry/budget changes; one new public after remote/no-duplicate/concurrency preflight"
+  }
+}

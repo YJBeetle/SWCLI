@@ -1,0 +1,63 @@
+{
+  "run_id": 42423042929,
+  "head_sha": "ac8e7f26ced8148d16fe236280082d4f78ec9290",
+  "ref": "codex/docprops-units-expanded",
+  "event": "workflow_dispatch",
+  "url": "https://github.com/YJBeetle/SWCLI/actions/runs/42423042929",
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  },
+  "purpose": "one public CLI/SDK/MCP write acceptance after independent original-native audit and manual exact-domain admission",
+  "expected_cases": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139,
+    "total": 417
+  },
+  "budgets": {
+    "native_seconds": 600,
+    "public_group_seconds": 1800
+  },
+  "snapshot": {
+    "status": "in_progress",
+    "conclusion": null,
+    "updated_at": "2026-11-07T22:58:17Z",
+    "jobs": [
+      {
+        "id": 128555395225,
+        "name": "Build wheel",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128555395338,
+        "name": "Validate manual units routing before private native setup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128555395388,
+        "name": "Windows / Python 3.14",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128555395422,
+        "name": "Windows / Python 3.9",
+        "status": "in_progress",
+        "conclusion": null
+      },
+      {
+        "id": 128555396337,
+        "name": "Validate release tag before private native runtime",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "snapshot_policy": "one normal snapshot then stop; initial run metadata HTTP EOF was refetched, not a native/API retry",
+  "public_native_accepted": false
+}

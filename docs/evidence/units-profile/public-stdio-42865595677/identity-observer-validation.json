@@ -1,0 +1,74 @@
+{
+  "targeted": {
+    "tests": 97,
+    "seconds": 25.036,
+    "skipped": 1,
+    "success": true
+  },
+  "full": {
+    "tests": 1973,
+    "seconds": 78.009,
+    "skipped": 27,
+    "success": true
+  },
+  "sdk": {
+    "generator": true,
+    "strict_files": 6,
+    "negative_consumer_cases": 8,
+    "success": true
+  },
+  "python39_ast_files": 3,
+  "diff_check": true,
+  "original_audit_repeat_equal": true,
+  "wrong_head_rejected": true,
+  "source_sha256": {
+    "scripts/ci/gate_support/unit_owned_native.py": "e294e605a0b6896fe1151c51ead512e9231328ef9b02e00c88dc89e5cff82141",
+    "scripts/ci/run-unit-profile-public.py": "9b5610260f1645c80b30abebb03f8ab727815b58a3919b1c043fb8c4b408587e",
+    "tests/test_unit_profile_public_runner.py": "0d0d7e21508b639e2a812be10a8dbae5fc1366789b0644a7e6dfd691d7363e93"
+  },
+  "logs": {
+    "targeted": {
+      "path": "evidence/units-profile/public-stdio-42865595677/identity-observer-validation/swcli-image-final-targeted.log",
+      "sha256": "5b85655999a0bdfd3d61bcb88af9cd2fa2c581488e6a6813f0098d608dd1ff41",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/public-stdio-42865595677/identity-observer-validation/swcli-image-final-full.log",
+      "sha256": "402924953710891f08dec599734cf5b1c43788f267401bec23933d24bdac2cf8",
+      "exit_code": 0
+    },
+    "sdk": {
+      "path": "evidence/units-profile/public-stdio-42865595677/identity-observer-validation/swcli-image-final-sdk.log",
+      "sha256": "1bd4ab82ebb1839718296232b38b09e1b325f7e444ef503227b102e395d34b8d",
+      "exit_code": 0
+    },
+    "observer_contract": {
+      "path": "evidence/units-profile/public-stdio-42865595677/identity-observer-validation/swcli-image-observer-contract.log",
+      "sha256": "bd01d8387051313aa3e5a17a02e8fe9abbd157a6cb4f46b9df7e3d5ce9433fdd",
+      "exit_code": 0
+    }
+  },
+  "windows_current_process_test": "added but skipped on macOS; actual Windows result pending lightweight push CI",
+  "native_path_policy_changed": false,
+  "expected_image_constant_changed": false,
+  "stable_identity_fields_changed": false,
+  "identity_and_creation_and_held_handle_guards_unchanged": true,
+  "new_native_ci_dispatched": false,
+  "underlying_mismatch_cause_established": false,
+  "budgets": {
+    "native_seconds": 600,
+    "group_seconds": 1800
+  },
+  "public_cases_required": {
+    "cli": 139,
+    "sdk": 139,
+    "mcp": 139
+  },
+  "observer_receives_json_data_only": true,
+  "unchanged_guard_ast_verified": [
+    "validate_identity",
+    "terminate",
+    "exited",
+    "EXPECTED_CI_IMAGE"
+  ]
+}

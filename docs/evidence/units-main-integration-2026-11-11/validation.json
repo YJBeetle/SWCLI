@@ -1,0 +1,43 @@
+{
+  "native_source_head": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "native_run": 42935636514,
+  "main_before": "d31eb40614d1dad945650bd322227ea41fdffa59",
+  "portable": {
+    "tests": 2773,
+    "skipped": 39,
+    "seconds": 96.13,
+    "result": "passed"
+  },
+  "integration_routing": {
+    "tests": 59,
+    "seconds": 0.203,
+    "result": "passed"
+  },
+  "SDK": {
+    "strict_source_files": 6,
+    "negative_consumers": 31,
+    "passed": true
+  },
+  "contracts": {
+    "old_unchanged": 86,
+    "new": 2,
+    "native_unit_contracts_exact": true
+  },
+  "workflow": {
+    "inputs": 25,
+    "duplicate_keys": false,
+    "native_profile_and_units_route_both_required": true,
+    "PR_trigger": false,
+    "cancel_in_progress": false
+  },
+  "raw_evidence_unchanged": true,
+  "historical_raw_whitespace": "Old CRLF HTTP receipts and original proposal diff remain byte-exact; source/diff check passes with historical evidence excluded.",
+  "audit_development_note": "Trace receipt classifier includes 342 additional UnitProfileCalibrationRequired zero-write negatives besides 1668 required lease/stamp/CAS/readonly guards; initial audit counted only the latter and rejected its own count. Native evidence and predicates unchanged.",
+  "log_sha256": {
+    "units-main-full-tests.log": "6c8372ee7d7c797f3b9851c32c33b56e7e7b9cd28fddbfd0ae95001a2d9ee2dc",
+    "units-main-full-tests-final.log": "17329756efba53ad63aaf95fcfd58505f9206d8ad2909759e97866d7681ef215",
+    "units-main-routing-tests.log": "01582019fca06eb60e51ecbb06504e22771e5ff2bea35b348b07730d26735eeb",
+    "units-main-sdk-final.log": "1f4688d5d3603f180a8db309a11b5813137b76c9b4261ab94150724eb42c2e29"
+  },
+  "release": false
+}

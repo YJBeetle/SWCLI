@@ -1,0 +1,18 @@
+{
+  "job_id": 129837879889,
+  "job_name": "Validate manual units routing before private native setup",
+  "job_conclusion": "success",
+  "source": "official completed route-job logs attached to the single initial job snapshot",
+  "environment": {
+    "ROUTE_EVENT": "workflow_dispatch",
+    "ROUTE_REF": "refs/heads/codex/docprops-units-expanded",
+    "ROUTE_NATIVE_FULL": "false",
+    "ROUTE_UNITS_CALIBRATION": "true",
+    "ROUTE_UNITS_PUBLIC": "true",
+    "ROUTE_UNITS_WRITE": "true"
+  },
+  "validated_route": "units-write-public",
+  "original_log": "evidence/units-profile/public-frontend-42818564935/route-job.original.log",
+  "original_log_sha256": "34b6b77500b8a362c4eb077f61807c686323773dd2b0b71c899b4c76330ca3b4",
+  "log_fetch_note": "Initial gh api refused terminal escape output before writing; original log then fetched with --allow-escape-sequences redirected only to a file. No extra run/job status snapshot or dispatch."
+}

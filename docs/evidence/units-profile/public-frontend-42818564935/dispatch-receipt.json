@@ -1,0 +1,29 @@
+{
+  "returncode": 0,
+  "stdout": "https://github.com/YJBeetle/SWCLI/actions/runs/42818564935\n",
+  "stderr": "",
+  "command": [
+    "gh",
+    "workflow",
+    "run",
+    "ci.yml",
+    "--repo",
+    "YJBeetle/SWCLI",
+    "--ref",
+    "codex/docprops-units-expanded",
+    "-f",
+    "units_calibration=true",
+    "-f",
+    "units_write_calibration=true",
+    "-f",
+    "units_public_acceptance=true",
+    "-f",
+    "native_full=false"
+  ],
+  "inputs": {
+    "units_calibration": true,
+    "units_write_calibration": true,
+    "units_public_acceptance": true,
+    "native_full": false
+  }
+}

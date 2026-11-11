@@ -1,0 +1,49 @@
+{
+  "python": "3.14.10",
+  "targeted": {
+    "tests": 60,
+    "seconds": 14.361,
+    "success": true
+  },
+  "full": {
+    "tests": 1936,
+    "skipped": 26,
+    "seconds": 63.407,
+    "success": true
+  },
+  "sdk_generated_check": true,
+  "python39_ast": {
+    "changed_files": 3,
+    "success": true
+  },
+  "git_diff_check": true,
+  "independent_original_zip_audit": true,
+  "logs": {
+    "targeted": {
+      "path": "evidence/units-profile/public-writes-42423042929/local-fix-validation/swcli-public-noop-targeted-final.log",
+      "sha256": "6e84c32c49f8d9bf492c67af5ab7a42682d88fd5b26ce2f670786b3d6f0acc46",
+      "exit_code": 0
+    },
+    "full": {
+      "path": "evidence/units-profile/public-writes-42423042929/local-fix-validation/swcli-public-noop-full.log",
+      "sha256": "098bf9aefea751502537d1551a22c9799d9cb4604218baef800550e36b9f1f76",
+      "exit_code": 0
+    },
+    "sdk_generated": {
+      "path": "evidence/units-profile/public-writes-42423042929/local-fix-validation/swcli-public-noop-sdk.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  },
+  "operational_changes": [
+    "scripts/ci/verify-document-unit-writes.py",
+    "tests/test_unit_profile_write_public.py"
+  ],
+  "product_src_and_workflow_unchanged": true,
+  "public_cad_accepted": false,
+  "notes": [
+    "Original snapshot regression initially mocked call_daemon without a real protocol handler; that local test configuration failed before correction. Final regression uses real daemon request handler and asserts zero worker calls.",
+    "The public request reaches daemon validation; it is not a pre-daemon client refusal.",
+    "All 139 cases per CLI/SDK/MCP remain required in one group, native 600s/group 1800s unchanged."
+  ]
+}

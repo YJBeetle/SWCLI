@@ -1,0 +1,30 @@
+{
+  "review": "internal read/CAS only; not changed-write or public acceptance",
+  "source_commit": "6c314f7d6466ccf4d7734c1127470c34e458258a",
+  "original_zip_sha256": "00545f8a24b4998b5bdf43582ed80d8c85c777926b93400a62f3bffde49b351f",
+  "report_sha256": "46fc0ccfa42a7ccf0ac98d31675b79b24ddde808f3319ff3363bb0239c5a2bca",
+  "cases": [
+    {
+      "document_type": 1,
+      "success": true,
+      "file_sha256": "2bc6ddbe2de21cfe53c25eb3b57a928dbceb7475b12d7e2ef2c54dc0679cf471",
+      "refusal": "ValueError"
+    },
+    {
+      "document_type": 2,
+      "success": true,
+      "file_sha256": "62a6dc7f31e7a432f9b16702d251a1a9197e9a469cda6855bb55d3501b3421c3",
+      "refusal": "ValueError"
+    },
+    {
+      "document_type": 3,
+      "success": true,
+      "file_sha256": "1c1158d59ba8930fe9f11a5b373df4748ac4a889ec884073d95ef465be23a324",
+      "refusal": "ValueError"
+    }
+  ],
+  "native_boundaries": 5170,
+  "max_call_seconds": 10.234,
+  "group_seconds": 39.437,
+  "cleanup_errors": []
+}

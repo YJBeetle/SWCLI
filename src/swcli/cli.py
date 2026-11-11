@@ -27,6 +27,7 @@ from .document_font_scopes import WRITABLE_FONT_SCOPES
 from .font_snapshot import FONT_WRITABLE_FIELDS
 from .document_line_font import LINE_FONT_FIELDS
 from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, validate_value
+from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
 from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
@@ -423,6 +424,16 @@ def build_parser() -> argparse.ArgumentParser:
     standard_editor.add_argument("--if-snapshot", dest="expected_snapshot", required=True, type=_document_preference_json,
                                  help="complete previous fixed-profile drafting snapshot JSON object")
     standard_editor.add_argument("--json", action="store_true", dest="as_json")
+    unit_profile_parser = document_commands.add_parser("unit-profile", help="read nine document unit preferences and finite linkage observations")
+    add_document_selector(unit_profile_parser)
+    unit_profile_parser.add_argument("--json", action="store_true", dest="as_json")
+    unit_profile_editor = document_commands.add_parser("unit-profile-set", help="set one unit preference only in an independently calibrated write domain")
+    add_document_selector(unit_profile_editor)
+    add_lease_token(unit_profile_editor)
+    unit_profile_editor.add_argument("field", choices=tuple(UNIT_PROFILE_FIELDS))
+    unit_profile_editor.add_argument("value", help="named unit or integer precision")
+    unit_profile_editor.add_argument("--if-snapshot", dest="expected_snapshot", required=True, help="complete unit_profile JSON from a fresh read")
+    unit_profile_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1637,6 +1648,14 @@ def _typed_operation(
                 value = value == "true"
             return ("document.dimension-format-set", {"field": args.field, "value": value,
                     "expected_format": json.loads(args.expected_format)}, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
+        if command == "unit-profile":
+            return ("document.unit-profile", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "unit-profile-set":
+            value = args.value if "enum" in UNIT_PROFILE_FIELDS[args.field] else int(args.value)
+            return ("document.unit-profile-set", {"field": args.field, "value": value,
+                    "expected_snapshot": json.loads(args.expected_snapshot)}, args.as_json,
                     args.document_id, args.expected_update_stamp, args.lease_id)
         if command == "units":
             return ("document.units", {}, args.as_json, args.document_id,

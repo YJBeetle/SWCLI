@@ -24,6 +24,8 @@ from .document_preferences_schemas import (
     document_preference_parameters, validate_document_preference_request,
 )
 from .document_tables import TABLE_FIELDS, TABLE_OPTIONS_SCHEMA, table_value_schema, validate_table_value, validate_table_options
+from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS, target as unit_profile_target, validate_snapshot as validate_unit_profile
+from .document_unit_profile_schemas import UNIT_PROFILE_SCHEMA, target_schema as unit_profile_target_schema
 from .hosts.windows_custom_properties import WRITABLE_PROPERTY_TYPES
 from .hosts.windows_sketches import STANDARD_PLANES
 from .result_schemas import operation_result_schema
@@ -354,6 +356,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "then": {"properties": {"value": dimension_value_schema(field)}},
         } for field in DIMENSION_FORMAT_FIELDS],
         document_id="required", expected_update_stamp="required", lease_id="required",
+    ),
+    "document.unit-profile": _operation("document.unit-profile", **_DOCUMENT_READ_CONTEXT),
+    "document.unit-profile-set": _operation(
+        "document.unit-profile-set",
+        {"field": _string(enum=list(UNIT_PROFILE_FIELDS)),
+         "value": {"anyOf": [_string(), _integer()]}, "expected_snapshot": UNIT_PROFILE_SCHEMA},
+        required=("field", "value", "expected_snapshot"), document_id="optional",
+        expected_update_stamp="required", lease_id="required",
+        parameter_conditions=[{"if": {"properties": {"field": {"const": field}}},
+                               "then": {"properties": {"value": unit_profile_target_schema(field)}}}
+                              for field in UNIT_PROFILE_FIELDS],
     ),
     "document.units": _operation("document.units", **_DOCUMENT_READ_CONTEXT),
     "document.units-set": _operation(
@@ -800,6 +813,10 @@ def validate_operation_request(
     if operation == "document.table-option-set":
         validate_table_value(parameters["field"], parameters["value"])
         validate_table_options(parameters["expected_options"])
+
+    if operation == "document.unit-profile-set":
+        unit_profile_target(parameters["field"], parameters["value"])
+        validate_unit_profile(parameters["expected_snapshot"])
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)

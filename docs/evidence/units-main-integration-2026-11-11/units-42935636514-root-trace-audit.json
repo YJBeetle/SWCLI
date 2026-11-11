@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "trace_frames": 1710960,
+  "one_worker": [
+    6088
+  ],
+  "all_native_begin_terminal_pairs_complete": true,
+  "max_native_boundary_seconds": 1.0,
+  "expected_operation_errors": {
+    "('DocumentLeaseConflict', 0)": 417,
+    "('DocumentUpdateConflict', 0)": 417
+  },
+  "native_api_errors": 0,
+  "changed_setters": 417,
+  "noop_zero_write": 417,
+  "guards_zero_write": 2010,
+  "negative_receipts": {
+    "DocumentLeaseConflict": 417,
+    "DocumentUpdateConflict": 417,
+    "DocumentUnitProfileConflict": 417,
+    "ValueError": 417,
+    "UnitProfileCalibrationRequired": 342
+  },
+  "changed_full_snapshot_and_stamp_correlated": true,
+  "lease_owner_and_contender_correlated": true,
+  "transport_events": 14031,
+  "public_report_sha256": "34d2bd886efb2d94139b4f2e21cd62fc1378abf5ae5587bf09a20c64ee28134b"
+}

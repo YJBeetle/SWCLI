@@ -1,0 +1,61 @@
+{
+  "old_main": "d31eb40614d1dad945650bd322227ea41fdffa59",
+  "unit_native_head": "459b0cf88892fe1af013156994568d6e52e6df2e",
+  "existing_contracts": 86,
+  "current_contracts": 88,
+  "existing_operations_and_results_unchanged": true,
+  "unit_operations_and_results_exact": true,
+  "dependencies": [
+    {
+      "file": "hosts/windows.py",
+      "symbol": "_com_value",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows.py",
+      "symbol": "_error",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_custom_properties.py",
+      "symbol": "_state",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_custom_properties.py",
+      "symbol": "_require_writable",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_custom_properties.py",
+      "symbol": "_verify_metadata_state",
+      "main_same_as_unit": false
+    },
+    {
+      "file": "hosts/windows_document_annotations.py",
+      "symbol": "_edit_context",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_document_annotations.py",
+      "symbol": "_verify_context",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_document_annotations.py",
+      "symbol": "_writable_context",
+      "main_same_as_unit": true
+    },
+    {
+      "file": "hosts/windows_feature_inspection.py",
+      "symbol": "_same",
+      "main_same_as_unit": true
+    }
+  ],
+  "metadata_guard_dependency_review": {
+    "difference": "main adds optional require_writable=False and guarded check only under changed=True",
+    "unit_call_sites": "all _verify_metadata_state calls use changed=False; same executed path",
+    "source_preserved": "main helper untouched",
+    "compatible": true
+  }
+}

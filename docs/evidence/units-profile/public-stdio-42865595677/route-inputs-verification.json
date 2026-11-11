@@ -1,0 +1,17 @@
+{
+  "job_id": 130002979892,
+  "job_name": "Validate manual units routing before private native setup",
+  "job_conclusion": "success",
+  "source": "official completed route job logs from the one initial job snapshot",
+  "environment": {
+    "ROUTE_EVENT": "workflow_dispatch",
+    "ROUTE_REF": "refs/heads/codex/docprops-units-expanded",
+    "ROUTE_NATIVE_FULL": "false",
+    "ROUTE_UNITS_CALIBRATION": "true",
+    "ROUTE_UNITS_PUBLIC": "true",
+    "ROUTE_UNITS_WRITE": "true"
+  },
+  "validated_route": "units-write-public",
+  "original_log": "evidence/units-profile/public-stdio-42865595677/route-job.original.log",
+  "original_log_sha256": "cab7d0edc71b26dd19be00fb9b0f88bad80fc4a7dd8aef1e5549660c8239aa3c"
+}

@@ -1,0 +1,31 @@
+{
+  "kind": "offline macOS stdlib CPython3.12, matching hosted major/minor only; not Windows timing proof",
+  "python": "3.12.16 (main, Oct 25 2026, 18:24:37) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "report_sha256": "a3d4228f24e140e41fe9053c76b09c4152d06e6f3eb44c1f28d52b1a81e751ab",
+  "serialization": {
+    "original_pretty": {
+      "report_bytes": 25999056,
+      "median_seconds": 0.34949262501322664,
+      "samples_seconds": [
+        0.3516459579986986,
+        0.34949262501322664,
+        0.3493106249952689,
+        0.3589668330096174,
+        0.33434837497770786
+      ],
+      "complete_roundtrip_equal": true
+    },
+    "compact_equivalent": {
+      "report_bytes": 19307244,
+      "median_seconds": 0.08337979100178927,
+      "samples_seconds": [
+        0.07876854101778008,
+        0.07847862498601899,
+        0.11570633298833854,
+        0.08662800001911819,
+        0.08337979100178927
+      ],
+      "complete_roundtrip_equal": true
+    }
+  }
+}
