@@ -53,12 +53,25 @@ def send(stream, message):
     stream.flush()
 
 
+class HelperTerminated(RuntimeError):
+    """A same-session terminal result is a failure, never an identity ACK."""
+    def __init__(self, result, awaiting):
+        self.receipt = result
+        self.awaiting = awaiting
+        reason = result.get('first_error') or 'helper terminated without a first_error'
+        super().__init__('helper terminal result while awaiting ' + awaiting + ': ' + str(reason)
+                         + '; HRESULT=' + str(result.get('hresult')))
+
+
 def receive(stream, nonce, kind, role=None):
     length, = struct.unpack('<I', read_exact(stream, 4))
     require(0 < length <= MAX_FRAME, 'frame outside limit')
     message = json.loads(read_exact(stream, length).decode('utf-8'))
-    require(type(message) is dict and message.get('nonce') == nonce and message.get('kind') == kind
-            and message.get('role') == role, 'frame kind/nonce/role mismatch')
+    require(type(message) is dict and message.get('nonce') == nonce, 'frame nonce mismatch')
+    if message.get('kind') == 'result' and kind != 'result':
+        require(message.get('role') is None and type(message.get('receipt')) is dict, 'malformed terminal result')
+        raise HelperTerminated(message['receipt'], kind + (':' + role if role else ''))
+    require(message.get('kind') == kind and message.get('role') == role, 'frame kind/role mismatch')
     return message
 
 
@@ -152,24 +165,31 @@ def verify_build(helper):
 
 def io_session(stream, nonce, mode, expected, output, payloads, ledger, receipt):
     """Transport state machine; all native bytes stay in memory."""
+    def expect(kind, role=None):
+        try:
+            return receive(stream, nonce, kind, role)
+        except HelperTerminated as error:
+            receipt['helper_result'] = error.receipt
+            receipt['protocol_terminal'] = dict(awaiting=error.awaiting, kind='result')
+            raise
     send(stream, dict(kind='hello', nonce=nonce, mode=mode, expected=expected, output=output))
-    receive(stream, nonce, 'ready')
+    expect('ready')
     for role in ROLES:
         send(stream, dict(kind='parcel', nonce=nonce, role=role, data=base64.b64encode(payloads[role]).decode('ascii')))
-        receive(stream, nonce, 'prepared', role)
+        expect('prepared', role)
         ledger.transition(role, 'marshaled', 'buffered')
         # Set this BEFORE writing consume: a disconnect cannot establish nonconsumption.
         ledger.transition(role, 'buffered', 'consumption_uncertain')
         send(stream, dict(kind='consume', nonce=nonce, role=role))
-        receive(stream, nonce, 'consumed', role)
+        expect('consumed', role)
         ledger.transition(role, 'consumption_uncertain', 'consumed')
-    identity = receive(stream, nonce, 'identity')['receipt']
+    identity = expect('identity')['receipt']
     receipt['identity_receipt'] = identity
     require(identity.get('contract_accepted') is True and identity.get('identity_accepted') is True
             and identity.get('save_attempts') == 0 and identity.get('before') == expected,
             'helper identity gate failed')
     send(stream, dict(kind='finish' if mode == 'identity' else 'invoke', nonce=nonce))
-    receipt['helper_result'] = receive(stream, nonce, 'result')['receipt']
+    receipt['helper_result'] = expect('result')['receipt']
 
 
 def _connect_pipe(name, helper_pid, process, deadline):
@@ -249,20 +269,27 @@ def invoke_existing(app, document, output, source, source_sha, helper, directory
                         io_session(pipe, nonce, mode, expected, output, payloads, ledger, record)
                 except BaseException as error:
                     state['error'] = dict(type=type(error).__name__, message=str(error))
+                    state['exception'] = error
             io_thread = threading.Thread(target=io_work, name='typed-glb-pipe-io', daemon=True)
             io_thread.start()
             while io_thread.is_alive() or process.poll() is None:
                 pythoncom.PumpWaitingMessages()
                 require(time.monotonic() - started < 600, 'helper deadline; native result/consumption may be unknown')
                 if 'error' in state:
+                    if isinstance(state.get('exception'), HelperTerminated):
+                        raise state['exception']
                     raise RuntimeError('pipe exchange failed: ' + str(state['error']))
                 time.sleep(.01)
+            if isinstance(state.get('exception'), HelperTerminated):
+                raise state['exception']
             require('error' not in state, 'pipe exchange failed: ' + str(state.get('error')))
         record['helper_exit'] = process.returncode
         require(receipt_path.exists(), 'helper durable receipt missing')
         durable = json.loads(receipt_path.read_bytes())
-        require(durable == record.get('helper_result') and process.returncode == 0 and durable.get('success') is True
-                and durable.get('cleanup_errors') == [], 'helper receipt/exit/cleanup failed')
+        require(durable == record.get('helper_result'), 'durable/helper pipe receipts differ')
+        if durable.get('success') is not True:
+            raise HelperTerminated(durable, 'final result')
+        require(process.returncode == 0 and durable.get('cleanup_errors') == [], 'helper exit/cleanup failed')
         require(durable.get('helper_pid') == process.pid and durable.get('python_worker_pid') == os.getpid()
                 and durable.get('pia_sha256') == PIA_SHA and durable.get('consumed_roles') == list(ROLES), 'helper provenance differs')
         attempts = 0 if mode == 'identity' else 1

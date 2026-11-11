@@ -31,6 +31,34 @@ namespace TypedGlb {
   [DllImport("ole32.dll")] static extern void CoUninitialize();
   [DllImport("ole32.dll")] static extern int CreateStreamOnHGlobal(IntPtr global, bool deleteOnRelease, out IStream stream);
   [DllImport("ole32.dll")] static extern int CoUnmarshalInterface(IStream stream, ref Guid iid, out IntPtr value);
+  [StructLayout(LayoutKind.Sequential)] struct FileIdInfo { public ulong volume; public ulong idLow; public ulong idHigh; }
+  [StructLayout(LayoutKind.Sequential)] struct FileBasicInfo { public long creation; public long access; public long write; public long change; public uint attributes; }
+  [StructLayout(LayoutKind.Sequential)] struct FileStandardInfo { public long allocation; public long size; public uint links; [MarshalAs(UnmanagedType.U1)] public bool deleted; [MarshalAs(UnmanagedType.U1)] public bool directory; }
+  [DllImport("kernel32.dll",EntryPoint="GetFileInformationByHandleEx",SetLastError=true)] static extern bool ReadFileId(SafeFileHandle file,int kind,out FileIdInfo info,uint size);
+  [DllImport("kernel32.dll",EntryPoint="GetFileInformationByHandleEx",SetLastError=true)] static extern bool ReadFileBasic(SafeFileHandle file,int kind,out FileBasicInfo info,uint size);
+  [DllImport("kernel32.dll",EntryPoint="GetFileInformationByHandleEx",SetLastError=true)] static extern bool ReadFileStandard(SafeFileHandle file,int kind,out FileStandardInfo info,uint size);
+  static SourceFileState SourceState(FileStream stream) {
+   FileIdInfo id; FileBasicInfo basic; FileStandardInfo standard;
+   if(!ReadFileId(stream.SafeFileHandle,18,out id,(uint)Marshal.SizeOf(typeof(FileIdInfo))) ||
+      !ReadFileBasic(stream.SafeFileHandle,0,out basic,(uint)Marshal.SizeOf(typeof(FileBasicInfo))) ||
+      !ReadFileStandard(stream.SafeFileHandle,1,out standard,(uint)Marshal.SizeOf(typeof(FileStandardInfo))))
+    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+   return new SourceFileState {volume_serial=id.volume.ToString("x16"),file_id_128=id.idHigh.ToString("x16")+id.idLow.ToString("x16"),
+    size_bytes=standard.size,creation_filetime=basic.creation,write_filetime=basic.write,change_filetime=basic.change,
+    attributes=basic.attributes,links=standard.links,delete_pending=standard.deleted,directory=standard.directory};
+  }
+  static string HashSource(string path, Receipt receipt, string phase) {
+   SourceRead evidence=new SourceRead {path=path,phase=phase};
+   receipt.source_reads=receipt.source_reads.Concat(new SourceRead[] {evidence}).ToArray();
+   try {
+    using(FileStream stream=Core.OpenSourceReadOnly(path)) {
+     return Core.StableSourceHash(stream,delegate {return SourceState(stream);},delegate {
+      using(FileStream current=Core.OpenSourceReadOnly(path)) return SourceState(current);
+     },evidence);
+    }
+   } catch(Exception ex) { evidence.error=ex.GetType().FullName+": "+ex.Message; evidence.hresult=Marshal.GetHRForException(ex);
+    System.ComponentModel.Win32Exception win32=ex as System.ComponentModel.Win32Exception; if(win32!=null) evidence.win32_error=win32.NativeErrorCode; throw; }
+  }
   static object Hold(object value) { if (value != null && Marshal.IsComObject(value)) Owned.Add(value); return value; }
   public static string Hash(string path) { using (FileStream s = File.OpenRead(path)) using (SHA256 sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(s)).Replace("-", "").ToLowerInvariant(); }
   static void CheckContract(Receipt r) {
@@ -99,27 +127,49 @@ namespace TypedGlb {
    finally { if (pb!=IntPtr.Zero) Marshal.Release(pb); Marshal.Release(pa); }
   }
   static Snapshot Observe(ISldWorks app, IModelDoc2 doc, IModelDocExtension extension, Receipt receipt, string phase) {
+   Observation observation=new Observation {phase=phase};
+   receipt.observations=receipt.observations.Concat(new Observation[] {observation}).ToArray();
+   observation.current_field="canonical identity";
    object active=Hold(app.ActiveDoc), actualExtension=Hold(doc.Extension);
    IdentityCheck check=new IdentityCheck { phase=phase };
    receipt.identity_checks=receipt.identity_checks.Concat(new IdentityCheck[] {check}).ToArray();
    check.document_iunknown_same=SameUnknown(doc,active); check.extension_iunknown_same=SameUnknown(extension,actualExtension);
    Core.Require(check.document_iunknown_same==true && check.extension_iunknown_same==true, "canonical IUnknown identity differs");
-   int same=app.IsSame(doc, active); check.foreground_same=same; Core.Require(same==1, "foreground swObjectSame unavailable");
-   int pid=app.GetProcessID(); Process sw=Process.GetProcessById(pid);
-   Snapshot s=new Snapshot();
-   using (sw) { s.pid=pid; s.created_filetime=sw.StartTime.ToUniversalTime().ToFileTimeUtc(); s.exe_path=sw.MainModule.FileName; s.exe_sha256=Hash(s.exe_path); }
+   int same=observation.Read("foreground_same",delegate {return app.IsSame(doc,active);}); check.foreground_same=same; Core.Require(same==1, "foreground swObjectSame unavailable");
+   Snapshot s=new Snapshot(); s.pid=observation.Read("pid",delegate {return app.GetProcessID();});
+   using(Process sw=Process.GetProcessById(s.pid)) {
+    s.created_filetime=observation.Read("created_filetime",delegate {return sw.StartTime.ToUniversalTime().ToFileTimeUtc();});
+    s.exe_path=observation.Read("exe_path",delegate {return sw.MainModule.FileName;});
+    s.exe_sha256=observation.Read("exe_sha256",delegate {return Hash(s.exe_path);});
+   }
    Core.Require(s.exe_sha256==ExeSha, "SOLIDWORKS executable differs from inspected installation");
-   s.runtime=app.RevisionNumber(); s.document_count=app.GetDocumentCount();
-   s.visible=app.Visible; s.command_in_progress=app.CommandInProgress; s.user_control=app.UserControl; s.background=app.UserControlBackground;
-   s.path=doc.GetPathName(); s.title=doc.GetTitle(); s.document_type=doc.GetType(); s.update_stamp=doc.GetUpdateStamp(); s.modified=doc.GetSaveFlag();
+   s.runtime=observation.Read("runtime",delegate {return app.RevisionNumber();});
+   s.document_count=observation.Read("document_count",delegate {return app.GetDocumentCount();});
+   s.visible=observation.Read("visible",delegate {return app.Visible;});
+   s.command_in_progress=observation.Read("command_in_progress",delegate {return app.CommandInProgress;});
+   s.user_control=observation.Read("user_control",delegate {return app.UserControl;});
+   s.background=observation.Read("background",delegate {return app.UserControlBackground;});
+   s.path=observation.Read("path",delegate {return doc.GetPathName();});
+   s.title=observation.Read("title",delegate {return doc.GetTitle();});
+   s.document_type=observation.Read("document_type",delegate {return doc.GetType();});
+   s.update_stamp=observation.Read("update_stamp",delegate {return doc.GetUpdateStamp();});
+   s.modified=observation.Read("modified",delegate {return doc.GetSaveFlag();});
+   observation.current_field="ConfigurationManager.ActiveConfiguration";
    IConfigurationManager manager=(IConfigurationManager)Hold(doc.ConfigurationManager);
-   IConfiguration config=(IConfiguration)Hold(manager.ActiveConfiguration); s.configuration=config.Name;
-   Array names=doc.GetConfigurationNames() as Array; Core.Require(names != null && names.Length>0 && names.Length<=1000, "configuration names unreadable");
-   List<string> all=new List<string>(); foreach (object n in names) { Core.Require(n is string && !String.IsNullOrEmpty((string)n), "configuration name is not a string"); all.Add((string)n); }
-   Core.Require(all.Distinct().Count()==all.Count, "configuration names duplicate"); s.configurations=all.ToArray();
-   s.read_only=doc.IsOpenedReadOnly(); s.view_only=doc.IsOpenedViewOnly();
-   ISketchManager sketches=(ISketchManager)Hold(doc.SketchManager); s.active_sketch=Hold(sketches.ActiveSketch)!=null;
-   s.foreground_same=same; s.source_sha256=Hash(s.path); return s;
+   IConfiguration config=(IConfiguration)Hold(manager.ActiveConfiguration);
+   s.configuration=observation.Read("configuration",delegate {return config.Name;});
+   s.configurations=observation.Read("configurations",delegate {
+    Array names=doc.GetConfigurationNames() as Array; Core.Require(names!=null && names.Length>0 && names.Length<=1000,"configuration names unreadable");
+    List<string> all=new List<string>(); foreach(object n in names) { Core.Require(n is string && !String.IsNullOrEmpty((string)n),"configuration name is not a string"); all.Add((string)n); }
+    Core.Require(all.Distinct().Count()==all.Count,"configuration names duplicate"); return all.ToArray();
+   });
+   s.read_only=observation.Read("read_only",delegate {return doc.IsOpenedReadOnly();});
+   s.view_only=observation.Read("view_only",delegate {return doc.IsOpenedViewOnly();});
+   observation.current_field="SketchManager"; ISketchManager sketches=(ISketchManager)Hold(doc.SketchManager);
+   s.active_sketch=observation.Read("active_sketch",delegate {return Hold(sketches.ActiveSketch)!=null;});
+   s.foreground_same=same;
+   s.source_sha256=observation.Read("source_sha256",delegate {return HashSource(s.path,receipt,phase);});
+   observation.complete=true; return s;
   }
   static void WriteNew(string path, byte[] data) { using (FileStream s=new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { s.Write(data,0,data.Length); s.Flush(true); } }
   [STAThread] public static int Main(string[] args) {

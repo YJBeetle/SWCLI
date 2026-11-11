@@ -97,6 +97,45 @@ class ProtocolTests(unittest.TestCase):
             bridge.io_session(stream, self.nonce, 'invoke', self.expected, 's.GLB', self.payloads, ledger, {})
         self.assertNotIn('invoke', [m['kind'] for m in stream.sent()])
         self.assertEqual(ledger.uncertain(), [])
+    def test_early_terminal_result_preserves_helper_first_error_without_invoke(self):
+        result=dict(success=False,first_error='System.IO.IOException: source sharing violation',hresult=-2147024864,
+                    save_attempts=0,identity_accepted=False)
+        for mode in ('identity','invoke'):
+            with self.subTest(mode=mode):
+                rows=self.messages(mode)[:7]+[dict(kind='result',nonce=self.nonce,receipt=result)]
+                stream,ledger,receipt=Duplex(rows),self.ledger(),{}
+                with self.assertRaises(bridge.HelperTerminated) as caught:
+                    bridge.io_session(stream,self.nonce,mode,self.expected,'s.GLB',self.payloads,ledger,receipt)
+                self.assertEqual(caught.exception.receipt,result)
+                self.assertIn('System.IO.IOException',str(caught.exception))
+                self.assertIn('-2147024864',str(caught.exception))
+                self.assertEqual(receipt['helper_result'],result)
+                self.assertEqual(receipt['protocol_terminal']['awaiting'],'identity')
+                self.assertEqual(ledger.states,dict.fromkeys(bridge.ROLES,'consumed'))
+                self.assertFalse(any(m['kind'] in ('finish','invoke') for m in stream.sent()))
+    def test_terminal_result_during_consume_ack_keeps_ownership_uncertain(self):
+        rows=self.messages()[:2]+[dict(kind='result',nonce=self.nonce,receipt=dict(success=False,first_error='unmarshal error',save_attempts=0))]
+        stream,ledger,receipt=Duplex(rows),self.ledger(),{}
+        with self.assertRaises(bridge.HelperTerminated):
+            bridge.io_session(stream,self.nonce,'invoke',self.expected,'s.GLB',self.payloads,ledger,receipt)
+        self.assertEqual(ledger.uncertain(),['app'])
+        self.assertEqual(ledger.releasable(),['document','extension'])
+        self.assertEqual([m['kind'] for m in stream.sent()],['hello','parcel','consume'])
+    def test_wrong_nonce_terminal_cannot_supply_trusted_first_error(self):
+        rows=[dict(kind='result',nonce='wrong',receipt=dict(first_error='untrusted'))]
+        stream,ledger,receipt=Duplex(rows),self.ledger(),{}
+        with self.assertRaises(RuntimeError) as caught:
+            bridge.io_session(stream,self.nonce,'invoke',self.expected,'s.GLB',self.payloads,ledger,receipt)
+        self.assertNotIsInstance(caught.exception,bridge.HelperTerminated)
+        self.assertNotIn('helper_result',receipt)
+        self.assertEqual(ledger.releasable(),list(bridge.ROLES))
+    def test_early_success_result_cannot_replace_identity_handshake(self):
+        rows=self.messages()[:7]+[dict(kind='result',nonce=self.nonce,receipt=dict(success=True,save_attempts=0))]
+        stream,ledger,receipt=Duplex(rows),self.ledger(),{}
+        with self.assertRaises(bridge.HelperTerminated):
+            bridge.io_session(stream,self.nonce,'invoke',self.expected,'s.GLB',self.payloads,ledger,receipt)
+        self.assertNotIn('identity_receipt',receipt)
+        self.assertNotIn('invoke',[m['kind'] for m in stream.sent()])
     def test_wrong_role_or_nonce_cannot_allow_consume(self):
         for key, value in (('nonce','b'*64), ('role','document')):
             with self.subTest(key=key):

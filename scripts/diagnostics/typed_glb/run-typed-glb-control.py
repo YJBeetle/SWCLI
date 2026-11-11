@@ -108,7 +108,7 @@ def offline_audit(output, mode):
     report = json.loads(report_path.read_text(encoding='utf-8'))
     control = report.get('typed_glb_control', {})
     producer = control.get('producer', {})
-    helper = producer.get('helper_result', {})
+    helper = producer.get('helper_result') or producer.get('helper_durable') or {}
     rows = []
     stderr = output / 'worker.stderr.log'
     if stderr.exists():
@@ -181,6 +181,7 @@ def offline_audit(output, mode):
         accepted = accepted and helper.get('api_saved') is True and type(helper.get('save_errors')) is int and helper['save_errors'] == 0 and type(helper.get('save_warnings')) is int
         accepted = accepted and bool(report.get('cases', [{}])[0].get('glb_mesh'))
     return dict(success=bool(accepted), mode=mode, report_sha256=bridge.digest(report_path),
+                helper_first_error=helper.get('first_error'), helper_hresult=helper.get('hresult'),
                 python_modern_save_counts=counts, helper_save_attempts=helper.get('save_attempts'),
                 python_worker_pid=report.get('native_call_worker_pid'), helper_pid=producer.get('helper_pid'),
                 supervisor_launch_pid=supervisor.get('worker_pid'), helper_trace_accepted=helper_trace_ok,

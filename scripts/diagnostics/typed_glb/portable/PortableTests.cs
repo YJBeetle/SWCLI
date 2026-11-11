@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Linq;
 using SolidWorks.Interop.sldworks;
 using TypedGlb;
 sealed class FakeExtension : IModelDocExtension {
@@ -20,8 +21,59 @@ static class PortableTests {
  static int assertions;
  static void Check(bool ok) { ++assertions; if(!ok) throw new Exception("assertion "+assertions); }
  static void Fails(Action fn) { bool failed=false; try {fn();} catch {failed=true;} Check(failed); }
+ static SourceFileState State() { return new SourceFileState {volume_serial="0000000000000001",file_id_128="00000000000000000000000000000002",size_bytes=3,creation_filetime=100,write_filetime=200,change_filetime=300,links=1}; }
+ static SourceFileState Copy(SourceFileState s) { return Core.Decode<SourceFileState>(Core.Encode(s)); }
+ static void SourceTests() {
+  Check(Marshal.SizeOf(typeof(Program).GetNestedType("FileIdInfo",System.Reflection.BindingFlags.NonPublic))==24);
+  Check(Marshal.SizeOf(typeof(Program).GetNestedType("FileBasicInfo",System.Reflection.BindingFlags.NonPublic))==40);
+  Check(Marshal.SizeOf(typeof(Program).GetNestedType("FileStandardInfo",System.Reflection.BindingFlags.NonPublic))==24);
+  byte[] bytes={1,2,3}; SourceFileState state=State(); SourceRead evidence=new SourceRead();
+  using(MemoryStream stream=new MemoryStream(bytes,false)) {
+   string hash=Core.StableSourceHash(stream,delegate {return Copy(state);},delegate {return Copy(state);},evidence);
+   Check(hash=="039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81" && evidence.complete && evidence.bytes_read==3);
+  }
+  foreach(string changed in new string[]{"id","volume","write","change","creation","size","attributes","links"}) {
+   SourceFileState after=Copy(state);
+   if(changed=="id") after.file_id_128=new string('f',32);
+   if(changed=="volume") after.volume_serial=new string('e',16);
+   if(changed=="write") ++after.write_filetime;
+   if(changed=="change") ++after.change_filetime;
+   if(changed=="creation") ++after.creation_filetime;
+   if(changed=="size") ++after.size_bytes;
+   if(changed=="attributes") after.attributes=1;
+   if(changed=="links") ++after.links;
+   int reads=0; SourceRead rejected=new SourceRead();
+   using(MemoryStream stream=new MemoryStream(bytes,false)) Fails(delegate {Core.StableSourceHash(stream,delegate {return ++reads==1?Copy(state):after;},delegate {throw new Exception("path must not be read after held mismatch");},rejected);});
+   Check(!rejected.complete && rejected.before!=null && rejected.after!=null && rejected.sha256!=null);
+  }
+  SourceFileState replaced=Copy(state);replaced.file_id_128=new string('b',32);evidence=new SourceRead();
+  using(MemoryStream stream=new MemoryStream(bytes,false)) Fails(delegate {Core.StableSourceHash(stream,delegate {return Copy(state);},delegate {return replaced;},evidence);});
+  Check(!evidence.complete && evidence.path_after.file_id_128==replaced.file_id_128);
+  foreach(long size in new long[]{2,4}) {
+   SourceFileState wrong=Copy(state);wrong.size_bytes=size;SourceRead rejected=new SourceRead();
+   using(MemoryStream stream=new MemoryStream(bytes,false)) Fails(delegate {Core.StableSourceHash(stream,delegate {return wrong;},delegate {return wrong;},rejected);});
+   Check(!rejected.complete && rejected.before!=null);
+  }
+  SourceFileState unknown=Copy(state);unknown.file_id_128=new string('0',32);
+  Fails(delegate {Core.ValidSourceState(unknown);});
+  using(MemoryStream stream=new MemoryStream(bytes)) Fails(delegate {Core.StableSourceHash(stream,delegate {return state;},delegate {return state;},new SourceRead());});
+  string path=Path.GetTempFileName();
+  try {
+   File.WriteAllBytes(path,bytes);
+   using(FileStream held=new FileStream(path,FileMode.Open,FileAccess.ReadWrite,FileShare.ReadWrite))
+   using(FileStream read=Core.OpenSourceReadOnly(path)) { Check(read.CanRead && !read.CanWrite); Fails(delegate {read.WriteByte(9);}); }
+   Check(File.ReadAllBytes(path).SequenceEqual(bytes));
+  } finally {File.Delete(path);}
+  Receipt receipt=new Receipt();Observation observation=new Observation {phase="handshake"};receipt.observations=new Observation[]{observation};
+  observation.Read("exe_path",delegate {return @"C:\raw\SLDWORKS.exe";});observation.Read("pid",delegate {return 42;});
+  Fails(delegate {observation.Read<string>("source_sha256",delegate {throw new IOException("first source read error");});});
+  Receipt decoded=Core.Decode<Receipt>(Core.Encode(receipt));
+  Check(decoded.before==null && !decoded.identity_accepted && !decoded.observations[0].complete && decoded.observations[0].current_field=="source_sha256");
+  Check(decoded.observations[0].fields.Count==2 && decoded.observations[0].fields[0].text==@"C:\raw\SLDWORKS.exe");
+ }
  static Receipt Ready() { return new Receipt {identity_accepted=true,contract_accepted=true}; }
  public static int Main() {
+  SourceTests();
   FakeExtension f=new FakeExtension(); Receipt r=Ready(); Core.SaveOnce(f,"unchanged.GLB",r);
   Check(f.Calls==1 && r.api_saved==true && r.save_errors==0 && r.save_warnings==2 && r.errors_local==0 && r.first_error==null);
   Fails(delegate {Core.SaveOnce(f,"unchanged.GLB",r);}); Check(f.Calls==1);

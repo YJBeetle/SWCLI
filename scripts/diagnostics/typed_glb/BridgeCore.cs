@@ -1,6 +1,8 @@
 // C# 5 / .NET Framework 4. Diagnostic transport only; no COM activation.
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -57,6 +59,59 @@ namespace TypedGlb {
   [DataMember] public string advanced_options="null object; installed PIA MarshalAs(IDispatch)";
   [DataMember] public string output_codes="Int32& [In,Out]; initialized Int32.MinValue";
  }
+ [DataContract] public sealed class ObservedField {
+  [DataMember] public string name;
+  [DataMember] public string kind;
+  [DataMember(EmitDefaultValue=false)] public string text;
+  [DataMember(EmitDefaultValue=false)] public long? integer;
+  [DataMember(EmitDefaultValue=false)] public bool? boolean;
+  [DataMember(EmitDefaultValue=false)] public string[] strings;
+ }
+ [DataContract] public sealed class Observation {
+  [DataMember] public string phase;
+  [DataMember] public string current_field;
+  [DataMember] public bool complete;
+  [DataMember] public List<ObservedField> fields=new List<ObservedField>();
+  public T Read<T>(string name, Func<T> read) {
+   current_field=name; T value=read(); object raw=value;
+   ObservedField f=new ObservedField {name=name};
+   if(raw==null) f.kind="null";
+   else if(raw is string) { f.kind="string"; f.text=(string)raw; }
+   else if(raw is bool) { f.kind="bool"; f.boolean=(bool)raw; }
+   else if(raw is int) { f.kind="int32"; f.integer=(int)raw; }
+   else if(raw is long) { f.kind="int64"; f.integer=(long)raw; }
+   else if(raw is string[]) { f.kind="strings"; f.strings=(string[])raw; }
+   else throw new InvalidOperationException("unsupported observation value type");
+   fields.Add(f); current_field=null; return value;
+  }
+ }
+ [DataContract] public sealed class SourceFileState {
+  [DataMember] public string volume_serial;
+  [DataMember] public string file_id_128;
+  [DataMember] public long size_bytes;
+  [DataMember] public long creation_filetime;
+  [DataMember] public long write_filetime;
+  [DataMember] public long change_filetime;
+  [DataMember] public uint attributes;
+  [DataMember] public uint links;
+  [DataMember] public bool delete_pending;
+  [DataMember] public bool directory;
+ }
+ [DataContract] public sealed class SourceRead {
+  [DataMember] public string phase;
+  [DataMember] public string path;
+  [DataMember] public string access="Read";
+  [DataMember] public string share="ReadWrite (no Delete)";
+  [DataMember] public SourceFileState before;
+  [DataMember] public SourceFileState after;
+  [DataMember] public SourceFileState path_after;
+  [DataMember] public string sha256;
+  [DataMember] public long bytes_read;
+  [DataMember] public bool complete;
+  [DataMember] public string error;
+  [DataMember] public int? hresult;
+  [DataMember] public int? win32_error;
+ }
  [DataContract] public sealed class Receipt {
   [DataMember] public string schema = "swcli.typed-glb-helper.v1";
   [DataMember] public int helper_pid;
@@ -80,6 +135,8 @@ namespace TypedGlb {
   [DataMember] public string[] consumed_roles = new string[0];
   [DataMember] public IdentityCheck[] identity_checks=new IdentityCheck[0];
   [DataMember] public NativeArguments arguments;
+  [DataMember] public Observation[] observations=new Observation[0];
+  [DataMember] public SourceRead[] source_reads=new SourceRead[0];
   [DataMember] public Snapshot before;
   [DataMember] public Snapshot after;
   [DataMember] public bool post_state_accepted;
@@ -147,6 +204,36 @@ namespace TypedGlb {
            System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(output), @"^\.component-export\.[0-9a-f]{32}\.swcli\.GLB$"),
            "GLB staging string differs from pinned product convention");
    Require(!File.Exists(output), "staging output already exists");
+  }
+  public static FileStream OpenSourceReadOnly(string path) {
+   // This grants our handle read access only; sharing does not grant us write access.
+   return new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);
+  }
+  public static void ValidSourceState(SourceFileState s) {
+   Require(s!=null && s.volume_serial!=null && s.volume_serial.Length==16 && s.volume_serial!=new string('0',16) &&
+           s.file_id_128!=null && s.file_id_128.Length==32 && s.file_id_128!=new string('0',32), "source file identity unavailable");
+   Require(s.size_bytes>0 && s.creation_filetime>0 && s.write_filetime>0 && s.change_filetime>0 && s.links>0 &&
+           !s.delete_pending && !s.directory && (s.attributes & 0x410)==0, "source is not a stable ordinary file");
+  }
+  public static string StableSourceHash(Stream stream, Func<SourceFileState> heldState, Func<SourceFileState> pathState, SourceRead evidence) {
+   Require(stream.CanRead && !stream.CanWrite, "source observation stream must be read only");
+   evidence.before=heldState(); ValidSourceState(evidence.before);
+   long remaining=evidence.before.size_bytes; byte[] buffer=new byte[65536];
+   using(SHA256 sha=SHA256.Create()) {
+    while(remaining>0) {
+     int read=stream.Read(buffer,0,(int)System.Math.Min((long)buffer.Length,remaining));
+     if(read==0) throw new EndOfStreamException("source shortened during read");
+     sha.TransformBlock(buffer,0,read,buffer,0); remaining-=read; evidence.bytes_read+=read;
+    }
+    Require(stream.ReadByte()==-1, "source grew during read");
+    sha.TransformFinalBlock(new byte[0],0,0);
+    evidence.sha256=BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
+   }
+   evidence.after=heldState(); ValidSourceState(evidence.after);
+   Require(Encode(evidence.before).SequenceEqual(Encode(evidence.after)), "held source identity/size/time changed");
+   evidence.path_after=pathState(); ValidSourceState(evidence.path_after);
+   Require(Encode(evidence.after).SequenceEqual(Encode(evidence.path_after)), "source path no longer identifies held file");
+   evidence.complete=true; return evidence.sha256;
   }
   public static void SaveOnce(IModelDocExtension extension, string output, Receipt r) {
    Require(r.identity_accepted && r.contract_accepted && !r.identity_only && r.save_attempts == 0,
