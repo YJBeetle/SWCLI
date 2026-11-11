@@ -1,6 +1,6 @@
 # 装机 GLB exporter 定点零 CAD 文件采集器
 
-状态：已准备 Python、PowerShell 辅助文件和离线反例测试，供统筹亲审。**未在 Windows／VM 执行，未运行 CI 或 push，不是 exporter、签名信任或运行依赖验收。** 本机没有 Windows PowerShell Desktop；辅助脚本的真实语法、API 和装机行为仍待统筹安排零 CAD 验证。
+状态更新（2026-11-11）：统筹首轮 17deb54 零 CAD collector 在首 DLL 的 stat／fstat 比较处失败，未启动 metadata helper；另行 PowerShell 语法预检 exit=0。后续独立 probe 和官方 v3.14.7 源码支持[窄 ctime 比较修正及 raw observer](glb-exporter-stat-ctime-2026-11-11.md)。当前候选仅离线验证，尚未原生重跑；不是 exporter、签名信任或运行依赖验收，helper 的实际装机版本／CMS 行为仍未执行。
 
 ## 固定输入来源
 
@@ -35,7 +35,7 @@ Microsoft 依据：[PE 格式／导入／延迟导入／证书表](https://learn
 
 每个存在的固定输入都记录绝对路径、regular／no-reparse 状态、device／file ID、mode、size、mtime_ns、ctime_ns、Windows 属性及 SHA-256。各级父目录也必须为非 reparse 真目录且身份可读。使用新鲜 no-follow stat，拒绝 symlink／junction／其他 reparse 和零文件身份，不用 Windows DirEntry 的缓存标识。
 
-打开文件后再比较 fstat 与路径 stat；有界读取后检查句柄、路径和父目录身份。版本／签名采集结束，再读取原文件并要求 stat 与 hash 均和之前相同。PowerShell 自身也比较目标数据前后 hash、大小、mtime 和属性，且 hash 必须匹配 Python 传入的值。父目录只核身份和属性，不把目录内其他文件变动误作原文件修改；原文件 mtime／ctime／hash 仍必须一致。
+打开文件后执行带版本限定的跨渠道比较（详见上述审计）：只有已证实的 64-bit Windows CPython 3.14.7、相等 birthtime 与严格身份等全部条件满足时，才允许唯一 ctime_ns 语义差；raw 值不归一。path→path、fstat→fstat 及整个采集前后的双渠道指纹仍严格；有界读取后检查句柄、路径和父目录身份。版本／签名采集结束，再读取原文件并要求 stat 与 hash 均和之前相同。PowerShell 自身也比较目标数据前后 hash、大小、mtime 和属性，且 hash 必须匹配 Python 传入的值。父目录只核身份和属性，不把目录内其他文件变动误作原文件修改；原文件 mtime／ctime／hash 仍必须一致。
 
 辅助脚本、元数据请求和响应是工具自身／本次输出的完整性读取，不是新安装扫描。请求前后也核 stat/hash，防止签名数据包被另一写入替换后错贴到文件。输出和日志只写新的输出目录，PowerShell 元数据响应以 CreateNew 写入，不覆盖既有文件。
 
@@ -57,4 +57,4 @@ PE 解析记录原始 Machine 数值、I386／AMD64／ARM64／unknown 和 PE32�
 
 反例测试使用合成 PE32／PE32+、临时文件和替代 runner，不读取真实 SOLIDWORKS 安装，也不运行 PowerShell。覆盖普通／延迟 RVA 与 VA32 导入、证书文件偏移、坏 header／RVA／目录／计数、危险名称、空表、文件／父目录 symlink 与 reparse、零 ID、stat-open 竞态、打开后替换、辅助调用后字节／身份变化、原缺项出现、请求篡改、首错保留、伪造辅助契约／文件集合／hash、固定工具缺失以及无搜索／COM／网络／目标 loader 的静态合同。
 
-当前只完成可移植测试；PowerShell 的真实运行、签署者解码结果和当前四个 exporter 的实际元数据全部未验证。后续零 CAD 原件须保留 report、metadata request／response、stdout／stderr 和精确执行源码，不将本次测试回执当成装机结果。
+当前修正只完成 24 项可移植测试；首轮 Windows 失败与后续独立 stat probe 已有原件，PowerShell helper 的实际运行、签署者解码和当前四个 exporter 的完整元数据仍未验证。后续零 CAD 原件须保留 report、metadata request／response、stdout／stderr 和精确执行源码，不将本次测试回执当成装机结果。

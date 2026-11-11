@@ -246,6 +246,160 @@ class CollectorTests(unittest.TestCase):
         with mock.patch.object(gate.os,'fstat',side_effect=fstat):
             with self.assertRaisesRegex(RuntimeError,'path identity changed'):gate.stable_read(source)
 
+    def known_runtime(self):
+        return dict(os_name='nt', platform='win32', implementation='cpython',
+                    version_info=[3,14,7,'final',0], version='portable fixture only', word_bits=64)
+
+    def probed_stat(self, **changes):
+        # Exact primitive values from root observation f22def2a..., no live input.
+        fields=dict(st_dev=4217245827768940497,st_ino=1125899907056588,st_mode=33206,st_size=1112960,
+                    st_mtime_ns=1758898084000000000,st_ctime_ns=1758898084000000000,
+                    st_file_attributes=32,st_birthtime_ns=1758898084000000000,st_reparse_tag=0,st_nlink=1)
+        fields.update(changes)
+        return SimpleNamespace(**fields)
+
+    def synthetic_stable_read(self, observation, *, path_after=None, handle_after=None):
+        source=self.install/gate.REQUIRED_FILES[0]
+        before=self.probed_stat(st_size=source.stat().st_size)
+        opened=self.probed_stat(st_size=before.st_size,st_ctime_ns=1780227286818338600)
+        final_path=self.probed_stat(**dict(vars(before),**(path_after or {})))
+        final_handle=self.probed_stat(**dict(vars(opened),**(handle_after or {})))
+        with mock.patch.object(gate,'runtime_identity',return_value=self.known_runtime()), \
+                mock.patch.object(gate,'parent_identity',return_value=[]), \
+                mock.patch.object(gate.os,'stat',side_effect=[before,final_path]), \
+                mock.patch.object(gate.os,'fstat',side_effect=[opened,final_handle]):
+            return gate.stable_read(source,observation=observation)
+
+    def test_exact_root_ctime_pair_has_narrow_evidence_backed_comparison(self):
+        before=self.probed_stat();opened=self.probed_stat(st_ctime_ns=1780227286818338600);record={}
+        with mock.patch.object(gate,'runtime_identity',return_value=self.known_runtime()):
+            self.assertTrue(gate.path_handle_match(before,opened,observation=record))
+        self.assertEqual(before.st_ctime_ns,1758898084000000000)
+        self.assertEqual(opened.st_ctime_ns,1780227286818338600)
+        decision=record['path_handle_comparison']
+        self.assertTrue(decision['accepted']);self.assertEqual(decision['differing_fields'],['ctime_ns'])
+        self.assertTrue(all(decision['requirements'].values()))
+
+    def test_observed_stable_read_keeps_raw_channels_hash_and_same_channel_fingerprint(self):
+        record={};fingerprint,data=self.synthetic_stable_read(record)
+        self.assertEqual(record['status'],'complete');self.assertTrue(record['descriptor_closed'])
+        self.assertEqual(fingerprint['sha256'],hashlib.sha256(data).hexdigest())
+        self.assertEqual(fingerprint['stat']['ctime_ns'],1758898084000000000)
+        self.assertEqual(fingerprint['handle_stat']['ctime_ns'],1780227286818338600)
+        self.assertEqual(record['before']['raw_fields']['st_ctime_ns'],1758898084000000000)
+        self.assertEqual(record['opened']['raw_fields']['st_ctime_ns'],1780227286818338600)
+        self.assertEqual(record['comparison_differences']['after_handle_vs_opened'],{})
+        decoded=json.loads(json.dumps(record))
+        self.assertEqual(decoded['before']['raw_fields']['st_dev'],4217245827768940497)
+
+    def test_other_runtime_missing_birthtime_or_other_difference_refuses(self):
+        for kind in ('OS','platform','implementation','patch','prerelease','bits','missing-path-birth','missing-handle-birth',
+                     'zero-birth','unequal-birth','path-ctime-not-birth','device','file_id','mode','size','mtime','attributes','missing-attrs','link','tag'):
+            with self.subTest(kind=kind):
+                runtime=self.known_runtime();before=self.probed_stat();opened=self.probed_stat(st_ctime_ns=1780227286818338600)
+                if kind=='OS':runtime['os_name']='posix'
+                elif kind=='platform':runtime['platform']='darwin'
+                elif kind=='implementation':runtime['implementation']='pypy'
+                elif kind=='patch':runtime['version_info']=[3,14,8,'final',0]
+                elif kind=='prerelease':runtime['version_info']=[3,14,7,'candidate',1]
+                elif kind=='bits':runtime['word_bits']=32
+                elif kind=='missing-path-birth':del before.st_birthtime_ns
+                elif kind=='missing-handle-birth':del opened.st_birthtime_ns
+                elif kind=='zero-birth':before.st_birthtime_ns=opened.st_birthtime_ns=0
+                elif kind=='unequal-birth':opened.st_birthtime_ns+=1
+                elif kind=='path-ctime-not-birth':before.st_ctime_ns+=1
+                elif kind=='device':opened.st_dev+=1
+                elif kind=='file_id':opened.st_ino+=1
+                elif kind=='mode':opened.st_mode^=128
+                elif kind=='size':opened.st_size+=1
+                elif kind=='mtime':opened.st_mtime_ns+=1
+                elif kind=='attributes':opened.st_file_attributes^=1
+                elif kind=='missing-attrs':del opened.st_file_attributes
+                elif kind=='link':opened.st_nlink+=1
+                else:opened.st_reparse_tag=1
+                record={}
+                with mock.patch.object(gate,'runtime_identity',return_value=runtime):
+                    self.assertFalse(gate.path_handle_match(before,opened,observation=record))
+                self.assertFalse(record['path_handle_comparison']['accepted'])
+
+    def test_same_channel_ctime_birthtime_or_other_fields_still_refuse_with_raw_values(self):
+        for channel,field,value,stage in (
+                ('handle','st_ctime_ns',1780227286818338601,'after_handle_check'),
+                ('path','st_ctime_ns',1758898084000000001,'after_path_check'),
+                ('handle','st_birthtime_ns',1758898084000000001,'after_handle_check'),
+                ('path','st_birthtime_ns',1758898084000000001,'after_path_check'),
+                ('handle','st_mtime_ns',1758898084000000001,'after_handle_check'),
+                ('path','st_file_attributes',33,'after_path_check'),
+                ('handle','st_nlink',2,'after_handle_check'),
+                ('path','st_reparse_tag',1,'after_path_check')):
+            with self.subTest(channel=channel,field=field):
+                record={};options={'handle_after' if channel=='handle' else 'path_after':{field:value}}
+                with self.assertRaises(RuntimeError):self.synthetic_stable_read(record,**options)
+                key='after_handle' if channel=='handle' else 'after_path'
+                self.assertEqual(record[key]['raw_fields'][field],value)
+                self.assertEqual(record['failed_stage'],stage);self.assertTrue(record['descriptor_closed'])
+                self.assertEqual(record['status'],'failed');self.assertNotIn('sha256',record)
+
+    def test_failed_first_DLL_open_comparison_is_attached_before_metadata_and_json_safe(self):
+        source=self.install/gate.REQUIRED_FILES[0];identity=source.stat().st_ino;native_fstat=gate.os.fstat
+        def mismatch(descriptor):
+            actual=native_fstat(descriptor)
+            if actual.st_ino!=identity:return actual
+            values={key:getattr(actual,key) for key in gate.RAW_STAT_FIELDS if hasattr(actual,key)}
+            values['st_mode']^=128
+            return SimpleNamespace(**values)
+        report={};runner=mock.Mock()
+        with mock.patch.object(gate.os,'fstat',side_effect=mismatch):
+            with self.assertRaisesRegex(RuntimeError,'between path stat and open'):gate.collect(self.output,report,runner=runner)
+        runner.assert_not_called();self.assertNotIn('metadata_attempted',report)
+        self.assertNotIn('before',report['files'][0])
+        record=report['files'][0]['stable_reads']['before']
+        self.assertEqual(record['failed_stage'],'opened_check')
+        self.assertEqual(record['opened']['comparison_fields']['mode'],record['before']['comparison_fields']['mode']^128)
+        self.assertNotIn('after_handle',record);self.assertNotIn('after_path',record)
+        (self.output/'partial.json').write_text(json.dumps(report))
+        self.assertEqual(json.loads((self.output/'partial.json').read_text())['files'][0]['stable_reads']['before']['status'],'failed')
+
+    def test_opened_handle_change_time_across_whole_metadata_collection_is_still_strict(self):
+        source=self.install/gate.REQUIRED_FILES[0];native_stat=gate.os.stat;native_fstat=gate.os.fstat
+        original=native_stat(source,follow_symlinks=False);count=[]
+        def path_stat(path,*args,**kwargs):
+            value=native_stat(path,*args,**kwargs)
+            if Path(path)!=source:return value
+            fields={key:getattr(value,key) for key in gate.RAW_STAT_FIELDS if hasattr(value,key)}
+            fields.update(st_ctime_ns=1758898084000000000,st_birthtime_ns=1758898084000000000,
+                          st_file_attributes=0,st_reparse_tag=0)
+            return SimpleNamespace(**fields)
+        def handle_stat(descriptor):
+            value=native_fstat(descriptor)
+            if value.st_ino!=original.st_ino:return value
+            count.append(True)
+            fields={key:getattr(value,key) for key in gate.RAW_STAT_FIELDS if hasattr(value,key)}
+            fields.update(st_ctime_ns=1780227286818338600+(len(count)>2),st_birthtime_ns=1758898084000000000,
+                          st_file_attributes=0,st_reparse_tag=0)
+            return SimpleNamespace(**fields)
+        report={}
+        with mock.patch.object(gate,'runtime_identity',return_value=self.known_runtime()), \
+                mock.patch.object(gate.os,'stat',side_effect=path_stat),mock.patch.object(gate.os,'fstat',side_effect=handle_stat):
+            with self.assertRaisesRegex(RuntimeError,'fixed source stat/hash changed'):gate.collect(self.output,report,runner=self.runner)
+        row=report['files'][0]
+        self.assertEqual(row['before']['stat'],row['after']['stat'])
+        self.assertEqual(row['before']['sha256'],row['after']['sha256'])
+        self.assertNotEqual(row['before']['handle_stat']['ctime_ns'],row['after']['handle_stat']['ctime_ns'])
+        self.assertNotIn('collection_completed',report)
+
+    def test_observation_does_not_add_filesystem_reads_or_change_success_bytes(self):
+        source=self.install/gate.REQUIRED_FILES[0];native_stat=gate.os.stat;native_fstat=gate.os.fstat
+        traces=[];results=[]
+        for observation in (None,{}):
+            calls=[]
+            def path_stat(*args,**kwargs):calls.append(('stat',str(args[0])));return native_stat(*args,**kwargs)
+            def handle_stat(*args,**kwargs):calls.append(('fstat',));return native_fstat(*args,**kwargs)
+            with mock.patch.object(gate.os,'stat',side_effect=path_stat),mock.patch.object(gate.os,'fstat',side_effect=handle_stat):
+                results.append(gate.stable_read(source,observation=observation))
+            traces.append(calls)
+        self.assertEqual(traces[0],traces[1]);self.assertEqual(results[0],results[1])
+
     def test_static_source_contract_has_no_CAD_loader_search_or_network_paths(self):
         tree=ast.parse(SCRIPT.read_text());imports=[n.module for n in ast.walk(tree) if isinstance(n,ast.ImportFrom)]+[a.name for n in ast.walk(tree) if isinstance(n,ast.Import) for a in n.names]
         self.assertFalse(any(x and x.split('.')[0] in ('ctypes','win32com','pythoncom','urllib','requests','socket') for x in imports))

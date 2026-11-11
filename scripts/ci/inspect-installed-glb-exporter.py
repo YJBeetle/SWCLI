@@ -42,14 +42,53 @@ def stat_record(value):
                 file_attributes=getattr(value, 'st_file_attributes', 0))
 
 
+RAW_STAT_FIELDS = ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size',
+                   'st_atime', 'st_mtime', 'st_ctime', 'st_atime_ns', 'st_mtime_ns', 'st_ctime_ns',
+                   'st_birthtime', 'st_birthtime_ns', 'st_rdev', 'st_blksize', 'st_blocks',
+                   'st_file_attributes', 'st_reparse_tag', 'st_flags', 'st_gen', 'st_fstype')
+
+
+def observed_stat(value):
+    # Diagnostics never replace an existing guard error with a metadata error.
+    raw, unavailable, errors = {}, [], {}
+    for name in RAW_STAT_FIELDS:
+        try:
+            item = getattr(value, name)
+            raw[name] = item if type(item) in (int, float, str, bool, type(None)) else dict(unserialized_type=type(item).__name__)
+        except AttributeError:
+            unavailable.append(name)
+        except Exception as error:
+            errors[name] = error_record(error)
+    try:
+        comparison = channel_stat(value)
+    except Exception as error:
+        comparison = dict(observation_error=error_record(error))
+    return dict(comparison_fields=comparison, raw_fields=raw, unavailable_fields=unavailable, read_errors=errors)
+
+
+def observe(record, stage, **values):
+    if record is not None:
+        record.update(stage=stage, **values)
+
+
+def observe_comparison(record, name, before, after):
+    if record is not None:
+        left, right = record[before]['comparison_fields'], record[after]['comparison_fields']
+        record.setdefault('comparison_differences', {})[name] = {
+            key: {before:left.get(key), after:right.get(key)}
+            for key in sorted(set(left) | set(right)) if left.get(key) != right.get(key)}
+
+
 def regular(value):
     return stat.S_ISREG(value.st_mode) and not (getattr(value, 'st_file_attributes', 0) & REPARSE)
 
 
-def parent_identity(path):
+def parent_identity(path, *, observations=None):
     result = []
     for parent in reversed(path.parents):
         value = os.stat(parent, follow_symlinks=False)
+        if observations is not None:
+            observations.append(dict(path=str(parent), stat=observed_stat(value)))
         checked(stat.S_ISDIR(value.st_mode) and not (getattr(value, 'st_file_attributes', 0) & REPARSE),
                 'parent is not a plain non-reparse directory: ' + str(parent))
         checked(value.st_dev and value.st_ino, 'parent identity is unavailable: ' + str(parent))
@@ -70,29 +109,112 @@ def probe(path):
         return dict(path=str(path), status='unknown', error=error_record(error))
 
 
-def stable_read(path):
-    """No DirEntry cached identity; compare no-follow path and opened descriptor."""
-    parents = parent_identity(path)
-    first = os.stat(path, follow_symlinks=False)
-    checked(regular(first), 'input is not regular/non-reparse: ' + str(path))
-    checked(first.st_dev and first.st_ino, 'input file identity is unavailable: ' + str(path))
-    checked(0 <= first.st_size <= MAX_FILE, 'input exceeds byte bound')
-    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
-    descriptor = os.open(path, flags)
+def runtime_identity():
+    return dict(os_name=os.name, platform=sys.platform, implementation=sys.implementation.name,
+                version_info=list(sys.version_info), version=sys.version, word_bits=struct.calcsize('P') * 8)
+
+
+def channel_stat(value):
+    # Same-channel comparisons also retain birthtime when that channel exposes it.
+    return dict(stat_record(value), birthtime_ns=getattr(value, 'st_birthtime_ns', None),
+                link_count=getattr(value, 'st_nlink', None), reparse_tag=getattr(value, 'st_reparse_tag', None))
+
+
+def path_handle_match(by_path, by_handle, *, observation=None):
+    left, right = channel_stat(by_path), channel_stat(by_handle)
+    runtime = runtime_identity()
+    differences = [key for key in left if left[key] != right[key]]
+    if not differences:
+        decision = dict(rule='strict_equal', accepted=True, runtime=runtime, differing_fields=[])
+    else:
+        # Proven only for the inspected final, 64-bit Windows CPython 3.14.7.
+        requirements = dict(
+            runtime=(runtime['os_name'] == 'nt' and runtime['platform'] == 'win32'
+                     and runtime['implementation'] == 'cpython' and runtime['version_info'] == [3,14,7,'final',0]
+                     and runtime['word_bits'] == 64),
+            ctime_is_only_difference=differences == ['ctime_ns'],
+            exact_integer_fields=all(type(value) is int for value in (*left.values(), *right.values())),
+            positive_equal_birthtime=(type(left['birthtime_ns']) is int and left['birthtime_ns'] > 0
+                                     and left['birthtime_ns'] == right['birthtime_ns']),
+            path_ctime_is_birthtime=left['ctime_ns'] == left['birthtime_ns'],
+            positive_identity=(type(left['device']) is int and left['device'] > 0
+                               and type(left['file_id']) is int and left['file_id'] > 0),
+            raw_attributes_available=all(type(getattr(value, 'st_file_attributes', None)) is int for value in (by_path,by_handle)),
+            links_equal=all(type(getattr(value, 'st_nlink', None)) is int for value in (by_path,by_handle))
+                        and getattr(by_path,'st_nlink',None) == getattr(by_handle,'st_nlink',None)
+                        and getattr(by_path,'st_nlink',0) > 0,
+            reparse_tags_zero=all(type(getattr(value,'st_reparse_tag',None)) is int
+                                  and value.st_reparse_tag == 0 for value in (by_path,by_handle)),
+            regular_non_reparse=regular(by_path) and regular(by_handle))
+        accepted = all(requirements.values())
+        decision = dict(rule='win_cpython_3_14_7_path_creation_vs_handle_change_time' if accepted else 'strict_refusal',
+                        candidate_rule='win_cpython_3_14_7_path_creation_vs_handle_change_time',
+                        accepted=accepted, runtime=runtime, differing_fields=differences,
+                        requirements=requirements, path_ctime_ns=left['ctime_ns'], handle_ctime_ns=right['ctime_ns'],
+                        path_birthtime_ns=left['birthtime_ns'], handle_birthtime_ns=right['birthtime_ns'])
+    if observation is not None:
+        observation['path_handle_comparison'] = decision
+    return decision['accepted']
+
+
+def stable_read(path, *, observation=None):
+    """Keep original guards; retain each obtained value before its check."""
+    if observation is not None:
+        observation.update(path=str(path), status='started', parents_before=[], parents_after=[])
     try:
-        opened = os.fstat(descriptor)
-        checked(stat_record(opened) == stat_record(first), 'input changed between path stat and open')
-        with os.fdopen(descriptor, 'rb', closefd=False) as stream:
-            data = stream.read(MAX_FILE + 1)
-        checked(len(data) == first.st_size and len(data) <= MAX_FILE, 'input size changed during read')
-        after_handle = os.fstat(descriptor)
-        checked(stat_record(after_handle) == stat_record(first), 'input changed while descriptor was open')
-        after = os.stat(path, follow_symlinks=False)
-        checked(regular(after) and stat_record(after) == stat_record(first), 'input path identity changed during read')
-        checked(parent_identity(path) == parents, 'input parent identity changed during read')
-    finally:
-        os.close(descriptor)
-    return dict(path=str(path), stat=stat_record(first), sha256=hashlib.sha256(data).hexdigest()), data
+        observe(observation, 'parents_before')
+        parents = parent_identity(path, observations=observation['parents_before'] if observation is not None else None)
+        observe(observation, 'stat_before')
+        first = os.stat(path, follow_symlinks=False)
+        observe(observation, 'before_checks', before=observed_stat(first) if observation is not None else None)
+        checked(regular(first), 'input is not regular/non-reparse: ' + str(path))
+        checked(first.st_dev and first.st_ino, 'input file identity is unavailable: ' + str(path))
+        checked(0 <= first.st_size <= MAX_FILE, 'input exceeds byte bound')
+        flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
+        observe(observation, 'open')
+        descriptor = os.open(path, flags)
+        try:
+            observe(observation, 'fstat_opened')
+            opened = os.fstat(descriptor)
+            observe(observation, 'opened_check', opened=observed_stat(opened) if observation is not None else None)
+            observe_comparison(observation, 'opened_vs_before', 'before', 'opened')
+            checked(path_handle_match(first, opened, observation=observation), 'input changed between path stat and open')
+            observe(observation, 'read')
+            with os.fdopen(descriptor, 'rb', closefd=False) as stream:
+                data = stream.read(MAX_FILE + 1)
+            observe(observation, 'read_size_check', bytes_read=len(data))
+            checked(len(data) == first.st_size and len(data) <= MAX_FILE, 'input size changed during read')
+            observe(observation, 'fstat_after')
+            after_handle = os.fstat(descriptor)
+            observe(observation, 'after_handle_check', after_handle=observed_stat(after_handle) if observation is not None else None)
+            observe_comparison(observation, 'after_handle_vs_opened', 'opened', 'after_handle')
+            checked(channel_stat(after_handle) == channel_stat(opened), 'input changed while descriptor was open')
+            observe(observation, 'stat_after')
+            after = os.stat(path, follow_symlinks=False)
+            observe(observation, 'after_path_check', after_path=observed_stat(after) if observation is not None else None)
+            observe_comparison(observation, 'after_path_vs_before', 'before', 'after_path')
+            checked(regular(after) and channel_stat(after) == channel_stat(first), 'input path identity changed during read')
+            observe(observation, 'parents_after')
+            checked(parent_identity(path, observations=observation['parents_after'] if observation is not None else None) == parents,
+                    'input parent identity changed during read')
+        finally:
+            os.close(descriptor)
+            if observation is not None: observation['descriptor_closed'] = True
+        observe(observation, 'hash')
+        result = dict(path=str(path), stat=stat_record(first), birthtime_ns=getattr(first, 'st_birthtime_ns', None),
+                      handle_stat=channel_stat(opened), sha256=hashlib.sha256(data).hexdigest())
+        observe(observation, 'complete', status='complete', sha256=result['sha256'])
+        return result, data
+    except Exception as error:
+        if observation is not None:
+            observation.update(status='failed', failed_stage=observation.get('stage'), error=error_record(error))
+        raise
+
+
+def recorded_read(path, owner, key):
+    # The object is attached before any I/O, so the caller's finally can persist it.
+    observation = owner.setdefault('stable_reads', {}).setdefault(key, {})
+    return stable_read(path, observation=observation)
 
 
 class PE:
@@ -237,7 +359,7 @@ def collect(output, report, *, runner=subprocess.run):
     checked(POWERSHELL.is_file(), 'fixed Windows PowerShell executable is unavailable; no install/fallback')
     parent_identity(POWERSHELL)
     checked(regular(os.stat(POWERSHELL, follow_symlinks=False)), 'fixed PowerShell executable is reparse/non-regular')
-    report['collector_before'], _ = stable_read(Path(__file__))
+    report['collector_before'], _ = recorded_read(Path(__file__), report, 'collector_before')
     snapshots = {}; request = dict(install_root=str(INSTALL_ROOT), files=[])
     for relative in (*REQUIRED_FILES, *BACKGROUND_FILES):
         path = INSTALL_ROOT / relative
@@ -245,7 +367,7 @@ def collect(output, report, *, runner=subprocess.run):
         report['files'].append(row)
         if row['presence_before']['status'] == 'not_present_at_checked_path': continue
         checked(row['presence_before']['status'] == 'present_regular_non_reparse', 'unsafe/unreadable fixed input: ' + str(path))
-        row['before'], data = stable_read(path); snapshots[relative] = row['before']
+        row['before'], data = recorded_read(path, row, 'before'); snapshots[relative] = row['before']
         certificates = []
         if path.suffix.lower() == '.dll':
             try:
@@ -280,12 +402,12 @@ def collect(output, report, *, runner=subprocess.run):
         request['files'].append(dict(relative_path=relative, expected_sha256=row['before']['sha256'],
                                      certificates=[item['pkcs7_base64'] for item in certificates if item['pkcs7_base64'] is not None]))
     helper = Path(__file__).with_name('inspect-installed-glb-exporter-metadata.ps1')
-    report['helper_before'], _ = stable_read(helper)
+    report['helper_before'], _ = recorded_read(helper, report, 'helper_before')
     request_path, metadata_path = output/'metadata-request.json', output/'metadata.json'
     encoded = json.dumps(request,ensure_ascii=False,indent=2).encode('utf-8')
     checked(len(encoded) <= MAX_JSON, 'metadata request exceeds byte bound')
     request_path.write_bytes(encoded)
-    report['request_before'], _ = stable_read(request_path)
+    report['request_before'], _ = recorded_read(request_path, report, 'request_before')
     first_error = None
     report['metadata_attempted'] = True
     try:
@@ -297,7 +419,7 @@ def collect(output, report, *, runner=subprocess.run):
         report['metadata_exit_code'] = result.returncode
         if metadata_path.is_file():
             checked(metadata_path.stat().st_size <= MAX_JSON, 'metadata response exceeds byte bound')
-            report['metadata_response_file'], response = stable_read(metadata_path)
+            report['metadata_response_file'], response = recorded_read(metadata_path, report, 'metadata_response_file')
             checked(len(response) <= MAX_JSON, 'metadata response exceeds byte bound')
             report['metadata'] = json.loads(response.decode('utf-8-sig'))
         checked(result.returncode == 0 and report.get('metadata',{}).get('success') is True, 'metadata helper failed; no retry/fallback')
@@ -320,18 +442,18 @@ def collect(output, report, *, runner=subprocess.run):
             (output/'metadata.stderr.log').write_bytes(error.stderr or b'')
     finally:
         try:
-            report['collector_after'], _ = stable_read(Path(__file__))
+            report['collector_after'], _ = recorded_read(Path(__file__), report, 'collector_after')
             checked(report['collector_after'] == report['collector_before'], 'collector script changed')
-            report['request_after'], _ = stable_read(request_path)
+            report['request_after'], _ = recorded_read(request_path, report, 'request_after')
             checked(report['request_after'] == report['request_before'], 'metadata request changed')
-            report['helper_after'], _ = stable_read(helper)
+            report['helper_after'], _ = recorded_read(helper, report, 'helper_after')
             checked(report['helper_after'] == report['helper_before'], 'metadata helper file changed')
             for row in report['files']:
                 path = INSTALL_ROOT / row['relative_path']
                 row['presence_after'] = probe(path)
                 checked(row['presence_after'] == row['presence_before'], 'fixed source presence/stat changed')
                 if row['relative_path'] in snapshots:
-                    row['after'], _ = stable_read(path)
+                    row['after'], _ = recorded_read(path, row, 'after')
                     checked(row['after'] == row['before'], 'fixed source stat/hash changed')
         except Exception as error:
             report['postcheck_error'] = error_record(error)

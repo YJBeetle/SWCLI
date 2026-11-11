@@ -1,0 +1,231 @@
+{
+  "scope": "independent offline first-attempt/probe/source audit plus local narrow comparison candidate; no native rerun",
+  "base_commit": "17deb54629245a87ecbeb043cbc25a1631514132",
+  "original_attempt": {
+    "root": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-exporter-inventory-17deb54-01",
+    "report_sha256": "b9d35e64823d84d424be9045658cc81fd491b7d11fa2fd0912f3bd62b4e8fb24",
+    "launcher_sha256": "52f03a8733d60b95c49e537bbca608ad20f3b78135119c989e3fc5255de2d6a6",
+    "first_error": {
+      "type": "RuntimeError",
+      "message": "input changed between path stat and open"
+    },
+    "raw_stable_read_first_opened_after_retained": false,
+    "only_first_DLL_presence_observed": true,
+    "metadata_helper_started": false,
+    "missing_metadata_stderr_is_new_failure": false,
+    "PowerShell_syntax_precheck_exit": 0,
+    "policy_before": [
+      {
+        "Scope": "MachinePolicy",
+        "Policy": "Undefined"
+      },
+      {
+        "Scope": "UserPolicy",
+        "Policy": "Undefined"
+      },
+      {
+        "Scope": "Process",
+        "Policy": "Undefined"
+      },
+      {
+        "Scope": "CurrentUser",
+        "Policy": "Undefined"
+      },
+      {
+        "Scope": "LocalMachine",
+        "Policy": "Undefined"
+      }
+    ],
+    "policy_scope": "RemoteSigned only in this reviewed child environment; no machine/user settings changed"
+  },
+  "later_stat_probe": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/glb-stat-probe-17deb54-01/observation.json",
+    "sha256": "f22def2a220b20000384930fa76ffc50b6199f7abc0d0cb575a7f5b5764d4511",
+    "probe_source_sha256": "a395430034f98e71293ab135364749a5974895043e8a18586b2c7372e03522db",
+    "target_content_reads": 0,
+    "target_loads": 0,
+    "CAD_calls": 0,
+    "tool_own_source_hash_read": true,
+    "raw": {
+      "source": "root standalone data-only stat/fstat observation",
+      "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\sldgltfu.dll",
+      "file_reads": 0,
+      "target_loads": 0,
+      "CAD_calls": 0,
+      "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "python_executable": "C:\\Workspace\\SWCLI\\.venv\\Scripts\\python.exe",
+      "probe_sha256": "a395430034f98e71293ab135364749a5974895043e8a18586b2c7372e03522db",
+      "before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056588,
+        "st_mode": 33206,
+        "st_size": 1112960,
+        "st_mtime_ns": 1758898084000000000,
+        "st_ctime_ns": 1758898084000000000,
+        "st_file_attributes": 32,
+        "st_birthtime_ns": 1758898084000000000,
+        "st_reparse_tag": 0,
+        "st_nlink": 1
+      },
+      "opened": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056588,
+        "st_mode": 33206,
+        "st_size": 1112960,
+        "st_mtime_ns": 1758898084000000000,
+        "st_ctime_ns": 1780227286818338600,
+        "st_file_attributes": 32,
+        "st_birthtime_ns": 1758898084000000000,
+        "st_reparse_tag": 0,
+        "st_nlink": 1
+      },
+      "path_while_open": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056588,
+        "st_mode": 33206,
+        "st_size": 1112960,
+        "st_mtime_ns": 1758898084000000000,
+        "st_ctime_ns": 1758898084000000000,
+        "st_file_attributes": 32,
+        "st_birthtime_ns": 1758898084000000000,
+        "st_reparse_tag": 0,
+        "st_nlink": 1
+      },
+      "opened_again": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056588,
+        "st_mode": 33206,
+        "st_size": 1112960,
+        "st_mtime_ns": 1758898084000000000,
+        "st_ctime_ns": 1780227286818338600,
+        "st_file_attributes": 32,
+        "st_birthtime_ns": 1758898084000000000,
+        "st_reparse_tag": 0,
+        "st_nlink": 1
+      },
+      "after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056588,
+        "st_mode": 33206,
+        "st_size": 1112960,
+        "st_mtime_ns": 1758898084000000000,
+        "st_ctime_ns": 1758898084000000000,
+        "st_file_attributes": 32,
+        "st_birthtime_ns": 1758898084000000000,
+        "st_reparse_tag": 0,
+        "st_nlink": 1
+      },
+      "path_vs_handle": {
+        "st_ctime_ns": [
+          1758898084000000000,
+          1780227286818338600
+        ]
+      },
+      "path_before_after": {},
+      "handle_before_after": {}
+    },
+    "first_attempt_missing_values_not_retrofilled": true
+  },
+  "official_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.7/Python/fileutils.c",
+      "sha256": "7141679d2d4d1ac7faa9f17b4fa3596e042bbd4d32bbab659bb5336c24b79d95",
+      "independent_download_matches_root_copy": true,
+      "retained_path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/stat-ctime-guard/cpython-v3.14.7-fileutils.c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.7/Modules/posixmodule.c",
+      "sha256": "436636d1ef1693d58e07cf80fc4aea58ad740e5d2e6b2f466164f66be5f8d43d",
+      "independent_download_matches_root_copy": true,
+      "retained_path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/stat-ctime-guard/cpython-v3.14.7-posixmodule.c"
+    }
+  ],
+  "documentation": "https://docs.python.org/3.14/library/os.html#os.stat_result.st_ctime_ns",
+  "issue_as_lead_only": "https://github.com/python/cpython/issues/157671",
+  "source_path": {
+    "path_stat": "Modules/posixmodule.c win32_xstat replaces ctime with birthtime for compatibility",
+    "fstat": "FSTAT maps to _Py_fstat_noraise; _Py_attribute_data_to_stat stores ChangeTime in ctime and CreationTime in birthtime"
+  },
+  "candidate": {
+    "runtime_gate": {
+      "os_name": "nt",
+      "platform": "win32",
+      "implementation": "cpython",
+      "version_info": [
+        3,
+        14,
+        7,
+        "final",
+        0
+      ],
+      "word_bits": 64
+    },
+    "only_allowed_cross_channel_difference": "ctime_ns, with positive same birthtime, path ctime equal to birthtime, exact equal comparable integer identity/state fields and actual raw attributes/nlink/reparse data",
+    "same_channel_comparison": "path->path and fstat->fstat stay exact including ctime plus birthtime, link count and reparse tag",
+    "whole_metadata_stage": "fingerprints include both path stat and handle_stat; ctime changes in either channel still reject even with unchanged bytes",
+    "observer": "raw obtained values attached before checks; stage, missing fields, original error and comparison decisions retained; no extra filesystem calls",
+    "normalized_or_removed_raw_ctime": false,
+    "hash_before_after_and_parent_identity_unchanged": true,
+    "AST_unchanged_functions": [
+      "stat_record",
+      "regular",
+      "probe",
+      "dependency_locations",
+      "dependencies",
+      "main"
+    ],
+    "fixed_list_limits_and_PS_helper_unchanged": true,
+    "executed_on_native_Windows": false
+  },
+  "validation": {
+    "portable_tests": 24,
+    "passed": true,
+    "host": "Darwin",
+    "python": "3.15.2 (main, Oct 25 2026, 16:57:51) [Clang 17.0.0 (clang-1700.6.4.2)]",
+    "old_17deb_logic_negative_control": "same supplied primitive stat snapshots rejected by original stable_read using synthetic local bytes only",
+    "native_VM_CI_push": false,
+    "target_DLL_contents_read_by_this_audit": false,
+    "test_log": {
+      "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/stat-ctime-guard/portable-tests.log",
+      "sha256": "a1f85df450b7b1c497018b92eede4cc24cb61f2bf3e305c8bf3a1f669c098721",
+      "bytes": 4595
+    },
+    "test_names": [
+      "test_exact_root_ctime_pair_has_narrow_evidence_backed_comparison",
+      "test_failed_first_DLL_open_comparison_is_attached_before_metadata_and_json_safe",
+      "test_fixed_files_stable_metadata_and_bounded_dependencies_no_runtime_verdict",
+      "test_helper_failure_remains_first_error_even_if_postcheck_also_fails",
+      "test_input_byte_bound_and_post_read_path_replacement_refuse",
+      "test_metadata_request_mutation_cannot_relabel_signature_payload",
+      "test_missing_fixed_powershell_stops_before_input_or_metadata_access",
+      "test_observation_does_not_add_filesystem_reads_or_change_success_bytes",
+      "test_observed_stable_read_keeps_raw_channels_hash_and_same_channel_fingerprint",
+      "test_opened_handle_change_time_across_whole_metadata_collection_is_still_strict",
+      "test_other_runtime_missing_birthtime_or_other_difference_refuses",
+      "test_required_absent_background_TLB_and_malformed_PE_remain_explicit",
+      "test_same_channel_ctime_birthtime_or_other_fields_still_refuse_with_raw_values",
+      "test_source_mutation_or_replacement_after_metadata_cannot_pass",
+      "test_spoofed_helper_contract_file_set_or_hash_refuses_once",
+      "test_stat_open_race_and_zero_identity_refuse_before_read",
+      "test_static_source_contract_has_no_CAD_loader_search_or_network_paths",
+      "test_symlink_file_parent_or_reparse_attribute_is_unknown_and_never_opened",
+      "test_PE32_PE32plus_normal_and_delay_names_and_raw_certificate",
+      "test_delay_VA32_encoding_and_import_count_bound",
+      "test_empty_directories_are_observed_empty_without_synthesizing_signature",
+      "test_security_directory_is_file_offset_and_rejects_overlap_or_bad_length",
+      "test_truncated_unmapped_unterminated_or_ambiguous_images_refuse",
+      "test_unsafe_library_names_are_rejected_before_path_lookup"
+    ]
+  },
+  "tested_file_sha256": {
+    "scripts/ci/inspect-installed-glb-exporter.py": "be754a8ac64eaf56164bc3ecb45939d2401511ad337422f74692e373793c2cc8",
+    "tests/test_installed_glb_exporter.py": "9e8057f120d61fc12dc3485c33888acdc1fbeafe7ee8d3ed0b923b6864f37d56",
+    "scripts/ci/inspect-installed-glb-exporter-metadata.ps1": "2b8556489d4ec40b181c7f893811555c75fc96a37b56286addc44075d4b3ed73"
+  },
+  "limitations": [
+    "Initial failing stable_read values were not retained; the subsequent probe must not be retrofilled into that first attempt.",
+    "The fixed-version source and separate stable-channel probe justify a narrow comparison policy, not general timestamp tolerance.",
+    "Current exporter file content hash/version/import/signature metadata still awaits a reviewed successful zero-CAD collector run.",
+    "This collector correction does not identify the cause of native GLB empty BIN."
+  ]
+}
