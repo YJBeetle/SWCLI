@@ -1,0 +1,1090 @@
+{
+  "schema": "swcli.glb-history-offline.v1",
+  "user_report": "Prior SWCLI GLB was imported and usable in Blender",
+  "blender_file_identity": "unknown; user has not identified file/run; no mapping asserted",
+  "scope": "existing local originals only; no CAD/Blender/VM/CI/network/repair",
+  "historical_runs": [
+    {
+      "run_id": "42173065847",
+      "head_from_existing_verification_document": "254d1ad11847d002f0af07d630beba3350b7f66d",
+      "archive": "/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/glb-history-offline/42173065847/original-native.zip",
+      "archive_sha256": "ef7dee25e3d995c5cc918d8a41d8d2cb4fc08a59f574fe6c941e12f8f4c323f4",
+      "report_sha256": "8dbc841bf421d100a44d88f79f287e632fefa52b41a704a1dc990c0cee8adc70",
+      "host": {
+        "language": "english",
+        "owned_by_daemon": true,
+        "platform": "windows",
+        "process_id": 5464,
+        "revision": "33.5.0",
+        "shared_interactive": false,
+        "solidworks_revision": "33.5.0",
+        "startup_wait_seconds": 0.5779999999999745,
+        "visible": false
+      },
+      "source_models": {
+        "component.SLDPRT": {
+          "sha256": "f81d835b3351081b3521392075d04c9fd9736a685d4f1a5885dad232b4d7d7dd",
+          "size_bytes": 50325
+        },
+        "generated.SLDASM": {
+          "sha256": "fb43ab674b662efe8544265f4433569829bca84eec651ef2bda78589dc6f7364",
+          "size_bytes": 35977
+        }
+      },
+      "source_head_provenance": "existing verification docs; git blob read, not new CI query or new deployed-wheel proof",
+      "source_files_sha256": {
+        "windows_documents.py": "b96d94aab16d01dbcce90b3f3a33d322e5f6ce4c3fe079b474be848b58cb9060",
+        "export_validation.py": "557a41753a9d07b9ed937bb81322b58473d7dcad4021f03c380cbd82279fdb7c"
+      },
+      "API_source": "IModelDoc2.SaveAs3(Name,0,1); return integer save-error, no null/Errors/Warnings arguments",
+      "API_parameter_evidence": "inferred from recorded tested-head source, no raw native-call argument trace retained",
+      "visibility_evidence": "startup cached false; export-time Visible and UserControl flags unknown",
+      "CIP_evidence": "source owned scope inference only; no raw per-export boolean retained",
+      "generated_assembly": {
+        "component": {
+          "configuration": "Default",
+          "name": "component-1",
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT"
+        },
+        "component_sha256": "f81d835b3351081b3521392075d04c9fd9736a685d4f1a5885dad232b4d7d7dd",
+        "component_metrics": {
+          "centroid_mm": {
+            "x": -7.058607893785837e-16,
+            "y": 5.514537417020185e-16,
+            "z": 5.0
+          },
+          "solid_body_count": 1,
+          "surface_area_mm2": 3799.9999999999995,
+          "volume_mm3": 11999.999999999998
+        },
+        "save_as_bytes": 35398,
+        "size_bytes": 35977,
+        "sha256": "fb43ab674b662efe8544265f4433569829bca84eec651ef2bda78589dc6f7364",
+        "opens": [
+          {
+            "read_only": false,
+            "api_errors": 0,
+            "api_warnings": 0,
+            "modified": false
+          },
+          {
+            "read_only": true,
+            "api_errors": 0,
+            "api_warnings": 0,
+            "modified": false
+          }
+        ],
+        "structure_unchanged": true,
+        "fresh_document_id": true,
+        "source_unloaded_before_reopen": true,
+        "scope": "one-component-native-save-reopen"
+      },
+      "exports": [
+        {
+          "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+          "size_bytes": 3800,
+          "chunks": [
+            {
+              "kind": "JSON",
+              "length": 3772
+            },
+            {
+              "kind": "BIN\u0000",
+              "length": 0
+            }
+          ],
+          "declared_buffers": [
+            {
+              "byteLength": 720
+            }
+          ],
+          "generator": "SOLIDWORKSGLTF",
+          "current_strict_valid": false,
+          "decoded_mesh": null,
+          "mesh_error": {
+            "type": "ValueError",
+            "message": "external or invalid GLB buffer"
+          },
+          "zip_member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.GLB",
+          "crc32": "66faabfe",
+          "zip_crc_verified": true,
+          "document_type": 1,
+          "receipt": {
+            "index": 19,
+            "action": "document.export",
+            "request_id": "c53509f4-3fa2-4454-9329-1708c2798ff5",
+            "document_id": "d-2w9her",
+            "document_type": 1,
+            "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+            "modified": false,
+            "read_only": null,
+            "format": "GLB",
+            "ok": true,
+            "api_saved": null,
+            "save_errors": null,
+            "save_warnings": null
+          },
+          "old_validator_accepts": true,
+          "document_lifecycle_before_export": [
+            {
+              "index": 9,
+              "action": "document.open",
+              "request_id": "56013b6b-b21b-4591-b1ea-cab4060a737b",
+              "document_id": "d-2w9her",
+              "document_type": 1,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+              "modified": false,
+              "read_only": true,
+              "format": null,
+              "ok": true,
+              "api_saved": null,
+              "save_errors": null,
+              "save_warnings": null
+            }
+          ],
+          "raw_native_save_return": "not retained in export receipt",
+          "source_bytes_unchanged_receipt": true,
+          "source_state_unchanged_receipt": true
+        },
+        {
+          "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+          "size_bytes": 4748,
+          "chunks": [
+            {
+              "kind": "JSON",
+              "length": 4000
+            },
+            {
+              "kind": "BIN\u0000",
+              "length": 720
+            }
+          ],
+          "declared_buffers": [
+            {
+              "byteLength": 720
+            }
+          ],
+          "generator": "SOLIDWORKSGLTF",
+          "current_strict_valid": true,
+          "decoded_mesh": {
+            "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+            "size_bytes": 4748,
+            "mesh_count": 1,
+            "primitives": [
+              {
+                "mesh": 0,
+                "mode": 4,
+                "draco_decoded": false,
+                "indices": 36,
+                "positions": 24,
+                "normals": 24,
+                "triangles": 12,
+                "bounds_local": [
+                  [
+                    -0.019999999552965164,
+                    -0.014999999664723873,
+                    0.0
+                  ],
+                  [
+                    0.019999999552965164,
+                    0.014999999664723873,
+                    0.009999999776482582
+                  ]
+                ],
+                "decoded_sha256": "72db765969a7c7a8b07d2a6b722796b1e408e20b05c6294d7937c207cfa9c9cb"
+              }
+            ],
+            "triangles": 12,
+            "positions": 24,
+            "normals": 24,
+            "extensions_used": [],
+            "extensions_required": [],
+            "materials": [
+              {
+                "name": "defaultplastic",
+                "pbrMetallicRoughness": {
+                  "baseColorFactor": [
+                    0.5989418101001601,
+                    0.6455552910764322,
+                    0.8591735777059335,
+                    1.0
+                  ],
+                  "metallicFactor": 0.0,
+                  "roughnessFactor": 0.16999999880790712
+                }
+              }
+            ],
+            "camera_count": 1,
+            "animation_count": 0,
+            "scene_extensions": {}
+          },
+          "mesh_error": null,
+          "zip_member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/assembly-export.GLB",
+          "crc32": "53a75348",
+          "zip_crc_verified": true,
+          "document_type": 2,
+          "receipt": {
+            "index": 33,
+            "action": "document.export",
+            "request_id": "bb30b6c3-5d0f-4dee-9fe7-efa897269922",
+            "document_id": "d-eba0fz",
+            "document_type": 2,
+            "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+            "modified": false,
+            "read_only": null,
+            "format": "GLB",
+            "ok": true,
+            "api_saved": null,
+            "save_errors": null,
+            "save_warnings": null
+          },
+          "old_validator_accepts": true,
+          "document_lifecycle_before_export": [
+            {
+              "index": 21,
+              "action": "document.create",
+              "request_id": "b2a0f0a5-4fb8-494b-9c48-1530eb34df72",
+              "document_id": "d-eba0fz",
+              "document_type": 2,
+              "path": "",
+              "modified": false,
+              "read_only": null,
+              "format": null,
+              "ok": true,
+              "api_saved": null,
+              "save_errors": null,
+              "save_warnings": null
+            },
+            {
+              "index": 24,
+              "action": "document.save-as",
+              "request_id": "e5515e90-d98d-4ee7-9597-c91cfd69a5af",
+              "document_id": "d-eba0fz",
+              "document_type": 2,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+              "modified": false,
+              "read_only": null,
+              "format": "SLDASM",
+              "ok": true,
+              "api_saved": true,
+              "save_errors": 0,
+              "save_warnings": null
+            },
+            {
+              "index": 25,
+              "action": "document.save",
+              "request_id": "bfb524db-dad1-4b5c-a9a4-a9e2e34d2f80",
+              "document_id": "d-eba0fz",
+              "document_type": 2,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+              "modified": false,
+              "read_only": null,
+              "format": null,
+              "ok": true,
+              "api_saved": true,
+              "save_errors": 0,
+              "save_warnings": 0
+            }
+          ],
+          "raw_native_save_return": "not retained in export receipt",
+          "source_bytes_unchanged_receipt": true,
+          "source_state_unchanged_receipt": true
+        }
+      ],
+      "geometry_declarations_equal": {
+        "buffers": true,
+        "bufferViews": true,
+        "accessors": true,
+        "meshes": true
+      },
+      "python_cli": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe"
+    },
+    {
+      "run_id": "42199134982",
+      "head_from_existing_verification_document": "77be93d7d709cdc998f552ff715d75115f020114",
+      "archive": "/Users/YJBeetle/.codex/task-artifacts/docprops-export-options/20261107/glb-history-offline/42199134982/original-native.zip",
+      "archive_sha256": "bb200e9a0fd5e67381107c69fdc333aabe96086b9cd1898c5a9aa3dfcea060b5",
+      "report_sha256": "b97aa8f056ae51cbeb742ea86f3791561734c22d0c26a07842ca8556bebe4aca",
+      "host": {
+        "language": "english",
+        "owned_by_daemon": true,
+        "platform": "windows",
+        "process_id": 8284,
+        "revision": "33.5.0",
+        "shared_interactive": false,
+        "solidworks_revision": "33.5.0",
+        "startup_wait_seconds": 0.5779999999999745,
+        "visible": false
+      },
+      "source_models": {
+        "component.SLDPRT": {
+          "sha256": "0d8c2bc2ebe2f52c8d635f74da72eac280cdde0cd558f50f8f982672c5abab54",
+          "size_bytes": 50332
+        },
+        "generated.SLDASM": {
+          "sha256": "0a3bf76a9573077ecd6fcec8c1133eea71f9cc33d3e0fe5ac523217611cb2aa9",
+          "size_bytes": 36370
+        }
+      },
+      "source_head_provenance": "existing verification docs; git blob read, not new CI query or new deployed-wheel proof",
+      "source_files_sha256": {
+        "windows_documents.py": "e2392635a0d16758bf9a348a22d3330a2d1df8c15d9c44c4e8c49a1ac7e86773",
+        "export_validation.py": "557a41753a9d07b9ed937bb81322b58473d7dcad4021f03c380cbd82279fdb7c"
+      },
+      "API_source": "IModelDoc2.SaveAs3(Name,0,1); return integer save-error, no null/Errors/Warnings arguments",
+      "API_parameter_evidence": "inferred from recorded tested-head source, no raw native-call argument trace retained",
+      "visibility_evidence": "startup cached false; export-time Visible and UserControl flags unknown",
+      "CIP_evidence": "source owned scope inference only; no raw per-export boolean retained",
+      "generated_assembly": {
+        "component": {
+          "configuration": "Default",
+          "name": "component-1",
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT"
+        },
+        "component_sha256": "0d8c2bc2ebe2f52c8d635f74da72eac280cdde0cd558f50f8f982672c5abab54",
+        "component_metrics": {
+          "centroid_mm": {
+            "x": -7.058607893785837e-16,
+            "y": 5.514537417020185e-16,
+            "z": 5.0
+          },
+          "solid_body_count": 1,
+          "surface_area_mm2": 3799.9999999999995,
+          "volume_mm3": 11999.999999999998
+        },
+        "save_as_bytes": 35456,
+        "size_bytes": 36370,
+        "sha256": "0a3bf76a9573077ecd6fcec8c1133eea71f9cc33d3e0fe5ac523217611cb2aa9",
+        "opens": [
+          {
+            "read_only": false,
+            "api_errors": 0,
+            "api_warnings": 0,
+            "modified": false
+          },
+          {
+            "read_only": true,
+            "api_errors": 0,
+            "api_warnings": 0,
+            "modified": false
+          }
+        ],
+        "structure_unchanged": true,
+        "fresh_document_id": true,
+        "source_unloaded_before_reopen": true,
+        "scope": "one-component-native-save-reopen"
+      },
+      "exports": [
+        {
+          "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+          "size_bytes": 3800,
+          "chunks": [
+            {
+              "kind": "JSON",
+              "length": 3772
+            },
+            {
+              "kind": "BIN\u0000",
+              "length": 0
+            }
+          ],
+          "declared_buffers": [
+            {
+              "byteLength": 720
+            }
+          ],
+          "generator": "SOLIDWORKSGLTF",
+          "current_strict_valid": false,
+          "decoded_mesh": null,
+          "mesh_error": {
+            "type": "ValueError",
+            "message": "external or invalid GLB buffer"
+          },
+          "zip_member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/component-export.GLB",
+          "crc32": "66faabfe",
+          "zip_crc_verified": true,
+          "document_type": 1,
+          "receipt": {
+            "index": 19,
+            "action": "document.export",
+            "request_id": "cb03d265-cdb3-4cf0-ac16-0b093cc10e47",
+            "document_id": "d-tnfkn8",
+            "document_type": 1,
+            "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+            "modified": false,
+            "read_only": null,
+            "format": "GLB",
+            "ok": true,
+            "api_saved": null,
+            "save_errors": null,
+            "save_warnings": null
+          },
+          "old_validator_accepts": true,
+          "document_lifecycle_before_export": [
+            {
+              "index": 9,
+              "action": "document.open",
+              "request_id": "ca15baaa-8bb0-499c-9801-29998bffff1d",
+              "document_id": "d-tnfkn8",
+              "document_type": 1,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+              "modified": false,
+              "read_only": true,
+              "format": null,
+              "ok": true,
+              "api_saved": null,
+              "save_errors": null,
+              "save_warnings": null
+            }
+          ],
+          "raw_native_save_return": "not retained in export receipt",
+          "source_bytes_unchanged_receipt": true,
+          "source_state_unchanged_receipt": true
+        },
+        {
+          "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+          "size_bytes": 4748,
+          "chunks": [
+            {
+              "kind": "JSON",
+              "length": 4000
+            },
+            {
+              "kind": "BIN\u0000",
+              "length": 720
+            }
+          ],
+          "declared_buffers": [
+            {
+              "byteLength": 720
+            }
+          ],
+          "generator": "SOLIDWORKSGLTF",
+          "current_strict_valid": true,
+          "decoded_mesh": {
+            "sha256": "4091246c9af29a4c858ba73e815c9150dbc37d4c4f9e52d6dabbc4f71e345421",
+            "size_bytes": 4748,
+            "mesh_count": 1,
+            "primitives": [
+              {
+                "mesh": 0,
+                "mode": 4,
+                "draco_decoded": false,
+                "indices": 36,
+                "positions": 24,
+                "normals": 24,
+                "triangles": 12,
+                "bounds_local": [
+                  [
+                    -0.019999999552965164,
+                    -0.014999999664723873,
+                    0.0
+                  ],
+                  [
+                    0.019999999552965164,
+                    0.014999999664723873,
+                    0.009999999776482582
+                  ]
+                ],
+                "decoded_sha256": "72db765969a7c7a8b07d2a6b722796b1e408e20b05c6294d7937c207cfa9c9cb"
+              }
+            ],
+            "triangles": 12,
+            "positions": 24,
+            "normals": 24,
+            "extensions_used": [],
+            "extensions_required": [],
+            "materials": [
+              {
+                "name": "defaultplastic",
+                "pbrMetallicRoughness": {
+                  "baseColorFactor": [
+                    0.5989418101001601,
+                    0.6455552910764322,
+                    0.8591735777059335,
+                    1.0
+                  ],
+                  "metallicFactor": 0.0,
+                  "roughnessFactor": 0.16999999880790712
+                }
+              }
+            ],
+            "camera_count": 1,
+            "animation_count": 0,
+            "scene_extensions": {}
+          },
+          "mesh_error": null,
+          "zip_member": "swcli-native-smoke/hidden/runtime-sets/assemblies/modeling/assembly-export.GLB",
+          "crc32": "53a75348",
+          "zip_crc_verified": true,
+          "document_type": 2,
+          "receipt": {
+            "index": 33,
+            "action": "document.export",
+            "request_id": "3e8fa27f-6dba-432b-a289-274d82161f37",
+            "document_id": "d-sq7fk4",
+            "document_type": 2,
+            "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+            "modified": false,
+            "read_only": null,
+            "format": "GLB",
+            "ok": true,
+            "api_saved": null,
+            "save_errors": null,
+            "save_warnings": null
+          },
+          "old_validator_accepts": true,
+          "document_lifecycle_before_export": [
+            {
+              "index": 21,
+              "action": "document.create",
+              "request_id": "0ef32eaa-d94d-4457-a363-62b4dba906d7",
+              "document_id": "d-sq7fk4",
+              "document_type": 2,
+              "path": "",
+              "modified": false,
+              "read_only": null,
+              "format": null,
+              "ok": true,
+              "api_saved": null,
+              "save_errors": null,
+              "save_warnings": null
+            },
+            {
+              "index": 24,
+              "action": "document.save-as",
+              "request_id": "583a3d01-c1ae-4a7d-af2b-8f1e11d6906a",
+              "document_id": "d-sq7fk4",
+              "document_type": 2,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+              "modified": false,
+              "read_only": null,
+              "format": "SLDASM",
+              "ok": true,
+              "api_saved": true,
+              "save_errors": 0,
+              "save_warnings": null
+            },
+            {
+              "index": 25,
+              "action": "document.save",
+              "request_id": "d9015368-469f-4917-93b9-458b1bf35f9d",
+              "document_id": "d-sq7fk4",
+              "document_type": 2,
+              "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\generated.SLDASM",
+              "modified": false,
+              "read_only": null,
+              "format": null,
+              "ok": true,
+              "api_saved": true,
+              "save_errors": 0,
+              "save_warnings": 0
+            }
+          ],
+          "raw_native_save_return": "not retained in export receipt",
+          "source_bytes_unchanged_receipt": true,
+          "source_state_unchanged_receipt": true
+        }
+      ],
+      "geometry_declarations_equal": {
+        "buffers": true,
+        "bufferViews": true,
+        "accessors": true,
+        "meshes": true
+      },
+      "python_cli": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\python.exe"
+    }
+  ],
+  "recent_failures": [
+    {
+      "kind": "modern CI 42405530053",
+      "archive": "/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined/run-42405530053/original-native-artifact.zip",
+      "archive_sha256": "a55c00d7e4b7d07cbece2acd0ef5847138efc074f9ddaa3bfead0aef9e967ec9",
+      "report_sha256": "be0db18db8c176552cf02b560783c8d92845edcd422a641b387395c569a11494",
+      "host": {
+        "language": "english",
+        "owned_by_daemon": true,
+        "platform": "windows",
+        "process_id": 3424,
+        "revision": "33.5.0",
+        "shared_interactive": false,
+        "solidworks_revision": "33.5.0",
+        "startup_wait_seconds": 0.5470000000000255,
+        "visible": false
+      },
+      "source_model_sha256": "dccee2900406901b279297a2e3519966d3bcb558b04215b516f16b8518591079",
+      "events": [
+        {
+          "index": 7,
+          "action": "document.save-as",
+          "request_id": "1d8d7dca-88f3-4525-9deb-571df46c6cae",
+          "document_id": "d-a4ymb1",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": null,
+          "format": "SLDPRT",
+          "ok": true,
+          "api_saved": true,
+          "save_errors": 0,
+          "save_warnings": 0
+        },
+        {
+          "index": 9,
+          "action": "document.open",
+          "request_id": "1b3a6640-97b2-4c3b-a201-96c6998577dc",
+          "document_id": "d-pa6rp3",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": true,
+          "format": null,
+          "ok": true,
+          "api_saved": null,
+          "save_errors": null,
+          "save_warnings": null
+        },
+        {
+          "index": 13,
+          "action": "document.export",
+          "request_id": "45d8a04b-dd3c-4263-b6f8-cdfa366026dd",
+          "document_id": "d-pa6rp3",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": null,
+          "format": "STL",
+          "ok": true,
+          "api_saved": true,
+          "save_errors": 0,
+          "save_warnings": 0
+        },
+        {
+          "index": 15,
+          "action": "document.export",
+          "request_id": "087e2648-2477-4165-bca0-11cb649e0c26",
+          "document_id": "d-pa6rp3",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": null,
+          "format": "3MF",
+          "ok": true,
+          "api_saved": true,
+          "save_errors": 0,
+          "save_warnings": 0
+        },
+        {
+          "index": 17,
+          "action": "document.export",
+          "request_id": "19260ea9-3ff7-476f-bab7-7fb04c49c0b2",
+          "document_id": "d-pa6rp3",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": null,
+          "format": "AMF",
+          "ok": true,
+          "api_saved": true,
+          "save_errors": 0,
+          "save_warnings": 0
+        },
+        {
+          "index": 19,
+          "action": "document.export",
+          "request_id": "7712054a-7f17-495b-a30a-7d37690bd042",
+          "document_id": "d-pa6rp3",
+          "document_type": 1,
+          "path": "D:\\a\\_temp\\swcli-native-smoke\\hidden\\runtime-sets\\assemblies\\modeling\\component.SLDPRT",
+          "modified": false,
+          "read_only": null,
+          "format": null,
+          "ok": false,
+          "api_saved": true,
+          "save_errors": 0,
+          "save_warnings": 0
+        }
+      ],
+      "api": "IModelDocExtension.SaveAs3(Name,0,1,null-dispatch,null-dispatch,byref-I4,byref-I4)",
+      "glb": {
+        "sha256": "2d49602f1bbd443d60b8975d249b4ed8defb5a5948b869eabfddacb1974a2c5c",
+        "size_bytes": 3800,
+        "chunks": [
+          {
+            "kind": "JSON",
+            "length": 3772
+          },
+          {
+            "kind": "BIN\u0000",
+            "length": 0
+          }
+        ],
+        "declared_buffers": [
+          {
+            "byteLength": 720
+          }
+        ],
+        "generator": "SOLIDWORKSGLTF",
+        "current_strict_valid": false,
+        "decoded_mesh": null,
+        "mesh_error": {
+          "type": "ValueError",
+          "message": "external or invalid GLB buffer"
+        }
+      },
+      "visibility": "startup cached false; actual export-time unknown",
+      "CIP": "entered/checked/restored sequence in old audited trace; raw bool not retained"
+    },
+    {
+      "kind": "glb-host-control-70d8c9e-01",
+      "report_sha256": "7bcb3bc4119a67e7576abd91548455aa7c85280ed0d95767634501431fded19f",
+      "host": {
+        "process_id": 8772,
+        "revision": "33.5.0",
+        "visible": false
+      },
+      "source_model_sha256": "4f975836ffbf38a58d05802c943701c8bab67f0ae0388b1e913e0a8f1df0f7b5",
+      "source_lifecycle": "fresh saved writable part, no close/reopen before export; fixed driver source",
+      "api": "modern Python extension SaveAs3(Name,0,1,null-dispatch,null-dispatch,byref-I4,byref-I4)",
+      "glb": {
+        "sha256": "04b83d8e0a2ebccd297fc116d17964e183eb081717ef27e1049d6340abcda2ba",
+        "size_bytes": 3732,
+        "chunks": [
+          {
+            "kind": "JSON",
+            "length": 3704
+          },
+          {
+            "kind": "BIN\u0000",
+            "length": 0
+          }
+        ],
+        "declared_buffers": [
+          {
+            "byteLength": 720
+          }
+        ],
+        "generator": "SOLIDWORKSGLTF",
+        "current_strict_valid": false,
+        "decoded_mesh": null,
+        "mesh_error": {
+          "type": "ValueError",
+          "message": "external or invalid GLB buffer"
+        }
+      },
+      "native_receipt": {
+        "ok": false,
+        "action": "document.export",
+        "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-host-control-70d8c9e-01\\component-export.GLB",
+        "save_attempted": true,
+        "api_saved": true,
+        "save_errors": 0,
+        "save_warnings": 0,
+        "error": {
+          "type": "ExportVerificationFailed",
+          "message": "exported file did not pass content verification",
+          "verification": {
+            "non_empty": true,
+            "signature_valid": false
+          },
+          "diagnostic_file": "C:\\Workspace\\SWCLI-series-20261110\\glb-host-control-70d8c9e-01\\component-export.invalid-native.glb"
+        }
+      },
+      "actual_host_before_fixture": null,
+      "export_controls": null,
+      "owned_cleanup_errors": []
+    },
+    {
+      "kind": "glb-visible-startup-70d8c9e-01",
+      "report_sha256": "ddd7b9dbbde8de25bbe898366e1da6b692f3cabf0f6ceeaa4cb1207820cee5f2",
+      "host": {
+        "process_id": 1912,
+        "revision": "33.5.0",
+        "visible": true
+      },
+      "source_model_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292",
+      "source_lifecycle": "fresh saved writable part, no close/reopen before export; fixed driver source",
+      "api": "modern Python extension SaveAs3(Name,0,1,null-dispatch,null-dispatch,byref-I4,byref-I4)",
+      "glb": {
+        "sha256": "7c4b0df7a4fd057b466207ae7af2e114ae38a101fa1777a9f7933a49ba1c75e9",
+        "size_bytes": 3732,
+        "chunks": [
+          {
+            "kind": "JSON",
+            "length": 3704
+          },
+          {
+            "kind": "BIN\u0000",
+            "length": 0
+          }
+        ],
+        "declared_buffers": [
+          {
+            "byteLength": 720
+          }
+        ],
+        "generator": "SOLIDWORKSGLTF",
+        "current_strict_valid": false,
+        "decoded_mesh": null,
+        "mesh_error": {
+          "type": "ValueError",
+          "message": "external or invalid GLB buffer"
+        }
+      },
+      "native_receipt": {
+        "ok": true,
+        "action": "document.export",
+        "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.AMF",
+        "save_attempted": true,
+        "api_saved": true,
+        "save_errors": 0,
+        "save_warnings": 0,
+        "artifact": {
+          "kind": "cad-export",
+          "format": "AMF",
+          "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.AMF",
+          "size_bytes": 1476
+        }
+      },
+      "actual_host_before_fixture": {
+        "Visible": true,
+        "CommandInProgress": false,
+        "UserControl": true,
+        "UserControlBackground": true,
+        "process_id": 1912
+      },
+      "export_controls": [
+        {
+          "format": "STL",
+          "before": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          },
+          "result": {
+            "ok": true,
+            "action": "document.export",
+            "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.STL",
+            "save_attempted": true,
+            "api_saved": true,
+            "save_errors": 0,
+            "save_warnings": 0,
+            "artifact": {
+              "kind": "cad-export",
+              "format": "STL",
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.STL",
+              "size_bytes": 684
+            }
+          },
+          "after": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          }
+        },
+        {
+          "format": "3MF",
+          "before": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          },
+          "result": {
+            "ok": true,
+            "action": "document.export",
+            "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.3MF",
+            "save_attempted": true,
+            "api_saved": true,
+            "save_errors": 0,
+            "save_warnings": 0,
+            "artifact": {
+              "kind": "cad-export",
+              "format": "3MF",
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.3MF",
+              "size_bytes": 10822
+            }
+          },
+          "after": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          }
+        },
+        {
+          "format": "AMF",
+          "before": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          },
+          "result": {
+            "ok": true,
+            "action": "document.export",
+            "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.AMF",
+            "save_attempted": true,
+            "api_saved": true,
+            "save_errors": 0,
+            "save_warnings": 0,
+            "artifact": {
+              "kind": "cad-export",
+              "format": "AMF",
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.AMF",
+              "size_bytes": 1476
+            }
+          },
+          "after": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          }
+        },
+        {
+          "format": "GLB",
+          "before": {
+            "host": {
+              "Visible": true,
+              "CommandInProgress": false,
+              "UserControl": true,
+              "UserControlBackground": true,
+              "process_id": 1912
+            },
+            "document": {
+              "metadata": [
+                1,
+                144,
+                false,
+                "默认"
+              ],
+              "path": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component.SLDPRT",
+              "title": "component.SLDPRT",
+              "readonly": false
+            },
+            "foreground_identity": 1,
+            "source_sha256": "3eb244dd0d27f98a77f10838be6043a1aef70a24c17e6f07cbc69073189ec292"
+          },
+          "result": {
+            "ok": false,
+            "action": "document.export",
+            "output": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.GLB",
+            "save_attempted": true,
+            "api_saved": true,
+            "save_errors": 0,
+            "save_warnings": 0,
+            "error": {
+              "type": "ExportVerificationFailed",
+              "message": "exported file did not pass content verification",
+              "verification": {
+                "non_empty": true,
+                "signature_valid": false
+              },
+              "diagnostic_file": "C:\\Workspace\\SWCLI-series-20261110\\glb-visible-startup-70d8c9e-01\\component-export.invalid-native.glb"
+            }
+          }
+        }
+      ],
+      "owned_cleanup_errors": []
+    }
+  ]
+}
