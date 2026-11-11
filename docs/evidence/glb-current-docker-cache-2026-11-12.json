@@ -1,0 +1,181 @@
+{
+  "schema": "swcli.glb.cached-runtime-metadata.v1",
+  "date": "2026-11-12",
+  "source_head": "7af1d01cb30c9ac358e3b87eac13050fc1ac6f78",
+  "observed_utc": "2026-11-11T21:20:26.629827+00:00",
+  "current_local_cache_only": true,
+  "registry_freshness_verified": false,
+  "MarkingJig_historical_generation_identified": false,
+  "images": [
+    {
+      "tag": "ghcr.io/yjbeetle/sw-executable:latest-zh-cn-cli",
+      "id": "7823979a9862730bdc765113b1e751d366d9557787cd2bbdb350f22f608db926",
+      "cached_manifest_digest": "sha256:5b8068195179e7c95bc4cc15de31ab40bfdf9e468a66579ab828561fad7cb28b",
+      "repo_digests": [
+        "ghcr.io/yjbeetle/sw-executable@sha256:070eb7d0423a49a79e1643ae7fc5ded5f9526d973d29765ff9eea78a53551c3c",
+        "ghcr.io/yjbeetle/sw-executable@sha256:5b8068195179e7c95bc4cc15de31ab40bfdf9e468a66579ab828561fad7cb28b"
+      ],
+      "created": "2026-09-30T22:14:10.996395445Z",
+      "SWCLI_source_version": "0.1.0a2",
+      "wine_packages": [
+        "wine-devel\t11.16~jammy-1",
+        "wine-devel-amd64\t11.16~jammy-1",
+        "winehq-devel\t11.16~jammy-1"
+      ],
+      "SOLIDWORKS_PE": {
+        "path": "/root/.wine/drive_c/Program Files/SOLIDWORKS/SLDWORKS.exe",
+        "present": true,
+        "size_bytes": 712576,
+        "sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+        "fixed_version_records": [
+          {
+            "file_version": [
+              33,
+              5,
+              0,
+              53
+            ],
+            "product_version": [
+              33,
+              5,
+              0,
+              53
+            ],
+            "fixed_info_offset": 698792
+          }
+        ],
+        "parser": "bounded aligned VS_VERSION_INFO/FIXEDFILEINFO signature; no loader or executable invocation"
+      },
+      "exporter_source": {
+        "path": "/opt/swcli/src/swcli/hosts/windows_documents.py",
+        "sha256": "3b432ab28134472b0e1eec04d09666a0fe51de67a1eb6c3dbcd6500e50385850",
+        "selected_source_lines": [
+          {
+            "line": 747,
+            "text": ""
+          },
+          {
+            "line": 748,
+            "text": "        document.ClearSelection2(True)"
+          },
+          {
+            "line": 749,
+            "text": "        save_error = int(document.SaveAs3(str(export_path), 0, 1))"
+          },
+          {
+            "line": 750,
+            "text": "        if save_error != 0 or not export_path.is_file():"
+          },
+          {
+            "line": 751,
+            "text": "            result[\"error\"] = {"
+          }
+        ],
+        "source_read_only": true,
+        "application_imported_or_executed": false
+      }
+    },
+    {
+      "tag": "ghcr.io/yjbeetle/sw-executable:2025-zh-cn-cli",
+      "id": "377e9edd59f86333740cc1e3b049d546997b826907b5ce9851b571ebc205ecab",
+      "cached_manifest_digest": "sha256:2a1ef42d6c7e908185ab895dd71ae138cf3fc22a90db36f3940b0be77d9d71a0",
+      "repo_digests": [
+        "ghcr.io/yjbeetle/sw-executable@sha256:2a1ef42d6c7e908185ab895dd71ae138cf3fc22a90db36f3940b0be77d9d71a0",
+        "ghcr.io/yjbeetle/sw-executable@sha256:b07bdac0aea38fc530e41ec8b299b2c0d2821a212787b6b6e4d6e2e0bb2dc5fc"
+      ],
+      "created": "2026-10-30T04:29:24.143668248Z",
+      "SWCLI_source_version": "0.1.0a13",
+      "wine_packages": [
+        "wine-devel\t11.16~jammy-1",
+        "wine-devel-amd64\t11.16~jammy-1",
+        "winehq-devel\t11.16~jammy-1"
+      ],
+      "SOLIDWORKS_PE": {
+        "path": "/root/.wine/drive_c/Program Files/SOLIDWORKS/SLDWORKS.exe",
+        "present": true,
+        "size_bytes": 712576,
+        "sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+        "fixed_version_records": [
+          {
+            "file_version": [
+              33,
+              5,
+              0,
+              53
+            ],
+            "product_version": [
+              33,
+              5,
+              0,
+              53
+            ],
+            "fixed_info_offset": 698792
+          }
+        ],
+        "parser": "bounded aligned VS_VERSION_INFO/FIXEDFILEINFO signature; no loader or executable invocation"
+      },
+      "exporter_source": {
+        "path": "/opt/swcli/src/swcli/hosts/windows_documents.py",
+        "sha256": "b96d94aab16d01dbcce90b3f3a33d322e5f6ce4c3fe079b474be848b58cb9060",
+        "selected_source_lines": [
+          {
+            "line": 808,
+            "text": "        ):"
+          },
+          {
+            "line": 809,
+            "text": "            document.ClearSelection2(True)"
+          },
+          {
+            "line": 810,
+            "text": "            save_error = int(document.SaveAs3(str(export_path), 0, 1))"
+          },
+          {
+            "line": 811,
+            "text": "        if save_error != 0 or not export_path.is_file():"
+          },
+          {
+            "line": 812,
+            "text": "            result[\"error\"] = {"
+          }
+        ],
+        "source_read_only": true,
+        "application_imported_or_executed": false
+      }
+    }
+  ],
+  "artifact_receipt": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/glb-workspaceroot-current-cache-20261112/current-cache-provenance.json",
+  "artifact_sha256": "22581133971b8574ce0de99028abbd9b7df766c4fdd617633555730a76e7d8c9",
+  "actions": {
+    "own_ephemeral_containers_started": 6,
+    "own_ephemeral_containers_removed_confirmed": 6,
+    "existing_container_or_daemon_changed": 0,
+    "image_pull_update_install_or_promotion": 0,
+    "registry_query": 0,
+    "host_token_or_full_environment_print": 0,
+    "Wine_or_SW_or_SWCLI_execution": 0,
+    "business_model_copy_open_export": 0,
+    "Windows_VM": 0,
+    "CI": 0,
+    "schedule_edits": 0
+  },
+  "metadata_corrections": [
+    {
+      "stage": "first image template",
+      "failure": "Podman .Id template unsupported, exit125; original stdout retained; corrected to documented .ID and whitelist label fields; no native operation"
+    },
+    {
+      "stage": "first static container pair",
+      "failure": "stdin was not attached, Python read EOF and returned0 with no metadata; two empty-output receipts retained; fixed -i and required expected metadata kind; no Wine/CAD executed"
+    }
+  ],
+  "all_own_containers_removed": true,
+  "native_acceptance": false,
+  "limits": [
+    "Current locally cached tag/image/file observations only; no registry freshness proof.",
+    "Does not identify MarkingJig historical generation digest, SWCLI/Wine version or actual executed API.",
+    "SWCLI version is source __version__ metadata; Wine version is dpkg/runtime version file; SOLIDWORKS version is static PE FIXEDFILEINFO. No COM/runtime invocation.",
+    "Two caches have the same SLDWORKS.exe hash/version but can differ in other Wine DLLs, SWCLI source, setup and execution context; no single-factor causality.",
+    "Both cached exporters show old three-argument IModelDoc2.SaveAs3 source; this is not authority to execute an obsolete save or fallback from modern candidate."
+  ]
+}

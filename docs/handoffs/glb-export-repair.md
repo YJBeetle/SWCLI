@@ -6,6 +6,10 @@
 
 统筹最新收敛为[MarkingJig独立只读副本、OpenDoc7与现有Python现代helper一次对照](../verification/glb-markingjig-readonly-control-plan-2026-11-12.md)的代码/便携准备；不扩C#part门禁、不复制业务二进制入repo/CI、不自行VM。当前[Python候选](../../scripts/diagnostics/markingjig/README.md)与36项便携正反测试已准备；装机PIA成员仅本机静态编译验证，未执行OpenDoc7。固定10份available源/引用候选及原GLB hash保持，完整引用仍未知，必须证明后才可保存；历史generated assembly只作辅助，不作为失败回退。用户确认成功源使用DockerSW latest，具体生成digest/版本仍未知，与静态2025配置区分，不单独归因Docker或doctype，不操作镜像/容器/CI。另已按亲审改用现代Extension五参依赖census，移除不可比旧计数；broken/导入来源保留，未知0保存。文件跨渠道仅已核3.14.7 Windows ctime例外，其余指纹字段严格相同。以下保留早期各阶段记录。
 
+## 2026-11-12 当前Docker缓存只读来源取证
+
+按更新后的隔离Docker授权取得[当前缓存版本/API证据](../verification/glb-current-docker-cache-2026-11-12.md)：latest-zh-cn-cli源码0.1.0a2、2025-zh-cn-cli源码0.1.0a13，两者Wine包11.16、SW文件33.5.0.53且EXE SHA相同；两份缓存导出源码均旧IModelDoc2.SaveAs3三参。精确ID/manifest与文件SHA已记录，仅当前本地缓存，不补填用户MarkingJig历史生成环境，不定part根因、不执行旧API。6个自建无网络/只读metadata容器均确认删除，Wine/SW/模型/VM/CI0；首次模板与stdin采集失误原回执保留。Windows现代候选保持，不移植Wine。
+
 ## 2026-11-12 身份预检首错、新候选及用户真实成功原件
 
 b50单次identity report SHA `43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11e5f3bd7f686d4b` 已独立核：源SLDPRT File.OpenRead共享冲突HRESULT -2147024864为真实首错，frame mismatch为后续症状。contract/三包consumed/局部IUnknown true+IsSame1有原件，但before=null、完整identity未过、GLB0；正常helper exit1、marshal known及owned清理已核。Python8.3路径实际保留，C#raw路径未保留，不补填。见[身份首错及候选审计](../verification/glb-typed-identity-first-failure-2026-11-12.md)。

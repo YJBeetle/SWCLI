@@ -27,3 +27,5 @@
 届时固定源/引用hash、完整加载/无缺失引用与原strict状态、保存前后原件不变；沿用刚试过的绑定和现代七参/暂存规则，唯一一次输出到另选诊断位置，保留完整BIN/accessor/mesh与首次错误。现helper是type1专用，未来type2夹具及生命周期必须由统筹明确亲审，不能直接放宽通用doctype/readonly/源状态门禁。统筹最新方案改为[独立只读工作副本及OpenDoc7候选](glb-markingjig-readonly-control-plan-2026-11-12.md)，允许其亲审后只读复制必要源/引用到私有C:\Workspace；本路不复制VM，业务二进制不入仓/CI，原项目和既有GLB始终不动。完整引用仍未知，不能猜齐或fallback box。
 
 新增变量至少包括type2、真实复杂源与渲染/装配上下文、已有文件打开/解析引用/轻化状态及重开生命周期，不能称只改doctype。若成功，只能说明该现代路径/环境可导出这一assembly，排除“当前环境所有现代GLB都必定BIN0”的泛化；不能单独证明doctype、某个参数、Docker/版本或C#封送是part失败首因。若同样BIN0，只能证明当前这组条件也失败，不能否定旧GLB及用户Blender成功；还需区分加载/状态/版本/API/实际依赖等尚未知条件，不能直接定性导出器缺陷。加载/原件状态失败则在0保存停止，不接第二次调用或其他API。
+
+另行取得的[当前本地Docker缓存版本与API来源](glb-current-docker-cache-2026-11-12.md)只代表当前cache：latest源码0.1.0a2、2025源码0.1.0a13，均旧三参SaveAs3。没有把这些缓存与历史MarkingJig job关联，以上历史unknown保持，不因当前cache回填版本/digest或判定原因。
