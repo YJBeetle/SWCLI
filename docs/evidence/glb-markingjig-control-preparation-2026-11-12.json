@@ -10,22 +10,22 @@
   "inventory_sha256": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d",
   "inventory_complete_reference_set": false,
   "candidate_files_sha256": {
-    "scripts/diagnostics/markingjig/README.md": "ed18476e1db0d1fb3a8517ebc00c015a90065a6d80a91930f6da096575206b5c",
-    "scripts/diagnostics/markingjig/markingjig_control.py": "9069653d8932cd466d2fc79293174ea9772488a9c0d5fdae6fa07e57b83ceb5e",
+    "scripts/diagnostics/markingjig/README.md": "b5e1a7ab0e1da33e27ca7529817e3ba8ce02b7ea4bb17c9648258dd783291c52",
+    "scripts/diagnostics/markingjig/markingjig_control.py": "90d3e530dade55a189fc61d0ae0e33ba6afafc4acb0894a5868ddd246133df85",
     "scripts/diagnostics/markingjig/run-markingjig-control.py": "3d070cd8091738fd33e97a8f24ca9dab50cf9d3ceccb52677c4db4de5b6fa306",
-    "scripts/diagnostics/markingjig/test_markingjig_control.py": "2f31096c2587ed7a3cb8431d6d4ef890b281f72f40be248e54a12f840371b0c7"
+    "scripts/diagnostics/markingjig/test_markingjig_control.py": "e65da4dd69b980ec0509100e893a1cb116680f25f3fbf4f81d9f2c8e4e4abecd"
   },
   "validations": {
-    "candidate_python_tests": 24,
+    "candidate_python_tests": 36,
     "related_typed_python_tests": 23,
     "static_PIA_contract_compile": "local .NET6/C#5 library build only, no method execution; zero warnings/errors",
     "actual_PIA_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
-    "contract_source": "using SolidWorks.Interop.sldworks;\npublic static class Contract {\n public static void Check(ISldWorks app, IAssemblyDoc assembly, IComponent2 component) {\n  IDocumentSpecification s=(IDocumentSpecification)app.GetOpenDocSpec(\"not executed\");\n  s.DocumentType=2; s.ReadOnly=true; s.Silent=true; s.UseLightWeightDefault=false; s.LightWeight=false; s.ViewOnly=false; s.LoadModel=true; s.AutoRepair=false;\n  IModelDoc2 m=(IModelDoc2)app.OpenDoc7(s); int error=s.Error,warning=s.Warning;\n  bool allUnloaded=assembly.HasUnloadedComponents(); object edit=assembly.GetEditTarget();\n  int count=assembly.GetComponentCount(false),light=assembly.GetLightWeightComponentCount();\n  object list=assembly.GetComponents(false),deps=m.GetDependencies2(true,false,false); int dependencyStrings=m.GetNumDependencies(1,0);\n  int state=component.GetSuppression2(); bool suppressed=component.IsSuppressed(),virt=component.IsVirtual,unloaded=component.HasUnloadedComponents();\n  IModelDoc2 child=(IModelDoc2)component.GetModelDoc2(); object parent=component.GetParent(); string cfg=component.ReferencedConfiguration;\n }\n}\n",
-    "contract_source_sha256": "6b665e89b70dc69bf218e13842380d148ceae74d746148f5fbba17489262460e"
+    "contract_source": "using SolidWorks.Interop.sldworks;\npublic static class Contract {\n public static void Check(ISldWorks app, IAssemblyDoc assembly, IComponent2 component) {\n  IDocumentSpecification s=(IDocumentSpecification)app.GetOpenDocSpec(\"not executed\");\n  s.DocumentType=2; s.ReadOnly=true; s.Silent=true; s.UseLightWeightDefault=false; s.LightWeight=false; s.ViewOnly=false; s.LoadModel=true; s.AutoRepair=false;\n  IModelDoc2 m=(IModelDoc2)app.OpenDoc7(s); int error=s.Error,warning=s.Warning;\n  bool allUnloaded=assembly.HasUnloadedComponents(); object edit=assembly.GetEditTarget();\n  int count=assembly.GetComponentCount(false),light=assembly.GetLightWeightComponentCount();\n  object list=assembly.GetComponents(false); IModelDocExtension extension=m.Extension;\n  object inclusive=extension.GetDependencies(true,false,false,true,true);\n  object withoutBroken=extension.GetDependencies(true,false,false,false,true);\n  int state=component.GetSuppression2(); bool suppressed=component.IsSuppressed(),virt=component.IsVirtual,unloaded=component.HasUnloadedComponents();\n  IModelDoc2 child=(IModelDoc2)component.GetModelDoc2(); object parent=component.GetParent(); string cfg=component.ReferencedConfiguration;\n }\n}\n",
+    "contract_source_sha256": "44a69c85df5ab12ab9007b0c68e75f3b50a84dd6dfba06593ac0e582441ab4a8"
   },
   "required_native_evidence": [
     "OpenDoc7 ReadOnly/initial resolved actual readbacks",
-    "complete dependency counts/arrays and loaded component graph with fixed physical input files or verified virtual ownership",
+    "modern five-argument dependency inclusive/broken census arrays and loaded component graph with fixed physical inputs or verified virtual ownership; unknown variant stops, no legacy count comparability claimed",
     "model state/geometry/hash before-after and one existing modern Python SaveAs3",
     "strict BIN/accessor/mesh plus owned cleanup"
   ],
@@ -34,5 +34,6 @@
     "unknown/missing/lightweight/config/geometry must stop at zero saves",
     "no repair/rebuild/resolve/retry/alternate model",
     "new readonly existing assembly/Python/native Windows differs from both DockerSW latest success and C# fresh part; not single-variable causal test"
-  ]
+  ],
+  "modern_dependency_correction_evidence": "glb-markingjig-modern-dependencies-2026-11-12.json"
 }

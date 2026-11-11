@@ -1,12 +1,14 @@
 """Review-only diagnostic: fixed MarkingJig readonly copy, OpenDoc7, one modern export.
 No COM at import. Inventory is metadata only; this module never copies business files.
 """
+from collections import Counter
 import hashlib
 import json
 import math
 import os
 from pathlib import Path, PureWindowsPath
 import stat
+import sys
 
 SOURCE = 'MarkingJig.REND.SLDASM'
 REFERENCE_GLB_SHA = '375b01a84bd4ca1f9100f9caea44782fb84f228a82a9becd0236186a3315cb6c'
@@ -17,6 +19,13 @@ AVAILABLE = (SOURCE, 'MarkingJig.SLDASM', 'M3x6_SHCS.SLDPRT', 'Magnet_D6x15.SLDP
 SPEC = dict(DocumentType=2, ReadOnly=True, Silent=True, UseLightWeightDefault=False,
             LightWeight=False, ViewOnly=False, LoadModel=True, AutoRepair=False)
 MAX_COMPONENTS = 1024
+DEPENDENCY_OPTIONS = dict(Traverseflag=True, Searchflag=False, AddReadOnlyInfo=False,
+                          ListBrokenRefs=True, AppendImportedPaths=True)
+
+
+def split_ctime_channels():
+    # Only the already observed CPython Windows 3.14.7 path/handle ctime split.
+    return os.name == 'nt' and sys.implementation.name == 'cpython' and sys.version_info[:3] == (3, 14, 7)
 
 
 def require(ok, reason):
@@ -35,7 +44,7 @@ def fingerprint(value):
 
 
 def stable_file(path, *, readonly=False):
-    """Keep raw path/handle channels; compare ctime within each channel, not across APIs."""
+    """Strict cross-channel identity; only known Windows 3.14.7 ctime stays channel-local."""
     path = Path(path)
     require(not path.is_symlink(), 'symlink input refused')
     before = fingerprint(os.stat(path, follow_symlinks=False))
@@ -48,7 +57,9 @@ def stable_file(path, *, readonly=False):
     digest = hashlib.sha256()
     with path.open('rb') as stream:
         opened = fingerprint(os.fstat(stream.fileno()))
-        for key in ('st_dev','st_ino','st_size','st_mtime_ns'):
+        for key in before:
+            if key == 'st_ctime_ns' and split_ctime_channels():
+                continue
             require(before[key] == opened[key], 'path/opened file differs: '+key)
         remaining = before['st_size']
         while remaining:
@@ -188,8 +199,37 @@ class Observation:
                              edges=exact(self.get(body,'GetEdgeCount'),int,'edge count unknown')))
         return rows
 
+    def dependencies(self, model, state, report):
+        query = dict(model_path=state['path'], reads=[], independent_native_string_count=None,
+                     count_basis='returned five-argument SAFEARRAY only; no documented comparable native counter')
+        report.append(query)
+        extension = self.get(model, 'Extension')
+        require(extension is not None, 'dependency extension unavailable')
+        arrays = []
+        # Inclusive first. The fixed second read classifies broken refs, never a fallback/retry.
+        for include_broken in (True, False):
+            options = dict(DEPENDENCY_OPTIONS, ListBrokenRefs=include_broken)
+            read = dict(options=options); query['reads'].append(read)
+            raw = self.get(extension, 'GetDependencies', *options.values())
+            read['returned_type'] = type(raw).__name__
+            if isinstance(raw, (tuple, list)):
+                read['raw_strings'] = list(raw) if all(type(x) is str for x in raw) else None
+                read['returned_string_count'] = len(raw)
+            else:
+                read['raw_strings'] = None
+            # No unsupported conversion of None/VT_EMPTY into a proven zero count.
+            require(isinstance(raw, (tuple, list)), 'modern dependency array unknown; no legacy count fallback')
+            require(len(raw) <= 4096 and len(raw) % 2 == 0 and all(type(x) is str and x for x in raw),
+                    'modern dependency pair array malformed/incomplete')
+            arrays.append(list(raw))
+        inclusive, without_broken = arrays
+        pairs = lambda raw: Counter(zip(raw[::2], raw[1::2]))
+        require(pairs(inclusive) == pairs(without_broken), 'broken dependency or inconsistent inclusive census; no save')
+        query['broken_census_equal'] = True
+        return inclusive
+
     def snapshot(self, doc, report):
-        result = dict(complete=False, host={}, top={}, components=[], dependencies=[], catalog=[])
+        result = dict(complete=False, host={}, top={}, components=[], dependencies=[], dependency_queries=[], catalog=[])
         report.append(result)
         self.copy.unchanged()
         h=result['host'];h['pid']=exact(self.get(self.app,'GetProcessID'),int,'host PID unknown')
@@ -247,16 +287,14 @@ class Observation:
             for current_model,current_row in instances[1:]:
                 require(current_row['owner_file']==first_row['owner_file'] and canonical(current_row['model'])==canonical(first_row['model']), 'ambiguous embedded source ownership/state')
                 self.same(current_model,first_model,'embedded source identities differ')
-        # The declared traversal also includes suppressed/derived references, not just visible components.
-        for model,state,embedded in models:
-            count=exact(self.get(model,'GetNumDependencies',1,0),int,'native dependency string count unknown')
-            raw=self.get(model,'GetDependencies2',True,False,False)
-            require((raw is None and count==0) or isinstance(raw,(list,tuple)), 'dependency array unknown')
-            raw=[] if raw is None else list(raw)
-            require(0<=count<=4096 and count==len(raw) and count%2==0 and all(type(x) is str and x for x in raw),'dependency list incomplete')
+        # Modern traversal includes suppressed/derived/broken refs and imported origins.
+        top_dependency_files = set()
+        for model_index,(model,state,embedded) in enumerate(models):
+            raw=self.dependencies(model,state,result['dependency_queries'])
             for index in range(0,len(raw),2):
                 pair=dict(name=raw[index],stored_path=raw[index+1],model_path=state['path'])
                 result['dependencies'].append(pair)
+                require('|' not in pair['stored_path'], 'imported source dependency outside approved native inputs; no stripping/omission')
                 virtual=[v for path,v in virtual_paths.items() if
                          PureWindowsPath(path).name.casefold()==PureWindowsPath(pair['stored_path']).name.casefold()]
                 if virtual:
@@ -267,11 +305,14 @@ class Observation:
                     matching=[n for n in self.copy.files if n.casefold()==name.casefold()]
                     require(len(matching)==1,'dependency outside fixed list; do not guess/copy')
                     pair['file']=matching[0]
+                    if model_index == 0:top_dependency_files.add(matching[0])
                     loaded=self.get(self.app,'GetOpenDocumentByName',str(self.copy.root/matching[0]))
                     require(loaded is not None,'dependency not loaded in initial complete model')
                     known=[m for m,s,v in models if not v and s['path'] and self.copy.external(s['path'])==matching[0]]
                     require(bool(known),'dependency model not represented in complete loaded graph')
                     self.same(loaded,known[0],'loaded dependency identity differs')
+        expected_external={row['file'] for component,row in by_name.values() if not row['virtual']}
+        require(expected_external <= top_dependency_files, 'modern recursive dependencies omit loaded external component')
         docs=self.get(self.app,'GetDocuments');require(isinstance(docs,(list,tuple)),'document catalog unknown')
         require(exact(self.get(self.app,'GetDocumentCount'),int,'catalog count unknown')==len(docs),'catalog incomplete')
         for current in docs:

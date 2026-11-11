@@ -1,6 +1,6 @@
 # MarkingJig独立只读副本的现代Python单次对照
 
-状态：统筹已取得typed part实际BIN0原件，条件已满足；最新收敛为用户真实MarkingJig源，历史generated.SLDASM只作辅助。[候选代码与24项便携测试](../../scripts/diagnostics/markingjig/README.md)已准备，实际执行由统筹亲审；本路不复制业务模型到VM/仓库，不启动CAD/Blender，不派CI。part专用C#Core.Fixture保持，不扩成assembly。
+状态：统筹已取得typed part实际BIN0原件，条件已满足；最新收敛为用户真实MarkingJig源，历史generated.SLDASM只作辅助。[候选代码与36项便携测试](../../scripts/diagnostics/markingjig/README.md)已准备，实际执行由统筹亲审；本路不复制业务模型到VM/仓库，不启动CAD/Blender，不派CI。part专用C#Core.Fixture保持，不扩成assembly。
 
 目标：原项目和既有GLB不动，统筹在C:\Workspace独立私有目录准备经批准固定名单的只读工作副本，保留逐文件原始hash/size及前后检查。附近原生文件只能作候选名单，不能据同目录/GLB mesh数猜定完整引用。原始二进制未检出可用的明文引用线索；目前完整依赖图仍未知。无法证完整就0保存停止，不换历史box或其他模型回退。
 
@@ -17,3 +17,5 @@
 用户最新运行观察：成功assembly使用DockerSW **latest**，静态源repo的2025-zh-cn-cli配置仅为另一条配置线索；不能替代实际标签，更不能把当前latest解析结果当生成时digest。本轮不pull/更新镜像、不启动或重启容器、不触发DockerCI或晋升。对比失败的native Windows33.5.0 fresh part时，宿主和文档上下文同时不同，均不单独定因。
 
 固定metadata库存见[候选输入名单](../evidence/glb-markingjig-input-inventory-2026-11-12.json)，SHA `d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d`；10份available原生文件及原GLB前后指纹/hash保持，仍不称required/complete依赖集。实际副本selected名单、完整引用证明和是否执行由统筹确定，代码不自动复制或扩名单。
+
+亲审修正：依赖改用现代Extension五参及包含/排除broken的固定只读对照，Search=false、AppendImportedPaths=true，不拿旧GetNumDependencies作新数组计数。raw返回、broken差异、derived/import及加载图覆盖规则见[接口说明](glb-markingjig-modern-dependencies-2026-11-12.md)；未知结构（含未证明语义的None）0保存。文件跨渠道仅已核CPython3.14.7 Windows ctime例外，mode/attrs/birth/nlink等全量字段及同渠道ctime严格不变。

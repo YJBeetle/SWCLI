@@ -23,7 +23,7 @@ class Model:
         self.IsOpenedViewOnly=lambda:False;self.GetConfigurationNames=lambda:('Default',)
         self.GetEditTarget=lambda:self;self.HasUnloadedComponents=lambda:self.unloaded
         self.GetLightWeightComponentCount=lambda:self.lightweight
-        self.GetNumDependencies=lambda *args:0;self.GetDependencies2=lambda *args:None
+        self.Extension.GetDependencies=lambda *args:()
         body=NS(GetBodyBox=lambda:(0.,0.,0.,1.,1.,1.),GetMassProperties=lambda density:(0.,0.,0.,1.,1.,0.,0.,0.,0.,0.,0.,0.),
                 GetType=lambda:0,GetFaceCount=lambda:6,GetEdgeCount=lambda:12)
         self.GetBodies2=lambda *args:(body,)
@@ -43,8 +43,11 @@ class Case(unittest.TestCase):
              GetModelDoc2=lambda:self.child,ReferencedConfiguration='Default',GetParent=lambda:None,
              Transform2=NS(ArrayData=(1.,0.,0.,0.,1.,0.,0.,0.,1.,0.,0.,0.,1.,0.,0.,0.)))
         self.top.GetComponents=lambda flag:(self.component,);self.top.GetComponentCount=lambda flag:1
-        self.top.GetNumDependencies=lambda *args:2
-        self.top.GetDependencies2=lambda *args:('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT')
+        self.dependency_calls=[]
+        def dependencies(*args):
+            self.dependency_calls.append(args)
+            return ('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT')
+        self.top.Extension.GetDependencies=dependencies
         self.spec=NS(Error=0,Warning=0);self.opens=[];self.calls=[];self.exports=[]
         def open7(s):self.opens.append(s);return self.top
         self.app=NS(GetOpenDocSpec=lambda path:self.spec,OpenDoc7=open7,GetProcessID=lambda:17,RevisionNumber=lambda:'33.5.0',
@@ -79,10 +82,87 @@ class Case(unittest.TestCase):
     def test_unloaded_or_missing_model_stops(self):
         self.component.GetModelDoc2=lambda:None;self.stopped()
     def test_missing_dependency_does_not_expand_copy_list(self):
-        self.top.GetDependencies2=lambda *a:('Missing',r'C:\elsewhere\Missing.SLDPRT');self.stopped()
+        self.top.Extension.GetDependencies=lambda *a:('Missing',r'C:\elsewhere\Missing.SLDPRT');self.stopped()
         self.assertEqual(list(self.copy.files),self.names)
-    def test_dependency_count_mismatch_stops(self):
-        self.top.GetNumDependencies=lambda *a:4;self.stopped()
+    def test_dependency_pair_shape_mismatch_stops(self):
+        self.top.Extension.GetDependencies=lambda *a:('name',);self.stopped()
+    def test_modern_dependency_flags_no_legacy_count_or_query(self):
+        self.run_case('probe')
+        self.assertEqual(self.dependency_calls,[(True,False,False,True,True),(True,False,False,False,True)])
+        self.assertFalse(any('GetNumDependencies' in x or 'GetDependencies2' in x for x in self.calls))
+        query=self.report['observations'][0]['dependency_queries'][0]
+        self.assertIsNone(query['independent_native_string_count'])
+        self.assertEqual(query['reads'][0]['returned_string_count'],2)
+    def test_broken_reference_in_inclusive_census_stops(self):
+        def dependencies(*args):
+            if args[3]:return ('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT','Broken',r'C:\old\Broken.SLDPRT')
+            return ('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT')
+        self.top.Extension.GetDependencies=dependencies;self.stopped()
+        queries=self.report['observations'][0]['dependency_queries']
+        self.assertEqual(queries[0]['reads'][0]['returned_string_count'],4)
+        self.assertNotIn('broken_census_equal',queries[0])
+    def test_derived_reference_unloaded_stops(self):
+        name='MarkingJigRod.SLDPRT';path=self.root/name;path.write_bytes(b'derived-native')
+        self.inventory['files'][name]=m.stable_file(path);path.chmod(0o444)
+        self.copy=m.WorkingCopy(self.inventory,self.root,self.names+[name])
+        self.top.Extension.GetDependencies=lambda *a:('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT','Derived',r'C:\old\MarkingJigRod.SLDPRT')
+        with self.assertRaisesRegex(RuntimeError,'dependency not loaded'):self.run_case()
+        self.assertFalse(self.exports)
+        self.assertEqual(self.report['observations'][0]['dependencies'][-1]['name'],'Derived')
+    def test_imported_origin_retained_and_not_silently_stripped(self):
+        raw=('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT|C:\upstream\source.step')
+        self.top.Extension.GetDependencies=lambda *a:raw;self.stopped()
+        observed=self.report['observations'][0]
+        self.assertEqual(observed['dependency_queries'][0]['reads'][0]['raw_strings'],list(raw))
+        self.assertEqual(observed['dependencies'][0]['stored_path'],raw[1])
+    def test_unknown_dependency_variant_is_not_assumed_empty(self):
+        for raw in (None,False,0,'',object()):
+            with self.subTest(kind=type(raw).__name__):
+                self.top.Extension.GetDependencies=lambda *a:raw;self.stopped()
+    def test_even_dependency_array_cannot_omit_loaded_external_graph(self):
+        self.top.Extension.GetDependencies=lambda *a:();self.stopped()
+    def test_dependency_census_cannot_hide_duplicate_broken_record(self):
+        one=('Spirit_Level',r'C:\old\Spirit_Level.SLDPRT')
+        self.top.Extension.GetDependencies=lambda *a:one*2 if a[3] else one;self.stopped()
+    def test_cross_channel_all_non_ctime_fields_must_match(self):
+        original=m.os.fstat
+        for key in ('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_birthtime_ns','st_file_attributes','st_nlink'):
+            with self.subTest(field=key):
+                def changed(fd):
+                    row=m.fingerprint(original(fd));row[key]=(row[key] or 0)+1
+                    return NS(**row)
+                with mock.patch.object(m.os,'fstat',side_effect=changed),mock.patch.object(m,'split_ctime_channels',return_value=True):
+                    with self.assertRaisesRegex(RuntimeError,'path/opened file differs: '+key):m.stable_file(self.root/m.SOURCE)
+    def test_ctime_cross_channel_exception_is_narrow_and_preserves_raw_values(self):
+        original=m.os.fstat
+        def changed(fd):
+            row=m.fingerprint(original(fd));row['st_ctime_ns']+=7;return NS(**row)
+        with mock.patch.object(m.os,'fstat',side_effect=changed):
+            with mock.patch.object(m,'split_ctime_channels',return_value=False):
+                with self.assertRaisesRegex(RuntimeError,'st_ctime_ns'):m.stable_file(self.root/m.SOURCE)
+            with mock.patch.object(m,'split_ctime_channels',return_value=True):
+                row=m.stable_file(self.root/m.SOURCE)
+                self.assertEqual(row['path_before']['st_ctime_ns']+7,row['handle_before']['st_ctime_ns'])
+                self.assertEqual(row['handle_before'],row['handle_after'])
+    def test_ctime_same_handle_channel_change_still_stops(self):
+        original=m.os.fstat;calls=[]
+        def changed(fd):
+            calls.append(fd);row=m.fingerprint(original(fd));row['st_ctime_ns']+=len(calls);return NS(**row)
+        with mock.patch.object(m.os,'fstat',side_effect=changed),mock.patch.object(m,'split_ctime_channels',return_value=True):
+            with self.assertRaisesRegex(RuntimeError,'held input metadata changed'):m.stable_file(self.root/m.SOURCE)
+    def test_ctime_same_path_channel_change_still_stops(self):
+        original=m.fingerprint;calls=[]
+        def changed(value):
+            calls.append(value);row=original(value)
+            if len(calls)==4:row['st_ctime_ns']+=1
+            return row
+        with mock.patch.object(m,'fingerprint',side_effect=changed),mock.patch.object(m,'split_ctime_channels',return_value=True):
+            with self.assertRaisesRegex(RuntimeError,'input path metadata changed'):m.stable_file(self.root/m.SOURCE)
+    def test_ctime_exception_only_for_known_windows_cpython_3147(self):
+        for platform,implementation,version,wanted in (('nt','cpython',(3,14,7),True),('posix','cpython',(3,14,7),False),('nt','cpython',(3,14,8),False),('nt','pypy',(3,14,7),False)):
+            with self.subTest(platform=platform,implementation=implementation,version=version):
+                with mock.patch.object(m.os,'name',platform),mock.patch.object(m.sys,'implementation',NS(name=implementation)),mock.patch.object(m.sys,'version_info',version):
+                    self.assertIs(m.split_ctime_channels(),wanted)
     def test_external_clone_same_bytes_is_not_private_file(self):
         elsewhere=self.root/'outside';elsewhere.mkdir();p=elsewhere/self.names[1];p.write_bytes((self.root/self.names[1]).read_bytes())
         self.child.path=str(p);self.stopped()
@@ -110,7 +190,7 @@ class Case(unittest.TestCase):
         self.assertEqual(len(self.exports),1)
     def test_saved_embedded_virtual_has_pinned_owner_not_guessed_external_file(self):
         self.component.IsVirtual=True;self.child.path=str(self.root/'Virtual^MarkingJig.SLDPRT');self.child.readonly=False
-        self.top.GetNumDependencies=lambda *a:0;self.top.GetDependencies2=lambda *a:None
+        self.top.Extension.GetDependencies=lambda *a:()
         self.run_case('probe');row=self.report['observations'][0]['components'][0]
         self.assertEqual(row['owner_file'],m.SOURCE);self.assertTrue(row['virtual']);self.assertFalse(self.exports)
     def test_unknown_virtual_owner_stops(self):

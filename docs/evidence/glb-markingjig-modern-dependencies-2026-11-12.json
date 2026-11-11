@@ -1,0 +1,100 @@
+{
+  "schema": "swcli.markingjig-modern-dependencies.v1",
+  "date": "2026-11-12",
+  "supersedes_unexecuted_candidate": "e1e33d4de4660f59da9973ce8c4d094bc37a6b17",
+  "official_pages": [
+    {
+      "method": "IModelDocExtension.GetDependencies",
+      "url": "https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~GetDependencies.html",
+      "verified_page_version": "2025",
+      "retrieved_html_sha256": "295e56f586c206016d861a87cfc3bc222925077ad72a7d23d3a9cf78b11f2d71"
+    },
+    {
+      "method": "IModelDoc2.GetNumDependencies",
+      "url": "https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~GetNumDependencies.html",
+      "verified_page_version": "2025",
+      "retrieved_html_sha256": "88eeecc6342923654ed0071be4fa9ef342911d334b48c139009bf0d24aca0f0f"
+    },
+    {
+      "method": "IModelDoc2.GetDependencies2",
+      "url": "https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDoc2~GetDependencies2.html",
+      "verified_page_version": "2025",
+      "retrieved_html_sha256": "9df2fb5aa231f0aa8536848348956f7f6ee231bdfe5f0e3b0204a4e842c6116b"
+    }
+  ],
+  "installed_PIA_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+  "reflection": {
+    "assembly_full_name": "SolidWorks.Interop.sldworks, Version=33.5.0.53, Culture=neutral, PublicKeyToken=7c4797c3e4eeac03",
+    "declaring_type": "SolidWorks.Interop.sldworks.IModelDocExtension",
+    "method": "GetDependencies",
+    "return_type": "System.Object",
+    "parameters": [
+      {
+        "position": 0,
+        "name": "Traverseflag",
+        "type": "System.Boolean"
+      },
+      {
+        "position": 1,
+        "name": "Searchflag",
+        "type": "System.Boolean"
+      },
+      {
+        "position": 2,
+        "name": "AddReadOnlyInfo",
+        "type": "System.Boolean"
+      },
+      {
+        "position": 3,
+        "name": "ListBrokenRefs",
+        "type": "System.Boolean"
+      },
+      {
+        "position": 4,
+        "name": "AppendImportedPaths",
+        "type": "System.Boolean"
+      }
+    ],
+    "method_attributes": [
+      "[System.Runtime.InteropServices.DispIdAttribute((Int32)306)]"
+    ],
+    "return_attributes": [
+      "[System.Runtime.InteropServices.MarshalAsAttribute((System.Runtime.InteropServices.UnmanagedType)27, ArraySubType = 0, SizeParamIndex = 0, SizeConst = 0, IidParameterIndex = 0, SafeArraySubType = 0)]"
+    ],
+    "application_or_COM_method_executed": false
+  },
+  "reflection_program_source": "using System;\nusing System.Linq;\nusing System.Reflection;\nusing System.Text.Json;\npublic static class Program {\n public static void Main(string[] args) {\n  Assembly assembly=Assembly.LoadFrom(args[0]);\n  MethodInfo method=assembly.GetType(\"SolidWorks.Interop.sldworks.IModelDocExtension\",true).GetMethod(\"GetDependencies\");\n  Console.WriteLine(JsonSerializer.Serialize(new {\n   assembly_full_name=assembly.FullName,\n   declaring_type=method.DeclaringType.FullName,\n   method=method.Name,return_type=method.ReturnType.FullName,\n   parameters=method.GetParameters().Select(p=>new {position=p.Position,name=p.Name,type=p.ParameterType.FullName}).ToArray(),\n   method_attributes=method.GetCustomAttributesData().Select(a=>a.ToString()).ToArray(),\n   return_attributes=method.ReturnParameter.GetCustomAttributesData().Select(a=>a.ToString()).ToArray(),\n   application_or_COM_method_executed=false\n  }));\n }\n}\n",
+  "static_contract_source": "using SolidWorks.Interop.sldworks;\npublic static class Contract {\n public static void Check(ISldWorks app, IAssemblyDoc assembly, IComponent2 component) {\n  IDocumentSpecification s=(IDocumentSpecification)app.GetOpenDocSpec(\"not executed\");\n  s.DocumentType=2; s.ReadOnly=true; s.Silent=true; s.UseLightWeightDefault=false; s.LightWeight=false; s.ViewOnly=false; s.LoadModel=true; s.AutoRepair=false;\n  IModelDoc2 m=(IModelDoc2)app.OpenDoc7(s); int error=s.Error,warning=s.Warning;\n  bool allUnloaded=assembly.HasUnloadedComponents(); object edit=assembly.GetEditTarget();\n  int count=assembly.GetComponentCount(false),light=assembly.GetLightWeightComponentCount();\n  object list=assembly.GetComponents(false); IModelDocExtension extension=m.Extension;\n  object inclusive=extension.GetDependencies(true,false,false,true,true);\n  object withoutBroken=extension.GetDependencies(true,false,false,false,true);\n  int state=component.GetSuppression2(); bool suppressed=component.IsSuppressed(),virt=component.IsVirtual,unloaded=component.HasUnloadedComponents();\n  IModelDoc2 child=(IModelDoc2)component.GetModelDoc2(); object parent=component.GetParent(); string cfg=component.ReferencedConfiguration;\n }\n}\n",
+  "static_contract_source_sha256": "44a69c85df5ab12ab9007b0c68e75f3b50a84dd6dfba06593ac0e582441ab4a8",
+  "static_compile": {
+    "runtime": ".NET6",
+    "language": "C#5",
+    "warnings": 0,
+    "errors": 0,
+    "application_methods_executed": 0
+  },
+  "dependency_query_options": [
+    [
+      true,
+      false,
+      false,
+      true,
+      true
+    ],
+    [
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  ],
+  "legacy_count_comparable": false,
+  "legacy_count_comparability": "not established by official contract; calls removed",
+  "None_return_empty_meaning": "unverified, zero-save stop",
+  "candidate_tests": 36,
+  "related_typed_tests": 23,
+  "native_OpenDoc7_export_executions": 0,
+  "VM_host_operations": 0,
+  "business_binaries_modified": false
+}
