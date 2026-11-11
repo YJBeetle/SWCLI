@@ -1,6 +1,6 @@
 # GLB 导出器证据缺口与下一最小信息路径
 
-状态：离线评估，未实施新 collector、typed bridge 或新的 CAD 保存。现有可见模式的首次失败已按[原件审计](glb-visible-startup-native-audit-2026-11-11.md)保留。继续禁止盲试参数、改变 scope／绑定参数、补 BIN、回旧 API、自动第二轮或扩大产品计划。
+状态更新（2026-11-11）：统筹已批准准备[固定清单零 CAD collector](installed-glb-exporter-inventory.md)，代码与离线反例测试现已就绪，尚未在装机环境运行；typed bridge 和新 CAD 保存仍未实施。现有可见模式的首次失败已按[原件审计](glb-visible-startup-native-audit-2026-11-11.md)保留。继续禁止盲试参数、改变 scope／绑定参数、补 BIN、回旧 API、自动第二轮或扩大产品计划。
 
 ## 官方支持合同能说明什么
 

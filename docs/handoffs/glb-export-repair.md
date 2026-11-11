@@ -4,7 +4,7 @@
 
 - 固定 d2a8e606 的 fresh Parameter B seed 私有 part/front fixture 已由统筹单次运行通过；七个独立圆几何窗口及四个目标 Get3 观察窗口、保存只读重开、源哈希及清理均经[独立离线审计](../verification/getter-fresh-binding-native-audit-2026-11-11.md)。不替代 CI/full/public 验收。
 - 已审阅 1beaa471 driver、固定 70d8c9e 的可见启动对照由统筹单次执行，实际 Visible=true/CIP=false 下 part GLB 仍为 JSON3704/BIN0，首错停止。[原件审计](../verification/glb-visible-startup-native-audit-2026-11-11.md)保留三个成功格式、四次现代导出、无 GLB after CAD 读取、原始文件和清理边界。
-- 本路未操作 VM／CI／push。下一优先级为当前安装 exporter 的零 CAD 定点文件证据，见[信息增益评估](../verification/glb-exporter-next-evidence-plan-2026-11-11.md)；未实施新 collector 或 typed bridge，不再盲试可见状态、CIP、参数、旧 API，也不补写 BIN。以下早期候选与门禁安排保留为历史记录，执行由统筹亲审调度。
+- 本路未操作 VM／CI／push。下一优先级为当前安装 exporter 的零 CAD 定点文件证据，见[信息增益评估](../verification/glb-exporter-next-evidence-plan-2026-11-11.md)；已准备[定点零 CAD collector](../verification/installed-glb-exporter-inventory.md)及反例测试，尚未装机运行；typed bridge 未实施，不再盲试可见状态、CIP、参数、旧 API，也不补写 BIN。以下早期候选与门禁安排保留为历史记录，执行由统筹亲审调度。
 
 
 ## 2026-11-11 显式BSTR数组seed候选与独立几何门禁

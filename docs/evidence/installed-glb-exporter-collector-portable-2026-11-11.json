@@ -1,0 +1,83 @@
+{
+  "kind": "portable-only fixed exporter collector preparation; not installed-file evidence",
+  "base_head": "1d3791d79a717a3dd663295a6be81cde5f43edba",
+  "fixed_list_source": {
+    "approval": "coordinator explicit fixed-list collector request",
+    "CI_MSI_origin_sha256": "eced0a0b91ec041025237d28aedc8cbe332b50f6df645ce2769355e9095c8055",
+    "install_root": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS",
+    "required_relative_files": [
+      "sldgltfu.dll",
+      "spiop/files/code/bin/SPAXGLTFBase.dll",
+      "spiop/files/code/bin/SPAXGLTFVisualization.dll",
+      "spiop/files/code/bin/VisGltf.dll"
+    ],
+    "background_only": [
+      "SWXRExporter.dll",
+      "SWXRExporter.tlb"
+    ],
+    "lookup": "owner parent, fixed install root, C:\\Windows\\System32, C:\\Windows\\SysWOW64; exact unique paths only"
+  },
+  "contract": {
+    "read_only_target_inputs": true,
+    "regular_non_reparse_parent_and_file_guards": true,
+    "descriptor_path_identity_match": true,
+    "original_file_stat_hash_before_after_required": true,
+    "collector_helper_request_fingerprints_before_after": true,
+    "CAD_or_COM": false,
+    "target_DLL_loading_or_registration": false,
+    "filesystem_recursive_search": false,
+    "network_install_or_trust_validation": false,
+    "signature_data": "offline embedded CMS metadata only; cryptographic and catalog trust unknown",
+    "dependency_conclusion": "presence in fixed paths only; runtime resolution always unknown",
+    "typed_bridge_or_GLB_export": false
+  },
+  "validation": {
+    "portable_tests": 17,
+    "passed": true,
+    "uses_synthetic_PE_files_and_mock_runner_only": true,
+    "test_names": [
+      "test_fixed_files_stable_metadata_and_bounded_dependencies_no_runtime_verdict",
+      "test_helper_failure_remains_first_error_even_if_postcheck_also_fails",
+      "test_input_byte_bound_and_post_read_path_replacement_refuse",
+      "test_metadata_request_mutation_cannot_relabel_signature_payload",
+      "test_missing_fixed_powershell_stops_before_input_or_metadata_access",
+      "test_required_absent_background_TLB_and_malformed_PE_remain_explicit",
+      "test_source_mutation_or_replacement_after_metadata_cannot_pass",
+      "test_spoofed_helper_contract_file_set_or_hash_refuses_once",
+      "test_stat_open_race_and_zero_identity_refuse_before_read",
+      "test_static_source_contract_has_no_CAD_loader_search_or_network_paths",
+      "test_symlink_file_parent_or_reparse_attribute_is_unknown_and_never_opened",
+      "test_PE32_PE32plus_normal_and_delay_names_and_raw_certificate",
+      "test_delay_VA32_encoding_and_import_count_bound",
+      "test_empty_directories_are_observed_empty_without_synthesizing_signature",
+      "test_security_directory_is_file_offset_and_rejects_overlap_or_bad_length",
+      "test_truncated_unmapped_unterminated_or_ambiguous_images_refuse",
+      "test_unsafe_library_names_are_rejected_before_path_lookup"
+    ],
+    "Python_AST_parse": true,
+    "host": "Darwin",
+    "python": "3.15.2 (main, Oct 25 2026, 16:57:51) [Clang 17.0.0 (clang-1700.6.4.2)]",
+    "native_Windows_PowerShell_execution": false,
+    "PowerShell_syntax_and_runtime_verified": false,
+    "installed_exporter_files_read": false,
+    "VM_or_CI_or_push": false
+  },
+  "file_sha256": {
+    "scripts/ci/inspect-installed-glb-exporter.py": "5c42a554e20890ae1ae4b2913ef962fd5c9863be06f9190653a537f8098827d9",
+    "scripts/ci/inspect-installed-glb-exporter-metadata.ps1": "2b8556489d4ec40b181c7f893811555c75fc96a37b56286addc44075d4b3ed73",
+    "tests/test_installed_glb_exporter.py": "1d07ddf0b87d2d725bc3f8468ef48e37c2726275d61f587fbea770644e8e208e",
+    "docs/verification/installed-glb-exporter-inventory.md": "20bd2feed6dac99a3aadcb3e441cd0ca633c266ef174c22bcaece00150f26b5d"
+  },
+  "test_log": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/glb-export-repair/20261111/exporter-inventory/portable-tests.log",
+    "bytes": 3193,
+    "sha256": "5c69272c1ede03f9b2a2ed141509eff246a1229f5265b6f77ae44d3fd14c0f5e"
+  },
+  "limitations": [
+    "No actual local Windows exporter presence/version/hash/signature has been collected.",
+    "Portable source-contract tests are not OS telemetry of a native execution.",
+    "CMS decoding does not validate Authenticode image digest, cryptographic signature, chain or catalog.",
+    "Normal/delay imports do not include all dynamic, forwarded, API-set or runtime loader behavior.",
+    "PowerShell helper needs coordinator review and one zero-CAD native execution; no policy bypass or installation fallback."
+  ]
+}
