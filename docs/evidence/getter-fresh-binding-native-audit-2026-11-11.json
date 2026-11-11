@@ -1,0 +1,244 @@
+{
+  "scope": "independent offline audit of one local private part/front fixture; not CI/full/public acceptance",
+  "tested_head": "d2a8e606d0d251946583570510e6e0b1175fa355",
+  "artifact_root": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-fixed-d2a8e60-01",
+  "source_zip": {
+    "path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261110/getter-source-d2a8e60.zip",
+    "sha256": "f90d4e03d65832310fe51d0f230b811ff9ae0a4b9cdab6fbd591480301ee9821",
+    "all_files_match_exact_git_head": true,
+    "file_count": 247,
+    "bytes": 824655
+  },
+  "artifacts": {
+    "local-supervisor.json": {
+      "bytes": 14770,
+      "sha256": "c733b331e7faa1b498ad7a4e62ddbc3dbdfe6db24746c20dc222c0851e875a3a"
+    },
+    "two-configurations.SLDPRT": {
+      "bytes": 86852,
+      "sha256": "05cd3236eb41cb0417e43b810bc25cdece3708c94e1af0f4c34728b5097a6aee"
+    },
+    "worker.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "report.json": {
+      "bytes": 45043,
+      "sha256": "45be9ce0cbd91d1a34bfffeeeee8c9219e57cac9d091cfeefe4fcfab4dd65df4"
+    },
+    "coordinator-independent-audit.json": {
+      "bytes": 1134,
+      "sha256": "7ceff27c4cc20d35d9041176f61db37fceddb08b1f912d9149fd1d921c58f197"
+    },
+    "worker.stderr.log": {
+      "bytes": 267602,
+      "sha256": "c8b6ce9d9b1fe0794b696f74c0d5b74c7f377ba776620d7161fbf83e1fa28f9e"
+    },
+    "trace.jsonl": {
+      "bytes": 6238,
+      "sha256": "9e362646a59c6863e30b126029e7546535788fa7d669c670b7f9542c9f4f5ed5"
+    }
+  },
+  "host": {
+    "process_id": 2612,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "native_worker_pid": 6608,
+  "launch_pid": 5244,
+  "seed_binding": {
+    "lookup_name": "D1@草图1@零件1.Part",
+    "configuration": "Getter_B",
+    "bound_full_name": "D1@草图1@零件1.Part",
+    "success": true
+  },
+  "seed": {
+    "attempted": true,
+    "value_m": 0.02,
+    "which": 3,
+    "target": "Getter_B",
+    "argument_type": "VARIANT",
+    "variant_type": 8200,
+    "config_names": [
+      "Getter_B"
+    ],
+    "return_type": "int",
+    "return_value": 0,
+    "success": true
+  },
+  "geometry": [
+    {
+      "phase": "initial-A",
+      "request_id": "getter-fixture-geometry-initial-A",
+      "radius_mm": 8.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": null
+    },
+    {
+      "phase": "seed-B",
+      "request_id": "getter-fixture-geometry-seed-B",
+      "radius_mm": 10.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": null
+    },
+    {
+      "phase": "seed-A",
+      "request_id": "getter-fixture-geometry-seed-A",
+      "radius_mm": 8.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": null
+    },
+    {
+      "phase": "saved-A",
+      "request_id": "getter-fixture-geometry-saved-A",
+      "radius_mm": 8.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": true
+    },
+    {
+      "phase": "saved-B",
+      "request_id": "getter-fixture-geometry-saved-B",
+      "radius_mm": 10.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": true
+    },
+    {
+      "phase": "reopened-readonly-A",
+      "request_id": "getter-fixture-geometry-reopened-readonly-A",
+      "radius_mm": 8.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": true
+    },
+    {
+      "phase": "reopened-readonly-B",
+      "request_id": "getter-fixture-geometry-reopened-readonly-B",
+      "radius_mm": 10.0,
+      "get_radius_end_count": 1,
+      "target_get3_count": 0,
+      "state_and_identity_preserved": true,
+      "source_hash_preserved": true
+    }
+  ],
+  "observations": [
+    {
+      "phase": "saved",
+      "label": "A",
+      "request_id": "getters-saved-A",
+      "result_m": 0.016,
+      "shape": "tuple[1]",
+      "one_get3_trace_and_shape_correlated": true,
+      "state_and_identity_preserved": true
+    },
+    {
+      "phase": "saved",
+      "label": "B",
+      "request_id": "getters-saved-B",
+      "result_m": 0.02,
+      "shape": "tuple[1]",
+      "one_get3_trace_and_shape_correlated": true,
+      "state_and_identity_preserved": true
+    },
+    {
+      "phase": "reopened-readonly",
+      "label": "A",
+      "request_id": "getters-reopened-readonly-A",
+      "result_m": 0.016,
+      "shape": "tuple[1]",
+      "one_get3_trace_and_shape_correlated": true,
+      "state_and_identity_preserved": true
+    },
+    {
+      "phase": "reopened-readonly",
+      "label": "B",
+      "request_id": "getters-reopened-readonly-B",
+      "result_m": 0.02,
+      "shape": "tuple[1]",
+      "one_get3_trace_and_shape_correlated": true,
+      "state_and_identity_preserved": true
+    }
+  ],
+  "save": {
+    "ok": true,
+    "action": "document.save-as",
+    "output": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-d2a8e60-01\\two-configurations.SLDPRT",
+    "document_before": {
+      "title": "零件1",
+      "path": "",
+      "type": 1,
+      "modified": true,
+      "update_stamp": 142
+    },
+    "save_attempted": true,
+    "api_saved": true,
+    "save_errors": 0,
+    "save_warnings": 0,
+    "save_error_names": [],
+    "document": {
+      "title": "two-configurations.SLDPRT",
+      "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-d2a8e60-01\\two-configurations.SLDPRT",
+      "type": 1,
+      "modified": false,
+      "update_stamp": 142
+    },
+    "file_verification": {
+      "non_empty": true,
+      "minimum_size_valid": true
+    },
+    "artifact": {
+      "kind": "native-document",
+      "format": "SLDPRT",
+      "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-d2a8e60-01\\two-configurations.SLDPRT",
+      "size_bytes": 86852
+    }
+  },
+  "reopen": {
+    "ok": true,
+    "action": "document.open",
+    "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-d2a8e60-01\\two-configurations.SLDPRT",
+    "read_only": true,
+    "configuration": null,
+    "api_errors": 0,
+    "api_warnings": 0,
+    "document": {
+      "title": "two-configurations.SLDPRT",
+      "path": "C:\\Workspace\\SWCLI-series-20261110\\getter-fixed-d2a8e60-01\\two-configurations.SLDPRT",
+      "type": 1,
+      "modified": false,
+      "update_stamp": 142
+    }
+  },
+  "cleanup_errors": [],
+  "native_pids_before": [],
+  "native_pids_after": [],
+  "worker_exit": 0,
+  "source_sha256": "05cd3236eb41cb0417e43b810bc25cdece3708c94e1af0f4c34728b5097a6aee",
+  "trace_audit": {
+    "geometry_windows": 7,
+    "target_getter_windows": 4,
+    "all_correlated_to_native_worker": true
+  },
+  "acceptance": {
+    "local_private_fixture_passed": true,
+    "ci": false,
+    "full": false,
+    "public": false
+  },
+  "caveats": [
+    "Creator helper reads descriptor/Get3; four target observations and seven geometry windows are counted separately.",
+    "Success supports tested fixture with fresh B seed binding; does not establish a universal cross-configuration handle invalidation contract.",
+    "Supervisor launch PID 5244 differs from native worker PID 6608; audited trace with actual native worker, not launch PID.",
+    "No VM/CI operation was performed during this offline audit."
+  ]
+}
