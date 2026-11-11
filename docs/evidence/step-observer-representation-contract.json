@@ -1,0 +1,341 @@
+{
+  "kind": "read-only contract/history investigation; candidate not native acceptance",
+  "product_contract_sources": {
+    "src/swcli/operation_schemas.py": "b197e44be5d69b5795930a1d1220e3081ebf016b8942df6d63f7163ccecd75f7",
+    "src/swcli/hosts/windows_step_export.py": "c6e99de2dc2a0c5bad4e55fa8c28ef58ba7565bc41303542ba94917d1487cb6e",
+    "docs/step-export-options.md": "ed227e490ab0b0b96f50a82341197eb9385a844ac024bbc048e5b49ad09e640e"
+  },
+  "conclusion": "Public STEP export contract selects protocol/output geometry; reference-curve native reimport class is a test-only observer choice, not a public parameter or output guarantee",
+  "representation_change_commit": "b36375197873820c1197ea3cb6174382ba9fd49d",
+  "prior_failure": {
+    "run": 42365535291,
+    "head": "d6505f7384911b43b28a5f273ab14262032c4698",
+    "artifact": 13571478417,
+    "zip_sha256": "b2e70c0786e67a9e97ff7a0af60234516eb2fd2a4884bf9b8506d7e6c9af1475",
+    "sketch_segments": 9,
+    "total_mm": 260,
+    "cause": "unknown; complete feature inventory refutes omitted nested sketches; no underlying sketch error code recorded",
+    "original_report_sha256": "f9b558851dca805cd391fdf656759cd9ecabb85b97ebff9cac53e94bf8143a26",
+    "native_partial_geometry": {
+      "segment_count": 9,
+      "lengths_mm": [
+        10.0,
+        10.0,
+        30.0,
+        30.0,
+        30.0,
+        30.0,
+        40.0,
+        40.0,
+        40.0
+      ],
+      "total_length_mm": 260.0,
+      "feature_inventory": [
+        {
+          "feature_id": 8,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "CommentsFolder",
+          "name": "Comments",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 23,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "FavoriteFolder",
+          "name": "Favorites",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 24,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "HistoryFolder",
+          "name": "History",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 25,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "SelectionSetFolder",
+          "name": "Selection Sets",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 22,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "SensorFolder",
+          "name": "Sensors",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 7,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "DocsFolder",
+          "name": "Design Binder",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 1,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "DetailCabinet",
+          "name": "Annotations",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 10,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "SurfaceBodyFolder",
+          "name": "Surface Bodies",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 9,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "SolidBodyFolder",
+          "name": "Solid Bodies",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 6,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "EnvFolder",
+          "name": "Lights and Cameras",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 21,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "InkMarkupFolder",
+          "name": "Markups",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 16,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "EqnFolder",
+          "name": "Equations",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 11,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "MaterialFolder",
+          "name": "Material <not specified>",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 2,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "RefPlane",
+          "name": "Front Plane",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 3,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "RefPlane",
+          "name": "Top Plane",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 4,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "RefPlane",
+          "name": "Right Plane",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 5,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "OriginProfileFeature",
+          "name": "Origin",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 26,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "3DProfileFeature",
+          "name": "Sketch1",
+          "lengths_mm": [
+            40.0,
+            30.0,
+            40.0,
+            30.0,
+            30.0,
+            40.0,
+            30.0
+          ]
+        },
+        {
+          "feature_id": 27,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "3DProfileFeature",
+          "name": "Sketch2",
+          "lengths_mm": [
+            10.0,
+            10.0
+          ]
+        },
+        {
+          "feature_id": 28,
+          "parent_id": null,
+          "depth": 0,
+          "kind": "3DProfileFeature",
+          "name": "Sketch3",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 17,
+          "parent_id": 1,
+          "depth": 1,
+          "kind": "NotesAreaFtrFolder",
+          "name": "Notes",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 18,
+          "parent_id": 1,
+          "depth": 1,
+          "kind": "NotesAreaFtrFolder",
+          "name": "Notes1___EndTag___",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 12,
+          "parent_id": 6,
+          "depth": 1,
+          "kind": "AmbientLight",
+          "name": "Ambient",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 13,
+          "parent_id": 6,
+          "depth": 1,
+          "kind": "DirectionLight",
+          "name": "Directional1",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 14,
+          "parent_id": 6,
+          "depth": 1,
+          "kind": "DirectionLight",
+          "name": "Directional2",
+          "lengths_mm": []
+        },
+        {
+          "feature_id": 15,
+          "parent_id": 6,
+          "depth": 1,
+          "kind": "DirectionLight",
+          "name": "Directional3",
+          "lengths_mm": []
+        }
+      ]
+    }
+  },
+  "old_success": {
+    "run": 42303929271,
+    "head": "ee7f0ea51cc23924cf84462f7688800dc6bca626",
+    "zip_sha256": "4623ccc98e3cd4f745d31680bbef53560a855e85f6aef982553be0678acfd717",
+    "report_sha256": "131f623c454e71f195ac6017e5972cd035d576576303a5a1051b0beb37ebf302",
+    "cases": 8,
+    "wire_cases": [
+      {
+        "protocol": "ap203",
+        "geometry": "wireframe",
+        "segments": 12,
+        "reopened_segments": 12
+      },
+      {
+        "protocol": "ap203",
+        "geometry": "wireframe-sketches",
+        "segments": 18,
+        "reopened_segments": 18
+      },
+      {
+        "protocol": "ap214",
+        "geometry": "wireframe",
+        "segments": 12,
+        "reopened_segments": 12
+      },
+      {
+        "protocol": "ap214",
+        "geometry": "wireframe-sketches",
+        "segments": 18,
+        "reopened_segments": 18
+      },
+      {
+        "protocol": "ap203",
+        "geometry": "wireframe",
+        "segments": 12,
+        "reopened_segments": 12
+      }
+    ],
+    "limitation": "Reader code at this exact head measures ProfileFeature/3DProfileFeature only; original report did not record precise per-feature types/grouping or feature error codes; do not retrofill them"
+  },
+  "installed_2025_sources": [
+    {
+      "file": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/api/sldworksapi.chm",
+      "sha256": "3a46af7f0c11e958661beecc22158fedc360939193f5d967182724c9ddbec24e",
+      "members": [
+        {
+          "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetErrorCode2.html",
+          "sha256": "84f0bdd31287611b4de66092388eceb3fd535fb73ebf0cf6fe86a8a92d6d12e8"
+        },
+        {
+          "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetTypeName2.html",
+          "sha256": "6184824334d62e2ebccebf62c0f7e1adcd25408ccaeb3581f9c4ae0a32d0505d"
+        },
+        {
+          "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISketch~GetSketchSegments.html",
+          "sha256": "3207afbf3e4d24961fc8837573be16ed2ec63bd2753a2d3678ca7cffa08ec9fe"
+        }
+      ]
+    },
+    {
+      "file": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/lang/chinese-simplified/sldworks.chm",
+      "sha256": "27ae6a82721af973bf67acd16964bd34f881fbfe2f83740d5432c2bfa4b8c8bd",
+      "members": [
+        {
+          "name": "HIDD_EXPORT_OPTIONS_STEP.htm",
+          "sha256": "4e85dae6b14f64d7058b01ab74f409aea770ffde626fc4dae276b65da445127d"
+        }
+      ]
+    }
+  ],
+  "additional_installed_api_source": {
+    "path": "/Users/YJBeetle/.codex/worktrees/swcli-step-export-options/SWCLI/step-evidence/installed-help-2025/FileOpenOptionsGeneral.htm",
+    "sha256": "6cd594be10a5364dd6f615a16d04b58c0077380db11e1d74fc28c4c678ebbf3f"
+  },
+  "primary_urls": [
+    "https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_EXPORT_OPTIONS_STEP.htm",
+    "https://help.solidworks.com/2025/english/SolidWorks/sldworks/HIDD_EXPORT_OPTION_STEP.htm",
+    "https://help.solidworks.com/2025/english/SolidWorks/sldworks/t_reading_step_iges_acis_sw.htm",
+    "https://help.solidworks.com/2025/english/api/swconst/FileOpenOptionsGeneral.htm",
+    "https://help.solidworks.com/2022/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetTypeName2.html",
+    "https://help.solidworks.com/2018/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetErrorCode2.html",
+    "https://help.solidworks.com/2016/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.ISketch~GetSketchSegments.html"
+  ],
+  "current_459_audit": "step-explicit-459ff87-audit.json",
+  "native_or_CI_executed_this_turn": false
+}

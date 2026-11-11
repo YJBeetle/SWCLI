@@ -334,9 +334,10 @@ def verify_imported_geometry(app, target, output, name, geometry, constants, cal
         _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
 
 
-def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
+def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live, *, wire_reader=None, before_load=None):
     import pythoncom
     from win32com.client import VARIANT
+    observe_wire = wire_reader or (lambda doc, evidence: read_wireframe(doc,evidence,representation="reference-curves"))
     original_step_digest = hashlib.sha256(target.read_bytes()).hexdigest()
     case["actual_import_preferences"] = observe_preferences(app,constants,call)
     contract_path=output / "import-interface-contract.json"
@@ -347,6 +348,7 @@ def _verify_imported_geometry(app, target, output, name, geometry, constants, ca
     case["import_data_observation"]=observe_dispatch(imported_data,interfaces,call,"observe-import-data",step_mapping=True)
     checked(imported_data is not None, "STEP import data interface is unavailable")
     errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
+    if before_load is not None:before_load()
     case["import_return"] = dict(state="started",document_returned=None,errors=None,arg_string="r")
     try:
         document = call("LoadFile4", lambda: app.LoadFile4(str(target), "r", imported_data, errors))
@@ -358,6 +360,8 @@ def _verify_imported_geometry(app, target, output, name, geometry, constants, ca
     case["import_return"].update(state="returned",document_returned=document is not None,
                                  python_type=type(document).__name__,errors=errors.value)
     checked(document is not None and errors.value == 0, "STEP geometry readback failed")
+    if wire_reader is not None:
+        checked(type(errors.value) is int and _com_value(document,"GetType")==1,"sketch observer requires zero-error part import")
     case["import_document_observation"]=observe_dispatch(document,{},call,"observe-import-document")
     for member in ("GetType","GetTitle","GetPathName"):
         case["import_document_observation"][member]=probe(call,"observe-import-document."+member,lambda:_com_value(document,member))
@@ -365,11 +369,13 @@ def _verify_imported_geometry(app, target, output, name, geometry, constants, ca
         case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
     else:
         case["imported_geometry"] = {}
-        call("read-imported-wireframe", lambda: read_wireframe(document, case["imported_geometry"], representation="reference-curves"))
+        call("read-imported-wireframe", lambda: observe_wire(document, case["imported_geometry"]))
         verify_wire_geometry(case["imported_geometry"], geometry)
     imported_native = output / (name + "-imported.SLDPRT")
     case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
     checked(case["imported_save"]["ok"], "imported geometry save failed")
+    if wire_reader is not None:
+        checked(type(case["imported_save"].get("save_errors")) is int and case["imported_save"]["save_errors"]==0,"sketch observer native save error/unknown")
     native_digest = hashlib.sha256(imported_native.read_bytes()).hexdigest()
     call("close-import", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
     live["document"] = document = None
@@ -378,9 +384,11 @@ def _verify_imported_geometry(app, target, output, name, geometry, constants, ca
     live["document"] = document
     case["imported_reopen"] = opened
     checked(opened["ok"] and opened["api_errors"] == opened["api_warnings"] == 0, "imported native reopen failed")
+    if wire_reader is not None:
+        checked(opened.get("read_only") is True and opened.get("document",{}).get("modified") is False,"sketch observer reopen not verified read-only/clean")
     case["reopened_imported_geometry"] = {}
     observed = call("verify-reopened-import", lambda:
-        check_box(document) if geometry == "solid-surface" else read_wireframe(document, case["reopened_imported_geometry"], representation="reference-curves"))
+        check_box(document) if geometry == "solid-surface" else observe_wire(document, case["reopened_imported_geometry"]))
     case["reopened_imported_geometry"] = observed
     verify_reopened_geometry(case["imported_geometry"], case["reopened_imported_geometry"], geometry)
     checked(not _com_value(document, "GetSaveFlag"), "read-only imported observation changed save state")
@@ -403,6 +411,7 @@ def readback_case(app, output, constants, plane, reverse, call, case, report, li
 
 
 def worker(args):
+    checked(not getattr(args,"sketch_readback_candidate",False) or args.export_report is not None,"Sketch candidate requires --export-report")
     # The existing harness covers major calls in trace.jsonl. Add a separate
     # flushed watchdog boundary around every _com_value observation as well,
     # including calls made outside a native_call wrapper.
@@ -432,13 +441,26 @@ def worker(args):
         (args.output_dir / "import-interface-contract.json").write_text(json.dumps(contract,indent=2)+"\n")
         return constants
     harness.read_constants = read_constants_with_contract
+    if getattr(args,'sketch_readback_candidate',False):
+        from swcli.hosts.windows_step_export import _native_windows_runtime
+        checked(_native_windows_runtime(),'Sketch candidate requires native Windows')
     if args.export_report is not None:
         public = json.loads(args.export_report.read_text(encoding="utf-8"))
         checked(public["success"] and len(public["outputs"]) == 8, "public export group is incomplete")
         (args.output_dir / "source-public-report.json").write_text(json.dumps(public, indent=2) + "\n", encoding="utf-8")
-        return harness.run(args.output_dir, args.swconst, False, case_runner=readback_case,
+        selected_case=readback_case
+        diagnostic_case="step-public-output-readback"
+        if getattr(args,'sketch_readback_candidate',False):
+            from gate_support import step_sketch_readback_candidate as sketch_candidate
+            sketch_candidate.verify_fresh_public_report(public,os.environ.get('GITHUB_SHA'))
+            from types import SimpleNamespace
+            reader_api=SimpleNamespace(_wire_features=_wire_features,_com_value=_com_value,
+                verify_step_output=verify_step_output,_verify_imported_geometry=_verify_imported_geometry)
+            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options)
+            diagnostic_case="step-public-explicit-sketch-readback-candidate"
+        return harness.run(args.output_dir, args.swconst, False, case_runner=selected_case,
             case_plan=[(str(index), "front", False) for index in range(len(public["outputs"]))],
-            diagnostic_case="step-public-output-readback")
+            diagnostic_case=diagnostic_case)
     return harness.run(args.output_dir, args.swconst, False, case_runner=calibrate_case,
         case_plan=[(protocol + ":" + geometry, "front", False)
                    for protocol in ("ap203", "ap214")
@@ -451,8 +473,10 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--export-report", type=Path, help="validate actual files from a completed public group, without exporting")
+    parser.add_argument("--sketch-readback-candidate", action="store_true", help="Review-only explicit AsSketches=0 observer; requires fresh same-head eight public exports")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    checked(not args.sketch_readback_candidate or args.export_report is not None,"Sketch candidate requires --export-report")
     args.output_dir = args.output_dir.resolve()
     if args.worker:
         return worker(args)
@@ -468,6 +492,7 @@ def main(argv=None):
     started = time.monotonic()
     with (args.output_dir / "worker.stdout.log").open("wb") as stdout, (args.output_dir / "worker.stderr.log").open("wb") as stderr:
         extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []
+        if args.sketch_readback_candidate:extra.append("--sketch-readback-candidate")
         process = subprocess.Popen([sys.executable, "-I", __file__, "--worker", "--output-dir", str(args.output_dir),
                                     "--swconst", str(args.swconst.resolve()), *extra], stdout=stdout, stderr=stderr)
         while process.poll() is None:
