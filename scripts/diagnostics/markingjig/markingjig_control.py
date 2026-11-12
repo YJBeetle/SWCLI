@@ -327,7 +327,9 @@ class Observation:
         return result
 
 
-def open_readonly(app, source, value, call, live, report):
+def open_readonly(app, source, value, call, live, report, constants):
+    readonly_warning=exact(constants.get('swFileLoadWarning_ReadOnly'),int,'installed readonly warning enum unknown')
+    require(readonly_warning==2,'installed readonly warning enum differs')
     spec=call('get-open-spec',lambda:app.GetOpenDocSpec(str(source)))
     require(spec is not None,'OpenDoc7 specification missing')
     report['requested_spec']=dict(SPEC);report['actual_spec']={}
@@ -338,14 +340,26 @@ def open_readonly(app, source, value, call, live, report):
     doc=call('OpenDoc7-readonly',lambda:app.OpenDoc7(spec));live['document']=doc
     report['open_errors']=exact(value(spec,'Error'),int,'OpenDoc7 error code unknown')
     report['open_warnings']=exact(value(spec,'Warning'),int,'OpenDoc7 warning code unknown')
-    require(doc is not None and report['open_errors']==report['open_warnings']==0,'OpenDoc7 failed/warned; no alternate opening')
+    require(doc is not None and report['open_errors']==0, 'OpenDoc7 failed; no alternate opening')
+    warning=report['open_warnings']
+    require(warning in (0,readonly_warning), 'OpenDoc7 unexpected warning; no alternate opening')
+    report['open_warning_policy']=dict(raw_warning=warning,installed_readonly_value=readonly_warning,
+                                      exact_readonly_warning=warning==readonly_warning,complete_model_gate_still_required=True)
+    if warning==readonly_warning:
+        require(report['actual_spec']['ReadOnly'] is True, 'readonly warning without requested/readback readonly')
+        checks=report['expected_readonly_warning_model']={}
+        for member,key,wanted in (('IsOpenedReadOnly','readonly',True),('GetSaveFlag','modified',False),
+                                  ('IsOpenedViewOnly','viewonly',False)):
+            raw=call('read-open-model-'+key,lambda member=member:value(doc,member));checks[key]=raw
+            require(type(raw) is bool and raw is wanted, 'readonly warning actual model state differs/unknown: '+key)
+        checks['provisional_only']=True
     return doc
 
 
 def one_case(app, copy, mode, output, value, call, live, report, constants, owned_pid, exporter, process_identity):
     require(mode in ('probe','invoke'),'mode required')
     report.update(mode=mode,observations=[],export_attempts=0,geometry_comparison='before/after same loaded native models; historical display context unknown')
-    doc=open_readonly(app,copy.root/SOURCE,value,call,live,report)
+    doc=open_readonly(app,copy.root/SOURCE,value,call,live,report,constants)
     observer=Observation(app,value,call,copy,constants,owned_pid,process_identity)
     before=observer.snapshot(doc,report['observations'])
     if mode=='probe':report['probe_success']=True;return

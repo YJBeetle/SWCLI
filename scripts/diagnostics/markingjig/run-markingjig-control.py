@@ -31,7 +31,7 @@ def manifest(args):
 
 
 def constants(pythoncom, path):
-    wanted={'swComponentFullyResolved':2,'swComponentResolved':3,'swDocASSEMBLY':2,'swAllBodies':-1}
+    wanted={'swComponentFullyResolved':2,'swComponentResolved':3,'swDocASSEMBLY':2,'swAllBodies':-1,'swFileLoadWarning_ReadOnly':2}
     lib=pythoncom.LoadTypeLib(str(path));found={}
     for i in range(lib.GetTypeInfoCount()):
         info=lib.GetTypeInfo(i);attr=info.GetTypeAttr()
@@ -69,6 +69,7 @@ def worker(args):
         try:
             with trace_native_request('markingjig-readonly-observe','diagnostic.readonly-assembly'):
                 required=call('read-installed-assembly-enums',lambda:constants(pythoncom,base.SWCONST))
+                case['installed_diagnostic_constants']=required
                 control.one_case(app,copy,args.mode,output,_com_value,call,live,case,required,
                                  report['host']['process_id'],export,process)
             if args.mode=='invoke':

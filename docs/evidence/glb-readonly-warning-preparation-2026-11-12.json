@@ -1,0 +1,99 @@
+{
+  "schema": "swcli.expected-readonly-warning-preparation.v1",
+  "date": "2026-11-12",
+  "parent_source_head": "6a25a5624b71155d610baf0c6e5a2be996fc5c23",
+  "prepared_only": true,
+  "new_CAD_VM_executions": 0,
+  "official2025": {
+    "url": "https://help.solidworks.com/2025/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swFileLoadWarning_e.html",
+    "version": "2025",
+    "filePath": "swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swFileLoadWarning_e.html",
+    "retrieved_html_sha256": "5ce18b8a7fc163970c002f573c95b4947c584bf6e1b8a405167fa91396cfbe1d",
+    "selected_text": "swFileLoadWarning_ReadOnly 2 or 0x2 = Warning appears because the document is read only."
+  },
+  "unmet_metadata": "Windows VM swconst original is not archived; no VM accessed. Actual candidate still verifies live installed TLB int2 before OpenDoc7.",
+  "runtime_enum_gate": "strict installed int2 before OpenDoc7",
+  "accepted_nonzero_warning": 2,
+  "mixed_or_unknown_warning_or_error_rejected": true,
+  "actual_model_checks": {
+    "IsOpenedReadOnly": true,
+    "GetSaveFlag": false,
+    "IsOpenedViewOnly": false,
+    "types": "strict bool; provisional only"
+  },
+  "unchanged_original_gates": [
+    "stable_file and held ctime",
+    "geometry",
+    "CAS",
+    "readonly model/file",
+    "owned identity",
+    "initial complete graph/dependencies",
+    "one modern save"
+  ],
+  "candidate_tests": 45,
+  "related_typed_tests": 23,
+  "PIA_inspector_static_compile": "NET6/C#5 zero warnings/errors; actual pinned cached2025 PIA positive plus wrong-PIA negative; no target methods or COM, not VM source verification",
+  "files_sha256": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": "38ba11d8930aa9758998ea2b48eb7b91d9c23dfb0191f4c61b585d7e964ddd91",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "f21b5a69ba81fdca589c74d6de0e011a2978d5c142cf0cf56dc7a164e3a98113",
+    "scripts/diagnostics/markingjig/test_markingjig_control.py": "cad918c1a2251d371fc56bdaf6ed42b3c5ae4820a702101665e140d4164af56c",
+    "scripts/diagnostics/markingjig/enum_metadata/InspectEnum.csproj": "8793821adee5361149c5cde98ce9ab043dae96268da0fbe51b98fd8f8dab7b50",
+    "scripts/diagnostics/markingjig/enum_metadata/NuGet.Config": "9508cae5f76364f56e80eb97cb16493977243cf38e5cca6284e3d74f83b20a2c",
+    "scripts/diagnostics/markingjig/enum_metadata/Program.cs": "2d9c9ec420ece033300b410b63a7e8982facdca6edf6649bd24a194482b5719d"
+  },
+  "old_probe_report_sha256": "a729e16e746a8bac64ea6e51d45df9074d1de68002129f36d04b87d30d0cb42f",
+  "actual_model_methods_static_contract": {
+    "sldworks_pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+    "source": "using SolidWorks.Interop.sldworks;\npublic static class Contract {\n public static void Check(ISldWorks app, IAssemblyDoc assembly, IComponent2 component) {\n  IDocumentSpecification s=(IDocumentSpecification)app.GetOpenDocSpec(\"not executed\");\n  s.DocumentType=2; s.ReadOnly=true; s.Silent=true; s.UseLightWeightDefault=false; s.LightWeight=false; s.ViewOnly=false; s.LoadModel=true; s.AutoRepair=false;\n  IModelDoc2 m=(IModelDoc2)app.OpenDoc7(s); int error=s.Error,warning=s.Warning;\n  bool actualReadOnly=m.IsOpenedReadOnly(),dirty=m.GetSaveFlag(),viewOnly=m.IsOpenedViewOnly();\n  bool allUnloaded=assembly.HasUnloadedComponents(); object edit=assembly.GetEditTarget();\n  int count=assembly.GetComponentCount(false),light=assembly.GetLightWeightComponentCount();\n  object list=assembly.GetComponents(false); IModelDocExtension extension=m.Extension;\n  object inclusive=extension.GetDependencies(true,false,false,true,true);\n  object withoutBroken=extension.GetDependencies(true,false,false,false,true);\n  int state=component.GetSuppression2(); bool suppressed=component.IsSuppressed(),virt=component.IsVirtual,unloaded=component.HasUnloadedComponents();\n  IModelDoc2 child=(IModelDoc2)component.GetModelDoc2(); object parent=component.GetParent(); string cfg=component.ReferencedConfiguration;\n }\n}\n",
+    "source_sha256": "e700e08ae37c296ba96c70c9dfb825bf682a3a38198e8fb33b68adc00a8951e2",
+    "warnings": 0,
+    "errors": 0,
+    "target_method_executions": 0,
+    "not_swconst_enum_verification": true
+  },
+  "Windows_VM_swconst_original_available": false,
+  "Windows_VM_readonly_enum_verified": false,
+  "cached_installed_swconst_enum_verified": true,
+  "cached_swconst_evidence": {
+    "inspection": {
+      "reflection": {
+        "pia_sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+        "assembly_full_name": "SolidWorks.Interop.swconst, Version=33.5.0.53, Culture=neutral, PublicKeyToken=19f43e188e4269d8",
+        "enum_name": "SolidWorks.Interop.swconst.swFileLoadWarning_e",
+        "member": "swFileLoadWarning_ReadOnly",
+        "raw_value": 2,
+        "raw_type": "System.Int32",
+        "target_methods_invoked": 0,
+        "COM_created": 0
+      },
+      "metadata_origin": "pinned current local cached2025 image installed PIA; NOT Windows VM swconst identity or registry latest",
+      "Windows_VM_enum_verified": false,
+      "exit_code": 0
+    },
+    "collection": {
+      "exit_code": 0,
+      "rows": [
+        {
+          "container": "glb-swconst-meta-a489dfdc9c3d",
+          "pinned_cached_image_ID": "377e9edd59f86333740cc1e3b049d546997b826907b5ce9851b571ebc205ecab",
+          "container_exit": 0,
+          "stderr": ""
+        },
+        {
+          "path": "/root/.wine/drive_c/Program Files/SOLIDWORKS/api/redist/SolidWorks.Interop.swconst.dll",
+          "size_bytes": 474496,
+          "sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+          "application_methods_executed": 0
+        },
+        {
+          "removed_confirmed": true,
+          "exists_exit": 1
+        }
+      ],
+      "scope": "pinned local cached2025 installed PIA, not Windows VM provenance or latest registry/MarkingJig history"
+    },
+    "artifact_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/glb-readonly-warning-metadata-20261112",
+    "receipt_sha256": "03910e436ef178ea74bb810ceb2e1d87dc04edb325447d8c25af84d452947d71",
+    "not_VM_or_registry_latest_provenance": true
+  }
+}

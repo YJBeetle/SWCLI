@@ -55,7 +55,7 @@ class Case(unittest.TestCase):
                     ActiveDoc=self.top,IsSame=lambda a,b:1 if a is b else 2,
                     GetDocuments=lambda:(self.top,self.child),GetDocumentCount=lambda:2,
                     GetOpenDocumentByName=lambda path:self.child if path==self.child.path else self.top if path==self.top.path else None)
-        self.report={};self.live={};self.constants=dict(swComponentFullyResolved=2,swComponentResolved=3)
+        self.report={};self.live={};self.constants=dict(swComponentFullyResolved=2,swComponentResolved=3,swFileLoadWarning_ReadOnly=2)
     def tearDown(self):self.patch.stop();self.temp.cleanup()
     def call(self,name,fn):self.calls.append(name);return fn()
     def export(self,*args,**kwargs):self.exports.append((args,kwargs));return dict(ok=True)
@@ -170,6 +170,47 @@ class Case(unittest.TestCase):
         self.top.readonly=False;self.stopped();self.top.readonly=True;self.top.modified=True;self.stopped()
     def test_warning_stops_but_retains_document_for_cleanup(self):
         self.spec.Warning=1;self.stopped();self.assertIs(self.live['document'],self.top)
+    def test_precise_readonly_warning_requires_clean_readonly_model_then_full_probe(self):
+        self.spec.Warning=2;self.run_case('probe')
+        self.assertTrue(self.report['probe_success']);self.assertFalse(self.exports)
+        self.assertEqual(self.report['expected_readonly_warning_model'],dict(readonly=True,modified=False,viewonly=False,provisional_only=True))
+        self.assertTrue(self.report['open_warning_policy']['complete_model_gate_still_required'])
+    def test_readonly_warning_does_not_bypass_unknown_or_dirty_model(self):
+        for member,value_ in (('readonly',False),('readonly',None),('modified',True),('modified',0)):
+            with self.subTest(member=member,value=value_):
+                self.top.readonly=True;self.top.modified=False;setattr(self.top,member,value_);self.spec.Warning=2
+                self.stopped();self.assertEqual(self.report['observations'],[])
+    def test_readonly_warning_rejects_viewonly_or_unknown_flag(self):
+        for flag in (True,None,0):
+            with self.subTest(flag=flag):
+                self.spec.Warning=2;self.top.IsOpenedViewOnly=lambda:flag;self.stopped()
+    def test_all_other_warning_bits_and_mixed_flags_rejected(self):
+        for warning in (1,3,4,6,32,128,2|1048576,-1,True,None,'2'):
+            with self.subTest(warning=warning):
+                self.spec.Warning=warning;self.stopped()
+                self.assertIs(self.live['document'],self.top)
+        self.assertFalse(any(x.startswith('read-open-model-') for x in self.calls))
+    def test_nonzero_error_with_readonly_warning_stops_before_semantic_reads(self):
+        self.spec.Error=1;self.spec.Warning=2;self.stopped()
+        self.assertFalse(any(x.startswith('read-open-model-') for x in self.calls))
+    def test_unknown_error_shapes_rejected_even_with_precise_readonly_warning(self):
+        for error in (False,None,'0'):
+            with self.subTest(error=error):
+                self.spec.Error=error;self.spec.Warning=2;self.stopped()
+        self.assertFalse(any(x.startswith('read-open-model-') for x in self.calls))
+    def test_installed_readonly_enum_must_be_exact_verified_int_two_before_open(self):
+        for raw in (None,True,1,3,'2'):
+            with self.subTest(raw=raw):
+                self.constants['swFileLoadWarning_ReadOnly']=raw;self.stopped()
+        self.assertFalse(self.opens)
+    def test_known_readonly_warning_does_not_bypass_original_rebuild_graph_gate(self):
+        self.spec.Warning=2;self.top.Extension.NeedsRebuild2=1;self.stopped()
+        self.assertIn('needs_rebuild',self.report['observations'][0]['top'])
+    def test_expected_readonly_warning_does_not_ignore_copy_source_window_failure(self):
+        self.spec.Warning=2
+        with mock.patch.object(self.copy,'unchanged',side_effect=RuntimeError('held ctime changed')):
+            self.stopped()
+        self.assertFalse(self.report.get('probe_success',False));self.assertEqual(self.report['open_warnings'],2)
     def test_configuration_mismatch_stops_without_activation(self):
         self.component.ReferencedConfiguration='Other';self.stopped()
     def test_foreground_bool_cannot_replace_int_identity(self):
