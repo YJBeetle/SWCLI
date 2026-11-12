@@ -32,4 +32,4 @@ OpenDoc7请求及readback：DocumentType2、ReadOnly=true、Silent=true、UseLig
 
 ## 分阶段零导出候选（2026-11-13）
 
-默认仍为 `--phase-policy strict`。新候选需显式选择 `--mode probe --phase-policy opening-transition-probe`，拒绝 invoke。开前、开后、完整模型准入和已加载基线分开记录，保留原严格基线与旧失败；访问时间仍严格比较。仅代码和模拟测试完成，未运行新 VM/OpenDoc/CAD/导出。详见 [候选方案](../../../docs/verification/glb-opening-phases-candidate-2026-11-13.md)，其中访问时间的保守边界需统筹亲审。
+默认仍为 `--phase-policy strict`。新候选需显式选择 `--mode probe --phase-policy opening-transition-probe`，拒绝 invoke。开前、开后、完整模型准入和已加载基线分开记录，保留原严格基线与旧失败。按后续明确合同，新分阶段路径的访问时间完整记录但不作准入判据，其他字段保持严格；独立取证器默认 strict 不变。仅代码和模拟测试完成，未运行新 VM/OpenDoc/CAD/导出。详见 [当前访问时间策略](../../../docs/verification/glb-access-time-policy-2026-11-13.md)；[初版方案](../../../docs/verification/glb-opening-phases-candidate-2026-11-13.md)中的 atime 保守边界已由当前明确策略替代。

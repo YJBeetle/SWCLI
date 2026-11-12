@@ -2,6 +2,7 @@
 Not an admission/CAS replacement. All timestamps are raw and never normalized.
 """
 import argparse
+from copy import deepcopy
 import ctypes as C
 import hashlib
 import json
@@ -117,16 +118,48 @@ class NativeBackend:
         row['id_after']=step('FileIdInfo-after',lambda:get(18,FileID))
 
 
-def identity_checks(row):
+def check_access_time_policy(policy):
+    require(policy in ('strict','record-only'), 'unknown access time policy')
+
+
+def python_stability(value, policy='strict'):
+    """Comparison copy only. Raw records are never edited or timestamps converted."""
+    check_access_time_policy(policy)
+    result=deepcopy(value)
+    if policy=='record-only':result.pop('st_atime_ns',None)
+    return result
+
+
+def native_stability(value, policy='strict'):
+    check_access_time_policy(policy)
+    result=deepcopy(value)
+    if policy=='record-only':result['basic'].pop('LastAccessTime',None)
+    return result
+
+
+def snapshot_stability(value, policy='strict'):
+    check_access_time_policy(policy)
+    result=deepcopy(value)
+    for channel in ('python_path','python_held'):
+        result[channel]=python_stability(value[channel],policy)
+    for channel in ('win32_held','win32_path_reopen'):
+        result[channel]=native_stability(value[channel],policy)
+    if policy=='record-only':
+        result['raw_python_cross_channel_differences'].pop('st_atime_ns',None)
+    return result
+
+
+def identity_checks(row, *, access_time_policy='strict'):
+    check_access_time_policy(access_time_policy)
     path,held=row['python_path'],row['python_held']
     for value in (path,held):
         require(all(type(value.get(k)) is int for k in FIELDS),'incomplete Python stat fields')
         require(stat.S_ISREG(value['st_mode']) and 0<value['st_size']<=MAX_BYTES and value['st_nlink']==1 and
                 value['st_dev']>0 and value['st_ino']>0 and value['st_file_attributes']&1 and
                 not value['st_file_attributes']&0x400 and value['st_reparse_tag']==0,'not ordinary independent readonly source')
-    # ctime stays raw; every other Python field is compared exactly.
+    # Known cross-channel ctime stays raw. Only explicit record-only atime is projected.
     for key in FIELDS:
-        if key=='st_ctime_ns':continue
+        if key=='st_ctime_ns' or (key=='st_atime_ns' and access_time_policy=='record-only'):continue
         require(path[key]==held[key],'Python identity/state channel disagreement: '+key)
     first=row['win32_held']['id_before']
     require(type(first['VolumeSerialNumber']) is int and first['VolumeSerialNumber']>0 and
@@ -151,9 +184,11 @@ def deltas(first, second):
             ('python_path','python_held','win32_held','win32_path_reopen') if first[key]!=second[key]}
 
 
-def collect(backend, path, expected_sha, report=None, persist=lambda _:None):
+def collect(backend, path, expected_sha, report=None, persist=lambda _:None, *, access_time_policy='strict'):
+    check_access_time_policy(access_time_policy)
     report={} if report is None else report
     report.update(schema='swcli.file-three-channel-forensics.v1',path=path,expected_sha256=expected_sha,
+                  access_time_policy=access_time_policy,
                   application_or_CAD_calls=0,admission_or_CAS_replacement=False,complete=False,
                   snapshots=[],timeline=[],first_error=None,cleanup_errors=[],hash=dict(bytes_read=0))
     fd=None
@@ -183,12 +218,14 @@ def collect(backend, path, expected_sha, report=None, persist=lambda _:None):
                 except BaseException as error:
                     report['cleanup_errors'].append(dict(stage='close-reopened',error=record_error(error)))
                     if body_error is None:raise
-        identity_checks(row);persist(report);return row
+        identity_checks(row,access_time_policy=access_time_policy);persist(report);return row
     try:
         report['python_path_before_open']=step('os.stat-before-open',lambda:backend.path(path))
         fd=step('CreateFileW-held-readonly',lambda:backend.open(path))
         before=snapshot('before-read')
-        require(report['python_path_before_open']==before['python_path'],'path metadata changed while establishing hold')
+        initial=report['python_path_before_open']
+        report['path_establishment_changes']={} if initial==before['python_path'] else dict(before=deepcopy(initial),after=deepcopy(before['python_path']))
+        require(python_stability(initial,access_time_policy)==python_stability(before['python_path'],access_time_policy),'path metadata changed while establishing hold')
         digest=hashlib.sha256();remaining=before['python_held']['st_size']
         while remaining:
             block=step('read-held-source',lambda:backend.read(fd,min(65536,remaining)))
@@ -198,7 +235,8 @@ def collect(backend, path, expected_sha, report=None, persist=lambda _:None):
         report['hash']['sha256']=digest.hexdigest();persist(report)
         require(report['hash']['sha256']==expected_sha,'source content hash differs')
         after=snapshot('after-read');report['same_channel_changes']=deltas(before,after)
-        require(not report['same_channel_changes'],'source metadata changed; not inferred to be a content write')
+        report['stability_same_channel_changes']=deltas(snapshot_stability(before,access_time_policy),snapshot_stability(after,access_time_policy))
+        require(not report['stability_same_channel_changes'],'source metadata changed; not inferred to be a content write')
         require(not report['cleanup_errors'],'reopen cleanup failed')
         report['complete']=True
     except BaseException as error:report['first_error']=record_error(error)

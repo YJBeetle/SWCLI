@@ -5,6 +5,7 @@ from copy import deepcopy
 import file_forensics as forensic
 
 TOP = forensic.SOURCE
+ACCESS_TIME_POLICY = 'record-only'
 
 
 def require(ok, message):
@@ -21,7 +22,8 @@ def changes(before, after, path=()):
     if type(before) is not type(after):
         return [dict(path=list(path), before=before, after=after)]
     if isinstance(before, dict):
-        require(before.keys() == after.keys(), 'metadata schema changed: '+repr(path))
+        if before.keys()!=after.keys():
+            return [dict(path=list(path),before=before,after=after)]
         return [item for key in before for item in changes(before[key], after[key], path+(key,))]
     if isinstance(before, list):
         require(len(before) == len(after), 'metadata row count changed: '+repr(path))
@@ -42,26 +44,30 @@ def opening_allowed(path):
 
 def capture_frame(copy, label, frame):
     """Two raw snapshots + full SHA per file, enclosed by unchanged stable_file reads.
-    Reuses the reviewed collector unchanged. Its atime rejection is retained deliberately.
+    Explicit record-only access time policy; every other metadata field stays strict.
     This is a bounded OS read, never a new standalone experiment or a CAD retry.
     """
-    frame.update(label=label, complete=False, stable={}, raw={}, captures={})
+    frame.update(label=label, complete=False, access_time_policy=ACCESS_TIME_POLICY,
+                 stable={}, raw={}, captures={}, native_channel_changes={})
     frame['stable'] = copy.snapshot()
     for name, pinned in copy.files.items():
         row = frame['captures'][name] = {}
-        forensic.collect(forensic.NativeBackend(), str(copy.root/name), pinned['sha256'], row)
+        forensic.collect(forensic.NativeBackend(), str(copy.root/name), pinned['sha256'], row, access_time_policy=ACCESS_TIME_POLICY)
         require(row.get('complete') is True and not row['first_error'] and not row['cleanup_errors'],
                 'phase raw capture failed: '+name+'; '+str(row.get('first_error')))
         require(row['hash']['bytes_read'] == pinned['size_bytes'], 'phase full hash size differs')
         frame['raw'][name] = deepcopy(row['snapshots'])
+        frame['native_channel_changes'][name]=[]
         for snapshot in row['snapshots']:
             for channel, stable_key in (('python_path','path_before'),('python_held','handle_before')):
                 for key, expected in frame['stable'][name][stable_key].items():
                     require(snapshot[channel][key] == expected, 'stable/raw sampling disagreement: '+name+':'+channel+':'+key)
-            # Native channels must agree within each sampling round; timestamps stay raw.
+            # Only access time is record-only across native sampling channels.
             native = snapshot['win32_held']
             reopened = snapshot['win32_path_reopen']
-            require(native == reopened, 'held/reopened native sampling disagreement: '+name)
+            frame['native_channel_changes'][name].append({} if native==reopened else dict(held=deepcopy(native),reopened=deepcopy(reopened)))
+            require(forensic.native_stability(native,ACCESS_TIME_POLICY)==forensic.native_stability(reopened,ACCESS_TIME_POLICY),
+                    'held/reopened native sampling disagreement: '+name)
     require(copy.snapshot() == frame['stable'], 'source changed during multi-file phase capture')
     frame['complete'] = True
 
@@ -77,9 +83,9 @@ class PhaseGuard:
         self.before_open_frame = self.opened_frame = self.loaded_frame = None
         self.state = 'prepared'
         self.record = report['file_phases'] = dict(
-            schema='swcli.markingjig-opening-phases.v1', policy='opening-transition-probe',
+            schema='swcli.markingjig-opening-phases.v2', policy='opening-transition-probe',
             state=self.state, original_strict_baseline=deepcopy(self.origin), frames=[],
-            raw_access_times_strict=True, timestamp_normalization=False, tolerance=None,
+            access_time_policy=ACCESS_TIME_POLICY, raw_access_times_strict=False, timestamp_normalization=False, tolerance=None,
             opening_transition_is_not_no_write_evidence=True,
             loaded_baseline_sealed=False, export_permitted=False)
 
@@ -95,6 +101,7 @@ class PhaseGuard:
         try:
             self.capture(self.copy, label, frame)
             require(frame.get('complete') is True, 'incomplete phase capture')
+            require(frame.get('access_time_policy')==ACCESS_TIME_POLICY, 'phase access time policy differs')
             require(set(frame['stable']) == set(self.origin) == set(frame['raw']), 'phase file set changed')
             for name, original in self.origin.items():
                 for snapshot in frame['raw'][name]:
@@ -113,11 +120,14 @@ class PhaseGuard:
         return frame
 
     @staticmethod
-    def metadata(frame):
-        return dict(stable=frame['stable'], raw=frame['raw'])
+    def metadata(frame, *, projected=False):
+        raw={name:[forensic.snapshot_stability(row,ACCESS_TIME_POLICY) for row in rows]
+             for name,rows in frame['raw'].items()} if projected else frame['raw']
+        return dict(stable=frame['stable'], raw=raw)
 
     def strict(self, baseline, frame, reason):
-        delta = changes(self.metadata(baseline), self.metadata(frame))
+        frame['baseline_raw_changes'] = changes(self.metadata(baseline), self.metadata(frame))
+        delta = changes(self.metadata(baseline,projected=True), self.metadata(frame,projected=True))
         frame['baseline_changes'] = delta
         require(not delta, reason)
 
@@ -132,7 +142,8 @@ class PhaseGuard:
     def after_open(self):
         require(self.state == 'opening', 'after-open capture outside one opening')
         frame = self.take('after-readonly-opening-sequence')
-        delta = changes(self.metadata(self.before_open_frame), self.metadata(frame))
+        self.record['opening_raw_changes'] = changes(self.metadata(self.before_open_frame), self.metadata(frame))
+        delta = changes(self.metadata(self.before_open_frame,projected=True), self.metadata(frame,projected=True))
         self.record['opening_changes'] = delta
         require(all(opening_allowed(item['path']) for item in delta), 'opening changed fields outside top held-ctime/Win32 ChangeTime')
         if delta:

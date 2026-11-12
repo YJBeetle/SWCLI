@@ -1,0 +1,84 @@
+{
+  "schema": "swcli.markingjig-access-time-policy-preparation.v1",
+  "date": "2026-11-13",
+  "parent_candidate_commit": "2b024c18436939c81ca9305c1d032620f9bcad65",
+  "status": "offline_candidate_for_coordinator_review",
+  "standalone_collector_default": "strict",
+  "standalone_CLI_record_only_option": false,
+  "phase_opt_in": {
+    "mode": "probe",
+    "phase_policy": "opening-transition-probe",
+    "access_time_policy": "record-only",
+    "phase_schema": "swcli.markingjig-opening-phases.v2",
+    "export_permitted": false
+  },
+  "projection_only": [
+    "python_path.st_atime_ns",
+    "python_held.st_atime_ns",
+    "win32_held.basic.LastAccessTime",
+    "win32_path_reopen.basic.LastAccessTime",
+    "raw_python_cross_channel_differences.st_atime_ns"
+  ],
+  "raw_records_modified": false,
+  "timestamps_normalized": false,
+  "tolerance": null,
+  "OS_access_time_updates_suppressed": false,
+  "raw_delta_locations": [
+    "path_establishment_changes",
+    "same_channel_changes",
+    "native_channel_changes",
+    "opening_raw_changes",
+    "baseline_raw_changes"
+  ],
+  "stability_delta_locations": [
+    "stability_same_channel_changes",
+    "opening_changes",
+    "baseline_changes"
+  ],
+  "this_preparation": {
+    "VM_runs": 0,
+    "CAD_calls": 0,
+    "OpenDoc7_calls": 0,
+    "exports": 0,
+    "OS_only_repeats": 0
+  },
+  "tests": {
+    "markingjig": {
+      "total": 103,
+      "control": 45,
+      "forensics": 26,
+      "phases": 32,
+      "seconds": 0.335
+    },
+    "typed_bridge": {
+      "total": 23,
+      "seconds": 0.01
+    }
+  },
+  "same_access_change_default_strict_failed_and_phase_passed": true,
+  "same_raw_snapshots_and_deltas_preserved": true,
+  "other_fields_fault_injection_passed": true,
+  "unchanged_sections": [
+    "NativeBackend",
+    "Basic",
+    "Standard",
+    "FileID",
+    "standalone CLI",
+    "markingjig_control.py"
+  ],
+  "protected_evidence_sha256": {
+    "docs/evidence/glb-markingjig-probe-native-audit-2026-11-12.json": "f6c8b96197916a504a2705b7888ed877ffad3fac383bc17af1c09029ba47081b",
+    "docs/evidence/glb-os-forensics-native-audit-2026-11-12.json": "03b6f24ecd4817e5db15421ce3280b09b20c7764eb24eba6cb2ab0cfa9c26fb3",
+    "docs/evidence/glb-markingjig-input-inventory-2026-11-12.json": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d"
+  },
+  "candidate_source_sha256": {
+    "scripts/diagnostics/markingjig/file_forensics.py": "7a1fd66ded00560187d36dfead6cca82911d610cdbfd73631ff9fbfa92c737f5",
+    "scripts/diagnostics/markingjig/opening_phases.py": "63c56234d8821fea2b936170acb875bec9e17b9448b25dc809e2b136f16d6902",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "2a58c4599e719b8a5877a3e2af3dc137b3bcbbc5f5158eabcbfa90a4a927b6da",
+    "scripts/diagnostics/markingjig/test_file_forensics.py": "390e217b20394860108546528d664ee1bb91adba249182072f0d76f07a74b980",
+    "scripts/diagnostics/markingjig/test_opening_phases.py": "0259b5fe7669d87d8e25bf7d2158b996e438017c41423cb43f63b450420452ec"
+  },
+  "native_acceptance": false,
+  "export_acceptance": false,
+  "original_Mac_files_newly_verified": false
+}

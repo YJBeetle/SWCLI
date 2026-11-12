@@ -132,6 +132,72 @@ class Tests(unittest.TestCase):
         self.assertGreater(len(saved),10);self.assertTrue(r['complete'])
         self.assertEqual([r['sequence'] for r in r['timeline']],list(range(len(r['timeline']))))
         self.assertTrue(all(type(row['wall_unix_ns']) is int and type(row['monotonic_ns']) is int for row in r['timeline']))
+    def test_record_only_policy_rejects_unknown_policy_before_any_read(self):
+        b=Fake()
+        with self.assertRaisesRegex(RuntimeError,'unknown access time policy'):
+            m.collect(b,'test',SHA,access_time_policy='record_only')
+        self.assertFalse(b.opened);self.assertEqual(b.read_calls,0)
+    def test_record_only_path_establishment_and_cross_channel_access_deltas_retained(self):
+        def backend():
+            b=Fake();b.path_calls=0
+            def mutate(row,channel):
+                if channel=='path':b.path_calls+=1
+                row['st_atime_ns']=11 if channel=='path' and b.path_calls==1 else 12 if channel=='path' else 13
+            b.py_change=mutate
+            b.native_change=lambda row,fd:row['basic'].update(LastAccessTime=102+fd)
+            return b
+        old=backend();strict=m.collect(old,'test',SHA)
+        self.assertFalse(strict['complete'])
+        b=backend();r=m.collect(b,'test',SHA,access_time_policy='record-only')
+        self.assertTrue(r['complete']);self.assertEqual(r['access_time_policy'],'record-only')
+        self.assertEqual(r['python_path_before_open']['st_atime_ns'],11)
+        self.assertEqual(r['path_establishment_changes']['after']['st_atime_ns'],12)
+        raw=r['snapshots'][0]
+        self.assertEqual(raw['raw_python_cross_channel_differences']['st_atime_ns'],dict(path=12,held=13))
+        self.assertEqual(raw['win32_held']['basic']['LastAccessTime'],103)
+        self.assertEqual(raw['win32_path_reopen']['basic']['LastAccessTime'],104)
+        self.assertTrue(r['same_channel_changes']);self.assertFalse(r['stability_same_channel_changes'])
+        self.assertCountEqual(b.closed,b.opened)
+    def test_record_only_still_rejects_every_other_python_field_during_read(self):
+        for field in set(m.FIELDS)-{'st_atime_ns'}:
+            with self.subTest(field=field):
+                b=Fake()
+                def mutate(row,channel):
+                    row['st_atime_ns']+=bool(b.offset)
+                    if b.offset:row[field]+=1
+                b.py_change=mutate
+                r=m.collect(b,'test',SHA,access_time_policy='record-only')
+                self.assertFalse(r['complete']);self.assertIsNotNone(r['first_error'])
+                self.assertCountEqual(b.closed,b.opened)
+    def test_record_only_still_rejects_every_other_native_field_during_read(self):
+        fields=[(group,key) for group,value in NATIVE.items() if isinstance(value,dict)
+                for key in value if (group,key)!=('basic','LastAccessTime')]
+        for group,key in fields:
+            with self.subTest(group=group,field=key):
+                b=Fake()
+                def mutate(row,fd):
+                    row['basic']['LastAccessTime']+=bool(b.offset)
+                    if b.offset:
+                        row[group][key]='ff'*16 if isinstance(row[group][key],str) else row[group][key]+1
+                b.native_change=mutate
+                r=m.collect(b,'test',SHA,access_time_policy='record-only')
+                self.assertFalse(r['complete']);self.assertIsNotNone(r['first_error'])
+                self.assertCountEqual(b.closed,b.opened)
+    def test_access_projection_does_not_mutate_raw_or_ignore_same_named_unknown_fields(self):
+        b=Fake();raw=m.collect(b,'test',SHA)['snapshots'][0]
+        raw['win32_held']['standard']['LastAccessTime']=123
+        raw['python_path']['other']={'st_atime_ns':456}
+        original=copy.deepcopy(raw);projected=m.snapshot_stability(raw,'record-only')
+        self.assertEqual(raw,original)
+        self.assertNotIn('st_atime_ns',projected['python_path'])
+        self.assertNotIn('LastAccessTime',projected['win32_held']['basic'])
+        self.assertEqual(projected['win32_held']['standard']['LastAccessTime'],123)
+        self.assertEqual(projected['python_path']['other']['st_atime_ns'],456)
+        for policy in ('strict','record-only'):
+            b=Fake()
+            b.native_change=lambda row,fd:row['standard'].update(LastAccessTime=int(bool(b.offset)))
+            r=m.collect(b,'test',SHA,access_time_policy=policy)
+            self.assertFalse(r['complete'])
     def test_output_cannot_write_model_alternate_stream_or_escape_private_area(self):
         m.valid_output(r'C:\Workspace\scope\evidence.json')
         for path in (r'C:\Workspace\scope\MarkingJig.REND.SLDASM:metadata.json',r'C:\Workspace\scope:metadata.json',r'D:\Workspace\evidence.json',r'\\server\share\evidence.json',r'C:\Workspace\..\evidence.json',r'C:\Workspace\evidence.SLDASM'):

@@ -43,9 +43,18 @@ class Source:
         self.current=frame_for(rows)
         self.fail=None
     def capture(self, working, label, frame):
-        frame.update(copy.deepcopy(self.current),label=label,complete=False)
+        frame.update(copy.deepcopy(self.current),label=label,complete=False,access_time_policy='record-only')
         if self.fail:raise self.fail
         frame['complete']=True
+    def access(self, name=None):
+        for file in ([name] if name else self.current['raw']):
+            for snap in self.current['raw'][file]:
+                snap['python_path']['st_atime_ns']+=1
+                snap['python_held']['st_atime_ns']+=2
+                snap['win32_held']['basic']['LastAccessTime']+=7
+                snap['win32_path_reopen']['basic']['LastAccessTime']+=9
+                a,b=snap['python_path'],snap['python_held']
+                snap['raw_python_cross_channel_differences']={k:dict(path=a[k],held=b[k]) for k in f.m.FIELDS if a[k]!=b[k]}
     def transition(self, name=p.TOP):
         row=self.current['stable'][name]
         for channel in ('handle_before','handle_after'):row[channel]['st_ctime_ns']+=10
@@ -128,8 +137,8 @@ class PhaseTests(unittest.TestCase):
             with self.subTest(key=key):
                 self.setUp();self.guard.before_open();self.source.current['stable'][p.TOP][key]=value
                 with self.assertRaisesRegex(RuntimeError,'content changed'):self.guard.after_open()
-    def test_all_native_fields_and_raw_access_times_are_strict(self):
-        fields=(('basic','CreationTime'),('basic','LastAccessTime'),('basic','LastWriteTime'),
+    def test_all_other_native_fields_remain_strict(self):
+        fields=(('basic','CreationTime'),('basic','LastWriteTime'),
                 ('basic','FileAttributes'),('standard','AllocationSize'),('standard','EndOfFile'),
                 ('standard','NumberOfLinks'),('standard','Directory'),('standard','DeletePending'))
         for name in self.working.before:
@@ -139,14 +148,11 @@ class PhaseTests(unittest.TestCase):
                         self.setUp();self.guard.before_open()
                         self.source.current['raw'][name][0][channel][group][key]+=1
                         with self.assertRaisesRegex(RuntimeError,'outside top'):self.guard.after_open()
-            for channel in ('python_path','python_held'):
-                self.setUp();self.guard.before_open();self.source.current['raw'][name][0][channel]['st_atime_ns']+=1
-                with self.assertRaises(RuntimeError):self.guard.after_open()
     def test_partial_transition_or_added_unknown_field_cannot_pass(self):
         self.guard.before_open();self.source.current['stable'][p.TOP]['handle_before']['st_ctime_ns']+=1
         with self.assertRaisesRegex(RuntimeError,'incomplete top'):self.guard.after_open()
         self.setUp();self.guard.before_open();self.source.current['raw'][p.TOP][0]['new_field']=123
-        with self.assertRaisesRegex(RuntimeError,'schema changed'):self.guard.after_open()
+        with self.assertRaisesRegex(RuntimeError,'outside top'):self.guard.after_open()
     def test_full_id_high_bytes_and_opened_path_never_ignored(self):
         for key,value in (('opened_path','different raw path'),('id_after',dict(VolumeSerialNumber=42,FileId128_bytes_hex='01'*16))):
             with self.subTest(key=key):
@@ -177,6 +183,19 @@ class PhaseTests(unittest.TestCase):
         self.assertEqual(frame['captures'][p.TOP]['hash']['sha256'],f.SHA)
         self.assertEqual(len(frame['raw'][p.TOP]),2)
         self.assertCountEqual(backend.closed,backend.opened)
+    def test_phase_capture_records_native_and_python_cross_channel_atime_differences(self):
+        w=Working();w.before={p.TOP:stable(p.TOP,f.PYROW['st_ino'])};w.files={p.TOP:dict(sha256=f.SHA,size_bytes=len(f.DATA))}
+        b=f.Fake();b.py_change=lambda row,channel:row.update(st_atime_ns=12) if channel=='held' else None
+        b.native_change=lambda row,fd:row['basic'].update(LastAccessTime=102+fd)
+        frame={}
+        with mock.patch.object(p.forensic,'NativeBackend',return_value=b):p.capture_frame(w,'test',frame)
+        self.assertTrue(frame['complete'])
+        self.assertEqual(frame['raw'][p.TOP][0]['raw_python_cross_channel_differences']['st_atime_ns'],dict(path=11,held=12))
+        delta=frame['native_channel_changes'][p.TOP][0]
+        self.assertEqual(delta['held']['basic']['LastAccessTime'],103)
+        self.assertEqual(delta['reopened']['basic']['LastAccessTime'],104)
+        self.assertTrue(frame['captures'][p.TOP]['same_channel_changes'])
+        self.assertFalse(frame['captures'][p.TOP]['stability_same_channel_changes'])
     def test_loaded_stage_compares_every_existing_stable_field(self):
         for name in self.working.before:
             for channel in ('path_before','handle_before','handle_after','path_after'):
@@ -190,19 +209,68 @@ class PhaseTests(unittest.TestCase):
         for snapshot in self.source.current['raw'][p.TOP]:
             for channel in ('win32_held','win32_path_reopen'):snapshot[channel]['basic']['ChangeTime']+=1
         with self.assertRaisesRegex(RuntimeError,'incomplete top'):self.guard.after_open()
-    def test_original_collector_unchanged_atime_failure_retains_raw_values(self):
+    def test_same_atime_change_old_default_fails_new_phase_capture_succeeds_with_raw(self):
         w=Working();w.before={p.TOP:stable(p.TOP,f.PYROW['st_ino'])};w.files={p.TOP:dict(sha256=f.SHA,size_bytes=len(f.DATA))}
-        backend=f.Fake()
-        backend.py_change=lambda row,channel:row.update(st_atime_ns=12) if backend.offset else None
-        backend.native_change=lambda row,fd:row['basic'].update(LastAccessTime=999) if backend.offset else None
-        frame={}
-        with mock.patch.object(p.forensic,'NativeBackend',return_value=backend),self.assertRaisesRegex(RuntimeError,'raw capture failed'):
-            p.capture_frame(w,'test',frame)
-        self.assertFalse(frame['complete'])
+        def backend():
+            b=f.Fake()
+            b.py_change=lambda row,channel:row.update(st_atime_ns=12) if b.offset else None
+            b.native_change=lambda row,fd:row['basic'].update(LastAccessTime=999) if b.offset else None
+            return b
+        old_backend=backend();old=f.m.collect(old_backend,'test',f.SHA)
+        self.assertFalse(old['complete']);self.assertEqual(old['access_time_policy'],'strict')
+        self.assertIn('source metadata changed',old['first_error']['message'])
+        b=backend();frame={}
+        with mock.patch.object(p.forensic,'NativeBackend',return_value=b):p.capture_frame(w,'test',frame)
+        self.assertTrue(frame['complete']);self.assertEqual(frame['access_time_policy'],'record-only')
         raw=frame['captures'][p.TOP]
+        self.assertEqual(raw['snapshots'],old['snapshots'])
+        self.assertEqual(raw['snapshots'][0]['python_held']['st_atime_ns'],11)
         self.assertEqual(raw['snapshots'][1]['python_held']['st_atime_ns'],12)
+        self.assertEqual(raw['snapshots'][0]['win32_held']['basic']['LastAccessTime'],102)
         self.assertEqual(raw['snapshots'][1]['win32_held']['basic']['LastAccessTime'],999)
-        self.assertCountEqual(backend.closed,backend.opened)
+        self.assertTrue(raw['same_channel_changes']);self.assertFalse(raw['stability_same_channel_changes'])
+        self.assertEqual(raw['same_channel_changes'],old['same_channel_changes'])
+        self.assertCountEqual(b.closed,b.opened);self.assertCountEqual(old_backend.closed,old_backend.opened)
+    def test_access_only_change_is_recorded_across_open_gate_and_loaded_stage(self):
+        self.guard.before_open();self.source.access();self.guard.after_open()
+        self.assertEqual(self.guard.record['access_time_policy'],'record-only')
+        self.assertEqual(self.guard.record['opening_classification'],'opening-metadata-unchanged')
+        self.assertTrue(self.guard.record['opening_raw_changes']);self.assertFalse(self.guard.record['opening_changes'])
+        self.source.access();self.guard.unchanged();self.guard.seal_loaded(MODEL)
+        self.source.access();before=copy.deepcopy(self.source.current);self.guard.unchanged();self.guard.postcheck()
+        self.assertEqual(self.source.current,before)
+        frame=self.guard.record['frames'][-1]
+        self.assertTrue(frame['baseline_raw_changes']);self.assertFalse(frame['baseline_changes'])
+        self.assertEqual(frame['raw'][p.TOP][0]['python_path']['st_atime_ns'],14)
+        self.assertEqual(frame['raw'][p.TOP][0]['python_held']['st_atime_ns'],17)
+    def test_top_ctime_narrow_complete_rule_works_with_atime_changes(self):
+        self.guard.before_open();self.source.access();self.source.transition();self.guard.after_open()
+        self.assertEqual(len(self.guard.record['opening_changes']),10)
+        self.assertGreater(len(self.guard.record['opening_raw_changes']),10)
+        self.assertEqual(self.guard.record['opening_classification'],'opening-metadata-transition')
+        self.guard.seal_loaded(MODEL);self.source.access();self.source.transition()
+        with self.assertRaisesRegex(RuntimeError,'same-channel'):self.guard.unchanged()
+    def test_raw_atime_summary_cannot_be_forged_under_record_only_policy(self):
+        self.guard.before_open();self.source.access()
+        self.source.current['raw'][p.TOP][0]['raw_python_cross_channel_differences'].pop('st_atime_ns')
+        with self.assertRaisesRegex(RuntimeError,'derived raw'):self.guard.after_open()
+    def test_every_other_raw_field_stays_strict_in_loaded_stage(self):
+        fields=[('python_held',k) for k in f.m.FIELDS if k!='st_atime_ns']
+        for name in self.working.before:
+            for channel,key in fields:
+                with self.subTest(name=name,field=key):
+                    self.setUp();self.opened();self.guard.seal_loaded(MODEL);self.source.access()
+                    self.source.current['raw'][name][0][channel][key]+=1
+                    with self.assertRaises(RuntimeError):self.guard.unchanged()
+            for group,values in f.NATIVE.items():
+                if not isinstance(values,dict):continue
+                for key in values:
+                    if (group,key)==('basic','LastAccessTime'):continue
+                    with self.subTest(name=name,group=group,field=key):
+                        self.setUp();self.opened();self.guard.seal_loaded(MODEL);self.source.access()
+                        values=self.source.current['raw'][name][0]['win32_held'][group]
+                        values[key]='ff'*16 if isinstance(values[key],str) else values[key]+1
+                        with self.assertRaises(RuntimeError):self.guard.unchanged()
 
 
 class IntegrationTests(unittest.TestCase):
@@ -225,6 +293,21 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(len(self.case.report['observations']),2)
         self.assertTrue(all(row['complete'] for row in self.case.report['observations']))
         self.assertEqual(self.case.copy.before,original);self.assertEqual(self.guard.state,'loaded')
+    def test_full_zero_export_probe_accepts_only_recorded_atime_drift_through_all_phases(self):
+        original=self.guard.capture
+        def capture(working,label,frame):
+            self.source.access();original(working,label,frame)
+        self.guard.capture=capture
+        self.run_case()
+        self.assertTrue(self.case.report['probe_success']);self.assertFalse(self.case.exports)
+        phases=self.case.report['file_phases']
+        self.assertEqual(phases['access_time_policy'],'record-only')
+        self.assertTrue(phases['opening_raw_changes'])
+        self.assertEqual(len(phases['opening_changes']),10)
+        self.assertTrue(phases['loaded_baseline_sealed'])
+        for frame in phases['frames']:
+            if 'baseline_changes' in frame:
+                self.assertFalse(frame['baseline_changes']);self.assertTrue(frame['baseline_raw_changes'])
     def test_invoke_is_rejected_before_open_and_export(self):
         with self.assertRaisesRegex(RuntimeError,'zero-export'):self.run_case('invoke')
         self.assertFalse(self.case.opens);self.assertFalse(self.case.exports)
@@ -259,8 +342,8 @@ class IntegrationTests(unittest.TestCase):
         import tempfile
         spec=importlib.util.spec_from_file_location('phase_audit_test',Path(__file__).with_name('run-markingjig-control.py'))
         runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
-        phases=dict(state='loaded',loaded_baseline_sealed=True,raw_access_times_strict=True,
-                    export_permitted=False,opening_classification='opening-metadata-transition',frames=[dict(complete=True)])
+        phases=dict(state='loaded',loaded_baseline_sealed=True,raw_access_times_strict=False,access_time_policy='record-only',
+                    export_permitted=False,opening_classification='opening-metadata-transition',frames=[dict(complete=True,access_time_policy='record-only')])
         case=dict(probe_success=True,export_attempts=0,phase_policy='opening-transition-probe',
                   observations=[dict(complete=True),dict(complete=True)],file_phases=phases)
         report=dict(success=True,cleanup_errors=[],cases=[case])
@@ -273,7 +356,8 @@ class IntegrationTests(unittest.TestCase):
             for mutate in (lambda r:r['cases'][0]['file_phases'].update(loaded_baseline_sealed=False),
                            lambda r:r['cases'][0]['observations'][1].update(complete=False),
                            lambda r:r['cases'][0]['file_phases']['frames'][0].update(complete=False),
-                           lambda r:r['cases'][0]['file_phases'].update(raw_access_times_strict=False),
+                           lambda r:r['cases'][0]['file_phases'].update(raw_access_times_strict=True),
+                           lambda r:r['cases'][0]['file_phases'].update(access_time_policy='strict'),
                            lambda r:r['cases'][0]['file_phases'].update(export_permitted=True)):
                 altered=copy.deepcopy(report);mutate(altered);self.assertFalse(check(altered))
             (out/'worker.stderr.log').write_text(json.dumps(dict(event='swcli.native-call',phase='begin',call='IModelDocExtension.SaveAs3'))+'\n')

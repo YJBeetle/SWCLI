@@ -113,10 +113,10 @@ def audit(output, mode, phase_policy='strict'):
         observed=case.get('observations',[])
         ok=ok and mode=='probe' and case.get('phase_policy')==phase_policy
         ok=ok and phases.get('loaded_baseline_sealed') is True and phases.get('state')=='loaded'
-        ok=ok and phases.get('raw_access_times_strict') is True and phases.get('export_permitted') is False
+        ok=ok and phases.get('access_time_policy')=='record-only' and phases.get('raw_access_times_strict') is False and phases.get('export_permitted') is False
         ok=ok and phases.get('opening_classification') in ('opening-metadata-transition','opening-metadata-unchanged')
         ok=ok and len(observed)==2 and all(row.get('complete') is True for row in observed)
-        ok=ok and bool(phases.get('frames')) and all(row.get('complete') is True and not row.get('phase_error') for row in phases['frames'])
+        ok=ok and bool(phases.get('frames')) and all(row.get('complete') is True and row.get('access_time_policy')=='record-only' and not row.get('phase_error') for row in phases['frames'])
     return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,modern_save_attempts=len(saves),forbidden_calls=forbidden,
                 report_sha256=hashlib.sha256((output/'report.json').read_bytes()).hexdigest(),
                 ci_acceptance=False,public_acceptance=False,probe_is_export_acceptance=False)
