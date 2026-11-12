@@ -224,11 +224,11 @@ class SketchCandidateTests(unittest.TestCase):
 class SketchRoundtripTests(unittest.TestCase):
     def run_roundtrip(self,*,kind='wireframe',load_error=0,save_error=0,reopen_error=0,reopen_readonly=True,
                       reopen_dirty=False,mutate_native=False,mutate_step=False,reopened_health=0,reopened_lengths=None,
-                      null_candidate=False,null_dispid=227,neutral_free=False,initial_health=0,expected_loads=1,null_document=False):
+                      null_candidate=False,null_dispid=227,neutral_free=False,initial_health=0,expected_loads=1,null_document=False,neutral_free_candidate=False,restore_fail=None):
         reader=load();app,constants=pref_fixture();app.LoadFile4=mock.Mock();app.CloseDoc=mock.Mock();app.GetDocumentCount=lambda:0
         values=wire_expected_lengths('wireframe' if kind=='solid-surface' else kind)
         first,_,_=document(values,code=initial_health);second,_,_=document(reopened_lengths or values,code=reopened_health)
-        app.before['swImportNeutral_FreeCurvesAndPoints']=neutral_free;app.values=dict(app.before)
+        app.before['swImportNeutral_FreeCurvesAndPoints']=neutral_free;app.values=dict(app.before);app.restore_fail=restore_fail
         def load_file(path,arg,data,errors):errors.value=load_error;return None if null_document else first
         app.LoadFile4.side_effect=load_file
         observed=[];case={};live={'document':None}
@@ -252,8 +252,8 @@ class SketchRoundtripTests(unittest.TestCase):
                 raw_app,mods,package=environment(null_mode.step_null_binding,target=app,unknown=True,wrapper='client')
                 raw_app._lazydata_=None;raw_app._oleobj_.dispid=null_dispid;app.binding_raw=raw_app
                 patches.enter_context(mock.patch.object(null_mode.step_null_binding,'modules',return_value=mods))
-                proof=dict(binding_package=package,installed_invocation_contract=contract())
-                loader=lambda host,path,arg,data,errors:null_mode.load_model(host,path,arg,data,errors,call,case,lambda:None,verify,proof)
+                proof=dict(binding_package=package,installed_invocation_contract=contract(),neutral_free_candidate=neutral_free_candidate)
+                loader=lambda host,path,arg,data,errors:null_mode.load_model(host,path,arg,data,errors,call,case,lambda:None,verify,proof,neutral_free_candidate=neutral_free_candidate)
                 case['public_output']=dict(path=str(step),sha256=hashlib.sha256(step.read_bytes()).hexdigest())
             if kind=='solid-surface':
                 metrics=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
@@ -264,11 +264,12 @@ class SketchRoundtripTests(unittest.TestCase):
             def wire(doc,e):observed.append(doc);return candidate.read_wireframe(reader,doc,e,call,kind)
             exception=None
             try:
-                with candidate.preferences(raw_app,constants,call,case,lambda:None) as verify:
+                with candidate.preferences(raw_app,constants,call,case,lambda:None,neutral_free_candidate=neutral_free_candidate) as verify:
                     reader._verify_imported_geometry(raw_app,step,output,'wire',kind,constants,call,case,live,wire_reader=wire,before_load=verify,load_model=loader)
             except BaseException as exc:exception=exc
             self.assertEqual(app.LoadFile4.call_count,expected_loads)
-            self.assertEqual(app.values,app.before);self.assertTrue(case['sketch_observer_preferences']['restored'])
+            if restore_fail is None:
+                self.assertEqual(app.values,app.before);self.assertTrue(case['sketch_observer_preferences']['restored'])
             return case,exception,len(observed),app,live
 
     def test_native_save_readonly_reopen_exact_vector_both_profiles_and_hashes(self):

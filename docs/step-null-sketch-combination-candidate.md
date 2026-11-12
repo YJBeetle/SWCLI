@@ -47,3 +47,5 @@ native/public实际运行之前，package/runtime class和全八值仍可能保�
 b312完整源码类/函数的静态preflight与固定本机安装TLB解析通过；没有导入COM或运行CAD。actionlint1.7.12、重复键拒绝YAML及“唯一公开参数替换”字节证明、Python语法、CLI help和diff检查通过。固定43102613261审计复跑与已提交机器记录逐字节一致。
 
 验证记录位于ignored `step-evidence/step-null-sketch-*`。后续由统筹亲审本候选及唯一CI替换；若决定单次运行，必须新提交的新writer八文件和新reader原件，保留第一真实失败和清理状态。不重复原head、复用旧report、放宽断言或以本地459替代新的公共8/8证明。
+
+后续实际结果：43217223437/e039已明确NULL仍在线框None/errors1，第一实体完整通过。原件与逐字段比较见[固定审计](step-public-43217223437-neutral-comparison.md)。不再重复同NULL组合；新的[仅NeutralFree=true候选](step-neutral-free-null-candidate.md)保持该路由及两个枚举0，只改一个偏好，仍待审且未执行。

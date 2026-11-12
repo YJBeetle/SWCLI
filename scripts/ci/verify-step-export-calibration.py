@@ -411,9 +411,10 @@ def readback_case(app, output, constants, plane, reverse, call, case, report, li
 
 
 def worker(args):
-    null_sketch=bool(getattr(args,"null_sketch_readback_candidate",False))
+    neutral_free=bool(getattr(args,"neutral_free_null_sketch_candidate",False))
+    null_sketch=bool(getattr(args,"null_sketch_readback_candidate",False)) or neutral_free
     sketch_mode=bool(getattr(args,"sketch_readback_candidate",False)) or null_sketch
-    checked(not (null_sketch and getattr(args,"sketch_readback_candidate",False)),"Candidate modes are exclusive")
+    checked(sum(bool(getattr(args,name,False)) for name in ("sketch_readback_candidate","null_sketch_readback_candidate","neutral_free_null_sketch_candidate"))<=1,"Candidate modes are exclusive")
     checked(not sketch_mode or args.export_report is not None,"Sketch candidate requires --export-report")
     null_proof={}
     # The existing harness covers major calls in trace.jsonl. Add a separate
@@ -440,7 +441,7 @@ def worker(args):
         constants={**read_step_constants(path),**read_import_constants(path)}
         if null_sketch:
             from gate_support import step_null_sketch_readback_candidate as null_candidate
-            null_proof.update(null_candidate.preflight(path))
+            null_proof.update(null_candidate.preflight(path,neutral_free_candidate=True) if neutral_free else null_candidate.preflight(path))
             (args.output_dir/'null-sketch-preflight.json').write_text(json.dumps(null_proof,indent=2)+'\n',encoding='utf-8')
         try:
             contract=read_interface_contract(Path(path).with_name("sldworks.tlb"),pythoncom)
@@ -468,9 +469,9 @@ def worker(args):
             if null_sketch:
                 from gate_support import step_null_sketch_readback_candidate as null_candidate
                 load_override=lambda app,path,arg,data,errors,call,case,persist,verify: null_candidate.load_model(
-                    app,path,arg,data,errors,call,case,persist,verify,null_proof)
-            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options,load_model=load_override)
-            diagnostic_case=("step-public-explicit-null-sketch-readback-candidate" if null_sketch else "step-public-explicit-sketch-readback-candidate")
+                    app,path,arg,data,errors,call,case,persist,verify,null_proof,neutral_free_candidate=neutral_free)
+            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options,load_model=load_override,neutral_free_candidate=neutral_free)
+            diagnostic_case=("step-public-neutral-free-null-sketch-candidate" if neutral_free else "step-public-explicit-null-sketch-readback-candidate" if null_sketch else "step-public-explicit-sketch-readback-candidate")
         return harness.run(args.output_dir, args.swconst, False, case_runner=selected_case,
             case_plan=[(str(index), "front", False) for index in range(len(public["outputs"]))],
             diagnostic_case=diagnostic_case)
@@ -487,11 +488,12 @@ def main(argv=None):
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--export-report", type=Path, help="validate actual files from a completed public group, without exporting")
     modes=parser.add_mutually_exclusive_group()
+    modes.add_argument("--neutral-free-null-sketch-candidate", action="store_true", help="Review-only: change only NeutralFree false to true over e039 NULL/AsSketches0")
     modes.add_argument("--null-sketch-readback-candidate", action="store_true", help="Review-only preselected installed NULL binding plus AsSketches=0; no fallback")
     modes.add_argument("--sketch-readback-candidate", action="store_true", help="Review-only explicit AsSketches=0 observer; requires fresh same-head eight public exports")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-    checked(not (args.sketch_readback_candidate or args.null_sketch_readback_candidate) or args.export_report is not None,"Sketch candidate requires --export-report")
+    checked(not (args.sketch_readback_candidate or args.null_sketch_readback_candidate or args.neutral_free_null_sketch_candidate) or args.export_report is not None,"Sketch candidate requires --export-report")
     args.output_dir = args.output_dir.resolve()
     if args.worker:
         return worker(args)
@@ -509,6 +511,7 @@ def main(argv=None):
         extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []
         if args.sketch_readback_candidate:extra.append("--sketch-readback-candidate")
         if args.null_sketch_readback_candidate:extra.append("--null-sketch-readback-candidate")
+        if args.neutral_free_null_sketch_candidate:extra.append("--neutral-free-null-sketch-candidate")
         process = subprocess.Popen([sys.executable, "-I", __file__, "--worker", "--output-dir", str(args.output_dir),
                                     "--swconst", str(args.swconst.resolve()), *extra], stdout=stdout, stderr=stderr)
         while process.poll() is None:

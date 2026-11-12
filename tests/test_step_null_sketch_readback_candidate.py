@@ -128,10 +128,11 @@ class NullSketchCandidateTests(unittest.TestCase):
 
     def test_ci_selects_new_mode_once_only_in_existing_public_readback(self):
         text=(ROOT/'.github/workflows/ci.yml').read_text()
-        self.assertEqual(text.count('--null-sketch-readback-candidate'),1)
+        self.assertEqual(text.count('--neutral-free-null-sketch-candidate'),1)
+        self.assertNotIn('--null-sketch-readback-candidate',text)
         self.assertNotIn('--sketch-readback-candidate',text)
         block=text.split('      - name: Read back actual public STEP geometry and native save reopen\n',1)[1].split('      - name:',1)[0]
-        self.assertIn('--null-sketch-readback-candidate',block)
+        self.assertIn('--neutral-free-null-sketch-candidate',block)
         self.assertIn('inputs.native_step_public_targeted',block)
 
 

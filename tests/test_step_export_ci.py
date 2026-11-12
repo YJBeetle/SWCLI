@@ -126,7 +126,7 @@ class StepWorkflowTests(unittest.TestCase):
         writer=block('Accept public STEP CLI daemon SDK and MCP contracts')
         internal=block('Calibrate STEP protocol and geometry with save/reopen evidence')
         original=block('Diagnose original STEP imports once without exporting')
-        flag='--null-sketch-readback-candidate'
+        flag='--neutral-free-null-sketch-candidate'
         self.assertEqual(text.count(flag),1)
         self.assertEqual(observer.count(flag),1)
         self.assertEqual(expression(observer),expression(writer))

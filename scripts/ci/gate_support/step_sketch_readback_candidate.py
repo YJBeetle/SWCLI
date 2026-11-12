@@ -30,7 +30,7 @@ def verify_fresh_public_report(report,head):
 
 
 @contextmanager
-def preferences(app,constants,call,case,persist):
+def preferences(app,constants,call,case,persist,*,neutral_free_candidate=False):
     """Full eight-value CAS; change General profile only, explicit official zero."""
     require(type(constants.get('swGeneralImportAsSketches')) is int and constants['swGeneralImportAsSketches']==0 and
             type(constants.get('swGeneralImportAs3dCurves')) is int and constants['swGeneralImportAs3dCurves']==1,'official sketch/curve enums differ')
@@ -60,10 +60,19 @@ def preferences(app,constants,call,case,persist):
     require(before['swImportCurvePreference'] in (0,1),'unknown original General curve option')
     desired={**before,'swMultiCAD_Enable3DInterconnect':False,'swImportSolidSurface':True,
              'swImportFreeCurves':True,'swImportCurvePreference':constants['swGeneralImportAsSketches']}
+    owned_names=('swMultiCAD_Enable3DInterconnect','swImportSolidSurface','swImportFreeCurves','swImportCurvePreference')
+    if neutral_free_candidate:
+        from gate_support.step_null_sketch_readback_candidate import public_profile
+        desired['swImportNeutral_FreeCurvesAndPoints']=True
+        require(desired==public_profile(True),'Neutral candidate has other eight-value drift; no writes')
+        journal['e039_baseline']=public_profile(False)
+        journal['changed_from_e039']=[name for name in names if desired[name]!=public_profile(False)[name]]
+        require(journal['changed_from_e039']==['swImportNeutral_FreeCurvesAndPoints'],'Neutral candidate must change one field')
+        owned_names+=('swImportNeutral_FreeCurvesAndPoints',)
     journal['requested']=desired;expected=dict(before);attempted=[];first=None
     try:
         require(call('sketch-observer-empty-before-profile',lambda:_com_value(app,'GetDocumentCount'))==0,'host must be empty')
-        for name in ('swMultiCAD_Enable3DInterconnect','swImportSolidSurface','swImportFreeCurves','swImportCurvePreference'):
+        for name in owned_names:
             require(snapshot('sketch-cas-before-set')==expected,'complete preference CAS drift')
             if expected[name]==desired[name]:continue
             row=dict(name=name,original=before[name],requested=desired[name],possible_mutation=True,status='started')
@@ -141,7 +150,7 @@ def read_wireframe(reader,document,evidence,call,geometry):
     return evidence
 
 
-def readback_case(reader,app,output,constants,plane,reverse,call,case,report,live,*,profile_kind,load_model=None):
+def readback_case(reader,app,output,constants,plane,reverse,call,case,report,live,*,profile_kind,load_model=None,neutral_free_candidate=False):
     import hashlib,json
     from pathlib import Path
     require(call('sketch-observer-host-hidden',lambda:reader._com_value(app,'Visible')) is False,'owned host must be hidden')
@@ -154,10 +163,10 @@ def readback_case(reader,app,output,constants,plane,reverse,call,case,report,liv
         observer='explicit-official-AsSketches=0; not As3DCurves acceptance')
     def persist():(output/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def observe(document,evidence):return read_wireframe(reader,document,evidence,call,row['geometry'])
-    with preferences(app,constants,call,case,persist) as verify_profile:
+    with preferences(app,constants,call,case,persist,neutral_free_candidate=neutral_free_candidate) as verify_profile:
         override=None
         if load_model is not None:
-            case['observer']='preselected explicit NULL binding plus official AsSketches=0; not single-null causality'
+            case['observer']=('single NeutralFree=true candidate over e039; same explicit NULL/AsSketches0' if neutral_free_candidate else 'preselected explicit NULL binding plus official AsSketches=0; not single-null causality')
             override=lambda app,path,arg,data,errors:load_model(app,path,arg,data,errors,call,case,persist,verify_profile)
         reader._verify_imported_geometry(app,target,output,target.stem,row['geometry'],constants,call,case,live,
             wire_reader=observe,before_load=verify_profile,load_model=override)
