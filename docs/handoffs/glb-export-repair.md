@@ -8,7 +8,7 @@
 
 ## 2026-11-12 后续两项仅本地候选
 
-按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与21项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM swconst离线原件未找到；另按只读Docker授权核固定旧缓存安装PIA(33.5.0.53)的ReadOnly精确int2，不能替代VM原件/registry最新/历史任务。按批准SHA读literal的检查器真实正例及错误PIA负例均通过，候选运行前仍强制实际TLB值。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。
+按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与21项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM装机TLB/PIA现由统筹只读补齐，本路核大小/SHA/回执并对VM PIA离线反射确认33.5.0.53 ReadOnly精确int2、0COM/目标方法；TLB只核身份未解码正文，候选运行前仍强制实际TLB值。VM与旧缓存PIA虽同字节仍分别记录来源，不当registry最新/历史任务；见[VM原件审计](../evidence/glb-vm-installed-swconst-offline-audit-2026-11-12.json)。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。
 
 ## 2026-11-12 MarkingJig只读probe实际首停
 

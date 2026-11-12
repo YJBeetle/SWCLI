@@ -11,7 +11,7 @@
     "retrieved_html_sha256": "5ce18b8a7fc163970c002f573c95b4947c584bf6e1b8a405167fa91396cfbe1d",
     "selected_text": "swFileLoadWarning_ReadOnly 2 or 0x2 = Warning appears because the document is read only."
   },
-  "unmet_metadata": "Windows VM swconst original is not archived; no VM accessed. Actual candidate still verifies live installed TLB int2 before OpenDoc7.",
+  "unmet_metadata": null,
   "runtime_enum_gate": "strict installed int2 before OpenDoc7",
   "accepted_nonzero_warning": 2,
   "mixed_or_unknown_warning_or_error_rejected": true,
@@ -32,7 +32,7 @@
   ],
   "candidate_tests": 45,
   "related_typed_tests": 23,
-  "PIA_inspector_static_compile": "NET6/C#5 zero warnings/errors; actual pinned cached2025 PIA positive plus wrong-PIA negative; no target methods or COM, not VM source verification",
+  "PIA_inspector_static_compile": "NET6/C#5 zero warnings/errors; actual VM-installed PIA positive, separately preserved cached PIA positive, wrong-PIA negative; zero target methods/COM",
   "files_sha256": {
     "scripts/diagnostics/markingjig/markingjig_control.py": "38ba11d8930aa9758998ea2b48eb7b91d9c23dfb0191f4c61b585d7e964ddd91",
     "scripts/diagnostics/markingjig/run-markingjig-control.py": "f21b5a69ba81fdca589c74d6de0e011a2978d5c142cf0cf56dc7a164e3a98113",
@@ -51,8 +51,8 @@
     "target_method_executions": 0,
     "not_swconst_enum_verification": true
   },
-  "Windows_VM_swconst_original_available": false,
-  "Windows_VM_readonly_enum_verified": false,
+  "Windows_VM_swconst_original_available": true,
+  "Windows_VM_readonly_enum_verified": true,
   "cached_installed_swconst_enum_verified": true,
   "cached_swconst_evidence": {
     "inspection": {
@@ -95,5 +95,44 @@
     "artifact_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/glb-readonly-warning-metadata-20261112",
     "receipt_sha256": "03910e436ef178ea74bb810ceb2e1d87dc04edb325447d8c25af84d452947d71",
     "not_VM_or_registry_latest_provenance": true
-  }
+  },
+  "Windows_VM_readonly_enum_method": "offline reflection of coordinator-copied installed PIA literal; not TLB body/live Automation",
+  "Windows_VM_TLB_sha_verified": true,
+  "Windows_VM_TLB_enum_body_parsed": false,
+  "VM_swconst_evidence": {
+    "artifact": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/glb-vm-swconst-offline-audit-20261112/offline-audit.json",
+    "artifact_sha256": "ac3073f4fbe0fafb5fb1b4a4a7f80e2502352a56616388e57bccd609bdaaab84",
+    "repository_evidence": "glb-vm-installed-swconst-offline-audit-2026-11-12.json",
+    "copy_receipt_path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-installed-swconst-20261112/copy-receipt.json",
+    "copy_receipt_sha256": "ea1f43c24683d395c4dfd2bd42ea8f94c91fba47ecff7fd57cb4a1a1006ea2cc",
+    "source_files": {
+      "swconst.tlb": {
+        "size_bytes": 768692,
+        "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+        "VM_source_path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\swconst.tlb"
+      },
+      "SolidWorks.Interop.swconst.dll": {
+        "size_bytes": 474496,
+        "sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+        "VM_source_path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\api\\redist\\SolidWorks.Interop.swconst.dll"
+      }
+    },
+    "reflection": {
+      "pia_sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+      "assembly_full_name": "SolidWorks.Interop.swconst, Version=33.5.0.53, Culture=neutral, PublicKeyToken=19f43e188e4269d8",
+      "enum_name": "SolidWorks.Interop.swconst.swFileLoadWarning_e",
+      "member": "swFileLoadWarning_ReadOnly",
+      "raw_value": 2,
+      "raw_type": "System.Int32",
+      "target_methods_invoked": 0,
+      "COM_created": 0
+    },
+    "cached_equal_bytes_do_not_merge_provenance": true,
+    "this_lane_VM_CAD_operations": 0
+  },
+  "remaining_runtime_evidence": [
+    "actual TLB reader must still verify strict int2 before any authorized future OpenDoc7",
+    "new actual readonly/clean/viewonly and full model gates not run",
+    "Win32 file-forensics collector remains unexecuted"
+  ]
 }

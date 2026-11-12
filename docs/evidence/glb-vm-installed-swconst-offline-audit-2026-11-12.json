@@ -1,0 +1,131 @@
+{
+  "schema": "swcli.vm-installed-swconst-offline-audit.v1",
+  "date": "2026-11-12",
+  "source_head": "2a0d52a25d52072f56d4a78503d489e431db5c8a",
+  "inspector_source_sha256": "2d9c9ec420ece033300b410b63a7e8982facdca6edf6649bd24a194482b5719d",
+  "origin_kind": "actual Windows VM installed-file copies supplied by coordinator; independently inspected this path, not relabeled Docker cache",
+  "copy_receipt_path": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-installed-swconst-20261112/copy-receipt.json",
+  "copy_receipt_sha256": "ea1f43c24683d395c4dfd2bd42ea8f94c91fba47ecff7fd57cb4a1a1006ea2cc",
+  "copy_script_sha256": "e1818f2ad65a45d5f315e7408fcbe3b6dd7dd74c673eed45f5dd4c0951153b6c",
+  "checks": {
+    "swconst.tlb": {
+      "size_bytes": 768692,
+      "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+      "VM_source_path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\swconst.tlb",
+      "coordinator_source_stat_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056549,
+        "st_mode": 33206,
+        "st_size": 768692,
+        "st_mtime_ns": 1758888236000000000,
+        "st_ctime_ns": 1758888236000000000,
+        "st_birthtime_ns": 1758888236000000000,
+        "st_file_attributes": 32
+      },
+      "coordinator_source_stat_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907056549,
+        "st_mode": 33206,
+        "st_size": 768692,
+        "st_mtime_ns": 1758888236000000000,
+        "st_ctime_ns": 1758888236000000000,
+        "st_birthtime_ns": 1758888236000000000,
+        "st_file_attributes": 32
+      },
+      "local_copy_before": {
+        "st_dev": 16777234,
+        "st_ino": 464318455,
+        "st_mode": 33261,
+        "st_size": 768692,
+        "st_mtime_ns": 1794496868373233345,
+        "st_ctime_ns": 1794496868373233345,
+        "st_birthtime_ns": null,
+        "st_nlink": 1
+      },
+      "local_copy_after": {
+        "st_dev": 16777234,
+        "st_ino": 464318455,
+        "st_mode": 33261,
+        "st_size": 768692,
+        "st_mtime_ns": 1794496868373233345,
+        "st_ctime_ns": 1794496868373233345,
+        "st_birthtime_ns": null,
+        "st_nlink": 1
+      }
+    },
+    "SolidWorks.Interop.swconst.dll": {
+      "size_bytes": 474496,
+      "sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+      "VM_source_path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\api\\redist\\SolidWorks.Interop.swconst.dll",
+      "coordinator_source_stat_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907055056,
+        "st_mode": 33206,
+        "st_size": 474496,
+        "st_mtime_ns": 1758893472000000000,
+        "st_ctime_ns": 1758893472000000000,
+        "st_birthtime_ns": 1758893472000000000,
+        "st_file_attributes": 32
+      },
+      "coordinator_source_stat_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 1125899907055056,
+        "st_mode": 33206,
+        "st_size": 474496,
+        "st_mtime_ns": 1758893472000000000,
+        "st_ctime_ns": 1758893472000000000,
+        "st_birthtime_ns": 1758893472000000000,
+        "st_file_attributes": 32
+      },
+      "local_copy_before": {
+        "st_dev": 16777234,
+        "st_ino": 464318456,
+        "st_mode": 33261,
+        "st_size": 474496,
+        "st_mtime_ns": 1794496868379541347,
+        "st_ctime_ns": 1794496868379541347,
+        "st_birthtime_ns": null,
+        "st_nlink": 1
+      },
+      "local_copy_after": {
+        "st_dev": 16777234,
+        "st_ino": 464318456,
+        "st_mode": 33261,
+        "st_size": 474496,
+        "st_mtime_ns": 1794496868379541347,
+        "st_ctime_ns": 1794496868379541347,
+        "st_birthtime_ns": null,
+        "st_nlink": 1
+      }
+    }
+  },
+  "inspection_argv": [
+    "dotnet",
+    "/private/tmp/glb-readonly-enum-build/bin/InspectEnum.dll",
+    "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-installed-swconst-20261112/SolidWorks.Interop.swconst.dll",
+    "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9"
+  ],
+  "reflection_exit": 0,
+  "reflection": {
+    "pia_sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+    "assembly_full_name": "SolidWorks.Interop.swconst, Version=33.5.0.53, Culture=neutral, PublicKeyToken=19f43e188e4269d8",
+    "enum_name": "SolidWorks.Interop.swconst.swFileLoadWarning_e",
+    "member": "swFileLoadWarning_ReadOnly",
+    "raw_value": 2,
+    "raw_type": "System.Int32",
+    "target_methods_invoked": 0,
+    "COM_created": 0
+  },
+  "actual_VM_PIA_literal_verified": true,
+  "actual_VM_TLB_sha_verified": true,
+  "TLB_enum_body_parsed": false,
+  "cached_PIA_bytes_equal": true,
+  "equal_bytes_do_not_merge_provenance": true,
+  "this_lane_VM_or_CAD_operations": 0,
+  "target_methods_or_COM_calls": 0,
+  "notes": [
+    "coordinator source stat evidence is pathname stat only, not a new Python/Win32 three-channel capture",
+    "copy-receipt source_read_only describes read-only copying, not filesystem READONLY attr; source attr is32",
+    "model readonly/clean checks and file-forensics Win32 calls remain unexecuted; runtime TLB verification before OpenDoc7 is retained"
+  ]
+}
