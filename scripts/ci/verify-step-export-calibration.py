@@ -334,7 +334,7 @@ def verify_imported_geometry(app, target, output, name, geometry, constants, cal
         _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
 
 
-def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live, *, wire_reader=None, before_load=None):
+def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live, *, wire_reader=None, before_load=None, load_model=None):
     import pythoncom
     from win32com.client import VARIANT
     observe_wire = wire_reader or (lambda doc, evidence: read_wireframe(doc,evidence,representation="reference-curves"))
@@ -351,7 +351,7 @@ def _verify_imported_geometry(app, target, output, name, geometry, constants, ca
     if before_load is not None:before_load()
     case["import_return"] = dict(state="started",document_returned=None,errors=None,arg_string="r")
     try:
-        document = call("LoadFile4", lambda: app.LoadFile4(str(target), "r", imported_data, errors))
+        document = call("LoadFile4", lambda: load_model(app,str(target),"r",imported_data,errors) if load_model is not None else app.LoadFile4(str(target), "r", imported_data, errors))
     except BaseException as exc:
         case["import_return"].update(state="raised",errors=errors.value,error=observation_error(exc))
         raise
@@ -411,7 +411,11 @@ def readback_case(app, output, constants, plane, reverse, call, case, report, li
 
 
 def worker(args):
-    checked(not getattr(args,"sketch_readback_candidate",False) or args.export_report is not None,"Sketch candidate requires --export-report")
+    null_sketch=bool(getattr(args,"null_sketch_readback_candidate",False))
+    sketch_mode=bool(getattr(args,"sketch_readback_candidate",False)) or null_sketch
+    checked(not (null_sketch and getattr(args,"sketch_readback_candidate",False)),"Candidate modes are exclusive")
+    checked(not sketch_mode or args.export_report is not None,"Sketch candidate requires --export-report")
+    null_proof={}
     # The existing harness covers major calls in trace.jsonl. Add a separate
     # flushed watchdog boundary around every _com_value observation as well,
     # including calls made outside a native_call wrapper.
@@ -434,6 +438,10 @@ def worker(args):
     harness._com_value = bounded_com_value
     def read_constants_with_contract(pythoncom,path):
         constants={**read_step_constants(path),**read_import_constants(path)}
+        if null_sketch:
+            from gate_support import step_null_sketch_readback_candidate as null_candidate
+            null_proof.update(null_candidate.preflight(path))
+            (args.output_dir/'null-sketch-preflight.json').write_text(json.dumps(null_proof,indent=2)+'\n',encoding='utf-8')
         try:
             contract=read_interface_contract(Path(path).with_name("sldworks.tlb"),pythoncom)
         except Exception as exc:
@@ -441,7 +449,7 @@ def worker(args):
         (args.output_dir / "import-interface-contract.json").write_text(json.dumps(contract,indent=2)+"\n")
         return constants
     harness.read_constants = read_constants_with_contract
-    if getattr(args,'sketch_readback_candidate',False):
+    if sketch_mode:
         from swcli.hosts.windows_step_export import _native_windows_runtime
         checked(_native_windows_runtime(),'Sketch candidate requires native Windows')
     if args.export_report is not None:
@@ -450,14 +458,19 @@ def worker(args):
         (args.output_dir / "source-public-report.json").write_text(json.dumps(public, indent=2) + "\n", encoding="utf-8")
         selected_case=readback_case
         diagnostic_case="step-public-output-readback"
-        if getattr(args,'sketch_readback_candidate',False):
+        if sketch_mode:
             from gate_support import step_sketch_readback_candidate as sketch_candidate
             sketch_candidate.verify_fresh_public_report(public,os.environ.get('GITHUB_SHA'))
             from types import SimpleNamespace
             reader_api=SimpleNamespace(_wire_features=_wire_features,_com_value=_com_value,
                 verify_step_output=verify_step_output,_verify_imported_geometry=_verify_imported_geometry)
-            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options)
-            diagnostic_case="step-public-explicit-sketch-readback-candidate"
+            load_override=None
+            if null_sketch:
+                from gate_support import step_null_sketch_readback_candidate as null_candidate
+                load_override=lambda app,path,arg,data,errors,call,case,persist,verify: null_candidate.load_model(
+                    app,path,arg,data,errors,call,case,persist,verify,null_proof)
+            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options,load_model=load_override)
+            diagnostic_case=("step-public-explicit-null-sketch-readback-candidate" if null_sketch else "step-public-explicit-sketch-readback-candidate")
         return harness.run(args.output_dir, args.swconst, False, case_runner=selected_case,
             case_plan=[(str(index), "front", False) for index in range(len(public["outputs"]))],
             diagnostic_case=diagnostic_case)
@@ -473,10 +486,12 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--export-report", type=Path, help="validate actual files from a completed public group, without exporting")
-    parser.add_argument("--sketch-readback-candidate", action="store_true", help="Review-only explicit AsSketches=0 observer; requires fresh same-head eight public exports")
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument("--null-sketch-readback-candidate", action="store_true", help="Review-only preselected installed NULL binding plus AsSketches=0; no fallback")
+    modes.add_argument("--sketch-readback-candidate", action="store_true", help="Review-only explicit AsSketches=0 observer; requires fresh same-head eight public exports")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-    checked(not args.sketch_readback_candidate or args.export_report is not None,"Sketch candidate requires --export-report")
+    checked(not (args.sketch_readback_candidate or args.null_sketch_readback_candidate) or args.export_report is not None,"Sketch candidate requires --export-report")
     args.output_dir = args.output_dir.resolve()
     if args.worker:
         return worker(args)
@@ -493,6 +508,7 @@ def main(argv=None):
     with (args.output_dir / "worker.stdout.log").open("wb") as stdout, (args.output_dir / "worker.stderr.log").open("wb") as stderr:
         extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []
         if args.sketch_readback_candidate:extra.append("--sketch-readback-candidate")
+        if args.null_sketch_readback_candidate:extra.append("--null-sketch-readback-candidate")
         process = subprocess.Popen([sys.executable, "-I", __file__, "--worker", "--output-dir", str(args.output_dir),
                                     "--swconst", str(args.swconst.resolve()), *extra], stdout=stdout, stderr=stderr)
         while process.poll() is None:

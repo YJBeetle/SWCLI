@@ -16,7 +16,7 @@ sys.path.insert(0,str(ROOT/'scripts/ci'))
 from gate_support import step_sketch_readback_candidate as candidate
 from gate_support.step_fixture_checks import wire_expected_lengths
 from test_step_wire_import_once import Failure,App,load as load_once
-from test_step_null_binding import Variant
+from test_step_null_binding import Variant,Endpoint
 
 
 def load():
@@ -28,7 +28,7 @@ def call(name,fn):return fn()
 
 
 def native_modules():
-    return {'pythoncom':SimpleNamespace(VT_BYREF=16384,VT_I4=3,VT_BOOL=11),
+    return {'pythoncom':SimpleNamespace(VT_BYREF=16384,VT_I4=3,VT_BOOL=11,IID_IDispatch='dispatch',TypeIIDs={'dispatch':Endpoint}),
             'win32com.client':SimpleNamespace(VARIANT=Variant)}
 
 
@@ -223,10 +223,13 @@ class SketchCandidateTests(unittest.TestCase):
 
 class SketchRoundtripTests(unittest.TestCase):
     def run_roundtrip(self,*,kind='wireframe',load_error=0,save_error=0,reopen_error=0,reopen_readonly=True,
-                      reopen_dirty=False,mutate_native=False,mutate_step=False,reopened_health=0,reopened_lengths=None):
+                      reopen_dirty=False,mutate_native=False,mutate_step=False,reopened_health=0,reopened_lengths=None,
+                      null_candidate=False,null_dispid=227,neutral_free=False,initial_health=0,expected_loads=1,null_document=False):
         reader=load();app,constants=pref_fixture();app.LoadFile4=mock.Mock();app.CloseDoc=mock.Mock();app.GetDocumentCount=lambda:0
-        first,_,_=document(wire_expected_lengths(kind));second,_,_=document(reopened_lengths or wire_expected_lengths(kind),code=reopened_health)
-        def load_file(path,arg,data,errors):errors.value=load_error;return first
+        values=wire_expected_lengths('wireframe' if kind=='solid-surface' else kind)
+        first,_,_=document(values,code=initial_health);second,_,_=document(reopened_lengths or values,code=reopened_health)
+        app.before['swImportNeutral_FreeCurvesAndPoints']=neutral_free;app.values=dict(app.before)
+        def load_file(path,arg,data,errors):errors.value=load_error;return None if null_document else first
         app.LoadFile4.side_effect=load_file
         observed=[];case={};live={'document':None}
         with tempfile.TemporaryDirectory() as d,ExitStack() as patches:
@@ -239,16 +242,32 @@ class SketchRoundtripTests(unittest.TestCase):
                 if mutate_step:step.write_bytes(b'changed STEP')
                 return dict(ok=reopen_error==0,api_errors=reopen_error,api_warnings=0,read_only=reopen_readonly,document={'modified':reopen_dirty}),second
             patches.enter_context(mock.patch.dict(sys.modules,native_modules()))
-            patches.enter_context(mock.patch.object(reader,'observe_dispatch',return_value={}))
+            patches.enter_context(mock.patch.object(reader,'observe_dispatch',return_value=dict(returned=True,
+                interfaces={'IImportStepData':dict(status='observed',value=True)},map_configuration_data=dict(status='observed',value=False))))
+            raw_app=app;loader=None
+            if null_candidate:
+                from gate_support import step_null_sketch_readback_candidate as null_mode
+                from test_step_null_binding import environment
+                from test_step_explicit_null_binding import contract
+                raw_app,mods,package=environment(null_mode.step_null_binding,target=app,unknown=True,wrapper='client')
+                raw_app._lazydata_=None;raw_app._oleobj_.dispid=null_dispid;app.binding_raw=raw_app
+                patches.enter_context(mock.patch.object(null_mode.step_null_binding,'modules',return_value=mods))
+                proof=dict(binding_package=package,installed_invocation_contract=contract())
+                loader=lambda host,path,arg,data,errors:null_mode.load_model(host,path,arg,data,errors,call,case,lambda:None,verify,proof)
+                case['public_output']=dict(path=str(step),sha256=hashlib.sha256(step.read_bytes()).hexdigest())
+            if kind=='solid-surface':
+                metrics=dict(solid_body_count=1,volume_mm3=12000.0,surface_area_mm2=3800.0,centroid_mm=dict(x=0.0,y=0.0,z=5.0))
+                mass=dict(ok=True,method='native-body-mass-properties',metrics=metrics,bodies=[dict(index=0,**{k:v for k,v in metrics.items() if k!='solid_body_count'})])
+                patches.enter_context(mock.patch.object(reader,'check_box',return_value=mass))
             patches.enter_context(mock.patch.object(reader,'save_as_native_windows',side_effect=save))
             patches.enter_context(mock.patch.object(reader,'open_windows_document_with_handle',side_effect=reopen))
             def wire(doc,e):observed.append(doc);return candidate.read_wireframe(reader,doc,e,call,kind)
             exception=None
             try:
-                with candidate.preferences(app,constants,call,case,lambda:None) as verify:
-                    reader._verify_imported_geometry(app,step,output,'wire',kind,constants,call,case,live,wire_reader=wire,before_load=verify)
+                with candidate.preferences(raw_app,constants,call,case,lambda:None) as verify:
+                    reader._verify_imported_geometry(raw_app,step,output,'wire',kind,constants,call,case,live,wire_reader=wire,before_load=verify,load_model=loader)
             except BaseException as exc:exception=exc
-            self.assertEqual(app.LoadFile4.call_count,1)
+            self.assertEqual(app.LoadFile4.call_count,expected_loads)
             self.assertEqual(app.values,app.before);self.assertTrue(case['sketch_observer_preferences']['restored'])
             return case,exception,len(observed),app,live
 

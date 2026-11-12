@@ -28,7 +28,7 @@ b363751 的当时说明明确以 GetSketchSegments 对错误草图可能返回�
 
 ## 源码候选与严格范围
 
-候选入口是既有 reader 新增的 `--sketch-readback-candidate`，默认关闭，必须同时给 `--export-report`；内部六组合校准路径拒绝该模式。CI接线仅在既有 native_step_public_targeted 读回步骤显式添加该flag，既有输入仍默认false；内部/原件诊断和默认reference路径不变。主要逻辑在 `gate_support/step_sketch_readback_candidate.py`，原 `read_wireframe(...reference-curves)` 断言本体和默认调用路线不变。
+候选入口是既有 reader 新增的 `--sketch-readback-candidate`，默认关闭，必须同时给 `--export-report`；内部六组合校准路径拒绝该模式。f56接线当时仅在既有 native_step_public_targeted 读回步骤显式添加该flag，既有输入仍默认false；内部/原件诊断和默认reference路径不变。主要逻辑在 `gate_support/step_sketch_readback_candidate.py`，原 `read_wireframe(...reference-curves)` 断言本体和默认调用路线不变。
 
 - 只接受 native Windows、隐藏owned宿主和rev33.5.0；沿用原owned获取/退出及600秒调用、1800秒整组监督。无宿主替换、重试、自动fallback或回放459。
 - writer必须成功且cleanup[]，source_commit精确等于当前GITHUB_SHA，并提供顺序固定的6 CLI+SDK AP214 solid+MCP AP203 wire共8个唯一输出和hash。旧head、诊断报告、7/8或重复路径拒绝；不是把旧ZIP改名作为新验收。
@@ -50,3 +50,5 @@ b363751 的当时说明明确以 GetSketchSegments 对错误草图可能返回�
 本轮只有离线审计、只读研究、源码和便携测试；没有VM/CAD/CI/push，未启动原生八文件验收。官方LoadFile4条件文档的既有矛盾、原hosted None/errors1与本机环境差异仍保留为独立未解释事项。
 
 接线验证：既有公开读回步骤仅新增一行 `--sketch-readback-candidate`。去掉该行后整个ci.yml与b55逐字节一致，重复键拒绝的YAML解析结果也相同；9个既有输入、默认false、guard、时限和并发保护均未变化。4项接线测试含13,824种选择组合通过，全部相关STEP **164项通过**（7.549秒）。actionlint1.7.12、PyYAML6.0.3、Python编译、CLI help和diff检查通过；PowerShell续行参数结构由本地测试核验，未执行原生PowerShell/CAD或CI。日志与机器检查保留在 `step-evidence/step-sketch-ci-*`。本提交仍须统筹亲审与队列调度，尚无该新head的原生验收结果。
+
+后续状态：公共43102613261的第一实体完整通过，第二wire在factory参数Load返回None/errors1，尚未触及草图断言。原失败见[固定审计](step-public-43102613261-audit.md)；另名[预选NULL＋草图组合](step-null-sketch-combination-candidate.md)及其唯一公开参数替换仅为新的待审候选，不是原失败改绿。

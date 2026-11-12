@@ -43,12 +43,13 @@ def installed_contract(path):
 
 
 class InstalledTlbNullInvoke:
-    def __init__(self,raw,variant_class,pythoncom,package,contract,evidence,call,persist):
+    def __init__(self,raw,variant_class,pythoncom,package,contract,evidence,call,persist,*,comparison_baseline="60f1cf8"):
         self.raw,self.variant_class,self.package=raw,variant_class,package
         self.evidence,self.persist=evidence,persist
         self.invoked=self.invalid=False
+        require(comparison_baseline in ('60f1cf8','f56f792'),'unknown comparison baseline')
         evidence.update(status='started',explicit_invoke_attempted=False,
-            changed_variables_from_60f1cf8=['invocation binding','ImportData semantic value'],single_null_causal_claim=False)
+            **{'changed_variables_from_'+comparison_baseline:['invocation binding','ImportData semantic value']},single_null_causal_claim=False)
         persist()
         require(package and package.get('verified') is True,'unverified b312 source')
         require(contract and contract.get('verified') is True and contract.get('tlb_sha256')==TLB_SHA and

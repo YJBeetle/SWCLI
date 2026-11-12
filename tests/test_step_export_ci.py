@@ -126,7 +126,7 @@ class StepWorkflowTests(unittest.TestCase):
         writer=block('Accept public STEP CLI daemon SDK and MCP contracts')
         internal=block('Calibrate STEP protocol and geometry with save/reopen evidence')
         original=block('Diagnose original STEP imports once without exporting')
-        flag='--sketch-readback-candidate'
+        flag='--null-sketch-readback-candidate'
         self.assertEqual(text.count(flag),1)
         self.assertEqual(observer.count(flag),1)
         self.assertEqual(expression(observer),expression(writer))
@@ -137,7 +137,7 @@ class StepWorkflowTests(unittest.TestCase):
         run=observer.split('        run: |\n',1)[1]
         command=run.split('          if ($LASTEXITCODE',1)[0].replace('`\n',' ')
         self.assertEqual(command.count('python -I '),1)
-        self.assertRegex(command,r'verify-step-export-calibration\.py\s+--sketch-readback-candidate\s+--export-report')
+        self.assertRegex(command,r'verify-step-export-calibration\.py\s+'+re.escape(flag)+r'\s+--export-report')
         self.assertIn('$env:SWCLI_SMOKE_ROOT\\step-public\\report.json',command)
         self.assertIn('$env:SWCLI_SMOKE_ROOT\\step-public-readback',command)
         self.assertIn('timeout-minutes: 31',observer)

@@ -141,7 +141,7 @@ def read_wireframe(reader,document,evidence,call,geometry):
     return evidence
 
 
-def readback_case(reader,app,output,constants,plane,reverse,call,case,report,live,*,profile_kind):
+def readback_case(reader,app,output,constants,plane,reverse,call,case,report,live,*,profile_kind,load_model=None):
     import hashlib,json
     from pathlib import Path
     require(call('sketch-observer-host-hidden',lambda:reader._com_value(app,'Visible')) is False,'owned host must be hidden')
@@ -155,4 +155,9 @@ def readback_case(reader,app,output,constants,plane,reverse,call,case,report,liv
     def persist():(output/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def observe(document,evidence):return read_wireframe(reader,document,evidence,call,row['geometry'])
     with preferences(app,constants,call,case,persist) as verify_profile:
-        reader._verify_imported_geometry(app,target,output,target.stem,row['geometry'],constants,call,case,live,wire_reader=observe,before_load=verify_profile)
+        override=None
+        if load_model is not None:
+            case['observer']='preselected explicit NULL binding plus official AsSketches=0; not single-null causality'
+            override=lambda app,path,arg,data,errors:load_model(app,path,arg,data,errors,call,case,persist,verify_profile)
+        reader._verify_imported_geometry(app,target,output,target.stem,row['geometry'],constants,call,case,live,
+            wire_reader=observe,before_load=verify_profile,load_model=override)
