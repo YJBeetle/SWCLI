@@ -43,3 +43,6 @@ def refuse_preferences(font: DocumentAnnotationFontResultFont, snapshot: Documen
     invalid_display_result: str = client.document.display_options().require_result()["options"]["grid.display"]["value"]  # E: assignment
     invalid_normalization: str = client.document.annotation_font_set(field="bold", value=True, expected_font=font, expected_update_stamp=0, lease_id="l-ab12cd34ef56").require_result()["native_normalizations"][0]["after"]  # E: assignment
     invalid_coverage: int = snapshot["observed_defaults"]["coverage"]["display"][0]  # E: assignment
+
+client.document.export(output="part.step", step_protocol="ap242")  # E: arg-type
+client.document.export(output="part.step", step_geometry="solid")  # E: arg-type

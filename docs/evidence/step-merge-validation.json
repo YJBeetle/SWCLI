@@ -1,0 +1,35 @@
+{
+  "schema": "swcli.step-merge-validation.v1",
+  "base_main": "841b49ea6fb985ae2a844443aac922e70bd9dc67",
+  "native_head": "422a123fbef25c8a89fbcacbd7ba5db06a74b02c",
+  "native_run": 43299699392,
+  "original_audit_sha256": "73d028ebf2b246dae61ed69d3c4c84294657327efe1a7977af768be2a4707443",
+  "tests": {
+    "total": 2966,
+    "skipped": 39,
+    "seconds": 104.425,
+    "success": true
+  },
+  "sdk_strict_consumer_refusals": 33,
+  "existing_main_workflow_and_router_unchanged": true,
+  "step_workflow": "manual public writer plus independent reader; no release job; four runner configuration inputs",
+  "initial_merge_failures_preserved": [
+    "GitHub dispatch input count29>25",
+    "units concurrency expression changed",
+    "two STEP CI tests referenced previous workflow filename"
+  ],
+  "product_or_native_geometry_tolerance_relaxed": false,
+  "merged_native_full_rerun": false,
+  "release": false,
+  "files_sha256": {
+    "src/swcli/hosts/windows_documents.py": "5c4217175fedd757f876e754bf31a425d2ba1e36cf237b1868e8745546b971ac",
+    "src/swcli/hosts/windows_step_export.py": "c6e99de2dc2a0c5bad4e55fa8c28ef58ba7565bc41303542ba94917d1487cb6e",
+    "src/swcli/daemon/server.py": "d0d4720fbc3f788d1494070f357d985bc405cdcc78ce913c8e9cc014c85891ea",
+    "src/swcli/operation_schemas.py": "9d7c2d2c5906a96592d1fe7969772813d6f1c75650fa7202569d35a29cbc82cf",
+    "src/swcli/result_schemas.py": "1132f867fb7972a92c49575f999de42c5b1b3fee481fb6d6159e9e245e056e64",
+    "src/swcli/sdk/_generated.py": "5030126caddac85544a73aa20ae29c392ac8fd26401355a4a19bde05bcbf926a",
+    "src/swcli/sdk/models.py": "211fcb1cff72b122daac723f1133b8a4c64bc231d2ec425085afec2a9ad889bd",
+    ".github/workflows/ci.yml": "a893c14cf4428dff7d0ee0a36b70e8305fa6034bdaca82848da5e45bd39c6139",
+    ".github/workflows/step-export.yml": "f3a59e6ac189a417a775057b93565c84671eb8a8bed6da9d68552a31322f3592"
+  }
+}

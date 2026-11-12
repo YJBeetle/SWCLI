@@ -991,6 +991,9 @@ def document_export(
     }
     if "stl_options" in values:
         kwargs["stl_options"] = values["stl_options"]
+    for name in ("step_protocol", "step_geometry"):
+        if name in values:
+            kwargs[name] = values[name]
     if "include_content" in values:
         kwargs["include_content"] = values["include_content"]
     return export_active_windows_document(str(values["output"]), **kwargs)

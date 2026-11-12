@@ -1,0 +1,270 @@
+{
+  "source_commit": "811bb976a614cd9cda2660fe096b5fcc8ca8f197",
+  "report_sha256": "297e635248a9473ee3f27fb6c29d0f87ec1ab36c3033275c2a27ea67067ce352",
+  "source_archive_sha256": "a6bf3df44e81cf057d58b10f2205e9cce96838c20ed8134d51d16c158300e80e",
+  "source_archive_scope": "complete 424-file commit archive; every member byte equal; no Git metadata",
+  "original_files_sha256": {
+    "coordinator-independent-audit.json": "9ded4f503ebb03456e81843bf1b1c481f31527f1373b8c3b104c49942e8fe3e9",
+    "null-binding-package.json": "30e24ff8cf9866e8caeef7f4c356c2d752d8b15e1ac4ae5226a95ee0ef15e6b2",
+    "observation-trace.jsonl": "06e34611b954897260de7b92841f16546293fcae17be6e457a9a07e7c0fd5b09",
+    "preflight.json": "0b54b70ded269b9b5c31a95223088ec4becd893e29800009f3b1d42745a13481",
+    "report.json": "297e635248a9473ee3f27fb6c29d0f87ec1ab36c3033275c2a27ea67067ce352",
+    "trace.jsonl": "aa8fb66f329ea4a784c7384acaafcb858d6a0a0fdba64cd3adea2e8cc9819bbf",
+    "worker.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "worker.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "loaded_code_sha256": {
+    "scripts\\ci\\diagnose-step-wire-import-once.py": "3bf0d0381abb93ece804d427f0c043a9e4d9d36f38898803c58b59e6eb8fbe85",
+    "scripts\\ci\\verify-through-all-calibration.py": "6cc87188c0c07077bf4d6fa1baad8aca79632dc9776cfe458244237acbd59e1d",
+    "scripts\\ci\\gate_support\\step_import_observation.py": "232bfb30dc2e342239c4b8379555164cb542a137eed1502f35fba13aaa638088",
+    "scripts\\ci\\verify-step-export-calibration.py": "4d29964d0282513c443c17805a294010f810599f453bcc94663574265a0293fe",
+    "scripts\\ci\\gate_support\\step_fixture_checks.py": "7dc18bdfaf84062f5f073c9247758bae273fc0d2dda0088cee27ccca9362b703",
+    "scripts\\ci\\gate_support\\step_null_binding.py": "1db064792e347f691e40e9e89665caab77a391f01d79ad47314ed7e5f169620d",
+    "src\\swcli\\hosts\\windows_step_export.py": "c6e99de2dc2a0c5bad4e55fa8c28ef58ba7565bc41303542ba94917d1487cb6e"
+  },
+  "first_error": "NULL binding refused: unsupported wrapper class; do not replace it",
+  "host": {
+    "process_id": 7952,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "pywin32": "312",
+  "binding_refusal": {
+    "status": "unknown",
+    "wrapper_type": "win32com.client.CDispatch",
+    "bound_method_invocation_attempted": false,
+    "mode": "same bound method; no replacement invocation",
+    "error": {
+      "type": "RuntimeError",
+      "message": "NULL binding refused: unsupported wrapper class; do not replace it"
+    }
+  },
+  "binding_package": {
+    "verified": true,
+    "version_requirement": "312; checked by worker",
+    "normalization": "CRLF to LF only",
+    "sources": {
+      "dynamic": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/dynamic.py",
+      "build": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/build.py",
+      "client": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+      "conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/oleargs.cpp",
+      "interface_conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyComHelpers.cpp"
+    },
+    "conversion_source_sha256": {
+      "oleargs.cpp": "f57f75638443b740f36c8273381f6b63d78beca371112867bb125f973f55efab",
+      "PyComHelpers.cpp": "d048ca6567c82595237c7a46f8a0b469805f1589e2cfca9510eca79f96cf61ce"
+    },
+    "files": {
+      "dynamic": {
+        "path": "C:\\Workspace\\SWCLI\\.venv\\Lib\\site-packages\\win32com\\client\\dynamic.py",
+        "normalized_sha256": "b217819b4d9b1cbd474b463b4181a683e311d2cf0a2a14fd1dd1b00595bb7797"
+      },
+      "build": {
+        "path": "C:\\Workspace\\SWCLI\\.venv\\Lib\\site-packages\\win32com\\client\\build.py",
+        "normalized_sha256": "ef246eee3d2bb7b852d522b65a155678f3fc01f7010c1c38f5ed6c8b7424056f"
+      },
+      "client": {
+        "path": "C:\\Workspace\\SWCLI\\.venv\\Lib\\site-packages\\win32com\\client\\__init__.py",
+        "normalized_sha256": "a0fa92dcf3bd6cb6ce8bba38c6bee95b12b95a325852b1dbeb559464d431b36a"
+      }
+    },
+    "runtime_handlers": {
+      "__getattr__": "7d94891f31642adf5f59582e0b9bd8a9a34d3bb7c643e23a684cf64efc15c674",
+      "_LazyAddAttr_": "263bed2a87936f3746d50634865c4a018494faa10970016125db91f2288b9435",
+      "_make_method_": "c7669b28ba5c41d9b47dd80e041c5bc34b9130a3a7870e942b6e0a4d1dc785d8",
+      "_ApplyTypes_": "51be14d4341bc4a4ce52665a77dcf6121db994b747ddefc1e6472e3ff3efac74"
+    }
+  },
+  "load_return": {
+    "state": "not-attempted",
+    "document_returned": null,
+    "errors": null
+  },
+  "geometry": {
+    "status": "unavailable",
+    "value": null
+  },
+  "native_LoadFile4_count": 0,
+  "measurement_scope": "none; no geometry read attempted",
+  "call_counts": {
+    "trace.jsonl": {
+      "read-official-swconst": 1,
+      "acquire-owned-host": 1,
+      "wait-ready": 1,
+      "capture-owned-process": 1,
+      "verify-readonly-input-before": 1,
+      "host-hidden": 1,
+      "host-revision": 1,
+      "empty-catalog-before": 1,
+      "snapshot-original.swMultiCAD_Enable3DInterconnect": 1,
+      "snapshot-original.swImportSolidSurface": 1,
+      "snapshot-original.swImportFreeCurves": 1,
+      "snapshot-original.swImportNeutral_SolidandSurface": 1,
+      "snapshot-original.swImportNeutral_FreeCurvesAndPoints": 1,
+      "snapshot-original.swImportStepConfigData": 1,
+      "snapshot-original.swImportCurvePreference": 1,
+      "snapshot-original.swImportNeutral_CurvesAndPointsOption": 1,
+      "cas-original.swMultiCAD_Enable3DInterconnect": 1,
+      "cas-original.swImportSolidSurface": 1,
+      "cas-original.swImportFreeCurves": 1,
+      "cas-original.swImportNeutral_SolidandSurface": 1,
+      "cas-original.swImportNeutral_FreeCurvesAndPoints": 1,
+      "cas-original.swImportStepConfigData": 1,
+      "cas-original.swImportCurvePreference": 1,
+      "cas-original.swImportNeutral_CurvesAndPointsOption": 1,
+      "cas-before-set.swMultiCAD_Enable3DInterconnect": 6,
+      "cas-before-set.swImportSolidSurface": 6,
+      "cas-before-set.swImportFreeCurves": 6,
+      "cas-before-set.swImportNeutral_SolidandSurface": 6,
+      "cas-before-set.swImportNeutral_FreeCurvesAndPoints": 6,
+      "cas-before-set.swImportStepConfigData": 6,
+      "cas-before-set.swImportCurvePreference": 6,
+      "cas-before-set.swImportNeutral_CurvesAndPointsOption": 6,
+      "set-owned-option.swMultiCAD_Enable3DInterconnect": 1,
+      "readback-after-set.swMultiCAD_Enable3DInterconnect": 5,
+      "readback-after-set.swImportSolidSurface": 5,
+      "readback-after-set.swImportFreeCurves": 5,
+      "readback-after-set.swImportNeutral_SolidandSurface": 5,
+      "readback-after-set.swImportNeutral_FreeCurvesAndPoints": 5,
+      "readback-after-set.swImportStepConfigData": 5,
+      "readback-after-set.swImportCurvePreference": 5,
+      "readback-after-set.swImportNeutral_CurvesAndPointsOption": 5,
+      "set-owned-option.swImportFreeCurves": 1,
+      "set-owned-option.swImportCurvePreference": 1,
+      "verify-exact-ci-general.swMultiCAD_Enable3DInterconnect": 1,
+      "verify-exact-ci-general.swImportSolidSurface": 1,
+      "verify-exact-ci-general.swImportFreeCurves": 1,
+      "verify-exact-ci-general.swImportNeutral_SolidandSurface": 1,
+      "verify-exact-ci-general.swImportNeutral_FreeCurvesAndPoints": 1,
+      "verify-exact-ci-general.swImportStepConfigData": 1,
+      "verify-exact-ci-general.swImportCurvePreference": 1,
+      "verify-exact-ci-general.swImportNeutral_CurvesAndPointsOption": 1,
+      "set-owned-option.swImportNeutral_FreeCurvesAndPoints": 1,
+      "verify-d232e35-vector-without-import.swMultiCAD_Enable3DInterconnect": 1,
+      "verify-d232e35-vector-without-import.swImportSolidSurface": 1,
+      "verify-d232e35-vector-without-import.swImportFreeCurves": 1,
+      "verify-d232e35-vector-without-import.swImportNeutral_SolidandSurface": 1,
+      "verify-d232e35-vector-without-import.swImportNeutral_FreeCurvesAndPoints": 1,
+      "verify-d232e35-vector-without-import.swImportStepConfigData": 1,
+      "verify-d232e35-vector-without-import.swImportCurvePreference": 1,
+      "verify-d232e35-vector-without-import.swImportNeutral_CurvesAndPointsOption": 1,
+      "set-owned-option.swImportNeutral_CurvesAndPointsOption": 1,
+      "verify-candidate.swMultiCAD_Enable3DInterconnect": 1,
+      "verify-candidate.swImportSolidSurface": 1,
+      "verify-candidate.swImportFreeCurves": 1,
+      "verify-candidate.swImportNeutral_SolidandSurface": 1,
+      "verify-candidate.swImportNeutral_FreeCurvesAndPoints": 1,
+      "verify-candidate.swImportStepConfigData": 1,
+      "verify-candidate.swImportCurvePreference": 1,
+      "verify-candidate.swImportNeutral_CurvesAndPointsOption": 1,
+      "verify-input-before-load": 1,
+      "GetImportFileData": 1,
+      "IImportStepData.QueryInterface": 1,
+      "MapConfigurationData": 1,
+      "cas-before-one-load.swMultiCAD_Enable3DInterconnect": 1,
+      "cas-before-one-load.swImportSolidSurface": 1,
+      "cas-before-one-load.swImportFreeCurves": 1,
+      "cas-before-one-load.swImportNeutral_SolidandSurface": 1,
+      "cas-before-one-load.swImportNeutral_FreeCurvesAndPoints": 1,
+      "cas-before-one-load.swImportStepConfigData": 1,
+      "cas-before-one-load.swImportCurvePreference": 1,
+      "cas-before-one-load.swImportNeutral_CurvesAndPointsOption": 1,
+      "verify-original-LoadFile4-binding": 1,
+      "restore-owned-cas.swImportNeutral_CurvesAndPointsOption": 1,
+      "restore-owned-option.swImportNeutral_CurvesAndPointsOption": 1,
+      "restore-owned-readback.swImportNeutral_CurvesAndPointsOption": 1,
+      "restore-owned-cas.swImportNeutral_FreeCurvesAndPoints": 1,
+      "restore-owned-option.swImportNeutral_FreeCurvesAndPoints": 1,
+      "restore-owned-readback.swImportNeutral_FreeCurvesAndPoints": 1,
+      "restore-owned-cas.swImportCurvePreference": 1,
+      "restore-owned-option.swImportCurvePreference": 1,
+      "restore-owned-readback.swImportCurvePreference": 1,
+      "restore-owned-cas.swImportFreeCurves": 1,
+      "restore-owned-option.swImportFreeCurves": 1,
+      "restore-owned-readback.swImportFreeCurves": 1,
+      "restore-owned-cas.swMultiCAD_Enable3DInterconnect": 1,
+      "restore-owned-option.swMultiCAD_Enable3DInterconnect": 1,
+      "restore-owned-readback.swMultiCAD_Enable3DInterconnect": 1,
+      "verify-full-original-restored.swMultiCAD_Enable3DInterconnect": 1,
+      "verify-full-original-restored.swImportSolidSurface": 1,
+      "verify-full-original-restored.swImportFreeCurves": 1,
+      "verify-full-original-restored.swImportNeutral_SolidandSurface": 1,
+      "verify-full-original-restored.swImportNeutral_FreeCurvesAndPoints": 1,
+      "verify-full-original-restored.swImportStepConfigData": 1,
+      "verify-full-original-restored.swImportCurvePreference": 1,
+      "verify-full-original-restored.swImportNeutral_CurvesAndPointsOption": 1,
+      "ExitApp": 1,
+      "WaitForOwnedProcess": 1,
+      "CloseProcessHandle": 1,
+      "CoUninitialize": 1
+    },
+    "observation-trace.jsonl": {
+      "GetProcessID": 1,
+      "RevisionNumber": 2,
+      "GetDocumentCount": 2,
+      "Visible": 1,
+      "ExitApp": 1
+    }
+  },
+  "input": {
+    "path": "C:\\Workspace\\SWCLI-series-20261111\\step-qi-input\\ap203-wireframe.step",
+    "sha256": "3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90",
+    "readonly": true,
+    "metadata": {
+      "size": 10595,
+      "device": 4217245827768940497,
+      "file_id": 1407374883640942,
+      "mtime_ns": 1794354712113357500,
+      "ctime_ns": 1794354712113357500,
+      "attributes": 33
+    },
+    "original_source": {
+      "run_id": 42413805736,
+      "head": "060f26178b4deabc330ef0959b9ec0f1704159cf",
+      "artifact_id": 13591430613,
+      "zip_sha256": "de9e6312b9fbfa0c4b0001ae1f54ce5c36d24ea3f59ee435b691716bef1666e7"
+    }
+  },
+  "input_metadata_all_checkpoints_equal": true,
+  "preferences_before": {
+    "swMultiCAD_Enable3DInterconnect": true,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": false,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "candidate": {
+    "swMultiCAD_Enable3DInterconnect": false,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": true,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": true,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 1,
+    "swImportNeutral_CurvesAndPointsOption": 1
+  },
+  "owned_write_order": [
+    "swMultiCAD_Enable3DInterconnect",
+    "swImportFreeCurves",
+    "swImportCurvePreference",
+    "swImportNeutral_FreeCurvesAndPoints",
+    "swImportNeutral_CurvesAndPointsOption"
+  ],
+  "owned_restore_order": [
+    "swImportNeutral_CurvesAndPointsOption",
+    "swImportNeutral_FreeCurvesAndPoints",
+    "swImportCurvePreference",
+    "swImportFreeCurves",
+    "swMultiCAD_Enable3DInterconnect"
+  ],
+  "full_original_restored": true,
+  "cleanup_errors": [],
+  "nohost_before": [],
+  "remaining_native_pids": [],
+  "native_acceptance": false,
+  "limitation": "Failure is a local wrapper allowlist gate, not an observed SOLIDWORKS import or null conversion result"
+}

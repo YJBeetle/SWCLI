@@ -1,0 +1,217 @@
+{
+  "run_id": 42813151084,
+  "head": "2c4e491603e2af81ba33ab0b0a7e98a94ce800c3",
+  "event": "workflow_dispatch",
+  "attempt": 1,
+  "status": "failure",
+  "archives": [
+    {
+      "file": "original.zip",
+      "artifact_id": 13764700892,
+      "sha256": "02aa277ef919cf1056a8292a6729a5c4571a79eb510554e8ee9d728acb324281"
+    },
+    {
+      "file": "hosted-original.zip",
+      "artifact_id": 13764691009,
+      "sha256": "d25c6456f8ee8c25ab0b3f4ed16668b1ab3ecde776dae6ae4db0bbbe2907c6aa"
+    }
+  ],
+  "original_source": {
+    "run_id": 42413805736,
+    "head": "060f26178b4deabc330ef0959b9ec0f1704159cf",
+    "artifact": 13591430613,
+    "zip_sha256": "de9e6312b9fbfa0c4b0001ae1f54ce5c36d24ea3f59ee435b691716bef1666e7",
+    "byte_identical": true,
+    "restored8_hashes_unchanged": true
+  },
+  "installed_libraries": {
+    "source_commit": "2c4e491603e2af81ba33ab0b0a7e98a94ce800c3",
+    "swconst_path": "C:\\Program Files\\SOLIDWORKS\\swconst.tlb",
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_tlb_path": "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb",
+    "sldworks_tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "native_saved_file": {
+    "sha256": "8d80278f75d9b8307adcdf3cec54dd489fff5735913fd336871522518ea13780",
+    "size": 46297,
+    "first16_hex": "2a1fd910000000049e83d931cc047114"
+  },
+  "checked_files": [
+    {
+      "name": "ap203-solid-surface.step",
+      "sha256": "1e740ec1d6cb9e155fcf2e935547ab9ff327f419c4bd0fda0f85952863926ec6",
+      "geometry": "solid-surface",
+      "topology": {
+        "MANIFOLD_SOLID_BREP": 1,
+        "CLOSED_SHELL": 1,
+        "ADVANCED_FACE": 6,
+        "EDGE_CURVE": 12,
+        "VERTEX_POINT": 8
+      }
+    },
+    {
+      "name": "ap203-wireframe.step",
+      "sha256": "3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90",
+      "geometry": "wireframe",
+      "root_reachable_curves": 12,
+      "length_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "name": "ap203-wireframe-sketches.step",
+      "sha256": "0790eaaac423cdefef5b3ff71ec6d9e7884d7be33dc214cc1e1419f9dd393e67",
+      "geometry": "wireframe-sketches",
+      "root_reachable_curves": 18,
+      "length_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "name": "ap214-solid-surface.step",
+      "sha256": "065010d99cdf0a1f12cfee78f625d4bd396602343c47290838ee83bc6ee24e92",
+      "geometry": "solid-surface",
+      "topology": {
+        "MANIFOLD_SOLID_BREP": 1,
+        "CLOSED_SHELL": 1,
+        "ADVANCED_FACE": 6,
+        "EDGE_CURVE": 12,
+        "VERTEX_POINT": 8
+      }
+    },
+    {
+      "name": "ap214-wireframe.step",
+      "sha256": "a82720b6349fa2a7c489afb308e2400f4b41652bc81db34d09fa412deb59a587",
+      "geometry": "wireframe",
+      "root_reachable_curves": 12,
+      "length_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "name": "ap214-wireframe-sketches.step",
+      "sha256": "364e73eac37b4a4f5b7e975c8dc687ffa1dda2fb465217fe6e46876cb914107f",
+      "geometry": "wireframe-sketches",
+      "root_reachable_curves": 18,
+      "length_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "name": "sdk-ap214-solid-surface.STP",
+      "sha256": "55660dec147231b3900dda0843f0958af9c7434852bb3fba4c8f6f6b10749411",
+      "geometry": "solid-surface",
+      "topology": {
+        "MANIFOLD_SOLID_BREP": 1,
+        "CLOSED_SHELL": 1,
+        "ADVANCED_FACE": 6,
+        "EDGE_CURVE": 12,
+        "VERTEX_POINT": 8
+      }
+    },
+    {
+      "name": "mcp-ap203-wireframe.step",
+      "sha256": "46413fb734e36185374ac50f4402ba14952afc5aa8fa287bcda026755f001c5d",
+      "geometry": "wireframe",
+      "root_reachable_curves": 12,
+      "length_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    }
+  ],
+  "planned_cases": 8,
+  "started_cases": 2,
+  "completed_full_readbacks": 1,
+  "remaining_unattempted": 6,
+  "actual_preferences": {
+    "swMultiCAD_Enable3DInterconnect": {
+      "status": "observed",
+      "value": false
+    },
+    "swImportSolidSurface": {
+      "status": "observed",
+      "value": true
+    },
+    "swImportFreeCurves": {
+      "status": "observed",
+      "value": true
+    },
+    "swImportNeutral_SolidandSurface": {
+      "status": "observed",
+      "value": true
+    },
+    "swImportNeutral_FreeCurvesAndPoints": {
+      "status": "observed",
+      "value": false
+    },
+    "swImportStepConfigData": {
+      "status": "observed",
+      "value": false
+    },
+    "swImportCurvePreference": {
+      "status": "observed",
+      "value": 1
+    },
+    "swImportNeutral_CurvesAndPointsOption": {
+      "status": "observed",
+      "value": 0
+    }
+  },
+  "import_data": {
+    "returned": true,
+    "python_type": "win32com.client.CDispatch",
+    "typeinfo": {
+      "status": "observed",
+      "value": {
+        "count": 0,
+        "name": null,
+        "iid": null
+      }
+    },
+    "interfaces": {
+      "IImportIgesData": {
+        "status": "unknown",
+        "error": {
+          "type": "com_error",
+          "message": "(-2147467262, 'No such interface supported', None, None)",
+          "hresult": -2147467262
+        }
+      },
+      "IImportStepData": {
+        "status": "unknown",
+        "error": {
+          "type": "TypeError",
+          "message": "There is no interface object registered that supports this IID"
+        }
+      }
+    },
+    "map_configuration_data": {
+      "status": "unknown",
+      "reason": "STEP interface not positively observed"
+    }
+  },
+  "cleanup": {
+    "preferences_restored_both_cases": true,
+    "cleanup_errors": [],
+    "owned_host_pid": 7884,
+    "exit_app_count": 1,
+    "owned_process_wait_completed": true,
+    "private_cleanup": "success"
+  },
+  "confirmed_observer_defect": "pywin32312 QueryInterface success can fail creating an unregistered Python interface wrapper; actual STEP support/mapping remain unknown in original report",
+  "unproven_native_cause": "General/Neutral values observed; translator precedence and error1 cause unknown; no profile/geometry acceptance repair justified",
+  "full_acceptance_eligible": false,
+  "production_public_acceptance": false,
+  "first_native_failure": {
+    "case_index": 1,
+    "file": "ap203-wireframe.step",
+    "api": "LoadFile4",
+    "returned_document": false,
+    "errors": 1,
+    "arg_string": "r",
+    "geometry": null,
+    "native_save": null,
+    "message": "STEP geometry readback failed"
+  },
+  "observer_fix_scope": "QueryInterface(installed IID, pythoncom.IID_IUnknown) once; E_NOINTERFACE false; other failures unknown; no native import/profile/acceptance changes; not natively verified",
+  "primary_sources": [
+    "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyIUnknown.cpp#L96-L158",
+    "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyComHelpers.cpp#L241-L260",
+    "https://learn.microsoft.com/en-us/windows/win32/api/unknwn/nn-unknwn-iunknown"
+  ]
+}

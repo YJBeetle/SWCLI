@@ -21,6 +21,8 @@ def workflows(client: Client) -> FileReceipt:
     client.sketch.polygon(plane="front", vertices_mm=[{"x": 0.0, "y": 0.0}, {"x": 1.0, "y": 0.0}, {"x": 0.0, "y": 1.0}])
     captured = client.entity.reference_create(entity_id="e-ab12cd", kind="face", document_id="d-ab12cd").require_result()
     client.entity.reference_resolve(reference=captured["reference"], document_id="d-ab12cd", expected_update_stamp=0)
+    client.document.export(output="part.STEP", step_protocol="ap214", step_geometry="solid-surface",
+                           document_id="d-ab12cd", lease_id="l-ab12cd34ef56", expected_update_stamp=0)
     client.document.render(output="preview.bmp", include_content=True)
     client.feature.extrude(sketch_id="s-ab12cd", depth_mm=10.0)
     client.feature.revolve(sketch_id="s-ab12cd", expected_profile_mm=[0.0, -5.0, 10.0, 15.0],

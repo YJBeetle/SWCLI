@@ -1,0 +1,544 @@
+"""Manual internal STEP calibration, separate from public acceptance.
+
+One owned invisible host, no CAD rollback/retry/host replacement. Each native
+call has a 600-second watchdog; the complete group has an 1800-second deadline.
+Only independently audited native revisions may enter the public acceptance gate.
+"""
+import argparse
+from contextlib import contextmanager
+import hashlib
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+from swcli.daemon.documents import DocumentRegistry
+from swcli.daemon.operations import execute_operation
+from swcli.hosts.windows import _com_value
+from swcli.hosts.windows_documents import open_windows_document_with_handle
+from swcli.hosts.windows_measurements import measure_part_windows
+from swcli.hosts.windows_native_files import save_as_native_windows
+from swcli.hosts.windows_parts import create_box_part_windows_with_handle, create_part_windows_with_handle
+from swcli.hosts.windows_sketches import _features
+from swcli.hosts.windows_step_export import (
+    read_step_constants, step_host_scope, verify_step_output, _read_native_enum_constants, VALIDATED_REVISIONS,
+)
+from swcli.hosts.windows_sketch_inspection import list_sketches_windows_with_handles, inspect_sketch_windows
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support.step_fixture_checks import verify_source_sketch, verify_wire_geometry
+from gate_support.step_import_observation import (
+    observe_preferences, observe_dispatch, read_interface_contract, probe, error as observation_error,
+)
+
+from swcli.result_schemas import validate_operation_result
+
+spec = importlib.util.spec_from_file_location(
+    "_step_owned_harness", Path(__file__).with_name("verify-through-all-calibration.py"))
+harness = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(harness)
+checked = harness.checked
+
+
+def check_box(document):
+    measured = measure_part_windows(document=document)
+    checked(measured["ok"], "native box geometry unavailable")
+    metrics = measured["metrics"]
+    checked(metrics["solid_body_count"] == 1, "box solid count differs")
+    for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
+        checked(math.isclose(metrics[key], expected, rel_tol=1e-7, abs_tol=1e-5),
+                "box analytic geometry mismatch: " + key)
+    return measured
+
+
+def _wire_features(document):
+    """Visit top-level and absorbed features once, by document-unique GetID."""
+    from collections import deque
+    pending = deque((feature, None, 0) for feature in _features(document))
+    checked(len(pending) <= 10000, "wire feature inventory exceeds safety limit")
+    seen = set()
+    while pending:
+        feature, parent, depth = pending.popleft()
+        identity = _com_value(feature, "GetID")
+        checked(type(identity) is int, "wire feature ID is unreadable")
+        if identity in seen:
+            continue
+        seen.add(identity)
+        checked(len(seen) <= 10000 and depth <= 64, "wire feature graph exceeds safety limit")
+        yield feature, identity, parent, depth
+        child = _com_value(feature, "GetFirstSubFeature")
+        siblings = set()
+        while child is not None:
+            child_id = _com_value(child, "GetID")
+            checked(type(child_id) is int and child_id not in siblings,
+                    "wire subfeature traversal has an invalid ID or sibling cycle")
+            siblings.add(child_id)
+            pending.append((child, identity, depth + 1))
+            checked(len(seen) + len(pending) <= 10000, "wire feature graph exceeds safety limit")
+            child = _com_value(child, "GetNextSubFeature")
+
+
+def read_wireframe(document, evidence=None, *, representation="sketches"):
+    checked(not tuple(document.GetBodies2(0, False) or ()), "wireframe imported as a solid")
+    checked(representation in ("sketches", "reference-curves"), "unknown wire observation representation")
+    lengths, inventory, representation_mismatches = [], [], []
+    observation = evidence if evidence is not None else {}
+    observation["complete"] = False
+    try:
+        for feature, identity, parent, depth in _wire_features(document):
+            kind = _com_value(feature, "GetTypeName2")
+            row = dict(feature_id=identity, parent_id=parent, depth=depth,
+                       kind=kind, name=_com_value(feature, "Name"), lengths_mm=[])
+            inventory.append(row)
+            if kind in ("ProfileFeature", "3DProfileFeature"):
+                sketch = _com_value(feature, "GetSpecificFeature2")
+                checked(sketch is not None, "wire sketch interface is unavailable")
+                segments = tuple(_com_value(sketch, "GetSketchSegments") or ())
+                for segment in segments:
+                    length = float(_com_value(segment, "GetLength")) * 1000
+                    checked(math.isfinite(length) and length > 0, "invalid imported wireframe segment")
+                    lengths.append(length)
+                    row["lengths_mm"].append(length)
+                if representation != "sketches" and segments:
+                    representation_mismatches.append(identity)
+            elif representation == "reference-curves" and kind in ("RefCurve", "ImportedCurve", "3DSplineCurve", "CompositeCurve"):
+                reference = _com_value(feature, "GetSpecificFeature2")
+                checked(reference is not None, "reference curve interface is unavailable")
+                count = row["native_segment_count"] = _com_value(reference, "GetSegmentCount")
+                checked(type(count) is int and 0 <= count <= 10000, "reference curve segment count is unreadable")
+                edges = tuple(_com_value(reference, "GetSegments") or ())
+                checked(len(edges) == count, "reference curve edge array differs from native segment count")
+                row["curve_parameters"] = []
+                for edge in edges:
+                    curve = _com_value(edge, "GetCurve")  # Required before GetCurveParams3.
+                    parameters = _com_value(edge, "GetCurveParams3")
+                    checked(curve is not None and parameters is not None, "reference edge curve/parameters unavailable")
+                    low, high = (float(_com_value(parameters, key)) for key in ("UMinValue", "UMaxValue"))
+                    sense = _com_value(parameters, "Sense")
+                    checked(type(sense) is bool and math.isfinite(low) and math.isfinite(high) and low < high,
+                            "reference edge parameter range is invalid")
+                    row["curve_parameters"].append(dict(min_u=low,max_u=high,sense=sense))
+                    if not sense:  # API returns reversed edge ranges in negative parameter space.
+                        low, high = -high, -low
+                    length = float(curve.GetLength3(low, high)) * 1000
+                    checked(math.isfinite(length) and length > 0, "reference edge length is invalid")
+                    lengths.append(length)
+                    row["lengths_mm"].append(length)
+    finally:
+        # Preserve every observed feature/length before any strict count/vector
+        # assertion (or native read failure); never retry an incomplete import.
+        observation.update(method="native-" + representation, segment_count=len(lengths), lengths_mm=sorted(lengths),
+                           total_length_mm=sum(lengths), feature_inventory=inventory,
+                           representation_mismatches=representation_mismatches)
+    checked(not representation_mismatches, "reference-curve profile unexpectedly produced sketch geometry")
+    checked(len(lengths) >= 12, "box wireframe must contain at least its twelve edges")
+    observation["complete"] = True
+    return observation
+
+
+IMPORT_PROFILE = {
+    "swMultiCAD_Enable3DInterconnect": False,
+    "swImportSolidSurface": True,
+    "swImportFreeCurves": True,
+}
+
+
+def read_import_constants(path):
+    return _read_native_enum_constants(path, {
+        "swUserPreferenceToggle_e": set(IMPORT_PROFILE) | {"swImportNeutral_SolidandSurface", "swImportNeutral_FreeCurvesAndPoints", "swImportStepConfigData"},
+        "swUserPreferenceIntegerValue_e": {"swImportCurvePreference", "swImportNeutral_CurvesAndPointsOption"},
+        "swGeneralImportFreePointCurveEntityOptions_e": {
+            "swGeneralImportAs3dCurves", "swGeneralImportAsSketches"},
+    })
+
+
+@contextmanager
+def observer_import_preferences(app, constants, call, case):
+    """Only the generated-output observer; never production export settings."""
+    curve_name = "swImportCurvePreference"
+    desired = {**IMPORT_PROFILE, curve_name: constants["swGeneralImportAs3dCurves"]}
+    def observe(label):
+        values = {}
+        for name in desired:
+            kind = "Toggle" if name in IMPORT_PROFILE else "IntegerValue"
+            values[name] = call(label + "." + name,
+                lambda: getattr(app, "GetUserPreference" + kind)(constants[name]))
+            checked(type(values[name]) is (bool if kind == "Toggle" else int), "observer import preference unreadable: " + name)
+        return values
+    def write(label, name, value):
+        kind = "Toggle" if name in IMPORT_PROFILE else "IntegerValue"
+        status = call(label + "." + name, lambda: getattr(app, "SetUserPreference" + kind)(constants[name], value))
+        checked(status is None if kind == "Toggle" else status is True, "unexpected observer import setter result: " + name)
+    checked(call("observer-empty-before-import-options", lambda: _com_value(app, "GetDocumentCount")) == 0,
+            "observer import profile requires an empty owned host")
+    before = observe("read-import-original")
+    evidence = case["observer_import_preferences"] = dict(before=before, requested=desired, restored=False)
+    checked(before[curve_name] in {constants["swGeneralImportAs3dCurves"],
+                                  constants["swGeneralImportAsSketches"]},
+            "original observer curve import option is unknown")
+    checked(observe("compare-import-original") == before, "observer import preference snapshot changed")
+    attempted = []
+    first_error = None
+    try:
+        for name, value in desired.items():
+            if before[name] == value:
+                continue
+            attempted.append(name)
+            write("set-import-option", name, value)
+            expected = {**before, **{key: desired[key] for key in attempted}}
+            checked(observe("read-import-applied") == expected, "observer import preference readback differs")
+        checked(observe("verify-import-profile") == desired, "observer import profile differs")
+        yield
+    except BaseException as exc:
+        first_error = exc
+        raise
+    finally:
+        failures = []
+        for name in reversed(attempted):
+            try:
+                write("restore-import-option", name, before[name])
+            except Exception as exc:
+                failures.append(dict(preference=name, error=str(exc)))
+        try:
+            after = evidence["after"] = observe("read-import-restored")
+            checked(after == before, "observer import original preferences did not round-trip")
+        except Exception as exc:
+            failures.append(dict(error=str(exc)))
+        if failures:
+            evidence["restore_errors"] = failures
+            case["success"] = False
+            if first_error is None:
+                raise RuntimeError("observer import preferences could not be restored")
+        else:
+            evidence["restored"] = True
+
+
+def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
+    import pythoncom
+    from win32com.client import VARIANT
+    protocol, geometry = profile_kind.split(":")
+    name = protocol + "-" + geometry
+    source = output / (name + "-source.SLDPRT")
+    made, document = call("create-" + name, lambda: create_box_part_windows_with_handle(
+        str(source), app=app, width_mm=40, height_mm=30, depth_mm=10))
+    live["document"] = document
+    case.update(protocol=protocol, geometry=geometry, creation=made)
+    checked(made["ok"] and document is not None, "box creation failed")
+    case["source_geometry"] = call("measure-source", lambda: check_box(document))
+    listing, features = call("list-source-sketch", lambda: list_sketches_windows_with_handles(app=app, document=document))
+    checked(listing["ok"] and listing["count"] == len(features) == 1, "box fixture must have one source sketch")
+    case["source_sketch"] = call("inspect-source-sketch", lambda: inspect_sketch_windows(
+        app=app, document=document, sketch_feature=features[0], max_segments=16))
+    case["source_sketch_oracle"] = verify_source_sketch(case["source_sketch"])
+    source_digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    registry = DocumentRegistry(app)
+    entry = registry.register(document)
+    lease = registry.acquire_lease(entry, session_id="step-calibration", ttl_seconds=1800)
+    front_result, foreground = call("create-foreground", lambda: create_part_windows_with_handle(app=app))
+    checked(front_result["ok"] and foreground is not None, "foreground fixture creation failed")
+    front_entry = registry.register(foreground)
+    registry.set_current(front_entry, session_id="step-calibration")
+    target = output / (name + ".step")
+    parameters = dict(output=str(target), step_protocol=protocol, step_geometry=geometry, strict=True)
+    context = dict(documents=registry, session_id="step-calibration", document_id=entry.document_id,
+                   expected_update_stamp=_com_value(document, "GetUpdateStamp"), lease_id=lease["lease_id"])
+    # On an uncalibrated revision prove fail-closed without mutation. Once an
+    # audited revision is enabled, avoid an extra public export in this group;
+    # its public path is accepted by the separate writer/readback profile.
+    if str(_com_value(app, "RevisionNumber")) in VALIDATED_REVISIONS:
+        case["public_gate"] = dict(skipped=True, reason="audited revision; separate public acceptance required")
+    else:
+        with step_host_scope(app, isolated=True):
+            denied = call("public-fail-closed", lambda: execute_operation(app, "document.export", parameters, **context))
+        case["public_gate"] = denied
+        validate_operation_result("document.export", denied)
+        checked(not denied["ok"] and denied["error"]["type"] == "StepCalibrationRequired" and not target.exists(),
+                "uncalibrated public write was not blocked")
+    with step_host_scope(app, isolated=True, calibration=True):
+        exported = call("internal-export-" + name, lambda: execute_operation(app, "document.export", parameters, **context))
+    case["internal_export"] = exported
+    validate_operation_result("document.export", exported)
+    checked(exported["ok"], "STEP export failed: " + str(exported))
+    checked(not exported["document"]["active"] and not exported["document"]["current"],
+            "background export changed source identity/current/foreground")
+    checked(_com_value(app, "GetProcessID") == report["host"]["process_id"], "owned host changed")
+    call("close-foreground", lambda: app.CloseDoc(_com_value(foreground, "GetTitle")))
+    checked(exported["step_preferences"]["before"] == exported["step_preferences"]["after"]
+            and exported["step_preferences"]["restored"], "STEP preferences leaked")
+    case["actual_step"] = verify_step_output(target, protocol, geometry)
+    case["step_sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    checked(hashlib.sha256(source.read_bytes()).hexdigest() == source_digest,
+            "STEP export changed native source bytes")
+    call("close-source", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
+    live["document"] = document = None
+    reopened, document = call("reopen-source-readonly", lambda: open_windows_document_with_handle(
+        str(source), read_only=True, app=app))
+    live["document"] = document
+    case["source_reopen"] = reopened
+    checked(reopened["ok"] and reopened["api_errors"] == reopened["api_warnings"] == 0,
+            "saved source reopen failed")
+    case["reopened_source_geometry"] = call("measure-reopened-source", lambda: check_box(document))
+    checked(not _com_value(document, "GetSaveFlag"), "reopened source observation mutated source")
+    call("close-reopened-source", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
+    live["document"] = document = None
+    verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
+
+
+def verify_reopened_geometry(before, after, geometry):
+    """Compare physical geometry, keeping analytic bounds and exact topology."""
+    if geometry == "solid-surface":
+        checked(before.keys() == after.keys(), "geometry observation schema changed")
+        checked({k:v for k,v in before.items() if k not in ("metrics", "bodies")} ==
+                {k:v for k,v in after.items() if k not in ("metrics", "bodies")},
+                "geometry observation method/context changed")
+        checked(before["metrics"]["solid_body_count"] == after["metrics"]["solid_body_count"] == 1,
+                "solid topology changed after native save/reopen")
+        checked(len(before["bodies"]) == len(after["bodies"]) == 1,
+                "solid body observation count changed")
+        pairs = [(before["metrics"], after["metrics"]), (before["bodies"][0], after["bodies"][0])]
+        checked(before["bodies"][0]["index"] == after["bodies"][0]["index"] == 0,
+                "solid body identity changed")
+        for first, second in pairs:
+            for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
+                for value in (first[key], second[key]):
+                    checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=1e-7, abs_tol=1e-5),
+                            "analytic box geometry differs: " + key)
+                checked(math.isclose(first[key], second[key], rel_tol=1e-7, abs_tol=1e-5),
+                        "box geometry differs after native save/reopen: " + key)
+            for axis, expected in (("x", 0), ("y", 0), ("z", 5)):
+                for value in (first["centroid_mm"][axis], second["centroid_mm"][axis]):
+                    checked(math.isfinite(value) and math.isclose(value, expected, rel_tol=0, abs_tol=1e-9),
+                            "analytic box centroid differs: " + axis)
+                checked(math.isclose(first["centroid_mm"][axis], second["centroid_mm"][axis], rel_tol=0, abs_tol=1e-9),
+                        "box centroid differs after native save/reopen: " + axis)
+    else:
+        checked(before.get("method") == after.get("method"), "wire observation method changed after native save/reopen")
+        verify_wire_geometry(before, geometry)
+        verify_wire_geometry(after, geometry)
+        checked(before["segment_count"] == after["segment_count"],
+                "wireframe topology changed after native save/reopen")
+        checked(len(before["lengths_mm"]) == len(after["lengths_mm"]) == before["segment_count"],
+                "wireframe segment observation count changed")
+        for first, second in zip(before["lengths_mm"], after["lengths_mm"]):
+            checked(math.isfinite(first) and math.isfinite(second) and first > 0 and second > 0
+                    and math.isclose(first, second, rel_tol=0, abs_tol=1e-9),
+                    "wireframe segment differs after native save/reopen")
+
+
+
+def verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live):
+    with observer_import_preferences(app, constants, call, case):
+        _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live)
+
+
+def _verify_imported_geometry(app, target, output, name, geometry, constants, call, case, live, *, wire_reader=None, before_load=None, load_model=None):
+    import pythoncom
+    from win32com.client import VARIANT
+    observe_wire = wire_reader or (lambda doc, evidence: read_wireframe(doc,evidence,representation="reference-curves"))
+    original_step_digest = hashlib.sha256(target.read_bytes()).hexdigest()
+    case["actual_import_preferences"] = observe_preferences(app,constants,call)
+    contract_path=output / "import-interface-contract.json"
+    contract=json.loads(contract_path.read_text()) if contract_path.is_file() else {}
+    interfaces=contract.get("interfaces",{})
+    case["installed_import_interface_contract"]=contract
+    imported_data = call("GetImportFileData", lambda: app.GetImportFileData(str(target)))
+    case["import_data_observation"]=observe_dispatch(imported_data,interfaces,call,"observe-import-data",step_mapping=True)
+    checked(imported_data is not None, "STEP import data interface is unavailable")
+    errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
+    if before_load is not None:before_load()
+    case["import_return"] = dict(state="started",document_returned=None,errors=None,arg_string="r")
+    try:
+        document = call("LoadFile4", lambda: load_model(app,str(target),"r",imported_data,errors) if load_model is not None else app.LoadFile4(str(target), "r", imported_data, errors))
+    except BaseException as exc:
+        case["import_return"].update(state="raised",errors=errors.value,error=observation_error(exc))
+        raise
+    live["document"] = document
+    case["step_import_errors"] = errors.value
+    case["import_return"].update(state="returned",document_returned=document is not None,
+                                 python_type=type(document).__name__,errors=errors.value)
+    checked(document is not None and errors.value == 0, "STEP geometry readback failed")
+    if wire_reader is not None:
+        checked(type(errors.value) is int and _com_value(document,"GetType")==1,"sketch observer requires zero-error part import")
+    case["import_document_observation"]=observe_dispatch(document,{},call,"observe-import-document")
+    for member in ("GetType","GetTitle","GetPathName"):
+        case["import_document_observation"][member]=probe(call,"observe-import-document."+member,lambda:_com_value(document,member))
+    if geometry == "solid-surface":
+        case["imported_geometry"] = call("measure-imported-step", lambda: check_box(document))
+    else:
+        case["imported_geometry"] = {}
+        call("read-imported-wireframe", lambda: observe_wire(document, case["imported_geometry"]))
+        verify_wire_geometry(case["imported_geometry"], geometry)
+    imported_native = output / (name + "-imported.SLDPRT")
+    case["imported_save"] = call("save-imported-native", lambda: save_as_native_windows(str(imported_native), document=document))
+    checked(case["imported_save"]["ok"], "imported geometry save failed")
+    if wire_reader is not None:
+        checked(type(case["imported_save"].get("save_errors")) is int and case["imported_save"]["save_errors"]==0,"sketch observer native save error/unknown")
+    native_digest = hashlib.sha256(imported_native.read_bytes()).hexdigest()
+    call("close-import", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
+    live["document"] = document = None
+    opened, document = call("reopen-imported-native", lambda: open_windows_document_with_handle(
+        str(imported_native), read_only=True, app=app))
+    live["document"] = document
+    case["imported_reopen"] = opened
+    checked(opened["ok"] and opened["api_errors"] == opened["api_warnings"] == 0, "imported native reopen failed")
+    if wire_reader is not None:
+        checked(opened.get("read_only") is True and opened.get("document",{}).get("modified") is False,"sketch observer reopen not verified read-only/clean")
+    case["reopened_imported_geometry"] = {}
+    observed = call("verify-reopened-import", lambda:
+        check_box(document) if geometry == "solid-surface" else observe_wire(document, case["reopened_imported_geometry"]))
+    case["reopened_imported_geometry"] = observed
+    verify_reopened_geometry(case["imported_geometry"], case["reopened_imported_geometry"], geometry)
+    checked(not _com_value(document, "GetSaveFlag"), "read-only imported observation changed save state")
+    checked(hashlib.sha256(imported_native.read_bytes()).hexdigest() == native_digest, "read-only reopen changed native bytes")
+    checked(hashlib.sha256(target.read_bytes()).hexdigest() == original_step_digest, "readback changed STEP bytes")
+    case["imported_native_sha256"] = native_digest
+    call("close-reopened-import", lambda: app.CloseDoc(_com_value(document, "GetTitle")))
+    live["document"] = None
+    checked(_com_value(app, "GetDocumentCount") == 0, "documents leaked between STEP cases")
+    case["success"] = True
+
+
+def readback_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind):
+    source_report = json.loads((output / "source-public-report.json").read_text(encoding="utf-8"))
+    row = source_report["outputs"][int(profile_kind)]
+    target = Path(row["path"])
+    checked(hashlib.sha256(target.read_bytes()).hexdigest() == row["sha256"], "public STEP digest mismatch")
+    case.update(public_output=row, actual_step=verify_step_output(target, row["protocol"], row["geometry"]))
+    verify_imported_geometry(app, target, output, target.stem, row["geometry"], constants, call, case, live)
+
+
+def worker(args):
+    neutral_free=bool(getattr(args,"neutral_free_null_sketch_candidate",False))
+    null_sketch=bool(getattr(args,"null_sketch_readback_candidate",False)) or neutral_free
+    sketch_mode=bool(getattr(args,"sketch_readback_candidate",False)) or null_sketch
+    checked(sum(bool(getattr(args,name,False)) for name in ("sketch_readback_candidate","null_sketch_readback_candidate","neutral_free_null_sketch_candidate"))<=1,"Candidate modes are exclusive")
+    checked(not sketch_mode or args.export_report is not None,"Sketch candidate requires --export-report")
+    null_proof={}
+    # The existing harness covers major calls in trace.jsonl. Add a separate
+    # flushed watchdog boundary around every _com_value observation as well,
+    # including calls made outside a native_call wrapper.
+    import swcli.hosts.windows as windows
+    original_com_value = windows._com_value
+    def bounded_com_value(obj, name):
+        with (args.output_dir / "observation-trace.jsonl").open("a", encoding="utf-8", buffering=1) as stream:
+            stream.write(json.dumps(dict(call=name, phase="begin", time=time.time())) + "\n")
+            try:
+                value = original_com_value(obj, name)
+            except BaseException:
+                stream.write(json.dumps(dict(call=name, phase="error", time=time.time())) + "\n")
+                raise
+            stream.write(json.dumps(dict(call=name, phase="end", time=time.time())) + "\n")
+            return value
+    # Imported functions retain the same windows module global; aliases used
+    # here and in the harness are assigned explicitly. No CAD retry is added.
+    windows._com_value = bounded_com_value
+    globals()["_com_value"] = bounded_com_value
+    harness._com_value = bounded_com_value
+    def read_constants_with_contract(pythoncom,path):
+        constants={**read_step_constants(path),**read_import_constants(path)}
+        if null_sketch:
+            from gate_support import step_null_sketch_readback_candidate as null_candidate
+            null_proof.update(null_candidate.preflight(path,neutral_free_candidate=True) if neutral_free else null_candidate.preflight(path))
+            (args.output_dir/'null-sketch-preflight.json').write_text(json.dumps(null_proof,indent=2)+'\n',encoding='utf-8')
+        try:
+            contract=read_interface_contract(Path(path).with_name("sldworks.tlb"),pythoncom)
+        except Exception as exc:
+            contract={"status":"unknown","error":observation_error(exc),"interfaces":{}}
+        (args.output_dir / "import-interface-contract.json").write_text(json.dumps(contract,indent=2)+"\n")
+        return constants
+    harness.read_constants = read_constants_with_contract
+    if sketch_mode:
+        from swcli.hosts.windows_step_export import _native_windows_runtime
+        checked(_native_windows_runtime(),'Sketch candidate requires native Windows')
+    if args.export_report is not None:
+        public = json.loads(args.export_report.read_text(encoding="utf-8"))
+        checked(public["success"] and len(public["outputs"]) == 8, "public export group is incomplete")
+        (args.output_dir / "source-public-report.json").write_text(json.dumps(public, indent=2) + "\n", encoding="utf-8")
+        selected_case=readback_case
+        diagnostic_case="step-public-output-readback"
+        if sketch_mode:
+            from gate_support import step_sketch_readback_candidate as sketch_candidate
+            sketch_candidate.verify_fresh_public_report(public,os.environ.get('GITHUB_SHA'))
+            from types import SimpleNamespace
+            reader_api=SimpleNamespace(_wire_features=_wire_features,_com_value=_com_value,
+                verify_step_output=verify_step_output,_verify_imported_geometry=_verify_imported_geometry)
+            load_override=None
+            if null_sketch:
+                from gate_support import step_null_sketch_readback_candidate as null_candidate
+                load_override=lambda app,path,arg,data,errors,call,case,persist,verify: null_candidate.load_model(
+                    app,path,arg,data,errors,call,case,persist,verify,null_proof,neutral_free_candidate=neutral_free)
+            selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options,load_model=load_override,neutral_free_candidate=neutral_free)
+            diagnostic_case=("step-public-neutral-free-null-sketch-candidate" if neutral_free else "step-public-explicit-null-sketch-readback-candidate" if null_sketch else "step-public-explicit-sketch-readback-candidate")
+        return harness.run(args.output_dir, args.swconst, False, case_runner=selected_case,
+            case_plan=[(str(index), "front", False) for index in range(len(public["outputs"]))],
+            diagnostic_case=diagnostic_case)
+    return harness.run(args.output_dir, args.swconst, False, case_runner=calibrate_case,
+        case_plan=[(protocol + ":" + geometry, "front", False)
+                   for protocol in ("ap203", "ap214")
+                   for geometry in ("solid-surface", "wireframe", "wireframe-sketches")],
+        diagnostic_case="step-export-internal-calibration")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--swconst", type=Path, required=True)
+    parser.add_argument("--export-report", type=Path, help="validate actual files from a completed public group, without exporting")
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument("--neutral-free-null-sketch-candidate", action="store_true", help="Review-only: change only NeutralFree false to true over e039 NULL/AsSketches0")
+    modes.add_argument("--null-sketch-readback-candidate", action="store_true", help="Review-only preselected installed NULL binding plus AsSketches=0; no fallback")
+    modes.add_argument("--sketch-readback-candidate", action="store_true", help="Review-only explicit AsSketches=0 observer; requires fresh same-head eight public exports")
+    parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    checked(not (args.sketch_readback_candidate or args.null_sketch_readback_candidate or args.neutral_free_null_sketch_candidate) or args.export_report is not None,"Sketch candidate requires --export-report")
+    args.output_dir = args.output_dir.resolve()
+    if args.worker:
+        return worker(args)
+    checked(args.swconst.is_file(), "installed official type library is required")
+    args.output_dir.mkdir()
+    (args.output_dir / "input-identity.json").write_text(json.dumps(dict(
+        source_commit=os.environ.get("GITHUB_SHA"),
+        swconst_path=str(args.swconst.resolve()),
+        swconst_sha256=hashlib.sha256(args.swconst.read_bytes()).hexdigest(),
+        sldworks_tlb_path=str(args.swconst.with_name("sldworks.tlb")),
+        sldworks_tlb_sha256=(hashlib.sha256(args.swconst.with_name("sldworks.tlb").read_bytes()).hexdigest()
+                            if args.swconst.with_name("sldworks.tlb").is_file() else None))) + "\n", encoding="utf-8")
+    started = time.monotonic()
+    with (args.output_dir / "worker.stdout.log").open("wb") as stdout, (args.output_dir / "worker.stderr.log").open("wb") as stderr:
+        extra = ["--export-report", str(args.export_report.resolve())] if args.export_report is not None else []
+        if args.sketch_readback_candidate:extra.append("--sketch-readback-candidate")
+        if args.null_sketch_readback_candidate:extra.append("--null-sketch-readback-candidate")
+        if args.neutral_free_null_sketch_candidate:extra.append("--neutral-free-null-sketch-candidate")
+        process = subprocess.Popen([sys.executable, "-I", __file__, "--worker", "--output-dir", str(args.output_dir),
+                                    "--swconst", str(args.swconst.resolve()), *extra], stdout=stdout, stderr=stderr)
+        while process.poll() is None:
+            time.sleep(0.25)
+            active = None
+            for filename in ("trace.jsonl", "observation-trace.jsonl"):
+                trace = args.output_dir / filename
+                rows = []
+                if trace.exists():
+                    for line in trace.read_text(encoding="utf-8").splitlines():
+                        try:
+                            rows.append(json.loads(line))
+                        except ValueError:
+                            pass  # A trace can be read between partial writes.
+                latest = rows[-1] if rows else None
+                if latest and latest.get("phase") == "begin" and (active is None or latest["time"] < active["time"]):
+                    active = latest
+            timed_out = (time.monotonic() - started >= 1800 or
+                         active and time.time() - active["time"] >= 600)
+            if timed_out:
+                (args.output_dir / "timeout.json").write_text(json.dumps(dict(
+                    success=False, reason="native-600s-or-group-1800s", active=active)) + "\n")
+                process.kill()
+                process.wait()
+                return 124
+    return process.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

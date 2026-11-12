@@ -529,6 +529,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_document_selector(export_parser)
     add_lease_token(export_parser)
     export_parser.add_argument("output")
+    export_parser.add_argument("--step-protocol", choices=("ap203", "ap214"),
+                               help="STEP protocol; requires a calibrated owned hidden host and writable part")
+    export_parser.add_argument("--step-geometry", choices=("solid-surface", "wireframe", "wireframe-sketches"),
+                               help="STEP geometry; specify together with --step-protocol, lease and update stamp")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
         "--strict",
@@ -1762,6 +1766,8 @@ def _typed_operation(
                                         if getattr(args, "stl_" + key) is not None}}
                        if any(getattr(args, "stl_" + key) is not None
                               for key in ("encoding", "unit", "deviation_mm", "angle_degrees")) else {}),
+                    **({"step_protocol": args.step_protocol} if args.step_protocol is not None else {}),
+                    **({"step_geometry": args.step_geometry} if args.step_geometry is not None else {}),
                 },
                 args.as_json,
                 args.document_id,

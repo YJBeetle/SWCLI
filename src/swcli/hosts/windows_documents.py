@@ -15,6 +15,8 @@ from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
 import struct
+from .windows_step_export import (StepExportError, step_preferences,
+                                  validate_step_options, verify_step_output)
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -731,6 +733,8 @@ def export_active_windows_document(
     document: Any = None,
     include_content: bool = False,
     stl_options: Optional[Dict[str, Any]] = None,
+    step_protocol: Optional[str] = None,
+    step_geometry: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Export a selected document to a verified neutral or drawing format."""
 
@@ -743,6 +747,12 @@ def export_active_windows_document(
         "action": "document.export",
         "output": str(output_path),
     }
+    try:
+        if validate_step_options(output, step_protocol, step_geometry):
+            result["mutation"] = {"attempted": False, "may_have_changed": False}
+    except StepExportError as exc:
+        result["error"] = {"type": exc.code, "message": str(exc)}
+        return result
     if not output_path.parent.is_dir():
         result["error"] = {
             "type": "ParentDirectoryNotFound",
@@ -820,9 +830,12 @@ def export_active_windows_document(
                 "before": {**before, "configuration": option_state[1], "update_stamp": option_state[0]},
                 "unchanged": False,
             }
+        if step_protocol is not None and not before["document"].get("path"):
+            result["error"] = {"type": "SourceNotClean", "message": "STEP options require a saved native source"}
+            return result
 
         warnings = _export_source_warnings(before)
-        if strict and warnings:
+        if (strict or step_protocol is not None) and warnings:
             result["error"] = {
                 "type": "SourceNotClean",
                 "message": "source document is not ready for strict export",
@@ -844,7 +857,9 @@ def export_active_windows_document(
         else:
             preference_scope = _stl_single_file(
                 app, export_format == "STL" and before["document"]["type"] == 2)
-        with preference_scope:
+        with step_preferences(app, document, step_protocol, step_geometry, result), preference_scope:
+            if step_protocol is not None:
+                result["mutation"] = {"attempted": True, "may_have_changed": True}
             document.ClearSelection2(True)
             save_error = int(native_call("document-export" if export_format == "GLB" else "export", "IModelDoc2.SaveAs3",
                                          lambda: document.SaveAs3(str(export_path), 0, 1)))
@@ -893,6 +908,9 @@ def export_active_windows_document(
             is_binary = len(header) == 84 and size_bytes == 84 + 50 * struct.unpack_from("<I", header, 80)[0]
             if is_binary != (stl_options["encoding"] == "binary"):
                 raise StlOptionsError("ExportVerificationFailed", "actual STL encoding differs from requested encoding")
+        if step_protocol is not None:
+            result["step_output"] = verify_step_output(export_path, step_protocol, step_geometry)
+
         after = _export_source_state(document)
         if stl_options is not None:
             observed_option_state = (_com_value(document, "GetUpdateStamp"),
@@ -904,7 +922,7 @@ def export_active_windows_document(
             if not result["stl_source_state"]["unchanged"]:
                 raise StlOptionsError("SourceStateChanged", "STL export changed source identity/state; no CAD rollback")
         changes = _export_source_change_warnings(before, after)
-        if (strict or stl_options is not None) and changes:
+        if (strict or stl_options is not None or step_protocol is not None) and changes:
             result["error"] = {
                 "type": "SourceStateChanged",
                 "message": "export changed the source document state",
@@ -929,7 +947,7 @@ def export_active_windows_document(
             result["artifact"]["content"] = content
         result["ok"] = True
         return result
-    except (StlOptionsError, _ExportPreferenceError) as exc:
+    except (StepExportError, StlOptionsError, _ExportPreferenceError) as exc:
         result["error"] = {"type": exc.code, "message": str(exc)}
         return result
     except Exception as exc:

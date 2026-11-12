@@ -1,0 +1,1663 @@
+{
+  "kind": "offline actual-input/profile comparison; not native acceptance or precedence proof",
+  "report_sha256": {
+    "459": "26f7be0f5515781db1cc043c1ddd918aac69f03c6d2eff929b0d6c3d21b7eb7d",
+    "f56": "e77d690128d0262f480aa9e84cd681bc63dffd10b0911dddcb3dd70f9efd9713",
+    "e039": "0db86a01969bdb7828da88a6b845f916bd992079acef922171e075a5ed708aa3"
+  },
+  "vectors": {
+    "459": {
+      "swMultiCAD_Enable3DInterconnect": false,
+      "swImportSolidSurface": true,
+      "swImportFreeCurves": true,
+      "swImportNeutral_SolidandSurface": true,
+      "swImportNeutral_FreeCurvesAndPoints": true,
+      "swImportStepConfigData": false,
+      "swImportCurvePreference": 1,
+      "swImportNeutral_CurvesAndPointsOption": 1
+    },
+    "f56": {
+      "swMultiCAD_Enable3DInterconnect": false,
+      "swImportSolidSurface": true,
+      "swImportFreeCurves": true,
+      "swImportNeutral_SolidandSurface": true,
+      "swImportNeutral_FreeCurvesAndPoints": false,
+      "swImportStepConfigData": false,
+      "swImportCurvePreference": 0,
+      "swImportNeutral_CurvesAndPointsOption": 0
+    },
+    "e039": {
+      "swMultiCAD_Enable3DInterconnect": false,
+      "swImportSolidSurface": true,
+      "swImportFreeCurves": true,
+      "swImportNeutral_SolidandSurface": true,
+      "swImportNeutral_FreeCurvesAndPoints": false,
+      "swImportStepConfigData": false,
+      "swImportCurvePreference": 0,
+      "swImportNeutral_CurvesAndPointsOption": 0
+    }
+  },
+  "preload_CAS_checkpoints": {
+    "459": [
+      {
+        "swMultiCAD_Enable3DInterconnect": false,
+        "swImportSolidSurface": true,
+        "swImportFreeCurves": true,
+        "swImportNeutral_SolidandSurface": true,
+        "swImportNeutral_FreeCurvesAndPoints": true,
+        "swImportStepConfigData": false,
+        "swImportCurvePreference": 1,
+        "swImportNeutral_CurvesAndPointsOption": 1
+      },
+      {
+        "swMultiCAD_Enable3DInterconnect": false,
+        "swImportSolidSurface": true,
+        "swImportFreeCurves": true,
+        "swImportNeutral_SolidandSurface": true,
+        "swImportNeutral_FreeCurvesAndPoints": true,
+        "swImportStepConfigData": false,
+        "swImportCurvePreference": 1,
+        "swImportNeutral_CurvesAndPointsOption": 1
+      }
+    ],
+    "f56": [
+      {
+        "swMultiCAD_Enable3DInterconnect": false,
+        "swImportSolidSurface": true,
+        "swImportFreeCurves": true,
+        "swImportNeutral_SolidandSurface": true,
+        "swImportNeutral_FreeCurvesAndPoints": false,
+        "swImportStepConfigData": false,
+        "swImportCurvePreference": 0,
+        "swImportNeutral_CurvesAndPointsOption": 0
+      }
+    ],
+    "e039": [
+      {
+        "swMultiCAD_Enable3DInterconnect": false,
+        "swImportSolidSurface": true,
+        "swImportFreeCurves": true,
+        "swImportNeutral_SolidandSurface": true,
+        "swImportNeutral_FreeCurvesAndPoints": false,
+        "swImportStepConfigData": false,
+        "swImportCurvePreference": 0,
+        "swImportNeutral_CurvesAndPointsOption": 0
+      },
+      {
+        "swMultiCAD_Enable3DInterconnect": false,
+        "swImportSolidSurface": true,
+        "swImportFreeCurves": true,
+        "swImportNeutral_SolidandSurface": true,
+        "swImportNeutral_FreeCurvesAndPoints": false,
+        "swImportStepConfigData": false,
+        "swImportCurvePreference": 0,
+        "swImportNeutral_CurvesAndPointsOption": 0
+      }
+    ]
+  },
+  "vector_fields": [
+    {
+      "name": "swMultiCAD_Enable3DInterconnect",
+      "459": false,
+      "f56": false,
+      "e039": false
+    },
+    {
+      "name": "swImportSolidSurface",
+      "459": true,
+      "f56": true,
+      "e039": true
+    },
+    {
+      "name": "swImportFreeCurves",
+      "459": true,
+      "f56": true,
+      "e039": true
+    },
+    {
+      "name": "swImportNeutral_SolidandSurface",
+      "459": true,
+      "f56": true,
+      "e039": true
+    },
+    {
+      "name": "swImportNeutral_FreeCurvesAndPoints",
+      "459": true,
+      "f56": false,
+      "e039": false
+    },
+    {
+      "name": "swImportStepConfigData",
+      "459": false,
+      "f56": false,
+      "e039": false
+    },
+    {
+      "name": "swImportCurvePreference",
+      "459": 1,
+      "f56": 0,
+      "e039": 0
+    },
+    {
+      "name": "swImportNeutral_CurvesAndPointsOption",
+      "459": 1,
+      "f56": 0,
+      "e039": 0
+    }
+  ],
+  "differences_459_vs_e039": [
+    "swImportNeutral_FreeCurvesAndPoints",
+    "swImportCurvePreference",
+    "swImportNeutral_CurvesAndPointsOption"
+  ],
+  "differences_f56_vs_e039": [],
+  "load_returns": {
+    "459": {
+      "state": "returned",
+      "document_returned": true,
+      "errors": 0,
+      "arg_string": "r",
+      "import_data": "NULL IDispatch; explicit installed binding; factory observed only",
+      "possible_document_mutation": true,
+      "python_type": "win32com.client.CDispatch"
+    },
+    "f56": {
+      "state": "returned",
+      "document_returned": false,
+      "errors": 1,
+      "arg_string": "r",
+      "python_type": "NoneType"
+    },
+    "e039": {
+      "state": "returned",
+      "document_returned": false,
+      "errors": 1,
+      "arg_string": "r",
+      "import_data": "explicit NULL IDispatch; existing installed-TLB binding; factory observed only",
+      "python_type": "NoneType"
+    }
+  },
+  "files": {
+    "459": {
+      "sha256": "3a4f032699665f22b6ee40b4b552fed904c6297c56aecf310e4645b70ed72c90",
+      "size_bytes": 10595,
+      "ascii": true,
+      "crlf_count": 201,
+      "lf_count": 201,
+      "file_schema": "( 'CONFIG_CONTROL_DESIGN' )",
+      "entity_counts": {
+        "APPLICATION_CONTEXT": 2,
+        "APPLICATION_PROTOCOL_DEFINITION": 2,
+        "APPROVAL": 3,
+        "APPROVAL_DATE_TIME": 3,
+        "APPROVAL_PERSON_ORGANIZATION": 3,
+        "APPROVAL_ROLE": 3,
+        "APPROVAL_STATUS": 3,
+        "AXIS2_PLACEMENT_3D": 1,
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "CALENDAR_DATE": 5,
+        "CARTESIAN_POINT": 25,
+        "CC_DESIGN_APPROVAL": 3,
+        "CC_DESIGN_DATE_AND_TIME_ASSIGNMENT": 2,
+        "CC_DESIGN_PERSON_AND_ORGANIZATION_ASSIGNMENT": 5,
+        "CC_DESIGN_SECURITY_CLASSIFICATION": 1,
+        "COORDINATED_UNIVERSAL_TIME_OFFSET": 5,
+        "DATE_AND_TIME": 5,
+        "DATE_TIME_ROLE": 2,
+        "DESIGN_CONTEXT": 1,
+        "DIRECTION": 2,
+        "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION": 1,
+        "GEOMETRIC_CURVE_SET": 1,
+        "GEOMETRIC_REPRESENTATION_CONTEXT": 1,
+        "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT": 1,
+        "GLOBAL_UNIT_ASSIGNED_CONTEXT": 1,
+        "LENGTH_UNIT": 1,
+        "LOCAL_TIME": 5,
+        "MECHANICAL_CONTEXT": 1,
+        "NAMED_UNIT": 3,
+        "ORGANIZATION": 1,
+        "PERSON": 1,
+        "PERSON_AND_ORGANIZATION": 8,
+        "PERSON_AND_ORGANIZATION_ROLE": 5,
+        "PLANE_ANGLE_UNIT": 1,
+        "PRODUCT": 1,
+        "PRODUCT_DEFINITION": 1,
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE": 1,
+        "PRODUCT_DEFINITION_SHAPE": 1,
+        "PRODUCT_RELATED_PRODUCT_CATEGORY": 1,
+        "REPRESENTATION_CONTEXT": 1,
+        "SECURITY_CLASSIFICATION": 1,
+        "SECURITY_CLASSIFICATION_LEVEL": 1,
+        "SHAPE_DEFINITION_REPRESENTATION": 1,
+        "SI_UNIT": 3,
+        "SOLID_ANGLE_UNIT": 1,
+        "UNCERTAINTY_MEASURE_WITH_UNIT": 1
+      },
+      "entity_ids_unique": true,
+      "dangling_references": [],
+      "shape_definition_roots": [
+        10
+      ],
+      "wire_shape_id": 13,
+      "curve_set_id": 84,
+      "represented_curve_count": 12,
+      "orphan_curves": [],
+      "length_unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "curves": [
+        {
+          "entity_id": 40,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 106,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 29,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 42,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 31,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 124,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 114,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 113,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 66,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 74,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 103,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 21,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        }
+      ],
+      "total_length_mm": 320.0,
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "full_express_conformance": "unknown",
+      "native_import_support": "unknown"
+    },
+    "f56": {
+      "sha256": "e2637338686a7aa7b817372c187b10514ddea4eb0b4c6039f517d7f7050e9966",
+      "size_bytes": 10590,
+      "ascii": true,
+      "crlf_count": 201,
+      "lf_count": 201,
+      "file_schema": "( 'CONFIG_CONTROL_DESIGN' )",
+      "entity_counts": {
+        "APPLICATION_CONTEXT": 2,
+        "APPLICATION_PROTOCOL_DEFINITION": 2,
+        "APPROVAL": 3,
+        "APPROVAL_DATE_TIME": 3,
+        "APPROVAL_PERSON_ORGANIZATION": 3,
+        "APPROVAL_ROLE": 3,
+        "APPROVAL_STATUS": 3,
+        "AXIS2_PLACEMENT_3D": 1,
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "CALENDAR_DATE": 5,
+        "CARTESIAN_POINT": 25,
+        "CC_DESIGN_APPROVAL": 3,
+        "CC_DESIGN_DATE_AND_TIME_ASSIGNMENT": 2,
+        "CC_DESIGN_PERSON_AND_ORGANIZATION_ASSIGNMENT": 5,
+        "CC_DESIGN_SECURITY_CLASSIFICATION": 1,
+        "COORDINATED_UNIVERSAL_TIME_OFFSET": 5,
+        "DATE_AND_TIME": 5,
+        "DATE_TIME_ROLE": 2,
+        "DESIGN_CONTEXT": 1,
+        "DIRECTION": 2,
+        "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION": 1,
+        "GEOMETRIC_CURVE_SET": 1,
+        "GEOMETRIC_REPRESENTATION_CONTEXT": 1,
+        "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT": 1,
+        "GLOBAL_UNIT_ASSIGNED_CONTEXT": 1,
+        "LENGTH_UNIT": 1,
+        "LOCAL_TIME": 5,
+        "MECHANICAL_CONTEXT": 1,
+        "NAMED_UNIT": 3,
+        "ORGANIZATION": 1,
+        "PERSON": 1,
+        "PERSON_AND_ORGANIZATION": 8,
+        "PERSON_AND_ORGANIZATION_ROLE": 5,
+        "PLANE_ANGLE_UNIT": 1,
+        "PRODUCT": 1,
+        "PRODUCT_DEFINITION": 1,
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE": 1,
+        "PRODUCT_DEFINITION_SHAPE": 1,
+        "PRODUCT_RELATED_PRODUCT_CATEGORY": 1,
+        "REPRESENTATION_CONTEXT": 1,
+        "SECURITY_CLASSIFICATION": 1,
+        "SECURITY_CLASSIFICATION_LEVEL": 1,
+        "SHAPE_DEFINITION_REPRESENTATION": 1,
+        "SI_UNIT": 3,
+        "SOLID_ANGLE_UNIT": 1,
+        "UNCERTAINTY_MEASURE_WITH_UNIT": 1
+      },
+      "entity_ids_unique": true,
+      "dangling_references": [],
+      "shape_definition_roots": [
+        47
+      ],
+      "wire_shape_id": 113,
+      "curve_set_id": 17,
+      "represented_curve_count": 12,
+      "orphan_curves": [],
+      "length_unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "curves": [
+        {
+          "entity_id": 39,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 6,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 109,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 81,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 116,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 55,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 1,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 16,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 24,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 100,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 49,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 118,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        }
+      ],
+      "total_length_mm": 320.0,
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "full_express_conformance": "unknown",
+      "native_import_support": "unknown"
+    },
+    "e039": {
+      "sha256": "9e2fe322e280929f5530b9a625fda8d94f845034be6cdd5232b91a01c57d43c6",
+      "size_bytes": 10600,
+      "ascii": true,
+      "crlf_count": 201,
+      "lf_count": 201,
+      "file_schema": "( 'CONFIG_CONTROL_DESIGN' )",
+      "entity_counts": {
+        "APPLICATION_CONTEXT": 2,
+        "APPLICATION_PROTOCOL_DEFINITION": 2,
+        "APPROVAL": 3,
+        "APPROVAL_DATE_TIME": 3,
+        "APPROVAL_PERSON_ORGANIZATION": 3,
+        "APPROVAL_ROLE": 3,
+        "APPROVAL_STATUS": 3,
+        "AXIS2_PLACEMENT_3D": 1,
+        "B_SPLINE_CURVE_WITH_KNOTS": 12,
+        "CALENDAR_DATE": 5,
+        "CARTESIAN_POINT": 25,
+        "CC_DESIGN_APPROVAL": 3,
+        "CC_DESIGN_DATE_AND_TIME_ASSIGNMENT": 2,
+        "CC_DESIGN_PERSON_AND_ORGANIZATION_ASSIGNMENT": 5,
+        "CC_DESIGN_SECURITY_CLASSIFICATION": 1,
+        "COORDINATED_UNIVERSAL_TIME_OFFSET": 5,
+        "DATE_AND_TIME": 5,
+        "DATE_TIME_ROLE": 2,
+        "DESIGN_CONTEXT": 1,
+        "DIRECTION": 2,
+        "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION": 1,
+        "GEOMETRIC_CURVE_SET": 1,
+        "GEOMETRIC_REPRESENTATION_CONTEXT": 1,
+        "GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT": 1,
+        "GLOBAL_UNIT_ASSIGNED_CONTEXT": 1,
+        "LENGTH_UNIT": 1,
+        "LOCAL_TIME": 5,
+        "MECHANICAL_CONTEXT": 1,
+        "NAMED_UNIT": 3,
+        "ORGANIZATION": 1,
+        "PERSON": 1,
+        "PERSON_AND_ORGANIZATION": 8,
+        "PERSON_AND_ORGANIZATION_ROLE": 5,
+        "PLANE_ANGLE_UNIT": 1,
+        "PRODUCT": 1,
+        "PRODUCT_DEFINITION": 1,
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE": 1,
+        "PRODUCT_DEFINITION_SHAPE": 1,
+        "PRODUCT_RELATED_PRODUCT_CATEGORY": 1,
+        "REPRESENTATION_CONTEXT": 1,
+        "SECURITY_CLASSIFICATION": 1,
+        "SECURITY_CLASSIFICATION_LEVEL": 1,
+        "SHAPE_DEFINITION_REPRESENTATION": 1,
+        "SI_UNIT": 3,
+        "SOLID_ANGLE_UNIT": 1,
+        "UNCERTAINTY_MEASURE_WITH_UNIT": 1
+      },
+      "entity_ids_unique": true,
+      "dangling_references": [],
+      "shape_definition_roots": [
+        60
+      ],
+      "wire_shape_id": 38,
+      "curve_set_id": 13,
+      "represented_curve_count": 12,
+      "orphan_curves": [],
+      "length_unit": [
+        ".MILLI.",
+        ".METRE."
+      ],
+      "curves": [
+        {
+          "entity_id": 119,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 58,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 108,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 2,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 78,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 65,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 14,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 87,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.02999999999999999889",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ]
+          ],
+          "length_mm": 30.0
+        },
+        {
+          "entity_id": 29,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.04000000000000000083"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "-15",
+              "0"
+            ],
+            [
+              "2E+1",
+              "-15",
+              "0"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 83,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0.04000000000000000083",
+            "-0E-18"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 40.0
+        },
+        {
+          "entity_id": 9,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "-0E-18",
+            "0.01000000000000000021"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "-2E+1",
+              "15",
+              "0"
+            ],
+            [
+              "-2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 10.0
+        },
+        {
+          "entity_id": 99,
+          "entity_type": "B_SPLINE_CURVE_WITH_KNOTS",
+          "degree": 1,
+          "closed_curve": ".F.",
+          "self_intersect": ".F.",
+          "knot_range": [
+            "0E-18",
+            "0.02999999999999999889"
+          ],
+          "multiplicities": [
+            2,
+            2
+          ],
+          "endpoints_mm": [
+            [
+              "2E+1",
+              "-15",
+              "1E+1"
+            ],
+            [
+              "2E+1",
+              "15",
+              "1E+1"
+            ]
+          ],
+          "length_mm": 30.0
+        }
+      ],
+      "total_length_mm": 320.0,
+      "base_graph": {
+        "edges": 12,
+        "vertices": 8,
+        "connected_components": 1,
+        "vertex_degrees": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "cycle_rank": 5,
+        "boundary_face_loops": [
+          {
+            "axis": 0,
+            "coordinate_mm": "-2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 0,
+            "coordinate_mm": "2E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 80.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "-15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 1,
+            "coordinate_mm": "15",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 100.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "0",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          },
+          {
+            "axis": 2,
+            "coordinate_mm": "1E+1",
+            "edges": 4,
+            "all_vertices_degree_two": true,
+            "perimeter_mm": 140.0
+          }
+        ]
+      },
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e",
+      "full_express_conformance": "unknown",
+      "native_import_support": "unknown"
+    }
+  },
+  "pairwise": {
+    "459__f56": {
+      "bytes": {
+        "equal": false,
+        "left_bytes": 10595,
+        "right_bytes": 10590,
+        "first_difference_offset": 102,
+        "same_position_different_bytes": 9545,
+        "length_delta": -5
+      },
+      "entity_counts_equal": true,
+      "units_equal": true,
+      "root_reachable_linear_endpoint_geometry_equal": true,
+      "parameter_records_equal": true,
+      "parameter_different_endpoint_pairs": []
+    },
+    "459__e039": {
+      "bytes": {
+        "equal": false,
+        "left_bytes": 10595,
+        "right_bytes": 10600,
+        "first_difference_offset": 102,
+        "same_position_different_bytes": 9497,
+        "length_delta": 5
+      },
+      "entity_counts_equal": true,
+      "units_equal": true,
+      "root_reachable_linear_endpoint_geometry_equal": true,
+      "parameter_records_equal": true,
+      "parameter_different_endpoint_pairs": []
+    },
+    "f56__e039": {
+      "bytes": {
+        "equal": false,
+        "left_bytes": 10590,
+        "right_bytes": 10600,
+        "first_difference_offset": 102,
+        "same_position_different_bytes": 9518,
+        "length_delta": 10
+      },
+      "entity_counts_equal": true,
+      "units_equal": true,
+      "root_reachable_linear_endpoint_geometry_equal": true,
+      "parameter_records_equal": true,
+      "parameter_different_endpoint_pairs": []
+    }
+  },
+  "proposed_single_change_from_e039": {
+    "name": "swImportNeutral_FreeCurvesAndPoints",
+    "before": false,
+    "after": true,
+    "fixed_fields": {
+      "swMultiCAD_Enable3DInterconnect": false,
+      "swImportSolidSurface": true,
+      "swImportFreeCurves": true,
+      "swImportNeutral_SolidandSurface": true,
+      "swImportStepConfigData": false,
+      "swImportCurvePreference": 0,
+      "swImportNeutral_CurvesAndPointsOption": 0
+    },
+    "binding": "same preselected227/NULL, r, no fallback",
+    "status": "candidate only; unexecuted"
+  },
+  "limitations": [
+    "459 differs in three preferences, file byte layout and environment; Neutral alone is not causally proven",
+    "Linear endpoints plus explicitly compared spline parameters/ordered controls do not establish byte equality or full EXPRESS/metadata equivalence",
+    "Official Neutral entity selector is documented; General/Neutral precedence in this translator is not established"
+  ]
+}

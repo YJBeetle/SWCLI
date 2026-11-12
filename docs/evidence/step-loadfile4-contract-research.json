@@ -1,0 +1,79 @@
+{
+  "installed_chm": [
+    {
+      "chm": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/api/sldworksapi.chm",
+      "sha256": "3a46af7f0c11e958661beecc22158fedc360939193f5d967182724c9ddbec24e",
+      "members": [
+        {
+          "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~LoadFile4.html",
+          "sha256": "6df55c42766892a65889160d6dcb166633d7a69795195dcfa3d56b1900c686c2"
+        },
+        {
+          "name": "Import_STEP_File_Example_CSharp.htm",
+          "sha256": "7775a463f09b092e12aab9dd29c6dd13c5116582039288347133a56900044f10"
+        },
+        {
+          "name": "Import_STEP_File_Example_VB.htm",
+          "sha256": "193e996228527ea1dae0dd705f3ba44a4e66bd84cf9cdfe9e69617779b7d0d4a"
+        },
+        {
+          "name": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~GetImportFileData.html",
+          "sha256": "e2e820fd66d49420e0896c82e525084bb5b21d9166c24ad85827c056106d1d8c"
+        }
+      ]
+    },
+    {
+      "chm": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/api/sldworksapivb6.chm",
+      "sha256": "9b7e43520947c90897a24e3b3478a937438b116ee213032824101a7993d3b321",
+      "members": [
+        {
+          "name": "SldWorks~SldWorks~LoadFile4.html",
+          "sha256": "7e11ab93bd661a707e16542dae152e3437a90dd2ea2c145d4ec93085078b73af"
+        }
+      ]
+    }
+  ],
+  "public_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/mhammond/pywin32/b312/com/win32com/src/oleargs.cpp",
+      "sha256": "f57f75638443b740f36c8273381f6b63d78beca371112867bb125f973f55efab",
+      "scope": "implementation of parser/marshalling only; not SOLIDWORKS import semantics"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mhammond/pywin32/b312/com/win32com/src/PyComHelpers.cpp",
+      "sha256": "d048ca6567c82595237c7a46f8a0b469805f1589e2cfca9510eca79f96cf61ce",
+      "scope": "implementation of parser/marshalling only; not SOLIDWORKS import semantics"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/wine-mirror/wine/master/dlls/oleaut32/typelib.h",
+      "sha256": "efca6340f50030d79a8c5024c1b9bc098defe925777325923bf9c16d6a22cf11",
+      "scope": "implementation of parser/marshalling only; not SOLIDWORKS import semantics"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/wine-mirror/wine/master/tools/winedump/tlb.c",
+      "sha256": "f116fefa7885730bb888e6bedae7fc163e558c3c93a3a6d5b8f4265a02309506",
+      "scope": "implementation of parser/marshalling only; not SOLIDWORKS import semantics"
+    }
+  ],
+  "local_dnfile_version": "0.18.0",
+  "observed_native_call": false,
+  "findings": {
+    "loadfile4_parameter_table": "ImportData null/Nothing when 3DI disabled; empty ArgString when enabled",
+    "remarks": "Under 3DI disabled, non DXF/DWG and non ProE use lowercase r; inline IGES snippet names importData without initialization, so nonnull is not established",
+    "step_example": "CSharp and VBA both use r plus factory STEP object, set MapConfigurationData true, perform solid export/import/diagnosis; no fixed 3DI preference",
+    "contradiction": "Literal conditional parameter rules cannot both be reconciled with STEP example r plus factory/property access for either boolean 3DI state; inline IGES snippet alone is inconclusive",
+    "vba_signature": "BSTR/BSTR/Object/ByRef Long returning ModelDoc2 only; no behavioral clarification",
+    "factory_page": "GetImportFileData page describes IGES/DXF only despite STEP example/native actual STEP QI; obtaining object does not parse defaults immediately",
+    "abi": "TLB VT_DISPATCH input, not VARIANT; two BSTR; in/out I4 pointer; retval IModelDoc2 double pointer/HRESULT; CLR explicit IDispatch marshal",
+    "python_null": "Generic None converts VT_NULL, but typed VT_DISPATCH None uses NULL pointer; explicit VARIANT(VT_DISPATCH,None) source path is valid for untyped invocation, cannot assume typed method accepts wrapper",
+    "settled": false,
+    "vendor_clarification_needed": true
+  },
+  "proposal_only": {
+    "change": "Only ImportData semantic value: same factory object -> explicit ABI-correct null IDispatch",
+    "fixed": "All eight values from 60f1cf8, same file bytes/readonly, lowercase r, same zero-save single-import guards and strict reference12/320/vector",
+    "not_implemented": true,
+    "not_executed": true,
+    "prerequisite": "Root review; exact pywin32 typed vs generic call route must be fixed/verified without assuming Python None or Nothing equivalence"
+  }
+}

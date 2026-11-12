@@ -1,0 +1,230 @@
+{
+  "kind": "static file inspection only; zero native/COM calls",
+  "inputs": {
+    "tlb": {
+      "path": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/sldworks.tlb",
+      "sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+    },
+    "interop": {
+      "path": "/Users/YJBeetle/Library/Application Support/MacSW/bottle/drive_c/Program Files/SOLIDWORKS/SolidWorks.Interop.sldworks.dll",
+      "sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1"
+    }
+  },
+  "tlb": {
+    "GetImportFileData": {
+      "interface": {
+        "name": "ISldWorks",
+        "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+      },
+      "dispid": 217,
+      "record_offset": 940776,
+      "record_hex": "3800dd00190019800000000020075c000944dd0002000000d9001000b0a803000800088020b700000100000000000000440000000a000000",
+      "return_type": {
+        "type": "VT_HRESULT",
+        "encoded": "0x80190019"
+      },
+      "optional_count": 0,
+      "parameters": [
+        {
+          "name": "FileName",
+          "flags": 1,
+          "in_": true,
+          "out": false,
+          "retval": false,
+          "datatype": {
+            "type": "VT_BSTR",
+            "encoded": "0x80080008"
+          }
+        },
+        {
+          "name": "Retval",
+          "flags": 10,
+          "in_": false,
+          "out": true,
+          "retval": true,
+          "datatype": {
+            "type": "VT_PTR",
+            "offset": 0,
+            "raw_hex": "1a00094009000980",
+            "target": {
+              "type": "VT_DISPATCH",
+              "encoded": "0x80090009"
+            }
+          }
+        }
+      ]
+    },
+    "LoadFile4": {
+      "interface": {
+        "name": "ISldWorks",
+        "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+      },
+      "dispid": 227,
+      "record_offset": 941396,
+      "record_hex": "5c00e700190019800000000070079c000944e70005000000e3001000ac7803000800088020b7000001000000080008803cb703000100000009000980c4dc030001000000080000001ce200000300000088040000440000000a000000",
+      "return_type": {
+        "type": "VT_HRESULT",
+        "encoded": "0x80190019"
+      },
+      "optional_count": 0,
+      "parameters": [
+        {
+          "name": "FileName",
+          "flags": 1,
+          "in_": true,
+          "out": false,
+          "retval": false,
+          "datatype": {
+            "type": "VT_BSTR",
+            "encoded": "0x80080008"
+          }
+        },
+        {
+          "name": "ArgString",
+          "flags": 1,
+          "in_": true,
+          "out": false,
+          "retval": false,
+          "datatype": {
+            "type": "VT_BSTR",
+            "encoded": "0x80080008"
+          }
+        },
+        {
+          "name": "ImportData",
+          "flags": 1,
+          "in_": true,
+          "out": false,
+          "retval": false,
+          "datatype": {
+            "type": "VT_DISPATCH",
+            "encoded": "0x80090009"
+          }
+        },
+        {
+          "name": "Errors",
+          "flags": 3,
+          "in_": true,
+          "out": true,
+          "retval": false,
+          "datatype": {
+            "type": "VT_PTR",
+            "offset": 8,
+            "raw_hex": "1a00034003000380",
+            "target": {
+              "type": "VT_I4",
+              "encoded": "0x80030003"
+            }
+          }
+        },
+        {
+          "name": "Retval",
+          "flags": 10,
+          "in_": false,
+          "out": true,
+          "retval": true,
+          "datatype": {
+            "type": "VT_PTR",
+            "offset": 1160,
+            "raw_hex": "1a00ff7f20040000",
+            "target": {
+              "type": "VT_PTR",
+              "offset": 1056,
+              "raw_hex": "1a00ff7f18040000",
+              "target": {
+                "type": "VT_USERDEFINED",
+                "offset": 1048,
+                "raw_hex": "1d00ff7fa4060000",
+                "reference": {
+                  "name": "IModelDoc2",
+                  "guid": "b90793fb-ef3d-4b80-a5c4-99959cdb6ceb"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "interop": {
+    "interface": {
+      "guid": "83A33D22-27C5-11CE-BFD4-00400513BB57"
+    },
+    "methods": {
+      "GetImportFileData": {
+        "signature_hex": "20011c0e",
+        "parameters": [
+          {
+            "sequence": 0,
+            "name": "",
+            "type": "object",
+            "in_": false,
+            "out": false,
+            "marshal_blob": "1a"
+          },
+          {
+            "sequence": 1,
+            "name": "FileName",
+            "type": "string",
+            "in_": true,
+            "out": false,
+            "marshal_blob": "13"
+          }
+        ],
+        "dispid": 217
+      },
+      "LoadFile4": {
+        "signature_hex": "20041286500e0e1c1008",
+        "parameters": [
+          {
+            "sequence": 0,
+            "name": "",
+            "type": "ModelDoc2",
+            "in_": false,
+            "out": false,
+            "marshal_blob": "1c"
+          },
+          {
+            "sequence": 1,
+            "name": "FileName",
+            "type": "string",
+            "in_": true,
+            "out": false,
+            "marshal_blob": "13"
+          },
+          {
+            "sequence": 2,
+            "name": "ArgString",
+            "type": "string",
+            "in_": true,
+            "out": false,
+            "marshal_blob": "13"
+          },
+          {
+            "sequence": 3,
+            "name": "ImportData",
+            "type": "object",
+            "in_": true,
+            "out": false,
+            "marshal_blob": "1a"
+          },
+          {
+            "sequence": 4,
+            "name": "Errors",
+            "type": "byref int32",
+            "in_": true,
+            "out": true,
+            "marshal_blob": null
+          }
+        ],
+        "dispid": 227
+      }
+    },
+    "assembly_version": "33.5.0.53"
+  },
+  "limitations": [
+    "Local TLB bytes equal VM recorded hash; VM interop DLL hash not recorded, so interop byte identity is not asserted",
+    "ABI type declarations cannot settle conditional 3DI/null behavioral documentation conflicts"
+  ],
+  "input_hashes_unchanged_after_inspection": true
+}
