@@ -1,0 +1,135 @@
+{
+  "schema": "swcli.markingjig-probe-native-audit.v1",
+  "allocation_id": "VM-20261112-MARKINGJIG-PROBE-01",
+  "source_head": "e3d9bd9a4ce726e6fdb97277c73fca02237c6c08",
+  "evidence_audit_passed": true,
+  "probe_success": false,
+  "native_or_public_acceptance": false,
+  "mode": "probe",
+  "candidate_launches": 1,
+  "OpenDoc7_attempts": 1,
+  "explicit_export_save_attempts": 0,
+  "host": {
+    "process_id": 5336,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "worker_pid": 4996,
+  "worker_exit": 1,
+  "primary_failure": {
+    "stage": "OpenDoc7",
+    "errors": 0,
+    "warnings": 2,
+    "message": "OpenDoc7 failed/warned; no alternate opening",
+    "official_2025_warning": {
+      "url": "https://help.solidworks.com/2025/English/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swFileLoadWarning_e.html",
+      "version": "2025",
+      "filePath": "swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swFileLoadWarning_e.html",
+      "retrieved_html_sha256": "5ce18b8a7fc163970c002f573c95b4947c584bf6e1b8a405167fa91396cfbe1d",
+      "selected_text": "swFileLoadWarning_ReadOnly 2 or 0x2 = Warning appears because the document is read only."
+    }
+  },
+  "incomplete": [
+    "actual loaded model readonly/configuration/edit state",
+    "resolved component graph",
+    "modern dependencies and broken/import census",
+    "geometry",
+    "observer process identity",
+    "GLB"
+  ],
+  "secondary_source_window_failure": {
+    "message": "working-copy bytes/identity/state changed",
+    "changes": {
+      "MarkingJig.REND.SLDASM": {
+        "handle_before": {
+          "st_ctime_ns": {
+            "before": 1794484561313916500,
+            "after": 1794484583570629700
+          }
+        },
+        "handle_after": {
+          "st_ctime_ns": {
+            "before": 1794484561313916500,
+            "after": 1794484583570629700
+          }
+        }
+      }
+    },
+    "content_hashes_unchanged": true,
+    "all_other_recorded_copy_metadata_fields_unchanged": true
+  },
+  "owned_cleanup_times": {
+    "OpenDoc7-readonly": {
+      "begin": 1794484580.226965,
+      "end": 1794484587.6035836,
+      "elapsed_seconds": 7.3766186237335205
+    },
+    "CloseDoc": {
+      "begin": 1794484587.6299326,
+      "end": 1794484588.1231134,
+      "elapsed_seconds": 0.4931807518005371
+    },
+    "ExitApp": {
+      "begin": 1794484588.1232305,
+      "end": 1794484588.1261523,
+      "elapsed_seconds": 0.0029218196868896484
+    },
+    "WaitForOwnedProcess": {
+      "begin": 1794484588.126225,
+      "end": 1794484591.2936754,
+      "elapsed_seconds": 3.167450428009033
+    },
+    "CloseProcessHandle": {
+      "begin": 1794484591.2939837,
+      "end": 1794484591.2955043,
+      "elapsed_seconds": 0.0015206336975097656
+    },
+    "CoUninitialize": {
+      "begin": 1794484591.2955875,
+      "end": 1794484591.2996,
+      "elapsed_seconds": 0.004012346267700195
+    }
+  },
+  "native_pids_before": [],
+  "native_pids_after": [],
+  "Mac_originals_and_existing_GLB_fingerprints_unchanged": true,
+  "approved_copies": 10,
+  "inventory_sha256": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d",
+  "package_sha256": "410e6fe30a6b162e009735cece4a6fa5fd98c71186937c58acd2b72a944eae21",
+  "code_before_after_unchanged": true,
+  "host_restoration": {
+    "list_exit": 0,
+    "selected_info": [
+      "ID: {da36dd51-bd6d-4e7a-995b-547464583302}",
+      "Name: Windows",
+      "State: paused",
+      "  Pause idle: on"
+    ],
+    "initial_state": "stopped",
+    "initial_pause_idle": "on",
+    "temporary_pause_idle": "off",
+    "restore_command": "prlctl set {da36dd51-bd6d-4e7a-995b-547464583302} --pause-idle on",
+    "restore_exit": 0,
+    "schedule_modified": false
+  },
+  "evidence_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261112/markingjig-probe-e3d9bd9-01",
+  "raw_sha256": {
+    "allocation-inputs.json": "a15d3c324305f401fa672d455cf5163136abfdc9403c7d61cd689766ec7ba434",
+    "launcher-context.json": "8cb42dcbaf0742e0812ddfbef92ac596dfec4626d6782483e1e624cf9ab8fe74",
+    "native-output/report.json": "a729e16e746a8bac64ea6e51d45df9074d1de68002129f36d04b87d30d0cb42f",
+    "native-output/markingjig-supervisor.json": "80c66899a64f18e539e128db4d276f8e36f948d08f44b7c4c7b59b9160740777",
+    "native-output/trace.jsonl": "588db36bc302ab4cabe8faea5f0ad9ec7772824f70eb44e969efd95fc4d14b03",
+    "native-output/worker.stderr.log": "60eb2bf798f8f01de02831fad286c93937aaefcf6e4150317c3b467c4f6c0cf7",
+    "mac-originals-before.json": "72cab2e1a5b9ca08c056bfaff2643f61a476ef99676061de688ccb956e5c51e8",
+    "mac-originals-after.json": "72cab2e1a5b9ca08c056bfaff2643f61a476ef99676061de688ccb956e5c51e8",
+    "vm-copy-OS-postcheck.stdout": "802b4a49305e6494b4a8c186c2981f9b7484efb7e6c6b2ba20603040b1381b94",
+    "vm-copy-metadata-diff.json": "524a01c55d39a1bf3ce15e030518d1c40ab88b597f0287b0c1864165a3bac546",
+    "host-restore-state.json": "a73239f0ca4b5dc10e1c90417436dc36da51c726b3aa2434652b7c33a6efe74e"
+  },
+  "limits": [
+    "No retry/repair/resolve/configuration change/alternate open or invoke.",
+    "Warning is checked against official2025 metadata, not a subsequent CAD query.",
+    "Only bytes and recorded metadata were checked; no complete file-access timeline or underlying cause inferred.",
+    "Source-window postcheck failed independently of successful CloseDoc/ExitApp/owned wait; not a GLB content result."
+  ]
+}
