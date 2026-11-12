@@ -1,0 +1,31 @@
+{
+  "baseline_head": "bcb6237d27b87aa09010e20d2613cad31ecb45b3",
+  "portable_step_tests": {
+    "tests": 192,
+    "new_tests": 9,
+    "seconds": 8.714,
+    "result": "PASS",
+    "log_sha256": "aa84286ae32c1f8a322ad27a366e8afd54110b3cbc628ae491f134a5dfbed4cc"
+  },
+  "actionlint": "PASS; unchanged ci.yml",
+  "python_compile": "PASS",
+  "diff_check": "PASS",
+  "existing_baseline_files_changed": [
+    "scripts/ci/gate_support/step_sketch_readback_candidate.py"
+  ],
+  "all_other_baseline_tracked_blobs": "byte-identical including CI, production, tree traversal, import binding, thresholds and historical evidence",
+  "added_exact_types": [
+    "FavoriteFolder",
+    "HistoryFolder",
+    "SelectionSetFolder",
+    "SensorFolder",
+    "InkMarkupFolder",
+    "NotesAreaFtrFolder"
+  ],
+  "unknown_descendants": "still rejected; containers do not prune children",
+  "changed_zip_negative_check": "refused Original ZIP differs before report creation",
+  "native_execution": false,
+  "new_ci_dispatches": 0,
+  "pushes": 0,
+  "native_acceptance": false
+}

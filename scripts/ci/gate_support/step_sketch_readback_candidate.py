@@ -10,7 +10,9 @@ from gate_support.step_fixture_checks import verify_wire_geometry
 
 SKETCH_TYPES=frozenset(('ProfileFeature','3DProfileFeature'))
 NON_GEOMETRY_TYPES=frozenset(('CommentsFolder','DocsFolder','SurfaceBodyFolder','SolidBodyFolder','EnvFolder',
-    'DetailCabinet','EqnFolder','MaterialFolder','RefPlane','OriginProfileFeature','AmbientLight','DirectionLight','PointLight','CameraFeature'))
+    'DetailCabinet','EqnFolder','MaterialFolder','RefPlane','OriginProfileFeature','AmbientLight','DirectionLight','PointLight','CameraFeature',
+    # Exact containers: docs/step-public-43260435588-system-metadata.md. Children still traverse.
+    'FavoriteFolder','HistoryFolder','SelectionSetFolder','SensorFolder','InkMarkupFolder','NotesAreaFtrFolder'))
 EXPECTED_OUTPUTS=tuple((p,g,'cli') for p in ('ap203','ap214') for g in ('solid-surface','wireframe','wireframe-sketches'))+(
     ('ap214','solid-surface','sdk'),('ap203','wireframe','mcp'))
 
