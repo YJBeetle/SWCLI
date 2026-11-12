@@ -1,0 +1,27 @@
+{
+  "kind": "installed 2025 primary help read-only extraction and online primary cross-check; no CAD",
+  "installed_sources": [
+    {
+      "chm": "api/swconst.chm",
+      "chm_sha256": "d9227d92abc44bc964d897641352a2f4efe984453d28c14a4364008a14bf3300",
+      "member": "FileOpenOptionsSTEPIGESACIS.htm",
+      "member_sha256": "badfec65e3d8a882fb6436c8a2210a3d274fd1e9494933bb2cfe64bfff14d6b7"
+    },
+    {
+      "chm": "api/swconst.chm",
+      "chm_sha256": "d9227d92abc44bc964d897641352a2f4efe984453d28c14a4364008a14bf3300",
+      "member": "FileOpenOptionsGeneral.htm",
+      "member_sha256": "6cd594be10a5364dd6f615a16d04b58c0077380db11e1d74fc28c4c678ebbf3f"
+    }
+  ],
+  "primary_urls": [
+    "https://help.solidworks.com/2023/English/api/swconst/FileOpenOptionsSTEPIGESACIS.htm",
+    "https://help.solidworks.com/2025/English/api/swconst/FileOpenOptionsGeneral.htm"
+  ],
+  "findings": {
+    "neutral": "STEP/IGES/ACIS Entities to Import Free Curves and Points as Sketch maps to swImportNeutral_FreeCurvesAndPoints BOOL",
+    "general": "swImportFreeCurves applies with 3DI disabled and also requires swImportCurvePreference",
+    "precedence": "Neither cited table establishes actual General versus Neutral precedence in the 2025 LoadFile4 translator",
+    "candidate": "Only NeutralFree false to true relative to current e039 NULL+AsSketch0 profile; a hypothesis supported by entity-selection semantics and cross-original difference, not a proven cause"
+  }
+}

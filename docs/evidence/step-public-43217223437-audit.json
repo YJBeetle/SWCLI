@@ -1,0 +1,1583 @@
+{
+  "run_id": 43217223437,
+  "head": "e039ae596d20d870752c6de7b02c8e1b283d5d62",
+  "artifact_id": 13944637284,
+  "zip_sha256": "5aaf00aaf391020b21029106b1dcad9bfe0409b6e30a21f2b821c527fda0f8cd",
+  "job_sha256": "7b3e89477dc08d9eda912b77f55f79b93d8ededb18b446675a9ab07318fcc578",
+  "writer_report_sha256": "12593e1ad5ef217854eff0cb55280c53f2510ffc3ee4195dd1f4c306b25c79dd",
+  "reader_report_sha256": "0db86a01969bdb7828da88a6b845f916bd992079acef922171e075a5ed708aa3",
+  "expanded_members_equal": 106,
+  "source_files_sha256": {
+    "scripts/ci/gate_support/step_null_sketch_readback_candidate.py": {
+      "observed": "2c5bd05998a712ab92497f4ad00ac056c8a18f0724287df1fa1f6b46ccc59533",
+      "git_lf_sha256": "0bf8ddf6563d5b3ec0fd189de31ce9e9258c018ce69b2c8ea691fc3fb4423884",
+      "git_crlf_sha256": "2c5bd05998a712ab92497f4ad00ac056c8a18f0724287df1fa1f6b46ccc59533",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    },
+    "scripts/ci/gate_support/step_sketch_readback_candidate.py": {
+      "observed": "cce4ad1f47744494941d31a043efe2093dc8ad694cb2cc839e28e2717a36edde",
+      "git_lf_sha256": "35e4ee38e6694101f2c286efbbb63da46267db4c66bada53ea1fa4c854fe5a30",
+      "git_crlf_sha256": "cce4ad1f47744494941d31a043efe2093dc8ad694cb2cc839e28e2717a36edde",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    },
+    "scripts/ci/gate_support/step_explicit_null_binding.py": {
+      "observed": "47e2514ea9d4eeaa858d3b1244b6d288d421e2dedd8b45cf2cd469676b0ca24d",
+      "git_lf_sha256": "d752d9430ab6e74404cf48efcb93fdbcba1bb2fcde41fbc8ced07b4de8aed8ba",
+      "git_crlf_sha256": "47e2514ea9d4eeaa858d3b1244b6d288d421e2dedd8b45cf2cd469676b0ca24d",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    },
+    "scripts/ci/gate_support/step_null_binding.py": {
+      "observed": "a8633098b0c92de69c3fa249c23da1c5219ed2e3018c58d8e819ef444a6504f0",
+      "git_lf_sha256": "4c5f648a20b26b58d0235fdd7949c876b2af5a38c68d6f79391e4213efe450a5",
+      "git_crlf_sha256": "a8633098b0c92de69c3fa249c23da1c5219ed2e3018c58d8e819ef444a6504f0",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    },
+    "scripts/ci/verify-step-export-calibration.py": {
+      "observed": "3b83fdddc90ba6f309bba5c9ee3fe176bdb8d6a22631c474823f32cba8ea89e1",
+      "git_lf_sha256": "a8b91199bb16eed878ac54f888e2403b2cec25552c80ac680fff951a0d5ce6ce",
+      "git_crlf_sha256": "3b83fdddc90ba6f309bba5c9ee3fe176bdb8d6a22631c474823f32cba8ea89e1",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    },
+    "scripts/ci/inspect-step-loadfile4-metadata.py": {
+      "observed": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+      "git_lf_sha256": "9392b7f7383f77f995251839adf75914d9065705b57588c023c8096c09ce45ff",
+      "git_crlf_sha256": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+      "match": "exact CRLF checkout reconstruction; not raw Git LF equality"
+    }
+  },
+  "explicit_null_imports": [
+    {
+      "status": "returned",
+      "comparison_head": "f56f7929c6877248926ba2497523c8be9d65c5f4",
+      "changed_variables": [
+        "invocation binding",
+        "ImportData semantic value"
+      ],
+      "single_null_causal_claim": false,
+      "factory_argument_used": false,
+      "binding": {
+        "status": "verified",
+        "explicit_invoke_attempted": true,
+        "changed_variables_from_f56f792": [
+          "invocation binding",
+          "ImportData semantic value"
+        ],
+        "single_null_causal_claim": false,
+        "existing_python_state": {
+          "state_keys": [
+            "_builtMethods_",
+            "_enum_",
+            "_lazydata_",
+            "_mapCachedItems_",
+            "_oleobj_",
+            "_olerepr_",
+            "_unicode_to_string_",
+            "_username_"
+          ],
+          "lazydata": {
+            "key_present": true,
+            "is_none": true,
+            "python_type": "builtins.NoneType"
+          },
+          "representation_type": "win32com.client.build.DispatchItem",
+          "maps": {
+            "mapFuncs": {
+              "python_type": "builtins.dict",
+              "count": 4,
+              "keys": [
+                "GetImportFileData",
+                "GetUserPreferenceIntegerValue",
+                "GetUserPreferenceToggle",
+                "SetUserPreferenceToggle"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": true,
+                  "python_type": "win32com.client.build.MapEntry",
+                  "dispid": 217,
+                  "descriptor_is_none": true,
+                  "descriptor_type": "builtins.NoneType",
+                  "names": [
+                    "GetImportFileData"
+                  ]
+                }
+              }
+            },
+            "propMap": {
+              "python_type": "builtins.dict",
+              "count": 2,
+              "keys": [
+                "UserControlBackground",
+                "Visible"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapGet": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapPut": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            }
+          },
+          "built_methods": {
+            "python_type": "builtins.dict",
+            "count": 4,
+            "load_present": false
+          }
+        },
+        "GetIDsOfNames": {
+          "status": "observed",
+          "lcid": 0,
+          "names": [
+            "LoadFile4"
+          ],
+          "value": 227,
+          "python_type": "builtins.int"
+        },
+        "state_after_name_lookup": {
+          "state_keys": [
+            "_builtMethods_",
+            "_enum_",
+            "_lazydata_",
+            "_mapCachedItems_",
+            "_oleobj_",
+            "_olerepr_",
+            "_unicode_to_string_",
+            "_username_"
+          ],
+          "lazydata": {
+            "key_present": true,
+            "is_none": true,
+            "python_type": "builtins.NoneType"
+          },
+          "representation_type": "win32com.client.build.DispatchItem",
+          "maps": {
+            "mapFuncs": {
+              "python_type": "builtins.dict",
+              "count": 4,
+              "keys": [
+                "GetImportFileData",
+                "GetUserPreferenceIntegerValue",
+                "GetUserPreferenceToggle",
+                "SetUserPreferenceToggle"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": true,
+                  "python_type": "win32com.client.build.MapEntry",
+                  "dispid": 217,
+                  "descriptor_is_none": true,
+                  "descriptor_type": "builtins.NoneType",
+                  "names": [
+                    "GetImportFileData"
+                  ]
+                }
+              }
+            },
+            "propMap": {
+              "python_type": "builtins.dict",
+              "count": 2,
+              "keys": [
+                "UserControlBackground",
+                "Visible"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapGet": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapPut": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            }
+          },
+          "built_methods": {
+            "python_type": "builtins.dict",
+            "count": 4,
+            "load_present": false
+          }
+        },
+        "binding": "explicit existing PyIDispatch.Invoke",
+        "installed_contract": {
+          "verified": true,
+          "tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+          "dispid": 227,
+          "lcid": 0,
+          "invkind": 1,
+          "arg_types": [
+            [
+              8,
+              1
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              16387,
+              3
+            ]
+          ],
+          "method": {
+            "interface": {
+              "name": "ISldWorks",
+              "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+            },
+            "dispid": 227,
+            "record_offset": 941396,
+            "record_hex": "5c00e700190019800000000070079c000944e70005000000e3001000ac7803000800088020b7000001000000080008803cb703000100000009000980c4dc030001000000080000001ce200000300000088040000440000000a000000",
+            "return_type": {
+              "type": "VT_HRESULT",
+              "encoded": "0x80190019"
+            },
+            "optional_count": 0,
+            "parameters": [
+              {
+                "name": "FileName",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ArgString",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ImportData",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_DISPATCH",
+                  "encoded": "0x80090009"
+                }
+              },
+              {
+                "name": "Errors",
+                "flags": 3,
+                "in_": true,
+                "out": true,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 8,
+                  "raw_hex": "1a00034003000380",
+                  "target": {
+                    "type": "VT_I4",
+                    "encoded": "0x80030003"
+                  }
+                }
+              },
+              {
+                "name": "Retval",
+                "flags": 10,
+                "in_": false,
+                "out": true,
+                "retval": true,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 1160,
+                  "raw_hex": "1a00ff7f20040000",
+                  "target": {
+                    "type": "VT_PTR",
+                    "offset": 1056,
+                    "raw_hex": "1a00ff7f18040000",
+                    "target": {
+                      "type": "VT_USERDEFINED",
+                      "offset": 1048,
+                      "raw_hex": "1d00ff7fa4060000",
+                      "reference": {
+                        "name": "IModelDoc2",
+                        "guid": "b90793fb-ef3d-4b80-a5c4-99959cdb6ceb"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "parser_sha256": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+          "binding": "explicit Generic Invoke constrained by installed declaration; not old bound method"
+        },
+        "original_bound_method_used": false,
+        "host_rewrapped": false,
+        "invoke_source": {
+          "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyIDispatch.cpp",
+          "sha256": "8cb132de33fdbfeaaf42085687ce74d4a973f813d98f6f88e7284be9cb229fff",
+          "scope": "reviewed C++ source, not loaded native binary attestation"
+        },
+        "raw_typeinfo": "not queried; installed declaration constrains this new binding",
+        "pointer_evidence_kind": "explicit VARIANT9/None plus b312 conversion proof; no native-memory measurement",
+        "actual_argument": {
+          "python_form": "VARIANT(VT_DISPATCH,None)",
+          "observed_varianttype": 9,
+          "observed_value_is_none": true,
+          "null_dispatch_pointer_by_conversion_proof": true
+        },
+        "raw_return": {
+          "returned": true,
+          "python_type": "builtins.PyIDispatch",
+          "scope": "after Invoke; before original Python return policy"
+        },
+        "original_return_policy_completed": true
+      },
+      "prehost_proof": {
+        "binding_package": {
+          "verified": true,
+          "version_requirement": "312; checked by worker",
+          "normalization": "CRLF to LF only",
+          "sources": {
+            "dynamic": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/dynamic.py",
+            "build": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/build.py",
+            "client": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+            "conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/oleargs.cpp",
+            "interface_conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyComHelpers.cpp"
+          },
+          "conversion_source_sha256": {
+            "oleargs.cpp": "f57f75638443b740f36c8273381f6b63d78beca371112867bb125f973f55efab",
+            "PyComHelpers.cpp": "d048ca6567c82595237c7a46f8a0b469805f1589e2cfca9510eca79f96cf61ce"
+          },
+          "files": {
+            "dynamic": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\dynamic.py",
+              "normalized_sha256": "b217819b4d9b1cbd474b463b4181a683e311d2cf0a2a14fd1dd1b00595bb7797"
+            },
+            "build": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\build.py",
+              "normalized_sha256": "ef246eee3d2bb7b852d522b65a155678f3fc01f7010c1c38f5ed6c8b7424056f"
+            },
+            "client": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\__init__.py",
+              "normalized_sha256": "a0fa92dcf3bd6cb6ce8bba38c6bee95b12b95a325852b1dbeb559464d431b36a"
+            }
+          },
+          "runtime_return_handlers": {
+            "_get_good_object_": "5c38c821be8352b1f9c557af0467aafba70baf5f82ca25e1f138e5b844c099cf",
+            "_get_good_single_object_": "9cd725d49cd6e6f24415d96e4ffcaaa53b17b2dc337fc8bcba23bbd7c5c49c5a",
+            "_wrap_dispatch_": "89b51a4dc8be696fa8c99209e041e7093ffd681cd1a6213a8ffcc0d8a82e3cde"
+          },
+          "runtime_handlers": {
+            "__getattr__": "104de6172bdbad1dda6396fef70d036d87a14ef6da79770c84e901e923f92dcc",
+            "_LazyAddAttr_": "6f053a460696e397a5d49b08dd28e2daa1f8150a70652272ccad1409a997dfd9",
+            "_make_method_": "bd6f4c31c44afb70173f2d7cd4db395f65364096f3548292b569a35525834bdb",
+            "_ApplyTypes_": "05565aa2e34ee53ada7d901670edd64fd5d70fe9492dd75f31ef97445963f996"
+          },
+          "client_wrapper_handlers": {
+            "_wrap_dispatch_": "d1cb002d32b783b6cf59fbbee1eacd0924fa254b1c603f852b8c42c404f60c1a",
+            "__dir__": "c2f5ab56ac0543e3ea6bae53ffacb8ae2ed9e2c3316aa22bbfb096e59df87776"
+          },
+          "client_factory_handlers": {
+            "DispatchEx": "c2ed2cf0a6f0cc31d5e5078b4a9729cafd53904a37a33f91c90ec1ac8d6def7b",
+            "Dispatch": "13df2ddfca8a861c175e0d8b57583da311fab7be1c62cba0559dcc4db4e50a02",
+            "__WrapDispatch": "60fc89d16d2a9e72b3b5dec7a323606025be81257c59e2953eb19d41719026a8"
+          }
+        },
+        "installed_invocation_contract": {
+          "verified": true,
+          "tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+          "dispid": 227,
+          "lcid": 0,
+          "invkind": 1,
+          "arg_types": [
+            [
+              8,
+              1
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              16387,
+              3
+            ]
+          ],
+          "method": {
+            "interface": {
+              "name": "ISldWorks",
+              "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+            },
+            "dispid": 227,
+            "record_offset": 941396,
+            "record_hex": "5c00e700190019800000000070079c000944e70005000000e3001000ac7803000800088020b7000001000000080008803cb703000100000009000980c4dc030001000000080000001ce200000300000088040000440000000a000000",
+            "return_type": {
+              "type": "VT_HRESULT",
+              "encoded": "0x80190019"
+            },
+            "optional_count": 0,
+            "parameters": [
+              {
+                "name": "FileName",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ArgString",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ImportData",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_DISPATCH",
+                  "encoded": "0x80090009"
+                }
+              },
+              {
+                "name": "Errors",
+                "flags": 3,
+                "in_": true,
+                "out": true,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 8,
+                  "raw_hex": "1a00034003000380",
+                  "target": {
+                    "type": "VT_I4",
+                    "encoded": "0x80030003"
+                  }
+                }
+              },
+              {
+                "name": "Retval",
+                "flags": 10,
+                "in_": false,
+                "out": true,
+                "retval": true,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 1160,
+                  "raw_hex": "1a00ff7f20040000",
+                  "target": {
+                    "type": "VT_PTR",
+                    "offset": 1056,
+                    "raw_hex": "1a00ff7f18040000",
+                    "target": {
+                      "type": "VT_USERDEFINED",
+                      "offset": 1048,
+                      "raw_hex": "1d00ff7fa4060000",
+                      "reference": {
+                        "name": "IModelDoc2",
+                        "guid": "b90793fb-ef3d-4b80-a5c4-99959cdb6ceb"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "parser_sha256": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+          "binding": "explicit Generic Invoke constrained by installed declaration; not old bound method"
+        },
+        "source_files_sha256": {
+          "gate_support\\step_null_sketch_readback_candidate.py": "2c5bd05998a712ab92497f4ad00ac056c8a18f0724287df1fa1f6b46ccc59533",
+          "gate_support\\step_sketch_readback_candidate.py": "cce4ad1f47744494941d31a043efe2093dc8ad694cb2cc839e28e2717a36edde",
+          "gate_support\\step_explicit_null_binding.py": "47e2514ea9d4eeaa858d3b1244b6d288d421e2dedd8b45cf2cd469676b0ca24d",
+          "gate_support\\step_null_binding.py": "a8633098b0c92de69c3fa249c23da1c5219ed2e3018c58d8e819ef444a6504f0",
+          "verify-step-export-calibration.py": "3b83fdddc90ba6f309bba5c9ee3fe176bdb8d6a22631c474823f32cba8ea89e1",
+          "inspect-step-loadfile4-metadata.py": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0"
+        },
+        "selection": "explicit installed-TLB NULL binding plus fixed f56f792 AsSketches profile; selected before any LoadFile4",
+        "single_null_causal_claim": false
+      },
+      "document_returned": true,
+      "errors": 0
+    },
+    {
+      "status": "returned",
+      "comparison_head": "f56f7929c6877248926ba2497523c8be9d65c5f4",
+      "changed_variables": [
+        "invocation binding",
+        "ImportData semantic value"
+      ],
+      "single_null_causal_claim": false,
+      "factory_argument_used": false,
+      "binding": {
+        "status": "verified",
+        "explicit_invoke_attempted": true,
+        "changed_variables_from_f56f792": [
+          "invocation binding",
+          "ImportData semantic value"
+        ],
+        "single_null_causal_claim": false,
+        "existing_python_state": {
+          "state_keys": [
+            "_builtMethods_",
+            "_enum_",
+            "_lazydata_",
+            "_mapCachedItems_",
+            "_oleobj_",
+            "_olerepr_",
+            "_unicode_to_string_",
+            "_username_"
+          ],
+          "lazydata": {
+            "key_present": true,
+            "is_none": true,
+            "python_type": "builtins.NoneType"
+          },
+          "representation_type": "win32com.client.build.DispatchItem",
+          "maps": {
+            "mapFuncs": {
+              "python_type": "builtins.dict",
+              "count": 6,
+              "keys": [
+                "CloseDoc",
+                "GetImportFileData",
+                "GetUserPreferenceIntegerValue",
+                "GetUserPreferenceToggle",
+                "OpenDoc6",
+                "SetUserPreferenceToggle"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": true,
+                  "python_type": "win32com.client.build.MapEntry",
+                  "dispid": 217,
+                  "descriptor_is_none": true,
+                  "descriptor_type": "builtins.NoneType",
+                  "names": [
+                    "GetImportFileData"
+                  ]
+                }
+              }
+            },
+            "propMap": {
+              "python_type": "builtins.dict",
+              "count": 2,
+              "keys": [
+                "UserControlBackground",
+                "Visible"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapGet": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapPut": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            }
+          },
+          "built_methods": {
+            "python_type": "builtins.dict",
+            "count": 6,
+            "load_present": false
+          }
+        },
+        "GetIDsOfNames": {
+          "status": "observed",
+          "lcid": 0,
+          "names": [
+            "LoadFile4"
+          ],
+          "value": 227,
+          "python_type": "builtins.int"
+        },
+        "state_after_name_lookup": {
+          "state_keys": [
+            "_builtMethods_",
+            "_enum_",
+            "_lazydata_",
+            "_mapCachedItems_",
+            "_oleobj_",
+            "_olerepr_",
+            "_unicode_to_string_",
+            "_username_"
+          ],
+          "lazydata": {
+            "key_present": true,
+            "is_none": true,
+            "python_type": "builtins.NoneType"
+          },
+          "representation_type": "win32com.client.build.DispatchItem",
+          "maps": {
+            "mapFuncs": {
+              "python_type": "builtins.dict",
+              "count": 6,
+              "keys": [
+                "CloseDoc",
+                "GetImportFileData",
+                "GetUserPreferenceIntegerValue",
+                "GetUserPreferenceToggle",
+                "OpenDoc6",
+                "SetUserPreferenceToggle"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": true,
+                  "python_type": "win32com.client.build.MapEntry",
+                  "dispid": 217,
+                  "descriptor_is_none": true,
+                  "descriptor_type": "builtins.NoneType",
+                  "names": [
+                    "GetImportFileData"
+                  ]
+                }
+              }
+            },
+            "propMap": {
+              "python_type": "builtins.dict",
+              "count": 2,
+              "keys": [
+                "UserControlBackground",
+                "Visible"
+              ],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapGet": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            },
+            "propMapPut": {
+              "python_type": "builtins.dict",
+              "count": 0,
+              "keys": [],
+              "keys_truncated": false,
+              "targets": {
+                "LoadFile4": {
+                  "present": false
+                },
+                "GetImportFileData": {
+                  "present": false
+                }
+              }
+            }
+          },
+          "built_methods": {
+            "python_type": "builtins.dict",
+            "count": 6,
+            "load_present": false
+          }
+        },
+        "binding": "explicit existing PyIDispatch.Invoke",
+        "installed_contract": {
+          "verified": true,
+          "tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+          "dispid": 227,
+          "lcid": 0,
+          "invkind": 1,
+          "arg_types": [
+            [
+              8,
+              1
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              16387,
+              3
+            ]
+          ],
+          "method": {
+            "interface": {
+              "name": "ISldWorks",
+              "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+            },
+            "dispid": 227,
+            "record_offset": 941396,
+            "record_hex": "5c00e700190019800000000070079c000944e70005000000e3001000ac7803000800088020b7000001000000080008803cb703000100000009000980c4dc030001000000080000001ce200000300000088040000440000000a000000",
+            "return_type": {
+              "type": "VT_HRESULT",
+              "encoded": "0x80190019"
+            },
+            "optional_count": 0,
+            "parameters": [
+              {
+                "name": "FileName",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ArgString",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ImportData",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_DISPATCH",
+                  "encoded": "0x80090009"
+                }
+              },
+              {
+                "name": "Errors",
+                "flags": 3,
+                "in_": true,
+                "out": true,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 8,
+                  "raw_hex": "1a00034003000380",
+                  "target": {
+                    "type": "VT_I4",
+                    "encoded": "0x80030003"
+                  }
+                }
+              },
+              {
+                "name": "Retval",
+                "flags": 10,
+                "in_": false,
+                "out": true,
+                "retval": true,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 1160,
+                  "raw_hex": "1a00ff7f20040000",
+                  "target": {
+                    "type": "VT_PTR",
+                    "offset": 1056,
+                    "raw_hex": "1a00ff7f18040000",
+                    "target": {
+                      "type": "VT_USERDEFINED",
+                      "offset": 1048,
+                      "raw_hex": "1d00ff7fa4060000",
+                      "reference": {
+                        "name": "IModelDoc2",
+                        "guid": "b90793fb-ef3d-4b80-a5c4-99959cdb6ceb"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "parser_sha256": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+          "binding": "explicit Generic Invoke constrained by installed declaration; not old bound method"
+        },
+        "original_bound_method_used": false,
+        "host_rewrapped": false,
+        "invoke_source": {
+          "url": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyIDispatch.cpp",
+          "sha256": "8cb132de33fdbfeaaf42085687ce74d4a973f813d98f6f88e7284be9cb229fff",
+          "scope": "reviewed C++ source, not loaded native binary attestation"
+        },
+        "raw_typeinfo": "not queried; installed declaration constrains this new binding",
+        "pointer_evidence_kind": "explicit VARIANT9/None plus b312 conversion proof; no native-memory measurement",
+        "actual_argument": {
+          "python_form": "VARIANT(VT_DISPATCH,None)",
+          "observed_varianttype": 9,
+          "observed_value_is_none": true,
+          "null_dispatch_pointer_by_conversion_proof": true
+        },
+        "raw_return": {
+          "returned": false,
+          "python_type": "builtins.NoneType",
+          "scope": "after Invoke; before original Python return policy"
+        },
+        "original_return_policy_completed": true
+      },
+      "prehost_proof": {
+        "binding_package": {
+          "verified": true,
+          "version_requirement": "312; checked by worker",
+          "normalization": "CRLF to LF only",
+          "sources": {
+            "dynamic": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/dynamic.py",
+            "build": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/build.py",
+            "client": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/client/__init__.py",
+            "conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/oleargs.cpp",
+            "interface_conversion": "https://github.com/mhammond/pywin32/blob/b312/com/win32com/src/PyComHelpers.cpp"
+          },
+          "conversion_source_sha256": {
+            "oleargs.cpp": "f57f75638443b740f36c8273381f6b63d78beca371112867bb125f973f55efab",
+            "PyComHelpers.cpp": "d048ca6567c82595237c7a46f8a0b469805f1589e2cfca9510eca79f96cf61ce"
+          },
+          "files": {
+            "dynamic": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\dynamic.py",
+              "normalized_sha256": "b217819b4d9b1cbd474b463b4181a683e311d2cf0a2a14fd1dd1b00595bb7797"
+            },
+            "build": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\build.py",
+              "normalized_sha256": "ef246eee3d2bb7b852d522b65a155678f3fc01f7010c1c38f5ed6c8b7424056f"
+            },
+            "client": {
+              "path": "C:\\hostedtoolcache\\windows\\Python\\3.12.10\\x64\\Lib\\site-packages\\win32com\\client\\__init__.py",
+              "normalized_sha256": "a0fa92dcf3bd6cb6ce8bba38c6bee95b12b95a325852b1dbeb559464d431b36a"
+            }
+          },
+          "runtime_return_handlers": {
+            "_get_good_object_": "5c38c821be8352b1f9c557af0467aafba70baf5f82ca25e1f138e5b844c099cf",
+            "_get_good_single_object_": "9cd725d49cd6e6f24415d96e4ffcaaa53b17b2dc337fc8bcba23bbd7c5c49c5a",
+            "_wrap_dispatch_": "89b51a4dc8be696fa8c99209e041e7093ffd681cd1a6213a8ffcc0d8a82e3cde"
+          },
+          "runtime_handlers": {
+            "__getattr__": "104de6172bdbad1dda6396fef70d036d87a14ef6da79770c84e901e923f92dcc",
+            "_LazyAddAttr_": "6f053a460696e397a5d49b08dd28e2daa1f8150a70652272ccad1409a997dfd9",
+            "_make_method_": "bd6f4c31c44afb70173f2d7cd4db395f65364096f3548292b569a35525834bdb",
+            "_ApplyTypes_": "05565aa2e34ee53ada7d901670edd64fd5d70fe9492dd75f31ef97445963f996"
+          },
+          "client_wrapper_handlers": {
+            "_wrap_dispatch_": "d1cb002d32b783b6cf59fbbee1eacd0924fa254b1c603f852b8c42c404f60c1a",
+            "__dir__": "c2f5ab56ac0543e3ea6bae53ffacb8ae2ed9e2c3316aa22bbfb096e59df87776"
+          },
+          "client_factory_handlers": {
+            "DispatchEx": "c2ed2cf0a6f0cc31d5e5078b4a9729cafd53904a37a33f91c90ec1ac8d6def7b",
+            "Dispatch": "13df2ddfca8a861c175e0d8b57583da311fab7be1c62cba0559dcc4db4e50a02",
+            "__WrapDispatch": "60fc89d16d2a9e72b3b5dec7a323606025be81257c59e2953eb19d41719026a8"
+          }
+        },
+        "installed_invocation_contract": {
+          "verified": true,
+          "tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159",
+          "dispid": 227,
+          "lcid": 0,
+          "invkind": 1,
+          "arg_types": [
+            [
+              8,
+              1
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              16387,
+              3
+            ]
+          ],
+          "method": {
+            "interface": {
+              "name": "ISldWorks",
+              "guid": "83a33d22-27c5-11ce-bfd4-00400513bb57"
+            },
+            "dispid": 227,
+            "record_offset": 941396,
+            "record_hex": "5c00e700190019800000000070079c000944e70005000000e3001000ac7803000800088020b7000001000000080008803cb703000100000009000980c4dc030001000000080000001ce200000300000088040000440000000a000000",
+            "return_type": {
+              "type": "VT_HRESULT",
+              "encoded": "0x80190019"
+            },
+            "optional_count": 0,
+            "parameters": [
+              {
+                "name": "FileName",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ArgString",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_BSTR",
+                  "encoded": "0x80080008"
+                }
+              },
+              {
+                "name": "ImportData",
+                "flags": 1,
+                "in_": true,
+                "out": false,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_DISPATCH",
+                  "encoded": "0x80090009"
+                }
+              },
+              {
+                "name": "Errors",
+                "flags": 3,
+                "in_": true,
+                "out": true,
+                "retval": false,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 8,
+                  "raw_hex": "1a00034003000380",
+                  "target": {
+                    "type": "VT_I4",
+                    "encoded": "0x80030003"
+                  }
+                }
+              },
+              {
+                "name": "Retval",
+                "flags": 10,
+                "in_": false,
+                "out": true,
+                "retval": true,
+                "datatype": {
+                  "type": "VT_PTR",
+                  "offset": 1160,
+                  "raw_hex": "1a00ff7f20040000",
+                  "target": {
+                    "type": "VT_PTR",
+                    "offset": 1056,
+                    "raw_hex": "1a00ff7f18040000",
+                    "target": {
+                      "type": "VT_USERDEFINED",
+                      "offset": 1048,
+                      "raw_hex": "1d00ff7fa4060000",
+                      "reference": {
+                        "name": "IModelDoc2",
+                        "guid": "b90793fb-ef3d-4b80-a5c4-99959cdb6ceb"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "parser_sha256": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0",
+          "binding": "explicit Generic Invoke constrained by installed declaration; not old bound method"
+        },
+        "source_files_sha256": {
+          "gate_support\\step_null_sketch_readback_candidate.py": "2c5bd05998a712ab92497f4ad00ac056c8a18f0724287df1fa1f6b46ccc59533",
+          "gate_support\\step_sketch_readback_candidate.py": "cce4ad1f47744494941d31a043efe2093dc8ad694cb2cc839e28e2717a36edde",
+          "gate_support\\step_explicit_null_binding.py": "47e2514ea9d4eeaa858d3b1244b6d288d421e2dedd8b45cf2cd469676b0ca24d",
+          "gate_support\\step_null_binding.py": "a8633098b0c92de69c3fa249c23da1c5219ed2e3018c58d8e819ef444a6504f0",
+          "verify-step-export-calibration.py": "3b83fdddc90ba6f309bba5c9ee3fe176bdb8d6a22631c474823f32cba8ea89e1",
+          "inspect-step-loadfile4-metadata.py": "ccf404dcf280a48e01ffc129d04c2c4afcc98bc1071f632104997090acd4b1c0"
+        },
+        "selection": "explicit installed-TLB NULL binding plus fixed f56f792 AsSketches profile; selected before any LoadFile4",
+        "single_null_causal_claim": false
+      },
+      "document_returned": false,
+      "errors": 1
+    }
+  ],
+  "writer_success": true,
+  "writer_cleanup_errors": [],
+  "public_outputs": [
+    {
+      "file": "ap203-solid-surface.step",
+      "protocol": "ap203",
+      "geometry": "solid-surface",
+      "surface": "cli",
+      "sha256": "3342b68b122aaac54de971f1612dd1d7aa2697bad0d39d6370241140628661fc"
+    },
+    {
+      "file": "ap203-wireframe.step",
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "surface": "cli",
+      "sha256": "9e2fe322e280929f5530b9a625fda8d94f845034be6cdd5232b91a01c57d43c6",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "file": "ap203-wireframe-sketches.step",
+      "protocol": "ap203",
+      "geometry": "wireframe-sketches",
+      "surface": "cli",
+      "sha256": "7209e931aaac2b7ba8e1e1e5b0a35a61792adbf203b747473817a9622d095a49",
+      "raw_segments": 18,
+      "raw_total_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "file": "ap214-solid-surface.step",
+      "protocol": "ap214",
+      "geometry": "solid-surface",
+      "surface": "cli",
+      "sha256": "61e8effe6e273ded000dcc038301064b87deed241e4d0345f43416fea7f69131"
+    },
+    {
+      "file": "ap214-wireframe.step",
+      "protocol": "ap214",
+      "geometry": "wireframe",
+      "surface": "cli",
+      "sha256": "fd14abcb4b57176a99144ed13da0cf6c514486f9cf607fc9d457d70342d28241",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "file": "ap214-wireframe-sketches.step",
+      "protocol": "ap214",
+      "geometry": "wireframe-sketches",
+      "surface": "cli",
+      "sha256": "162f2b154921dcf1d61120aca670f67f1c98a9f9126d9fd197500e23d2d5d3dc",
+      "raw_segments": 18,
+      "raw_total_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "file": "sdk-ap214-solid-surface.STP",
+      "protocol": "ap214",
+      "geometry": "solid-surface",
+      "surface": "sdk",
+      "sha256": "0c3454928221f982a3859c2ec1fa3cd4066bad06633ef31b114f589510718880"
+    },
+    {
+      "file": "mcp-ap203-wireframe.step",
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "surface": "mcp",
+      "sha256": "e4b18465c6b54e180ae1be14c7c5d9530b3a0b2310d831454821f1b44dc32a72",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    }
+  ],
+  "native_export_calls": 8,
+  "reader_cases_planned": 8,
+  "reader_cases_started": 2,
+  "reader_cases_completed": 1,
+  "explicit_null_sufficient_for_current_wire": false,
+  "first_failed_index_zero_based": 1,
+  "first_failed_output": {
+    "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public\\ap203-wireframe.step",
+    "sha256": "9e2fe322e280929f5530b9a625fda8d94f845034be6cdd5232b91a01c57d43c6",
+    "protocol": "ap203",
+    "geometry": "wireframe",
+    "surface": "cli",
+    "content": {
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "file_schema": " 'CONFIG_CONTROL_DESIGN' ",
+      "entity_types": [
+        "APPLICATION_CONTEXT",
+        "APPLICATION_PROTOCOL_DEFINITION",
+        "APPROVAL",
+        "APPROVAL_DATE_TIME",
+        "APPROVAL_PERSON_ORGANIZATION",
+        "APPROVAL_ROLE",
+        "APPROVAL_STATUS",
+        "AXIS2_PLACEMENT_3D",
+        "B_SPLINE_CURVE_WITH_KNOTS",
+        "CALENDAR_DATE",
+        "CARTESIAN_POINT",
+        "CC_DESIGN_APPROVAL",
+        "CC_DESIGN_DATE_AND_TIME_ASSIGNMENT",
+        "CC_DESIGN_PERSON_AND_ORGANIZATION_ASSIGNMENT",
+        "CC_DESIGN_SECURITY_CLASSIFICATION",
+        "COORDINATED_UNIVERSAL_TIME_OFFSET",
+        "DATE_AND_TIME",
+        "DATE_TIME_ROLE",
+        "DESIGN_CONTEXT",
+        "DIRECTION",
+        "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION",
+        "GEOMETRIC_CURVE_SET",
+        "LOCAL_TIME",
+        "MECHANICAL_CONTEXT",
+        "ORGANIZATION",
+        "PERSON",
+        "PERSON_AND_ORGANIZATION",
+        "PERSON_AND_ORGANIZATION_ROLE",
+        "PRODUCT",
+        "PRODUCT_DEFINITION",
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE",
+        "PRODUCT_DEFINITION_SHAPE",
+        "PRODUCT_RELATED_PRODUCT_CATEGORY",
+        "SECURITY_CLASSIFICATION",
+        "SECURITY_CLASSIFICATION_LEVEL",
+        "SHAPE_DEFINITION_REPRESENTATION",
+        "UNCERTAINTY_MEASURE_WITH_UNIT"
+      ]
+    }
+  },
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "STEP geometry readback failed",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 323, in run\n    case_runner(app, output, constants, plane, reverse, call, case, report, live,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-step-export-calibration.py\", line 472, in <lambda>\n    selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options,load_model=load_override)\n                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\gate_support\\step_sketch_readback_candidate.py\", line 162, in readback_case\n    reader._verify_imported_geometry(app,target,output,target.stem,row['geometry'],constants,call,case,live,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-step-export-calibration.py\", line 362, in _verify_imported_geometry\n    checked(document is not None and errors.value == 0, \"STEP geometry readback failed\")\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 33, in checked\n    raise RuntimeError(message)\nRuntimeError: STEP geometry readback failed\n"
+  },
+  "failed_import_return": {
+    "state": "returned",
+    "document_returned": false,
+    "errors": 1,
+    "arg_string": "r",
+    "import_data": "explicit NULL IDispatch; existing installed-TLB binding; factory observed only",
+    "python_type": "NoneType"
+  },
+  "failed_geometry_status": "unavailable; no observation attempted",
+  "failed_geometry_value": null,
+  "completed_solid_case": {
+    "import_return": {
+      "state": "returned",
+      "document_returned": true,
+      "errors": 0,
+      "arg_string": "r",
+      "import_data": "explicit NULL IDispatch; existing installed-TLB binding; factory observed only",
+      "python_type": "CDispatch"
+    },
+    "geometry": {
+      "ok": true,
+      "action": "document.measure",
+      "scope": "sum-of-solid-bodies",
+      "coordinate_system": "part-model",
+      "method": "native-body-mass-properties",
+      "metrics": {
+        "solid_body_count": 1,
+        "volume_mm3": 11999.999999999998,
+        "surface_area_mm2": 3800.0,
+        "centroid_mm": {
+          "x": 0.0,
+          "y": 7.72035238382826e-17,
+          "z": 5.0
+        }
+      },
+      "bodies": [
+        {
+          "index": 0,
+          "volume_mm3": 11999.999999999998,
+          "surface_area_mm2": 3800.0,
+          "centroid_mm": {
+            "x": 0.0,
+            "y": 7.72035238382826e-17,
+            "z": 5.0
+          }
+        }
+      ]
+    },
+    "save": {
+      "ok": true,
+      "action": "document.save-as",
+      "output": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+      "document_before": {
+        "title": "ap203-solid-surface.SLDPRT",
+        "path": "",
+        "type": 1,
+        "modified": true,
+        "update_stamp": 114
+      },
+      "api_saved": true,
+      "save_errors": 0,
+      "save_error_names": [],
+      "save_warnings": null,
+      "document": {
+        "title": "ap203-solid-surface-imported",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "type": 1,
+        "modified": false,
+        "update_stamp": 114
+      },
+      "file_verification": {
+        "non_empty": true,
+        "minimum_size_valid": true
+      },
+      "artifact": {
+        "kind": "native-document",
+        "format": "SLDPRT",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "size_bytes": 46343
+      }
+    },
+    "reopen": {
+      "ok": true,
+      "action": "document.open",
+      "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+      "read_only": true,
+      "configuration": null,
+      "api_errors": 0,
+      "api_warnings": 0,
+      "document": {
+        "title": "ap203-solid-surface-imported",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "type": 1,
+        "modified": false,
+        "update_stamp": 114
+      }
+    },
+    "reopened_geometry": {
+      "ok": true,
+      "action": "document.measure",
+      "scope": "sum-of-solid-bodies",
+      "coordinate_system": "part-model",
+      "method": "native-body-mass-properties",
+      "metrics": {
+        "solid_body_count": 1,
+        "volume_mm3": 11999.999999999998,
+        "surface_area_mm2": 3800.0,
+        "centroid_mm": {
+          "x": 0.0,
+          "y": -1.9852334701272667e-16,
+          "z": 5.0
+        }
+      },
+      "bodies": [
+        {
+          "index": 0,
+          "volume_mm3": 11999.999999999998,
+          "surface_area_mm2": 3800.0,
+          "centroid_mm": {
+            "x": 0.0,
+            "y": -1.9852334701272667e-16,
+            "z": 5.0
+          }
+        }
+      ]
+    },
+    "native_sha256": "02a1fcf58d8fc3c3834f150dbc86bd9b7957865077a777b4dbcb9c46f1073eb8"
+  },
+  "before": {
+    "swMultiCAD_Enable3DInterconnect": true,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": false,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "requested": {
+    "swMultiCAD_Enable3DInterconnect": false,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": true,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "full_original_restored_both_cases": true,
+  "reader_cleanup_errors": [],
+  "reader_host": {
+    "process_id": 5580,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "writer_host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 7208,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 1.7970000000000255,
+    "visible": false
+  },
+  "input_identity": {
+    "source_commit": "e039ae596d20d870752c6de7b02c8e1b283d5d62",
+    "swconst_path": "C:\\Program Files\\SOLIDWORKS\\swconst.tlb",
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_tlb_path": "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb",
+    "sldworks_tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "reader_trace": {
+    "trace.jsonl": {
+      "rows": 512,
+      "calls": 256,
+      "counts": {
+        "read-official-swconst": 1,
+        "acquire-owned-host": 1,
+        "wait-ready": 1,
+        "capture-owned-process": 1,
+        "sketch-observer-host-hidden": 2,
+        "sketch-observer-revision": 2,
+        "sketch-observer-host-identity": 2,
+        "sketch-snapshot-original.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-snapshot-original.swImportSolidSurface": 2,
+        "sketch-snapshot-original.swImportFreeCurves": 2,
+        "sketch-snapshot-original.swImportNeutral_SolidandSurface": 2,
+        "sketch-snapshot-original.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-snapshot-original.swImportStepConfigData": 2,
+        "sketch-snapshot-original.swImportCurvePreference": 2,
+        "sketch-snapshot-original.swImportNeutral_CurvesAndPointsOption": 2,
+        "sketch-observer-empty-before-profile": 2,
+        "sketch-cas-before-set.swMultiCAD_Enable3DInterconnect": 8,
+        "sketch-cas-before-set.swImportSolidSurface": 8,
+        "sketch-cas-before-set.swImportFreeCurves": 8,
+        "sketch-cas-before-set.swImportNeutral_SolidandSurface": 8,
+        "sketch-cas-before-set.swImportNeutral_FreeCurvesAndPoints": 8,
+        "sketch-cas-before-set.swImportStepConfigData": 8,
+        "sketch-cas-before-set.swImportCurvePreference": 8,
+        "sketch-cas-before-set.swImportNeutral_CurvesAndPointsOption": 8,
+        "sketch-set-owned.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-readback-after-set.swMultiCAD_Enable3DInterconnect": 4,
+        "sketch-readback-after-set.swImportSolidSurface": 4,
+        "sketch-readback-after-set.swImportFreeCurves": 4,
+        "sketch-readback-after-set.swImportNeutral_SolidandSurface": 4,
+        "sketch-readback-after-set.swImportNeutral_FreeCurvesAndPoints": 4,
+        "sketch-readback-after-set.swImportStepConfigData": 4,
+        "sketch-readback-after-set.swImportCurvePreference": 4,
+        "sketch-readback-after-set.swImportNeutral_CurvesAndPointsOption": 4,
+        "sketch-set-owned.swImportFreeCurves": 2,
+        "sketch-verify-fixed-profile.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-fixed-profile.swImportSolidSurface": 2,
+        "sketch-verify-fixed-profile.swImportFreeCurves": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_SolidandSurface": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-verify-fixed-profile.swImportStepConfigData": 2,
+        "sketch-verify-fixed-profile.swImportCurvePreference": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_CurvesAndPointsOption": 2,
+        "observe-import-context.swMultiCAD_Enable3DInterconnect": 2,
+        "observe-import-context.swImportSolidSurface": 2,
+        "observe-import-context.swImportFreeCurves": 2,
+        "observe-import-context.swImportNeutral_SolidandSurface": 2,
+        "observe-import-context.swImportNeutral_FreeCurvesAndPoints": 2,
+        "observe-import-context.swImportStepConfigData": 2,
+        "observe-import-context.swImportCurvePreference": 2,
+        "observe-import-context.swImportNeutral_CurvesAndPointsOption": 2,
+        "GetImportFileData": 2,
+        "observe-import-data.typeinfo": 2,
+        "observe-import-data.query-interface.IImportIgesData": 2,
+        "observe-import-data.query-interface.IImportStepData": 2,
+        "observe-import-data.MapConfigurationData": 2,
+        "sketch-cas-before-one-load.swMultiCAD_Enable3DInterconnect": 4,
+        "sketch-cas-before-one-load.swImportSolidSurface": 4,
+        "sketch-cas-before-one-load.swImportFreeCurves": 4,
+        "sketch-cas-before-one-load.swImportNeutral_SolidandSurface": 4,
+        "sketch-cas-before-one-load.swImportNeutral_FreeCurvesAndPoints": 4,
+        "sketch-cas-before-one-load.swImportStepConfigData": 4,
+        "sketch-cas-before-one-load.swImportCurvePreference": 4,
+        "sketch-cas-before-one-load.swImportNeutral_CurvesAndPointsOption": 4,
+        "LoadFile4": 2,
+        "binding.GetIDsOfNames.LoadFile4": 2,
+        "observe-import-document.typeinfo": 1,
+        "observe-import-document.GetType": 1,
+        "observe-import-document.GetTitle": 1,
+        "observe-import-document.GetPathName": 1,
+        "measure-imported-step": 1,
+        "save-imported-native": 1,
+        "close-import": 1,
+        "reopen-imported-native": 1,
+        "verify-reopened-import": 1,
+        "close-reopened-import": 1,
+        "sketch-cas-after-readback.swMultiCAD_Enable3DInterconnect": 1,
+        "sketch-cas-after-readback.swImportSolidSurface": 1,
+        "sketch-cas-after-readback.swImportFreeCurves": 1,
+        "sketch-cas-after-readback.swImportNeutral_SolidandSurface": 1,
+        "sketch-cas-after-readback.swImportNeutral_FreeCurvesAndPoints": 1,
+        "sketch-cas-after-readback.swImportStepConfigData": 1,
+        "sketch-cas-after-readback.swImportCurvePreference": 1,
+        "sketch-cas-after-readback.swImportNeutral_CurvesAndPointsOption": 1,
+        "sketch-restore-cas.swImportFreeCurves": 2,
+        "sketch-restore-owned.swImportFreeCurves": 2,
+        "sketch-restore-readback.swImportFreeCurves": 2,
+        "sketch-restore-cas.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-restore-owned.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-restore-readback.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-full-original-restored.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-full-original-restored.swImportSolidSurface": 2,
+        "sketch-verify-full-original-restored.swImportFreeCurves": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_SolidandSurface": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-verify-full-original-restored.swImportStepConfigData": 2,
+        "sketch-verify-full-original-restored.swImportCurvePreference": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_CurvesAndPointsOption": 2,
+        "ExitApp": 1,
+        "WaitForOwnedProcess": 1,
+        "CloseProcessHandle": 1,
+        "CoUninitialize": 1
+      },
+      "errors": []
+    },
+    "observation-trace.jsonl": {
+      "rows": 74,
+      "calls": 37,
+      "counts": {
+        "StartupProcessCompleted": 2,
+        "GetProcessID": 3,
+        "RevisionNumber": 3,
+        "GetDocumentCount": 4,
+        "Visible": 2,
+        "GetType": 5,
+        "GetTitle": 6,
+        "GetPathName": 4,
+        "GetUpdateStamp": 3,
+        "GetSaveFlag": 4,
+        "ExitApp": 1
+      },
+      "errors": []
+    }
+  },
+  "native_acceptance": false,
+  "limitations": [
+    "No sketch geometry or feature health measured; null document errors1 precedes observer assertions",
+    "Explicit NULL also fails in this CI profile; no root cause inferred from error1 or different-environment prior459 success",
+    "Six source file hashes match exact Git-to-checkout CRLF reconstruction; not raw LF equality or native DLL memory attestation",
+    "Owned wait/close/exit observed; no global native-process inventory captured"
+  ]
+}
