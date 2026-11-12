@@ -6,6 +6,10 @@
 
 统筹最新收敛为[MarkingJig独立只读副本、OpenDoc7与现有Python现代helper一次对照](../verification/glb-markingjig-readonly-control-plan-2026-11-12.md)的代码/便携准备；不扩C#part门禁、不复制业务二进制入repo/CI、不自行VM。当前[Python候选](../../scripts/diagnostics/markingjig/README.md)与36项便携正反测试已准备；装机PIA静态验证后已执行一次批准的OpenDoc7 probe，Error0/Warning2首停；完整引用/几何仍未原生验证。固定10份available源/引用候选及原GLB hash保持，完整引用仍未知，必须证明后才可保存；历史generated assembly只作辅助，不作为失败回退。用户确认成功源使用DockerSW latest，具体生成digest/版本仍未知，与静态2025配置区分，不单独归因Docker或doctype，不操作镜像/容器/CI。另已按亲审改用现代Extension五参依赖census，移除不可比旧计数；broken/导入来源保留，未知0保存。文件跨渠道仅已核3.14.7 Windows ctime例外，其余指纹字段严格相同。以下保留早期各阶段记录。
 
+## 2026-11-12 单次零CAD文件API实际取证
+
+OS-FORENSICS-01已完成并交还：精确2a0d52a/shaef1fc427…一次工具，两个完整身份绑定的raw快照，API/句柄读取关闭正常，exit1首停仅因AccessTime变化；Content SHA、Creation/Write/ChangeTime、完整ID及其他字段保持，0COM/CAD/导出，不归一化、不改CAS、不重跑。首次prlctl通道错误确认工具未执行后只修正入口，实际工具仍1次，原错误保留。输入/源码/输出hash、idle on未改和自身退出均核，见[实际审计](../verification/glb-os-forensics-native-audit-2026-11-12.md)。旧OpenDoc7 held ctime变化仍未解释，warning模型准入仍未再次CAD运行。前一节静态准备与其缺省flags保留为阶段快照，不误作当前执行状态。
+
 ## 2026-11-12 后续两项仅本地候选
 
 按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与21项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM装机TLB/PIA现由统筹只读补齐，本路核大小/SHA/回执并对VM PIA离线反射确认33.5.0.53 ReadOnly精确int2、0COM/目标方法；TLB只核身份未解码正文，候选运行前仍强制实际TLB值。VM与旧缓存PIA虽同字节仍分别记录来源，不当registry最新/历史任务；见[VM原件审计](../evidence/glb-vm-installed-swconst-offline-audit-2026-11-12.json)。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。

@@ -1,8 +1,6 @@
 {
   "schema": "swcli.zero-CAD-file-forensics-preparation.v1",
   "date": "2026-11-12",
-  "prepared_only": true,
-  "new_VM_CAD_or_Windows_API_executions": 0,
   "CPython_target": "v3.14.7; source research, not proof of exact runtime binary build",
   "primary_source_files": [
     {
@@ -34,7 +32,6 @@
     "FILE_ID_INFO": 24
   },
   "portable_fake_backend_tests": 21,
-  "real_Win32_collection_executed": false,
   "source_bytes_open_mode": {
     "access": "GENERIC_READ only",
     "share": "READ|WRITE; no DELETE",
@@ -59,5 +56,24 @@
     "Any same-channel change is kept and rejected as an unchanged window; hash equality does not prove absence of intervening writes."
   ],
   "separate_cached_swconst_metadata_collection": "see readonly-warning preparation; not a Windows file-forensics run",
-  "metadata_output_ADS_explicitly_refused": true
+  "metadata_output_ADS_explicitly_refused": true,
+  "preparation_stage_only_snapshot": true,
+  "actual_execution_update": {
+    "allocation_id": "VM-20261112-MARKINGJIG-OS-FORENSICS-01",
+    "record": "glb-os-forensics-native-audit-2026-11-12.json",
+    "actual_tool_attempts": 1,
+    "COM_CAD_runs": 0,
+    "stable_window_passed": false,
+    "original_preparation_flags_above_not_current_execution_status": true
+  },
+  "preparation_phase_snapshot": {
+    "prepared_only": true,
+    "new_VM_CAD_or_Windows_API_executions": 0,
+    "real_Win32_collection_executed": false
+  },
+  "prepared_only": false,
+  "real_Win32_collection_executed": true,
+  "actual_Windows_file_collector_runs": 1,
+  "actual_COM_CAD_runs": 0,
+  "stable_window_passed": false
 }

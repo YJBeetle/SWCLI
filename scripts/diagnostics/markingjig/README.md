@@ -28,4 +28,4 @@ OpenDoc7请求及readback：DocumentType2、ReadOnly=true、Silent=true、UseLig
 
 接口说明及有限结论见 [方案](../../../docs/verification/glb-markingjig-readonly-control-plan-2026-11-12.md)与[typed part实际审计](../../../docs/verification/glb-typed-control-native-audit-2026-11-12.md)。
 
-当前仅新增供亲审的[预期warning2窄候选](../../../docs/verification/glb-readonly-warning-preparation-2026-11-12.md)及独立[三渠道零CAD取证工具](../../../docs/verification/glb-file-forensics-plan-2026-11-12.md)。Windows VM装机TLB/PIA原件已由统筹补齐并离线核对，真实VM PIA literal精确int2已核；旧Docker缓存虽同字节仍保留独立来源；运行前仍强制装机int2，不能用文档值替代。本轮45项MarkingJig/21项forensic假后端测试及23项typed测试通过，无新Windows/VM/CAD执行；原6a25a56失败与held-ctime门禁保留，不把当前候选当已原生通过。
+当前仅新增供亲审的[预期warning2窄候选](../../../docs/verification/glb-readonly-warning-preparation-2026-11-12.md)及独立[三渠道零CAD取证工具](../../../docs/verification/glb-file-forensics-plan-2026-11-12.md)。Windows VM装机TLB/PIA原件已由统筹补齐并离线核对，真实VM PIA literal精确int2已核；旧Docker缓存虽同字节仍保留独立来源；运行前仍强制装机int2，不能用文档值替代。45项MarkingJig/21项forensic假后端测试及23项typed测试通过；其后独立文件工具已在批准OS窗口执行一次，严格稳定性仅因访问时间变化拒绝，见[实际审计](../../../docs/verification/glb-os-forensics-native-audit-2026-11-12.md)，没有COM/CAD执行；原6a25a56失败与held-ctime门禁保留，不把当前候选当已原生通过。

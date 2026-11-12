@@ -1,6 +1,6 @@
 # 顶层副本文件三渠道零CAD取证候选
 
-仅交静态源码/测试/方案，未执行新Windows/VM/CAD；另有独立的固定缓存PIA只读元数据工作，不是本工具的Windows取证执行。原6a25a56失败记录及其审计输出不改，原stable_file、geometry/CAS/readonly/owned identity门禁源码保持。该工具与诊断主流程独立，没有接入OpenDoc7、任何导出、resolve/rebuild、任意command hook或自动重试；运行仍须统筹安排零CAD资源。
+状态更新：已按统筹明确批准的OS-FORENSICS-01运行审阅2a0d52a工具一次，取得两组完整物理身份绑定的原始数据，严格稳定性比较仅因访问时间变化首停（exit1）。[实际原件与边界审计](glb-os-forensics-native-audit-2026-11-12.md)另列，不重跑、不改门禁，0COM/CAD；以下保留准备时的字段与方案。原6a25a56失败记录及其审计输出不改，原stable_file、geometry/CAS/readonly/owned identity门禁源码保持。该工具与诊断主流程独立，没有接入OpenDoc7、任何导出、resolve/rebuild、任意command hook或自动重试；运行仍须统筹安排零CAD资源。
 
 ## 已有事实与源码语义
 
@@ -38,6 +38,6 @@
 
 ## 静态验证与交审
 
-21项假后端/便携负例及Win64 ABI大小/offset测试通过：完整ID/卷错配、字段缺失、readonly/link/reparse、目录/delete pending/size、1单位各类时间变化、截断/增长、部分native读取失败、源SHA不符、第一次错误与句柄关闭错误分离。Ctypes结构为固定宽度，Basic40B、Standard24B、ID24B，避免宿主c_ulong宽度差异。真实Win32调用/句柄转交/错误码和该私有副本当前三渠道值尚未执行验证，不能以替身测试冒充。
+21项假后端/便携负例及Win64 ABI大小/offset测试通过：完整ID/卷错配、字段缺失、readonly/link/reparse、目录/delete pending/size、1单位各类时间变化、截断/增长、部分native读取失败、源SHA不符、第一次错误与句柄关闭错误分离。Ctypes结构为固定宽度，Basic40B、Standard24B、ID24B，避免宿主c_ulong宽度差异。后续单次批准窗口已取得真实Win32读取/CRT转交/完整ID/己方句柄关闭正向数据；严格稳定窗口仍因访问时间变化拒绝，错误码/失败分支仍主要由替身覆盖，不升级为通用平台或CAD验收。
 
 [旧记录分析器](../../scripts/diagnostics/markingjig/summarize_file_probe.py)已只读重放保存的JSON，不改旧report或模型；[准备证据](../evidence/glb-file-forensics-preparation-2026-11-12.json)记录源码tag/SHA、工具摘要与边界。运行命令形状供审阅：`file_forensics.py --path <批准的C:\Workspace顶层副本> --sha256 <固定80bfa9d4...> --output <新的私有.json>`，不是本轮执行安排。

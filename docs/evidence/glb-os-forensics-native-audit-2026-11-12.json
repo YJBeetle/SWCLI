@@ -1,0 +1,141 @@
+{
+  "schema": "swcli.markingjig-os-file-forensics-native-audit.v1",
+  "allocation_id": "VM-20261112-MARKINGJIG-OS-FORENSICS-01",
+  "source_head": "2a0d52a25d52072f56d4a78503d489e431db5c8a",
+  "source_sha256": "ef1fc427b36f8fcbd05972515db8580cc1c50e8447e444941c6fd1fda86e07c5",
+  "evidence_audit_passed": true,
+  "actual_tool_attempts": 1,
+  "tool_pid": 8252,
+  "tool_exit": 1,
+  "tool_stable_window_passed": false,
+  "primary_failure": {
+    "type": "RuntimeError",
+    "message": "source metadata changed; not inferred to be a content write",
+    "winerror": null,
+    "errno": null
+  },
+  "collected_identity_proven_rounds": 2,
+  "all_recorded_file_API_operations_returned_normally": true,
+  "only_same_channel_changes": {
+    "python_path": {
+      "st_atime_ns": {
+        "before": 1794498162053725000,
+        "after": 1794498162643992600
+      }
+    },
+    "python_held": {
+      "st_atime_ns": {
+        "before": 1794498162053725000,
+        "after": 1794498162643992600
+      }
+    },
+    "win32_held": {
+      "basic.LastAccessTime": {
+        "before": 134389717620537250,
+        "after": 134389717626439926
+      }
+    },
+    "win32_path_reopen": {
+      "basic.LastAccessTime": {
+        "before": 134389717620537250,
+        "after": 134389717626439926
+      }
+    }
+  },
+  "raw_time_units": {
+    "Win32": "signed 100ns FILETIME ticks since1601 UTC; never converted",
+    "Python": "raw *_ns from stat_result; no cross-channel ctime interpretation"
+  },
+  "unchanged": {
+    "content_sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530",
+    "bytes_read": 924679,
+    "file_identity": {
+      "VolumeSerialNumber": 4217245827768940497,
+      "FileId128_bytes_hex": "6057020000000a000000000000000000"
+    },
+    "Win32_creation_write_change_times": {
+      "CreationTime": 134389581613139165,
+      "LastWriteTime": 134389581613139165,
+      "ChangeTime": 134389581835706297
+    },
+    "Python_path_ctime_ns": 1794484561313916500,
+    "Python_held_ctime_ns": 1794484583570629700,
+    "attributes": 33
+  },
+  "own_handle_close_events": [
+    {
+      "sequence": 15,
+      "operation": "before-read:close-reopened",
+      "wall_unix_ns": 1794498162622596100,
+      "monotonic_ns": 12700797074500,
+      "phase": "end",
+      "end_wall_unix_ns": 1794498162623455400,
+      "end_monotonic_ns": 12700797937000
+    },
+    {
+      "sequence": 45,
+      "operation": "after-read:close-reopened",
+      "wall_unix_ns": 1794498162670562200,
+      "monotonic_ns": 12700845040291,
+      "phase": "end",
+      "end_wall_unix_ns": 1794498162671503700,
+      "end_monotonic_ns": 12700845982250
+    },
+    {
+      "sequence": 46,
+      "operation": "close-held",
+      "wall_unix_ns": 1794498162673634600,
+      "monotonic_ns": 12700848112666,
+      "phase": "end",
+      "end_wall_unix_ns": 1794498162674940500,
+      "end_monotonic_ns": 12700849418958
+    }
+  ],
+  "own_cleanup_errors": [],
+  "source_code_and_input_hashes_before_after_equal": true,
+  "output_sha256": "a6f9a1886bef4490d7946a766d02572ec5f1ff8dc3e6a56de846e0cf5d0d3c80",
+  "SW_before": [],
+  "SW_after": [],
+  "COM_CAD_open_export_save_calls": 0,
+  "idle_configuration_modified": false,
+  "host_after_state": {
+    "list_exit": 0,
+    "selected": [
+      "ID: {da36dd51-bd6d-4e7a-995b-547464583302}",
+      "Name: Windows",
+      "State: running",
+      "  Pause idle: on"
+    ],
+    "idle_config_commands_issued": 0,
+    "VM_CAD_commands_issued": 0
+  },
+  "transport_failure": {
+    "exit_code": 255,
+    "message": "PrlJob_GetResult: Invalid argument",
+    "tool_not_started_verified_by_missing_required_workdir_and_no_python": true,
+    "corrected_entry_only": "encoded PowerShell H-drive launcher; same reviewed tool source/arguments",
+    "no_tool_retry": true
+  },
+  "limits": [
+    "Same-window changes are only access times; trigger/caller is not independently traced.",
+    "No timestamp tolerance, epoch conversion or field replacement; raw Windows/Python fields retained.",
+    "This new zero-CAD window does not reconstruct historical OpenDoc7 ChangeTime change or imply a content write/no intervening write.",
+    "Source/mode/CAS/readonly/identity guards unchanged; no new CAD acceptance or automatic next phase."
+  ],
+  "evidence_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261112/markingjig-os-forensics-2a0d52a-01",
+  "raw_sha256": {
+    "allocation.json": "945795cc5e2ed8bc6f1d1e3e58cbeddc9299c09526ed5a12894605b4d4e60142",
+    "file_forensics.py": "ef1fc427b36f8fcbd05972515db8580cc1c50e8447e444941c6fd1fda86e07c5",
+    "metadata.json": "a6f9a1886bef4490d7946a766d02572ec5f1ff8dc3e6a56de846e0cf5d0d3c80",
+    "launcher-context.json": "a7f9e8e4f75bebc623949e4319ab9df6f185b9ba95e6e09e60c11f9f06c55929",
+    "prlctl-launch.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prlctl-launch.stderr": "50201bdc18a90ce0d1625f353b857ebf76d8110a827e45c0314f8722d6fcdfb7",
+    "prlctl-launch-exit.json": "025d8380628513772ad46e9bc2592625d73eb07435c674b0966ac44273a2f76e",
+    "post-transport-OS-check.stdout": "1883fdc73a34e173aa9c50a3d6098337869fb20822f5ecbf1f4ec64a45c8ca2b",
+    "post-transport-OS-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "powershell-launch.stdout": "870ddc23f48d55e29fd9c1f9f34874445c77bcdec47927ec2b8174f036b6213d",
+    "powershell-launch.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "powershell-launch-exit.json": "1b97e0f1c4a0bc245812779df27fac441f7981aeee01d041c655e8f0176cb041",
+    "host-after-state.json": "4aed017e43eb15cae8817023b5f8a32db74a0cf6ee412af6e3e450332a8e2e91"
+  }
+}
