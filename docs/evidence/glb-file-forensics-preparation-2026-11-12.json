@@ -1,0 +1,62 @@
+{
+  "schema": "swcli.zero-CAD-file-forensics-preparation.v1",
+  "date": "2026-11-12",
+  "prepared_only": true,
+  "new_VM_CAD_or_Windows_API_executions": 0,
+  "CPython_target": "v3.14.7; source research, not proof of exact runtime binary build",
+  "primary_source_files": [
+    {
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Modules/posixmodule.c",
+      "sha256": "436636d1ef1693d58e07cf80fc4aea58ad740e5d2e6b2f466164f66be5f8d43d"
+    },
+    {
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Python/fileutils.c",
+      "sha256": "7141679d2d4d1ac7faa9f17b4fa3596e042bbd4d32bbab659bb5336c24b79d95"
+    },
+    {
+      "url": "https://github.com/python/cpython/blob/v3.14.7/Include/internal/pycore_fileutils_windows.h",
+      "sha256": "2ce33652ff0a955037aeacfcfa771b6acdcec0fe08d30c2a0ba07c82a6bb11f1"
+    }
+  ],
+  "source_mapping": {
+    "path_stat": "win32_xstat copies birthtime into ctime",
+    "held_fstat": "_Py_fstat_noraise preserves FileBasicInfo.ChangeTime",
+    "raw_values_not_normalized": true
+  },
+  "win32_information_classes": {
+    "FileBasicInfo": 0,
+    "FileStandardInfo": 1,
+    "FileIdInfo": 18
+  },
+  "ABI_portable_layout_sizes": {
+    "FILE_BASIC_INFO": 40,
+    "FILE_STANDARD_INFO": 24,
+    "FILE_ID_INFO": 24
+  },
+  "portable_fake_backend_tests": 20,
+  "real_Win32_collection_executed": false,
+  "source_bytes_open_mode": {
+    "access": "GENERIC_READ only",
+    "share": "READ|WRITE; no DELETE",
+    "disposition": "OPEN_EXISTING",
+    "flags": "NORMAL|OPEN_REPARSE_POINT",
+    "opened_path": "FILE_NAME_OPENED; no normalization"
+  },
+  "windows_tool_scope": "fixed pinned top MarkingJig readonly copy under C:\\Workspace; two fixed raw snapshots and one bounded hash read; no CAD/hook/wait/process spawn",
+  "original_guards_modified": false,
+  "existing_probe_python_only_analysis_sha256": "6d51a6f046775ed360bb8fe21508e60968b8bfb930dcc381a327a7272b631bea",
+  "historical_Win32_basic_standard_ID_snapshots_available": false,
+  "fields_sha256": {
+    "scripts/diagnostics/markingjig/file_forensics.py": "27dd2b2eb81a6caa1bd848be95b4af13a06e2c4d9e79712c759610eb950a04b8",
+    "scripts/diagnostics/markingjig/test_file_forensics.py": "a710c2b5fd28242399e89d5ab9888343013186af37e8cef849ad38336b998daa",
+    "scripts/diagnostics/markingjig/summarize_file_probe.py": "0d7dfab8cfe731c9834632803da5b5a868fb312d1fbbfecd4c982781b3b69299"
+  },
+  "limits": [
+    "No new actual Windows/API/COM/CAD evidence.",
+    "Metadata ChangeTime is not by itself proof of a data-stream write.",
+    "No timestamp tolerance, epoch conversion, ctime replacement or CAS/readonly/identity weakening.",
+    "All four Win32 raw times, allocation/EOF/links/delete/directory/attrs and full opaque128-bit ID+volume are retained.",
+    "Any same-channel change is kept and rejected as an unchanged window; hash equality does not prove absence of intervening writes."
+  ],
+  "separate_cached_swconst_metadata_collection": "see readonly-warning preparation; not a Windows file-forensics run"
+}

@@ -1,0 +1,145 @@
+{
+  "schema": "swcli.existing-probe-python-file-channels.v1",
+  "source": "MarkingJig.REND.SLDASM",
+  "source_sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530",
+  "file_content_hash_equal": true,
+  "changes": {
+    "path_before": {},
+    "handle_before": {
+      "st_ctime_ns": {
+        "before": 1794484561313916500,
+        "after": 1794484583570629700
+      }
+    },
+    "handle_after": {
+      "st_ctime_ns": {
+        "before": 1794484561313916500,
+        "after": 1794484583570629700
+      }
+    },
+    "path_after": {}
+  },
+  "path_ctime_equals_birthtime": true,
+  "python_held_ctime_changed": true,
+  "historical_win32_basic_standard_fileid_available": false,
+  "content_write_inferred": false,
+  "cause_inferred": false,
+  "primary_failure": {
+    "type": "RuntimeError",
+    "message": "OpenDoc7 failed/warned; no alternate opening",
+    "traceback": "Traceback (most recent call last):\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 323, in run\n    case_runner(app, output, constants, plane, reverse, call, case, report, live,\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                profile_kind=profile_kind)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261112\\markingjig-code-e3d9bd9-01\\scripts\\diagnostics\\markingjig\\run-markingjig-control.py\", line 72, in case_runner\n    control.one_case(app,copy,args.mode,output,_com_value,call,live,case,required,\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                     report['host']['process_id'],export,process)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261112\\markingjig-code-e3d9bd9-01\\scripts\\diagnostics\\markingjig\\markingjig_control.py\", line 348, in one_case\n    doc=open_readonly(app,copy.root/SOURCE,value,call,live,report)\n  File \"C:\\Workspace\\SWCLI-series-20261112\\markingjig-code-e3d9bd9-01\\scripts\\diagnostics\\markingjig\\markingjig_control.py\", line 341, in open_readonly\n    require(doc is not None and report['open_errors']==report['open_warnings']==0,'OpenDoc7 failed/warned; no alternate opening')\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261112\\markingjig-code-e3d9bd9-01\\scripts\\diagnostics\\markingjig\\markingjig_control.py\", line 33, in require\n    raise RuntimeError(reason)\nRuntimeError: OpenDoc7 failed/warned; no alternate opening\n"
+  },
+  "open_errors": 0,
+  "open_warnings": 2,
+  "application_or_CAD_calls": 0,
+  "old_probe_success": false,
+  "source_records": {
+    "before": {
+      "path": "C:\\Workspace\\SWCLI-series-20261112\\markingjig-input-e3d9bd9-01\\MarkingJig.REND.SLDASM",
+      "size_bytes": 924679,
+      "sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530",
+      "path_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      }
+    },
+    "after": {
+      "path": "C:\\Workspace\\SWCLI-series-20261112\\markingjig-input-e3d9bd9-01\\MarkingJig.REND.SLDASM",
+      "size_bytes": 924679,
+      "sha256": "80bfa9d4bc453277dc0ba4dd9dbdf8f0d315a090aa3bab429843b1f9bc308530",
+      "path_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "handle_before": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484583570629700,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "handle_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484583570629700,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      },
+      "path_after": {
+        "st_dev": 4217245827768940497,
+        "st_ino": 2814749767260000,
+        "st_mode": 33060,
+        "st_size": 924679,
+        "st_mtime_ns": 1794484561313916500,
+        "st_ctime_ns": 1794484561313916500,
+        "st_birthtime_ns": 1794484561313916500,
+        "st_file_attributes": 33,
+        "st_nlink": 1
+      }
+    }
+  },
+  "input_sha256": {
+    "native-output/report.json": "a729e16e746a8bac64ea6e51d45df9074d1de68002129f36d04b87d30d0cb42f",
+    "vm-copy-OS-postcheck.stdout": "802b4a49305e6494b4a8c186c2981f9b7484efb7e6c6b2ba20603040b1381b94"
+  },
+  "limits": [
+    "Python observations are from distinct phases/handles, not an atomic system snapshot.",
+    "CPython source explains possible field meanings, not why a specific metadata timestamp changed.",
+    "No fabricated historical Win32 times, no tolerance/normalization and no source/CAS policy change."
+  ]
+}

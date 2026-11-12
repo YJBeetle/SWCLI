@@ -6,6 +6,10 @@
 
 统筹最新收敛为[MarkingJig独立只读副本、OpenDoc7与现有Python现代helper一次对照](../verification/glb-markingjig-readonly-control-plan-2026-11-12.md)的代码/便携准备；不扩C#part门禁、不复制业务二进制入repo/CI、不自行VM。当前[Python候选](../../scripts/diagnostics/markingjig/README.md)与36项便携正反测试已准备；装机PIA静态验证后已执行一次批准的OpenDoc7 probe，Error0/Warning2首停；完整引用/几何仍未原生验证。固定10份available源/引用候选及原GLB hash保持，完整引用仍未知，必须证明后才可保存；历史generated assembly只作辅助，不作为失败回退。用户确认成功源使用DockerSW latest，具体生成digest/版本仍未知，与静态2025配置区分，不单独归因Docker或doctype，不操作镜像/容器/CI。另已按亲审改用现代Extension五参依赖census，移除不可比旧计数；broken/导入来源保留，未知0保存。文件跨渠道仅已核3.14.7 Windows ctime例外，其余指纹字段严格相同。以下保留早期各阶段记录。
 
+## 2026-11-12 后续两项仅本地候选
+
+按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与20项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM swconst离线原件未找到；另按只读Docker授权核固定旧缓存安装PIA(33.5.0.53)的ReadOnly精确int2，不能替代VM原件/registry最新/历史任务。按批准SHA读literal的检查器真实正例及错误PIA负例均通过，候选运行前仍强制实际TLB值。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。
+
 ## 2026-11-12 MarkingJig只读probe实际首停
 
 VM-20261112-MARKINGJIG-PROBE-01已按明确批准以e3d9bd9/固定70d8c9e执行唯一probe。[原始有限审计](../verification/glb-markingjig-probe-native-audit-2026-11-12.md)：OpenDoc7八规格保持，Error0/Warning2（官方ReadOnly）首停，未进入引用/几何观察，显式save/export0、GLB0。独立源窗口后核同时拒绝顶层copy held渠道ctime改变；10副本SHA不变，Mac11份原件完整指纹/hash不变，不改门禁、不重试。owned PID5336退出与wait正常，前后native[]；idle pause恢复on、VM最终paused，交还统筹，未编辑调度、不自动invoke。
