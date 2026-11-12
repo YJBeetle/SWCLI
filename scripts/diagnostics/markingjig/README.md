@@ -29,3 +29,7 @@ OpenDoc7请求及readback：DocumentType2、ReadOnly=true、Silent=true、UseLig
 接口说明及有限结论见 [方案](../../../docs/verification/glb-markingjig-readonly-control-plan-2026-11-12.md)与[typed part实际审计](../../../docs/verification/glb-typed-control-native-audit-2026-11-12.md)。
 
 当前仅新增供亲审的[预期warning2窄候选](../../../docs/verification/glb-readonly-warning-preparation-2026-11-12.md)及独立[三渠道零CAD取证工具](../../../docs/verification/glb-file-forensics-plan-2026-11-12.md)。Windows VM装机TLB/PIA原件已由统筹补齐并离线核对，真实VM PIA literal精确int2已核；旧Docker缓存虽同字节仍保留独立来源；运行前仍强制装机int2，不能用文档值替代。45项MarkingJig/21项forensic假后端测试及23项typed测试通过；其后独立文件工具已在批准OS窗口执行一次，严格稳定性仅因访问时间变化拒绝，见[实际审计](../../../docs/verification/glb-os-forensics-native-audit-2026-11-12.md)，没有COM/CAD执行；原6a25a56失败与held-ctime门禁保留，不把当前候选当已原生通过。
+
+## 分阶段零导出候选（2026-11-13）
+
+默认仍为 `--phase-policy strict`。新候选需显式选择 `--mode probe --phase-policy opening-transition-probe`，拒绝 invoke。开前、开后、完整模型准入和已加载基线分开记录，保留原严格基线与旧失败；访问时间仍严格比较。仅代码和模拟测试完成，未运行新 VM/OpenDoc/CAD/导出。详见 [候选方案](../../../docs/verification/glb-opening-phases-candidate-2026-11-13.md)，其中访问时间的保守边界需统筹亲审。

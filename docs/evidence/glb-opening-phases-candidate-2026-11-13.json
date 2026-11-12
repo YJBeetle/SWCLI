@@ -1,0 +1,53 @@
+{
+  "schema": "swcli.markingjig-opening-phases-preparation.v1",
+  "date": "2026-11-13",
+  "status": "offline_candidate_for_coordinator_review",
+  "phase_policy_default": "strict",
+  "opt_in": {
+    "mode": "probe",
+    "phase_policy": "opening-transition-probe",
+    "export_permitted": false
+  },
+  "this_preparation": {
+    "VM_runs": 0,
+    "CAD_calls": 0,
+    "OpenDoc7_calls": 0,
+    "exports": 0,
+    "OS_only_repeats": 0
+  },
+  "original_strict_baseline_replaced": false,
+  "raw_timestamps_normalized": false,
+  "tolerance": null,
+  "access_times_strict": true,
+  "atime_policy_review_boundary": "Only top held ctime/Win32 ChangeTime is excepted across opening; atime remains strict, including read-induced updates. No native stable-window pass claimed.",
+  "loaded_baseline_requires": "complete model/reference/geometry observation plus metadata invariant from postopening checkpoint",
+  "tests": {
+    "markingjig": {
+      "total": 92,
+      "original_control": 45,
+      "original_forensics": 21,
+      "new_phases": 26,
+      "seconds": 0.186
+    },
+    "typed_bridge": {
+      "total": 23,
+      "seconds": 0.011
+    }
+  },
+  "unchanged_evidence": {
+    "file_forensics_sha256": "ef1fc427b36f8fcbd05972515db8580cc1c50e8447e444941c6fd1fda86e07c5",
+    "first_probe_audit_sha256": "f6c8b96197916a504a2705b7888ed877ffad3fac383bc17af1c09029ba47081b",
+    "OS_audit_sha256": "03b6f24ecd4817e5db15421ce3280b09b20c7764eb24eba6cb2ab0cfa9c26fb3"
+  },
+  "native_acceptance": false,
+  "export_acceptance": false,
+  "original_Mac_files_newly_verified": false,
+  "host_original_guard_required": "Before and after the whole allocated experiment, verify all eleven files against immutable inventory on the Mac host; Windows runner does not assert that host evidence exists.",
+  "candidate_source_sha256": {
+    "scripts/diagnostics/markingjig/opening_phases.py": "4cfc62b2cb54b85314411ee59c76cb89b37e34dc2beeea7dbf8b96c36d599abc",
+    "scripts/diagnostics/markingjig/test_opening_phases.py": "517575ad0f7ce867e8fcdf717e64b6540e127db13964459ab22d0ad0e46bf70a",
+    "scripts/diagnostics/markingjig/markingjig_control.py": "3cfa3e356b25c1d6613e467d7377221f663bee3f2729902ac3645b9c63c374aa",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "5314d957307b605caf35e7386ca9bff8e0457cfdc90c8cd460d2e99ebfde4df3"
+  },
+  "original_inventory_sha256": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d"
+}

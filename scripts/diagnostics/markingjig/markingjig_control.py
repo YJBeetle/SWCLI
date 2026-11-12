@@ -356,9 +356,30 @@ def open_readonly(app, source, value, call, live, report, constants):
     return doc
 
 
-def one_case(app, copy, mode, output, value, call, live, report, constants, owned_pid, exporter, process_identity):
+def one_case(app, copy, mode, output, value, call, live, report, constants, owned_pid, exporter, process_identity, *, phase_guard=None):
     require(mode in ('probe','invoke'),'mode required')
     report.update(mode=mode,observations=[],export_attempts=0,geometry_comparison='before/after same loaded native models; historical display context unknown')
+    if phase_guard is not None:
+        require(mode=='probe', 'opening-transition candidate is zero-export probe only')
+        report['phase_policy']='opening-transition-probe'
+        phase_guard.before_open()
+        try:
+            doc=open_readonly(app,copy.root/SOURCE,value,call,live,report,constants)
+        except BaseException:
+            # Capture after even a failed opening, without replacing its original error.
+            try:phase_guard.after_open()
+            except BaseException as error:
+                report['failed_open_phase_capture_error']=dict(type=type(error).__name__,message=str(error))
+            raise
+        phase_guard.after_open()
+        observer=Observation(app,value,call,phase_guard,constants,owned_pid,process_identity)
+        admitted=observer.snapshot(doc,report['observations'])
+        phase_guard.seal_loaded(admitted)
+        loaded=observer.snapshot(doc,report['observations'])
+        require(canonical(admitted)==canonical(loaded), 'loaded-stage complete model state changed')
+        phase_guard.unchanged()
+        report['probe_success']=True
+        return
     doc=open_readonly(app,copy.root/SOURCE,value,call,live,report,constants)
     observer=Observation(app,value,call,copy,constants,owned_pid,process_identity)
     before=observer.snapshot(doc,report['observations'])

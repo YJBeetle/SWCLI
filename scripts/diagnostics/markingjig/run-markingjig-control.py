@@ -52,13 +52,19 @@ def worker(args):
     from swcli.hosts.native_trace import trace_native_request
     bridge=module(Path(__file__).resolve().parent.parent/'typed_glb/bridge_control.py','markingjig_process_identity')
     copy=control.WorkingCopy(manifest(args),args.copy_root,args.selected)
+    phase_guard=None
     original_exporter=export_active_windows_document
     def case_runner(app,output,unused,plane,reverse,call,case,report,live,**kwargs):
+        nonlocal phase_guard
         import pythoncom
         report.update(execution_kind='authorized-private-markingjig-readonly-control',ci_acceptance=False,public_acceptance=False,
                       native_call_worker_pid=os.getpid(),input_inventory_sha256=args.inventory_sha256,
                       binding='existing Python IModelDocExtension.SaveAs3; no C# expansion',
                       source_files_before=copy.before,selected_copy_names=args.selected)
+        case['phase_policy']=args.phase_policy
+        if args.phase_policy=='opening-transition-probe':
+            phases=module(Path(__file__).with_name('opening_phases.py'),'markingjig_opening_phases')
+            phase_guard=phases.PhaseGuard(copy,case)
         def process(pid):
             row=bridge.process_identity(pid)
             control.require(row['exe_sha256']==bridge.EXE_SHA,'owned executable differs from audited installation')
@@ -71,19 +77,19 @@ def worker(args):
                 required=call('read-installed-assembly-enums',lambda:constants(pythoncom,base.SWCONST))
                 case['installed_diagnostic_constants']=required
                 control.one_case(app,copy,args.mode,output,_com_value,call,live,case,required,
-                                 report['host']['process_id'],export,process)
+                                 report['host']['process_id'],export,process,phase_guard=phase_guard)
             if args.mode=='invoke':
                 mesh=module(base.SOURCE/'scripts/ci/gate_support/glb_mesh.py','markingjig_strict_mesh')
                 case['glb_mesh']=mesh.inspect_glb(output/'MarkingJig.REND.GLB')
         finally:
             # OS-only postcheck also runs after failure; first business error is preserved.
-            try:report['source_files_after']=copy.unchanged()
+            try:report['source_files_after']=phase_guard.postcheck() if phase_guard is not None else copy.unchanged()
             except Exception as error:report['cleanup_errors'].append(dict(stage='source-hash-postcheck',error=str(error)))
     return base.module.harness.run(Path(args.output),base.SWCONST,False,case_runner=case_runner,
                                   case_plan=[('existing-assembly','none',False)],diagnostic_case='markingjig-readonly-modern-control')
 
 
-def audit(output, mode):
+def audit(output, mode, phase_policy='strict'):
     report=json.loads((output/'report.json').read_text());case=report['cases'][0]
     events=[]
     for line in (output/'worker.stderr.log').read_text(encoding='utf-8-sig').splitlines():
@@ -102,7 +108,16 @@ def audit(output, mode):
         ok=ok and case.get('export_attempts')==1 and case.get('success') is True and bool(case.get('glb_mesh'))
         ok=ok and saves[0].get('request_id')=='markingjig-export-GLB' and saves[0].get('worker_pid')==report['native_call_worker_pid']
     else:ok=ok and case.get('probe_success') is True and case.get('export_attempts')==0
-    return dict(success=bool(ok),mode=mode,modern_save_attempts=len(saves),forbidden_calls=forbidden,
+    if phase_policy=='opening-transition-probe':
+        phases=case.get('file_phases',{})
+        observed=case.get('observations',[])
+        ok=ok and mode=='probe' and case.get('phase_policy')==phase_policy
+        ok=ok and phases.get('loaded_baseline_sealed') is True and phases.get('state')=='loaded'
+        ok=ok and phases.get('raw_access_times_strict') is True and phases.get('export_permitted') is False
+        ok=ok and phases.get('opening_classification') in ('opening-metadata-transition','opening-metadata-unchanged')
+        ok=ok and len(observed)==2 and all(row.get('complete') is True for row in observed)
+        ok=ok and bool(phases.get('frames')) and all(row.get('complete') is True and not row.get('phase_error') for row in phases['frames'])
+    return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,modern_save_attempts=len(saves),forbidden_calls=forbidden,
                 report_sha256=hashlib.sha256((output/'report.json').read_bytes()).hexdigest(),
                 ci_acceptance=False,public_acceptance=False,probe_is_export_acceptance=False)
 
@@ -114,6 +129,7 @@ def main():
     p.add_argument('--verify-originals',type=Path)
     p.add_argument('--baseline');p.add_argument('--inventory');p.add_argument('--inventory-sha256')
     p.add_argument('--copy-root');p.add_argument('--selected',action='append');p.add_argument('--output')
+    p.add_argument('--phase-policy',choices=('strict','opening-transition-probe'),default='strict')
     p.add_argument('--mode',choices=('probe','invoke'));p.add_argument('--worker',action='store_true')
     args=p.parse_args()
     if args.inventory_originals:
@@ -129,6 +145,7 @@ def main():
         return 0
     control.require(all((args.baseline,args.inventory,args.inventory_sha256,args.copy_root,args.selected,args.output,args.mode)),
                     'explicit mode, approved inventory hash, selected files, copy and new output required')
+    control.require(args.phase_policy=='strict' or args.mode=='probe','opening-transition candidate is zero-export probe only')
     control.require(sys.platform=='win32','native execution is Windows coordinator only')
     source=Path(args.copy_root).resolve();output=Path(args.output).resolve()
     control.require(str(source).casefold().startswith('c:\\workspace\\') and str(output).casefold().startswith('c:\\workspace\\'), 'private C:\\Workspace paths required')
@@ -157,10 +174,10 @@ def main():
                 proc.terminate()
                 try:proc.wait(timeout=30)
                 except subprocess.TimeoutExpired:failure=(failure or 'worker failure')+'; termination unconfirmed'
-    after=base.inventory();receipt=dict(mode=args.mode,source_kind='private readonly copy of existing MarkingJig',
+    after=base.inventory();receipt=dict(mode=args.mode,phase_policy=args.phase_policy,source_kind='private readonly copy of existing MarkingJig',
       native_pids_before=before,native_pids_after=after,launch_pid=proc.pid,worker_exit=proc.returncode,failure=failure,
       success=False,ci_acceptance=False,public_acceptance=False)
-    try:receipt['audit']=audit(output,args.mode)
+    try:receipt['audit']=audit(output,args.mode,args.phase_policy)
     except Exception as error:receipt['audit_error']=dict(type=type(error).__name__,message=str(error))
     receipt['success']=proc.returncode==0 and failure is None and not after and receipt.get('audit',{}).get('success') is True
     (output/'markingjig-supervisor.json').write_text(json.dumps(receipt,indent=2)+'\n')
