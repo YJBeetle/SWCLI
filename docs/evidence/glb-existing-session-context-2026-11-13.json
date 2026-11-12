@@ -1,0 +1,97 @@
+{
+  "schema": "swcli.markingjig-existing-transport-context.v1",
+  "date": "2026-11-13",
+  "current_task_new_VM_calls": 0,
+  "current_task_new_COM_or_CAD_calls": 0,
+  "old": {
+    "source_head": "e3d9bd9a4ce726e6fdb97277c73fca02237c6c08",
+    "outer_argv": [
+      "prlctl",
+      "exec",
+      "{da36dd51-bd6d-4e7a-995b-547464583302}",
+      "--current-user",
+      "C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "-I",
+      "\\\\Mac\\AllFiles\\Users\\YJBeetle\\.codex\\task-artifacts\\document-properties-parallel\\vm-series-20261112\\markingjig-probe-e3d9bd9-01\\launch-markingjig-probe-e3d9bd9-01.py"
+    ],
+    "current_user_argument_present": true,
+    "outer_program": "fixed absolute Python directly",
+    "report_success": false,
+    "host": {
+      "process_id": 5336,
+      "revision": "33.5.0",
+      "visible": false
+    },
+    "open_error": 0,
+    "open_warning": 2,
+    "launcher_token_user_SID": null,
+    "launcher_session_id": null,
+    "SW_session_id": null,
+    "identity_limit": "No independent launcher token/SID/Session receipt archived. Explicit flag proves requested transport; do not invent session1.",
+    "launch_receipt_sha256": "652fc971d4b26c6c9b1aedc2f56d9a164cd817f8a95956a09a028cced62a333c"
+  },
+  "new": {
+    "source_head": "92563fcf2a887a984d6d309812b2169313ec8fec",
+    "outer_argv": [
+      "prlctl",
+      "exec",
+      "{da36dd51-bd6d-4e7a-995b-547464583302}",
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "-NoProfile",
+      "-NonInteractive",
+      "-EncodedCommand",
+      "JABQAHIAbwBnAHIAZQBzAHMAUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwBpAGwAZQBuAHQAbAB5AEMAbwBuAHQAaQBuAHUAZQAnADsAJABFAHIAcgBvAHIAQQBjAHQAaQBvAG4AUAByAGUAZgBlAHIAZQBuAGMAZQA9ACcAUwB0AG8AcAAnADsAJABlAHgAZQA9ACcAQwA6AFwAVQBzAGUAcgBzAFwAWQBKAEIAZQBlAHQAbABlAFwAQQBwAHAARABhAHQAYQBcAEwAbwBjAGEAbABcAFAAeQB0AGgAbwBuAFwAcAB5AHQAaABvAG4AYwBvAHIAZQAtADMALgAxADQALQA2ADQAXABwAHkAdABoAG8AbgAuAGUAeABlACcAOwAkAGwAYQB1AG4AYwBoAGUAcgA9ACcAXABcAE0AYQBjAFwAQQBsAGwARgBpAGwAZQBzAFwAVQBzAGUAcgBzAFwAWQBKAEIAZQBlAHQAbABlAFwALgBjAG8AZABlAHgAXAB0AGEAcwBrAC0AYQByAHQAaQBmAGEAYwB0AHMAXABkAG8AYwB1AG0AZQBuAHQALQBwAHIAbwBwAGUAcgB0AGkAZQBzAC0AcABhAHIAYQBsAGwAZQBsAFwAdgBtAC0AcwBlAHIAaQBlAHMALQAyADAAMgA2ADEAMQAxADMAXABtAGEAcgBrAGkAbgBnAGoAaQBnAC0AcABoAGEAcwBlAC0AcAByAG8AYgBlAC0AOQAyADUANgAzAGYAYwAtADAAMQBcAGwAYQB1AG4AYwBoAC0AbQBhAHIAawBpAG4AZwBqAGkAZwAtAHAAaABhAHMAZQAtADkAMgA1ADYAMwBmAGMALQAwADEALgBwAHkAJwA7ACYAIAAkAGUAeABlACAALQBJACAALQBCACAAJABsAGEAdQBuAGMAaABlAHIAOwBlAHgAaQB0ACAAJABMAEEAUwBUAEUAWABJAFQAQwBPAEQARQA="
+    ],
+    "current_user_argument_present": false,
+    "outer_program": "fixed absolute PowerShell, then fixed absolute Python",
+    "same_no_flag_OS_preflight": {
+      "utc": "2026-11-12T20:30:31.9878590Z",
+      "identity": "WORKGROUP\\SYSTEM",
+      "profile": "C:\\WINDOWS\\system32\\config\\systemprofile",
+      "session_id": 0,
+      "native": [],
+      "explorer": [
+        {
+          "Id": 6296,
+          "SessionId": 1
+        }
+      ],
+      "fixed_python_exists": true,
+      "artifact_UNC_exists": true,
+      "original_UNC_exists": true
+    },
+    "startup_process_observed": [
+      {
+        "Id": 4860,
+        "SessionId": 0
+      }
+    ],
+    "launcher_token_user_SID": null,
+    "launcher_session_id": null,
+    "identity_limit": "SYSTEM/session0 measured in same-form OS preflight, SLDWORKS session0 measured during startup; launcher/worker token SID was not separately sampled.",
+    "launch_receipt_sha256": "d2cacecb78008396924d9e0506549520f2d2b2b2847e5b189797019afd68c1eb",
+    "OS_preflight_sha256": "d8745f19b349b3fcd35af8064a20f881f1802a8a3c269cf96bb86cb1fa38bf23",
+    "report_success": false,
+    "case_count": 0,
+    "fatal_error": "(-2146959355, 'Server execution failed', None, None)"
+  },
+  "installed_host_wrapper": {
+    "path": "/Applications/Parallels Desktop.app/Contents/MacOS/parallels_wrapper",
+    "sha256": "f3148009278eb55192910cd9fa8e956656a87296cd9cfc7a3597515e89e026c7",
+    "last_exec_line": "exec \"${tool}\" \"$@\"",
+    "static_forwarding_preserves_argument_vector": true,
+    "historical_wrapper_hash_not_recorded": true,
+    "no_live_wrapper_or_VM_execution_performed": true
+  },
+  "installed_native_cli": {
+    "path": "/Applications/Parallels Desktop.app/Contents/MacOS/prlctl",
+    "sha256": "e97bf751db982f5ab9e364223a252f2f3e41b281c13b2c64a496e8677f54e841",
+    "help_current_user_line": "    --current-user             Use current users credentials to log in to the specified VM",
+    "bundle_short_version": "27.1.0",
+    "bundle_version": "58756",
+    "help_extracted_from_static_binary_strings": true
+  },
+  "finding": "The Nov13 host command omitted --current-user before invoking the wrapper; this was not an observed wrapper removal.",
+  "causal_limit": "Transport flag, shell entry, source version and fresh private copies differ; this is not a single-variable COM experiment and does not prove the unique cause of server execution failure.",
+  "next_step": "Review one OS-only current-user parent/child token+session snapshot plan. No COM/OpenDoc/SW/complete probe or DCOM/RunAs change authorized."
+}

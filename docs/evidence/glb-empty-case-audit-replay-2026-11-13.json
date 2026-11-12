@@ -1,0 +1,27 @@
+{
+  "new_audit": {
+    "success": false,
+    "mode": "probe",
+    "phase_policy": "opening-transition-probe",
+    "case_count": 0,
+    "native_failure": {
+      "type": "com_error",
+      "message": "(-2146959355, 'Server execution failed', None, None)",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\src\\swcli\\daemon\\server.py\", line 282, in acquire_resident_app\n    app = com_client.GetActiveObject(PROG_ID)\n  File \"C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\win32com\\client\\__init__.py\", line 94, in GetActiveObject\n    dispatch = pythoncom.GetActiveObject(resultCLSID)\npywintypes.com_error: (-2147221021, 'Operation unavailable', None, None)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 309, in run\n    app, owned = call(\"acquire-owned-host\", lambda: acquire_resident_app(client, visible=visible))\n                 ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 296, in call\n    result = function()\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 309, in <lambda>\n    app, owned = call(\"acquire-owned-host\", lambda: acquire_resident_app(client, visible=visible))\n                                                    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\src\\swcli\\daemon\\server.py\", line 291, in acquire_resident_app\n    app = com_client.DispatchEx(PROG_ID)\n  File \"C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\win32com\\client\\__init__.py\", line 142, in DispatchEx\n    dispatch = pythoncom.CoCreateInstanceEx(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        clsid, None, clsctx, serverInfo, (pythoncom.IID_IDispatch,)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )[0]\n    ^\npywintypes.com_error: (-2146959355, 'Server execution failed', None, None)\n"
+    },
+    "modern_save_attempts": 0,
+    "forbidden_calls": [],
+    "report_sha256": "357ddef4f407b0bd75d383c4570ec0848b04ed016e2f6f840080507a37a1fa1a",
+    "ci_acceptance": false,
+    "public_acceptance": false,
+    "probe_is_export_acceptance": false
+  },
+  "old_original_supervisor_audit_error": {
+    "type": "IndexError",
+    "message": "list index out of range"
+  },
+  "original_report_unchanged": true,
+  "original_code_posthash_still_unavailable": true,
+  "native_result_upgraded": false,
+  "new_VM_or_CAD_calls": 0
+}

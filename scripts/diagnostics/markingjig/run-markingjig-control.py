@@ -11,6 +11,7 @@ import time
 sys.dont_write_bytecode=True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import markingjig_control as control
+import launcher_receipts as receipts
 
 
 def module(path, name):
@@ -90,7 +91,8 @@ def worker(args):
 
 
 def audit(output, mode, phase_policy='strict'):
-    report=json.loads((output/'report.json').read_text());case=report['cases'][0]
+    report=json.loads((output/'report.json').read_text());observed_case=receipts.single_case(report)
+    case=observed_case if observed_case is not None else {}
     events=[]
     for line in (output/'worker.stderr.log').read_text(encoding='utf-8-sig').splitlines():
         if line.startswith('{'):
@@ -102,7 +104,7 @@ def audit(output, mode, phase_policy='strict'):
                (e.get('call') in ('IModelDoc2.SaveAs','IModelDoc2.SaveAs2','IModelDoc2.SaveAs3') or
                 any(x in e.get('call','') for x in ('SetUserPreference','EditRebuild','ResolveAll','SetSuppression','AddComponent','NewDocument')))]
     expected=1 if mode=='invoke' else 0
-    complete=report.get('success') is True
+    complete=report.get('success') is True and observed_case is not None
     ok=complete and len(saves)==expected and not forbidden and not report['cleanup_errors']
     if mode=='invoke':
         ok=ok and case.get('export_attempts')==1 and case.get('success') is True and bool(case.get('glb_mesh'))
@@ -117,7 +119,8 @@ def audit(output, mode, phase_policy='strict'):
         ok=ok and phases.get('opening_classification') in ('opening-metadata-transition','opening-metadata-unchanged')
         ok=ok and len(observed)==2 and all(row.get('complete') is True for row in observed)
         ok=ok and bool(phases.get('frames')) and all(row.get('complete') is True and row.get('access_time_policy')=='record-only' and not row.get('phase_error') for row in phases['frames'])
-    return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,modern_save_attempts=len(saves),forbidden_calls=forbidden,
+    return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,case_count=len(report['cases']),
+                native_failure=report.get('failure'),modern_save_attempts=len(saves),forbidden_calls=forbidden,
                 report_sha256=hashlib.sha256((output/'report.json').read_bytes()).hexdigest(),
                 ci_acceptance=False,public_acceptance=False,probe_is_export_acceptance=False)
 

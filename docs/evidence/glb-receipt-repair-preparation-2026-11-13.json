@@ -1,0 +1,52 @@
+{
+  "schema": "swcli.markingjig-receipt-repair-preparation.v1",
+  "date": "2026-11-13",
+  "parent_commit": "0c3d604e4c1df0646cb1f22f075d688b83de8306",
+  "status": "offline_source_and_context_plan_for_coordinator_review",
+  "new_VM_calls": 0,
+  "new_COM_or_CAD_calls": 0,
+  "new_SW_or_OpenDoc_calls": 0,
+  "product_or_owned_harness_changed": false,
+  "DCOM_permissions_or_RunAs_changed": false,
+  "tests": {
+    "markingjig": {
+      "total": 117,
+      "new_receipt_tests": 14,
+      "seconds": 0.397
+    },
+    "typed_bridge": {
+      "total": 23,
+      "seconds": 0.012
+    }
+  },
+  "archived_private_launcher_original_sha256": "15251b8bd9c6ff70aea17c6dc7cf8a0a462129c5031277caab180f48fbbc9341",
+  "full_private_review_source_is_not_execution_authorization": true,
+  "private_review_source_retains_historical_paths_and_925_guard": true,
+  "future_context_requires_key": "launcher_receipts_sha256",
+  "required_helper_sha256": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+  "source_sha256": {
+    "scripts/diagnostics/markingjig/launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "e77c002802f443fa301a3cb773025e980599d9c47001b1bef9c79d470aff723e",
+    "scripts/diagnostics/markingjig/test_launcher_receipts.py": "6bf14267d9ac33fed0365cc0612ba09da955f1bbee74df1a475d4979c21c6033",
+    "docs/verification/markingjig-private-launcher-review.py.txt": "72b1c46c49cb874ad7a5f98ca9e754e4bbbdf97e57433877b3fc611e88fd84b5",
+    "docs/verification/markingjig-private-launcher-postchecks.patch": "04d115e062638325382242d528e1a9e3bd6f0bc419c844956a29b73cdb91bc34"
+  },
+  "existing_context_evidence_sha256": "27560a6b28ae1760e6fcda8766cc33fd842af4221db73c0de1b96c0ca3623814",
+  "empty_case_real_replay_sha256": "03935fdee9582c364caf30b44c64dff6c2a01abcfb2fa9a477ff388e6239a926",
+  "context_finding": {
+    "old_current_user_flag": true,
+    "new_current_user_flag": false,
+    "current_installed_wrapper_static_forwarding_preserves_argv": true,
+    "old_token_and_session_not_recorded": true,
+    "new_launcher_worker_token_SID_not_recorded": true,
+    "unique_COM_failure_cause_proven": false
+  },
+  "original_native_result_upgraded": false,
+  "missing_code_posthash_retroactively_filled": false,
+  "normal_SW_exit_retroactively_fabricated": false,
+  "old_originals_unchanged": {
+    "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/native-output/report.json": "357ddef4f407b0bd75d383c4570ec0848b04ed016e2f6f840080507a37a1fa1a",
+    "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/native-audit.json": "9fe75af82baf3749fbe6c49e5da61d84982f0a928d23c8f3ebcfb3b17eaa0e00",
+    "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/artifact-sha256.json": "a5959dc1aa414a40b45fee0369a3811471750013a7e7b1718b1fc7928cf21ddf"
+  }
+}
