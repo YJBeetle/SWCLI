@@ -132,6 +132,11 @@ class Tests(unittest.TestCase):
         self.assertGreater(len(saved),10);self.assertTrue(r['complete'])
         self.assertEqual([r['sequence'] for r in r['timeline']],list(range(len(r['timeline']))))
         self.assertTrue(all(type(row['wall_unix_ns']) is int and type(row['monotonic_ns']) is int for row in r['timeline']))
+    def test_output_cannot_write_model_alternate_stream_or_escape_private_area(self):
+        m.valid_output(r'C:\Workspace\scope\evidence.json')
+        for path in (r'C:\Workspace\scope\MarkingJig.REND.SLDASM:metadata.json',r'C:\Workspace\scope:metadata.json',r'D:\Workspace\evidence.json',r'\\server\share\evidence.json',r'C:\Workspace\..\evidence.json',r'C:\Workspace\evidence.SLDASM'):
+            with self.subTest(path=path):
+                with self.assertRaises(RuntimeError):m.valid_output(path)
     def test_path_is_private_fixed_top_copy_without_unc_device_or_ADS(self):
         m.valid_path(r'C:\Workspace\scope\MarkingJig.REND.SLDASM')
         for path in (r'\\server\share\MarkingJig.REND.SLDASM',r'\\?\C:\Workspace\MarkingJig.REND.SLDASM',r'C:\elsewhere\MarkingJig.REND.SLDASM',r'C:\Workspace\..\MarkingJig.REND.SLDASM',r'C:\Workspace\MarkingJig.REND.SLDASM:stream',r'C:\Workspace\other.SLDASM'):

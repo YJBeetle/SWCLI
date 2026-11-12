@@ -54,6 +54,13 @@ def valid_path(raw):
             not any(':' in part for part in p.parts[1:]), 'fixed private C:\\Workspace top copy required')
 
 
+def valid_output(raw):
+    p=PureWindowsPath(raw)
+    require(p.is_absolute() and p.drive=='C:' and len(p.parts)>2 and p.parts[1]=='Workspace' and
+            '..' not in p.parts and p.suffix=='.json' and not any(':' in part for part in p.parts[1:]),
+            'new private C:\\Workspace ordinary JSON output required; ADS refused')
+
+
 class NativeBackend:
     """Only kernel32 reads plus CRT read descriptor. Loading is explicit, Windows-only."""
     def __init__(self):
@@ -210,10 +217,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();valid_path(args.path)
     require(args.sha256==SOURCE_SHA,'only pinned top MarkingJig readonly copy approved by this tool')
-    destination=PureWindowsPath(str(args.output))
-    require(destination.is_absolute() and destination.drive=='C:' and len(destination.parts)>2 and
-            destination.parts[1]=='Workspace' and '..' not in destination.parts and args.output.suffix=='.json',
-            'new private C:\\Workspace metadata JSON output required')
+    valid_output(str(args.output))
     for parent in args.output.parents:
         info=os.stat(parent,follow_symlinks=False)
         require(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode) and

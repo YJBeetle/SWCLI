@@ -8,7 +8,7 @@
 
 ## 2026-11-12 后续两项仅本地候选
 
-按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与20项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM swconst离线原件未找到；另按只读Docker授权核固定旧缓存安装PIA(33.5.0.53)的ReadOnly精确int2，不能替代VM原件/registry最新/历史任务。按批准SHA读literal的检查器真实正例及错误PIA负例均通过，候选运行前仍强制实际TLB值。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。
+按统筹要求，准备[精确ReadOnly warning2窄语义](../verification/glb-readonly-warning-preparation-2026-11-12.md)与独立[零CAD三渠道文件取证](../verification/glb-file-forensics-plan-2026-11-12.md)，不重跑CAD、不改原CAS/geometry/readonly/identity。45项MarkingJig与21项forensic假后端测试、23项typed保持；GetSaveFlag/readonly/viewonly装机PIA签名静态编译通过。Windows VM swconst离线原件未找到；另按只读Docker授权核固定旧缓存安装PIA(33.5.0.53)的ReadOnly精确int2，不能替代VM原件/registry最新/历史任务。按批准SHA读literal的检查器真实正例及错误PIA负例均通过，候选运行前仍强制实际TLB值。新取证工具只保留raw三渠道/时序/完整ID，不归一化、不设ctime容限；旧probe仍失败、0export，原件audit未改。本轮无VM/CAD操作；仅一个独立只读Docker元数据容器且已确认删除，交静态审阅。
 
 ## 2026-11-12 MarkingJig只读probe实际首停
 
@@ -56,7 +56,7 @@ b50单次identity report SHA `43fcdc2d3aac0db7a2ba5dfa79b78a1b991212ed63555ebf11
 
 监督器新增独立几何trace硬门禁：7个不同请求齐全，每窗GetRadius一次/同一worker，拒绝Get3、setter/rebuild/save或其他未知调用；原读窗口trace规则、process.pid身份绑定和600/1800预算保持。模拟B seed同时污染A为20会在seed-A几何证明处停止，0保存、0产品观察。
 
-38项关联、2620项完整回归OK（27环境跳过，76.161s），SDK strict6文件/31类型拒绝例通过。observe_current/audit_read_trace等9个函数AST不变，产品src/CI/STL/interop工具字节不变。原件、源码及日志hash见 [候选回执](../evidence/getter-array-seed-geometry-candidate-2026-11-11.json)。本轮本地提交，不push/VM/CI；由统筹亲审后安排一次新小范围原生诊断，失败仍首停。
+38项关联、2621项完整回归OK（27环境跳过，76.161s），SDK strict6文件/31类型拒绝例通过。observe_current/audit_read_trace等9个函数AST不变，产品src/CI/STL/interop工具字节不变。原件、源码及日志hash见 [候选回执](../evidence/getter-array-seed-geometry-candidate-2026-11-11.json)。本轮本地提交，不push/VM/CI；由统筹亲审后安排一次新小范围原生诊断，失败仍首停。
 
 ## 2026-11-11 saved-A数值首错与独立预置证明计划
 

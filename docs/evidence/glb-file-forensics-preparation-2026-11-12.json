@@ -33,7 +33,7 @@
     "FILE_STANDARD_INFO": 24,
     "FILE_ID_INFO": 24
   },
-  "portable_fake_backend_tests": 20,
+  "portable_fake_backend_tests": 21,
   "real_Win32_collection_executed": false,
   "source_bytes_open_mode": {
     "access": "GENERIC_READ only",
@@ -47,8 +47,8 @@
   "existing_probe_python_only_analysis_sha256": "6d51a6f046775ed360bb8fe21508e60968b8bfb930dcc381a327a7272b631bea",
   "historical_Win32_basic_standard_ID_snapshots_available": false,
   "fields_sha256": {
-    "scripts/diagnostics/markingjig/file_forensics.py": "27dd2b2eb81a6caa1bd848be95b4af13a06e2c4d9e79712c759610eb950a04b8",
-    "scripts/diagnostics/markingjig/test_file_forensics.py": "a710c2b5fd28242399e89d5ab9888343013186af37e8cef849ad38336b998daa",
+    "scripts/diagnostics/markingjig/file_forensics.py": "ef1fc427b36f8fcbd05972515db8580cc1c50e8447e444941c6fd1fda86e07c5",
+    "scripts/diagnostics/markingjig/test_file_forensics.py": "735d7d6a19bfe6a4df275b93b97607a2f93c502cb25c20e09ceddb04eb00a97e",
     "scripts/diagnostics/markingjig/summarize_file_probe.py": "0d7dfab8cfe731c9834632803da5b5a868fb312d1fbbfecd4c982781b3b69299"
   },
   "limits": [
@@ -58,5 +58,6 @@
     "All four Win32 raw times, allocation/EOF/links/delete/directory/attrs and full opaque128-bit ID+volume are retained.",
     "Any same-channel change is kept and rejected as an unchanged window; hash equality does not prove absence of intervening writes."
   ],
-  "separate_cached_swconst_metadata_collection": "see readonly-warning preparation; not a Windows file-forensics run"
+  "separate_cached_swconst_metadata_collection": "see readonly-warning preparation; not a Windows file-forensics run",
+  "metadata_output_ADS_explicitly_refused": true
 }

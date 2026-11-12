@@ -12,7 +12,7 @@
 
 ## 字段与同一文件
 
-[源码](../../scripts/diagnostics/markingjig/file_forensics.py)只在明确Windows CPython3.14.7/64位参数下绑定kernel32。输入限固定SHA的`C:\Workspace`顶层MarkingJig.REND.SLDASM普通只读独立副本，拒绝reparse/symlink、硬链接、ADS/UNC/设备路径。新输出为私有JSON，不改源文件。
+[源码](../../scripts/diagnostics/markingjig/file_forensics.py)只在明确Windows CPython3.14.7/64位参数下绑定kernel32。输入限固定SHA的`C:\Workspace`顶层MarkingJig.REND.SLDASM普通只读独立副本，拒绝reparse/symlink、硬链接、ADS/UNC/设备路径。新输出为私有普通JSON，拒绝输出ADS（包括模型:metadata.json），以exclusive create创建；不改源文件。
 
 | 渠道 | 保留字段 | 绑定与限制 |
 | --- | --- | --- |
@@ -38,6 +38,6 @@
 
 ## 静态验证与交审
 
-20项假后端/便携负例及Win64 ABI大小/offset测试通过：完整ID/卷错配、字段缺失、readonly/link/reparse、目录/delete pending/size、1单位各类时间变化、截断/增长、部分native读取失败、源SHA不符、第一次错误与句柄关闭错误分离。Ctypes结构为固定宽度，Basic40B、Standard24B、ID24B，避免宿主c_ulong宽度差异。真实Win32调用/句柄转交/错误码和该私有副本当前三渠道值尚未执行验证，不能以替身测试冒充。
+21项假后端/便携负例及Win64 ABI大小/offset测试通过：完整ID/卷错配、字段缺失、readonly/link/reparse、目录/delete pending/size、1单位各类时间变化、截断/增长、部分native读取失败、源SHA不符、第一次错误与句柄关闭错误分离。Ctypes结构为固定宽度，Basic40B、Standard24B、ID24B，避免宿主c_ulong宽度差异。真实Win32调用/句柄转交/错误码和该私有副本当前三渠道值尚未执行验证，不能以替身测试冒充。
 
 [旧记录分析器](../../scripts/diagnostics/markingjig/summarize_file_probe.py)已只读重放保存的JSON，不改旧report或模型；[准备证据](../evidence/glb-file-forensics-preparation-2026-11-12.json)记录源码tag/SHA、工具摘要与边界。运行命令形状供审阅：`file_forensics.py --path <批准的C:\Workspace顶层副本> --sha256 <固定80bfa9d4...> --output <新的私有.json>`，不是本轮执行安排。
