@@ -1,0 +1,271 @@
+{
+  "schema": "swcli.step-main-portable-independent.v1",
+  "run": 43323440336,
+  "head": "82ffd363a87caae17ffe87a52ebaa94677749cc3",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "required_jobs_verified": true,
+  "required_jobs": [
+    {
+      "id": 131549766372,
+      "name": "Validate native scope before runtime access",
+      "conclusion": "success"
+    },
+    {
+      "id": 131549769188,
+      "name": "Validate release tag before private native runtime",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131549769292,
+      "name": "Validate manual units routing before private native setup",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131549831817,
+      "name": "Reject invalid or conflicting manual CI profiles",
+      "conclusion": "success"
+    },
+    {
+      "id": 131549834206,
+      "name": "inputs.detailing_public_gate && 'Detailing public CLI/daemon gate' || 'Detailing internal calibration'",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131549834501,
+      "name": "dimension-format",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131549925416,
+      "name": "Build wheel",
+      "conclusion": "success"
+    },
+    {
+      "id": 131549925429,
+      "name": "Windows / Python 3.14",
+      "conclusion": "success"
+    },
+    {
+      "id": 131549925453,
+      "name": "Windows / Python 3.9",
+      "conclusion": "success"
+    },
+    {
+      "id": 131549927744,
+      "name": "font-scopes-calibration",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131553204163,
+      "name": "inputs.units_write_calibration && inputs.units_public_acceptance && 'Public finite units write acceptance' || inputs.units_write_calibration && 'Private finite units write calibration' || inputs.units_calibration && inputs.units_public_acceptance && 'Public units read/CAS acceptance' || inputs.units_calibration && 'Bounded units read/CAS calibration' || inputs.native_topology_targeted && 'Targeted topology reference verification' || inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Image Quality GLB calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance accep",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 131553204772,
+      "name": "Publish original verified version-tag artifacts",
+      "conclusion": "skipped"
+    }
+  ],
+  "original_summary_artifact_digests_verified": true,
+  "reports": [
+    {
+      "label": "portable314",
+      "artifact_id": 13991547468,
+      "original_zip_sha256": "ac6c125999fb62bb8b0e32a4ffb714ca092e0d3ce40ae0fc3ce87368dd45fc5e",
+      "raw_summary_sha256": "6de6e1bd5eba10e49673d03559a8c6ff38133abdb67a68062238387ef29ae8f5",
+      "summary": {
+        "schema_version": 1,
+        "source": {
+          "commit": "82ffd363a87caae17ffe87a52ebaa94677749cc3",
+          "client_version": "0.2.4",
+          "host": "windows",
+          "scope": "portable-checks-python-3.14",
+          "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/43323440336"
+        },
+        "phases": [
+          {
+            "name": "install",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "unit-tests",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "sdk-types",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "script-parser",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "installed-resources",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "public-evidence",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "evidence root does not exist; no public acceptance claimed"
+          }
+        ],
+        "first_failure": null,
+        "cleanup_errors": [],
+        "totals": {
+          "phases": 6,
+          "pass": 5,
+          "fail": 0,
+          "skip": 1
+        }
+      }
+    },
+    {
+      "label": "portable39",
+      "artifact_id": 13991069659,
+      "original_zip_sha256": "e17f3c691c8480f8f838570bbacd19dd389cddd9c088d1d16e34aa24e9054ee5",
+      "raw_summary_sha256": "f9b769bc1b9d477503949d70a1666e2f7d3d8a3c71a2eada65493fef23deaa93",
+      "summary": {
+        "schema_version": 1,
+        "source": {
+          "commit": "82ffd363a87caae17ffe87a52ebaa94677749cc3",
+          "client_version": "0.2.4",
+          "host": "windows",
+          "scope": "portable-checks-python-3.9",
+          "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/43323440336"
+        },
+        "phases": [
+          {
+            "name": "install",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "unit-tests",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "sdk-types",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "skipped"
+          },
+          {
+            "name": "script-parser",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "skipped"
+          },
+          {
+            "name": "installed-resources",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "public-evidence",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "evidence root does not exist; no public acceptance claimed"
+          }
+        ],
+        "first_failure": null,
+        "cleanup_errors": [],
+        "totals": {
+          "phases": 6,
+          "pass": 3,
+          "fail": 0,
+          "skip": 3
+        }
+      }
+    },
+    {
+      "label": "package",
+      "artifact_id": 13991223327,
+      "original_zip_sha256": "1e44a0a00722ba5ed0bc356340dca416fa7e91d961cb35fc9782bdaf62378941",
+      "raw_summary_sha256": "1666aa5d0903f86a183be0917ed4e3643a5d458662418d885208b2c7683c3f3c",
+      "summary": {
+        "schema_version": 1,
+        "source": {
+          "commit": "82ffd363a87caae17ffe87a52ebaa94677749cc3",
+          "client_version": "0.2.4",
+          "host": "linux-wine",
+          "scope": "portable-package",
+          "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/43323440336"
+        },
+        "phases": [
+          {
+            "name": "build",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "installed-resources",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "distribution-upload",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "public-evidence",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "evidence root does not exist; no public acceptance claimed"
+          }
+        ],
+        "first_failure": null,
+        "cleanup_errors": [],
+        "totals": {
+          "phases": 4,
+          "pass": 3,
+          "fail": 0,
+          "skip": 1
+        }
+      }
+    }
+  ],
+  "full_native_skipped": true,
+  "public_native_acceptance_not_claimed": true,
+  "wine_CAD_acceptance_not_claimed": true,
+  "package_host_label_not_runtime_proof": true,
+  "release_skipped": true,
+  "source_commit_version": "0.2.4",
+  "new_release_created": false
+}

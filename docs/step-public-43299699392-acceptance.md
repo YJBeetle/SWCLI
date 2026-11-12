@@ -22,3 +22,9 @@
 ## 合并回归
 
 最终本地完整回归 2966 项、39 skip，104.425 秒通过；SDK 生成一致、严格类型检查与 33 项消费者拒绝通过。main 原有 ci.yml 和统一路由按字节保留。独立 STEP 工作流及其与已有单位/文档属性 CI 的上限、路由和凭据保护检查通过；合并过程中发现的参数超限和旧文件名测试失败日志保留，修正接线后复验，不改动原生判据。见 docs/evidence/step-merge-validation.json。
+
+## 集成 main 的普通 CI 结果
+
+[43323440336](https://github.com/YJBeetle/SWCLI/actions/runs/43323440336) / `82ffd363a87caae17ffe87a52ebaa94677749cc3` 的 push CI 已完成 success：Windows Python 3.9/3.14 单元测试与安装资源、3.14 SDK/脚本解析、原包构建和路由保护均通过。统筹另下载两个 portable 与一个 package 摘要原 ZIP，分别与 GitHub artifact digest 核对，并核验摘要源提交一致、first_failure=null、无 fail。
+
+原生完整功能 job 和 release job 均按设计 skipped；三个摘要的 public-evidence 均 SKIP。这证明合并后的普通 CI，通过边界不扩大为集成 main 原生全套或 Wine/CAD 通过。package 摘要中的通用 host 标签也不作为 Wine 运行时验收。原包未重装/重打包，本轮不创建发布。详见 docs/evidence/step-main-43323440336-audit.json。
