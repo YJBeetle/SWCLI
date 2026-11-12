@@ -1,0 +1,451 @@
+{
+  "run_id": 43102613261,
+  "head": "f56f7929c6877248926ba2497523c8be9d65c5f4",
+  "artifact_id": 13895175070,
+  "zip_sha256": "6b69d6b9671b9af4fd2220552d6d8b2939a706ac38181acc109aef00717cba18",
+  "job_sha256": "c3ee4025692d2c0d8dcb748f9ab98a84fe308583974529c88a8c7f0cc8af4f0a",
+  "writer_report_sha256": "d30aca39c5361e9e2207557b956db4c6f2db3a0b8863bc4d0706caa50b7bdc19",
+  "reader_report_sha256": "e77d690128d0262f480aa9e84cd681bc63dffd10b0911dddcb3dd70f9efd9713",
+  "expanded_members_equal": 105,
+  "writer_success": true,
+  "writer_cleanup_errors": [],
+  "public_outputs": [
+    {
+      "file": "ap203-solid-surface.step",
+      "protocol": "ap203",
+      "geometry": "solid-surface",
+      "surface": "cli",
+      "sha256": "b0393d67367756fba64138b666aa3f29f873b85b5246014da3373b6785943d7a"
+    },
+    {
+      "file": "ap203-wireframe.step",
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "surface": "cli",
+      "sha256": "e2637338686a7aa7b817372c187b10514ddea4eb0b4c6039f517d7f7050e9966",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "file": "ap203-wireframe-sketches.step",
+      "protocol": "ap203",
+      "geometry": "wireframe-sketches",
+      "surface": "cli",
+      "sha256": "0a43ee88d26b902d5f247b54c7a47427351e698dc02c6634675839e13c82e2a8",
+      "raw_segments": 18,
+      "raw_total_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "file": "ap214-solid-surface.step",
+      "protocol": "ap214",
+      "geometry": "solid-surface",
+      "surface": "cli",
+      "sha256": "974445432812a39084945d3c2551909f887d1d4eef1c1f4d9729b4d638686ffb"
+    },
+    {
+      "file": "ap214-wireframe.step",
+      "protocol": "ap214",
+      "geometry": "wireframe",
+      "surface": "cli",
+      "sha256": "9c732fe3fb586c79a076b0b1176294557422bbe485720c89a50f7db61fd3696f",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    },
+    {
+      "file": "ap214-wireframe-sketches.step",
+      "protocol": "ap214",
+      "geometry": "wireframe-sketches",
+      "surface": "cli",
+      "sha256": "38cc81c85ba9ef3ad1b1180104d63279dc979cb8000f3c6183643b7cc418501b",
+      "raw_segments": 18,
+      "raw_total_mm": 560.0,
+      "geometry_signature": "704fff5a31991e00081c011426c2afa0b892ce91611476212274b78b96049321"
+    },
+    {
+      "file": "sdk-ap214-solid-surface.STP",
+      "protocol": "ap214",
+      "geometry": "solid-surface",
+      "surface": "sdk",
+      "sha256": "d6ae7fee8e5d4bc23fe13413ffef2847b3d134211d16e7f9cf30410a961c2e5b"
+    },
+    {
+      "file": "mcp-ap203-wireframe.step",
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "surface": "mcp",
+      "sha256": "6cb609f945099fa2facd6c3a79b99d4a33eed75fd79b93196d5f02bb500a79bf",
+      "raw_segments": 12,
+      "raw_total_mm": 320.0,
+      "geometry_signature": "07a2060bb7d3091434d7c23d5c6bcf292d6d4f019a047671519a15d5af35511e"
+    }
+  ],
+  "native_export_calls": 8,
+  "reader_cases_planned": 8,
+  "reader_cases_started": 2,
+  "reader_cases_completed": 1,
+  "first_failed_index_zero_based": 1,
+  "first_failed_output": {
+    "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public\\ap203-wireframe.step",
+    "sha256": "e2637338686a7aa7b817372c187b10514ddea4eb0b4c6039f517d7f7050e9966",
+    "protocol": "ap203",
+    "geometry": "wireframe",
+    "surface": "cli",
+    "content": {
+      "protocol": "ap203",
+      "geometry": "wireframe",
+      "file_schema": " 'CONFIG_CONTROL_DESIGN' ",
+      "entity_types": [
+        "APPLICATION_CONTEXT",
+        "APPLICATION_PROTOCOL_DEFINITION",
+        "APPROVAL",
+        "APPROVAL_DATE_TIME",
+        "APPROVAL_PERSON_ORGANIZATION",
+        "APPROVAL_ROLE",
+        "APPROVAL_STATUS",
+        "AXIS2_PLACEMENT_3D",
+        "B_SPLINE_CURVE_WITH_KNOTS",
+        "CALENDAR_DATE",
+        "CARTESIAN_POINT",
+        "CC_DESIGN_APPROVAL",
+        "CC_DESIGN_DATE_AND_TIME_ASSIGNMENT",
+        "CC_DESIGN_PERSON_AND_ORGANIZATION_ASSIGNMENT",
+        "CC_DESIGN_SECURITY_CLASSIFICATION",
+        "COORDINATED_UNIVERSAL_TIME_OFFSET",
+        "DATE_AND_TIME",
+        "DATE_TIME_ROLE",
+        "DESIGN_CONTEXT",
+        "DIRECTION",
+        "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION",
+        "GEOMETRIC_CURVE_SET",
+        "LOCAL_TIME",
+        "MECHANICAL_CONTEXT",
+        "ORGANIZATION",
+        "PERSON",
+        "PERSON_AND_ORGANIZATION",
+        "PERSON_AND_ORGANIZATION_ROLE",
+        "PRODUCT",
+        "PRODUCT_DEFINITION",
+        "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE",
+        "PRODUCT_DEFINITION_SHAPE",
+        "PRODUCT_RELATED_PRODUCT_CATEGORY",
+        "SECURITY_CLASSIFICATION",
+        "SECURITY_CLASSIFICATION_LEVEL",
+        "SHAPE_DEFINITION_REPRESENTATION",
+        "UNCERTAINTY_MEASURE_WITH_UNIT"
+      ]
+    }
+  },
+  "first_failure": {
+    "type": "RuntimeError",
+    "message": "STEP geometry readback failed",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 323, in run\n    case_runner(app, output, constants, plane, reverse, call, case, report, live,\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-step-export-calibration.py\", line 459, in <lambda>\n    selected_case=lambda *values,**options:sketch_candidate.readback_case(reader_api,*values,**options)\n                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\gate_support\\step_sketch_readback_candidate.py\", line 158, in readback_case\n    reader._verify_imported_geometry(app,target,output,target.stem,row['geometry'],constants,call,case,live,wire_reader=observe,before_load=verify_profile)\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-step-export-calibration.py\", line 362, in _verify_imported_geometry\n    checked(document is not None and errors.value == 0, \"STEP geometry readback failed\")\n  File \"D:\\a\\SWCLI\\SWCLI\\scripts\\ci\\verify-through-all-calibration.py\", line 33, in checked\n    raise RuntimeError(message)\nRuntimeError: STEP geometry readback failed\n"
+  },
+  "failed_import_return": {
+    "state": "returned",
+    "document_returned": false,
+    "errors": 1,
+    "arg_string": "r",
+    "python_type": "NoneType"
+  },
+  "failed_geometry_status": "unavailable; no observation attempted",
+  "failed_geometry_value": null,
+  "completed_solid_case": {
+    "import_return": {
+      "state": "returned",
+      "document_returned": true,
+      "errors": 0,
+      "arg_string": "r",
+      "python_type": "CDispatch"
+    },
+    "geometry": {
+      "ok": true,
+      "action": "document.measure",
+      "scope": "sum-of-solid-bodies",
+      "coordinate_system": "part-model",
+      "method": "native-body-mass-properties",
+      "metrics": {
+        "solid_body_count": 1,
+        "volume_mm3": 11999.999999999998,
+        "surface_area_mm2": 3800.0,
+        "centroid_mm": {
+          "x": 0.0,
+          "y": 7.72035238382826e-17,
+          "z": 5.0
+        }
+      },
+      "bodies": [
+        {
+          "index": 0,
+          "volume_mm3": 11999.999999999998,
+          "surface_area_mm2": 3800.0,
+          "centroid_mm": {
+            "x": 0.0,
+            "y": 7.72035238382826e-17,
+            "z": 5.0
+          }
+        }
+      ]
+    },
+    "save": {
+      "ok": true,
+      "action": "document.save-as",
+      "output": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+      "document_before": {
+        "title": "ap203-solid-surface.SLDPRT",
+        "path": "",
+        "type": 1,
+        "modified": true,
+        "update_stamp": 114
+      },
+      "api_saved": true,
+      "save_errors": 0,
+      "save_error_names": [],
+      "save_warnings": null,
+      "document": {
+        "title": "ap203-solid-surface-imported",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "type": 1,
+        "modified": false,
+        "update_stamp": 114
+      },
+      "file_verification": {
+        "non_empty": true,
+        "minimum_size_valid": true
+      },
+      "artifact": {
+        "kind": "native-document",
+        "format": "SLDPRT",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "size_bytes": 46785
+      }
+    },
+    "reopen": {
+      "ok": true,
+      "action": "document.open",
+      "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+      "read_only": true,
+      "configuration": null,
+      "api_errors": 0,
+      "api_warnings": 0,
+      "document": {
+        "title": "ap203-solid-surface-imported",
+        "path": "D:\\a\\_temp\\swcli-native-smoke\\step-public-readback\\ap203-solid-surface-imported.SLDPRT",
+        "type": 1,
+        "modified": false,
+        "update_stamp": 114
+      }
+    },
+    "reopened_geometry": {
+      "ok": true,
+      "action": "document.measure",
+      "scope": "sum-of-solid-bodies",
+      "coordinate_system": "part-model",
+      "method": "native-body-mass-properties",
+      "metrics": {
+        "solid_body_count": 1,
+        "volume_mm3": 11999.999999999998,
+        "surface_area_mm2": 3800.0,
+        "centroid_mm": {
+          "x": 0.0,
+          "y": 7.72035238382826e-17,
+          "z": 5.0
+        }
+      },
+      "bodies": [
+        {
+          "index": 0,
+          "volume_mm3": 11999.999999999998,
+          "surface_area_mm2": 3800.0,
+          "centroid_mm": {
+            "x": 0.0,
+            "y": 7.72035238382826e-17,
+            "z": 5.0
+          }
+        }
+      ]
+    },
+    "native_sha256": "2d57ec4589ff7d8352ac5167f566d0b73062f58b6b86c45e3fb36f95dcfab828"
+  },
+  "before": {
+    "swMultiCAD_Enable3DInterconnect": true,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": false,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "requested": {
+    "swMultiCAD_Enable3DInterconnect": false,
+    "swImportSolidSurface": true,
+    "swImportFreeCurves": true,
+    "swImportNeutral_SolidandSurface": true,
+    "swImportNeutral_FreeCurvesAndPoints": false,
+    "swImportStepConfigData": false,
+    "swImportCurvePreference": 0,
+    "swImportNeutral_CurvesAndPointsOption": 0
+  },
+  "full_original_restored_both_cases": true,
+  "reader_cleanup_errors": [],
+  "reader_host": {
+    "process_id": 5980,
+    "revision": "33.5.0",
+    "visible": false
+  },
+  "writer_host": {
+    "language": "english",
+    "owned_by_daemon": true,
+    "platform": "windows",
+    "process_id": 1232,
+    "revision": "33.5.0",
+    "shared_interactive": false,
+    "solidworks_revision": "33.5.0",
+    "startup_wait_seconds": 0.8280000000002019,
+    "visible": false
+  },
+  "input_identity": {
+    "source_commit": "f56f7929c6877248926ba2497523c8be9d65c5f4",
+    "swconst_path": "C:\\Program Files\\SOLIDWORKS\\swconst.tlb",
+    "swconst_sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6",
+    "sldworks_tlb_path": "C:\\Program Files\\SOLIDWORKS\\sldworks.tlb",
+    "sldworks_tlb_sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+  },
+  "reader_trace": {
+    "trace.jsonl": {
+      "rows": 476,
+      "calls": 238,
+      "counts": {
+        "read-official-swconst": 1,
+        "acquire-owned-host": 1,
+        "wait-ready": 1,
+        "capture-owned-process": 1,
+        "sketch-observer-host-hidden": 2,
+        "sketch-observer-revision": 2,
+        "sketch-observer-host-identity": 2,
+        "sketch-snapshot-original.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-snapshot-original.swImportSolidSurface": 2,
+        "sketch-snapshot-original.swImportFreeCurves": 2,
+        "sketch-snapshot-original.swImportNeutral_SolidandSurface": 2,
+        "sketch-snapshot-original.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-snapshot-original.swImportStepConfigData": 2,
+        "sketch-snapshot-original.swImportCurvePreference": 2,
+        "sketch-snapshot-original.swImportNeutral_CurvesAndPointsOption": 2,
+        "sketch-observer-empty-before-profile": 2,
+        "sketch-cas-before-set.swMultiCAD_Enable3DInterconnect": 8,
+        "sketch-cas-before-set.swImportSolidSurface": 8,
+        "sketch-cas-before-set.swImportFreeCurves": 8,
+        "sketch-cas-before-set.swImportNeutral_SolidandSurface": 8,
+        "sketch-cas-before-set.swImportNeutral_FreeCurvesAndPoints": 8,
+        "sketch-cas-before-set.swImportStepConfigData": 8,
+        "sketch-cas-before-set.swImportCurvePreference": 8,
+        "sketch-cas-before-set.swImportNeutral_CurvesAndPointsOption": 8,
+        "sketch-set-owned.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-readback-after-set.swMultiCAD_Enable3DInterconnect": 4,
+        "sketch-readback-after-set.swImportSolidSurface": 4,
+        "sketch-readback-after-set.swImportFreeCurves": 4,
+        "sketch-readback-after-set.swImportNeutral_SolidandSurface": 4,
+        "sketch-readback-after-set.swImportNeutral_FreeCurvesAndPoints": 4,
+        "sketch-readback-after-set.swImportStepConfigData": 4,
+        "sketch-readback-after-set.swImportCurvePreference": 4,
+        "sketch-readback-after-set.swImportNeutral_CurvesAndPointsOption": 4,
+        "sketch-set-owned.swImportFreeCurves": 2,
+        "sketch-verify-fixed-profile.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-fixed-profile.swImportSolidSurface": 2,
+        "sketch-verify-fixed-profile.swImportFreeCurves": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_SolidandSurface": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-verify-fixed-profile.swImportStepConfigData": 2,
+        "sketch-verify-fixed-profile.swImportCurvePreference": 2,
+        "sketch-verify-fixed-profile.swImportNeutral_CurvesAndPointsOption": 2,
+        "observe-import-context.swMultiCAD_Enable3DInterconnect": 2,
+        "observe-import-context.swImportSolidSurface": 2,
+        "observe-import-context.swImportFreeCurves": 2,
+        "observe-import-context.swImportNeutral_SolidandSurface": 2,
+        "observe-import-context.swImportNeutral_FreeCurvesAndPoints": 2,
+        "observe-import-context.swImportStepConfigData": 2,
+        "observe-import-context.swImportCurvePreference": 2,
+        "observe-import-context.swImportNeutral_CurvesAndPointsOption": 2,
+        "GetImportFileData": 2,
+        "observe-import-data.typeinfo": 2,
+        "observe-import-data.query-interface.IImportIgesData": 2,
+        "observe-import-data.query-interface.IImportStepData": 2,
+        "observe-import-data.MapConfigurationData": 2,
+        "sketch-cas-before-one-load.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-cas-before-one-load.swImportSolidSurface": 2,
+        "sketch-cas-before-one-load.swImportFreeCurves": 2,
+        "sketch-cas-before-one-load.swImportNeutral_SolidandSurface": 2,
+        "sketch-cas-before-one-load.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-cas-before-one-load.swImportStepConfigData": 2,
+        "sketch-cas-before-one-load.swImportCurvePreference": 2,
+        "sketch-cas-before-one-load.swImportNeutral_CurvesAndPointsOption": 2,
+        "LoadFile4": 2,
+        "observe-import-document.typeinfo": 1,
+        "observe-import-document.GetType": 1,
+        "observe-import-document.GetTitle": 1,
+        "observe-import-document.GetPathName": 1,
+        "measure-imported-step": 1,
+        "save-imported-native": 1,
+        "close-import": 1,
+        "reopen-imported-native": 1,
+        "verify-reopened-import": 1,
+        "close-reopened-import": 1,
+        "sketch-cas-after-readback.swMultiCAD_Enable3DInterconnect": 1,
+        "sketch-cas-after-readback.swImportSolidSurface": 1,
+        "sketch-cas-after-readback.swImportFreeCurves": 1,
+        "sketch-cas-after-readback.swImportNeutral_SolidandSurface": 1,
+        "sketch-cas-after-readback.swImportNeutral_FreeCurvesAndPoints": 1,
+        "sketch-cas-after-readback.swImportStepConfigData": 1,
+        "sketch-cas-after-readback.swImportCurvePreference": 1,
+        "sketch-cas-after-readback.swImportNeutral_CurvesAndPointsOption": 1,
+        "sketch-restore-cas.swImportFreeCurves": 2,
+        "sketch-restore-owned.swImportFreeCurves": 2,
+        "sketch-restore-readback.swImportFreeCurves": 2,
+        "sketch-restore-cas.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-restore-owned.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-restore-readback.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-full-original-restored.swMultiCAD_Enable3DInterconnect": 2,
+        "sketch-verify-full-original-restored.swImportSolidSurface": 2,
+        "sketch-verify-full-original-restored.swImportFreeCurves": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_SolidandSurface": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_FreeCurvesAndPoints": 2,
+        "sketch-verify-full-original-restored.swImportStepConfigData": 2,
+        "sketch-verify-full-original-restored.swImportCurvePreference": 2,
+        "sketch-verify-full-original-restored.swImportNeutral_CurvesAndPointsOption": 2,
+        "ExitApp": 1,
+        "WaitForOwnedProcess": 1,
+        "CloseProcessHandle": 1,
+        "CoUninitialize": 1
+      },
+      "errors": []
+    },
+    "observation-trace.jsonl": {
+      "rows": 74,
+      "calls": 37,
+      "counts": {
+        "StartupProcessCompleted": 2,
+        "GetProcessID": 3,
+        "RevisionNumber": 3,
+        "GetDocumentCount": 4,
+        "Visible": 2,
+        "GetType": 5,
+        "GetTitle": 6,
+        "GetPathName": 4,
+        "GetUpdateStamp": 3,
+        "GetSaveFlag": 4,
+        "ExitApp": 1
+      },
+      "errors": []
+    }
+  },
+  "native_acceptance": false,
+  "limitations": [
+    "No sketch geometry or feature health measured; null document errors1 precedes observer assertions",
+    "No native cause inferred from error1 or different-environment prior459 success",
+    "Head attested by artifact metadata/writer/input-identity/job log; artifact has no loaded source byte fingerprint manifest",
+    "Owned wait/close/exit observed; no global native-process inventory captured"
+  ]
+}
