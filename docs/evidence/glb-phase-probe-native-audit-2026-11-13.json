@@ -1,0 +1,996 @@
+{
+  "schema": "swcli.markingjig-phase-probe-native-audit.v1",
+  "audit_source_sha256": "9069e016a4d296526cfd53875d609448cfd02851e42c9be67f3101acdacc9a92",
+  "source_head": "92563fcf2a887a984d6d309812b2169313ec8fec",
+  "allocation_id": "VM-20261113-MARKINGJIG-PHASE-PROBE-01",
+  "original_report_sha256": "357ddef4f407b0bd75d383c4570ec0848b04ed016e2f6f840080507a37a1fa1a",
+  "original_report_failure": {
+    "type": "com_error",
+    "message": "(-2146959355, 'Server execution failed', None, None)",
+    "traceback": "Traceback (most recent call last):\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\src\\swcli\\daemon\\server.py\", line 282, in acquire_resident_app\n    app = com_client.GetActiveObject(PROG_ID)\n  File \"C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\win32com\\client\\__init__.py\", line 94, in GetActiveObject\n    dispatch = pythoncom.GetActiveObject(resultCLSID)\npywintypes.com_error: (-2147221021, 'Operation unavailable', None, None)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 309, in run\n    app, owned = call(\"acquire-owned-host\", lambda: acquire_resident_app(client, visible=visible))\n                 ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 296, in call\n    result = function()\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\scripts\\ci\\verify-through-all-calibration.py\", line 309, in <lambda>\n    app, owned = call(\"acquire-owned-host\", lambda: acquire_resident_app(client, visible=visible))\n                                                    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Workspace\\SWCLI-series-20261110\\source-70d8c9e\\src\\swcli\\daemon\\server.py\", line 291, in acquire_resident_app\n    app = com_client.DispatchEx(PROG_ID)\n  File \"C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages\\win32com\\client\\__init__.py\", line 142, in DispatchEx\n    dispatch = pythoncom.CoCreateInstanceEx(\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        clsid, None, clsctx, serverInfo, (pythoncom.IID_IDispatch,)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )[0]\n    ^\npywintypes.com_error: (-2146959355, 'Server execution failed', None, None)\n"
+  },
+  "candidate_attempts": 1,
+  "worker_normal_exit": true,
+  "worker_exit": 1,
+  "watchdog_failure": null,
+  "failure_stage": "acquire-owned-host / DispatchEx",
+  "fatal_hresult_signed": -2146959355,
+  "fatal_hresult_hex": "0x80080005",
+  "expected_unavailable_ROT_context_hresult": -2147221021,
+  "acquisition_window_seconds": 120.12288475036621,
+  "first_fatal_error_not_replaced": true,
+  "case_runner_entered": false,
+  "OpenDoc7_calls": 0,
+  "SaveAs_calls": 0,
+  "exports": 0,
+  "complete_model_observations": 0,
+  "opening_phase_frames": 0,
+  "loaded_baseline_sealed": false,
+  "phase_policy_native_acceptance": false,
+  "startup_process_observed": [
+    {
+      "Id": 4860,
+      "SessionId": 0
+    }
+  ],
+  "owned_COM_handle_acquired": false,
+  "owned_process_exit_code_receipt": false,
+  "CloseDoc_calls": 0,
+  "ExitApp_calls": 0,
+  "owned_wait_receipt": false,
+  "CoUninitialize_completed": true,
+  "native_pids_before": [],
+  "native_pids_after": [],
+  "native_pids_after_postcleanup_OS": [],
+  "normal_SW_exit_proven": false,
+  "Mac_originals_11_full_fingerprints_and_sha_unchanged": true,
+  "private_10_full_sha_and_native_128bit_ID_unchanged": true,
+  "private_post_exit_raw_frame_complete": true,
+  "copied_code_prelaunch_hashes_verified": true,
+  "copied_code_post_exit_hashes_available": false,
+  "raw_post_frame_label_is_not_CloseDoc_or_ExitApp_call_evidence": true,
+  "private_window_raw_changes": [
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683625021800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683625021800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836250218
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836250218
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683644351000
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683644351000
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836443510
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.REND.SLDASM",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836443510
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683626529600
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683626529600
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836265296
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836265296
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683646360000
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683646360000
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836463600
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJig.SLDASM",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836463600
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683628537600
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683628537600
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836285376
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836285376
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683648367400
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683648367400
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836483674
+    },
+    {
+      "path": [
+        "raw",
+        "M3x6_SHCS.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836483674
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683628537600
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683628537600
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836285376
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836285376
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683650373900
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683650373900
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836503739
+    },
+    {
+      "path": [
+        "raw",
+        "Magnet_D6x15.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836503739
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683632553800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683632553800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836325538
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836325538
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683654402200
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683654402200
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836544022
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlock.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836544022
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683632553800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683632553800
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836325538
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836325538
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683656408100
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683656408100
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836564081
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigBlockPrint.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836564081
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683636577600
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554039101300,
+      "after": 1794515683636577600
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836365776
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540391013,
+      "after": 134389892836365776
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683660163100
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683660163100
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836601631
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigEpoxy.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836601631
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683638590500
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683638590500
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836385905
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836385905
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683664181700
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683664181700
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836641817
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRod.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836641817
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683638590500
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683638590500
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836385905
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836385905
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683666189200
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683666189200
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836661892
+    },
+    {
+      "path": [
+        "raw",
+        "MarkingJigRodPrint.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836661892
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        0,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683640597500
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        0,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554055148400,
+      "after": 1794515683640597500
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        0,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836405975
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        0,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540551484,
+      "after": 134389892836405975
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        1,
+        "python_path",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683668198000
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        1,
+        "python_held",
+        "st_atime_ns"
+      ],
+      "before": 1794515554058110800,
+      "after": 1794515683668198000
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        1,
+        "win32_held",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836681980
+    },
+    {
+      "path": [
+        "raw",
+        "Spirit_Level.SLDPRT",
+        1,
+        "win32_path_reopen",
+        "basic",
+        "LastAccessTime"
+      ],
+      "before": 134389891540581108,
+      "after": 134389892836681980
+    }
+  ],
+  "private_window_policy_projected_changes": [],
+  "post_exit_proof_replayed_offline": true,
+  "original_launcher_postcheck_failure_retained": [
+    {
+      "stage": "OS-post-owned-cleanup-input-proof",
+      "error": "list index out of range",
+      "traceback": "Traceback (most recent call last):\n  File \"\\\\Mac\\AllFiles\\Users\\YJBeetle\\.codex\\task-artifacts\\document-properties-parallel\\vm-series-20261113\\markingjig-phase-probe-92563fc-01\\launch-markingjig-phase-92563fc-01.py\", line 95, in <module>\n    native=json.loads(report_path.read_text());frames=native.get('cases',[{}])[0].get('file_phases',{}).get('frames',[])\n                                                      ~~~~~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range\n"
+    }
+  ],
+  "original_supervisor_audit_failure_retained": {
+    "type": "IndexError",
+    "message": "list index out of range"
+  },
+  "offline_replay_does_not_rewrite_or_upgrade_native_result": true,
+  "raw_access_time_policy": "record-only",
+  "idle_pause_restored": "on",
+  "host_after_state": "running",
+  "resource_return_requested": true,
+  "native_success": false,
+  "export_acceptance": false,
+  "evidence_manifest_sha256": "a5959dc1aa414a40b45fee0369a3811471750013a7e7b1718b1fc7928cf21ddf",
+  "evidence_manifest_entries": 60
+}
