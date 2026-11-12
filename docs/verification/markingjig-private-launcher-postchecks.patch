@@ -1,9 +1,6 @@
 --- a/private-launcher.py
 +++ b/private-launcher.py
-@@ -7,6 +7,13 @@
- base=Path(r'C:\Workspace\SWCLI-series-20261113')
- code=base/'markingjig-code-92563fc-01';inputs=base/'markingjig-input-92563fc-01';output=base/'markingjig-phase-probe-92563fc-01'
- ctx=json.loads((share/'allocation-inputs.json').read_text())
+@@ -9,0 +10,7 @@
 +# A future fresh allocation must pin and place this helper beside its launcher.
 +# The historical context has no such key and cannot be used to overwrite old evidence.
 +receipt_helper_path=Path(__file__).with_name('launcher_receipts.py')
@@ -11,18 +8,10 @@
 + raise RuntimeError('reviewed launcher receipt helper differs')
 +sys.path.insert(0,str(receipt_helper_path.parent))
 +import launcher_receipts as receipts
- record=dict(allocation_id=ctx['allocation_id'],source_head=ctx['source_head'],mode='probe',phase_policy='opening-transition-probe',access_time_policy='record-only',candidate_launch_attempts=0,copies=[],first_error=None,cleanup_errors=[],business_binaries_copied_to_repository_or_CI=False,launcher_pid=os.getpid(),python=sys.version,python_executable=sys.executable)
- control=phases=copy=None
- 
-@@ -75,43 +82,33 @@
-  record['candidate_started_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat();save()
-  r=subprocess.run(argv,capture_output=True,timeout=1840)
-  record.update(candidate_exit=r.returncode,candidate_stdout=r.stdout.decode('utf-8',errors='replace'),candidate_stderr=r.stderr.decode('utf-8',errors='replace'))
+@@ -78 +85 @@
 - stage('probe-returned-owned-harness-cleanup-completed')
 + stage('candidate-worker-returned')
- except BaseException as e:
-  record['first_error']=dict(type=type(e).__name__,message=str(e),traceback=traceback.format_exc());save()
- finally:
+@@ -82,27 +89,4 @@
 - try:record['native_pids_after']=inventory()
 - except BaseException as e:record['cleanup_errors'].append(dict(stage='post-native-inventory',error=str(e)))
 - try:
@@ -54,7 +43,7 @@
 + def read_report():native_report['value']=receipts.read_native_report(record,output/'report.json')
 + def input_directory():record['private_input_directory_after']=[dict(name=p.name,is_file=p.is_file()) for p in inputs.iterdir()] if inputs.exists() else []
 + def copy_evidence():
-   if output.exists():shutil.copytree(output,share/'native-output')
+@@ -110,3 +94,16 @@
 - except BaseException as e:record['cleanup_errors'].append(dict(stage='raw-evidence-copy',error=str(e)))
 - try:record['native_pids_after_postcleanup_OS']=inventory()
 - except BaseException as e:record['cleanup_errors'].append(dict(stage='final-native-inventory',error=str(e)))
@@ -74,10 +63,8 @@
 +  ('raw-evidence-copy',copy_evidence),
 +  ('final-native-inventory',lambda:record.update(native_pids_after_postcleanup_OS=inventory()))
 + ],persist=lambda row:save())
-  record['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat();save()
-  with (share/'launcher-context.json').open('x',encoding='utf-8') as f:json.dump(record,f,indent=2);f.write('\n')
+@@ -115,2 +112,2 @@
 - print(json.dumps(dict(candidate_launch_attempts=record['candidate_launch_attempts'],candidate_exit=record.get('candidate_exit'),first_error=record['first_error'],native_pids_after=record.get('native_pids_after'),cleanup_errors=record['cleanup_errors'])),flush=True)
 -success=record.get('candidate_exit')==0 and record['first_error'] is None and record.get('native_pids_after')==[] and record.get('native_pids_after_postcleanup_OS')==[] and not record['cleanup_errors']
 + print(json.dumps(dict(candidate_launch_attempts=record['candidate_launch_attempts'],candidate_exit=record.get('candidate_exit'),primary_failure=record.get('primary_failure'),first_error=record['first_error'],native_pids_after=record.get('native_pids_after'),secondary_errors=record['secondary_errors'],cleanup_errors=record['cleanup_errors'])),flush=True)
 +success=receipts.launcher_success(record)
- raise SystemExit(0 if success else 1)

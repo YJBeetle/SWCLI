@@ -7,7 +7,7 @@
 1. `run-markingjig-control.audit` 使用显式单 case 解析：`cases=[]` 合法表示尚未进入 case，返回 `success=false`、`case_count=0` 和完整原 `native_failure`；不制造 case 或 loaded/cleanup 成功。只有唯一真实 case 才能参与原成功准入；即使空 case 的 report 或退出码矛盾地声称成功，回执也拒绝。
 2. 新增纯 OS 回执模块 `launcher_receipts.py`，由私有 launcher 的修订收尾块调用。原 native report、原首错和 secondary 分开记录；每项检查有独立 try/except/finally 持久化，某一项失败不会跳过下一项。顺序为进程清单、原 report、退出后 raw 输入采集、独立比较、输入 hash、全部代码 hash、回执 helper hash、输入目录、原证据复制、最终进程清单。文件 hash 按文件隔离，一份不可读或不匹配不会跳过余下文件。
 3. 无 case 时，只对已有 pre-CAD/退出后 raw 帧做文件比较，不建立新模型基线、不补写 case。新 post label 为 `after-candidate-worker-return`，不再暗示 CloseDoc/ExitApp 必然发生。最终成功还须有真实单 case、child success、输入/代码完整证明且无 secondary；不能只看 cleanup 没报错。
-4. `markingjig-private-launcher-postchecks.patch` 是对归档私有 launcher 的精确回执差异；`markingjig-private-launcher-review.py.txt` 是其完整审查源。原母版 SHA `15251b8bd9c6ff70aea17c6dc7cf8a0a462129c5031277caab180f48fbbc9341`。补丁仅应用在临时副本核对，原文件从未修改。
+4. `markingjig-private-launcher-postchecks.patch` 是对归档私有 launcher 的精确回执差异；`markingjig-private-launcher-review.py.txt` 是其完整审查源。原母版 SHA `15251b8bd9c6ff70aea17c6dc7cf8a0a462129c5031277caab180f48fbbc9341`。零上下文补丁仅用 `git apply --unidiff-zero` 应用在临时副本核对，原文件从未修改。
 
 完整审查源保留母版的旧路径/925 guard 作为差异基准，**不是本轮或下一轮可直接运行的 launcher**。未来如获执行许可，须先亲审新配额的全新目录、最新精确源码 head、代码包以及 helper SHA；新源还要求 `launcher_receipts_sha256` 并在任何写入前核对相邻 helper，旧归档 context 没有该字段，不能拿旧目录重跑。本轮没有填写新执行配额或启动命令。
 
@@ -25,17 +25,17 @@
 
 因此可以确认：**Nov13 是本路构造外层命令时漏了 `--current-user`，不是当前包装脚本把它剥掉。** 不过未记录旧 wrapper 的历史 hash，也没有旧 token/session 原件；不能把当前静态转发证明当成历史 token 证明。flag、PowerShell 层、诊断版本和新副本都发生变化，这不是单变量 COM 对照，尚不能断言漏参是 Server execution failed 的唯一原因。
 
-## 下一步零 CAD 方案（仅待亲审，未执行）
+## 收紧后的零 CAD 方案与 OS-only 票
 
-不再重复已有 SYSTEM 基线。若统筹另行批准，只做一次显式 current-user 的 OS 上下文采集，外层 argv 中该参数必须位于 VM 标识后、Windows 可执行文件前；完整 argv、包装脚本/原生 CLI hash、采集器 hash 在执行前归档。先选择复用历史直接绝对 Python 入口，避免同时加入新的 shell 路由；如需审查 PowerShell→Python 链，须明确列为另一项 OS-only 检查，不自动追加。
+原始 CLI 参数作为历史证据保留，**不等于授权采集任意进程命令行**。只归档本路自行构造、明确不含凭据的外层 argv；未来也不采集或输出进程命令行、环境变量全集、凭据或原始 token 内容。
 
-采集器只用 kernel32/advapi32/WTS 的只读 OS 能力，禁止 pythoncom、win32com、WMI/CIM、SW/API、注册表修改、RunAs、凭据参数或 token impersonation。采集并逐项保留：
+使用已有 SYSTEM 基线，无需再默认 SYSTEM 对照。统筹随后给出 `VM-20261113-OS-USER-CONTEXT-01`，只准一次显式 current-user 的 OS 元数据查询。只启动一份 PowerShell，不另起 Python 子进程，不扩展 PowerShell→Python 链路。外层 `--current-user` 必须位于 VM 标识后、Windows 可执行文件前，原 argv、查询源 hash 和原输出独立归档。
 
-- launcher 与 Python 子进程的 PID/parent PID、实际 token 用户名及 SID、进程 SessionId、原始 exe/命令行、Python 版本与 exe hash；环境 USERPROFILE 仅作旁证，不能替代 token。
-- active console session 与 Explorer 的 PID/SessionId，以及当次只读 SLDWORKS 进程清单；不附着、不关闭他人的进程或文档。
-- 所有调用原始返回、首错、部分数据和自身 token/进程查询句柄关闭结果；不把接口拒绝转成预期用户或预期 session。
+范围收紧为当前查询自身的 token 用户名/SID、SessionId、exe 路径/版本/hash，以及现有 Explorer/Python/SLDWORKS 的 PID/SessionId/ExecutablePath 等只读字段。Parent PID 若没有现成安全接口就保留未采，不能为此引入 WMI/CIM、COM 或额外采集进程。每一字段失败原样记错，不补成预期用户或预期 session。若已出现 CAD 占用则只记录并停，不附着、不关闭他人的进程或文档。
 
-若 SID/session 不明、仍为非预期 SYSTEM/session0、登录会话有歧义或本路路径不可用，则停止回交，不删除 flag 改走 SYSTEM，不登录/重置用户、不变更 DCOM/RunAs，也不尝试 DispatchEx。即使 OS 上下文符合预期，也只交该原件亲审；任何后续 COM/OpenDoc/完整 probe 仍须单独新配额和明确授权。
+禁止 pythoncom、win32com、WMI/CIM、SW/API、DCOM/注册/权限/RunAs 修改、凭据参数或 token impersonation。SID/session 不明、非预期 SYSTEM/session0、登录会话有歧义或入口失败，都停止回交；不删除 flag 改走 SYSTEM、不登录/重置用户、不尝试 DispatchEx。即使 OS 上下文符合预期，也先交原件亲审，任何后续 COM/OpenDoc/probe 仍须单独新票。
+
+该 OS-only 票已独立执行一次，返回255且无来宾元数据；详见 [OS 查询回执](glb-os-current-user-context-2026-11-13.md)。本源修复准备阶段的零执行声明不涵盖此后来单独授权的 OS 票，也不因它获得任何 CAD 执行授权。
 
 ## 离线验证与旧证据
 

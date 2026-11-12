@@ -29,7 +29,7 @@
     "scripts/diagnostics/markingjig/run-markingjig-control.py": "e77c002802f443fa301a3cb773025e980599d9c47001b1bef9c79d470aff723e",
     "scripts/diagnostics/markingjig/test_launcher_receipts.py": "6bf14267d9ac33fed0365cc0612ba09da955f1bbee74df1a475d4979c21c6033",
     "docs/verification/markingjig-private-launcher-review.py.txt": "72b1c46c49cb874ad7a5f98ca9e754e4bbbdf97e57433877b3fc611e88fd84b5",
-    "docs/verification/markingjig-private-launcher-postchecks.patch": "04d115e062638325382242d528e1a9e3bd6f0bc419c844956a29b73cdb91bc34"
+    "docs/verification/markingjig-private-launcher-postchecks.patch": "fdebfa0c0c57099cf51a76db1f7cf1222bac009dc0d390783d4d2d4a58aed2f6"
   },
   "existing_context_evidence_sha256": "27560a6b28ae1760e6fcda8766cc33fd842af4221db73c0de1b96c0ca3623814",
   "empty_case_real_replay_sha256": "03935fdee9582c364caf30b44c64dff6c2a01abcfb2fa9a477ff388e6239a926",
@@ -48,5 +48,6 @@
     "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/native-output/report.json": "357ddef4f407b0bd75d383c4570ec0848b04ed016e2f6f840080507a37a1fa1a",
     "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/native-audit.json": "9fe75af82baf3749fbe6c49e5da61d84982f0a928d23c8f3ebcfb3b17eaa0e00",
     "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261113/markingjig-phase-probe-92563fc-01/artifact-sha256.json": "a5959dc1aa414a40b45fee0369a3811471750013a7e7b1718b1fc7928cf21ddf"
-  }
+  },
+  "patch_format": "zero-context; apply with git apply --unidiff-zero"
 }
