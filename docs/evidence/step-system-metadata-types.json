@@ -1,0 +1,168 @@
+{
+  "native_inventory": {
+    "run_id": 42365535291,
+    "artifact_id": 13571478417,
+    "head": "d6505f7384911b43b28a5f273ab14262032c4698",
+    "zip_sha256": "b2e70c0786e67a9e97ff7a0af60234516eb2fd2a4884bf9b8506d7e6c9af1475",
+    "report_sha256": "f9b558851dca805cd391fdf656759cd9ecabb85b97ebff9cac53e94bf8143a26",
+    "host": {
+      "process_id": 4924,
+      "revision": "33.5.0",
+      "visible": false
+    }
+  },
+  "installed_ui_chm_sha256": "27ae6a82721af973bf67acd16964bd34f881fbfe2f83740d5432c2bfa4b8c8bd",
+  "installed_api_chm_sha256": "3a46af7f0c11e958661beecc22158fedc360939193f5d967182724c9ddbec24e",
+  "installed_GetTypeName2_member": "SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IFeature~GetTypeName2.html",
+  "installed_GetTypeName2_sha256": "6184824334d62e2ebccebf62c0f7e1adcd25408ccaeb3581f9c4ae0a32d0505d",
+  "exact_metadata_types": [
+    {
+      "kind": "FavoriteFolder",
+      "observed_display_name": "Favorites",
+      "native_example_count": 5,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[1]",
+          "feature_id": 23,
+          "parent_id": null,
+          "depth": 0,
+          "name": "Favorites",
+          "kind": "FavoriteFolder"
+        }
+      ],
+      "installed_ui_member": "c_fmdt_favorites.htm",
+      "installed_ui_sha256": "a0bb73e2c0f034f8a34dfdbe9d8602b20c835e7fb1c6427af2b7cf105291d5d6",
+      "installed_ui_bytes": 3278,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/c_fmdt_favorites.htm",
+      "semantic_summary": "references to favorite features/sketches/reference geometry; edits affect all occurrences",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    },
+    {
+      "kind": "HistoryFolder",
+      "observed_display_name": "History",
+      "native_example_count": 5,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[2]",
+          "feature_id": 24,
+          "parent_id": null,
+          "depth": 0,
+          "name": "History",
+          "kind": "HistoryFolder"
+        }
+      ],
+      "installed_ui_member": "t_accessing_recent_features.htm",
+      "installed_ui_sha256": "8722926c4433e7cec40c2b985e8da55e1fc2fb505bb07f0a86070c8d1319e739",
+      "installed_ui_bytes": 3836,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/t_accessing_recent_features.htm",
+      "semantic_summary": "access to recently created/edited features",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    },
+    {
+      "kind": "SelectionSetFolder",
+      "observed_display_name": "Selection Sets",
+      "native_example_count": 5,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[3]",
+          "feature_id": 25,
+          "parent_id": null,
+          "depth": 0,
+          "name": "Selection Sets",
+          "kind": "SelectionSetFolder"
+        }
+      ],
+      "installed_ui_member": "c_selection_sets.htm",
+      "installed_ui_sha256": "3bc4f2ca3559ad528fc770e6c843b39e1898167557ce629e2fa1fc005cfe137c",
+      "installed_ui_bytes": 7097,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/c_selection_sets.htm",
+      "semantic_summary": "saved selections of existing model items",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    },
+    {
+      "kind": "SensorFolder",
+      "observed_display_name": "Sensors",
+      "native_example_count": 5,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[4]",
+          "feature_id": 22,
+          "parent_id": null,
+          "depth": 0,
+          "name": "Sensors",
+          "kind": "SensorFolder"
+        }
+      ],
+      "installed_ui_member": "c_Sensors_OH.htm",
+      "installed_ui_sha256": "47af873433dde6334b9223138da3f207e78fb8c567f9de18a46e6601f0c1f4e1",
+      "installed_ui_bytes": 7782,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/c_Sensors_OH.htm",
+      "semantic_summary": "monitors selected model properties and their alert values",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    },
+    {
+      "kind": "InkMarkupFolder",
+      "observed_display_name": "Markups",
+      "native_example_count": 5,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[10]",
+          "feature_id": 21,
+          "parent_id": null,
+          "depth": 0,
+          "name": "Markups",
+          "kind": "InkMarkupFolder"
+        }
+      ],
+      "installed_ui_member": "r_markups.htm",
+      "installed_ui_sha256": "67632b16c8502ee169dace4d11edad99a16bf4d97028e6121542c1793a7734cc",
+      "installed_ui_bytes": 13647,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/r_markups.htm",
+      "semantic_summary": "organizes collaboration markups, previews and image/PDF export",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    },
+    {
+      "kind": "NotesAreaFtrFolder",
+      "observed_display_name": "Notes",
+      "native_example_count": 10,
+      "native_examples": [
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[19]",
+          "feature_id": 17,
+          "parent_id": 1,
+          "depth": 1,
+          "name": "Notes",
+          "kind": "NotesAreaFtrFolder"
+        },
+        {
+          "json_path": "$.cases[1].imported_geometry.feature_inventory[20]",
+          "feature_id": 18,
+          "parent_id": 1,
+          "depth": 1,
+          "name": "Notes1___EndTag___",
+          "kind": "NotesAreaFtrFolder"
+        }
+      ],
+      "installed_ui_member": "c_annotation_view_flat_to_screen.htm",
+      "installed_ui_sha256": "c2841dc83cc78dad1e8018e88fb225fd3d63315449ef1a80807e359753abad4f",
+      "installed_ui_bytes": 6639,
+      "official_ui_url": "https://help.solidworks.com/2025/English/SolidWorks/sldworks/c_annotation_view_flat_to_screen.htm",
+      "semantic_summary": "contains annotation views beneath Annotations; not model sketch lengths",
+      "listed_in_installed_GetTypeName2_table": false,
+      "classification_basis": "inference joining exact native type/display name with official installed UI container semantics; no claimed COM interface mapping"
+    }
+  ],
+  "observer_rule": "skip measuring only the exact container node; resume full child traversal and native-ID deduplication; reject every unknown descendant",
+  "limitations": [
+    "Older retained host has same 33.5.0 revision, not the current PID or proof of identical Windows image",
+    "Current 43260435588 inventory stopped after CommentsFolder/FavoriteFolder; it does not prove subsequent nodes exist or are absent",
+    "Container classification is not proof that its descendants are harmless; no wildcard, display-name matching or subtree pruning",
+    "These six strings are absent from installed GetTypeName2 table; no fabricated GetSpecificFeature2 interface mapping",
+    "Offline provenance PASS is not native import/save/reopen or public eight-case acceptance"
+  ]
+}
