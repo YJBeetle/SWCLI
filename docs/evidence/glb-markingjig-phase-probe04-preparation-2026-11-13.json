@@ -1,0 +1,100 @@
+{
+  "schema": "swcli.markingjig-probe04-preparation.v1",
+  "status": "prepared-not-executed",
+  "source_head": "a7ecb97d30f0913105080d93e1725acea6e67ce7",
+  "product_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+  "proposed_ticket": "VM-20261113-MARKINGJIG-PHASE-PROBE-04",
+  "new_CAD_grant_created": false,
+  "mode": "probe",
+  "phase_policy": "opening-transition-probe",
+  "component_context_policy": "component-bodies-probe",
+  "export_permitted": false,
+  "launcher_sha256": "d0213bbdc6ae58f38fe9f360e38f1b9f5c78b9c41e2279cc10f14ba355b685d6",
+  "proposal_sha256": "6207272a6b64ac8c002b02f90514d14f6f6c1904b9f12ffa62f64daa22f2db07",
+  "package_sha256": "c2bfad896fdf0205548b1e9534377d9d459fb2b961a43f6c616dfbe01cc9196a",
+  "launcher_receipts_sha256": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+  "code_files_sha256": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": "e866cd3b6f9cf4c8c7e9b26ac87a79acfd26aec2eba48a97a7a191b8740dfc04",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "34262bc844edb77cc888b2c064ad6a9791045d0fc783618026455f64a637cb68",
+    "scripts/diagnostics/markingjig/file_forensics.py": "7a1fd66ded00560187d36dfead6cca82911d610cdbfd73631ff9fbfa92c737f5",
+    "scripts/diagnostics/markingjig/opening_phases.py": "63c56234d8821fea2b936170acb875bec9e17b9448b25dc809e2b136f16d6902",
+    "scripts/diagnostics/markingjig/launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": "ee623de2c0ac7e4e7660fff219d6f4e44cb37312122dec6aa101dc8aa809ee1b",
+    "scripts/diagnostics/typed_glb/bridge_control.py": "d4bab2ade8d3daf319b4ca7b891f9c922d7b1f943c1dab7275c3059fa86516b7",
+    "docs/evidence/glb-markingjig-input-inventory-2026-11-12.json": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d"
+  },
+  "preparation_files_sha256": {
+    "launch-probe.py": "d0213bbdc6ae58f38fe9f360e38f1b9f5c78b9c41e2279cc10f14ba355b685d6",
+    "host-original-guard.py": "cdc9b77dc0b25e98a8225bb85a445e7fd0fe2cddccb58286b90ebdbaff421e3a",
+    "launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "query-context.py": "6755763784ae703dbed26525ec732e6c22ec9c31e504d8998ebd26d1e37cc458"
+  },
+  "eight_ZIP_members_verified_against_exact_Git_blobs": true,
+  "frozen_probe02_and_03_seven_files_unchanged": {
+    "02": true,
+    "03": true
+  },
+  "preserved": [
+    "entry marker before proposal/grant reads",
+    "short current-user absolute Python -I -B UNC entry",
+    "actual own SessionId1 raw query plus inherited child SID/session identity check",
+    "11 Mac originals independent before/after guards",
+    "10 ordinary independent bounded readonly copies, full SHA and file identity",
+    "original driver/archive/product pins",
+    "all file/phase/model/graph/state/geometry/CAS guards in a7ecb97",
+    "independent receipts and all postchecks after first failure",
+    "600/1800 supervision and outer1840; no invoke/export"
+  ],
+  "offline_checks": {
+    "count": 22,
+    "success": true,
+    "test_source_sha256": "345aed31fb4bec06cfd8b221079e134b494e0d5b233bf0d90a63c33c64705370",
+    "check_package": {
+      "package_valid": true,
+      "native_operations": 0,
+      "runtime_members": 8,
+      "component_context_policy": "component-bodies-probe"
+    },
+    "new_checks": [
+      "proposal componentpolicy missing/wrong refusal",
+      "fresh synthetic grant pure metadata validation",
+      "grant missing/wrong componentpolicy or invoke/strictphase/export refusal",
+      "exact candidate argv AST binds each policy once"
+    ],
+    "runtime_import": "actual packaged supervisor/helper, phase, forensic, typed loader; no NativeBackend/COM/pinned initialization",
+    "evidence_fixture": "only fixed preparation files copied to temporary fixtures; no later native receipts copied"
+  },
+  "GetBodies3_metadata": {
+    "available": "offline pinned PIA33.5.0.53, DispId124, Object& IsOut SafeArray; SafeArraySubType0 unspecified",
+    "PIA_contract_sha256": "d768a8ed4ba49402518cded01011310846e6f2380c71f0d9a14b502cd68730a3",
+    "native_TLB_or_IDispatch_Typedesc_available": false,
+    "checked_host_evidence_scope": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel JSON/TXT receipts and TLB/OLB file names",
+    "receipt_search_before_new_audit": "no GetBodies3 matches in scoped existing JSON/TXT receipts, excluding launcher-context files",
+    "TLB_files_found": [
+      "vm-installed-swconst-20261112/swconst.tlb"
+    ],
+    "not_inferred": "swconst TLB enum file is not GetBodies3 interface native type evidence; PIA and synthetic binding tests are not native call proof",
+    "additional_VM_or_native_metadata_actions": 0,
+    "alternate_binding_arguments_attempted": 0,
+    "pending": "root explicitly chose to review/execute existing BYREF candidate once; preserve first failure, no extra native metadata action"
+  },
+  "own_operations": {
+    "VM": 0,
+    "COM": 0,
+    "CAD": 0,
+    "business_originals_read_or_copied": 0,
+    "push": 0,
+    "new_CI": 0
+  },
+  "execution_command_prepared_only": [
+    "prlctl",
+    "exec",
+    "{da36dd51-bd6d-4e7a-995b-547464583302}",
+    "--current-user",
+    "C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+    "-I",
+    "-B",
+    "\\\\Mac\\AllFiles\\Users\\YJBeetle\\.codex\\task-artifacts\\document-properties-parallel\\vm-series-20261113\\markingjig-phase-probe-a7ecb97-04\\launch-probe.py",
+    "--execute"
+  ]
+}

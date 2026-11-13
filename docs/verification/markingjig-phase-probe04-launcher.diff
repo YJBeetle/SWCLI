@@ -1,0 +1,56 @@
+--- frozen-probe03/launch-probe.py
++++ prepared-probe04/launch-probe.py
+@@ -1 +1 @@
+-"""Complete fresh c984 private probe launcher. Default: validate local package only.
++"""Complete fresh a7ecb97 private probe launcher. Default: validate local package only.
+@@ -20 +20,2 @@
+-SOURCE_HEAD = 'c9846f6aad4312cc8bf97195deaa6c4f880fda6f'
++SOURCE_HEAD = 'a7ecb97d30f0913105080d93e1725acea6e67ce7'
++COMPONENT_POLICY = 'component-bodies-probe'
+@@ -28,3 +29,3 @@
+-PROPOSAL_ID = 'markingjig-c9846f6-probe03'
+-GUEST_BASE = r'C:\Workspace\SWCLI-series-20261113\markingjig-c9846f6-probe03'
+-GUEST_SHARE = r'\\Mac\AllFiles\Users\YJBeetle\.codex\task-artifacts\document-properties-parallel\vm-series-20261113\markingjig-phase-probe-c9846f6-03'
++PROPOSAL_ID = 'markingjig-a7ecb97-probe04'
++GUEST_BASE = r'C:\Workspace\SWCLI-series-20261113\markingjig-a7ecb97-probe04'
++GUEST_SHARE = r'\\Mac\AllFiles\Users\YJBeetle\.codex\task-artifacts\document-properties-parallel\vm-series-20261113\markingjig-phase-probe-a7ecb97-04'
+@@ -80 +81,2 @@
+-            and ctx['export_permitted'] is False, 'zero-export phase differs')
++            and ctx.get('component_context_policy') == COMPONENT_POLICY
++            and ctx['export_permitted'] is False, 'zero-export component phase differs')
+@@ -95 +97 @@
+-    packed_path = share/'markingjig-code-c9846f6.zip'
++    packed_path = share/'markingjig-code-a7ecb97.zip'
+@@ -126,0 +129,3 @@
++    require(grant.get('mode') == 'probe' and grant.get('phase_policy') == 'opening-transition-probe'
++            and grant.get('component_context_policy') == ctx['component_context_policy'] == COMPONENT_POLICY
++            and grant.get('export_permitted') is False, 'grant zero-export component policy differs')
+@@ -129 +134 @@
+-            and ticket.endswith('-03'), 'new MarkingJig CAD allocation required')
++            and ticket.endswith('-04'), 'new MarkingJig CAD allocation required')
+@@ -175 +180 @@
+-    receipts = load_module(share/'launcher_receipts.py', 'private_probe03_receipts')
++    receipts = load_module(share/'launcher_receipts.py', 'private_probe04_receipts')
+@@ -185 +190 @@
+-                  phase_policy='opening-transition-probe', access_time_policy='record-only',
++                  phase_policy='opening-transition-probe', component_context_policy=COMPONENT_POLICY, access_time_policy='record-only',
+@@ -236 +241 @@
+-        with zipfile.ZipFile(share/'markingjig-code-c9846f6.zip') as packed:
++        with zipfile.ZipFile(share/'markingjig-code-a7ecb97.zip') as packed:
+@@ -243,2 +248,2 @@
+-        control = load_module(code/CONTROL/'markingjig_control.py', 'probe03_control')
+-        phases = load_module(code/CONTROL/'opening_phases.py', 'probe03_phases')
++        control = load_module(code/CONTROL/'markingjig_control.py', 'probe04_control')
++        phases = load_module(code/CONTROL/'opening_phases.py', 'probe04_phases')
+@@ -278 +283,2 @@
+-                '--mode', 'probe', '--phase-policy', 'opening-transition-probe']
++                '--mode', 'probe', '--phase-policy', 'opening-transition-probe',
++                '--component-context-policy', COMPONENT_POLICY]
+@@ -282 +288,3 @@
+-            json.dump(dict(argv=argv, launcher_pid=os.getpid(), utc=record['candidate_started_utc']), stream, indent=2)
++            json.dump(dict(argv=argv, launcher_pid=os.getpid(), utc=record['candidate_started_utc'],
++                           mode='probe', phase_policy='opening-transition-probe', component_context_policy=COMPONENT_POLICY,
++                           export_permitted=False), stream, indent=2)
+@@ -362 +370 @@
+-                              proposal_id=PROPOSAL_ID, runtime_members=len(MEMBERS))))
++                              proposal_id=PROPOSAL_ID, component_context_policy=COMPONENT_POLICY, runtime_members=len(MEMBERS))))

@@ -1,0 +1,379 @@
+"""Complete fresh a7ecb97 private probe launcher. Default: validate local package only.
+Execution requires a separately reviewed coordinator CAD grant; no VM control here.
+"""
+import argparse
+import base64
+import datetime as dt
+import ctypes
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path, PurePosixPath
+import shutil
+import stat
+import subprocess
+import sys
+import traceback
+import zipfile
+
+SOURCE_HEAD = 'a7ecb97d30f0913105080d93e1725acea6e67ce7'
+COMPONENT_POLICY = 'component-bodies-probe'
+PRODUCT_HEAD = '70d8c9ecf3c02b099ca9c2cc64fe1880061cea44'
+HELPER_SHA = 'eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0'
+INVENTORY_SHA = 'd7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d'
+DRIVER_SHA = '282d75cb4a4097dac4077bb7e70af68d8278c351880d0887ce8220ba46cd36d2'
+PRODUCT_ZIP_SHA = '06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53'
+PYTHON = r'C:\Users\YJBeetle\AppData\Local\Python\pythoncore-3.14-64\python.exe'
+PYTHON_SHA = '4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9'
+PROPOSAL_ID = 'markingjig-a7ecb97-probe04'
+GUEST_BASE = r'C:\Workspace\SWCLI-series-20261113\markingjig-a7ecb97-probe04'
+GUEST_SHARE = r'\\Mac\AllFiles\Users\YJBeetle\.codex\task-artifacts\document-properties-parallel\vm-series-20261113\markingjig-phase-probe-a7ecb97-04'
+ORIGINAL = r'\\Mac\AllFiles\Volumes\Data\Workspace\Inclinometer\COT\ASM\Casing\MarkingJig'
+DRIVER = r'C:\Workspace\SWCLI-series-20261110\local-glb-host-control.py'
+INVENTORY = 'docs/evidence/glb-markingjig-input-inventory-2026-11-12.json'
+CONTROL = 'scripts/diagnostics/markingjig/'
+MEMBERS = (CONTROL+'markingjig_control.py', CONTROL+'run-markingjig-control.py',
+           CONTROL+'file_forensics.py', CONTROL+'opening_phases.py', CONTROL+'launcher_receipts.py',
+           'scripts/diagnostics/typed_glb/run-typed-glb-control.py',
+           'scripts/diagnostics/typed_glb/bridge_control.py', INVENTORY)
+
+
+def require(ok, message):
+    if not ok:
+        raise RuntimeError(message)
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda: stream.read(65536), b''):
+            h.update(block)
+    return h.hexdigest()
+
+
+def now():
+    return dt.datetime.now(dt.timezone.utc)
+
+
+def timestamp(value):
+    parsed = dt.datetime.fromisoformat(value)
+    require(parsed.utcoffset() == dt.timedelta(0), 'explicit UTC required')
+    return parsed
+
+
+def load_module(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def checked_package(share):
+    """Read/compile only; does not import runtime modules or touch business inputs."""
+    ctx = json.loads((share/'proposal.json').read_bytes())
+    require(ctx['schema'] == 'swcli.markingjig-probe-preparation.v1'
+            and ctx['proposal_id'] == PROPOSAL_ID and ctx['authorized_for_CAD'] is False,
+            'preparation proposal identity differs')
+    require(ctx['source_head'] == SOURCE_HEAD and ctx['product_head'] == PRODUCT_HEAD,
+            'reviewed source identity differs')
+    require(ctx['mode'] == 'probe' and ctx['phase_policy'] == 'opening-transition-probe'
+            and ctx.get('component_context_policy') == COMPONENT_POLICY
+            and ctx['export_permitted'] is False, 'zero-export component phase differs')
+    require(ctx['guest_base'] == GUEST_BASE and ctx['guest_share'] == GUEST_SHARE,
+            'fresh layout differs')
+    require(ctx['approved_inventory_sha256'] == INVENTORY_SHA
+            and ctx['launcher_receipts_sha256'] == HELPER_SHA, 'inventory/helper pin differs')
+    require(set(ctx['code_files_sha256']) == set(MEMBERS), 'runtime member list differs')
+    for name, expected in ctx['preparation_files_sha256'].items():
+        require(name in ('launch-probe.py', 'launcher_receipts.py', 'query-context.py', 'host-original-guard.py'),
+                'unknown preparation file')
+        require(digest(share/name) == expected, 'preparation file differs: '+name)
+        compile((share/name).read_bytes(), name, 'exec')
+    require(set(ctx['preparation_files_sha256']) ==
+            {'launch-probe.py', 'launcher_receipts.py', 'query-context.py', 'host-original-guard.py'},
+            'preparation source missing')
+    require(digest(share/'launcher_receipts.py') == HELPER_SHA, 'standalone helper differs')
+    packed_path = share/'markingjig-code-a7ecb97.zip'
+    require(digest(packed_path) == ctx['package_sha256'], 'code ZIP differs')
+    with zipfile.ZipFile(packed_path) as packed:
+        rows = packed.infolist()
+        require(len(rows) == len(MEMBERS) and set(packed.namelist()) == set(MEMBERS),
+                'duplicate or unexpected ZIP members')
+        for row in rows:
+            p = PurePosixPath(row.filename)
+            require(not p.is_absolute() and '..' not in p.parts and '\\' not in row.filename
+                    and not row.is_dir() and row.file_size <= 2*1024*1024,
+                    'unsafe code member')
+            require(not stat.S_ISLNK(row.external_attr >> 16), 'symlink code member')
+            data = packed.read(row)
+            require(hashlib.sha256(data).hexdigest() == ctx['code_files_sha256'][row.filename],
+                    'code file differs: '+row.filename)
+            if row.filename.endswith('.py'):
+                compile(data, row.filename, 'exec')
+        require(ctx['code_files_sha256'][CONTROL+'launcher_receipts.py'] == HELPER_SHA,
+                'supervisor receipt dependency differs')
+        inv = json.loads(packed.read(INVENTORY))
+    require(ctx['code_files_sha256'][INVENTORY] == INVENTORY_SHA, 'inventory member differs')
+    require(type(ctx['selected']) is list and len(ctx['selected']) == 10
+            and len(set(ctx['selected'])) == 10 and set(ctx['selected']) == set(inv['files']),
+            'exact ten approved inputs required')
+    return ctx, inv
+
+
+def checked_grant(share, ctx, grant, current=None):
+    """No execution or file writes. A proposal alone never authorizes CAD."""
+    current = current or now()
+    require(grant.get('schema') == 'swcli.markingjig-cad-grant.v1'
+            and grant.get('authorized_for_CAD') is True, 'new coordinator CAD grant required')
+    require(grant.get('mode') == 'probe' and grant.get('phase_policy') == 'opening-transition-probe'
+            and grant.get('component_context_policy') == ctx['component_context_policy'] == COMPONENT_POLICY
+            and grant.get('export_permitted') is False, 'grant zero-export component policy differs')
+    ticket = grant.get('allocation_id', '')
+    require(type(ticket) is str and ticket.startswith('VM-') and 'MARKINGJIG' in ticket
+            and ticket.endswith('-04'), 'new MarkingJig CAD allocation required')
+    require(grant.get('reviewer_thread_id') == '01a0bfca-5e87-7e61-ab5f-0ef249443bab',
+            'coordinator review required')
+    require(grant.get('proposal_sha256') == digest(share/'proposal.json')
+            and grant.get('launcher_sha256') == digest(share/'launch-probe.py'),
+            'grant does not bind this complete proposal/launcher')
+    require(grant.get('package_sha256') == ctx['package_sha256']
+            and grant.get('launcher_receipts_sha256') == HELPER_SHA,
+            'grant package/helper differs')
+    age = (current-timestamp(grant['issued_utc'])).total_seconds()
+    require(0 <= age <= 300 and current < timestamp(grant['expires_utc'])
+            <= timestamp(grant['issued_utc'])+dt.timedelta(minutes=10), 'grant is not fresh')
+    require(type(grant.get('expected_session_id')) is int and grant['expected_session_id'] == 1
+            and type(grant.get('expected_user')) is str and grant['expected_user']
+            and type(grant.get('expected_sid')) is str and grant['expected_sid'].startswith('S-1-5-21-'),
+            'reviewed interactive SID/user/session required')
+    require(grant.get('root_idle_confirmed') is True, 'coordinator idle confirmation required')
+    proof_path = share/'host-originals-before.json'
+    require(digest(proof_path) == grant['host_originals_before_sha256'], 'host original proof differs')
+    proof = json.loads(proof_path.read_bytes())
+    require(proof.get('success') is True and proof.get('phase') == 'before'
+            and proof.get('proposal_sha256') == digest(share/'proposal.json')
+            and set(proof.get('files', {})) == set(ctx['selected']) | {'MarkingJig.REND.GLB'}
+            and not proof.get('errors'), 'complete eleven-original host proof required')
+    require(0 <= (current-timestamp(proof['finished_utc'])).total_seconds() <= 300,
+            'host original proof is stale')
+    return proof
+
+
+def safe_local_directory(path):
+    for parent in (path, *path.parents):
+        if os.path.lexists(parent):
+            info = parent.lstat()
+            require(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode)
+                    and not getattr(info, 'st_file_attributes', 0) & 0x400,
+                    'private directory symlink/reparse refused')
+
+
+def execute(share, ctx, inv, grant):
+    require(sys.platform == 'win32' and sys.implementation.name == 'cpython'
+            and sys.version_info[:3] == (3, 14, 7) and sys.maxsize > 2**32,
+            'reviewed Windows CPython3.14.7 x64 required')
+    require(str(share) == GUEST_SHARE and sys.executable.casefold() == PYTHON.casefold()
+            and digest(sys.executable) == PYTHON_SHA, 'guest launcher/Python identity differs')
+    require(sys.flags.isolated == 1 and sys.flags.dont_write_bytecode == 1, 'explicit -I -B required')
+    checked_grant(share, ctx, grant)
+    receipts = load_module(share/'launcher_receipts.py', 'private_probe04_receipts')
+    base = Path(GUEST_BASE)
+    code, inputs, output = base/'code', base/'input', base/'output'
+    require(not os.path.lexists(base), 'refuse prior attempt base')
+    safe_local_directory(base)
+    require(not any((share/name).exists() for name in
+                    ('native-launch-started.json', 'launcher-context.json', 'launcher-context.partial.json', 'native-output')),
+            'refuse existing attempt evidence')
+    record = dict(allocation_id=grant['allocation_id'], proposal_id=PROPOSAL_ID,
+                  source_head=SOURCE_HEAD, product_head=PRODUCT_HEAD, mode='probe',
+                  phase_policy='opening-transition-probe', component_context_policy=COMPONENT_POLICY, access_time_policy='record-only',
+                  candidate_launch_attempts=0, copies=[], first_error=None, cleanup_errors=[],
+                  launcher_pid=os.getpid(), python=sys.version, python_executable=sys.executable,
+                  host_originals_before_sha256=grant['host_originals_before_sha256'],
+                  business_binaries_copied_to_repository_or_CI=False)
+    control = phases = working = None
+    def save(_row=None):
+        (share/'launcher-context.partial.json').write_text(json.dumps(record, indent=2)+'\n', encoding='utf-8')
+    def stage(label):
+        record.update(stage=label, updated_utc=now().isoformat()); save()
+        print(json.dumps(dict(stage=label, utc=record['updated_utc'])), flush=True)
+    def context(label):
+        # Exact root-reviewed OS-only query source; no COM/WMI or policy changes.
+        require(digest(share/'query-context.py') == ctx['preparation_files_sha256']['query-context.py'],
+                'OS context source changed')
+        argv = [sys.executable, '-I', '-B', str(share/'query-context.py')]
+        result = subprocess.run(argv, capture_output=True, timeout=35)
+        raw = dict(argv=argv, exit=result.returncode,
+                   stdout_base64=base64.b64encode(result.stdout).decode(),
+                   stderr_base64=base64.b64encode(result.stderr).decode())
+        record.setdefault('OS_context_queries', {})[label] = raw; save()
+        require(result.returncode == 0, 'OS context query failed')
+        data = raw['parsed'] = json.loads(result.stdout.decode('utf-8-sig')); save()
+        q, user = data['python_session_query'], data['guest']
+        require(q['ok'] is True and q['session'] == grant['expected_session_id']
+                and data['python_executable'].casefold() == PYTHON.casefold()
+                and data['python_sha256'] == PYTHON_SHA and data['COM_or_CAD_calls'] == 0
+                and data['policy_changes'] == 0, 'fresh OS Python/session identity differs')
+        require(user['system'] is False and user['sid'] == grant['expected_sid']
+                and user['user'] == grant['expected_user'] and user['session'] == grant['expected_session_id'],
+                'fresh child inherited SID/session differs')
+        require(type(user['native']) is list, 'native inventory unavailable')
+        return user['native']
+    try:
+        stage('fresh-user-session-and-native-preflight')
+        # Exact OS-only prototype already reviewed in root's short Python query.
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.ProcessIdToSessionId.argtypes = [ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
+        kernel.ProcessIdToSessionId.restype = ctypes.c_int
+        session = ctypes.c_ulong()
+        ctypes.set_last_error(0)
+        ok = kernel.ProcessIdToSessionId(os.getpid(), ctypes.byref(session))
+        record['launcher_session_query'] = dict(pid=os.getpid(), ok=bool(ok),
+                                                last_error=ctypes.get_last_error(),
+                                                session=session.value if ok else None)
+        save()
+        require(bool(ok) and session.value == grant['expected_session_id'] == 1,
+                'actual launcher SessionId must equal reviewed session1')
+        record['native_pids_before'] = [p['Id'] for p in context('before')]
+        require(record['native_pids_before'] == [], 'other SOLIDWORKS work; no attachment or cleanup')
+        base.mkdir(); code.mkdir(); inputs.mkdir()
+        with zipfile.ZipFile(share/'markingjig-code-a7ecb97.zip') as packed:
+            for name in MEMBERS:
+                data = packed.read(name)
+                require(hashlib.sha256(data).hexdigest() == ctx['code_files_sha256'][name], 'package changed')
+                target = code/name; target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open('xb') as stream: stream.write(data)
+        sys.path.insert(0, str(code/CONTROL))
+        control = load_module(code/CONTROL/'markingjig_control.py', 'probe04_control')
+        phases = load_module(code/CONTROL/'opening_phases.py', 'probe04_phases')
+        stage('copy-approved-ten-files-only')
+        for name in ctx['selected']:
+            pinned, src, dest = inv['files'][name], Path(ORIGINAL)/name, inputs/name
+            require(0 < pinned['size_bytes'] <= 64*1024*1024, 'input size outside bound')
+            with src.open('rb') as source, dest.open('xb') as target:
+                remaining = pinned['size_bytes']; h = hashlib.sha256()
+                while remaining:
+                    block = source.read(min(65536, remaining)); require(bool(block), 'source shortened')
+                    target.write(block); h.update(block); remaining -= len(block)
+                require(source.read(1) == b'', 'source grew')
+            dest.chmod(stat.S_IREAD)
+            info = control.stable_file(dest, readonly=True)
+            require(info['sha256'] == h.hexdigest() == pinned['sha256']
+                    and info['size_bytes'] == pinned['size_bytes'] and info['path_before']['st_nlink'] == 1
+                    and not os.path.samefile(src, dest), 'private copy content/identity differs')
+            record['copies'].append(dict(name=name, source=str(src), destination=str(dest),
+                                         sha256=info['sha256'], size_bytes=info['size_bytes'], proof=info)); save()
+        working = control.WorkingCopy(inv, inputs, ctx['selected'])
+        record['private_source_before'] = working.before
+        raw = record['private_source_pre_CAD_frame'] = {}
+        phases.capture_frame(working, 'launcher-pre-CAD-private-input-proof', raw)
+        record['copied_code_sha256'] = {name: digest(code/name) for name in MEMBERS}
+        require(record['copied_code_sha256'] == ctx['code_files_sha256'], 'extracted source differs')
+        baseline = Path(DRIVER)
+        require(digest(baseline) == DRIVER_SHA
+                and digest(baseline.parent/'getter-source-70d8c9e.zip') == PRODUCT_ZIP_SHA,
+                'pinned original driver/product differs')
+        checked_grant(share, ctx, grant)
+        record['native_pids_immediately_before_probe'] = [p['Id'] for p in context('immediately-before-probe')]
+        require(record['native_pids_immediately_before_probe'] == [], 'shared native work appeared; no launch')
+        argv = [sys.executable, '-I', '-B', str(code/CONTROL/'run-markingjig-control.py'),
+                '--baseline', str(baseline), '--inventory', str(code/INVENTORY),
+                '--inventory-sha256', INVENTORY_SHA, '--copy-root', str(inputs), '--output', str(output),
+                '--mode', 'probe', '--phase-policy', 'opening-transition-probe',
+                '--component-context-policy', COMPONENT_POLICY]
+        for name in ctx['selected']: argv += ['--selected', name]
+        record.update(candidate_argv=argv, candidate_launch_attempts=1, candidate_started_utc=now().isoformat())
+        with (share/'native-launch-started.json').open('x', encoding='utf-8') as stream:
+            json.dump(dict(argv=argv, launcher_pid=os.getpid(), utc=record['candidate_started_utc'],
+                           mode='probe', phase_policy='opening-transition-probe', component_context_policy=COMPONENT_POLICY,
+                           export_permitted=False), stream, indent=2)
+        stage('one-reviewed-phase-probe-zero-export')
+        result = subprocess.run(argv, capture_output=True, timeout=1840)
+        record.update(candidate_exit=result.returncode,
+                      candidate_stdout=result.stdout.decode('utf-8', errors='replace'),
+                      candidate_stderr=result.stderr.decode('utf-8', errors='replace'))
+        stage('candidate-worker-returned')
+    except BaseException as error:
+        record['first_error'] = dict(type=type(error).__name__, message=str(error), traceback=traceback.format_exc())
+        # postchecks still run if evidence persistence itself fails.
+        try: save()
+        except BaseException as failure:
+            record.setdefault('secondary_errors', []).append(dict(stage='persist-first-error', type=type(failure).__name__, error=str(failure)))
+    finally:
+        native_report = {}
+        def read_report(): native_report['value'] = receipts.read_native_report(record, output/'report.json')
+        def directory():
+            record['private_input_directory_after'] = sorted(p.name for p in inputs.iterdir()) if inputs.exists() else []
+            require(record['private_input_directory_after'] == sorted(ctx['selected']), 'private directory differs')
+        def evidence():
+            if output.exists(): shutil.copytree(output, share/'native-output')
+        # Use separate record for bootstrap hashes to retain candidate code proof.
+        def bootstrap_hashes():
+            proof = {}; receipts.postchecks(proof, [('preparation-sources', lambda: receipts.code_hash_postcheck(
+                proof, share, ctx['preparation_files_sha256'], digest))])
+            record['preparation_source_postcheck'] = proof
+            require(proof.get('code_hash_postcheck_complete') is True and not proof.get('secondary_errors'),
+                    'preparation source changed')
+        receipts.postchecks(record, [
+            ('post-native-inventory', lambda: record.update(native_pids_after=[p['Id'] for p in context('after')])),
+            ('read-native-report', read_report),
+            ('OS-post-candidate-input-capture', lambda: receipts.capture_post_inputs(record, working, phases)),
+            ('OS-post-candidate-input-comparison', lambda: receipts.compare_post_inputs(record, native_report.get('value'), phases)),
+            ('OS-private-input-hashes', lambda: receipts.input_hash_postcheck(record, ctx['selected'], digest)),
+            ('OS-candidate-code-hashes', lambda: receipts.code_hash_postcheck(record, code, ctx['code_files_sha256'], digest)),
+            ('OS-preparation-source-hashes', bootstrap_hashes),
+            ('private-input-directory', directory), ('raw-evidence-copy', evidence),
+            ('final-native-inventory', lambda: record.update(native_pids_after_postcleanup_OS=[p['Id'] for p in context('final')]))
+        ], persist=save)
+        record['finished_utc'] = now().isoformat(); save()
+        with (share/'launcher-context.json').open('x', encoding='utf-8') as stream:
+            json.dump(record, stream, indent=2); stream.write('\n')
+        print(json.dumps(dict(candidate_launch_attempts=record['candidate_launch_attempts'],
+                              candidate_exit=record.get('candidate_exit'), primary_failure=record.get('primary_failure'),
+                              first_error=record['first_error'], secondary_errors=record.get('secondary_errors', []))), flush=True)
+    return 0 if receipts.launcher_success(record) else 1
+
+
+def write_entry_arrival(share):
+    """One OS-only arrival record before reading proposal/grant; never authorizes CAD."""
+    require(sys.platform == 'win32', 'Windows entry observation required')
+    row = dict(pid=os.getpid(), argv=list(sys.argv), entry_source_sha256=digest(Path(__file__)),
+               utc=now().isoformat(), session_query={})
+    try:
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.ProcessIdToSessionId.argtypes = [ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
+        kernel.ProcessIdToSessionId.restype = ctypes.c_int
+        session = ctypes.c_ulong()
+        ctypes.set_last_error(0)
+        ok = kernel.ProcessIdToSessionId(os.getpid(), ctypes.byref(session))
+        row['session_query'] = dict(ok=bool(ok), last_error=ctypes.get_last_error(),
+                                    session=session.value if ok else None)
+    except Exception as error:
+        row['session_query'] = dict(ok=False, type=type(error).__name__, error=str(error))
+    with (share/'entry-arrived.json').open('x', encoding='utf-8') as stream:
+        json.dump(row, stream, indent=2); stream.write('\n')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check-package', action='store_true')
+    parser.add_argument('--execute', action='store_true')
+    args = parser.parse_args(argv)
+    require(not (args.check_package and args.execute), 'choose check or explicit execution')
+    share = Path(__file__).resolve().parent
+    if args.execute:
+        write_entry_arrival(share)
+    ctx, inv = checked_package(share)
+    if not args.execute:
+        print(json.dumps(dict(package_valid=True, native_operations=0, source_head=SOURCE_HEAD,
+                              proposal_id=PROPOSAL_ID, component_context_policy=COMPONENT_POLICY, runtime_members=len(MEMBERS))))
+        return 0
+    grant = json.loads((share/'coordinator-cad-grant.json').read_bytes())
+    checked_grant(share, ctx, grant)
+    return execute(share, ctx, inv, grant)
+
+
+if __name__ == '__main__':
+    sys.dont_write_bytecode = True
+    raise SystemExit(main())
