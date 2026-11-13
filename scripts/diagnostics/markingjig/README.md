@@ -33,3 +33,9 @@ OpenDoc7请求及readback：DocumentType2、ReadOnly=true、Silent=true、UseLig
 ## 分阶段零导出候选（2026-11-13）
 
 默认仍为 `--phase-policy strict`。新候选需显式选择 `--mode probe --phase-policy opening-transition-probe`，拒绝 invoke。开前、开后、完整模型准入和已加载基线分开记录，保留原严格基线与旧失败。按后续明确合同，新分阶段路径的访问时间完整记录但不作准入判据，其他字段保持严格；独立取证器默认 strict 不变。仅代码和模拟测试完成，未运行新 VM/OpenDoc/CAD/导出。详见 [当前访问时间策略](../../../docs/verification/glb-access-time-policy-2026-11-13.md)；[初版方案](../../../docs/verification/glb-opening-phases-candidate-2026-11-13.md)中的 atime 保守边界已由当前明确策略替代。
+
+## 组件上下文几何候选（2026-11-13，未原生执行）
+
+Root 的 c984 probe03 在组件引用配置“渲染”/GetModelDoc2 active“默认”的原门禁首停，0导出；完整图/geometry未通过，原失败保留。新离线候选只接受显式 `--mode probe --phase-policy opening-transition-probe --component-context-policy component-bodies-probe`。默认 strict-model-configuration 和旧错误不变，新模式不能invoke；part实例从GetBodies3读取几何，modelDoc active状态/几何单独保留，并做引用/对象身份/model状态CAS与两次完整观察。未激活配置、重建、fallback或native重跑。
+
+本机140项MarkingJig（新增23）、23项bridge通过，固定装机PIA元数据已核；实际Python GetBodies3 out封送与native业务几何仍未验证。详见[契约、完整保护和待审边界](../../../docs/verification/glb-markingjig-component-context-candidate-2026-11-13.md)。本候选尚未新打包或签CAD票，不覆盖或改写冻结02/03。

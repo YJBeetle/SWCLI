@@ -1,0 +1,80 @@
+{
+  "schema": "swcli.markingjig-component-context-candidate.v1",
+  "status": "offline-source-only-awaiting-coordinator-review",
+  "prior_native_failure": {
+    "source_head": "c9846f6aad4312cc8bf97195deaa6c4f880fda6f",
+    "report_sha256": "37349b946c7b92f4d8209fd8ac75b567f4dadbcb1127beb206f30b1c9ea6b940",
+    "coordinator_audit_sha256": "8b4dec30c6224e21a4e77aa4a6c8b222522452d83a9888f365f863a0841e9d46",
+    "first_failure": "component model represents different configuration; no activation",
+    "component": {
+      "name": "MarkingJig-1/MarkingJigBlock-1",
+      "referenced_configuration": "渲染",
+      "model_active_configuration": "默认",
+      "model_configurations": [
+        "默认",
+        "渲染"
+      ]
+    },
+    "loaded_baseline_sealed": false,
+    "full_graph_or_geometry_accepted": false,
+    "save_export_attempts": 0,
+    "native_exit_code_recorded": false
+  },
+  "candidate": {
+    "flag": "--component-context-policy component-bodies-probe",
+    "default": "strict-model-configuration",
+    "required_mode": "probe",
+    "required_phase": "opening-transition-probe",
+    "exports_permitted": false,
+    "runtime_enum_gate": {
+      "swAllBodies": -1,
+      "swSolidBody": 0,
+      "swSheetBody": 1,
+      "swUserBody_e": 0,
+      "swNormalBody_e": 1
+    },
+    "changed_source_sha256": {
+      "scripts/diagnostics/markingjig/markingjig_control.py": "e866cd3b6f9cf4c8c7e9b26ac87a79acfd26aec2eba48a97a7a191b8740dfc04",
+      "scripts/diagnostics/markingjig/run-markingjig-control.py": "34262bc844edb77cc888b2c064ad6a9791045d0fc783618026455f64a637cb68",
+      "scripts/diagnostics/markingjig/test_component_context.py": "dc30bc18a84e38be9109928f8c10c4cfa2534c68f7ed9f6ab4b834dad25495a2"
+    },
+    "fixed_runtime_files_byte_identical_to_c984": {
+      "scripts/diagnostics/markingjig/file_forensics.py": true,
+      "scripts/diagnostics/markingjig/opening_phases.py": true,
+      "scripts/diagnostics/markingjig/launcher_receipts.py": true,
+      "scripts/diagnostics/typed_glb/run-typed-glb-control.py": true,
+      "scripts/diagnostics/typed_glb/bridge_control.py": true
+    },
+    "frozen_probe02_and_03_files_unchanged": {
+      "02": true,
+      "03": true
+    }
+  },
+  "metadata": {
+    "contract_sha256": "d768a8ed4ba49402518cded01011310846e6f2380c71f0d9a14b502cd68730a3",
+    "reader_source_sha256": "5b9d53e7bf6b01abfb05b9ba0892f8961bb2a08f7af6f8666f54e8a559ab371f",
+    "sldworks_pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+    "swconst_pia_sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+    "COM_created": 0,
+    "target_methods_invoked": 0,
+    "TLB_GetBodies3_descriptor_not_collected": true
+  },
+  "validation": {
+    "markingjig_tests": 140,
+    "new_component_context_tests": 23,
+    "bridge_tests": 23,
+    "local_Python": "3.15.2 macOS",
+    "VM_or_COM_or_CAD_operations": 0,
+    "new_native_probe_attempts": 0,
+    "pushes_covering_this_candidate": 0
+  },
+  "limits": [
+    "PIA metadata is not a native Python GetBodies3 binding proof; out SafeArraySubType is0 unspecified",
+    "one explicit BYREF VARIANT candidate only; binding errors/unknown output fail without retry or alternate API",
+    "existing active-modelDoc geometry remains an independent strict observation, never asserted equal to instance geometry",
+    "raw component transform stored separately; native body coordinate values compared without applying transforms",
+    "geometry fingerprints are not exact B-rep equality, historical GLB alignment, mesh accuracy or export acceptance",
+    "CI43402895583 only coversc39dade fixture fix, not this local candidate",
+    "new source package, complete new launcher and fresh CAD ticket still require coordinator review"
+  ]
+}

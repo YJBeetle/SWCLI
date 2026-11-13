@@ -140,9 +140,13 @@ def vector(value, size, reason):
 
 
 class Observation:
-    def __init__(self, app, value, call, copy, constants, owned_pid, process_identity):
+    def __init__(self, app, value, call, copy, constants, owned_pid, process_identity, *,
+                 component_context_policy='strict-model-configuration', component_bodies=None):
         self.app, self.value, self.call, self.copy = app, value, call, copy
         self.constants, self.owned_pid, self.process_identity = constants, owned_pid, process_identity
+        self.component_context_policy, self.component_bodies = component_context_policy, component_bodies
+        require(component_context_policy in ('strict-model-configuration','component-bodies-probe'),'component context policy unknown')
+        require(component_context_policy=='strict-model-configuration' or callable(component_bodies),'component body binding required')
 
     def get(self, obj, name, *args):
         return self.call('read-'+name, lambda: getattr(obj, name)(*args) if args else self.value(obj, name))
@@ -198,6 +202,62 @@ class Observation:
                              faces=exact(self.get(body,'GetFaceCount'),int,'face count unknown'),
                              edges=exact(self.get(body,'GetEdgeCount'),int,'edge count unknown')))
         return rows
+
+    def component_geometry(self, component, model, row):
+        """Assembly-instance bodies and independent modelDoc state; no activation."""
+        context = row['component_context'] = dict(complete=False, policy='component-bodies-probe',
+            model_active_configuration=row['model']['configuration'],
+            referenced_configuration=row['referenced_configuration'],
+            model_active_matches_reference=row['model']['configuration']==row['referenced_configuration'],
+            model_geometry_basis='GetModelDoc2 active-document state only')
+        if row['model']['type'] == 2:
+            # GetBodies3 explicitly supports part components only. Nested part
+            # instances remain in the original complete flat component census.
+            context.update(kind='subassembly', geometry_basis='complete child component census')
+        else:
+            context.update(kind='part', geometry_basis='IComponent2.GetBodies3; native body values, no transform applied',
+                           requested_body_type=self.constants['swAllBodies'])
+            raw = self.call('read-component-GetBodies3', lambda: self.component_bodies(component, self.constants['swAllBodies']))
+            require(type(raw) is tuple and len(raw)==2, 'component body binding result unknown')
+            bodies, info = raw
+            context['bodies_returned_type'] = type(bodies).__name__
+            context['body_info_returned_type'] = type(info).__name__
+            context['body_count'] = len(bodies) if isinstance(bodies,(tuple,list)) else None
+            # Preserve unexpected primitive out values too, without serializing COM
+            # objects or asking them for a string representation on failure.
+            def primitive(v):
+                if type(v) in (int,str,bool,type(None)):return v
+                if type(v) is float:return v if math.isfinite(v) else dict(unexpected_type='float',hex_value=v.hex())
+                return dict(unexpected_type=type(v).__name__)
+            context['body_info_raw'] = [primitive(v) for v in info] if isinstance(info,(tuple,list)) else primitive(info)
+            require(isinstance(bodies,(tuple,list)) and 0<len(bodies)<=8192, 'component bodies unavailable')
+            require(isinstance(info,(tuple,list)) and len(info)==len(bodies)
+                    and all(type(v) is int and v in (self.constants['swUserBody_e'],self.constants['swNormalBody_e']) for v in info),
+                    'component body-info shape/value unknown')
+            geometry = context['bodies'] = []
+            for body, classification in zip(bodies,info):
+                current = dict(body_info=classification); geometry.append(current)
+                current['type'] = exact(self.get(body,'GetType'),int,'component body type unknown')
+                require(current['type'] in (self.constants['swSolidBody'],self.constants['swSheetBody']), 'unsupported component body type')
+                require(not (current['type']==self.constants['swSheetBody'] and classification==self.constants['swUserBody_e']),
+                        'surface body cannot be classified as user body')
+                current['bounds_raw'] = self.get(body,'GetBodyBox')
+                current['bounds'] = bounds = vector(current['bounds_raw'],6,'component body bounds unknown')
+                require(all(bounds[i]<=bounds[i+3] for i in range(3)), 'component body bounds reversed')
+                current['mass_properties_raw'] = self.get(body,'GetMassProperties',1.0)
+                props = vector(current['mass_properties_raw'],12,'component mass geometry unavailable')
+                require(props[3]>=0 and props[4]>0, 'component body area/volume invalid')
+                current.update(volume_m3=props[3],area_m2=props[4],centroid_m=props[:3])
+                current['faces'] = exact(self.get(body,'GetFaceCount'),int,'component face count unknown')
+                current['edges'] = exact(self.get(body,'GetEdgeCount'),int,'component edge count unknown')
+                require(current['faces']>0 and current['edges']>=0, 'component topology counts invalid')
+        self.same(self.get(component,'GetModelDoc2'),model,'component model identity changed during body observation')
+        context['referenced_configuration_after'] = exact(self.get(component,'ReferencedConfiguration'),str,'reference configuration unknown after geometry')
+        require(context['referenced_configuration_after']==row['referenced_configuration'], 'component reference configuration changed during body observation')
+        after = context['model_state_after'] = {}
+        self.document(model,after,embedded=row['virtual'])
+        require(canonical(after)==canonical(row['model']), 'independent model state changed during component body observation')
+        context['complete'] = True
 
     def dependencies(self, model, state, report):
         query = dict(model_path=state['path'], reads=[], independent_native_string_count=None,
@@ -259,7 +319,11 @@ class Observation:
             child=self.get(component,'GetModelDoc2');require(child is not None,'component model not loaded')
             row['model']={};self.document(child,row['model'],embedded=row['virtual'])
             row['referenced_configuration']=exact(self.get(component,'ReferencedConfiguration'),str,'reference configuration unknown')
-            require(row['referenced_configuration']==row['model']['configuration'],'component model represents different configuration; no activation')
+            if self.component_context_policy=='strict-model-configuration':
+                require(row['referenced_configuration']==row['model']['configuration'],'component model represents different configuration; no activation')
+            else:
+                require(row['referenced_configuration'] and row['referenced_configuration'] in row['model']['configurations'],
+                        'component referenced configuration absent from independent model configuration set')
             transform=self.get(component,'Transform2');require(transform is not None,'component transform unknown')
             row['transform']=vector(self.get(transform,'ArrayData'),16,'component transform unknown')
             if not row['virtual']:
@@ -269,6 +333,8 @@ class Observation:
                 require(row['model']['path'],'virtual model path unavailable')
                 virtual_paths[row['model']['path']]=row
                 virtual_instances.setdefault(row['model']['path'],[]).append((child,row))
+            if self.component_context_policy=='component-bodies-probe':
+                self.component_geometry(component,child,row)
             models.append((child,row['model'],row['virtual']))
         for component,row in by_name.values():
             if row['virtual']:
@@ -323,6 +389,9 @@ class Observation:
         require([result['top']['path'],result['top']['title']] in result['catalog'],'top missing from catalog')
         final_top={};self.document(doc,final_top,top=True)
         require(canonical(final_top)==canonical(result['top']),'top source state changed while observing')
+        if self.component_context_policy=='component-bodies-probe':
+            require(any(row['model']['type']==1 and row['component_context']['complete']
+                        for component,row in by_name.values()), 'complete census has no part component geometry')
         self.copy.unchanged();result['complete']=True
         return result
 
@@ -356,8 +425,17 @@ def open_readonly(app, source, value, call, live, report, constants):
     return doc
 
 
-def one_case(app, copy, mode, output, value, call, live, report, constants, owned_pid, exporter, process_identity, *, phase_guard=None):
+def one_case(app, copy, mode, output, value, call, live, report, constants, owned_pid, exporter, process_identity, *, phase_guard=None,
+             component_context_policy='strict-model-configuration', component_bodies=None):
     require(mode in ('probe','invoke'),'mode required')
+    require(component_context_policy in ('strict-model-configuration','component-bodies-probe'),'component context policy unknown')
+    if component_context_policy=='component-bodies-probe':
+        require(mode=='probe' and phase_guard is not None and callable(component_bodies),
+                'component bodies require explicit opening-transition zero-export probe and binding')
+        require(all(type(constants.get(k)) is int and constants[k]==v for k,v in
+                    dict(swAllBodies=-1,swSolidBody=0,swSheetBody=1,swUserBody_e=0,swNormalBody_e=1).items()),
+                'installed component-body constants differ')
+        report['component_context_policy']=component_context_policy
     report.update(mode=mode,observations=[],export_attempts=0,geometry_comparison='before/after same loaded native models; historical display context unknown')
     if phase_guard is not None:
         require(mode=='probe', 'opening-transition candidate is zero-export probe only')
@@ -372,7 +450,8 @@ def one_case(app, copy, mode, output, value, call, live, report, constants, owne
                 report['failed_open_phase_capture_error']=dict(type=type(error).__name__,message=str(error))
             raise
         phase_guard.after_open()
-        observer=Observation(app,value,call,phase_guard,constants,owned_pid,process_identity)
+        observer=Observation(app,value,call,phase_guard,constants,owned_pid,process_identity,
+                             component_context_policy=component_context_policy,component_bodies=component_bodies)
         admitted=observer.snapshot(doc,report['observations'])
         phase_guard.seal_loaded(admitted)
         loaded=observer.snapshot(doc,report['observations'])

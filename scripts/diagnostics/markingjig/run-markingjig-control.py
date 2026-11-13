@@ -31,8 +31,9 @@ def manifest(args):
     return json.loads(data)
 
 
-def constants(pythoncom, path):
+def constants(pythoncom, path, *, component_context=False):
     wanted={'swComponentFullyResolved':2,'swComponentResolved':3,'swDocASSEMBLY':2,'swAllBodies':-1,'swFileLoadWarning_ReadOnly':2}
+    if component_context:wanted.update(swSolidBody=0,swSheetBody=1,swUserBody_e=0,swNormalBody_e=1)
     lib=pythoncom.LoadTypeLib(str(path));found={}
     for i in range(lib.GetTypeInfoCount()):
         info=lib.GetTypeInfo(i);attr=info.GetTypeAttr()
@@ -75,10 +76,18 @@ def worker(args):
                 return original_exporter(*a,**kw)
         try:
             with trace_native_request('markingjig-readonly-observe','diagnostic.readonly-assembly'):
-                required=call('read-installed-assembly-enums',lambda:constants(pythoncom,base.SWCONST))
+                required=call('read-installed-assembly-enums',lambda:constants(pythoncom,base.SWCONST,
+                    component_context=args.component_context_policy=='component-bodies-probe'))
                 case['installed_diagnostic_constants']=required
+                def component_bodies(component, body_type):
+                    from win32com.client import VARIANT
+                    info=VARIANT(pythoncom.VT_BYREF|pythoncom.VT_VARIANT,None)
+                    bodies=component.GetBodies3(body_type,info)
+                    return bodies,info.value
                 control.one_case(app,copy,args.mode,output,_com_value,call,live,case,required,
-                                 report['host']['process_id'],export,process,phase_guard=phase_guard)
+                                 report['host']['process_id'],export,process,phase_guard=phase_guard,
+                                 component_context_policy=args.component_context_policy,
+                                 component_bodies=component_bodies if args.component_context_policy=='component-bodies-probe' else None)
             if args.mode=='invoke':
                 mesh=module(base.SOURCE/'scripts/ci/gate_support/glb_mesh.py','markingjig_strict_mesh')
                 case['glb_mesh']=mesh.inspect_glb(output/'MarkingJig.REND.GLB')
@@ -90,7 +99,7 @@ def worker(args):
                                   case_plan=[('existing-assembly','none',False)],diagnostic_case='markingjig-readonly-modern-control')
 
 
-def audit(output, mode, phase_policy='strict'):
+def audit(output, mode, phase_policy='strict', component_context_policy='strict-model-configuration'):
     report=json.loads((output/'report.json').read_text());observed_case=receipts.single_case(report)
     case=observed_case if observed_case is not None else {}
     events=[]
@@ -106,6 +115,7 @@ def audit(output, mode, phase_policy='strict'):
     expected=1 if mode=='invoke' else 0
     complete=report.get('success') is True and observed_case is not None
     ok=complete and len(saves)==expected and not forbidden and not report['cleanup_errors']
+    ok=ok and case.get('component_context_policy','strict-model-configuration')==component_context_policy
     if mode=='invoke':
         ok=ok and case.get('export_attempts')==1 and case.get('success') is True and bool(case.get('glb_mesh'))
         ok=ok and saves[0].get('request_id')=='markingjig-export-GLB' and saves[0].get('worker_pid')==report['native_call_worker_pid']
@@ -119,7 +129,33 @@ def audit(output, mode, phase_policy='strict'):
         ok=ok and phases.get('opening_classification') in ('opening-metadata-transition','opening-metadata-unchanged')
         ok=ok and len(observed)==2 and all(row.get('complete') is True for row in observed)
         ok=ok and bool(phases.get('frames')) and all(row.get('complete') is True and row.get('access_time_policy')=='record-only' and not row.get('phase_error') for row in phases['frames'])
-    return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,case_count=len(report['cases']),
+    if component_context_policy=='component-bodies-probe':
+        observations=case.get('observations',[])
+        ok=ok and mode=='probe' and phase_policy=='opening-transition-probe'
+        ok=ok and case.get('component_context_policy')==component_context_policy and len(observations)==2
+        ok=ok and all(type(observation.get('components')) is list and observation['components']
+                      for observation in observations)
+        for observation in observations:
+            for row in observation.get('components',[]):
+                context=row.get('component_context',{});model=row.get('model',{})
+                ok=ok and context.get('complete') is True and context.get('policy')==component_context_policy
+                ok=ok and bool(row.get('referenced_configuration')) and row.get('referenced_configuration') in model.get('configurations',[])
+                ok=ok and context.get('referenced_configuration')==row.get('referenced_configuration')
+                ok=ok and context.get('model_active_configuration')==model.get('configuration')
+                ok=ok and type(context.get('model_active_matches_reference')) is bool and context['model_active_matches_reference']==(model.get('configuration')==row.get('referenced_configuration'))
+                ok=ok and context.get('referenced_configuration_after')==row.get('referenced_configuration')
+                ok=ok and context.get('model_state_after')==model
+                if model.get('type')==1:
+                    bodies=context.get('bodies',[]);info=context.get('body_info_raw',[])
+                    ok=ok and context.get('kind')=='part' and bool(bodies) and len(bodies)==len(info)==context.get('body_count')
+                    ok=ok and all(type(v) is int and v in (0,1) for v in info)
+                elif model.get('type')==2:ok=ok and context.get('kind')=='subassembly'
+                else:ok=False
+        ok=ok and all(any(row.get('model',{}).get('type')==1 for row in observation.get('components',[]))
+                      for observation in observations)
+        ok=ok and len(observations)==2 and control.canonical(observations[0])==control.canonical(observations[1])
+    elif component_context_policy!='strict-model-configuration':ok=False
+    return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,component_context_policy=component_context_policy,case_count=len(report['cases']),
                 native_failure=report.get('failure'),modern_save_attempts=len(saves),forbidden_calls=forbidden,
                 report_sha256=hashlib.sha256((output/'report.json').read_bytes()).hexdigest(),
                 ci_acceptance=False,public_acceptance=False,probe_is_export_acceptance=False)
@@ -133,6 +169,7 @@ def main():
     p.add_argument('--baseline');p.add_argument('--inventory');p.add_argument('--inventory-sha256')
     p.add_argument('--copy-root');p.add_argument('--selected',action='append');p.add_argument('--output')
     p.add_argument('--phase-policy',choices=('strict','opening-transition-probe'),default='strict')
+    p.add_argument('--component-context-policy',choices=('strict-model-configuration','component-bodies-probe'),default='strict-model-configuration')
     p.add_argument('--mode',choices=('probe','invoke'));p.add_argument('--worker',action='store_true')
     args=p.parse_args()
     if args.inventory_originals:
@@ -149,6 +186,9 @@ def main():
     control.require(all((args.baseline,args.inventory,args.inventory_sha256,args.copy_root,args.selected,args.output,args.mode)),
                     'explicit mode, approved inventory hash, selected files, copy and new output required')
     control.require(args.phase_policy=='strict' or args.mode=='probe','opening-transition candidate is zero-export probe only')
+    control.require(args.component_context_policy=='strict-model-configuration' or
+                    (args.mode=='probe' and args.phase_policy=='opening-transition-probe'),
+                    'component bodies are explicit opening-transition zero-export probe only')
     control.require(sys.platform=='win32','native execution is Windows coordinator only')
     source=Path(args.copy_root).resolve();output=Path(args.output).resolve()
     control.require(str(source).casefold().startswith('c:\\workspace\\') and str(output).casefold().startswith('c:\\workspace\\'), 'private C:\\Workspace paths required')
@@ -177,10 +217,10 @@ def main():
                 proc.terminate()
                 try:proc.wait(timeout=30)
                 except subprocess.TimeoutExpired:failure=(failure or 'worker failure')+'; termination unconfirmed'
-    after=base.inventory();receipt=dict(mode=args.mode,phase_policy=args.phase_policy,source_kind='private readonly copy of existing MarkingJig',
+    after=base.inventory();receipt=dict(mode=args.mode,phase_policy=args.phase_policy,component_context_policy=args.component_context_policy,source_kind='private readonly copy of existing MarkingJig',
       native_pids_before=before,native_pids_after=after,launch_pid=proc.pid,worker_exit=proc.returncode,failure=failure,
       success=False,ci_acceptance=False,public_acceptance=False)
-    try:receipt['audit']=audit(output,args.mode,args.phase_policy)
+    try:receipt['audit']=audit(output,args.mode,args.phase_policy,args.component_context_policy)
     except Exception as error:receipt['audit_error']=dict(type=type(error).__name__,message=str(error))
     receipt['success']=proc.returncode==0 and failure is None and not after and receipt.get('audit',{}).get('success') is True
     (output/'markingjig-supervisor.json').write_text(json.dumps(receipt,indent=2)+'\n')

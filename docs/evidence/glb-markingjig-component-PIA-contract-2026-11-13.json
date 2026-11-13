@@ -1,0 +1,486 @@
+{
+  "schema": "swcli.markingjig-component-PIA-metadata.v1",
+  "sldworks_pia_sha256": "a53c7c179ead50e7df9266c1b79e9d6a865ca591b1f2bcd96804fdb3803b15e1",
+  "swconst_pia_sha256": "1afe845af233292fe22e58a2b893d6065f36cd85f2728866011ad10771b98fa9",
+  "sldworks_assembly": "SolidWorks.Interop.sldworks, Version=33.5.0.53, Culture=neutral, PublicKeyToken=7c4797c3e4eeac03",
+  "swconst_assembly": "SolidWorks.Interop.swconst, Version=33.5.0.53, Culture=neutral, PublicKeyToken=19f43e188e4269d8",
+  "methods": [
+    {
+      "owner": "SolidWorks.Interop.sldworks.IComponent2",
+      "name": "GetBodies3",
+      "returns": {
+        "name": "",
+        "type": "System.Object",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": [
+          {
+            "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+            "arguments": [
+              {
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "27"
+              }
+            ],
+            "named_arguments": [
+              {
+                "name": "ArraySubType",
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "0"
+              },
+              {
+                "name": "SizeParamIndex",
+                "type": "System.Int16",
+                "value": "0"
+              },
+              {
+                "name": "SizeConst",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "IidParameterIndex",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "SafeArraySubType",
+                "type": "System.Runtime.InteropServices.VarEnum",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "BodyType",
+          "type": "System.Int32",
+          "is_out": false,
+          "is_in": true,
+          "position": 0,
+          "attributes": [
+            {
+              "type": "System.Runtime.InteropServices.InAttribute",
+              "arguments": [],
+              "named_arguments": []
+            }
+          ]
+        },
+        {
+          "name": "BodiesInfo",
+          "type": "System.Object&",
+          "is_out": true,
+          "is_in": false,
+          "position": 1,
+          "attributes": [
+            {
+              "type": "System.Runtime.InteropServices.OutAttribute",
+              "arguments": [],
+              "named_arguments": []
+            },
+            {
+              "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+              "arguments": [
+                {
+                  "type": "System.Runtime.InteropServices.UnmanagedType",
+                  "value": "27"
+                }
+              ],
+              "named_arguments": [
+                {
+                  "name": "ArraySubType",
+                  "type": "System.Runtime.InteropServices.UnmanagedType",
+                  "value": "0"
+                },
+                {
+                  "name": "SizeParamIndex",
+                  "type": "System.Int16",
+                  "value": "0"
+                },
+                {
+                  "name": "SizeConst",
+                  "type": "System.Int32",
+                  "value": "0"
+                },
+                {
+                  "name": "IidParameterIndex",
+                  "type": "System.Int32",
+                  "value": "0"
+                },
+                {
+                  "name": "SafeArraySubType",
+                  "type": "System.Runtime.InteropServices.VarEnum",
+                  "value": "0"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 124
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IComponent2",
+      "name": "GetModelDoc2",
+      "returns": {
+        "name": "",
+        "type": "System.Object",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": [
+          {
+            "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+            "arguments": [
+              {
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "26"
+              }
+            ],
+            "named_arguments": [
+              {
+                "name": "ArraySubType",
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "0"
+              },
+              {
+                "name": "SizeParamIndex",
+                "type": "System.Int16",
+                "value": "0"
+              },
+              {
+                "name": "SizeConst",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "IidParameterIndex",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "SafeArraySubType",
+                "type": "System.Runtime.InteropServices.VarEnum",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 122
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IComponent2",
+      "name": "get_ReferencedConfiguration",
+      "returns": {
+        "name": "",
+        "type": "System.String",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": [
+          {
+            "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+            "arguments": [
+              {
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "19"
+              }
+            ],
+            "named_arguments": [
+              {
+                "name": "ArraySubType",
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "0"
+              },
+              {
+                "name": "SizeParamIndex",
+                "type": "System.Int16",
+                "value": "0"
+              },
+              {
+                "name": "SizeConst",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "IidParameterIndex",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "SafeArraySubType",
+                "type": "System.Runtime.InteropServices.VarEnum",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 30
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IBody2",
+      "name": "GetType",
+      "returns": {
+        "name": "",
+        "type": "System.Int32",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": []
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 102
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IBody2",
+      "name": "GetBodyBox",
+      "returns": {
+        "name": "",
+        "type": "System.Object",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": [
+          {
+            "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+            "arguments": [
+              {
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "27"
+              }
+            ],
+            "named_arguments": [
+              {
+                "name": "ArraySubType",
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "0"
+              },
+              {
+                "name": "SizeParamIndex",
+                "type": "System.Int16",
+                "value": "0"
+              },
+              {
+                "name": "SizeConst",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "IidParameterIndex",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "SafeArraySubType",
+                "type": "System.Runtime.InteropServices.VarEnum",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 112
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IBody2",
+      "name": "GetMassProperties",
+      "returns": {
+        "name": "",
+        "type": "System.Object",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": [
+          {
+            "type": "System.Runtime.InteropServices.MarshalAsAttribute",
+            "arguments": [
+              {
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "27"
+              }
+            ],
+            "named_arguments": [
+              {
+                "name": "ArraySubType",
+                "type": "System.Runtime.InteropServices.UnmanagedType",
+                "value": "0"
+              },
+              {
+                "name": "SizeParamIndex",
+                "type": "System.Int16",
+                "value": "0"
+              },
+              {
+                "name": "SizeConst",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "IidParameterIndex",
+                "type": "System.Int32",
+                "value": "0"
+              },
+              {
+                "name": "SafeArraySubType",
+                "type": "System.Runtime.InteropServices.VarEnum",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "Density",
+          "type": "System.Double",
+          "is_out": false,
+          "is_in": true,
+          "position": 0,
+          "attributes": [
+            {
+              "type": "System.Runtime.InteropServices.InAttribute",
+              "arguments": [],
+              "named_arguments": []
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 76
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IBody2",
+      "name": "GetFaceCount",
+      "returns": {
+        "name": "",
+        "type": "System.Int32",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": []
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "owner": "SolidWorks.Interop.sldworks.IBody2",
+      "name": "GetEdgeCount",
+      "returns": {
+        "name": "",
+        "type": "System.Int32",
+        "is_out": false,
+        "is_in": false,
+        "position": -1,
+        "attributes": []
+      },
+      "parameters": [],
+      "attributes": [
+        {
+          "type": "System.Runtime.InteropServices.DispIdAttribute",
+          "value": 120
+        }
+      ]
+    }
+  ],
+  "enums": [
+    {
+      "name": "SolidWorks.Interop.swconst.swBodyInfo_e",
+      "underlying_type": "System.Int32",
+      "fields": [
+        {
+          "name": "swUserBody_e",
+          "value": 0
+        },
+        {
+          "name": "swNormalBody_e",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "SolidWorks.Interop.swconst.swBodyType_e",
+      "underlying_type": "System.Int32",
+      "fields": [
+        {
+          "name": "swAllBodies",
+          "value": -1
+        },
+        {
+          "name": "swSolidBody",
+          "value": 0
+        },
+        {
+          "name": "swSheetBody",
+          "value": 1
+        },
+        {
+          "name": "swWireBody",
+          "value": 2
+        },
+        {
+          "name": "swMinimumBody",
+          "value": 3
+        },
+        {
+          "name": "swGeneralBody",
+          "value": 4
+        },
+        {
+          "name": "swEmptyBody",
+          "value": 5
+        },
+        {
+          "name": "swMeshBody",
+          "value": 6
+        },
+        {
+          "name": "swGraphicsBody",
+          "value": 7
+        }
+      ]
+    }
+  ],
+  "COM_created": 0,
+  "target_methods_invoked": 0
+}
