@@ -107,7 +107,12 @@ class CollectorTests(unittest.TestCase):
         script.with_name('inspect-installed-glb-exporter-metadata.ps1').write_bytes(SCRIPT.with_name('inspect-installed-glb-exporter-metadata.ps1').read_bytes())
         for relative in gate.REQUIRED_FILES:
             p=self.install/relative;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(pe_fixture(certificate=True))
-        self.patches=[mock.patch.object(gate,'__file__',str(script)),mock.patch.object(gate,'INSTALL_ROOT',self.install),mock.patch.object(gate,'SYSTEM_DIRS',self.system),mock.patch.object(gate,'POWERSHELL',self.ps)]
+        # Collector integration scenarios exercise the reviewed runtime contract,
+        # not the CI interpreter's unreviewed Windows stat/fstat policy. Keep
+        # every real stat value; only the declared runtime is a fixture here.
+        # Other runtime identities are explicitly refused in the guard tests.
+        self.patches=[mock.patch.object(gate,'__file__',str(script)),mock.patch.object(gate,'INSTALL_ROOT',self.install),mock.patch.object(gate,'SYSTEM_DIRS',self.system),mock.patch.object(gate,'POWERSHELL',self.ps),
+                      mock.patch.object(gate,'runtime_identity',side_effect=self.known_runtime)]
         for p in self.patches:p.start();self.addCleanup(p.stop)
 
     def runner(self, command, **options):
@@ -237,14 +242,26 @@ class CollectorTests(unittest.TestCase):
         with mock.patch.object(gate,'MAX_FILE',8),mock.patch.object(gate.os,'open') as opened:
             with self.assertRaisesRegex(RuntimeError,'byte bound'):gate.stable_read(source)
             opened.assert_not_called()
-        native=gate.os.fstat;count=[]
+        # Windows denies replacing a path while os.open still holds it.
+        # Inject only the final path observation of a real independent file;
+        # the source descriptor stays open and both held samples stay real.
+        replacement=self.root/'same-bytes.dll';replacement.write_bytes(source.read_bytes())
+        self.assertFalse(os.path.samefile(source,replacement))
+        native_stat=gate.os.stat;native_fstat=gate.os.fstat;held_samples=[]
         def fstat(descriptor):
-            value=native(descriptor);count.append(True)
-            if len(count)==2:
-                replacement=self.root/'same-bytes.dll';replacement.write_bytes(source.read_bytes());replacement.replace(source)
-            return value
-        with mock.patch.object(gate.os,'fstat',side_effect=fstat):
-            with self.assertRaisesRegex(RuntimeError,'path identity changed'):gate.stable_read(source)
+            value=native_fstat(descriptor);held_samples.append(value);return value
+        def path_stat(path,*args,**kwargs):
+            return native_stat(replacement if Path(path)==source and len(held_samples)==2 else path,*args,**kwargs)
+        observation={}
+        with mock.patch.object(gate.os,'fstat',side_effect=fstat),mock.patch.object(gate.os,'stat',side_effect=path_stat):
+            with self.assertRaisesRegex(RuntimeError,'path identity changed'):gate.stable_read(source,observation=observation)
+        self.assertEqual(len(held_samples),2)
+        self.assertEqual(observation['failed_stage'],'after_path_check')
+        self.assertTrue(observation['descriptor_closed'])
+        self.assertEqual(observation['before']['raw_fields']['st_ino'],native_stat(source).st_ino)
+        self.assertEqual(observation['after_path']['raw_fields']['st_ino'],native_stat(replacement).st_ino)
+        self.assertNotEqual(observation['before']['raw_fields']['st_ino'],observation['after_path']['raw_fields']['st_ino'])
+        self.assertNotIn('sha256',observation)
 
     def known_runtime(self):
         return dict(os_name='nt', platform='win32', implementation='cpython',
@@ -293,7 +310,7 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(decoded['before']['raw_fields']['st_dev'],4217245827768940497)
 
     def test_other_runtime_missing_birthtime_or_other_difference_refuses(self):
-        for kind in ('OS','platform','implementation','patch','prerelease','bits','missing-path-birth','missing-handle-birth',
+        for kind in ('OS','platform','implementation','patch','ci-patch','prerelease','bits','missing-path-birth','missing-handle-birth',
                      'zero-birth','unequal-birth','path-ctime-not-birth','device','file_id','mode','size','mtime','attributes','missing-attrs','link','tag'):
             with self.subTest(kind=kind):
                 runtime=self.known_runtime();before=self.probed_stat();opened=self.probed_stat(st_ctime_ns=1780227286818338600)
@@ -301,6 +318,7 @@ class CollectorTests(unittest.TestCase):
                 elif kind=='platform':runtime['platform']='darwin'
                 elif kind=='implementation':runtime['implementation']='pypy'
                 elif kind=='patch':runtime['version_info']=[3,14,8,'final',0]
+                elif kind=='ci-patch':runtime['version_info']=[3,14,10,'final',0]
                 elif kind=='prerelease':runtime['version_info']=[3,14,7,'candidate',1]
                 elif kind=='bits':runtime['word_bits']=32
                 elif kind=='missing-path-birth':del before.st_birthtime_ns
@@ -387,6 +405,33 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(row['before']['sha256'],row['after']['sha256'])
         self.assertNotEqual(row['before']['handle_stat']['ctime_ns'],row['after']['handle_stat']['ctime_ns'])
         self.assertNotIn('collection_completed',report)
+
+    def test_generated_metadata_files_keep_both_raw_ctime_channels_in_reviewed_fixture(self):
+        # Model the reviewed path-creation/handle-change split for newly written
+        # request/response files without claiming this host has that runtime.
+        native_stat=gate.os.stat;native_fstat=gate.os.fstat
+        creation=1758898084000000000;change=1780227286818338600
+        def view(value,ctime):
+            fields={key:getattr(value,key) for key in gate.RAW_STAT_FIELDS if hasattr(value,key)}
+            fields.update(st_ctime_ns=ctime,st_ctime=ctime/1e9,st_birthtime_ns=creation,
+                          st_birthtime=creation/1e9,st_file_attributes=0,st_reparse_tag=0)
+            return SimpleNamespace(**fields)
+        def path_stat(*args,**kwargs):return view(native_stat(*args,**kwargs),creation)
+        def handle_stat(*args,**kwargs):return view(native_fstat(*args,**kwargs),change)
+        report={}
+        with mock.patch.object(gate.os,'stat',side_effect=path_stat),mock.patch.object(gate.os,'fstat',side_effect=handle_stat):
+            gate.collect(self.output,report,runner=self.runner)
+        self.assertTrue(report['collection_completed'])
+        for name in ('request_before','metadata_response_file','request_after'):
+            observed=report['stable_reads'][name]
+            self.assertEqual(observed['before']['raw_fields']['st_ctime_ns'],creation)
+            self.assertEqual(observed['opened']['raw_fields']['st_ctime_ns'],change)
+            self.assertEqual(observed['after_handle']['raw_fields']['st_ctime_ns'],change)
+            self.assertEqual(observed['after_path']['raw_fields']['st_ctime_ns'],creation)
+            self.assertEqual(observed['path_handle_comparison']['rule'],
+                             'win_cpython_3_14_7_path_creation_vs_handle_change_time')
+            self.assertTrue(observed['descriptor_closed'])
+        self.assertEqual(report['request_before'],report['request_after'])
 
     def test_observation_does_not_add_filesystem_reads_or_change_success_bytes(self):
         source=self.install/gate.REQUIRED_FILES[0];native_stat=gate.os.stat;native_fstat=gate.os.fstat

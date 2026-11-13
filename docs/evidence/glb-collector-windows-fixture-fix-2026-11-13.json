@@ -1,0 +1,34 @@
+{
+  "schema": "swcli.glb-collector-windows-fixture-fix.v1",
+  "original_run": {
+    "id": 43332197803,
+    "head": "7d6858e65d089ec4f49f2fd9cbcdfd9258c05270",
+    "conclusion": "failure",
+    "raw_failed_log_sha256": "085927e40acfb935ffea927a8b61b50db8c25431b7dc45233404976f306cbc6a",
+    "windows_3_9_first_error": "test fstat callback replaces still-open source; PermissionError WinError5",
+    "windows_3_14_interpreter": "3.14.10",
+    "windows_3_14_additional": "fresh metadata request stat/open cross-channel mismatch precedes intended mutation assertions; full raw mismatch values not present in failed log"
+  },
+  "fix_scope": "test fixtures only; production collector byte-identical to old head",
+  "collector_sha256": "be754a8ac64eaf56164bc3ecb45939d2401511ad337422f74692e373793c2cc8",
+  "test_source_sha256": "72437e3f2c390d38670bfc8f3ef1bc9d7cb66341f897d9738c3314c7c50d06ae",
+  "preserved": [
+    "all raw stat values in integration fixture; only runtime_identity is explicit reviewed-runtime fixture",
+    "unreviewed runtime ctime split strict refusal, explicitly including3.14.10",
+    "same-channel ctime/birthtime/identity/mtime/attributes/link/reparse fields remain strict",
+    "post-read replacement injected through final path sample of independent same-byte physical file; both held fstat samples real",
+    "exact failure stage, original/replacement file ids, descriptor closure and absent success hash asserted",
+    "generated metadata request/response synthetic Windows stat fixture retains both raw ctimes; no timestamp projection in production"
+  ],
+  "validation": {
+    "local_interpreter": "CPython3.15.2 on macOS",
+    "collector_tests": 25,
+    "success": true,
+    "new_Windows_CI": "not yet executed at this evidence snapshot",
+    "VM_or_CAD_operations": 0
+  },
+  "primary_sources": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+    "https://docs.python.org/3.14/library/os.html#os.stat_result"
+  ]
+}
