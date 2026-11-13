@@ -4,6 +4,7 @@
 - 已实现：新增中心线/孔阵列连接线默认值的独立合同、CLI/daemon/worker/SDK 接线，完整四值 CAS（含两个旧只读保护值），新写入白名单为空。
 - 便携已完成：2984 项回归（39 跳过）、38 项关联检查（新增 18 项）及 SDK strict/38 类型拒绝例通过。
 - 未验收：没有新原生 COM/VM/CI 证据，所有新 set/no-op 仍 fail closed；当前不具备 merge-ready 条件。
+- 门禁准备增量：已补独立 internal-only 原生门禁源码及离线失败注入，8 条有向边/旧值不变/逐次保存重开/全新身份，代码 head `6945b23d5b9b1cf57e731cc3a5afdf0cdba2c973`，新增 11 项、关联 49 项通过，完整便携 2995 项/39 跳过；没有执行原生入口，详见 next 交接。
 - 后续边界：本轮只完成源码/便携检查与目标原生计划，交 root 排程；不混入当前发布，不合 main、改版本或 tag/release。旧分支/验收原件已保留。
 - 详细进度、精确 head 与排程需求见 [出详图 next 交接](docs/handoffs/detailing-next.md) 和 [设计/目标原生计划](docs/design/document-detailing-lines-next.md)。
 

@@ -33,3 +33,16 @@
 - 原生计划为单 host/worker，8 条新布尔有向转换、旧两个标量不变、逐次独立保存/只读重开，600 秒 native/1800 秒组预算，首失败原件保留。详见设计文档；统筹批准排程后再补目标脚本/入口。
 - 无新的 run/artifact/digest；上一批 run/原件只证明旧两项，不得借用来放行新字段。
 - 不验证具体视图/实体自动标记效果；大装配条件的实际插线行为、其他字段/版本/Wine、完整发布均在范围外。
+
+
+## 独立原生门禁准备增量
+
+统筹后续授权限定为实现和离线验证，继续同一 next 分支；无 VM/COM、无原生 CI、无白名单放行。新增 internal-only 计划、原生后端及 600/1800s 有界包装器；具体入口/约束见设计文档最后一节。没有新增 workflow 或公开门禁。
+
+计划从实际初始值遍历 8 条有向边，旧两值保持；每次保存独立原件，关闭须证明 native catalog 和旧 ID 失效，只读/可写重开均需全新 ID，核完整四值、布局/前台/dirty 与文件摘要。原始错误/partial 回执在校验之前持久保存；后续清理故障单列，首错停止且不重试。门禁不读取旧成功报告，缺任何新字段或 trace 一律失败。
+
+新增离线测试包括全部 16 种初始四值组合和多种失败注入，以及真实 registry/handler/adapter/result schema 配合模拟对象的拒绝/trace 检查。新增 11 项 gate 测试，关联 49 项已通过；完整便携回归 2995 项完成，39 项按环境跳过。完整回归后最后补强的 trace/零 stamp/请求回执约束由最终 49 项关联复跑通过；生产源码未变。日志独立保存在 `artifacts/detailing-next/portable/gate-*.log`，不替代首轮原日志。第一轮新增 gate 测试发现的是假宿主初始值共享引用，已修正；该失败日志保留，不是原生失败。
+
+当前 `NATIVE_ACCEPTED=false`、`MERGE_READY=false` 和排除当前发布范围不变。下一步由统筹亲审新增门禁，并决定未来是否授权执行；本轮不等待 CI，也不创建自动化。
+
+门禁准备代码 head：`6945b23d5b9b1cf57e731cc3a5afdf0cdba2c973`；生产候选仍为 `32fc9ff0797e224795415e03a343746516462cc8`。增量 patch `artifacts/detailing-next/gate-preparation.patch`，SHA256 `c48c6257d05dc8145f3926aa0de6b2c2526888ea1c7cab71cff9cbdcf1be922a`；本轮日志和源文件摘要记录在 `artifacts/detailing-next/portable/gate-receipt.json`。四个新增 Python 文件均通过 Python 3.9 语法解析，两个入口的 isolated `--help` 通过；未调用原生入口。旧两份原 ZIP 摘要再次核同。
