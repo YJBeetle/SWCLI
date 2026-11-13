@@ -1,0 +1,80 @@
+--- frozen-probe02/launch-probe.py
++++ prepared-probe03/launch-probe.py
+@@ -25,9 +25,9 @@
+ PRODUCT_ZIP_SHA = '06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53'
+ PYTHON = r'C:\Users\YJBeetle\AppData\Local\Python\pythoncore-3.14-64\python.exe'
+ PYTHON_SHA = '4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9'
+-PROPOSAL_ID = 'markingjig-c9846f6-probe02'
+-GUEST_BASE = r'C:\Workspace\SWCLI-series-20261113\markingjig-c9846f6-probe02'
+-GUEST_SHARE = r'\\Mac\AllFiles\Users\YJBeetle\.codex\task-artifacts\document-properties-parallel\vm-series-20261113\markingjig-phase-probe-c9846f6-02'
++PROPOSAL_ID = 'markingjig-c9846f6-probe03'
++GUEST_BASE = r'C:\Workspace\SWCLI-series-20261113\markingjig-c9846f6-probe03'
++GUEST_SHARE = r'\\Mac\AllFiles\Users\YJBeetle\.codex\task-artifacts\document-properties-parallel\vm-series-20261113\markingjig-phase-probe-c9846f6-03'
+ ORIGINAL = r'\\Mac\AllFiles\Volumes\Data\Workspace\Inclinometer\COT\ASM\Casing\MarkingJig'
+ DRIVER = r'C:\Workspace\SWCLI-series-20261110\local-glb-host-control.py'
+ INVENTORY = 'docs/evidence/glb-markingjig-input-inventory-2026-11-12.json'
+@@ -126,7 +126,7 @@
+             and grant.get('authorized_for_CAD') is True, 'new coordinator CAD grant required')
+     ticket = grant.get('allocation_id', '')
+     require(type(ticket) is str and ticket.startswith('VM-') and 'MARKINGJIG' in ticket
+-            and ticket.endswith('-02'), 'new MarkingJig CAD allocation required')
++            and ticket.endswith('-03'), 'new MarkingJig CAD allocation required')
+     require(grant.get('reviewer_thread_id') == '01a0bfca-5e87-7e61-ab5f-0ef249443bab',
+             'coordinator review required')
+     require(grant.get('proposal_sha256') == digest(share/'proposal.json')
+@@ -172,7 +172,7 @@
+             and digest(sys.executable) == PYTHON_SHA, 'guest launcher/Python identity differs')
+     require(sys.flags.isolated == 1 and sys.flags.dont_write_bytecode == 1, 'explicit -I -B required')
+     checked_grant(share, ctx, grant)
+-    receipts = load_module(share/'launcher_receipts.py', 'private_probe02_receipts')
++    receipts = load_module(share/'launcher_receipts.py', 'private_probe03_receipts')
+     base = Path(GUEST_BASE)
+     code, inputs, output = base/'code', base/'input', base/'output'
+     require(not os.path.lexists(base), 'refuse prior attempt base')
+@@ -240,8 +240,8 @@
+                 target = code/name; target.parent.mkdir(parents=True, exist_ok=True)
+                 with target.open('xb') as stream: stream.write(data)
+         sys.path.insert(0, str(code/CONTROL))
+-        control = load_module(code/CONTROL/'markingjig_control.py', 'probe02_control')
+-        phases = load_module(code/CONTROL/'opening_phases.py', 'probe02_phases')
++        control = load_module(code/CONTROL/'markingjig_control.py', 'probe03_control')
++        phases = load_module(code/CONTROL/'opening_phases.py', 'probe03_phases')
+         stage('copy-approved-ten-files-only')
+         for name in ctx['selected']:
+             pinned, src, dest = inv['files'][name], Path(ORIGINAL)/name, inputs/name
+@@ -327,6 +327,26 @@
+     return 0 if receipts.launcher_success(record) else 1
+ 
+ 
++def write_entry_arrival(share):
++    """One OS-only arrival record before reading proposal/grant; never authorizes CAD."""
++    require(sys.platform == 'win32', 'Windows entry observation required')
++    row = dict(pid=os.getpid(), argv=list(sys.argv), entry_source_sha256=digest(Path(__file__)),
++               utc=now().isoformat(), session_query={})
++    try:
++        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
++        kernel.ProcessIdToSessionId.argtypes = [ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong)]
++        kernel.ProcessIdToSessionId.restype = ctypes.c_int
++        session = ctypes.c_ulong()
++        ctypes.set_last_error(0)
++        ok = kernel.ProcessIdToSessionId(os.getpid(), ctypes.byref(session))
++        row['session_query'] = dict(ok=bool(ok), last_error=ctypes.get_last_error(),
++                                    session=session.value if ok else None)
++    except Exception as error:
++        row['session_query'] = dict(ok=False, type=type(error).__name__, error=str(error))
++    with (share/'entry-arrived.json').open('x', encoding='utf-8') as stream:
++        json.dump(row, stream, indent=2); stream.write('\n')
++
++
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--check-package', action='store_true')
+@@ -334,6 +354,8 @@
+     args = parser.parse_args(argv)
+     require(not (args.check_package and args.execute), 'choose check or explicit execution')
+     share = Path(__file__).resolve().parent
++    if args.execute:
++        write_entry_arrival(share)
+     ctx, inv = checked_package(share)
+     if not args.execute:
+         print(json.dumps(dict(package_valid=True, native_operations=0, source_head=SOURCE_HEAD,

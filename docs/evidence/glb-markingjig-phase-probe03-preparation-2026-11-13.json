@@ -1,0 +1,64 @@
+{
+  "schema": "swcli.markingjig-phase-probe03-preparation.v1",
+  "status": "prepared-not-executed",
+  "source_head": "c9846f6aad4312cc8bf97195deaa6c4f880fda6f",
+  "product_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+  "source_head_before_preparation": "cfdb3346c7ef44e2d1e6427d6eb1766d910ff045",
+  "proposed_ticket": "VM-20261113-MARKINGJIG-PHASE-PROBE-03",
+  "new_CAD_ticket_issued": false,
+  "operations": {
+    "VM": 0,
+    "COM": 0,
+    "CAD": 0,
+    "business_originals_read_or_copied": 0
+  },
+  "launcher_sha256": "0526dd21e9699be7f737861e4c66efe273fa6f547f3cec657894c041f4e2b968",
+  "proposal_sha256": "d62fcf8648089a8de683e45c505b502917bace0fb91cdefd835d690756fc7276",
+  "package_sha256": "c1bf4c6a2edf19faa680b18b30115170a6bf121ce65d1cdcb7fe9daeff7a54ae",
+  "launcher_receipts_sha256": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+  "preparation_files_sha256": {
+    "launch-probe.py": "0526dd21e9699be7f737861e4c66efe273fa6f547f3cec657894c041f4e2b968",
+    "host-original-guard.py": "cdc9b77dc0b25e98a8225bb85a445e7fd0fe2cddccb58286b90ebdbaff421e3a",
+    "launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "query-context.py": "6755763784ae703dbed26525ec732e6c22ec9c31e504d8998ebd26d1e37cc458"
+  },
+  "code_files_sha256": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": "3cfa3e356b25c1d6613e467d7377221f663bee3f2729902ac3645b9c63c374aa",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "e77c002802f443fa301a3cb773025e980599d9c47001b1bef9c79d470aff723e",
+    "scripts/diagnostics/markingjig/file_forensics.py": "7a1fd66ded00560187d36dfead6cca82911d610cdbfd73631ff9fbfa92c737f5",
+    "scripts/diagnostics/markingjig/opening_phases.py": "63c56234d8821fea2b936170acb875bec9e17b9448b25dc809e2b136f16d6902",
+    "scripts/diagnostics/markingjig/launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": "ee623de2c0ac7e4e7660fff219d6f4e44cb37312122dec6aa101dc8aa809ee1b",
+    "scripts/diagnostics/typed_glb/bridge_control.py": "d4bab2ade8d3daf319b4ca7b891f9c922d7b1f943c1dab7275c3059fa86516b7",
+    "docs/evidence/glb-markingjig-input-inventory-2026-11-12.json": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d"
+  },
+  "frozen_probe02_seven_files_unchanged": true,
+  "runtime_ZIP_byte_identical_to_probe02": true,
+  "candidate_change": "new03 paths/ticket; OS-only exclusive entry-arrived.json before proposal/grant reads; no model/phase/runtime changes",
+  "offline_tests": {
+    "count": 18,
+    "success": true,
+    "test_source_sha256": "5fdcadc1d6ad7119527ad0920e4ae0a8e498edae13d81ac5cc858a8552a9f5e3",
+    "check_package": {
+      "package_valid": true,
+      "native_operations": 0,
+      "runtime_members": 8
+    }
+  },
+  "observed_root_transport_evidence": {
+    "failed_probe02_context_sha256": "9ee435a71c324ead8c59adf6fca3960e9c895dfc0a2790edb588288e4ff5ebbd",
+    "probe02_raw_stderr_sha256": "50201bdc18a90ce0d1625f353b857ebf76d8110a827e45c0314f8722d6fcdfb7",
+    "root_failure_audit_sha256": "1f3bfdc562e04e0762ad037c209af464141c85d877ddd6ff3b35e5ea8397ac01",
+    "OS_argument_report_sha256": "f37d8c6a0f92dac2b2c862952feadc0150060609141bb0acfcc286ea500b2c67",
+    "exact_launcher_check_package_sha256": "f70e203a991f0f303b16703f736e4c7f39dd868e90dda30a2990fab88521d7b8",
+    "observed": "probe02 envelope255 Invalid argument, no launcher/native receipts; separate OS arguments with/without --execute both0/session1; exact probe02 launcher --check-package0/8members/native0",
+    "conclusion": "transport root cause unresolved; extra --execute is not generally forbidden; not native API failure or export acceptance"
+  },
+  "limits": [
+    "arrival presence proves this Python entry was reached, never authorizes CAD",
+    "arrival absence is not proof Python never started: stdlib import, source read, session query, and receipt write may fail first",
+    "entry query failure recorded as raw API result or explicit exception; later own-session1 and all grant/model guards remain unchanged",
+    "default --check-package does not write arrival; repeated --execute in same directory refuses overwrite",
+    "root alone may execute after source review, fresh original/session/idle proof and new grant"
+  ]
+}
