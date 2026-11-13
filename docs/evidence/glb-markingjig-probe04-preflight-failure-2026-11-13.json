@@ -1,0 +1,64 @@
+{
+  "schema": "swcli.markingjig-probe04-preflight-failure-audit.v1",
+  "status": "stopped-before-candidate-execution",
+  "source_head": "a7ecb97d30f0913105080d93e1725acea6e67ce7",
+  "product_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+  "allocation_id": "VM-20261113-MARKINGJIG-PHASE-PROBE-04",
+  "original_outer_first_error": {
+    "type": "RuntimeError",
+    "message": "host-originals-before exit 1",
+    "traceback": "Traceback (most recent call last):\n  File \"/private/tmp/run-reviewed-markingjig-probe04.py\", line 38, in <module>\n    call('host-originals-before',['python3','-I','-B',str(share/'host-original-guard.py'),'--phase','before']);before=True\n    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/tmp/run-reviewed-markingjig-probe04.py\", line 19, in call\n    if r.returncode:raise RuntimeError(name+' exit '+str(r.returncode))\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: host-originals-before exit 1\n"
+  },
+  "guard_error": {
+    "type": "FileNotFoundError",
+    "referenced_ZIP": "markingjig-code-c9846f6.zip",
+    "actual_ZIP": "markingjig-code-a7ecb97.zip",
+    "ZIP_open_line": 35,
+    "original_read_loop_line": 38
+  },
+  "host_and_guest_package_checks_passed": true,
+  "guest_OS_queries": 1,
+  "guest_package_checks": 1,
+  "guest_candidate_execute_commands": 0,
+  "formal_grant_present": false,
+  "entry_or_native_receipts_present": false,
+  "CAD_or_GetBodies3_attempts": 0,
+  "fresh_eleven_original_proof_available": false,
+  "original_before_or_after_guard_completed": false,
+  "historical_host_after_idle_pause": "on",
+  "cleanup_errors": [],
+  "frozen_prepared_files_unchanged": {
+    "02": true,
+    "03": true,
+    "04": true
+  },
+  "evidence_sha256": {
+    "host-execution-context.json": "dab0890bf6f960ade03f097b9c734c6d7059540a493cd8e0d1f2e2c9d7cd1a48",
+    "host-originals-before.stderr": "d7b7a6753768016637000359c95b8cc5873d6101600f13f069537bd2abaedfc3",
+    "guest-check-package.stdout": "f41ae813eb1508c5debd8b68b567fbdc09a974112222700dba66b250dc6e1cf8",
+    "guest-check-package.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "idle-restore.stdout": "c809f8c99325f1f6bd36032f0e7f23be7c81fe9d3fd26c700647bde5b19ca13c",
+    "host-after.stdout": "af99f3bc9f952c2b9a4234bd4c06cb31b8072a77cb9e20775b2f948ad969abc5",
+    "host-original-guard.py": "cdc9b77dc0b25e98a8225bb85a445e7fd0fe2cddccb58286b90ebdbaff421e3a",
+    "proposal.json": "6207272a6b64ac8c002b02f90514d14f6f6c1904b9f12ffa62f64daa22f2db07",
+    "launch-probe.py": "d0213bbdc6ae58f38fe9f360e38f1b9f5c78b9c41e2279cc10f14ba355b685d6",
+    "markingjig-code-a7ecb97.zip": "c2bfad896fdf0205548b1e9534377d9d459fb2b961a43f6c616dfbe01cc9196a"
+  },
+  "original_finished_utc": "2026-11-13T12:08:02.055542+00:00",
+  "validation_gap": "22 offline checks compiled/hashed guard source, but did not exercise its ZIP filename linkage",
+  "next_step_owner": "root prepares fresh05 with guard ZIP linkage fix and real ZIP parsing precheck; this audit performs no repair",
+  "own_operations": {
+    "VM": 0,
+    "COM": 0,
+    "CAD": 0,
+    "business_original_reads": 0,
+    "frozen_file_writes": 0,
+    "push": 0,
+    "new_CI": 0
+  },
+  "limits": [
+    "package_valid is not full host original preflight success",
+    "no new eleven-original before/after proof may be borrowed from earlier runs",
+    "guest OS query and check-package ran; zero guest candidate execute does not mean zero guest commands"
+  ]
+}

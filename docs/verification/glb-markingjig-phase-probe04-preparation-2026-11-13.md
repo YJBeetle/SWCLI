@@ -59,3 +59,7 @@ prlctl exec {da36dd51-bd6d-4e7a-995b-547464583302} --current-user C:\Users\YJBee
 ```
 
 拟议 `VM-20261113-MARKINGJIG-PHASE-PROBE-04` 不是现成许可。即使private launcher返回成功，仍需Root独立Mac after与全窗口审计；probe也不是导出验收。
+
+## 后续实际前置失败（保留上方准备快照）
+
+Root执行04前置时，guest check-package通过，但host original guard仍引用旧c984ZIP，FileNotFoundError发生在十一原件采集循环之前。candidate执行0、无grant/entry/native回执、idle恢复on；04没有新的十一原件前后证明。22项离线checks与包hash通过只覆盖准备快照，不能称完整前置通过。冻结执行文件不改；Root另建05处理唯一接线修复。详见[原首错与独立审计](glb-markingjig-probe04-preflight-failure-2026-11-13.md)。
