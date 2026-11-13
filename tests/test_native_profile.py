@@ -22,15 +22,17 @@ class NativeProfileTests(unittest.TestCase):
         for event, ref, selection in itertools.product(("push", "workflow_dispatch", "pull_request"), refs, selections):
             inputs = {name: name in selection for name in PROFILE.FLAGS}
             selected = [key for key, value in inputs.items() if value]
+            if "native_revolve_direction" in selected:
+                inputs["revolve_direction_head"] = "a" * 40
             valid = (not selected if event != "workflow_dispatch" else
                      len(selected) <= 1 and (not selected or selected[0] == "native_full"
                        or PROFILE.FEATURE_REFS[selected[0]] == ref))
             with self.subTest(event=event, ref=ref, inputs=inputs):
                 if not valid:
                     with self.assertRaises(ValueError):
-                        PROFILE.resolve(event, ref, inputs)
+                        PROFILE.resolve(event, ref, inputs, head="a" * 40)
                 else:
-                    result = PROFILE.resolve(event, ref, inputs)
+                    result = PROFILE.resolve(event, ref, inputs, head="a" * 40)
                     expected = (selected[0] if selected else "portable") if event == "workflow_dispatch" else (
                         "full" if event == "push" and ref.startswith("refs/tags/v") else "portable")
                     expected = {"native_full": "full", "calibrate_tolerances": "tolerances-calibration", "accept_tolerances": "tolerances-public"}.get(expected, expected)

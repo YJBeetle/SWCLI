@@ -1,6 +1,7 @@
 """Reject ambiguous native CI inputs before private runtime jobs can start."""
 import json
 import os
+import re
 
 FEATURE_REFS = {
     "native_topology_targeted": "refs/heads/codex/swcli-topology-references",
@@ -19,6 +20,7 @@ FEATURE_REFS = {
     "detailing_public_gate": "refs/heads/codex/docprops-detailing",
     "native_revolve_calibration": "refs/heads/codex/swcli-revolve-feature",
     "native_revolve_public": "refs/heads/codex/swcli-revolve-feature",
+    "native_revolve_direction": "refs/heads/codex/swcli-revolve-feature-next",
 }
 FLAGS = ("native_full", *FEATURE_REFS)
 
@@ -31,7 +33,7 @@ def enabled(value):
     raise ValueError("native scope flags must be booleans")
 
 
-def resolve(event, ref, inputs):
+def resolve(event, ref, inputs, *, head=None):
     if not isinstance(inputs, dict):
         raise ValueError("workflow inputs must be an object")
     font_profile = inputs.get("font_scopes_profile", "internal")
@@ -49,6 +51,13 @@ def resolve(event, ref, inputs):
     if not selected:
         return "portable"
     scope = selected[0]
+    if scope == "native_revolve_direction":
+        expected = inputs.get("revolve_direction_head", "")
+        if not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{40}", expected) is None or expected != head:
+            raise ValueError("revolve direction requires the exact selected 40-character commit head")
+        if any(enabled(inputs.get(key, False)) for key in
+               ("units_calibration", "units_write_calibration", "units_public_acceptance")):
+            raise ValueError("revolve direction cannot mix with units profiles")
     if scope in FEATURE_REFS and ref != FEATURE_REFS[scope]:
         raise ValueError("feature profile requires its exact development branch: " + scope)
     return {"native_full": "full", "calibrate_tolerances": "tolerances-calibration",
@@ -57,7 +66,7 @@ def resolve(event, ref, inputs):
 
 def main():
     profile = resolve(os.environ["GITHUB_EVENT_NAME"], os.environ["GITHUB_REF"],
-                      json.loads(os.environ.get("SWCLI_NATIVE_INPUTS", "{}")))
+                      json.loads(os.environ.get("SWCLI_NATIVE_INPUTS", "{}")), head=os.environ.get("GITHUB_SHA"))
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
             stream.write("profile=" + profile + "\n")
