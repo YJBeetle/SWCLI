@@ -1,0 +1,21 @@
+import ast,hashlib,json
+from pathlib import Path
+print(json.dumps(dict(kind='source-only-reader',Wine_COM_CAD_calls=0)))
+assert not Path('/opt/swcli/.codegraph').exists(),'CodeGraph index present; do not bypass it'
+for raw in ('/usr/local/bin/sw-cli','/usr/local/bin/swclid','/usr/local/bin/swcli','/usr/local/bin/entrypoint-cli.sh','/usr/local/bin/linux-to-wine-path'):
+ p=Path(raw);row=dict(path=raw,present=p.is_file())
+ if p.is_file():
+  data=p.read_bytes();row.update(sha256=hashlib.sha256(data).hexdigest(),size_bytes=len(data))
+  if len(data)<32768:
+   row['source_lines']=[dict(line=i+1,text=line) for i,line in enumerate(data.decode(errors='replace').splitlines()) if not any(key in line.upper() for key in ('PASSWORD','SECRET','TOKEN'))]
+ print(json.dumps(dict(alias_source=row)))
+for raw in ('/opt/swcli/src/swcli/daemon/server.py','/opt/swcli/src/swcli/hosts/windows.py','/opt/swcli/src/swcli/hosts/linux_wine.py'):
+ p=Path(raw);row=dict(path=raw,present=p.is_file())
+ if p.is_file():
+  data=p.read_bytes();text=data.decode();tree=ast.parse(text);row.update(sha256=hashlib.sha256(data).hexdigest(),size_bytes=len(data),definitions=[dict(name=n.name,line=n.lineno,kind=type(n).__name__) for n in tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))],selected_functions=[])
+  for node in ast.walk(tree):
+   if isinstance(node,ast.FunctionDef) and node.name in ('acquire_resident_app','release_resident_app','_com_value','release_owned_app'):
+    src=ast.get_source_segment(text,node)
+    row['selected_functions'].append(dict(name=node.name,line=node.lineno,source=src[:16000],truncated=len(src)>16000))
+ print(json.dumps(dict(host_source=row)))
+print(json.dumps(dict(kind='source-only-complete',Wine_COM_CAD_calls=0)))

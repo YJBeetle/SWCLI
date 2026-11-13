@@ -1,0 +1,227 @@
+{
+  "schema": "swcli.glb-docker-readonly-preparation.v1",
+  "metadata_kind": "installed-file/package/source evidence; no Wine/COM runtime version claim",
+  "runtime": {
+    "alias": "workspaceroot",
+    "engine": "Podman",
+    "version": "5.4.2",
+    "platform": "linux/amd64",
+    "rootless": false
+  },
+  "images": {
+    "latest-zh-cn-cli": {
+      "image_id": "7823979a9862730bdc765113b1e751d366d9557787cd2bbdb350f22f608db926",
+      "local_OCI_manifest_digest": "sha256:070eb7d0423a49a79e1643ae7fc5ded5f9526d973d29765ff9eea78a53551c3c",
+      "local_repo_digest_associations": [
+        "ghcr.io/yjbeetle/sw-executable@sha256:070eb7d0423a49a79e1643ae7fc5ded5f9526d973d29765ff9eea78a53551c3c",
+        "ghcr.io/yjbeetle/sw-executable@sha256:5b8068195179e7c95bc4cc15de31ab40bfdf9e468a66579ab828561fad7cb28b"
+      ],
+      "rootfs_diff_ids": [
+        "sha256:ea16cace89338c84eb6bcb91a7efdfcae6838fff359efe951858227436486c34",
+        "sha256:d2383ae8b1dd078f23e644d9976d23a1460f28b59514ac949d0d21bc5b55b9c4",
+        "sha256:bbcdde79fbea43dc422f422e3244d58fadf3abb16b07d00a45b3d7d029aff20f",
+        "sha256:1de7750828b3604f39712c884935c7e29b6609695d41ca78150007a4affcc44b",
+        "sha256:c98d08ab72878633a3f6bc01d3fb2de899ae3ed95a2355b7ceb570134233f78d",
+        "sha256:f6f0aaf3ba7373f24a50341e007bf93cd4ed7fb1dea314b9b87d1d5f300a7a54",
+        "sha256:6d74cc723f3c10f37105319c660c8cc22f910f93458d9b25397f8e2fd9cd91ae",
+        "sha256:83238d0a22b1adfafc8f27ee4fd737fa0ee352b2ca226512330935e9491355e5",
+        "sha256:30699da7119b63df503ec53e0dddaa45f701789a2435ab1ac1a786916bfcaf8d",
+        "sha256:c8329d2c64ed6e73c7c47630339501afdc30f6d78b94ac90f91185b6b55d8f66",
+        "sha256:eccdfa633c581515ad0f9f083469c9908321ad4f4256abb29a0a10d3e5d7f8e7",
+        "sha256:050d02f6496ac597971d301051bb96190469b503d853cbd551a75f70f72997c6",
+        "sha256:4ec9bbbd9d820bccbd148fcc548c15e773a292f61e9e200b15187babf857ffd7",
+        "sha256:c618c8128cdf416a4f1b8477d4ad830440d8fb7f520b8126b6f0571af08bf8f4",
+        "sha256:ba10356a38d767909d156b5ea6388d6aa809d117066525487d359b4754a8b5b0",
+        "sha256:f9dc790c0f5596cdd30b1e9cb47cd6aabca84fd04180e0c53f698cb1ad224200",
+        "sha256:197595b69c9200431adaea3d88e08c2293f6dedc303c7ae1e4d8c455038f612d",
+        "sha256:c81119f95fe61bcffe1bec16dc71e6c87c30b9672a6b9e150b4c332818af7c44",
+        "sha256:b95109646cec9b117fc586037bab3eef87ed380530d4b417bc9bad57468959f2",
+        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+      ],
+      "manifest_type": "application/vnd.oci.image.manifest.v1+json",
+      "image_created": "2026-09-30T22:14:10.996395445Z",
+      "bundled_swcli_source_version": "0.1.0a2",
+      "swcli_module_sha256": "fe295d99767659b224b91828414aa9721eb6bb48cec0b533768e9df6950d75b3",
+      "wine_package_version": "11.16~jammy-1",
+      "wine_version_file": {
+        "WINE_VERSION": "11.16",
+        "WINE_PACKAGE_VERSION": "11.16~jammy-1",
+        "WINE_MONO_VERSION": "11.3.0"
+      },
+      "SW_static_PE_version": [
+        33,
+        5,
+        0,
+        53
+      ],
+      "SW_exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+      "WinPython_static_PE_version": [
+        3,
+        11,
+        9150,
+        1013
+      ],
+      "WinPython_exe_sha256": "5f7b89a612c9b8af1d6456cdfcd1dbe5ca630849e79aebced9bee9a6694952ec",
+      "export_API_source": {
+        "path": "/opt/swcli/src/swcli/hosts/windows_documents.py",
+        "present": true,
+        "size_bytes": 34888,
+        "sha256": "3b432ab28134472b0e1eec04d09666a0fe51de67a1eb6c3dbcd6500e50385850",
+        "save_API_source_lines": [
+          {
+            "line": 749,
+            "text": "        save_error = int(document.SaveAs3(str(export_path), 0, 1))"
+          }
+        ]
+      },
+      "default_entrypoint": [
+        "/usr/local/bin/entrypoint.sh",
+        "/usr/local/bin/entrypoint-cli.sh"
+      ],
+      "owned_metadata_container": "glb-static-20261113-13f31b40dc5a",
+      "removed": true
+    },
+    "2025-zh-cn-cli": {
+      "image_id": "377e9edd59f86333740cc1e3b049d546997b826907b5ce9851b571ebc205ecab",
+      "local_OCI_manifest_digest": "sha256:b07bdac0aea38fc530e41ec8b299b2c0d2821a212787b6b6e4d6e2e0bb2dc5fc",
+      "local_repo_digest_associations": [
+        "ghcr.io/yjbeetle/sw-executable@sha256:2a1ef42d6c7e908185ab895dd71ae138cf3fc22a90db36f3940b0be77d9d71a0",
+        "ghcr.io/yjbeetle/sw-executable@sha256:b07bdac0aea38fc530e41ec8b299b2c0d2821a212787b6b6e4d6e2e0bb2dc5fc"
+      ],
+      "rootfs_diff_ids": [
+        "sha256:297a592b66593a3dddc39e7970a718cc1cbb04c8a9b904009b33eb623dafc588",
+        "sha256:380a25d95b81be191a5465f8a8a33a3965e8c6fd348e7f6b46c3f6fa258dfb38",
+        "sha256:9bd16171553044b6abdced275b0ae454577fe96a314c65942b1f1d694bbbf0c0",
+        "sha256:30f91b4772981214e3ef2144d008ce997993ef3a332ddacab4733c8c10f750dc",
+        "sha256:eeb257a2ba8b99856d3f3099728363f0151f8690d0084cc976a8602f0979d685",
+        "sha256:f16440a57709fa7ff0ec711b7e933b0cc1aa54e5ccd4eb7620da5c701e6a7b33",
+        "sha256:51ee7ec9bae9f7281e4a7d6d4853dfd6558470c3a2b1d88ec78a9b290a3772e6",
+        "sha256:346abaf403b283f747bb08510ccc61831a0798eee1921fef0d89b143bf8d9b04",
+        "sha256:71c6e7f00309942c723447dd0fb5ddacd3461c3d29705bb7c8c527b20861b772",
+        "sha256:650dfb8f4855777d46e2d8c3ec930737c81c5227ab39147b2e6f8e600396bdad",
+        "sha256:9f0ef84cb3c61022c10f236da0d89c52227307b7a8472c2570ddcc3fdc50c495",
+        "sha256:1531e95739bba5940dab3dfdad712c37fc63a7188e172541e72661b412fabeff",
+        "sha256:c241b6c44252622ecaf330852ef168de31d8bafb69e5c15f168a6db7a70792ad",
+        "sha256:7eb8fd3fcc8730619338d56f1db60b3b316661452171706cd7a3e2719fae63d4",
+        "sha256:e29253013d3e3d6c971dbc96a683502983b6114d4041cb620466e4d3bcc67a4c",
+        "sha256:e3398202e2276bf734ec70e21d149223b48ec7a3d3f8d000e2d9f27dafb4ff9d",
+        "sha256:4b098b413fbb4c04ccb8c9e9645978396c1e3730169757b8757885cce7eebff8",
+        "sha256:94ea39b09673ef76f8d18de0da988259fa9a8d5b0e87032aa447093a23094bb6",
+        "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+      ],
+      "manifest_type": "application/vnd.oci.image.manifest.v1+json",
+      "image_created": "2026-10-30T04:29:24.143668248Z",
+      "bundled_swcli_source_version": "0.1.0a13",
+      "swcli_module_sha256": "a62788f9a96e8d8725364600f7911983fe910aabf3a263ef7c31299a3f4f10b3",
+      "wine_package_version": "11.16~jammy-1",
+      "wine_version_file": {
+        "WINE_VERSION": "11.16",
+        "WINE_PACKAGE_VERSION": "11.16~jammy-1",
+        "WINE_MONO_VERSION": "11.3.0",
+        "MONO_PATCH_SOURCE_COMMIT": "eb8d3270298d2d59f7e304d23e6af0ff374f4559",
+        "MONO_SOURCE_COMMIT": "edc3bfecdcb5c1c4705bdc9b82257d1d35143f06"
+      },
+      "SW_static_PE_version": [
+        33,
+        5,
+        0,
+        53
+      ],
+      "SW_exe_sha256": "911309f7494e806f22914bab40aa65531c01b45888ec482ac555fbd8b4f0a18b",
+      "WinPython_static_PE_version": [
+        3,
+        11,
+        9150,
+        1013
+      ],
+      "WinPython_exe_sha256": "5f7b89a612c9b8af1d6456cdfcd1dbe5ca630849e79aebced9bee9a6694952ec",
+      "export_API_source": {
+        "path": "/opt/swcli/src/swcli/hosts/windows_documents.py",
+        "present": true,
+        "size_bytes": 37605,
+        "sha256": "b96d94aab16d01dbcce90b3f3a33d322e5f6ce4c3fe079b474be848b58cb9060",
+        "save_API_source_lines": [
+          {
+            "line": 810,
+            "text": "            save_error = int(document.SaveAs3(str(export_path), 0, 1))"
+          }
+        ]
+      },
+      "default_entrypoint": [
+        "/usr/local/bin/entrypoint.sh",
+        "/usr/local/bin/entrypoint-cli.sh"
+      ],
+      "owned_metadata_container": "glb-static-20261113-b64f94b777f6",
+      "removed": true
+    }
+  },
+  "cached_alias": "/usr/local/bin/sw-cli",
+  "cached_current_name_swcli_present": false,
+  "cached_acquire_source": {
+    "name": "acquire_resident_app",
+    "line": 191,
+    "source": "def acquire_resident_app(\n    com_client: Any, *, visible: bool, attach_existing: bool = False\n) -> tuple[Any, bool]:\n    \"\"\"Create an owned instance, or explicitly attach to a user instance.\"\"\"\n\n    try:\n        app = com_client.GetActiveObject(PROG_ID)\n    except Exception:\n        if attach_existing:\n            raise ExistingHostNotFound(\n                \"--attach-existing requires an already running SOLIDWORKS instance\"\n            )\n        app = com_client.DispatchEx(PROG_ID)\n        configure_resident_app(app, visible=visible)\n        return app, True\n    if not attach_existing:\n        raise ExistingHostRequiresAttach(\n            \"SOLIDWORKS is already running; close it or restart with \"\n            \"'sw-cli daemon start --attach-existing'\"\n        )\n    return app, False",
+    "truncated": false
+  },
+  "cached_host_source_sha256": {
+    "/opt/swcli/src/swcli/daemon/server.py": "f93dc74617350e92c03cdc73a5a0f1a1d704fb3ca35271a4b38b3a8843e1d1db",
+    "/opt/swcli/src/swcli/hosts/windows.py": "1e343818a57390797f5b03381ea9c3c9f3641a4c858ee191cd130ee70d98cd25",
+    "/opt/swcli/src/swcli/hosts/linux_wine.py": null
+  },
+  "local_client": {
+    "docker_cli_available": false,
+    "podman_connection_available": false,
+    "local_VM_not_started": true
+  },
+  "owned_static_containers": [
+    "glb-static-20261113-13f31b40dc5a",
+    "glb-static-20261113-b64f94b777f6",
+    "glb-source-20261113-ae46f72db1ff"
+  ],
+  "all_three_owned_containers_removed": true,
+  "original_container_IDs_preserved": 11,
+  "Wine_invocations": 0,
+  "COM_calls": 0,
+  "CAD_OpenDoc_SaveAs_calls": 0,
+  "Windows_VM_calls": 0,
+  "business_files_copied": 0,
+  "registry_pulls": 0,
+  "readonly_probe_execution_ready": false,
+  "blocking_host_contracts": [
+    "Wine CPython3.11 vs existing strict CPython3.14.7 backend",
+    "raw birthtime and full128bit file identity semantics",
+    "Wine Windows PID and private Linux process ownership mapping",
+    "private prefix/display/license bootstrap without default daemon warmup"
+  ],
+  "future_probe_mode_only": true,
+  "future_export_attempts": 0,
+  "future_model_graph_state_geometry_and_file_guards_not_relaxed": true,
+  "current_cache_not_historical_MarkingJig_job_provenance": true,
+  "pushed_backup": {
+    "account": "YJBeetle",
+    "source": "explicit authorized non-force push and post-push ls-remote observed in this chat",
+    "remote": "git@github.com:YJBeetle/SWCLI.git",
+    "branch": "codex/glb-export-repair",
+    "before": "8232447e2481b50e79342193de49910fe2af833b",
+    "after": "7d6858e65d089ec4f49f2fd9cbcdfd9258c05270",
+    "force": false,
+    "main_pushed": false,
+    "account_observation_source": "gh api user; not independent SSH push actor proof",
+    "SSH_push_actor_independently_verified": false
+  },
+  "automatic_CI_single_snapshot": [
+    {
+      "conclusion": "",
+      "databaseId": 43332197803,
+      "event": "push",
+      "headSha": "7d6858e65d089ec4f49f2fd9cbcdfd9258c05270",
+      "status": "in_progress",
+      "url": "https://github.com/YJBeetle/SWCLI/actions/runs/43332197803",
+      "workflowName": "CI"
+    }
+  ],
+  "CI_terminal_not_polled": true,
+  "raw_manifest_sha256": "3e38c8becd0e99b490b6895010563464bd9b98665d87e33c352ec9f0470e44fa",
+  "raw_manifest_entries": 18,
+  "audit_source_sha256": "ea67d192c0d270ea98114ad2fa0d32c98810ba1ec1ce27a2adb3e6b750c18382"
+}

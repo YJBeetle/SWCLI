@@ -1,0 +1,74 @@
+import sys,os,re,json,hashlib,struct,mmap,subprocess
+from pathlib import Path
+if Path('/opt/swcli/.codegraph').is_dir():
+ print(json.dumps({'blocked':'cached source has CodeGraph index; inspect index before code reads'}));raise SystemExit(2)
+print(json.dumps({'kind':'static-file-version-metadata','linux_python':sys.version.split()[0], 'Wine_or_CAD_executed':False}),flush=True)
+def file_record(path,versions=False):
+ p=Path(path)
+ if not p.is_file():return dict(path=str(p),present=False)
+ before=p.stat();h=hashlib.sha256();found=[]
+ with p.open('rb') as f:
+  for data in iter(lambda:f.read(1024*1024),b''):h.update(data)
+  if versions and 0<before.st_size<=256*1024*1024:
+   with mmap.mmap(f.fileno(),0,access=mmap.ACCESS_READ) as data:
+    marker='VS_VERSION_INFO\0'.encode('utf-16le');start=0
+    while len(found)<16:
+     index=data.find(marker,start)
+     if index<0:break
+     start=index+len(marker);fixed=(start+3)&~3
+     if index<6 or fixed+52>len(data):continue
+     length,value_length,kind=struct.unpack_from('<HHH',data,index-6)
+     if value_length!=52 or length<fixed-(index-6)+52 or (index-6)+length>len(data):continue
+     fields=struct.unpack_from('<13I',data,fixed)
+     if fields[:2]!=(0xFEEF04BD,0x10000):continue
+     version=lambda a,b:[a>>16,a&65535,b>>16,b&65535]
+     found.append(dict(file_version=version(fields[2],fields[3]),product_version=version(fields[4],fields[5]),fixed_info_offset=fixed))
+ after=p.stat();keys=('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_ctime_ns','st_nlink')
+ if any(getattr(before,k)!=getattr(after,k) for k in keys):raise RuntimeError('static source changed during metadata read')
+ row=dict(path=str(p),present=True,size_bytes=before.st_size,sha256=h.hexdigest())
+ if versions:row.update(fixed_version_records=found,parser='bounded aligned VS_VERSION_INFO/FIXEDFILEINFO signature; no loader or executable invocation')
+ return row
+prefix=Path(os.environ.get('WINEPREFIX','/root/.wine'))
+print(json.dumps({'wineprefix_path':str(prefix),'prefix_readonly':not os.access(prefix,os.W_OK)}),flush=True)
+packages=subprocess.run(['dpkg-query','-W','-f=${binary:Package}\t${Version}\n','wine-devel','wine-devel-amd64','winehq-devel'],capture_output=True,text=True,timeout=10)
+print(json.dumps({'wine_deb_package_version_rows':packages.stdout.splitlines(),'query_exit':packages.returncode,'version_source':'dpkg metadata, not wine invocation'}),flush=True)
+managed=Path('/opt/sw-runtime/managed_com.env');row=file_record(managed)
+if managed.is_file():
+ allowed=('WINE_VERSION','WINE_PACKAGE_VERSION','WINE_MONO_VERSION','MONO_PATCH_SOURCE_COMMIT','MONO_SOURCE_COMMIT')
+ text=managed.read_text();row['selected_version_fields']={key:value for key,value in re.findall(r'^([A-Z0-9_]+)="([^"\n]*)"$',text,re.M) if key in allowed}
+print(json.dumps({'runtime_version_file':row}),flush=True)
+for rel in ('Program Files/SOLIDWORKS/SLDWORKS.exe','Program Files/SOLIDWORKS Corp/SOLIDWORKS/SLDWORKS.exe','Python311/python.exe'):
+ print(json.dumps({'installed_PE':file_record(prefix/'drive_c'/rel,True)}),flush=True)
+for path in ('/opt/swcli/pyproject.toml','/opt/swcli/src/swcli/__init__.py','/opt/swcli/src/swcli/_version.py','/opt/swcli/src/swcli.egg-info/PKG-INFO'):
+ row=file_record(path);p=Path(path)
+ if p.is_file() and p.stat().st_size<1024*1024:
+  text=p.read_text(errors='replace')
+  row['version_literals']=re.findall(r'(?m)^(?:__version__|version)\s*=\s*[\'"]([^\'"\n]+)[\'"]',text)
+  row['package_metadata']=[line for line in text.splitlines() if line.startswith(('Name: ','Version: '))]
+ print(json.dumps({'swcli_source_metadata':row}),flush=True)
+for path in ('/opt/swcli/src/swcli/hosts/windows_documents.py','/opt/swcli/src/swcli/hosts/windows_document_saves.py'):
+ print(json.dumps({'swcli_exporter_source':file_record(path)}),flush=True)
+for pattern in ('Python*/Lib/site-packages/swcli*.dist-info/METADATA','Program Files/Python*/Lib/site-packages/swcli*.dist-info/METADATA'):
+ for p in (prefix/'drive_c').glob(pattern):
+  row=file_record(p);row['package_metadata']=[line for line in p.read_text().splitlines() if line.startswith(('Name: ','Version: '))]
+  print(json.dumps({'installed_windows_swcli_distribution':row}),flush=True)
+
+# Static Linux/Wine binaries and adapter wiring only. Never execute these files.
+for raw in ('/usr/bin/wine','/opt/wine-devel/bin/wine','/opt/wine-devel/bin/wine64','/opt/wine-devel/share/wine/wine.inf'):
+ p=Path(raw);row=file_record(p)
+ if p.is_symlink():row['symlink_target_raw']=os.readlink(p)
+ print(json.dumps({'wine_static_file':row}),flush=True)
+for raw in ('/usr/local/bin/swcli','/usr/local/bin/swcli-daemon-utils','/usr/local/bin/entrypoint-cli.sh','/usr/local/bin/linux-to-wine-path'):
+ p=Path(raw);row=file_record(p)
+ if p.is_file() and p.stat().st_size<=2*1024*1024:
+  lines=p.read_text(errors='replace').splitlines()
+  row['selected_wiring_lines']=[{'line':i+1,'text':line} for i,line in enumerate(lines) if any(k in line for k in ('WINEPREFIX','wine ','WINEPY','SWCLI_HOST_PLATFORM','daemon start','SWCLID_START_ARGS','SWCLI_SOURCE','PYTHONPATH','PATH_TRANSLATE','entrypoint')) and not any(k in line.upper() for k in ('PASSWORD','TOKEN','SECRET'))][:50]
+ print(json.dumps({'adapter_source':row}),flush=True)
+p=Path('/opt/swcli/src/swcli/hosts/windows_documents.py');row=file_record(p)
+if p.is_file():
+ lines=p.read_text().splitlines();row['save_API_source_lines']=[{'line':i+1,'text':line} for i,line in enumerate(lines) if 'SaveAs3(' in line][:12]
+print(json.dumps({'export_API_source':row}),flush=True)
+status=Path('/proc/self/status').read_text();cap=next(line.split(':',1)[1].strip() for line in status.splitlines() if line.startswith('CapEff:'))
+ro=bool(os.statvfs('/').f_flag&os.ST_RDONLY)
+print(json.dumps({'kind':'metadata-collection-complete','linux_euid':os.geteuid(),'root_filesystem_readonly':ro,'effective_capability_mask':cap,'network_application_calls':0,'Wine_COM_CAD_SWCLI_invocations':0,'business_inputs_mounted':False}),flush=True)
+assert ro and int(cap,16)==0
