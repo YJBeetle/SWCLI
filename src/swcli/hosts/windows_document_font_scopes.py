@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from ..document_font_scopes import FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, validate_font_scopes, validate_font_edit
+from ..font_scope_candidates import NEXT_FONT_WRITE_PROFILES, NEXT_FONT_LINKED_READS
 from ..font_snapshot import (FONT_MEMBERS, font_snapshot, font_requested_value_matches,
                              font_native_normalizations)
 from .native_trace import native_call
@@ -27,9 +28,13 @@ class DocumentFontScopeNotCalibrated(RuntimeError):
     """The selected scope/runtime/revision is outside the audited native profile."""
 
 
-def read_font_constants(pythoncom, path):
+def read_font_constants(pythoncom, path, *, candidate_scope=None):
     """Resolve symbolic IDs from the official swconst type library, never guess."""
     wanted = {name for pair in FONT_SCOPES.values() for name in pair}
+    if candidate_scope is not None:
+        if candidate_scope not in NEXT_FONT_LINKED_READS:
+            raise ValueError("unknown next font scope")
+        wanted.update(name for pair in NEXT_FONT_LINKED_READS[candidate_scope].values() for name in pair)
     found = {}
     library = pythoncom.LoadTypeLib(str(path))
     for index in range(library.GetTypeInfoCount()):
@@ -143,8 +148,8 @@ def _native_windows_runtime():
         return False
 
 
-def _profile_supported(app, document, scope, field):
-    profile = NATIVE_FONT_WRITE_PROFILES.get(scope)
+def _profile_supported(app, document, scope, field, *, profiles=None):
+    profile = (NATIVE_FONT_WRITE_PROFILES if profiles is None else profiles).get(scope)
     if profile is None or field not in profile["fields"] or not _native_windows_runtime():
         return False
     try:
@@ -244,3 +249,24 @@ def _calibrate_set_document_font_scope(*, app, document, scope, field, value, ex
     """Private candidate probe; protocol cannot select this path or bypass CAS."""
     return _apply_document_font_scope(app=app, document=document, scope=scope, field=field,
                                      value=value, expected_fonts=expected_fonts)
+
+
+def _calibrate_next_document_font_scope(*, app, document, scope, field, value, expected_fonts):
+    """Owned diagnostic only: two exact candidates, normal dispatcher guards.
+
+    This symbol is not registered and cannot be selected via CLI, SDK, MCP,
+    protocol parameters or environment. Public profiles stay Notes-only.
+    """
+    result = {"ok": False, "action": "document.font-scope-set",
+              "mutation": {"attempted": False, "may_have_changed": False}}
+    try:
+        validate_font_edit(scope, field, value, expected_fonts)
+        _require_writable(document)
+        if not _profile_supported(app, document, scope, field, profiles=NEXT_FONT_WRITE_PROFILES):
+            raise DocumentFontScopeNotCalibrated(
+                "next font candidate requires dimensions/tables, native Windows 33.5.0 and part/assembly/drawing")
+        return _apply_document_font_scope(app=app, document=document, scope=scope, field=field,
+                                         value=value, expected_fonts=expected_fonts)
+    except Exception as exc:
+        result["error"] = _error(exc)
+    return result

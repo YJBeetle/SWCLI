@@ -23,6 +23,8 @@ from swcli.hosts.windows_documents import open_windows_document_with_handle
 from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_part_windows_with_handle
 from swcli.result_schemas import validate_operation_result
+from swcli.font_scope_candidates import NEXT_FONT_SCOPES
+from swcli.hosts.windows_font_scope_candidates import read_linked_font_defaults
 
 spec = importlib.util.spec_from_file_location("_font_scope_fixtures", Path(__file__).with_name("prepare-annotation-fixtures.py"))
 fixtures = importlib.util.module_from_spec(spec)
@@ -41,7 +43,10 @@ def close(app, document, call):
     call("close-generated-document", lambda: app.CloseDoc(title))
 
 
-def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template):
+def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template, selected_scopes=WRITABLE_FONT_SCOPES, candidate_setter=None):
+    require(selected_scopes and all(scope in WRITABLE_FONT_SCOPES for scope in selected_scopes), "invalid calibration scopes")
+    candidate_setter = candidate_setter or adapter._calibrate_set_document_font_scope
+    case["selected_scopes"] = list(selected_scopes)
     # Prepared sources are native generated fixtures, with unchanged geometry
     # assertions inherited verbatim from the established annotation harness.
     fixtures.prepare_case(app, output, constants, plane, reverse, call,
@@ -80,7 +85,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         case["geometry_before"] = fixtures.part_geometry(document, call)
         same_geometry(case["fixture"]["geometry_reopened"], case["geometry_before"])
     current = case["initial"] = read()
-    parameters = dict(scope="tables", field="bold", value=not current["fonts"]["tables"]["bold"], expected_fonts=current["fonts"])
+    probe_scope = selected_scopes[0] if tuple(selected_scopes) != WRITABLE_FONT_SCOPES else "tables"
+    parameters = dict(scope=probe_scope, field="bold", value=not current["fonts"][probe_scope]["bold"], expected_fonts=current["fonts"])
     refused = case["public_write_refusal"] = operation("document.font-scope-set", parameters,
         stamp=current["document"]["update_stamp"], lease_id=lease["lease_id"])
     require(not refused["ok"] and refused["error"]["type"] == "DocumentFontScopeNotCalibrated"
@@ -101,9 +107,40 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         else:
             raise RuntimeError("font write guard did not refuse")
     require(read() == current, "guard refusals changed document state")
+    def linked_readback(current, boundary):
+        if candidate_setter is not adapter._calibrate_next_document_font_scope or selected_scopes != ("tables",):
+            return
+        foreground_before = adapter._other_foreground_snapshot(app, document, foreground)
+        observed = call("read-linked-table-fonts." + boundary,
+            lambda: read_linked_font_defaults(document, constants, "tables"))
+        adapter._verify_other_foreground(app, foreground, foreground_before)
+        unchanged = read()
+        require(unchanged["fonts"] == current["fonts"] and unchanged["document"] == current["document"],
+                "linked font observations changed document defaults or state")
+        previous = case.get("linked_font_observations", [])
+        changes = ({label: [member for member, value in raw.items()
+                           if previous[-1]["native_fonts"][label][member] != value]
+                    for label, raw in observed["native_fonts"].items()} if previous else {})
+        case.setdefault("linked_font_observations", []).append(
+            {"boundary": boundary, "changed_native_members": changes, **observed})
+
+    linked_readback(current, "initial")
+
+    def next_noop(current, scope, field, value):
+        if candidate_setter is not adapter._calibrate_next_document_font_scope:
+            return
+        linked_readback(current, "changed-" + field)
+        same = operation("document.font-scope-set", dict(scope=scope, field=field, value=value,
+            expected_fonts=current["fonts"]), stamp=current["document"]["update_stamp"], lease_id=lease["lease_id"])
+        case.setdefault("same_values", []).append(same)
+        require(same["ok"] and same["changed"] is False
+                and same["mutation"] == {"attempted": False, "may_have_changed": False}
+                and same["fonts"] == current["fonts"] and same["document"] == current["document"],
+                "next same-value write changed a font or document state")
+
     case["writes"] = []
-    with patch.object(operations, "set_document_font_scope_windows", adapter._calibrate_set_document_font_scope):
-        for scope in WRITABLE_FONT_SCOPES:
+    with patch.object(operations, "set_document_font_scope_windows", candidate_setter):
+        for scope in selected_scopes:
             targets = {"typeface": "Arial" if current["fonts"][scope]["typeface"] != "Arial" else "Times New Roman",
                        "bold": not current["fonts"][scope]["bold"], "italic": not current["fonts"][scope]["italic"],
                        "underline": not current["fonts"][scope]["underline"], "strikeout": not current["fonts"][scope]["strikeout"],
@@ -120,6 +157,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                 case["writes"].append(row)
                 require(row["ok"] and row["changed"] and row["document"]["modified"], "native font edit failed: " + str(row.get("error")))
                 current = row
+                next_noop(current, scope, field, value)
                 observed = read()
                 require(observed["fonts"] == current["fonts"] and observed["document"] == current["document"], "post-edit observation changed state")
                 current = observed
@@ -129,13 +167,14 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             same_geometry(case["geometry_before"], case["geometry_changed"])
         for mode in ("millimeters", "points"):
             if mode == "points":
-                for scope in WRITABLE_FONT_SCOPES:
+                for scope in selected_scopes:
                     value = 14 if current["fonts"][scope]["height_points"] != 14 else 16
                     row = operation("document.font-scope-set", dict(scope=scope, field="height_points", value=value, expected_fonts=current["fonts"]),
                         stamp=current["document"]["update_stamp"], lease_id=lease["lease_id"])
                     case["writes"].append(row)
                     require(row["ok"] and row["changed"], "points font edit failed: " + str(row.get("error")))
                     current = row
+                    next_noop(current, scope, "height_points", value)
             expected = deepcopy(current["fonts"])
             path = output / ("changed-fonts-" + mode + source.suffix)
             saved = call("save-font-" + mode, lambda: save_as_native_windows(str(path), document=document))
@@ -164,14 +203,15 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             lease = registry.acquire_lease(entry, session_id="font-scopes-calibration", ttl_seconds=1800)
             current = read()
             require(current["fonts"] == expected, "complete font snapshots did not persist after reopen")
-            require(all(current["fonts"][scope]["height_mode"] == mode for scope in WRITABLE_FONT_SCOPES), "font unit mode was lost")
+            require(all(current["fonts"][scope]["height_mode"] == mode for scope in selected_scopes), "font unit mode was lost")
             if profile_kind == "part":
                 measured = case["geometry_reopened_" + mode] = fixtures.part_geometry(document, call)
                 same_geometry(case["geometry_before"], measured)
+            linked_readback(current, "reopened-" + mode)
             case["reopened_" + mode] = current
             case["sha256_" + mode] = digest
             if mode == "points":
-                refused = operation("document.font-scope-set", dict(scope="notes", field="bold", value=not current["fonts"]["notes"]["bold"], expected_fonts=current["fonts"]),
+                refused = operation("document.font-scope-set", dict(scope=probe_scope, field="bold", value=not current["fonts"][probe_scope]["bold"], expected_fonts=current["fonts"]),
                     stamp=current["document"]["update_stamp"], lease_id=lease["lease_id"])
                 require(not refused["ok"] and refused["error"]["type"] == "ValueError"
                         and refused["mutation"] == {"attempted": False, "may_have_changed": False}, "read-only font edit reached mutation")
@@ -190,18 +230,21 @@ def main(argv=None):
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--swconst", required=True, type=Path)
     parser.add_argument("--drawing-template", required=True, type=Path)
+    parser.add_argument("--scope", choices=NEXT_FONT_SCOPES, help="probe only one next candidate; public writes remain closed")
     args = parser.parse_args(argv)
     args.output_dir.mkdir()
     require(args.swconst.is_file() and args.drawing_template.is_file(), "official swconst and drawing template required")
     original_reader = harness.read_constants
     def read_constants(pythoncom, path):
-        return {**original_reader(pythoncom, path), **adapter.read_font_constants(pythoncom, path)}
+        return {**original_reader(pythoncom, path), **adapter.read_font_constants(pythoncom, path, candidate_scope=args.scope)}
     harness.read_constants = read_constants
     def runner(app, output, constants, *arguments, **keywords):
         with patch.object(adapter, "_installed_constants", lambda: constants):
-            return calibrate_case(app, output, constants, *arguments, **keywords, drawing_template=args.drawing_template)
+            return calibrate_case(app, output, constants, *arguments, **keywords, drawing_template=args.drawing_template,
+                selected_scopes=(args.scope,) if args.scope else WRITABLE_FONT_SCOPES,
+                candidate_setter=adapter._calibrate_next_document_font_scope if args.scope else None)
     return harness.run(args.output_dir.resolve(), args.swconst.resolve(), False, case_runner=runner,
-                       case_plan=[(kind, "front", False) for kind in fixtures.KINDS], diagnostic_case="font-scopes-internal-calibration")
+                       case_plan=[(kind, "front", False) for kind in fixtures.KINDS], diagnostic_case="font-scopes-next-" + args.scope if args.scope else "font-scopes-internal-calibration")
 
 
 if __name__ == "__main__":

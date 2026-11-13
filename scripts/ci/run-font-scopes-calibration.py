@@ -21,9 +21,14 @@ def worker_command(args, output):
     profile = args.profile
     if profile not in WORKERS:
         raise ValueError("unsupported font calibration profile")
+    scope = getattr(args, "scope", None)
+    if scope is not None and (profile != "internal" or scope not in ("dimensions", "tables")):
+        raise ValueError("a next font scope requires the internal dimensions/tables profile")
     command = [sys.executable, "-I", str(Path(__file__).with_name(WORKERS[profile])),
                "--output-dir", str(output / "native"), "--swconst", str(args.swconst),
                "--drawing-template", str(args.drawing_template)]
+    if scope is not None:
+        command.extend(["--scope", scope])
     if profile != "internal":
         command.extend(["--phase", "seed" if profile == "inheritance-seed" else "observe"])
     if profile == "inheritance-observe":
@@ -73,6 +78,7 @@ def main(argv=None):
     parser.add_argument("--swconst", required=True, type=Path)
     parser.add_argument("--drawing-template", required=True, type=Path)
     parser.add_argument("--profile", choices=tuple(WORKERS), default="internal")
+    parser.add_argument("--scope", choices=("dimensions", "tables"), help="internal next candidate only")
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--gate-dir", type=Path)
     args = parser.parse_args(argv)
@@ -82,7 +88,7 @@ def main(argv=None):
     record = {"evidence_kind": ("internal-native-calibration" if args.profile == "internal" else
                                 "native-fixture-seed" if args.profile == "inheritance-seed" else
                                 "native-observer-of-public-output"), "profile": args.profile, "public_acceptance": False,
-              "source_head": os.environ.get("GITHUB_SHA"), "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
+              "source_head": os.environ.get("GITHUB_SHA"), "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
               "group_timeout_seconds": GROUP_TIMEOUT_SECONDS, "retry_count": 0, "host_restart_count": 0,
               "automatic_rollback": False, "success": False}
     record_path = output / "watchdog.json"
