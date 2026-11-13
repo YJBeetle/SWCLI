@@ -1056,6 +1056,48 @@ class DocumentDetailingOptionSetResult(_DocumentDetailingOptionSetResultRequired
     native_return: Union[bool, None]
 
 
+DocumentDetailingLineOptionsParameters = DocumentFontScopesParameters
+
+
+class _DocumentDetailingLineOptionsResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.detailing-line-options']
+
+
+class DocumentDetailingLineOptionsResult(_DocumentDetailingLineOptionsResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    options: Dict[str, JSONValue]
+    write_enabled: bool
+
+
+class DocumentDetailingLineOptionSetParameters(TypedDict):
+    field: Literal['auto_center_lines.enabled', 'auto_center_marks.hole_pattern_connection_lines']
+    value: bool
+    expected_options: Dict[str, JSONValue]
+
+
+class _DocumentDetailingLineOptionSetResultRequired(TypedDict):
+    ok: bool
+    action: Literal['document.detailing-line-option-set']
+
+
+class DocumentDetailingLineOptionSetResult(_DocumentDetailingLineOptionSetResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    field: Literal['auto_center_lines.enabled', 'auto_center_marks.hole_pattern_connection_lines']
+    before: Dict[str, JSONValue]
+    options: Dict[str, JSONValue]
+    changed: bool
+    mutation: DrawingStandardViewsResultMutation
+    write_enabled: bool
+    native_return: Union[bool, None]
+
+
 DocumentTolerancesParameters = DocumentFontScopesParameters
 
 

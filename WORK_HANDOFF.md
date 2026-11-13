@@ -1,3 +1,13 @@
+# 出详图 next（不纳入当前发版）
+
+- 已实现：新增中心线/孔阵列连接线默认值的独立合同、CLI/daemon/worker/SDK 接线，完整四值 CAS（含两个旧只读保护值），新写入白名单为空。
+- 便携已完成：2984 项回归（39 跳过）、38 项关联检查（新增 18 项）及 SDK strict/38 类型拒绝例通过。
+- 未验收：没有新原生 COM/VM/CI 证据，所有新 set/no-op 仍 fail closed；当前不具备 merge-ready 条件。
+- 后续边界：本轮只完成源码/便携检查与目标原生计划，交 root 排程；不混入当前发布，不合 main、改版本或 tag/release。旧分支/验收原件已保留。
+- 详细进度、精确 head 与排程需求见 [出详图 next 交接](docs/handoffs/detailing-next.md) 和 [设计/目标原生计划](docs/design/document-detailing-lines-next.md)。
+
+---
+
 # 逐路集成交接
 
 - 单位九字段有限profile已完成42935636514/459b0cf原件与统筹独立逐请求审查；整合保留86旧合同、新增2份单位合同，2773测试/39skip、SDK31负消费通过。详见docs/document-unit-profile.md及docs/evidence/units-main-integration-2026-11-11；未发布。

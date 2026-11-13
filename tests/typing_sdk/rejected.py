@@ -46,3 +46,9 @@ def refuse_preferences(font: DocumentAnnotationFontResultFont, snapshot: Documen
 
 client.document.export(output="part.step", step_protocol="ap242")  # E: arg-type
 client.document.export(output="part.step", step_geometry="solid")  # E: arg-type
+
+client.document.detailing_line_option_set(field="auto_center_marks.part_holes", value=True, expected_options={}, document_id="d-ab12cd", expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: arg-type
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value="true", expected_options={}, document_id="d-ab12cd", expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: arg-type
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: call-arg
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, document_id="d-ab12cd", lease_id="l-ab12cd34ef56")  # E: call-arg
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, document_id="d-ab12cd", expected_update_stamp=0)  # E: call-arg

@@ -124,7 +124,7 @@ def _preserve_option_receipt(response, operation, result, error):
 
 def _preserve_preference_receipt(response, operation, result, error):
     """Keep only this request's trusted two-boolean preference mutation boundary."""
-    if (operation not in ('document.annotation-font-set', 'document.display-option-set', 'document.drafting-standard-set')
+    if (operation not in ('document.annotation-font-set', 'document.display-option-set', 'document.drafting-standard-set', 'document.detailing-line-option-set')
             or not isinstance(result, dict) or result.get('action') != operation):
         return response
     mutation = result.get('mutation')

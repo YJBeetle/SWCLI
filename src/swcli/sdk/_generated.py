@@ -329,6 +329,21 @@ class DocumentOperations:
         return cast("Response[models.DocumentDetailingOptionSetResult]", self._client._execute('document.detailing-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
+    def detailing_line_options(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentDetailingLineOptionsResult]:
+        """document.detailing-line-options; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        return cast("Response[models.DocumentDetailingLineOptionsResult]", self._client._execute('document.detailing-line-options', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
+
+
+    def detailing_line_option_set(self, *, field: Literal['auto_center_lines.enabled', 'auto_center_marks.hole_pattern_connection_lines'], value: bool, expected_options: Dict[str, JSONValue], document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.DocumentDetailingLineOptionSetResult]:
+        """document.detailing-line-option-set; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['field'] = field
+        parameters['value'] = value
+        parameters['expected_options'] = expected_options
+        return cast("Response[models.DocumentDetailingLineOptionSetResult]", self._client._execute('document.detailing-line-option-set', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
     def tolerances(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentTolerancesResult]:
         """document.tolerances; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}

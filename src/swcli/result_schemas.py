@@ -17,6 +17,7 @@ from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema
 from .document_image_quality import IMAGE_QUALITY_FIELDS, exact_snapshot, linked_changes, quality_schema, validate_quality
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema
+from .document_detailing_lines import DETAILING_LINE_FIELDS, DETAILING_LINE_SNAPSHOT_FIELDS, detailing_line_options_schema
 from .document_preferences_schemas import (
     document_preference_result_fields, validate_document_preference_result_values,
 )
@@ -631,6 +632,16 @@ _RESULT_FIELDS = {
          "options": detailing_options_schema(), "changed": BOOL, "mutation": METADATA_MUTATION,
          "native_return": {"type": ["boolean", "null"]}},
         ("session_id", "document", "field", "before", "options", "changed", "mutation"),
+    ),
+    "document.detailing-line-options": (
+        {"options": detailing_line_options_schema(), "write_enabled": BOOL},
+        ("session_id", "document", "options", "write_enabled"),
+    ),
+    "document.detailing-line-option-set": (
+        {"field": {"enum": list(DETAILING_LINE_FIELDS)}, "before": detailing_line_options_schema(),
+         "options": detailing_line_options_schema(), "changed": BOOL, "mutation": METADATA_MUTATION,
+         "write_enabled": BOOL, "native_return": {"type": ["boolean", "null"]}},
+        ("session_id", "document", "field", "before", "options", "changed", "mutation", "write_enabled"),
     ),
     "document.tolerances": (
         {"scope": {"const": "document_defaults_linear"}, "options": DOCUMENT_TOLERANCE_OPTIONS, "write_enabled": BOOL},
@@ -3031,6 +3042,15 @@ def _validate_document_preference_result(name, result):
 
 def validate_operation_result(name: str, result: Any) -> None:
     _validate_result(name, result, _validator(name))
+    if name == "document.detailing-line-option-set" and result["ok"] is True:
+        before, after, field = result["before"], result["options"], result["field"]
+        changed = before[field] != after[field]
+        if (result["write_enabled"] is not True or result["changed"] != changed or result["mutation"] !=
+                {"attempted": changed, "may_have_changed": changed}
+                or any(before[key] != after[key] for key in DETAILING_LINE_SNAPSHOT_FIELDS if key != field)
+                or (changed and (result["document"]["modified"] is not True
+                                 or result.get("native_return") is not True))):
+            raise OperationResultInvalid(name + ": inconsistent drawing line mutation lifecycle")
     if name == "document.detailing-option-set" and result["ok"] is True:
         before, after, field = result["before"], result["options"], result["field"]
         changed = before[field] != after[field]

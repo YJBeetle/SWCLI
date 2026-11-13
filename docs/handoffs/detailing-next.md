@@ -1,0 +1,34 @@
+# 出详图 next 首轮交接
+
+- 唯一工作树 `/Users/YJBeetle/.codex/worktrees/docprops-detailing/SWCLI`；分支 `codex/docprops-detailing-next`；基线远端 main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00`，创建前已核一致、工作树 clean、无 `.codegraph`。
+- 上一批分支 `codex/docprops-detailing` 的 `613ba98` / 验收 `85f99da` 未改写；旧 handoff 及原 ZIP hash 再核记录在 `artifacts/detailing/frozen-20261114/`；原件仍在原持久 evidence 目录。
+- **本批排除当前发布，NATIVE_ACCEPTED=false、MERGE_READY=false。** 无待审批动作；首轮不使用 VM/COM、不手动 dispatch 原生 CI、不合 main、不改版本/tag/release，也不修改 DockerSW/MacSW。
+
+## 已实现
+
+- 新增中心线自动插入和孔阵列中心标记连接线两个文档默认 Toggle，官方依据/边界/CLI 示例及目标原生计划见 `docs/design/document-detailing-lines-next.md`。
+- 新 `document.detailing-line-options` / `document.detailing-line-option-set`，CLI 同名入口，SDK/MCP 合同接线。
+- 快照含两个新值及两个旧只读保护值，完整四布尔 CAS；新 writer 仅接受两个新字段，显式文档、stamp、lease 必需。
+- 新白名单为空，所有新 set/no-op 返回 write_enabled=false / mutation 未尝试；不继承旧 33.5.0 放行。
+- 候选原生路径已实现只读/后台/身份/编辑模式/dirty/stamp/未请求字段保护、单次 setter/dirty 标记及首失败/partial 回执。worker 恢复失败退休，late validation 不丢可信 mutation。
+- 旧两字段合同不变；共享类型库 resolver 按 profile 解析，旧接口不依赖新枚举；不修改旧原生白名单。
+
+## 首轮便携验证与提交
+
+- 新增 18 项便携测试；连同旧出详图测试共 38 项关联检查通过。
+- 完整便携回归 2984 项通过，39 项按环境跳过；Python 3.14/macOS，未调用真实 COM。
+- SDK 生成一致、6 个源文件 strict 检查及 38 个类型拒绝用例通过（沿用主 CI 的 mypy 1.x 约束；本地 1.20.2）。首次工具 2.x/Python 3.9 不兼容及新增类型用例作用域问题已在类型检查内解决，不涉及原生 API。
+- `git diff --check` 通过，旧 catalog、旧交接/验收 JSON、所有 CI workflow、版本文件与指定 main 相同。
+- 日志与 SHA256 回执持久保存在 `artifacts/detailing-next/portable/` 及 `portable/receipt.json`。精确源码 head 与 patch hash 将在提交后登记。
+- 测试均为假宿主、假 COM 模块或模拟传输，不属于原生证据；没有新 run/artifact/digest 可冒充原生验收。
+
+共享修改：`document_detailing.py` 的旧 catalog 不变；`hosts/windows_document_detailing.py` 仅增加 profile 参数，旧默认逻辑保持；新增独立 catalog/adapter；CLI、operation/result schemas、daemon handlers、worker preference receipt allowlist、生成 SDK 和类型用例。
+
+现有 CI workflow、版本文件和 release 逻辑保持原样。源码推送可能触发仓库既有自动便携 CI；本线程不手动调度、轮询或等待新的原生运行。
+
+## 未验收与所需排程
+
+- 新枚举的真实 ID、原生 getter/真假 setter 返回语义、完整四值独立持久化及真实公开链路均未验证；写入继续关闭。
+- 原生计划为单 host/worker，8 条新布尔有向转换、旧两个标量不变、逐次独立保存/只读重开，600 秒 native/1800 秒组预算，首失败原件保留。详见设计文档；统筹批准排程后再补目标脚本/入口。
+- 无新的 run/artifact/digest；上一批 run/原件只证明旧两项，不得借用来放行新字段。
+- 不验证具体视图/实体自动标记效果；大装配条件的实际插线行为、其他字段/版本/Wine、完整发布均在范围外。

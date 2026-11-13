@@ -31,6 +31,9 @@ from ..hosts.windows_document_summary import read_document_summary_windows, set_
 from ..hosts.windows_document_detailing import (
     read_document_detailing_options_windows, set_document_detailing_option_windows,
 )
+from ..hosts.windows_document_detailing_lines import (
+    read_document_detailing_line_options_windows, set_document_detailing_line_option_windows,
+)
 from ..hosts.windows_document_line_font import read_document_line_font_windows, set_document_line_font_windows
 from ..hosts.windows_dimension_format import read_dimension_format_windows, set_dimension_format_windows
 from ..hosts.windows_document_image_quality import read_document_image_quality_windows, set_document_image_quality_windows
@@ -719,6 +722,22 @@ def document_detailing_option_set(context: OperationContext, values: Dict[str, A
             result["error"] = {"type": type(exc).__name__, "message": detail}
         result["session_id"] = context.session_id
         return result
+
+
+@_register_handler
+def document_detailing_line_options(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = read_document_detailing_line_options_windows(app=context.app, document=context.entry.document)
+    return _with_document(result, context.documents, context.entry, session_id=context.session_id)
+
+
+@_register_handler
+def document_detailing_line_option_set(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    if context.documents is None or context.entry is None:
+        raise RuntimeError("document registry is unavailable")
+    result = set_document_detailing_line_option_windows(app=context.app, document=context.entry.document, **values)
+    return _with_preference_receipt(result, context)
 
 
 @_register_handler

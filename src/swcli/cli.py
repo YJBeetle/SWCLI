@@ -30,6 +30,7 @@ from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, vali
 from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
+from .document_detailing_lines import DETAILING_LINE_FIELDS
 from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
 from .document_display_options import DISPLAY_FIELDS
 from .document_drafting_standard import NAMED_DRAFTING_STANDARDS
@@ -434,6 +435,16 @@ def build_parser() -> argparse.ArgumentParser:
     unit_profile_editor.add_argument("value", help="named unit or integer precision")
     unit_profile_editor.add_argument("--if-snapshot", dest="expected_snapshot", required=True, help="complete unit_profile JSON from a fresh read")
     unit_profile_editor.add_argument("--json", action="store_true", dest="as_json")
+    line_defaults_reader = document_commands.add_parser("detailing-line-options", help="read candidate line defaults and legacy center-mark guards")
+    add_document_selector(line_defaults_reader)
+    line_defaults_reader.add_argument("--json", action="store_true", dest="as_json")
+    line_defaults_editor = document_commands.add_parser("detailing-line-option-set", help="candidate line default writer; disabled until native calibration")
+    add_document_selector(line_defaults_editor)
+    add_lease_token(line_defaults_editor)
+    line_defaults_editor.add_argument("field", choices=tuple(DETAILING_LINE_FIELDS))
+    line_defaults_editor.add_argument("value", choices=("true", "false"))
+    line_defaults_editor.add_argument("--if-options", required=True, help="complete four-boolean observed options JSON")
+    line_defaults_editor.add_argument("--json", action="store_true", dest="as_json")
     units_parser = document_commands.add_parser("units", help="read document length display units")
     add_document_selector(units_parser)
     units_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1661,6 +1672,13 @@ def _typed_operation(
             return ("document.unit-profile-set", {"field": args.field, "value": value,
                     "expected_snapshot": json.loads(args.expected_snapshot)}, args.as_json,
                     args.document_id, args.expected_update_stamp, args.lease_id)
+        if command == "detailing-line-options":
+            return ("document.detailing-line-options", {}, args.as_json, args.document_id,
+                    args.expected_update_stamp, None)
+        if command == "detailing-line-option-set":
+            return ("document.detailing-line-option-set", {"field": args.field, "value": args.value == "true",
+                    "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
+                    args.expected_update_stamp, args.lease_id)
         if command == "units":
             return ("document.units", {}, args.as_json, args.document_id,
                     args.expected_update_stamp, None)

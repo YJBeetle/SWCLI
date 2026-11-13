@@ -19,10 +19,10 @@ CALIBRATED_REVISIONS = frozenset({"33.5.0"})
 
 
 @lru_cache(maxsize=8)
-def _load_constants(path):
+def _load_constants(path, symbols=None):
     import pythoncom
     library = pythoncom.LoadTypeLib(path)
-    wanted = set(DETAILING_FIELDS.values()) | {"swDetailingNoOptionSpecified"}
+    wanted = set(DETAILING_FIELDS.values() if symbols is None else symbols) | {"swDetailingNoOptionSpecified"}
     found = {}
     for index in range(library.GetTypeInfoCount()):
         info = library.GetTypeInfo(index)
@@ -41,7 +41,7 @@ def _load_constants(path):
     return found
 
 
-def _constants(app):
+def _constants(app, *, fields=None):
     executable = _com_value(app, "GetExecutablePath")
     if type(executable) is not str or not executable:
         raise RuntimeError("SOLIDWORKS installation path is unavailable")
@@ -51,7 +51,9 @@ def _constants(app):
     path = directory / "swconst.tlb"
     if not path.is_file():
         raise RuntimeError("official swconst type library is unavailable beside SOLIDWORKS")
-    return _load_constants(str(path.resolve()))
+    if fields is None:
+        return _load_constants(str(path.resolve()))
+    return _load_constants(str(path.resolve()), tuple(fields.values()))
 
 
 def _native_windows():
@@ -62,10 +64,10 @@ def _native_windows():
     return getattr(ctypes.WinDLL("ntdll"), "wine_get_version", None) is None
 
 
-def _read_options(document, constants):
+def _read_options(document, constants, *, fields=None):
     extension = _com_value(document, "Extension")
     options = {}
-    for field, symbol in DETAILING_FIELDS.items():
+    for field, symbol in (DETAILING_FIELDS if fields is None else fields).items():
         value = native_call("document-detailing", "IModelDocExtension.GetUserPreferenceToggle",
                             lambda symbol=symbol: extension.GetUserPreferenceToggle(
                                 constants[symbol], constants["swDetailingNoOptionSpecified"]))

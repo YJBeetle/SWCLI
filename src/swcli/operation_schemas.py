@@ -20,6 +20,7 @@ from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema, v
 from .document_image_quality import IMAGE_QUALITY_FIELDS, quality_schema, value_schema as quality_value_schema, validate_quality, validate_value as validate_quality_value
 from .document_annotations import ANNOTATION_FIELDS, annotation_value_schema, validate_annotation_value
 from .document_detailing import DETAILING_FIELDS, detailing_options_schema, validate_detailing_options
+from .document_detailing_lines import DETAILING_LINE_FIELDS, detailing_line_options_schema, validate_detailing_line_edit
 from .document_preferences_schemas import (
     document_preference_parameters, validate_document_preference_request,
 )
@@ -332,6 +333,18 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
          "expected_options": detailing_options_schema()},
         required=("field", "value", "expected_options"),
         document_id="required", expected_update_stamp="required", lease_id="required",
+    ),
+    "document.detailing-line-options": _operation(
+        "document.detailing-line-options", **_DOCUMENT_READ_CONTEXT,
+        description="Candidate line defaults plus two legacy center-mark guards; not native accepted.",
+    ),
+    "document.detailing-line-option-set": _operation(
+        "document.detailing-line-option-set",
+        {"field": _string(enum=list(DETAILING_LINE_FIELDS)), "value": _boolean(),
+         "expected_options": detailing_line_options_schema()},
+        required=("field", "value", "expected_options"),
+        document_id="required", expected_update_stamp="required", lease_id="required",
+        description="Uncalibrated candidate: every set/no-op is disabled until field-specific native evidence.",
     ),
     "document.tolerances": _operation("document.tolerances", **_DOCUMENT_READ_CONTEXT),
     "document.tolerance-set": _operation(
@@ -831,6 +844,8 @@ def validate_operation_request(
     if operation == "document.annotation-option-set":
         validate_annotation_value(parameters["field"], parameters["value"])
         validate_annotation_value(parameters["field"], parameters["expected_value"], writable=False)
+    if operation == "document.detailing-line-option-set":
+        validate_detailing_line_edit(parameters["field"], parameters["value"], parameters["expected_options"])
     if operation == "document.detailing-option-set":
         validate_detailing_options(parameters["expected_options"])
     if operation == "document.units-set" and not {"length_unit", "decimal_places"}.intersection(parameters):
