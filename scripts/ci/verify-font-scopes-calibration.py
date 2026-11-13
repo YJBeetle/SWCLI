@@ -8,6 +8,7 @@ import argparse
 from copy import deepcopy
 import hashlib
 import importlib.util
+import os
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -24,7 +25,8 @@ from swcli.hosts.windows_native_files import save_as_native_windows
 from swcli.hosts.windows_parts import create_part_windows_with_handle
 from swcli.result_schemas import validate_operation_result
 from swcli.font_scope_candidates import NEXT_FONT_SCOPES
-from swcli.hosts.windows_font_scope_candidates import read_linked_font_defaults
+from swcli.font_scope_evidence import LinkedFontJournal
+from swcli.hosts.windows_font_scope_candidates import read_guarded_linked_font_defaults
 
 spec = importlib.util.spec_from_file_location("_font_scope_fixtures", Path(__file__).with_name("prepare-annotation-fixtures.py"))
 fixtures = importlib.util.module_from_spec(spec)
@@ -107,22 +109,25 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         else:
             raise RuntimeError("font write guard did not refuse")
     require(read() == current, "guard refusals changed document state")
+    journal = (LinkedFontJournal(output / ("linked-fonts-" + profile_kind + ".jsonl"),
+        kind=profile_kind, source_head=os.environ.get("GITHUB_SHA"))
+        if candidate_setter is adapter._calibrate_next_document_font_scope and selected_scopes == ("tables",) else None)
+
     def linked_readback(current, boundary):
         if candidate_setter is not adapter._calibrate_next_document_font_scope or selected_scopes != ("tables",):
             return
-        foreground_before = adapter._other_foreground_snapshot(app, document, foreground)
+        journal.begin(boundary, mutation=current.get("mutation", {"attempted": False, "may_have_changed": False}))
         observed = call("read-linked-table-fonts." + boundary,
-            lambda: read_linked_font_defaults(document, constants, "tables"))
-        adapter._verify_other_foreground(app, foreground, foreground_before)
+            lambda: read_guarded_linked_font_defaults(app=app, document=document, constants=constants,
+                scope="tables", on_font=journal.observe))
         unchanged = read()
         require(unchanged["fonts"] == current["fonts"] and unchanged["document"] == current["document"],
                 "linked font observations changed document defaults or state")
-        previous = case.get("linked_font_observations", [])
-        changes = ({label: [member for member, value in raw.items()
-                           if previous[-1]["native_fonts"][label][member] != value]
-                    for label, raw in observed["native_fonts"].items()} if previous else {})
+        durable = journal.complete()
         case.setdefault("linked_font_observations", []).append(
-            {"boundary": boundary, "changed_native_members": changes, **observed})
+            {"boundary": boundary, "durable_journal": str(journal.path), "values": observed,
+             "before": durable["before"], "after": durable["after"], "changes": durable["changes"],
+             "inheritance_acceptance": False})
 
     linked_readback(current, "initial")
 

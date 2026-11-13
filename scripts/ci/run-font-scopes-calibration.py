@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -36,6 +37,21 @@ def worker_command(args, output):
             raise ValueError("inheritance observer requires fixture-dir and gate-dir")
         command.extend(["--fixture-dir", str(args.fixture_dir), "--gate-dir", str(args.gate_dir)])
     return command
+
+
+def source_head(args, environment):
+    explicit = getattr(args, "source_head", None)
+    inherited = environment.get("GITHUB_SHA")
+    head = explicit or inherited
+    if explicit is not None:
+        if not isinstance(explicit, str) or re.fullmatch(r"[0-9a-f]{40}", explicit) is None:
+            raise ValueError("explicit font source head must be exact")
+        if inherited and explicit != inherited:
+            raise ValueError("explicit font source head differs from GITHUB_SHA")
+    if getattr(args, "scope", None) is not None:
+        if not isinstance(head, str) or re.fullmatch(r"[0-9a-f]{40}", head) is None:
+            raise ValueError("next font scope requires an exact source head")
+    return head
 
 
 def timeout_reason(elapsed, call_elapsed):
@@ -78,24 +94,26 @@ def main(argv=None):
     parser.add_argument("--swconst", required=True, type=Path)
     parser.add_argument("--drawing-template", required=True, type=Path)
     parser.add_argument("--profile", choices=tuple(WORKERS), default="internal")
+    parser.add_argument("--source-head", help="exact next checkout head; must match GITHUB_SHA when set")
     parser.add_argument("--scope", choices=("dimensions", "tables"), help="internal next candidate only")
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--gate-dir", type=Path)
     args = parser.parse_args(argv)
+    head = source_head(args, os.environ)
     output = args.output_dir.resolve()
     command = worker_command(args, output)
     output.mkdir(parents=True, exist_ok=False)
     record = {"evidence_kind": ("internal-native-calibration" if args.profile == "internal" else
                                 "native-fixture-seed" if args.profile == "inheritance-seed" else
                                 "native-observer-of-public-output"), "profile": args.profile, "public_acceptance": False,
-              "source_head": os.environ.get("GITHUB_SHA"), "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
+              "source_head": head, "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
               "group_timeout_seconds": GROUP_TIMEOUT_SECONDS, "retry_count": 0, "host_restart_count": 0,
               "automatic_rollback": False, "success": False}
     record_path = output / "watchdog.json"
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     with (output / "worker.stdout.log").open("xb") as stdout, (output / "worker.stderr.log").open("xb") as stderr:
         process = subprocess.Popen(command, stdout=stdout, stderr=stderr,
-                                   env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})
+                                   env={**os.environ, **({"GITHUB_SHA": head} if head else {}), "SWCLI_TRACE_NATIVE_CALLS": "1"})
         record["worker_pid"] = process.pid
         record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         try:
