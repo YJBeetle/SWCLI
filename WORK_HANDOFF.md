@@ -1,3 +1,12 @@
+# 字体 next 离线准备增量
+
+- `codex/docprops-font-scopes-next` 实现 `c108af1ca97b9f07c7379a0d2dfa0f41dc00f4d6` 已完成持久 witness、完整只读前台指针守护、精确 Git 提交源码包和离线 CLI/SDK/MCP 请求门禁；首轮候选/原件保留。
+- 字体 90 项、完整便携 2,992 项 OK（39 skipped），118.616 秒；两份 1,050 文件源码 ZIP/manifest 逐字节一致，Git blob/tree/commit 验证通过，安装源码/schema 124 文件一致。
+- 本轮无 COM/VM/原生 CI，未开放公开白名单，不纳入当前发布。源码包/门禁不是继承或公开原生验收。
+- [增量交接及精确包/证据/待排程边界](docs/handoffs/font-scopes-next-preparation.md)。root 亲审后统一排程；没有自动晋升、合 main 或发布。
+
+---
+
 # 字体范围 next（2026-11-14）
 
 - `codex/docprops-font-scopes-next` 从已核 main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00` 建立；原 Notes 验收提交、分支与两份 ZIP 原件保留。

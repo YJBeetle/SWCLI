@@ -5,7 +5,8 @@
 ## 分支、基线与原件
 
 - 持久工作树：`/Users/YJBeetle/.codex/worktrees/docprops-font-scopes/SWCLI`。
-- 实现提交：`466035fee5f056f6c88f6afd486ed8d36d28ce8f`。后续交接提交仅改文档，不改变受测源码。
+- 首轮候选实现：`466035fee5f056f6c88f6afd486ed8d36d28ce8f`，首轮交接 `f5a62cfcc525e885fefe7694dc7fabfa2f407d61`。
+- 新增离线准备实现：`c108af1ca97b9f07c7379a0d2dfa0f41dc00f4d6`，包含持久 witness/完整前台指针守护/源码包/离线 SDK 请求门禁；详见 [增量准备交接](font-scopes-next-preparation.md)。没有新增原生或公开通过声明。
 - 新分支：`codex/docprops-font-scopes-next`；起点为已核远端 main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00`。创建前原工作树干净；没有 `.codegraph/` 或更深的 AGENTS。遵循祖先 CodeGraph 规则，未自行索引。
 - 原 Notes 分支 `codex/docprops-font-scopes` 保持 `0801837a6e404f65216702e02efb3f1901dd86a2`，受验产品提交 `15d32ceea38b123c3cd3503b34d86663a65f5f3c` 保留。
 - 两份原 ZIP 仍存于本工作树 `artifacts/font-scopes/`，本轮重新计算一致：内部 `42266956658` SHA-256 `615b979b4adb667cade7bf3448a7c3c898392d1638b862904debba8bfca37eca`；Notes 公开 `42279469524` SHA-256 `67fec36badcdfd5cb9d29218efbad91aa601aad4d4a6ca9e24fe35b86ef942c3`。
@@ -20,7 +21,7 @@
 5. 上述五类记录是联动观测，**不是全表格类型、对象或单元格继承验收**。本轮没有修改表格默认标量、UseTemplateSettings、任何已有对象/单元格格式，没有新建实际单个注释操作。
 6. 每次同步 native/dispatcher 600 秒、每组 1800 秒；watchdog 只停止它启动的 Python worker。无 API 重试、自动回滚或组内宿主重启。原 CLI→daemon→worker 路由与 Notes 产品白名单保持。
 
-## 便携验证
+## 首轮便携验证（466035f；增量结果见上方交接）
 
 - 字体关联 74 项通过，包含新增 10 项 next 测试。
 - 新测试覆盖两个 scope×三个文档类型×七字段的 42 个真实 dispatcher/adapter 组合；全部四范围×17字段 CAS；单位/模式、同值无修改、lease/stamp/只读/编辑拒绝、live assignment 后 False/异常 partial 且无重试、未开放 public/协议开关、只读五类快照和入口接线。
@@ -41,8 +42,8 @@
 先安排两组独立 owned-hidden-host 内部校准，不重跑 Notes，不复用失败组宿主：
 
 ```powershell
-python scripts/ci/run-font-scopes-calibration.py --profile internal --scope dimensions --output-dir <fresh-dimensions-output> --swconst <registered-swconst.tlb> --drawing-template <installed-GB.drwdot>
-python scripts/ci/run-font-scopes-calibration.py --profile internal --scope tables --output-dir <fresh-tables-output> --swconst <registered-swconst.tlb> --drawing-template <installed-GB.drwdot>
+python scripts/ci/run-font-scopes-calibration.py --profile internal --scope dimensions --source-head c108af1ca97b9f07c7379a0d2dfa0f41dc00f4d6 --output-dir <fresh-dimensions-output> --swconst <registered-swconst.tlb> --drawing-template <installed-GB.drwdot>
+python scripts/ci/run-font-scopes-calibration.py --profile internal --scope tables --source-head c108af1ca97b9f07c7379a0d2dfa0f41dc00f4d6 --output-dir <fresh-tables-output> --swconst <registered-swconst.tlb> --drawing-template <installed-GB.drwdot>
 ```
 
 以上仅为排程用命令，本轮没有执行。root 在排定的 Windows 2025 环境 checkout 精确 next 实现提交、安装该源码并记录匹配 source_head；每组独立 600/1800 秒。不得用当前只绑定旧分支的 workflow 或旧单机密授权自动扩到 next，本轮不修改 CI/机密路径、不手动 dispatch，也不占用 VM。
