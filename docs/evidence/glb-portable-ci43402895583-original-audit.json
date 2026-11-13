@@ -1,0 +1,196 @@
+{
+  "schema": "swcli.glb-portable-ci-original-audit.v1",
+  "run": 43402895583,
+  "head": "c39dadeb3b37dbe2c2f2addeb22eb2ccc1a02360",
+  "event": "push",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Validate native scope before runtime access",
+      "conclusion": "success"
+    },
+    {
+      "name": "Validate release tag before private native runtime",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Reject invalid or conflicting manual CI profiles",
+      "conclusion": "success"
+    },
+    {
+      "name": "dimension-format",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "inputs.detailing_public_gate && 'Detailing public CLI/daemon gate' || 'Detailing internal calibration'",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Windows / Python 3.14",
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows / Python 3.9",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build wheel",
+      "conclusion": "success"
+    },
+    {
+      "name": "font-scopes-calibration",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "inputs.native_topology_targeted && 'Targeted topology reference verification' || inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Image Quality GLB calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification'",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Publish original verified version-tag artifacts",
+      "conclusion": "skipped"
+    }
+  ],
+  "original_summary_ZIPs": [
+    {
+      "id": 14026690669,
+      "name": "swcli-portable-summary-3.9-43402895583-1",
+      "sha256": "b0ffdc8bb959cc434d7b4a9f771a6f5724654a7303d467db4cbc64eb1fd55cac",
+      "size_bytes": 1066,
+      "github_digest_verified": true,
+      "summary": {
+        "schema_version": 1,
+        "source": {
+          "commit": "c39dadeb3b37dbe2c2f2addeb22eb2ccc1a02360",
+          "client_version": "0.2.4",
+          "host": "windows",
+          "scope": "portable-checks-python-3.9",
+          "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/43402895583"
+        },
+        "phases": [
+          {
+            "name": "install",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "unit-tests",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "sdk-types",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "skipped"
+          },
+          {
+            "name": "script-parser",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "skipped"
+          },
+          {
+            "name": "installed-resources",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "public-evidence",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "evidence root does not exist; no public acceptance claimed"
+          }
+        ],
+        "first_failure": null,
+        "cleanup_errors": [],
+        "totals": {
+          "phases": 6,
+          "pass": 3,
+          "fail": 0,
+          "skip": 3
+        }
+      }
+    },
+    {
+      "id": 14025499508,
+      "name": "swcli-portable-summary-3.14-43402895583-1",
+      "sha256": "6de2c54d845b1c05ee5cad8f70a481ab18e015fff8b022e15818269e46aba160",
+      "size_bytes": 1054,
+      "github_digest_verified": true,
+      "summary": {
+        "schema_version": 1,
+        "source": {
+          "commit": "c39dadeb3b37dbe2c2f2addeb22eb2ccc1a02360",
+          "client_version": "0.2.4",
+          "host": "windows",
+          "scope": "portable-checks-python-3.14",
+          "run_url": "https://github.com/YJBeetle/SWCLI/actions/runs/43402895583"
+        },
+        "phases": [
+          {
+            "name": "install",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "unit-tests",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "sdk-types",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "script-parser",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "installed-resources",
+            "status": "PASS",
+            "seconds": null,
+            "evidence": [],
+            "detail": "success"
+          },
+          {
+            "name": "public-evidence",
+            "status": "SKIP",
+            "seconds": null,
+            "evidence": [],
+            "detail": "evidence root does not exist; no public acceptance claimed"
+          }
+        ],
+        "first_failure": null,
+        "cleanup_errors": [],
+        "totals": {
+          "phases": 6,
+          "pass": 5,
+          "fail": 0,
+          "skip": 1
+        }
+      }
+    }
+  ],
+  "native_executed": false,
+  "release": false,
+  "not_covered": "later local component-context candidate source is not part of this CI head"
+}

@@ -19,3 +19,11 @@
 没有删断言、扩大 raises、吞掉 WinError5、修改 production collector、去除 ctime/身份字段或修改原例外版本名单。原字节/替换/文件出现、helper首错、whole-window held time变化和全部拒绝用例继续通过。
 
 本机 macOS CPython3.15.2 上该模块 **25 项通过**；`git diff --check` 通过。此证据快照没有新Windows CI结果。后续按统筹要求仅作一次相关分支 push，自动轻量CI需另核真实 head、两Windows job及原summary；不派 native、不将portable单测通过当CAD验收。
+
+## 后续一次 push 的实际 CI 结果
+
+已将分支从7d6858e非强制推进到 `c39dadeb3b37dbe2c2f2addeb22eb2ccc1a02360`，仅一次push、无额外dispatch。自动 [CI43402895583](https://github.com/YJBeetle/SWCLI/actions/runs/43402895583) 最终success：Windows3.9/3.14（unit与各自应跑检查）及Build wheel均success；native和发布任务SKIP。
+
+两份原summary ZIP均按GitHub artifact digest独立重hash，source.commit均精确c39dade、unit-tests PASS、first_failure=null、cleanup_errors=[]：3.9 id14026690669，1066B，SHA `b0ffdc8bb959cc434d7b4a9f771a6f5724654a7303d467db4cbc64eb1fd55cac`；3.14 id14025499508，1054B，SHA `6de2c54d845b1c05ee5cad8f70a481ab18e015fff8b022e15818269e46aba160`。
+
+原件目录 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/glb-portable-43402895583`，audit SHA `1e53e2c5419e8dd167dea398ee2d7521e67d3bc56a7256cd0caee6eea5f84470`。wheel这里只确认job通过，未另下载核hash。两个summary的public-evidence仍SKIP，不能称native或GLB验收。本CI不覆盖后续本地组件上下文候选；原失败run/原件保留。
