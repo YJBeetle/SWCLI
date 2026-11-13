@@ -1648,7 +1648,7 @@ _RESULT_FIELDS["feature.revolve"] = (
         "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
         "expected_profile_mm": _REVOLVE_COORDINATES,
         "axis_mm": _REVOLVE_COORDINATES,
-        "angle_deg": {"type": "number", "minimum": 360, "maximum": 360},
+        "angle_deg": {"type": "number", "exclusiveMinimum": 0, "maximum": 360},
         "mutation": _object({key: BOOL for key in ("attempted", "creation_returned", "may_have_changed")},
                             ("attempted", "creation_returned", "may_have_changed")),
         "cleanup_errors": _REVOLVE_CLEANUP,
@@ -1735,6 +1735,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     if name == "feature.revolve":
         schema["required"].extend(["sketch_id", "mutation", "cleanup_errors"])
         schema["then"]["properties"] = {
+            "angle_deg": {"const": 360},
             "feature": {"required": ["name", "type", "feature_id"], "properties": {"type": {"const": "Revolution"}}},
             "verified": {"const": True}, "cleanup_errors": {"maxItems": 0},
             "mutation": {"properties": {key: {"const": True} for key in

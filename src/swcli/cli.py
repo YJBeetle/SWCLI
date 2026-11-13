@@ -734,14 +734,15 @@ def build_parser() -> argparse.ArgumentParser:
     fillet_parser.add_argument("--json", action="store_true", dest="as_json")
 
     revolve_parser = feature_commands.add_parser(
-        "revolve", help="revolve a center rectangle 360 degrees about its explicit left edge (native Windows SW 33.5.0)"
+        "revolve", help="revolve a center rectangle about its explicit left edge (native Windows SW 33.5.0; partial-angle writes closed)"
     )
     revolve_parser.add_argument("sketch_id")
     revolve_parser.add_argument("--expected-profile-mm", type=float, nargs=4, required=True,
                                 metavar=("MIN_X", "MIN_Y", "MAX_X", "MAX_Y"))
     revolve_parser.add_argument("--axis-mm", type=float, nargs=4, required=True,
                                 metavar=("X1", "Y1", "X2", "Y2"))
-    revolve_parser.add_argument("--angle-deg", type=float, required=True)
+    revolve_parser.add_argument("--angle-deg", type=float, required=True,
+                               help="explicit 0 < degrees <= 360; partial angles return RevolveNotCalibrated")
     add_document_selector(revolve_parser)
     add_lease_token(revolve_parser)
     revolve_parser.add_argument("--json", action="store_true", dest="as_json")

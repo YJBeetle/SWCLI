@@ -1811,6 +1811,14 @@ def execute_operation(
                 raise UnsupportedDimensionKind(
                     "unsupported native dimension/profile binding"
                 )
+    if operation == "feature.revolve" and values["angle_deg"] != 360:
+        from ..hosts.windows_revolves import partial_revolve_refusal
+
+        result = partial_revolve_refusal(values["expected_profile_mm"], values["axis_mm"], values["angle_deg"])
+        result["sketch_id"] = values["sketch_id"]
+        if documents is not None and context.entry is not None:
+            return _with_document(result, documents, context.entry, session_id=session_id)
+        return result
     activation = (
         documents.temporarily_activate(context.entry)
         if spec.temporary_activation

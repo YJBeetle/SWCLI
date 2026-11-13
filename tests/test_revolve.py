@@ -25,11 +25,11 @@ CONSTANTS = dict(swEndCondBlind=73, swThinWallOneDirection=74, swRevolveTypeOneD
 
 
 class IntentTests(unittest.TestCase):
-    def test_complete_intent_refuses_crossing_axis_partial_angle_and_unresolved_geometry(self):
+    def test_complete_intent_refuses_crossing_axis_invalid_angle_and_unresolved_geometry(self):
         validate_revolve_intent(VALUES['expected_profile_mm'], VALUES['axis_mm'], 360)
         for bounds, axis, angle in (([-5,-5,5,15],[0,-5,0,15],360),
             ([0,-5,10,15],[5,-5,5,15],360), ([0,-5,10,15],[0,15,0,-5],360),
-            ([0,-5,10,15],[0,-5,0,15],180), ([0,0,1e-9,10],[0,0,0,10],360),
+            ([0,-5,10,15],[0,-5,0,15],0), ([0,0,1e-9,10],[0,0,0,10],360),
             ([0,-5,math.inf,15],[0,-5,0,15],360), ([False,-5,10,15],[0,-5,0,15],360)):
             with self.subTest(bounds=bounds,axis=axis,angle=angle), self.assertRaises(ValueError):
                 validate_revolve_intent(bounds,axis,angle)
@@ -72,8 +72,8 @@ class ContractTests(unittest.TestCase):
             changed=deepcopy(VALUES);del changed[key]
             self.assertFalse(schema.is_valid(changed))
         changed=deepcopy(VALUES);changed['angle_deg']=180
-        self.assertFalse(schema.is_valid(changed))
-        with self.assertRaises(ValueError):validate_operation_request('feature.revolve',changed,document_id='d-ab12cd',expected_update_stamp=1)
+        self.assertTrue(schema.is_valid(changed))
+        validate_operation_request('feature.revolve',changed,document_id='d-ab12cd',expected_update_stamp=1)
 
     def test_cli_and_sdk_forward_all_intent_and_context(self):
         args=build_parser().parse_args(['feature','revolve','s-ab12cd','--expected-profile-mm','0','-5','10','15',
@@ -288,9 +288,9 @@ class DaemonGuardTests(unittest.TestCase):
         patch=mock.patch.object(self.registry,'temporarily_activate',side_effect=activation)
         self.activate=patch.start();self.addCleanup(patch.stop)
 
-    def call(self,**context):
+    def call(self,values=None,**context):
         from swcli.daemon.operations import execute_operation
-        return execute_operation(self.app,'feature.revolve',VALUES,documents=self.registry,session_id='writer',
+        return execute_operation(self.app,'feature.revolve',VALUES if values is None else values,documents=self.registry,session_id='writer',
             document_id=self.entry.document_id,**{'expected_update_stamp':12,**context})
 
     def test_update_and_lease_conflicts_precede_native_adapter(self):
@@ -315,6 +315,36 @@ class DaemonGuardTests(unittest.TestCase):
         self.assertTrue(all(result['mutation'].values()))
         self.assertEqual(result['cleanup_errors'],[dict(stage='register-created-feature',error='secondary registration failure')])
         retire.assert_called_once()
+
+    def test_partial_refusal_precedes_activation_adapter_and_entity_retirement(self):
+        values = dict(VALUES, angle_deg=90)
+        with mock.patch.object(worker, 'create_revolve_windows_with_handle') as adapter, \
+             mock.patch.object(self.entry.entities, 'retire_scope') as retire:
+            result = self.call(values=values)
+        validate_operation_result('feature.revolve', result)
+        self.assertEqual(result['angle_deg'], 90)
+        self.assertEqual(result['error']['type'], 'RevolveNotCalibrated')
+        self.assertFalse(any(result['mutation'].values()))
+        self.activate.assert_not_called()
+        adapter.assert_not_called()
+        retire.assert_not_called()
+        self.assertIs(self.app.ActiveDoc, self.foreground)
+        self.resolve.assert_called()
+
+    def test_partial_refusal_preserves_lease_stamp_and_reference_guards(self):
+        from swcli.daemon.operations import DocumentUpdateConflict
+        from swcli.daemon.documents import DocumentLeaseConflict
+        values = dict(VALUES, angle_deg=180)
+        with self.assertRaises(DocumentUpdateConflict):
+            self.call(values=values, expected_update_stamp=13)
+        self.resolve.side_effect = ValueError('unknown sketch')
+        with self.assertRaisesRegex(ValueError, 'unknown sketch'):
+            self.call(values=values)
+        self.resolve.side_effect = None
+        self.registry.acquire_lease(self.entry, session_id='other', ttl_seconds=60)
+        with self.assertRaises(DocumentLeaseConflict):
+            self.call(values=values)
+        self.activate.assert_not_called()
 
     def test_closed_background_call_preserves_foreground_and_current_session(self):
         result=self.call()

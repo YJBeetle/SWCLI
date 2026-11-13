@@ -625,7 +625,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                                     "items": _number(minimum=-1e6, maximum=1e6)},
             "axis_mm": {"type": "array", "minItems": 4, "maxItems": 4,
                         "items": _number(minimum=-1e6, maximum=1e6)},
-            "angle_deg": _number(minimum=360, maximum=360),
+            "angle_deg": _number(exclusiveMinimum=0, maximum=360),
         },
         required=("sketch_id", "expected_profile_mm", "axis_mm", "angle_deg"),
         temporary_activation=True,
@@ -690,7 +690,7 @@ for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
 
 OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
-    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; 360 degrees)"
+    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; writes calibrated for 360 degrees only)"
 )
 OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 

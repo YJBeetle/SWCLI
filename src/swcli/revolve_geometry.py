@@ -1,4 +1,4 @@
-"""Bounded revolve intent and independent cylinder geometry oracle."""
+"""Bounded revolve intent and independent cylinder/sector geometry oracles."""
 
 import math
 
@@ -6,7 +6,7 @@ TOLERANCE_MM = 1e-6
 
 
 def validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg):
-    """Complete rectangle bounds CAS; one axis side, full turn only.
+    """Complete rectangle bounds CAS; one axis side and explicit bounded angle.
 
     Bounds are (min_x,min_y,max_x,max_y); axis is (x1,y1,x2,y2).
     Numeric geometry is bounded so mm tolerance remains meaningful.
@@ -16,8 +16,9 @@ def validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg):
             raise ValueError(name + " requires four coordinates")
         if any(type(v) not in (int, float) or not math.isfinite(v) or abs(v) > 1e6 for v in values):
             raise ValueError(name + " requires finite coordinates within +/-1e6 mm")
-    if type(angle_deg) not in (int, float) or angle_deg != 360:
-        raise ValueError("the first revolve slice requires explicit angle_deg=360")
+    if (type(angle_deg) not in (int, float) or not math.isfinite(angle_deg)
+            or not 0 < angle_deg <= 360):
+        raise ValueError("revolve requires explicit finite 0 < angle_deg <= 360")
     x0, y0, x1, y1 = expected_profile_mm
     if x0 != 0 or x1 <= 2 * TOLERANCE_MM or y1 - y0 <= 2 * TOLERANCE_MM:
         raise ValueError("revolve requires a nondegenerate rectangle to the right of sketch x=0")
@@ -65,3 +66,43 @@ def verify_cylinder_metrics(actual, expected):
         if (type(value) not in (int, float) or not math.isfinite(value)
                 or not math.isclose(value, expected["centroid_mm"][axis], rel_tol=0, abs_tol=TOLERANCE_MM)):
             raise ValueError("revolve centroid differs from analytic cylinder")
+
+
+def sector_expectation(bounds_mm, model_to_sketch, angle_deg, *, rotation_sign):
+    """Independent partial cylinder oracle, from local +X towards signed Z.
+
+    rotation_sign is an explicit hypothesis, never inferred from native metrics.
+    A full turn has no radial cut faces and uses the existing cylinder oracle.
+    """
+    radius, height, center_y = validate_revolve_intent(
+        bounds_mm, (0, bounds_mm[1], 0, bounds_mm[3]), angle_deg)
+    if type(rotation_sign) is not int or rotation_sign not in (-1, 1):
+        raise ValueError("rotation_sign must explicitly be -1 or +1")
+    # Reuse the strict rigid origin-frame validation without weakening full turn.
+    cylinder = cylinder_expectation(bounds_mm, model_to_sketch)
+    if angle_deg == 360:
+        return cylinder
+    theta = math.radians(angle_deg)
+    if theta == 0:
+        raise ValueError("angle is below representable radian geometry")
+    half = theta / 2
+    # sinc avoids cancellation in 1-cos(theta) for very small angles.
+    sinc = math.sin(half) / half if half else 1.0
+    distance = (2 * radius / 3) * sinc
+    local = (distance * math.cos(half), center_y,
+             rotation_sign * distance * math.sin(half))
+    volume = theta * (radius**2 * height / 2)
+    if volume <= 0:
+        raise ValueError("sector volume is below representable geometry")
+    return dict(solid_body_count=1, volume_mm3=volume,
+                surface_area_mm2=theta * radius * (radius + height) + 2 * radius * height,
+                centroid_mm=dict(zip("xyz", (sum(model_to_sketch[3*i+j] * local[j]
+                    for j in range(3)) for i in range(3)))))
+
+
+def verify_sector_metrics(actual, expected):
+    """Keep the original full-turn numerical tolerances for partial candidates."""
+    try:
+        verify_cylinder_metrics(actual, expected)
+    except ValueError as exc:
+        raise ValueError(str(exc).replace("analytic cylinder", "analytic sector")) from exc
