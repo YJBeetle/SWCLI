@@ -1,0 +1,75 @@
+{
+  "kind": "offline-only-direction-harness-preparation",
+  "branch": "codex/swcli-revolve-feature-next",
+  "previous_head": "02e55ca7a77ec5abb216648c23efc43a3b21f4ee",
+  "source_commit": "b841ef451a0aa671454c6bfee8c05c86bf275596",
+  "product_source_unchanged": true,
+  "main_ci_yml_unchanged": true,
+  "portable": {
+    "tests": 3002,
+    "skipped": 39,
+    "seconds": 120.001,
+    "success": true
+  },
+  "revolve_targeted": {
+    "tests": 62,
+    "success": true
+  },
+  "ci_regression": {
+    "tests": 56,
+    "skipped": 8,
+    "success": true
+  },
+  "units_original_concurrency_regression": {
+    "tests": 15,
+    "success": true
+  },
+  "sdk": {
+    "generator": true,
+    "strict_files": 6,
+    "negative_consumers": 33,
+    "success": true
+  },
+  "python39_syntax_files": 6,
+  "workflow_yaml_parsed": true,
+  "exact_source_guard": {
+    "success": true,
+    "python_modules": 118,
+    "install_mode": "editable; offline only; not installed native wheel acceptance"
+  },
+  "initial_full_suite_failure": {
+    "failures": 3,
+    "cause": "shared CI already had 25 manual inputs; adding two violated input limit and prepending concurrency broke the units ordering protection",
+    "resolution": "standalone two-input workflow; original main ci.yml restored byte-for-byte; original tests kept"
+  },
+  "native_execution": false,
+  "vm_used": false,
+  "manual_native_dispatch": false,
+  "public_partial_write_allowlist": [],
+  "matrix_enabled": false,
+  "pending": [
+    "GitHub lightweight workflow registration observation; no CI conclusion",
+    "coordinator review and explicit native scheduling",
+    "single preregistered axis/rotation direction and save/readonly-reopen native evidence",
+    "only after reviewed singleton: four-angle/three-plane native matrix and refusal/partial controls",
+    "public CLI end-to-end evidence; excluded from current release"
+  ],
+  "tested_files_sha256": {
+    ".github/workflows/revolve-direction-next.yml": "7b1681716f49832b6644251ceda0fe79e6c9cd00b6dc358e931ce10275778567",
+    "scripts/ci/validate-native-profile.py": "73ddb636a96939d4ca9ee9e780495a676144d7cb0af86f6d0bb4b4fbae7da205",
+    "scripts/ci/gate_support/revolve_direction.py": "16c01b050291d53f1634e6e7b10aa6502214934ec7b66d5c0341e3e37bf910cf",
+    "scripts/ci/gate_support/revolve_direction_native.py": "089b871ad76dfe6ffb50f2c3e30a4062e46cc6d60bca460778e18880983555a4",
+    "scripts/ci/verify-revolve-partial-next.py": "5aa6d146f702746d60349872e43f36e6d7f684aecd1d51640c8f551096cd45a9",
+    "tests/test_native_profile.py": "b504f95dd11c85fee371c1a74b797e0ecd25f66073f8fb7d669423fdfd321015",
+    "tests/test_revolve_direction_harness.py": "49414211480fd3fe83e74e384452d12e04c1571bed11381629632846d8b63c04"
+  },
+  "logs_sha256": {
+    "evidence/revolve-partial-next/direction-harness-preparation/ci-regression.log": "0fcbc457788c4c977100aacbc59d2aaa5272ac487614a62d0b658861e1c345e8",
+    "evidence/revolve-partial-next/direction-harness-preparation/initial-shared-route-failure.log": "b7e5c6023512c40c622e24b378742fcf39a79a5dba44459ff5e89532efdba6f5",
+    "evidence/revolve-partial-next/direction-harness-preparation/portable-final.log": "2c0b4439bc6b64d4bd485f5db12fa38b292c49cacbc0b26bb2ee581d4bc4836c",
+    "evidence/revolve-partial-next/direction-harness-preparation/profile-route.log": "70623f8e390fd4732e82427008a083156d72839fd6a3976a68c38ee6c5af3d76",
+    "evidence/revolve-partial-next/direction-harness-preparation/revolve-targeted.log": "bcb6c0ddb4131187d0199b908ce6ac74a8ef31b42e89c965143535ca6486d021",
+    "evidence/revolve-partial-next/direction-harness-preparation/sdk.log": "a7dc61ae1411503643173af4f2bf40d54c209af02234cd4a67cc3e151f0476d1",
+    "evidence/revolve-partial-next/direction-harness-preparation/source-guard-positive.json": "95e9c570614ac83007424628a4fb86b49f408d291f0a494676309b34d732fb89"
+  }
+}

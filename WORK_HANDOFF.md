@@ -910,3 +910,27 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 下一步须由统筹安排：先准备新分支精确head的独立有界原生harness/默认关闭路由，再跑预声明方向单例；
 通过并审阅后才排离散角度/平面、保存只读重开与partial controls。现有CI旧分支开关不能作为next原生入口。
 本路不会自行dispatch；公共部分角度仍拒写，不具备merge-ready或发布结论。
+
+
+## 旋转 next：独立方向单例准备增量（未执行原生）
+
+按统筹后续授权，在同一next分支补齐 `verify-revolve-partial-next.py`、独立可注入协议/native backend、
+默认false的 `native_revolve_direction` 路由和完整 `revolve_direction_head` 守护。
+只允许next分支手动单例，前置拒绝错误head/ref及其他scope混选，独立 `revolve-direction-next.yml` 复用既有安装/清理脚本和原件约定，独立并发组。
+主ci.yml原文保持不变，其25个dispatch输入不增；新workflow只读权限且没有release job。
+唯一预声明front/90°/+Y轴/向-Z旋转；先落盘再启动host，创建一次，保存只读重开，600/1800预算。
+
+离线新增控制验证首因、partial、actual先落盘、磁盘异常、cleanup、PID复用、超时与空绿拒绝；
+产品 `src/swcli/` 没有本轮改动，公开部分角度写白名单仍为空。
+详见 [方向单例harness](docs/design/revolve-direction-harness.md)。没有连接VM/COM、没有原生dispatch，
+矩阵入口未接入，等待统筹亲审及单独运行排程；旋转后续能力仍排除当前发布。
+
+
+方向单例准备实现提交 `b841ef451a0aa671454c6bfee8c05c86bf275596`。
+最终portable **3002项通过/39跳过**（120.001秒），旋转专项62项，CI回归56项/8skip和旧units并发15项通过，
+SDK生成/严格类型/33负消费通过；Python3.9语法6文件及全部workflow YAML解析通过。
+精确源守护的纯文件正向检查通过118个Python模块（当前editable安装，不能替代native wheel证据）。
+首次共享workflow27输入/旧并发顺序的3项失败已保留，最终独立两输入workflow、主CI原文恢复、旧测试未放宽。
+[准备证据及SHA256](docs/evidence/revolve-direction-preparation-2026-11-14.json)；
+原件在 `evidence/revolve-partial-next/direction-harness-preparation/`。
+CI仅push轻量注册与常规portable，不等待、不轮询；原生单例需统筹另行排程许可，后续矩阵与当前发布边界不变。

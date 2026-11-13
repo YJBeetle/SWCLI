@@ -1,5 +1,8 @@
 # 部分角度旋转下一阶段：实现与原生计划
 
+后续准备：方向单例harness/默认关闭精确head路由已实现，尚未原生运行，见
+[方向单例准备](revolve-direction-harness.md)。以下首轮记录与矩阵后置边界保留。
+
 本路基线为 `31ad9c256a5a106bc94a627cd41dfd6277bb6f00`，工作分支
 `codex/swcli-revolve-feature-next`。现有 360° 原生结论及原件保持独立；
 旧 run 42273047248 不能证明部分角度的方向、表面积、保存持久性。
