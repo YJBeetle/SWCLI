@@ -1,0 +1,81 @@
+{
+  "schema": "swcli.markingjig-phase-probe02-preparation-audit.v1",
+  "source_head": "c9846f6aad4312cc8bf97195deaa6c4f880fda6f",
+  "product_head": "70d8c9ecf3c02b099ca9c2cc64fe1880061cea44",
+  "preparation_head_before_changes": "855ca0213a5270af8e17006be4b1757c1de8cbdb",
+  "VM_or_COM_or_CAD_operations": 0,
+  "business_inputs_read_or_copied_in_this_preparation": false,
+  "new_CAD_ticket_issued": false,
+  "proposed_ticket": "VM-20261113-MARKINGJIG-PHASE-PROBE-02",
+  "code_files_sha256": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": "3cfa3e356b25c1d6613e467d7377221f663bee3f2729902ac3645b9c63c374aa",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "e77c002802f443fa301a3cb773025e980599d9c47001b1bef9c79d470aff723e",
+    "scripts/diagnostics/markingjig/file_forensics.py": "7a1fd66ded00560187d36dfead6cca82911d610cdbfd73631ff9fbfa92c737f5",
+    "scripts/diagnostics/markingjig/opening_phases.py": "63c56234d8821fea2b936170acb875bec9e17b9448b25dc809e2b136f16d6902",
+    "scripts/diagnostics/markingjig/launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": "ee623de2c0ac7e4e7660fff219d6f4e44cb37312122dec6aa101dc8aa809ee1b",
+    "scripts/diagnostics/typed_glb/bridge_control.py": "d4bab2ade8d3daf319b4ca7b891f9c922d7b1f943c1dab7275c3059fa86516b7",
+    "docs/evidence/glb-markingjig-input-inventory-2026-11-12.json": "d7db20f8041424115a97b91376001be759b32fad6e5faa2cc405fe971a13185d"
+  },
+  "package_sha256": "c1bf4c6a2edf19faa680b18b30115170a6bf121ce65d1cdcb7fe9daeff7a54ae",
+  "launcher_sha256": "f20bdac98ea70c71b3c3b9b61ff577bdfec04340a05edc9751b723868a4e799e",
+  "proposal_sha256": "0804ed66558aec91e614fb4b480a1ce9f317674a9a64a7357eb23a8eb78d63b0",
+  "launcher_receipts_sha256": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+  "preparation_files_sha256": {
+    "launch-probe.py": "f20bdac98ea70c71b3c3b9b61ff577bdfec04340a05edc9751b723868a4e799e",
+    "host-original-guard.py": "cdc9b77dc0b25e98a8225bb85a445e7fd0fe2cddccb58286b90ebdbaff421e3a",
+    "launcher_receipts.py": "eee85b44ae188233f5b65994c6ef4e26c745f214e24893c80ddc874467b329e0",
+    "query-context.py": "6755763784ae703dbed26525ec732e6c22ec9c31e504d8998ebd26d1e37cc458"
+  },
+  "model_and_phase_files_byte_identical_to_925": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": true,
+    "scripts/diagnostics/markingjig/file_forensics.py": true,
+    "scripts/diagnostics/markingjig/opening_phases.py": true,
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": true,
+    "scripts/diagnostics/typed_glb/bridge_control.py": true
+  },
+  "source_pins": {
+    "original_driver": "282d75cb4a4097dac4077bb7e70af68d8278c351880d0887ce8220ba46cd36d2",
+    "product_archive": "06c09b895c1913435061676b13b1539c9a17e7afd4728ba886cfb878ee2b7f53"
+  },
+  "preserved_guards": [
+    "mode probe only; export_permitted false",
+    "original strict defaults unchanged",
+    "full SHA, 128-bit file identity, path/held/native metadata and derived summaries",
+    "only explicit opening-transition phase projections; immutable WorkingCopy.before",
+    "full graph/state/config/edit/read-only/dirty/geometry and second observation",
+    "unique loaded-baseline seal after complete model observation",
+    "original 600-second native and 1800-second group deadlines; outer1840",
+    "independent candidate failure, launcher first_error and secondary errors",
+    "all input/code/bootstrap hashes continue after capture/comparison failure"
+  ],
+  "offline_checks": {
+    "new_launcher_tests": 15,
+    "markingjig_tests": 117,
+    "typed_bridge_tests": 23,
+    "import_check": "packaged supervisor imports exact packaged launcher_receipts; no NativeBackend/pinned/COM initialization",
+    "actual_launcher_SessionId_guard": "exact reviewed ProcessIdToSessionId prototype; bool, last_error, raw session retained; must equal1",
+    "fault_injection": "actual complete new launcher finally AST; empty case original fatal retained; raw capture failure does not skip hashes/final inventory/evidence",
+    "test_source_sha256": "1f79a36942be08b23a1828ccdb4cda631a9a0018af9aa3fdf9e9482a9b823587"
+  },
+  "execution_entry": {
+    "executed": false,
+    "argv": [
+      "prlctl",
+      "exec",
+      "{da36dd51-bd6d-4e7a-995b-547464583302}",
+      "--current-user",
+      "C:\\Users\\YJBeetle\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "-I",
+      "-B",
+      "\\\\Mac\\AllFiles\\Users\\YJBeetle\\.codex\\task-artifacts\\document-properties-parallel\\vm-series-20261113\\markingjig-phase-probe-c9846f6-02\\launch-probe.py",
+      "--execute"
+    ]
+  },
+  "known_limits": [
+    "prepared, not authorized or natively executed",
+    "Python SID not queried directly: fresh own SessionId plus exact reviewed inherited child SID/session; not described as own-token proof",
+    "Mac originals after proof must be run independently by coordinator even if launcher fails; private launcher success alone is not whole-window acceptance",
+    "short-query/empty-host-close receipts belong to root and do not allocate this CAD probe"
+  ]
+}

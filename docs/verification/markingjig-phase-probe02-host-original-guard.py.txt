@@ -1,0 +1,59 @@
+"""Explicit host-only original guard, run separately before/after an allocated probe.
+Reads eleven Mac originals; never copies business inputs or accesses the VM.
+"""
+import argparse
+import datetime as dt
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import traceback
+import zipfile
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--phase', choices=('before', 'after'), required=True)
+    args = parser.parse_args(argv)
+    if sys.platform != 'darwin':
+        raise RuntimeError('Mac host only')
+    share = Path(__file__).resolve().parent
+    spec = importlib.util.spec_from_file_location('probe02_launcher_review', share/'launch-probe.py')
+    launcher = importlib.util.module_from_spec(spec); spec.loader.exec_module(launcher)
+    ctx, inv = launcher.checked_package(share)
+    record = dict(schema='swcli.markingjig-host-original-proof.v1', phase=args.phase,
+                  proposal_sha256=launcher.digest(share/'proposal.json'),
+                  started_utc=dt.datetime.now(dt.timezone.utc).isoformat(), files={}, errors=[], success=False)
+    protected = dict(inv['files']); protected['MarkingJig.REND.GLB'] = inv['protected_existing_glb']
+    before = None
+    if args.phase == 'after':
+        before = json.loads((share/'host-originals-before.json').read_bytes())
+        launcher.require(before['success'] is True and before['phase'] == 'before'
+                         and before['proposal_sha256'] == record['proposal_sha256'], 'valid original before proof required')
+    with tempfile.TemporaryDirectory(prefix='markingjig-host-guard-') as tmp:
+        with zipfile.ZipFile(share/'markingjig-code-c9846f6.zip') as packed:
+            source = Path(tmp)/'markingjig_control.py'; source.write_bytes(packed.read(launcher.CONTROL+'markingjig_control.py'))
+        control = launcher.load_module(source, 'host_original_guard_control')
+        for name, pinned in protected.items():
+            try:
+                current = control.stable_file(pinned['path'])
+                record['files'][name] = current
+                launcher.require(current == pinned, 'original differs from approved full fingerprint: '+name)
+                if before is not None:
+                    launcher.require(current == before['files'][name], 'original changed during allocated window: '+name)
+            except BaseException as error:
+                record['errors'].append(dict(name=name, type=type(error).__name__, error=str(error), traceback=traceback.format_exc()))
+    record['success'] = not record['errors'] and len(record['files']) == 11
+    record['finished_utc'] = dt.datetime.now(dt.timezone.utc).isoformat()
+    target = share/('host-originals-'+args.phase+'.json')
+    with target.open('x', encoding='utf-8') as stream:
+        json.dump(record, stream, indent=2); stream.write('\n')
+    print(json.dumps(dict(success=record['success'], phase=args.phase, files=len(record['files']),
+                          errors=len(record['errors']), receipt_sha256=launcher.digest(target))))
+    return 0 if record['success'] else 1
+
+
+if __name__ == '__main__':
+    sys.dont_write_bytecode = True
+    raise SystemExit(main())
