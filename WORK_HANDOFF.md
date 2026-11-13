@@ -886,3 +886,27 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 原生能力限定为 Windows 2025 SP5 owned hidden 零件；原生专项通过不等于 main 整套通过，也不等于现代 API/GLB 迁移通过。
 - 合并保留 main 现有 STL、单位、字体、表格、拓扑和 MCP/SDK；专项公共验证入口 step-export.yml 不新增 main 手动参数。历史原件诊断 CI 定义作为只读证据归档，不再加入 main 的手动菜单。
 - 本系列未发布；GLB/旧 API/配合等现有未完成项仍需闭环，发布前由用户最终确认。
+
+
+## 旋转 next：部分角度首轮（原生未执行）
+
+基于统筹指定 `31ad9c256a5a106bc94a627cd41dfd6277bb6f00` 新建
+`codex/swcli-revolve-feature-next`。只扩展现有矩形/左边轴旋转的部分角度候选。
+解析 sector V/S/带符号质心、私有45/90/180/270°参数与轴顺序/定义回读、公开零mutation拒写已实现。
+公共成功合同仍仅360°；部分角度在临时激活前关闭。未改原默认CI、旧360°报告、版本或发布范围。
+
+本轮只做 portable；没有操作本地VM、COM、手动原生dispatch，没有新增原生模型或save/reopen证据。
+方向映射、四离散角度×三原点平面、保存只读重开、原生拒写/partial与公共端到端仍待后续排期与原件审阅，
+不宣称 merge-ready。详见 [部分角度设计与定向排期](docs/design/revolve-partial-next.md)。
+
+
+首轮实现提交 `f900b05a9b52191cec6e1df3981c4af4966fcaf8`。
+已安装当前worktree的临时Python3.15.2环境：完整portable **2980项通过、39跳过**（115.916秒），
+旋转专项40项通过；SDK生成/严格实现类型/33项负消费通过，8文件通过Python3.9语法解析，diff检查通过。
+初次未安装包导致的1失败/14错误及SDK缺包检查已保留，安装后完整重跑通过；没有为此修改产品行为。
+日志原件在 `evidence/revolve-partial-next/portable-first-pass/`（ignored），
+摘要与被测文件/日志SHA256在 [首轮便携证据](docs/evidence/revolve-partial-next-portable-2026-11-14.json)。
+
+下一步须由统筹安排：先准备新分支精确head的独立有界原生harness/默认关闭路由，再跑预声明方向单例；
+通过并审阅后才排离散角度/平面、保存只读重开与partial controls。现有CI旧分支开关不能作为next原生入口。
+本路不会自行dispatch；公共部分角度仍拒写，不具备merge-ready或发布结论。
