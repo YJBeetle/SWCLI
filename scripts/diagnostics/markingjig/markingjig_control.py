@@ -139,9 +139,189 @@ def vector(value, size, reason):
     return list(value)
 
 
+# Only the explicit zero-export component-context probe uses this policy.
+GLB_NUMERICAL_POLICY = dict(name='glb-component-centroid-volume-v1',centroid_absolute_mm='1e-12',volume_max_ulp=2)
+
+
+def glb_geometry_comparison(before, after, *, scope, embedded=False):
+    """Compare raw observations; never round, replace values, or rebaseline.
+    Only exact semantic paths below can receive the approved numerical bounds.
+    """
+    require(scope in ('model','snapshot'),'unknown GLB geometry comparison scope')
+    require(type(embedded) is bool,'embedded state unknown')
+    from fractions import Fraction
+    import struct
+    result=dict(policy=dict(GLB_NUMERICAL_POLICY),scope=scope,accepted=True,numeric_checks=[],strict_differences=[],invalid_fields=[])
+    sequence=lambda v:isinstance(v,(list,tuple))
+    def safe(v):
+        if type(v) is float and not math.isfinite(v):return dict(type='float',repr=repr(v),hex=v.hex())
+        if type(v) in (str,int,float,bool,type(None)):return v
+        if sequence(v):return [safe(x) for x in v]
+        if type(v) is dict:return {str(k):safe(x) for k,x in v.items()}
+        return dict(unexpected_type=type(v).__name__)
+    def invalid(path,reason):result['invalid_fields'].append(dict(path=list(path),reason=reason))
+    def equal(a,b):
+        try:return canonical(a)==canonical(b)
+        except (TypeError,ValueError):return False
+    def validate_model(model,path,*,top=False,is_embedded=False):
+        fields=dict(type=int,path=str,title=str,stamp=int,modified=bool,readonly=bool,viewonly=bool,
+                    needs_rebuild=int,configuration=str,configurations=None)
+        if type(model) is not dict or set(model)!=set(fields)|(set() if top else {'geometry'}):
+            invalid(path,'required model state fields missing/unknown');return
+        if any(kind is not None and type(model[key]) is not kind for key,kind in fields.items()):
+            invalid(path,'model state field type unknown');return
+        if model['type'] not in (1,2) or top and model['type']!=2:
+            invalid(path,'model type unknown');return
+        if not model['path'] or not model['title'] or model['modified'] or model['viewonly'] or model['needs_rebuild']!=0 or not (model['readonly'] or is_embedded):
+            invalid(path,'model readonly/clean/rebuild/path state refused')
+        names=model['configurations']
+        if not sequence(names) or not names or any(type(n) is not str or not n for n in names) or len(set(names))!=len(names) or not model['configuration'] or model['configuration'] not in names:
+            invalid(path,'complete configuration set/active state unknown')
+        if top:return
+        if model['type']==1:
+            bodies=model['geometry']
+            if not sequence(bodies) or not 0<len(bodies)<=8192:invalid(path+('geometry',),'model geometry shape unknown');return
+            for i,body in enumerate(bodies):validate_body(body,path+('geometry',i),False)
+        else:
+            geometry=model['geometry']
+            if type(geometry) is not dict or set(geometry)!={'kind','model_state_observed'} or geometry['kind']!='subassembly' or geometry['model_state_observed'] is not True:
+                invalid(path+('geometry',),'subassembly geometry marker unknown')
+    def validate_body(body,path,component):
+        expected={'type','bounds','volume_m3','area_m2','centroid_m','faces','edges'}
+        if component:expected|={'body_info','bounds_raw','mass_properties_raw'}
+        if type(body) is not dict or set(body)!=expected:invalid(path,'body geometry fields unknown');return
+        if not sequence(body['centroid_m']) or len(body['centroid_m'])!=3:invalid(path+('centroid_m',),'centroid shape unknown')
+        if type(body['type']) is not int or type(body['faces']) is not int or type(body['edges']) is not int or body['faces']<=0 or body['edges']<0:
+            invalid(path,'body topology/type fields unknown')
+        bounds=body['bounds']
+        if not sequence(bounds) or len(bounds)!=6 or not all(type(v) in (int,float) and math.isfinite(v) for v in bounds):
+            invalid(path+('bounds',),'bounds shape/type unknown')
+        elif any(bounds[i]>bounds[i+3] for i in range(3)):invalid(path+('bounds',),'bounds reversed')
+        for key in ('area_m2','volume_m3'):
+            value=body[key]
+            if type(value) is not float or not math.isfinite(value) or (value<=0 if key=='area_m2' else value<0):
+                invalid(path+(key,),'finite native area/volume required')
+        if component:
+            raw=body['mass_properties_raw']
+            if not sequence(raw) or len(raw)!=12:invalid(path+('mass_properties_raw',),'raw mass shape unknown');return
+            if not all(type(v) in (int,float) and math.isfinite(v) for v in raw):invalid(path+('mass_properties_raw',),'raw mass value type/nonfinite')
+            # Aliases are exact within each observation, not tolerance comparisons.
+            if not equal(body['centroid_m'],raw[:3]) or not equal(body['volume_m3'],raw[3]) or not equal(body['area_m2'],raw[4]):
+                invalid(path,'raw mass/derived geometry inconsistent')
+            if not equal(body['bounds_raw'],body['bounds']):invalid(path,'raw/derived bounds inconsistent')
+    for value in (before,after):
+        if scope=='model':validate_model(value,(),is_embedded=embedded)
+        elif type(value) is not dict or set(value)!={'complete','host','top','components','dependencies','dependency_queries','catalog'} or value.get('complete') is not True:
+            invalid((),'complete snapshot shape unknown')
+        else:
+            host=value['host'];identity=dict(pid=int,created_filetime=int,exe_path=str,exe_sha256=str,revision=str,
+                                            Visible=bool,CommandInProgress=bool,UserControl=bool,UserControlBackground=bool)
+            if type(host) is not dict or not set(identity)<=set(host) or any(type(host[k]) is not t for k,t in identity.items()):
+                invalid(('host',),'host identity fields/type unknown')
+            elif host['pid']<=0 or host['created_filetime']<=0 or not host['exe_path'] or not host['exe_sha256'] or host['revision']!='33.5.0' or host['Visible']:
+                invalid(('host',),'host identity/runtime state refused')
+            validate_model(value['top'],('top',),top=True)
+            if any(type(value[k]) is not list for k in ('components','dependencies','dependency_queries','catalog')) or not value['components'] or len(value['components'])>MAX_COMPONENTS:
+                invalid((),'native snapshot collections unknown');continue
+            for i,row in enumerate(value['components']):
+                path=('components',i)
+                if type(row) is not dict or type(row.get('component_context')) is not dict or type(row.get('virtual')) is not bool:
+                    invalid(path,'component context/virtual state unknown');continue
+                validate_model(row.get('model'),path+('model',),is_embedded=row['virtual'])
+                context=row['component_context'];validate_model(context.get('model_state_after'),path+('component_context','model_state_after'),is_embedded=row['virtual'])
+                if context.get('complete') is not True:invalid(path,'component context incomplete')
+                kind=context.get('kind');model_type=row.get('model',{}).get('type') if type(row.get('model')) is dict else None
+                if (kind,model_type) not in (('part',1),('subassembly',2)):invalid(path,'component kind/model type mismatch')
+                if kind=='part':
+                    bodies=context.get('bodies')
+                    if not sequence(bodies) or not 0<len(bodies)<=8192:invalid(path,'component body array unknown');continue
+                    for j,body in enumerate(bodies):validate_body(body,path+('component_context','bodies',j),True)
+                elif kind!='subassembly':invalid(path,'component kind unknown')
+    def semantic(path):
+        p=path
+        if scope=='snapshot':
+            if len(p)<3 or p[0]!='components' or type(p[1]) is not int:return None
+            p=p[2:]
+            if p[0]=='model':p=p[1:]
+            elif p[:2]==('component_context','model_state_after'):p=p[2:]
+            elif len(p)>=4 and p[:2]==('component_context','bodies') and type(p[2]) is int:
+                p=p[3:]
+                if len(p)==2 and p[0]=='mass_properties_raw' and type(p[1]) is int and 0<=p[1]<=3:
+                    return 'centroid' if p[1]<3 else 'volume'
+                if len(p)==2 and p[0]=='centroid_m' and type(p[1]) is int and 0<=p[1]<3:return 'centroid'
+                return 'volume' if p==('volume_m3',) else None
+            else:return None
+        if len(p)==4 and p[0]=='geometry' and type(p[1]) is int and p[2]=='centroid_m' and type(p[3]) is int and 0<=p[3]<3:return 'centroid'
+        if len(p)==3 and p[0]=='geometry' and type(p[1]) is int and p[2]=='volume_m3':return 'volume'
+        return None
+    def rank(v):
+        bits=struct.unpack('>Q',struct.pack('>d',v))[0]
+        return (~bits)&((1<<64)-1) if bits>>63 else bits|(1<<63)
+    def rational(v):return dict(numerator=v.numerator,denominator=v.denominator)
+    def metrics(a,b):
+        delta=Fraction.from_float(b)-Fraction.from_float(a)
+        return dict(before_hex=a.hex(),after_hex=b.hex(),signed_delta_exact=rational(delta),
+                    absolute_delta_exact=rational(abs(delta)),ulp_distance=abs(rank(a)-rank(b)))
+    def strict_difference(a,b,path):
+        row=dict(path=list(path),before=safe(a),after=safe(b),before_type=type(a).__name__,after_type=type(b).__name__,accepted=False,rule='strict')
+        if type(a) is float:row['before_hex']=a.hex()
+        if type(b) is float:row['after_hex']=b.hex()
+        if type(a) is float and type(b) is float and math.isfinite(a) and math.isfinite(b):row.update(metrics(a,b))
+        result['strict_differences'].append(row)
+    def walk(a,b,path=()):
+        kind=semantic(path)
+        if kind:
+            check=dict(path=list(path),semantic=kind,before=safe(a),after=safe(b),before_type=type(a).__name__,after_type=type(b).__name__,accepted=False)
+            result['numeric_checks'].append(check)
+            if type(a) is float:check['before_hex']=a.hex()
+            if type(b) is float:check['after_hex']=b.hex()
+            if type(a) is not float or type(b) is not float or not math.isfinite(a) or not math.isfinite(b):
+                check['reason']='finite binary64 values required';return
+            delta=Fraction.from_float(b)-Fraction.from_float(a);distance=abs(rank(a)-rank(b))
+            check.update(metrics(a,b))
+            if kind=='centroid':
+                check.update(unit='m',absolute_delta_mm_exact=rational(abs(delta)*1000),limit_mm='1e-12',accepted=abs(delta)*1000<=Fraction(1,10**12))
+            else:check.update(unit='m3',limit_ulp=2,accepted=a>=0 and b>=0 and distance<=2)
+            check['reason']='within authorized bound' if check['accepted'] else 'authorized bound or volume sign failed'
+            return
+        if type(a) is float and not math.isfinite(a) or type(b) is float and not math.isfinite(b):invalid(path,'nonfinite value');return
+        if type(a) is dict and type(b) is dict and all(type(k) is str for k in (*a,*b)):
+            if a.keys()!=b.keys():strict_difference(a,b,path);return
+            for key in sorted(a):walk(a[key],b[key],path+(key,))
+        elif sequence(a) and sequence(b):
+            if len(a)!=len(b):strict_difference(a,b,path);return
+            for i,(x,y) in enumerate(zip(a,b)):walk(x,y,path+(i,))
+        elif type(a) is not type(b) or type(a) not in (str,int,float,bool,type(None)) or not equal(a,b):
+            strict_difference(a,b,path)
+    walk(before,after)
+    result['accepted']=not result['strict_differences'] and not result['invalid_fields'] and all(c['accepted'] for c in result['numeric_checks'])
+    return result
+
+
+def glb_comparison_receipt(before,after,scope,before_path,after_path,*,embedded=False):
+    return dict(before_path=list(before_path),after_path=list(after_path),embedded=embedded,comparison=glb_geometry_comparison(before,after,scope=scope,embedded=embedded))
+
+
+def glb_case_comparison_audit(case):
+    """Recompute every receipt from raw observations, never trust an accepted flag."""
+    try:
+        if canonical(case.get('geometry_numerical_policy'))!=canonical(GLB_NUMERICAL_POLICY):return False
+        observations=case['observations']
+        if len(observations)!=2:return False
+        expected=[]
+        for i,observation in enumerate(observations):
+            for j,row in enumerate(observation['components']):
+                path=('observations',i,'components',j)
+                expected.append(glb_comparison_receipt(row['model'],row['component_context']['model_state_after'],'model',path+('model',),path+('component_context','model_state_after'),embedded=row['virtual']))
+        expected.append(glb_comparison_receipt(observations[0],observations[1],'snapshot',('observations',0),('observations',1)))
+        return all(r['comparison']['accepted'] for r in expected) and canonical(expected)==canonical(case['geometry_comparisons'])
+    except (KeyError,TypeError,ValueError,OverflowError):return False
+
+
 class Observation:
     def __init__(self, app, value, call, copy, constants, owned_pid, process_identity, *,
-                 component_context_policy='strict-model-configuration', component_bodies=None):
+                 component_context_policy='strict-model-configuration', component_bodies=None, comparison_receipts=None):
+        self.comparison_receipts=[] if comparison_receipts is None else comparison_receipts
         self.app, self.value, self.call, self.copy = app, value, call, copy
         self.constants, self.owned_pid, self.process_identity = constants, owned_pid, process_identity
         self.component_context_policy, self.component_bodies = component_context_policy, component_bodies
@@ -203,8 +383,9 @@ class Observation:
                              edges=exact(self.get(body,'GetEdgeCount'),int,'edge count unknown')))
         return rows
 
-    def component_geometry(self, component, model, row):
+    def component_geometry(self, component, model, row, *, location=()):
         """Assembly-instance bodies and independent modelDoc state; no activation."""
+        require(self.component_context_policy=='component-bodies-probe','component numerical comparison requires explicit probe policy')
         context = row['component_context'] = dict(complete=False, policy='component-bodies-probe',
             model_active_configuration=row['model']['configuration'],
             referenced_configuration=row['referenced_configuration'],
@@ -256,7 +437,9 @@ class Observation:
         require(context['referenced_configuration_after']==row['referenced_configuration'], 'component reference configuration changed during body observation')
         after = context['model_state_after'] = {}
         self.document(model,after,embedded=row['virtual'])
-        require(canonical(after)==canonical(row['model']), 'independent model state changed during component body observation')
+        receipt=glb_comparison_receipt(row['model'],after,'model',location+('model',),location+('component_context','model_state_after'),embedded=row['virtual'])
+        self.comparison_receipts.append(receipt)
+        require(receipt['comparison']['accepted'], 'independent model state changed during component body observation')
         context['complete'] = True
 
     def dependencies(self, model, state, report):
@@ -334,7 +517,7 @@ class Observation:
                 virtual_paths[row['model']['path']]=row
                 virtual_instances.setdefault(row['model']['path'],[]).append((child,row))
             if self.component_context_policy=='component-bodies-probe':
-                self.component_geometry(component,child,row)
+                self.component_geometry(component,child,row,location=('observations',len(report)-1,'components',len(result['components'])-1))
             models.append((child,row['model'],row['virtual']))
         for component,row in by_name.values():
             if row['virtual']:
@@ -436,6 +619,8 @@ def one_case(app, copy, mode, output, value, call, live, report, constants, owne
                     dict(swAllBodies=-1,swSolidBody=0,swSheetBody=1,swUserBody_e=0,swNormalBody_e=1).items()),
                 'installed component-body constants differ')
         report['component_context_policy']=component_context_policy
+        report['geometry_numerical_policy']=dict(GLB_NUMERICAL_POLICY)
+        report['geometry_comparisons']=[]
     report.update(mode=mode,observations=[],export_attempts=0,geometry_comparison='before/after same loaded native models; historical display context unknown')
     if phase_guard is not None:
         require(mode=='probe', 'opening-transition candidate is zero-export probe only')
@@ -451,11 +636,16 @@ def one_case(app, copy, mode, output, value, call, live, report, constants, owne
             raise
         phase_guard.after_open()
         observer=Observation(app,value,call,phase_guard,constants,owned_pid,process_identity,
-                             component_context_policy=component_context_policy,component_bodies=component_bodies)
+                             component_context_policy=component_context_policy,component_bodies=component_bodies,
+                             comparison_receipts=report.get('geometry_comparisons'))
         admitted=observer.snapshot(doc,report['observations'])
         phase_guard.seal_loaded(admitted)
         loaded=observer.snapshot(doc,report['observations'])
-        require(canonical(admitted)==canonical(loaded), 'loaded-stage complete model state changed')
+        if component_context_policy=='component-bodies-probe':
+            receipt=glb_comparison_receipt(admitted,loaded,'snapshot',('observations',0),('observations',1))
+            report['geometry_comparisons'].append(receipt)
+            require(receipt['comparison']['accepted'], 'loaded-stage complete model state changed')
+        else:require(canonical(admitted)==canonical(loaded), 'loaded-stage complete model state changed')
         phase_guard.unchanged()
         report['probe_success']=True
         return

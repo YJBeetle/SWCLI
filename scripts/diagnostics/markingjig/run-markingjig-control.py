@@ -144,7 +144,6 @@ def audit(output, mode, phase_policy='strict', component_context_policy='strict-
                 ok=ok and context.get('model_active_configuration')==model.get('configuration')
                 ok=ok and type(context.get('model_active_matches_reference')) is bool and context['model_active_matches_reference']==(model.get('configuration')==row.get('referenced_configuration'))
                 ok=ok and context.get('referenced_configuration_after')==row.get('referenced_configuration')
-                ok=ok and context.get('model_state_after')==model
                 if model.get('type')==1:
                     bodies=context.get('bodies',[]);info=context.get('body_info_raw',[])
                     ok=ok and context.get('kind')=='part' and bool(bodies) and len(bodies)==len(info)==context.get('body_count')
@@ -153,7 +152,7 @@ def audit(output, mode, phase_policy='strict', component_context_policy='strict-
                 else:ok=False
         ok=ok and all(any(row.get('model',{}).get('type')==1 for row in observation.get('components',[]))
                       for observation in observations)
-        ok=ok and len(observations)==2 and control.canonical(observations[0])==control.canonical(observations[1])
+        ok=ok and control.glb_case_comparison_audit(case)
     elif component_context_policy!='strict-model-configuration':ok=False
     return dict(success=bool(ok),mode=mode,phase_policy=phase_policy,component_context_policy=component_context_policy,case_count=len(report['cases']),
                 native_failure=report.get('failure'),modern_save_attempts=len(saves),forbidden_calls=forbidden,

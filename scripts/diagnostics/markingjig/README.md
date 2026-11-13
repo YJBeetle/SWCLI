@@ -39,3 +39,9 @@ OpenDoc7请求及readback：DocumentType2、ReadOnly=true、Silent=true、UseLig
 Root 的 c984 probe03 在组件引用配置“渲染”/GetModelDoc2 active“默认”的原门禁首停，0导出；完整图/geometry未通过，原失败保留。新离线候选只接受显式 `--mode probe --phase-policy opening-transition-probe --component-context-policy component-bodies-probe`。默认 strict-model-configuration 和旧错误不变，新模式不能invoke；part实例从GetBodies3读取几何，modelDoc active状态/几何单独保留，并做引用/对象身份/model状态CAS与两次完整观察。未激活配置、重建、fallback或native重跑。
 
 本机140项MarkingJig（新增23）、23项bridge通过，固定装机PIA元数据已核；实际Python GetBodies3 out封送与native业务几何仍未验证。详见[契约、完整保护和待审边界](../../../docs/verification/glb-markingjig-component-context-candidate-2026-11-13.md)。本候选尚未新打包或签CAD票，不覆盖或改写冻结02/03。
+
+## 已授权的GLB数值界限（2026-11-13，仅源码）
+
+只为显式component-bodies-probe/opening-transition/probe允许centroid逐坐标绝对≤1e-12mm、volume≤2ULP；模型geometry、实例body及raw mass[0..3]按精确语义路径比较，其余面积/拓扑/bounds/mass/inertia/identity/state/CAS等保持严格。默认strict和invoke不变。原native观测不normalize、不回写或重封，数值回执独立放case，supervisor从raw重算核对。
+
+本机168项MarkingJig（新增28）、23项bridge通过；05仍failed，旧原件未改，没有新native/CI。完整[策略、形状门禁与边界](../../../docs/verification/glb-component-numerical-policy-2026-11-13.md)，待Root亲审后另行打包/签票。

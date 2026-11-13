@@ -1,0 +1,93 @@
+{
+  "schema": "swcli.glb-numerical-policy-source-preparation.v1",
+  "status": "local-source-only-awaiting-coordinator-review",
+  "authorization": "coordinator relayed explicit user approval for GLB centroid<=1e-12mm and volume<=2ULP; future such judgments delegated to root",
+  "policy": {
+    "name": "glb-component-centroid-volume-v1",
+    "centroid_absolute_mm": "1e-12",
+    "volume_max_ulp": 2
+  },
+  "scope": {
+    "component_context_policy": "component-bodies-probe",
+    "mode": "probe",
+    "phase_policy": "opening-transition-probe",
+    "exports_permitted": false,
+    "model_paths": [
+      "geometry[body].centroid_m[axis0..2]",
+      "geometry[body].volume_m3"
+    ],
+    "snapshot_paths": [
+      "components[i].model.geometry[...]",
+      "components[i].component_context.model_state_after.geometry[...]",
+      "components[i].component_context.bodies[j].centroid_m[axis0..2]",
+      "components[i].component_context.bodies[j].volume_m3",
+      "components[i].component_context.bodies[j].mass_properties_raw[index0..2 centroid; index3 volume]"
+    ]
+  },
+  "unchanged_strict": [
+    "default strict-model-configuration and all invoke paths",
+    "area/body count/topology/bounds/mass/inertia",
+    "configuration/full configuration set/readonly/clean/viewonly/rebuild/stamp",
+    "native identity/all file metadata/SHA/CAS/graph/phase/budgets"
+  ],
+  "receipt": {
+    "location": "case.geometry_comparisons outside native observations",
+    "contents": "all numerical checks and strict numeric deltas retain raw/type/hex/exact rational delta/ULP/path/decision",
+    "mutation": "no normalization, rounding, baseline replacement or removal of native fields",
+    "audit": "shared recomputation from raw models/snapshots; exact receipt/policy matching; absent or tampered proof refuses"
+  },
+  "validation": {
+    "markingjig_tests": 168,
+    "new_numerical_tests": 28,
+    "typed_bridge_tests": 23,
+    "host_Python": "3.15.2 macOS",
+    "covered": [
+      "per-coordinate decimal mm exact bound and adjacent binary64 boundary",
+      "1/2/3ULP up/down/subnormal/zero/opposite signs",
+      "nonfinite/wrong types/unknown fields and semantic alias inconsistency refused",
+      "same missing state on both sides refused",
+      "top without geometry, part with geometry, subassembly marker, host identity, component kind/type/virtual bound",
+      "model-after and full snapshots and supervisor use same policy",
+      "old strict rejects1ULP and old receipt policy absent refuses",
+      "raw snapshots unchanged and numerical receipts kept outside them"
+    ]
+  },
+  "source_sha256": {
+    "scripts/diagnostics/markingjig/markingjig_control.py": "ff93a91cfb4ec0f474bc6c97a35eed4ff7da2495b3e69c270f30096ec9dcdea8",
+    "scripts/diagnostics/markingjig/run-markingjig-control.py": "63bdd37b194ab46dfb16d0e1936e51227897f454c5dcc6f2ce309ce84e9b270a",
+    "scripts/diagnostics/markingjig/test_glb_numerical_policy.py": "6b9e83ccb564c6e3846b8f984bb9afd58e12a4c13cfa66019d4d5d707d75d1e6"
+  },
+  "fixed_runtime_files_byte_identical_to_a7": {
+    "scripts/diagnostics/markingjig/file_forensics.py": true,
+    "scripts/diagnostics/markingjig/opening_phases.py": true,
+    "scripts/diagnostics/markingjig/launcher_receipts.py": true,
+    "scripts/diagnostics/typed_glb/run-typed-glb-control.py": true,
+    "scripts/diagnostics/typed_glb/bridge_control.py": true
+  },
+  "frozen_old_packets_unchanged": {
+    "02": true,
+    "03": true,
+    "04": true,
+    "05": true
+  },
+  "old05": {
+    "report_sha256": "1a34ad9aa38a5d346c01af21a50b21f541bf4761882cbc7f2a606b88f9d0d37f",
+    "status": "failed unchanged",
+    "loaded_baseline_sealed": false,
+    "numerical_policy_absent": true
+  },
+  "own_operations": {
+    "VM": 0,
+    "COM": 0,
+    "CAD": 0,
+    "old_artifact_writes": 0,
+    "business_source_reads": 0,
+    "push": 0,
+    "new_CI": 0
+  },
+  "limits": [
+    "new numerical source has local synthetic tests only; no new native or Windows CI evidence",
+    "earlierCI43402895583 coversc39dade not this change",
+    "next precise source package/complete launcher/new CAD ticket belong to coordinator"
+  ]
+}
