@@ -1,5 +1,6 @@
 # 出详图 next（不纳入当前发版）
 
+- 候选生产 head：`32fc9ff0797e224795415e03a343746516462cc8`，基线 `31ad9c2`，分支 `codex/docprops-detailing-next`。
 - 已实现：新增中心线/孔阵列连接线默认值的独立合同、CLI/daemon/worker/SDK 接线，完整四值 CAS（含两个旧只读保护值），新写入白名单为空。
 - 便携已完成：2984 项回归（39 跳过）、38 项关联检查（新增 18 项）及 SDK strict/38 类型拒绝例通过。
 - 未验收：没有新原生 COM/VM/CI 证据，所有新 set/no-op 仍 fail closed；当前不具备 merge-ready 条件。
