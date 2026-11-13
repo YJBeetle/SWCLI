@@ -1,3 +1,12 @@
+# 字体范围 next（2026-11-14）
+
+- `codex/docprops-font-scopes-next` 从已核 main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00` 建立；原 Notes 验收提交、分支与两份 ZIP 原件保留。
+- 已实现尺寸/表格两类有限受保护候选、单 scope 校准/看门狗入口与表格五类联动只读 witness；Notes 不重做，public 新写仍关闭。
+- 实现提交 `466035fee5f056f6c88f6afd486ed8d36d28ce8f`：字体专项 74 项通过；完整便携回归 2,976 项，OK（39 skipped），131.411 秒；SDK/3.9语法通过。详见 [next 交接](docs/handoffs/font-scopes-next.md)。本轮无 COM/VM/手动原生 CI，不混入当前发布。
+- 后续由 root 排程精确 head 的两组定向原生校准，再核实 public/继承边界；详见交接中的已实现、未验收及原生计划。
+
+---
+
 # 逐路集成交接
 
 - 单位九字段有限profile已完成42935636514/459b0cf原件与统筹独立逐请求审查；整合保留86旧合同、新增2份单位合同，2773测试/39skip、SDK31负消费通过。详见docs/document-unit-profile.md及docs/evidence/units-main-integration-2026-11-11；未发布。
