@@ -886,3 +886,10 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 原生能力限定为 Windows 2025 SP5 owned hidden 零件；原生专项通过不等于 main 整套通过，也不等于现代 API/GLB 迁移通过。
 - 合并保留 main 现有 STL、单位、字体、表格、拓扑和 MCP/SDK；专项公共验证入口 step-export.yml 不新增 main 手动参数。历史原件诊断 CI 定义作为只读证据归档，不再加入 main 的手动菜单。
 - 本系列未发布；GLB/旧 API/配合等现有未完成项仍需闭环，发布前由用户最终确认。
+
+## 2026-11-15：主线基线上的active assembly全目标readonly候选
+
+- 新持久worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`，branch codex/swcli-assembly-mates-active，精确origin/main31ad9c2起点；新worktree admin SWCLI20/config.worktree独立core.worktree绝对路径，未改shared/global或旧SWCLI12/mainSWCLI16。旧诊断分支c63c213和evidence保留，33/31有限证据复制JSON/MD，原件hash已复核。
+- 不整体带回旧src/schema/daemon/SDK/校准写开关。仅新增私有完整targets observer、root-owned同STA readonly入口及两份测试；existing main source零改。每面原GetCorresponding→ASM typed reference→resolved IEntity唯一GetComponent非空+精确owner强证明，后台在实体/owner访问前AssemblyNotActive；两组件全部面成功与所有后置通过才返回私有bindings，不发token/CAS/write。
+- 86关联测试通过，日志 /private/tmp/swcli-active-target-census-related-20261115.log；源码AST/diff检查通过。完整Git源码513项manifest SHA `997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1`，提交后逐Git blob核验；全readonly原生尚未运行。
+- 前台公共能力/typed句柄与CAS/写save-reopen三阶段设计见 assembly-mates-active-public-stages-2026-11-15.md，具体只读门禁见active-census-proposal；root外部owned parent/supervisor和600/1800需另审冻结，reader不创建资源。无VM/COM/CAD/CI/push/包/grant/main合并。

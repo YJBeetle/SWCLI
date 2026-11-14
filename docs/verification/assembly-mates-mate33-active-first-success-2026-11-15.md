@@ -1,0 +1,9 @@
+# native33有限成功与31失败对照
+
+root只执行一次native33，源码b2e7e4b、完整312项source manifest48561de。独立审计7b2c53971c0ffbc43a34cbd554e949a8629c275982205d87ae79d1acd1d1e58a及列出的原件hash已逐项复核，详见同名JSON；本路未运行VM/COM/CAD/CI，原件不改。
+
+两次readonly自然PRT→ASM后，target ASM ActiveDoc原生身份通过。与31相同第一个组件/首个圆柱面、713字节引用及其摘要，typed resolve严格tuple2/int0/非空，mapped/resolved native身份、体和几何全部通过。唯一resolved IEntity.GetComponent实测非空，owner与精确计划组件native IsSame通过。所有source/config/stamp/pose/ASM/foreground/files后置通过；GetComponent1、CreateMate0、Save0、Activate0。held host真实退出0、nativeafter[]、cleanup[]、idle恢复on，root已释放VM。
+
+31先ASM再独立PRT，target ASM后台；其唯一GetComponent仍NULL的原失败不变。33支持当前保存只读样件的自然活动ASM、第一组件第一面来源路径，不能外推第二组件、其它面或全量targets，不能称公开API/旧句柄/CAS/配合写入/保存重开通过。打开顺序也影响加载时序与潜在缓存，不称唯一根因或严格单变量证明。public_acceptance/merge_ready均false。
+
+下一阶段必须基于当前origin/main31ad9c2独立收敛，不整体合回旧分支。先准备明确的活动ASM前置契约和全部组件/全部面的只读证明，后台目标在owner或写API前清晰拒绝，禁止静默激活；每个计划面仍需自己的唯一GetComponent和精确组件原生owner证明。公共入口、旧句柄/CAS及写保存重开分别作为后续门禁，不以33首面成功跳过。
