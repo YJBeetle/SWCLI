@@ -15,6 +15,7 @@ from ..hosts.native_trace import native_call
 from ..hosts.windows_dimension_identity import same_dimension
 from ..hosts.com_errors import DISCONNECTED_COM_HRESULTS, com_hresult
 from .entities import EntityRegistry
+from .assembly_targets import AssemblyTargetRegistry
 from ..hosts.windows_sketch_inspection import (
     SketchFeatureIdConflict,
     _feature_id,
@@ -98,6 +99,7 @@ class DocumentEntry:
     features: Dict[str, Any] = field(default_factory=dict)
     feature_ids_by_native_id: Dict[int, str] = field(default_factory=dict)
     entities: Optional[EntityRegistry] = None
+    assembly_targets: Optional[AssemblyTargetRegistry] = None
 
 
 @dataclass
@@ -148,6 +150,7 @@ class DocumentRegistry:
         # feature's short handle must not become valid for a later object.
         self._issued_feature_ids: set[str] = set()
         self._issued_entity_ids: set[str] = set()
+        self._issued_assembly_target_ids: set[str] = set()
 
     def _new_id(self) -> str:
         while True:
@@ -313,6 +316,9 @@ class DocumentRegistry:
         entry = DocumentEntry(self._new_id(), document)
         entry.entities = EntityRegistry(
             self.app, entry.document_id, issued_ids=self._issued_entity_ids
+        )
+        entry.assembly_targets = AssemblyTargetRegistry(
+            self.app, document, entry.document_id, issued_ids=self._issued_assembly_target_ids
         )
         self._entries[entry.document_id] = entry
         self._ids_by_key[key] = entry.document_id
@@ -559,6 +565,8 @@ class DocumentRegistry:
             return
         if entry.entities is not None:
             entry.entities.close()
+        if entry.assembly_targets is not None:
+            entry.assembly_targets.close()
         entry.features.clear()
         entry.feature_ids_by_native_id.clear()
         entry.sketches.clear()
