@@ -1,0 +1,221 @@
+{
+  "schema": "mate33-active-first-bounded-success-v1",
+  "scope": "read-only review of root native33 originals; only one existing first face proven",
+  "original_artifact": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261115/mate-owner-33",
+  "source_head": "b2e7e4b81306977de8f9c40ada915d1507cd6dd4",
+  "execution_manifest_sha256": "48561de8f55df215408434ff26e2da12ba70a68e71631fab17f1abc1b07be550",
+  "root_audit_sha256": "7b2c53971c0ffbc43a34cbd554e949a8629c275982205d87ae79d1acd1d1e58a",
+  "root_original_evidence_hashes": {
+    "source.zip": "e3ab2c071ca192abbe5ffae7f4375f1e49ca0c006354c5cb860e927e535d44a2",
+    "proposal.json": "07c4ae1e0d33012ba1f13af2389fbe5fc2106b4c6e886cf5946c173debaa5936",
+    "single-job-manifest.json": "6adf542290f2c12e0b352bc2c9ba6522623f8b9355bf1844690296350236b9d8",
+    "single-job-result.json": "dbcaba707faff8c0204a323a164815374392e0ea7c603fe9e4ed8bae90c9e0ed",
+    "host-execution-context.json": "a34049119796bea628411a94a1c91bfaf97700eea1a03c5b1bf1eab9981713f0",
+    "native-output/parent-report.json": "273df25a641e92e5202784afd09ec715938687f611779f0d5ff6139b0807c3db",
+    "native-output/supervisor-report.json": "23d8dd1ec71cc5417fb9101221d38b748b46bdff29ad03e31987dbe7b2f988f2",
+    "native-output/observer/report.json": "8590f94340cf7357166abf2d5992925b72e929b1d048a4554f8ff49da61b6d02",
+    "native-output/observer/owner-evidence.jsonl": "29021d2bc9606bc6fe164772526ce98b0685beed3a16959b86678b1b9d790578",
+    "native-output/transfer-receipt.json": "8e4ce52e65aaca27ebc93b52b6f8e8a70e0655c49686358b8beb487fd22a5f6c",
+    "owner-original-audit.json": "615225d3177c763550fb7e744771f18f50fd852ea98642f2b18656c89ef18ecc"
+  },
+  "result": {
+    "ok": true,
+    "scope": "one readonly first face; not a full mate snapshot or write acceptance",
+    "plan": "assembly-reference-active-first",
+    "foreground_contract": "target-assembly-active",
+    "selected_component": "coincident-aligned-component-1",
+    "selected_face_index": 0,
+    "observed_faces": 1,
+    "reference_sha256": "f97ad7126321f2356586ce0cd9ae2ee69e6b82f6b93ea4bbac01e794d7781b01",
+    "owner_proof": {
+      "native_GetComponent_nonnull": true,
+      "exact_component_IsSame": true,
+      "original_mapped_preserved": true,
+      "roundtrip_identity": true,
+      "original_GetComponent_calls": 0,
+      "resolved_GetComponent_calls": 1,
+      "body_identity_alone_is_not_authority": true
+    },
+    "public_acceptance": false,
+    "write_CAS_executed": false
+  },
+  "typed_resolution": {
+    "event": "typed-reference-resolution-return",
+    "sequence": 5,
+    "plan": "assembly-reference-active-first",
+    "tuple_items": 2,
+    "status": 0,
+    "status_python_type": "int",
+    "native_status_written": true,
+    "returned_none": false
+  },
+  "first_face": {
+    "component_index": 0,
+    "source_face_index": 0,
+    "surface_kind": "cylinder",
+    "reference_bytes": 713,
+    "reference_sha256": "f97ad7126321f2356586ce0cd9ae2ee69e6b82f6b93ea4bbac01e794d7781b01",
+    "native_identity_and_body_geometry_passed": true
+  },
+  "owner_return": {
+    "event": "assembly-reference-owner-return",
+    "sequence": 11,
+    "plan": "assembly-reference-active-first",
+    "returned_none": false,
+    "owner": {
+      "python_id": 1604796200096,
+      "module": "win32com.client",
+      "qualname": "CDispatch",
+      "dispatch": {
+        "python_id": 1604800397064,
+        "module": "builtins",
+        "qualname": "PyIDispatch"
+      },
+      "mro": [
+        {
+          "module": "win32com.client",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "win32com.client.dynamic",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "builtins",
+          "qualname": "object"
+        }
+      ],
+      "static_GetComponent_member": null,
+      "cached_member_maps": {
+        "_builtMethods_": {
+          "keys": [],
+          "GetComponent": null
+        },
+        "_mapCachedItems_": {
+          "keys": [],
+          "GetComponent": null
+        }
+      }
+    },
+    "exact_planned_owner": true
+  },
+  "active_context": {
+    "event": "active-assembly-owner-context",
+    "sequence": 9,
+    "plan": "assembly-reference-active-first",
+    "target": {
+      "python_id": 1604816947520,
+      "module": "win32com.client",
+      "qualname": "CDispatch",
+      "dispatch": {
+        "python_id": 1604739364728,
+        "module": "builtins",
+        "qualname": "PyIDispatch"
+      },
+      "mro": [
+        {
+          "module": "win32com.client",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "win32com.client.dynamic",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "builtins",
+          "qualname": "object"
+        }
+      ],
+      "static_GetComponent_member": null,
+      "cached_member_maps": {
+        "_builtMethods_": {
+          "keys": [
+            "GetComponentCount",
+            "GetComponents"
+          ],
+          "GetComponent": null
+        },
+        "_mapCachedItems_": {
+          "keys": [],
+          "GetComponent": null
+        }
+      }
+    },
+    "foreground": {
+      "python_id": 1604796196784,
+      "module": "win32com.client",
+      "qualname": "CDispatch",
+      "dispatch": {
+        "python_id": 1604800396008,
+        "module": "builtins",
+        "qualname": "PyIDispatch"
+      },
+      "mro": [
+        {
+          "module": "win32com.client",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "win32com.client.dynamic",
+          "qualname": "CDispatch"
+        },
+        {
+          "module": "builtins",
+          "qualname": "object"
+        }
+      ],
+      "static_GetComponent_member": null,
+      "cached_member_maps": {
+        "_builtMethods_": {
+          "keys": [],
+          "GetComponent": null
+        },
+        "_mapCachedItems_": {
+          "keys": [],
+          "GetComponent": null
+        }
+      }
+    },
+    "native_identity_matches": true
+  },
+  "counts": {
+    "GetComponent_calls": 1,
+    "CreateMate_calls": 0,
+    "Save_calls": 0,
+    "activate_calls": 0
+  },
+  "postconditions": "source/configuration/update stamps/transforms/assembly/foreground/input bytes all passed on the successful first-face path",
+  "cleanup": {
+    "actual_held_host_exit_code": 0,
+    "host_exit_confirmed": true,
+    "native_after": [],
+    "cleanup_errors": [],
+    "idle_pause_restored": "on"
+  },
+  "comparison": {
+    "native31_artifact": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/vm-series-20261115/mate-owner-31",
+    "root_audit_sha256": "b6fe062bd56b884324c7e01006f6b0f13650eab6b83df2ae8c427ee20d2f3668",
+    "source_head": "538dce23e0fa763a560112136c7bf373f25e5545",
+    "case_success": false,
+    "first_business_error": {
+      "type": "MateObservationUnavailable",
+      "message": "assembly-resolved face has no component in the selected assembly context"
+    },
+    "natural_order": "ASM then independent PRT; target ASM background",
+    "reference_sha256": "f97ad7126321f2356586ce0cd9ae2ee69e6b82f6b93ea4bbac01e794d7781b01",
+    "reference_bytes": 713,
+    "same_first_face_and_reference": true,
+    "interpretation": "31 background owner null remains failure; 33 natural active control succeeds for this first face. Opening order/loading timing also differs; no unique cause or general background ownership proof."
+  },
+  "verification_limits": {
+    "full_component_face_census": false,
+    "all_targets": false,
+    "public_route": false,
+    "handles": false,
+    "write_CAS": false,
+    "mate_write": false,
+    "save_reopen": false,
+    "public_acceptance": false,
+    "merge_ready": false
+  }
+}

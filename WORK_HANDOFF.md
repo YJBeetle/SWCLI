@@ -886,3 +886,22 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 原生能力限定为 Windows 2025 SP5 owned hidden 零件；原生专项通过不等于 main 整套通过，也不等于现代 API/GLB 迁移通过。
 - 合并保留 main 现有 STL、单位、字体、表格、拓扑和 MCP/SDK；专项公共验证入口 step-export.yml 不新增 main 手动参数。历史原件诊断 CI 定义作为只读证据归档，不再加入 main 的手动菜单。
 - 本系列未发布；GLB/旧 API/配合等现有未完成项仍需闭环，发布前由用户最终确认。
+
+## 2026-11-15：主线基线上的active assembly全目标readonly候选
+
+- 新持久worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`，branch codex/swcli-assembly-mates-active，精确origin/main31ad9c2起点；新worktree admin SWCLI20/config.worktree独立core.worktree绝对路径，未改shared/global或旧SWCLI12/mainSWCLI16。旧诊断分支c63c213和evidence保留，33/31有限证据复制JSON/MD，原件hash已复核。
+- 不整体带回旧src/schema/daemon/SDK/校准写开关。仅新增私有完整targets observer、root-owned同STA readonly入口及两份测试；existing main source零改。每面原GetCorresponding→ASM typed reference→resolved IEntity唯一GetComponent非空+精确owner强证明，后台在实体/owner访问前AssemblyNotActive；两组件全部面成功与所有后置通过才返回私有bindings，不发token/CAS/write。
+- 86关联测试通过，日志 /private/tmp/swcli-active-target-census-related-20261115.log；源码AST/diff检查通过。完整Git源码513项manifest SHA `997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1`，提交后逐Git blob核验；全readonly原生尚未运行。
+- 前台公共能力/typed句柄与CAS/写save-reopen三阶段设计见 assembly-mates-active-public-stages-2026-11-15.md，具体只读门禁见active-census-proposal；root外部owned parent/supervisor和600/1800需另审冻结，reader不创建资源。无VM/COM/CAD/CI/push/包/grant/main合并。
+
+## 2026-11-15：新候选配置读取改现代属性链
+
+- root亲审f379发现新configuration helper沿用了弃用GetActiveConfiguration；本次仅新候选改为ConfigurationManager.ActiveConfiguration.Name，保留names/count=1与严格值/缺失保护，属性错误原样停止且无旧API fallback。旧getter在fake中调用即失败，完整census/后置及无效配置/原异常反例通过。main已有windows_documents等旧调用不纳入范围。
+- 88项相关通过，日志 /private/tmp/swcli-active-target-modern-configuration-related-20261115.log；AST与Python3.9/diff通过。513项新manifest SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`；旧9971319原字节保存f379023-original。未VM/CI/native33重跑。另已获root明确授权下一独立逻辑提交准备最小私有外层adapter，仍无执行授权。
+
+## 2026-11-15：私有完整census外层adapter离线准备
+
+- root明确授权后新增run-active-assembly-target-census.py及外层测试；按函数粒度来源收据复用b2e的Journal/clock/nested/held-exit基础，不导入旧mate产品或旧observer/runtime。当前main工厂/capture terminate_right=False；manager1840零COM、supervisor600/1800零COM、parent唯一STA/自然PRT→ASM/新reader一次/normal owned cleanup。
+- 原始身份在准入前持久化，strict typed OpenDoc flags/warnings和same STA；deadline后只exact拥有Python，不kill CAD/不加CAD预算。所有原始/next-clock样本、completed-span600/终态完整trace、严格held rawexit和unknown None保留，report/trace/files次错及必要COM释放/traceback GC有反例。两层异步持久mirror和逐fileSHA收据，未知copy不成功。
+- 110相关通过（adapter22+census/reader30+main58），日志 /private/tmp/swcli-active-target-adapter-related-20261115.log；AST/Python3.9/diff通过。新完整515项manifest SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`，旧现代cfg e21fa原字节保留，符号级来源原件SHA见adapter-provenance JSON。提交后逐Git blob核验。
+- 仅本地代码/测试/文档/中文提交，无VM/COM/CAD/CI/push/包/grant或native33重跑；root亲审最终head后统一打包/排期。公共typed句柄/CAS/配合写与保存重开仍未实现/未验证，原31/33有限证据不改。
