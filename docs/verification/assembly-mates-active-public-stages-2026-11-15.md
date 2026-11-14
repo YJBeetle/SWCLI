@@ -1,6 +1,8 @@
+> 新增私有最小外层及最新来源见 [adapter说明](assembly-mates-active-census-adapter-2026-11-15.md)。下面无parent/supervisor的描述属于reader边界；当前外层亦未执行或授权。
+
 # 当前主线上的活动 ASM 配合能力收敛
 
-起点精确origin/main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00`。新worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`、branch `codex/swcli-assembly-mates-active`；旧诊断分支及evidence保留，33归档提交c63c213。旧分支并非主线后续可整体合并的产品补丁：当前main没有配合API，存在大量更新的daemon/schema/SDK/文档偏好与导出实现。本候选只新增一个私有只读host模块、一个root-owned观察入口和两份测试，既有main产品源码与测试零修改（只追加本路交接记录）；未带回旧校准写开关/配合写实现/CLI/schema/SDK或废弃映射路径。逐项来源收据 `assembly-mates-active-census-mainline-port-2026-11-15.json`。
+起点精确origin/main `31ad9c256a5a106bc94a627cd41dfd6277bb6f00`。新worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`、branch `codex/swcli-assembly-mates-active`；旧诊断分支及evidence保留，33归档提交c63c213。旧分支并非主线后续可整体合并的产品补丁：当前main没有配合API，存在大量更新的daemon/schema/SDK/文档偏好与导出实现。本候选只新增私有只读host模块、root-owned观察入口、最小私有外层和三份测试，既有main产品源码与测试零修改（只追加本路交接记录）；未带回旧校准写开关/配合写实现/CLI/schema/SDK或废弃映射路径。逐项来源收据 `assembly-mates-active-census-mainline-port-2026-11-15.json`。
 
 33有限成功与31后台NULL失败见同目录33 JSON/MD。安装版2025 GetComponent契约限制实体装配来源，实际TLB描述是“In active assembly, get Component which owns this entity”。33仅第一组件第一圆柱面、713字节同引用、native owner非空+精确组件身份与后置通过；不证明其它面、公共入口或CAS。本候选不得把它外推为后台通用owner来源。
 
@@ -32,8 +34,8 @@ CAS入口先做协议/lease/类型/注册scope核对；worker在任何owner读�
 
 ## 当前离线验证与下一执行输入
 
-88项相关测试通过（本候选30项，当前main既有引用/face observation/native_sequence/trace58项），日志 `/private/tmp/swcli-active-target-modern-configuration-related-20261115.log`。覆盖所有面各自owner、在每个位置NULL立即停止、正确body/ref却错误component拒绝、后台在实体遍历前拒绝、typed返回形态/未知status不强转、原异常不重试、完整census不丢面、官方指针/库/描述符、引用跨实例歧义、配置/pose/edit/boolean后置漂移，以及root观察入口无部分结果/文件次错不覆盖首错。无公共schema/SDK变化，不重跑生成器或无关全套。
+110项相关测试通过（census/reader30项、adapter22项，当前main既有引用/face observation/native_sequence/trace58项），日志 `/private/tmp/swcli-active-target-adapter-related-20261115.log`。覆盖所有面各自owner、在每个位置NULL立即停止、正确body/ref却错误component拒绝、后台在实体遍历前拒绝、typed返回形态/未知status不强转、原异常不重试、完整census不丢面、官方指针/库/描述符、引用跨实例歧义、配置/pose/edit/boolean后置漂移，以及root观察入口无部分结果/文件次错不覆盖首错。无公共schema/SDK变化，不重跑生成器或无关全套。
 
-完整Git src/scripts/tests `513`项清单 `assembly-mates-active-census-inputs-2026-11-15.json` SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`；manifest只是离线来源，不是grant。下一readonly门禁具体安排见 [完整census执行提议](assembly-mates-active-census-proposal-2026-11-15.md)，当前尚未原生执行。
+完整Git src/scripts/tests `515`项清单 `assembly-mates-active-census-inputs-2026-11-15.json` SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`；manifest只是离线来源，不是grant。下一readonly门禁具体安排见 [完整census执行提议](assembly-mates-active-census-proposal-2026-11-15.md)，当前尚未原生执行。
 
 新配置读取只用当前main同款 `ConfigurationManager.ActiveConfiguration.Name`，完整names/count=1校验保持；manager/active缺失、名称无效/不匹配、属性原错均拒绝，不回退GetActiveConfiguration。fake旧API调用即失败，完整读取及成功后置亦覆盖。main已有其它旧调用未改。

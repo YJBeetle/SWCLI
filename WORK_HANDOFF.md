@@ -898,3 +898,10 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 
 - root亲审f379发现新configuration helper沿用了弃用GetActiveConfiguration；本次仅新候选改为ConfigurationManager.ActiveConfiguration.Name，保留names/count=1与严格值/缺失保护，属性错误原样停止且无旧API fallback。旧getter在fake中调用即失败，完整census/后置及无效配置/原异常反例通过。main已有windows_documents等旧调用不纳入范围。
 - 88项相关通过，日志 /private/tmp/swcli-active-target-modern-configuration-related-20261115.log；AST与Python3.9/diff通过。513项新manifest SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`；旧9971319原字节保存f379023-original。未VM/CI/native33重跑。另已获root明确授权下一独立逻辑提交准备最小私有外层adapter，仍无执行授权。
+
+## 2026-11-15：私有完整census外层adapter离线准备
+
+- root明确授权后新增run-active-assembly-target-census.py及外层测试；按函数粒度来源收据复用b2e的Journal/clock/nested/held-exit基础，不导入旧mate产品或旧observer/runtime。当前main工厂/capture terminate_right=False；manager1840零COM、supervisor600/1800零COM、parent唯一STA/自然PRT→ASM/新reader一次/normal owned cleanup。
+- 原始身份在准入前持久化，strict typed OpenDoc flags/warnings和same STA；deadline后只exact拥有Python，不kill CAD/不加CAD预算。所有原始/next-clock样本、completed-span600/终态完整trace、严格held rawexit和unknown None保留，report/trace/files次错及必要COM释放/traceback GC有反例。两层异步持久mirror和逐fileSHA收据，未知copy不成功。
+- 110相关通过（adapter22+census/reader30+main58），日志 /private/tmp/swcli-active-target-adapter-related-20261115.log；AST/Python3.9/diff通过。新完整515项manifest SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`，旧现代cfg e21fa原字节保留，符号级来源原件SHA见adapter-provenance JSON。提交后逐Git blob核验。
+- 仅本地代码/测试/文档/中文提交，无VM/COM/CAD/CI/push/包/grant或native33重跑；root亲审最终head后统一打包/排期。公共typed句柄/CAS/配合写与保存重开仍未实现/未验证，原31/33有限证据不改。
