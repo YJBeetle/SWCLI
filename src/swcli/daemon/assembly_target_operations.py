@@ -88,7 +88,7 @@ def prepare_request(app, operation, parameters, *, documents, session_id,
         if old is not None:
             current_context(registry, old.value, old.bindings, old.source_documents)
     except Exception:
-        registry.invalidate_all()
+        registry.invalidate_after_failure()
         raise
     return entry, registry, old
 
@@ -158,7 +158,7 @@ def run(context, values):
     except Exception:
         # Preserve the original native/business error, retire old grants, and
         # publish neither partial handles nor silently refreshed replacements.
-        registry.invalidate_all()
+        registry.invalidate_after_failure()
         raise
 
 

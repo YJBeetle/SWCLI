@@ -67,9 +67,25 @@ class AssemblyTargetRegistry:
             self.stale.add(old.snapshot_id)
 
     def invalidate_all(self):
+        # Closed registries are already retired; failure cleanup is idempotent.
+        if self.closed:
+            return
         self.live()
         for session in tuple(self.snapshots):
             self.retire(session)
+
+    def invalidate_after_failure(self):
+        """Retire without replacing the original exception or touching CAD."""
+        try:
+            self.invalidate_all()
+        except Exception as secondary:
+            # A retirement error cannot leave a live grant or replace the first
+            # business/native error. This owning-STA fallback uses only Python
+            # state, never another native probe, retry or close-document call.
+            self.closed = True
+            self.snapshots.clear()
+            self.document = self.app = None
+            self.retirement_error = type(secondary).__name__
 
     def close(self):
         self.live()

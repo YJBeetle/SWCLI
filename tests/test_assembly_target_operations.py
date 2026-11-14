@@ -476,3 +476,60 @@ class AssemblyTargetOperationTests(unittest.TestCase):
         same.assert_not_called()
         self.assertIn('reader',self.registry.snapshots)
         self.validate(first)
+
+
+    def test_prepare_closed_registry_cleanup_is_idempotent_and_preserves_original(self):
+        for name in ('list','validate'):
+            with self.subTest(operation=name):
+                first=self.listed();self.reset_native_counts()
+                original=RuntimeError('original initial identity failure')
+                def close_then_fail(*args):
+                    self.registry.close()
+                    raise original
+                with mock.patch.object(self.registry,'same',side_effect=close_then_fail):
+                    with self.assertRaises(RuntimeError) as caught:
+                        self.call() if name=='list' else self.validate(first)
+                self.assertIs(caught.exception,original)
+                self.assertTrue(self.registry.closed)
+                self.registry.invalidate_all();self.registry.invalidate_after_failure()
+                self.assertFalse(self.registry.snapshots)
+                self.assert_owner_count(0)
+                # A new document registry is an explicitly new worker scope.
+                self.documents=DocumentRegistry(self.app);self.entry=self.documents.register(self.doc)
+                self.registry=self.entry.assembly_targets
+                self.lease=self.documents.acquire_lease(self.entry,session_id='reader',ttl_seconds=60)['lease_id']
+
+    def test_run_closed_registry_cleanup_keeps_with_document_first_error_for_both_entries(self):
+        for name in ('list','validate'):
+            with self.subTest(operation=name):
+                first=self.listed();self.reset_native_counts()
+                issued=set(self.registry.issued_ids)
+                original=RuntimeError('original document descriptor failure')
+                def close_then_fail(*args,**kwargs):
+                    self.registry.close()
+                    raise original
+                with mock.patch('swcli.daemon.operations._with_document',side_effect=close_then_fail):
+                    with self.assertRaises(RuntimeError) as caught:
+                        self.call() if name=='list' else self.validate(first)
+                self.assertIs(caught.exception,original)
+                self.assertTrue(self.registry.closed)
+                self.assertFalse(self.registry.snapshots)
+                self.assertEqual(self.registry.issued_ids,issued)
+                self.assert_owner_count(1)
+                with self.assertRaises(AssemblyTargetNotFound):self.validate(first)
+                self.documents=DocumentRegistry(self.app);self.entry=self.documents.register(self.doc)
+                self.registry=self.entry.assembly_targets
+                self.lease=self.documents.acquire_lease(self.entry,session_id='reader',ttl_seconds=60)['lease_id']
+
+    def test_secondary_retirement_failure_closes_grants_and_never_overwrites_first_error(self):
+        first=self.listed();self.reset_native_counts()
+        original=RuntimeError('original observation failure')
+        secondary=OSError('secondary retirement failure')
+        with mock.patch.object(self.registry,'same',side_effect=original), \
+             mock.patch.object(self.registry,'invalidate_all',side_effect=secondary):
+            with self.assertRaises(RuntimeError) as caught:self.validate(first)
+        self.assertIs(caught.exception,original)
+        self.assertTrue(self.registry.closed)
+        self.assertFalse(self.registry.snapshots)
+        self.assertEqual(self.registry.retirement_error,'OSError')
+        self.assert_owner_count(0)
