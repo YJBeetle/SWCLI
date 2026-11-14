@@ -71,7 +71,8 @@ class ActiveTargetGateTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'filesystem readonly'):gate.verify_files(folder)
                 path.write_bytes(b'changed');path.chmod(0o444)
                 with self.assertRaisesRegex(RuntimeError,'bytes differ'):gate.verify_files(folder)
-                path.unlink();path.symlink_to(folder/'coincident-aligned-component.SLDPRT')
+                # Windows refuses unlinking a readonly file, even in its writable temp directory.
+                path.chmod(0o644);path.unlink();path.symlink_to(folder/'coincident-aligned-component.SLDPRT')
                 with self.assertRaisesRegex(RuntimeError,'link refused'):gate.verify_files(folder)
 
     def test_preflight_exact_catalog_active_asm_and_isolated_source_required(self):
