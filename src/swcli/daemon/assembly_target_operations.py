@@ -71,7 +71,6 @@ def prepare_request(app, operation, parameters, *, documents, session_id,
     entry = documents.resolve(document_id, session_id=session_id)
     registry = entry.assembly_targets
     registry.live()
-    _require(registry.same(entry.document, registry.document), 'registered assembly native identity changed')
     documents.require_lease(entry, session_id=session_id, lease_id=lease_id)
     old = None
     if operation.endswith('.validate'):
@@ -79,6 +78,7 @@ def prepare_request(app, operation, parameters, *, documents, session_id,
     else:
         registry.capacity(session_id)
     try:
+        _require(registry.same(entry.document, registry.document), 'registered assembly native identity changed')
         native.require_active_assembly(app, entry.document)
         stamp = native.value(entry.document, 'GetUpdateStamp')
         if type(stamp) is not int or stamp < 0:

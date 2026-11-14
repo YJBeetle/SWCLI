@@ -433,3 +433,46 @@ class AssemblyTargetOperationTests(unittest.TestCase):
             with self.assertRaises(AssemblyTargetStale):self.call()
         self.assert_owner_count(1)
         self.assertFalse(self.registry.issued_ids or self.registry.snapshots)
+
+
+    def test_unknown_initial_identity_retires_all_sessions_before_owner_and_never_revives(self):
+        first=self.listed()
+        self.documents.release_lease(self.lease,session_id='reader')
+        other=self.call(session='other',lease_id=None)
+        self.lease=self.documents.acquire_lease(self.entry,session_id='reader',ttl_seconds=60)['lease_id']
+        self.assertEqual(set(self.registry.snapshots),{'reader','other'})
+        self.reset_native_counts()
+        failure=AssemblyTargetConflict('native assembly target identity is unknown')
+        with mock.patch.object(self.registry,'same',side_effect=failure):
+            with self.assertRaises(AssemblyTargetConflict) as caught:self.validate(first)
+        self.assertIs(caught.exception,failure)
+        self.assertFalse(self.registry.snapshots)
+        self.assert_owner_count(0)
+        with self.assertRaises(AssemblyTargetStale):self.validate(first)
+        self.documents.release_lease(self.lease,session_id='reader')
+        other_lease=self.documents.acquire_lease(self.entry,session_id='other',ttl_seconds=60)['lease_id']
+        with self.assertRaises(AssemblyTargetStale):self.validate(other,session='other',lease_id=other_lease)
+        self.assert_owner_count(0)
+
+    def test_unknown_initial_identity_list_also_retires_old_snapshot(self):
+        first=self.listed();self.reset_native_counts()
+        original_same=self.app.IsSame.side_effect
+        def unknown(first,second):
+            if first is self.doc and second is self.registry.document:return True
+            return original_same(first,second)
+        with mock.patch.object(self.app.IsSame,'side_effect',unknown):
+            with self.assertRaises(AssemblyTargetConflict):self.call()
+        self.assertFalse(self.registry.snapshots)
+        self.assert_owner_count(0)
+        with self.assertRaises(AssemblyTargetStale):self.validate(first)
+
+    def test_wrong_lease_kind_or_session_does_not_observe_initial_native_identity(self):
+        first=self.listed();self.reset_native_counts()
+        with mock.patch.object(self.registry,'same',side_effect=AssertionError('ordinary refusal must precede identity')) as same:
+            bad=self.parameters(first);bad['target_ids']=['at-'+'0'*32]
+            with self.assertRaises(AssemblyTargetNotFound):self.call('assembly.targets.validate',bad)
+            with self.assertRaises(DocumentLeaseConflict):self.validate(first,session='other')
+            with self.assertRaises(ValueError):self.validate(first,lease_id=None)
+        same.assert_not_called()
+        self.assertIn('reader',self.registry.snapshots)
+        self.validate(first)
