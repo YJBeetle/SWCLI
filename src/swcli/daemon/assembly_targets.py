@@ -88,6 +88,8 @@ class AssemblyTargetRegistry:
             self.retirement_error = type(secondary).__name__
 
     def close(self):
+        if self.closed:
+            return
         self.live()
         for session in tuple(self.snapshots):
             self.retire(session)

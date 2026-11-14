@@ -533,3 +533,39 @@ class AssemblyTargetOperationTests(unittest.TestCase):
         self.assertFalse(self.registry.snapshots)
         self.assertEqual(self.registry.retirement_error,'OSError')
         self.assert_owner_count(0)
+
+
+    def test_document_forget_after_closed_or_failed_retirement_clears_all_scope_maps(self):
+        for fallback in (False,True):
+            with self.subTest(fallback=fallback):
+                first=self.listed()
+                old_entry=self.entry;old_registry=self.registry;old_doc_id=old_entry.document_id
+                self.documents.set_current(old_entry,session_id='reader')
+                self.documents.set_current(old_entry,session_id='other')
+                old_lease=self.lease
+                if fallback:
+                    with mock.patch.object(old_registry,'invalidate_all',side_effect=OSError('retirement failed')):
+                        old_registry.invalidate_after_failure()
+                else:
+                    original=RuntimeError('original descriptor failure before forget')
+                    def close_then_fail(*args,**kwargs):
+                        old_registry.close()
+                        raise original
+                    with mock.patch('swcli.daemon.operations._with_document',side_effect=close_then_fail):
+                        with self.assertRaises(RuntimeError) as caught:self.validate(first)
+                    self.assertIs(caught.exception,original)
+                self.assertTrue(old_registry.closed)
+                with mock.patch.object(old_registry,'same',side_effect=AssertionError('closed cleanup must never touch native')) as same:
+                    old_registry.close();old_registry.close()
+                    self.documents.forget(old_doc_id)
+                same.assert_not_called()
+                self.assertNotIn(old_doc_id,self.documents._entries)
+                self.assertNotIn(old_doc_id,self.documents._ids_by_key.values())
+                self.assertNotIn(old_doc_id,self.documents._current_by_session.values())
+                self.assertNotIn(old_doc_id,self.documents._lease_id_by_document)
+                self.assertNotIn(old_lease,self.documents._leases_by_id)
+                self.entry=self.documents.register(self.doc);self.registry=self.entry.assembly_targets
+                self.assertIsNot(self.entry,old_entry);self.assertIsNot(self.registry,old_registry)
+                self.assertFalse(self.registry.closed)
+                self.lease=self.documents.acquire_lease(self.entry,session_id='reader',ttl_seconds=60)['lease_id']
+                with self.assertRaises(AssemblyTargetNotFound):self.validate(first)
