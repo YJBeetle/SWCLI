@@ -2,7 +2,7 @@
 
 未运行VM/COM/CAD/CI、未打包/创建grant/push。root亲审最终head、完整source manifest与自身parent/supervisor对接后才可分配一次编号独占窗口。观察入口不获取/attach/初始化COM或管理资源，不能单独启动；不复用旧诊断分支runtime或旧manifest。当前main基线31ad9c2。
 
-固定输入：`assembly-mates-active-census-inputs-2026-11-15.json` SHA `997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1`、完整`513`项Git source；内部ZIP5d5a…95c7、公开失败ZIP5663…acee及三文件完整SHA见manifest。保留Python3.14.7 EXE4942…ac9、pywin312/jsonschema4.26.0、SW33.5.0 EXE9113…a18b/旁置TLB585e…1159。旧ZIP是原件/样件来源，不当作当前主线产品包；当前源码必须来自最终新commit。
+固定输入：`assembly-mates-active-census-inputs-2026-11-15.json` SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`、完整`513`项Git source；内部ZIP5d5a…95c7、公开失败ZIP5663…acee及三文件完整SHA见manifest。保留Python3.14.7 EXE4942…ac9、pywin312/jsonschema4.26.0、SW33.5.0 EXE9113…a18b/旁置TLB585e…1159。旧ZIP是原件/样件来源，不当作当前主线产品包；当前源码必须来自最终新commit。
 
 1. root在CAD acquisition前核完整Git blob/path set、解释器/依赖、两ZIP/EXE/TLB原件，建立新隔离readonly三副本和持久hostartifact输出，确认独占/外部占用和精确root-owned进程政策。先调用下面verify_candidate；root自身以OS handle/image/creation/hash证明实际新宿主身份，无不明确attach。
 2. root parent在同一owned STA预定自然readonly OpenDoc7两次：独立concentric PRT先、coincident ASM后。依旧保留真实flags/Error/Warning0或2和三catalog的clean/readonly/non-view-only/路径；ASM不自然活动即停。零ActivateDoc/Select/修引用/补开，不在33或其它失败case后切换重试。

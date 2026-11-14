@@ -71,7 +71,11 @@ def require_active_assembly(app, document, *, stage='assembly-targets'):
 
 def configuration(document):
     names = sequence(value(document, 'GetConfigurationNames'), 'configuration names', 1)
-    active = text(value(value(document, 'GetActiveConfiguration'), 'Name'), 'active configuration')
+    manager = value(document, 'ConfigurationManager')
+    require(manager is not None, 'configuration manager is unavailable')
+    active_configuration = value(manager, 'ActiveConfiguration')
+    require(active_configuration is not None, 'active configuration is unavailable')
+    active = text(value(active_configuration, 'Name'), 'active configuration')
     require(len(names) == integer(value(document, 'GetConfigurationCount'), 'configuration count') == 1
             and names == (active,), 'exactly one active configuration required', 'UnsupportedAssemblyTargetScope')
     return active

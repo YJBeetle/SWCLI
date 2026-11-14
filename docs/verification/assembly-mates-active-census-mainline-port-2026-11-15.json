@@ -9,9 +9,9 @@
   "old_native33_source": "b2e7e4b81306977de8f9c40ada915d1507cd6dd4",
   "mainline_has_no_assembly_mate_API": true,
   "new_source_files": {
-    "src/swcli/hosts/windows_assembly_target_observation.py": "a4402ce047dda453d53cdc12b2fccfcdc196aa8c4708ed35afe5d17357d4c85c",
+    "src/swcli/hosts/windows_assembly_target_observation.py": "6e0dcdb6d893c40c9bf072b31ba48225381e88199a07618dd68604b0bfdcfe82",
     "scripts/diagnostics/observe-active-assembly-target-census.py": "878d652f323da38c0f0bf101d34dcdc0d477743d2be2ddf8b5645cf0b481914e",
-    "tests/test_active_assembly_target_observation.py": "4b601e738383419315ce2b55d77d8adb27197f580dd7f622febbba9ffe0ce418",
+    "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b",
     "tests/test_active_assembly_target_gate.py": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd"
   },
   "retained_main_helpers": {
@@ -42,5 +42,6 @@
   "existing_main_runtime_source_files_modified": [],
   "existing_main_documents_modified": [
     "WORK_HANDOFF.md"
-  ]
+  ],
+  "configuration_contract": "New code uses ConfigurationManager.ActiveConfiguration.Name; deprecated GetActiveConfiguration is forbidden and trapped in tests. Names/count must still prove one exact active configuration."
 }

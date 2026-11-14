@@ -31,8 +31,10 @@ class ActiveAssemblyTargetsTests(unittest.TestCase):
         self.source_body.GetFaceCount=lambda:2;self.source_body.GetFaces=lambda:tuple(self.source_faces)
         def document(kind,name):
             stamp_reader=mock.Mock(return_value=7)
+            legacy=mock.Mock(side_effect=AssertionError('deprecated GetActiveConfiguration must never be called'))
             return NS(GetType=kind,GetConfigurationNames=lambda:('Default',),GetConfigurationCount=lambda:1,
-                GetActiveConfiguration=lambda:NS(Name='Default'),GetUpdateStamp=lambda:stamp_reader(),stamp_reader=stamp_reader,GetSaveFlag=False,
+                ConfigurationManager=NS(ActiveConfiguration=NS(Name='Default')),
+                GetActiveConfiguration=lambda:legacy(),legacy_configuration_getter=legacy,GetUpdateStamp=lambda:stamp_reader(),stamp_reader=stamp_reader,GetSaveFlag=False,
                 GetPathName=str(self.folder/name),IsOpenedReadOnly=True,IsOpenedViewOnly=False,SketchManager=NS(ActiveSketch=None))
         self.source=document(1,'source.SLDPRT');self.assembly=document(2,'assembly.SLDASM')
         self.source.GetBodies2=mock.Mock(side_effect=lambda kind,visible:(self.source_body,) if kind==0 else None)
@@ -96,6 +98,7 @@ class ActiveAssemblyTargetsTests(unittest.TestCase):
         for component in self.components:self.assertEqual(component.GetCorresponding.call_count,2)
         json.dumps(census.value,allow_nan=False)
         self.assembly.CreateMate.assert_not_called();self.app.ActivateDoc3.assert_not_called()
+        self.assembly.legacy_configuration_getter.assert_not_called();self.source.legacy_configuration_getter.assert_not_called()
 
     def test_each_face_has_one_distinct_native_mapping_reference_owner_trace(self):
         import contextlib
@@ -125,6 +128,32 @@ class ActiveAssemblyTargetsTests(unittest.TestCase):
         self.assertEqual(caught.exception.code,'AssemblyNotActive')
         self.assembly.GetType.assert_not_called();self.assembly.GetComponents.assert_not_called();self.factory.assert_not_called()
         self.extension.GetPersistReference3.assert_not_called();self.assert_no_owner()
+
+    def test_modern_configuration_chain_rejects_missing_or_invalid_values_without_legacy_api(self):
+        self.assertEqual(targets.configuration(self.assembly),'Default')
+        mutations=(lambda:setattr(self.assembly,'ConfigurationManager',None),
+                   lambda:setattr(self.assembly.ConfigurationManager,'ActiveConfiguration',None),
+                   lambda:setattr(self.assembly.ConfigurationManager.ActiveConfiguration,'Name',''),
+                   lambda:setattr(self.assembly.ConfigurationManager.ActiveConfiguration,'Name',1),
+                   lambda:setattr(self.assembly.ConfigurationManager.ActiveConfiguration,'Name','Other'),
+                   lambda:setattr(self.assembly,'GetConfigurationNames',lambda:('Default','Other')),
+                   lambda:setattr(self.assembly,'GetConfigurationCount',True))
+        for mutate in mutations:
+            with self.subTest(mutation=mutations.index(mutate)):
+                self.build();mutate()
+                with self.assertRaises(targets.AssemblyTargetObservationError):self.read()
+                self.assembly.legacy_configuration_getter.assert_not_called();self.assert_no_owner()
+
+    def test_modern_configuration_property_error_stays_first_without_deprecated_fallback(self):
+        first=RuntimeError('original ActiveConfiguration property failure')
+        class Manager:
+            @property
+            def ActiveConfiguration(self):raise first
+        self.assembly.ConfigurationManager=Manager()
+        with self.assertRaises(RuntimeError) as caught:self.read()
+        self.assertIs(caught.exception,first)
+        self.assembly.legacy_configuration_getter.assert_not_called();self.source.legacy_configuration_getter.assert_not_called()
+        self.assert_no_owner();self.factory.assert_not_called()
 
     def test_face_limit_and_two_component_scope_are_strict(self):
         for limit in (0,65,True,2.0):
@@ -232,6 +261,7 @@ class ActiveAssemblyTargetsTests(unittest.TestCase):
 
     def test_success_postconditions_reject_source_pose_flags_and_edit_drift(self):
         mutations=(lambda:setattr(self.source.stamp_reader,'return_value',8),lambda:setattr(self.source,'GetSaveFlag',0),
+                   lambda:setattr(self.source.ConfigurationManager.ActiveConfiguration,'Name','Other'),
                    lambda:self.components[1].Transform2.ArrayData.__setitem__(9,.04),
                    lambda:setattr(self.components[0],'IsFixed',False),lambda:setattr(self.components[1],'GetSuppression2',3),
                    lambda:setattr(self.source.SketchManager,'ActiveSketch',object()),

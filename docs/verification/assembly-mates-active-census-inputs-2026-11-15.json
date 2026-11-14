@@ -217,7 +217,7 @@
     "src/swcli/hosts/native_trace.py": "663a968b8fa9e47481f02344abe491a2cf6819b35b63265a6cc3a9855a0a0170",
     "src/swcli/hosts/windows.py": "056689a529b52c67e6b1c07d85121025a77c16e7520dde4e9a1a4882a16fde9f",
     "src/swcli/hosts/windows_assemblies.py": "a4c8404f996a8fe1325ac6eca646c0cdd3a9db42ac4012008aea1e4b9078947b",
-    "src/swcli/hosts/windows_assembly_target_observation.py": "a4402ce047dda453d53cdc12b2fccfcdc196aa8c4708ed35afe5d17357d4c85c",
+    "src/swcli/hosts/windows_assembly_target_observation.py": "6e0dcdb6d893c40c9bf072b31ba48225381e88199a07618dd68604b0bfdcfe82",
     "src/swcli/hosts/windows_custom_properties.py": "0473f00d54738ffaef5979adca2992dedca324aa928937a6d3b95074df9d76bb",
     "src/swcli/hosts/windows_cuts.py": "9c9b09e5157ca3499edd5abc0b3780326835c2750f9a37ab4fed01fc38121687",
     "src/swcli/hosts/windows_dimension_discovery.py": "66c5d2e1b80f737953e7ecfb8c7afd6eaab36c4d9b99eb5f9f36c104c7416371",
@@ -302,7 +302,7 @@
     "src/swcli/workspace.py": "3f9c97bad95cf3bdfa8973209609ac56e950eed7adcbeef123079c2e4835c670",
     "tests/preference_guard_fakes.py": "87d93a5e42aaa7c1ea1cde2661ad6bad36531134c9157b20060433ae521c6056",
     "tests/test_active_assembly_target_gate.py": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd",
-    "tests/test_active_assembly_target_observation.py": "4b601e738383419315ce2b55d77d8adb27197f580dd7f622febbba9ffe0ce418",
+    "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b",
     "tests/test_annotation_ci_wiring.py": "32a46c45ef85fd40172849bef13a1021c5df473fa7526d089127c06148281fea",
     "tests/test_annotation_fixtures.py": "9d5b0eae5a30ce672c53c644b2ecd7fe465d1735931313d0aeb67d0513cb1e4a",
     "tests/test_background_runtime.py": "7df841aff79a10d6d613b144df351aee53f5497332afa0dbe71f4a89e0ee4bcf",
@@ -533,7 +533,7 @@
   },
   "source_port_receipt": {
     "path": "docs/verification/assembly-mates-active-census-mainline-port-2026-11-15.json",
-    "sha256": "c4f1bc8114f1ccf84505a1cb8fff82a76572792b7c8129524fb57ca61cf07644"
+    "sha256": "2e21d67a7de905bb40dc74f5e0a56c6cfafde136a8a57b4e5c026ef375dc73e5"
   },
   "native_reader": "scripts/diagnostics/observe-active-assembly-target-census.py:run(app, options, report)",
   "foreground_contract": "Root-owned empty host; exactly readonly independent PRT then readonly ASM; target already active. No activation or receiver/mode retry. Root supplies existing owned STA and precise held PID/handle.",
@@ -571,5 +571,8 @@
   "handles_issued": false,
   "write_CAS_executed": false,
   "package_created": false,
-  "grant_created": false
+  "grant_created": false,
+  "prior_candidate_head": "f3790234788111d15c91defe932a1598b00ff196",
+  "prior_source_manifest_sha256": "997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1",
+  "configuration_contract": "New code uses ConfigurationManager.ActiveConfiguration.Name; deprecated GetActiveConfiguration is forbidden and trapped in tests. Names/count must still prove one exact active configuration."
 }

@@ -32,6 +32,8 @@ CAS入口先做协议/lease/类型/注册scope核对；worker在任何owner读�
 
 ## 当前离线验证与下一执行输入
 
-86项相关测试通过（本候选28项，当前main既有引用/face observation/native_sequence/trace58项），日志 `/private/tmp/swcli-active-target-census-related-20261115.log`。覆盖所有面各自owner、在每个位置NULL立即停止、正确body/ref却错误component拒绝、后台在实体遍历前拒绝、typed返回形态/未知status不强转、原异常不重试、完整census不丢面、官方指针/库/描述符、引用跨实例歧义、配置/pose/edit/boolean后置漂移，以及root观察入口无部分结果/文件次错不覆盖首错。无公共schema/SDK变化，不重跑生成器或无关全套。
+88项相关测试通过（本候选30项，当前main既有引用/face observation/native_sequence/trace58项），日志 `/private/tmp/swcli-active-target-modern-configuration-related-20261115.log`。覆盖所有面各自owner、在每个位置NULL立即停止、正确body/ref却错误component拒绝、后台在实体遍历前拒绝、typed返回形态/未知status不强转、原异常不重试、完整census不丢面、官方指针/库/描述符、引用跨实例歧义、配置/pose/edit/boolean后置漂移，以及root观察入口无部分结果/文件次错不覆盖首错。无公共schema/SDK变化，不重跑生成器或无关全套。
 
-完整Git src/scripts/tests `513`项清单 `assembly-mates-active-census-inputs-2026-11-15.json` SHA `997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1`；manifest只是离线来源，不是grant。下一readonly门禁具体安排见 [完整census执行提议](assembly-mates-active-census-proposal-2026-11-15.md)，当前尚未原生执行。
+完整Git src/scripts/tests `513`项清单 `assembly-mates-active-census-inputs-2026-11-15.json` SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`；manifest只是离线来源，不是grant。下一readonly门禁具体安排见 [完整census执行提议](assembly-mates-active-census-proposal-2026-11-15.md)，当前尚未原生执行。
+
+新配置读取只用当前main同款 `ConfigurationManager.ActiveConfiguration.Name`，完整names/count=1校验保持；manager/active缺失、名称无效/不匹配、属性原错均拒绝，不回退GetActiveConfiguration。fake旧API调用即失败，完整读取及成功后置亦覆盖。main已有其它旧调用未改。
