@@ -16,7 +16,9 @@ import time
 import uuid
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from gate_support.assembly_target_public_plan import FILES,NAMES,ARTIFACT_ID,digest,durable,require,verify_metadata,execution_plan
+from gate_support.assembly_target_public_plan import (
+    FILES, NAMES, ARTIFACT_ID, HANDLE_PATTERN_REFUSAL, digest, durable, require, verify_metadata, execution_plan,
+)
 from gate_support.assembly_target_public_evidence import WireProxy,raw_file,trace_budget,intent_budget
 
 
@@ -108,7 +110,11 @@ class PublicGate:
     def request(self,label,transport,operation,parameters,*,document=None,stamp=None,lease=None,session='assembly-public-owner',expected='success',cli_args=None,owners=None):
         self.remaining()
         require(operation in {'assembly.targets.list','assembly.targets.validate','document.open',
-                'document.lease.acquire','document.lease.release','document.close'},'undeclared readonly operation')
+                'document.lease.acquire','document.lease.release','document.close','document.list'},'undeclared readonly operation')
+        if operation=='document.list':
+            require(label in {'p%d-%s'%(i,suffix) for i in (1,2) for suffix in ('final-document-list','final-empty-document-list')}
+                    and transport=='sdk' and parameters=={} and document is None and stamp is None and lease is None
+                    and session=='assembly-public-owner' and expected=='success','undeclared final document inventory')
         require(not any(r['id']==label for r in self.report['cases']),'duplicate case label')
         if operation.startswith('assembly.targets.'):
             planned=next((r for r in execution_plan()['cases'] if r['id']==label),None)
@@ -132,12 +138,13 @@ class PublicGate:
                 if document is not None:args+=['--document',document]
                 if stamp is not None:args+=['--if-update-stamp',str(stamp)]
                 if lease is not None:args+=['--lease',lease]
-                response,presentation=self.cli(label,args,session=session,request_id=request_id)
+                _,presentation=self.cli(label,args,session=session,request_id=request_id)
                 require(type(presentation['exit_code']) is int and presentation['exit_code']==(0 if expected=='success' else 1),'CLI raw exit disagrees with planned outcome')
-                # CLI wraps typed public responses in its presentation. Prefer
-                # the original proxy envelope when one was actually forwarded.
+                # Every finite CLI case reaches the daemon ingress, including
+                # the two malformed handles rejected before worker dispatch.
                 wire=self.proxy.directory/request_id/'response.bin'
-                raw=json.loads(wire.read_bytes()) if wire.exists() else response
+                require(wire.is_file(),'CLI case lacks its original daemon response')
+                raw=json.loads(wire.read_bytes())
             elif transport=='sdk':
                 from swcli.sdk import Client
                 key=(session,min(600,self.remaining()))
@@ -162,8 +169,10 @@ class PublicGate:
             if expected=='success':
                 if raw.get('success') is not True:self.report['first_business_error']=dict(request_id=request_id,error=raw.get('error'))
                 require(raw.get('success') is True,'public request failed: '+label)
-            elif expected=='client-refusal':require(raw.get('success') is False or raw.get('ok') is False,'wrong kind was accepted')
-            else:require(raw.get('success') is False and raw.get('error',{}).get('code')==expected,'unexpected refusal: '+label)
+            else:
+                require(raw.get('success') is False and raw.get('error',{}).get('code')==expected,'unexpected refusal: '+label)
+                if expected=='ValueError':
+                    require(raw['error'].get('message')==HANDLE_PATTERN_REFUSAL,'unexpected malformed-handle refusal')
             self.check_files();self.persist()
             return raw.get('result',{})
         except BaseException as error:
@@ -189,7 +198,48 @@ class PublicGate:
         return self.request(label,transport,op,params,document=doc['document_id'],stamp=doc['update_stamp'] if stamp is None else stamp,lease=lease,expected=expected,session=session,cli_args=argv,owners=owners)
 
     def close_doc(self,label,doc,lease=None):
-        self.request(label,'sdk','document.close',dict(discard=False),document=doc['document_id'],lease=lease)
+        return self.request(label,'sdk','document.close',dict(discard=False),document=doc['document_id'],lease=lease)
+
+    def source_remains(self, inventory, source):
+        """Accept only an empty native catalog or the original clean source alone."""
+        require(type(source.get('type')) is int and source['type']==1 and type(source.get('document_id')) is str
+                and Path(source['path'])==self.fixture_dir/'coincident-aligned-component.SLDPRT',
+                'original source document differs')
+        documents=inventory.get('documents')
+        count=inventory.get('count')
+        require(inventory.get('ok') is True and inventory.get('action')=='document.list'
+                and inventory.get('session_id')=='assembly-public-owner' and 'current_document_id' in inventory
+                and type(documents) is list and type(count) is int and count==len(documents),
+                'final document inventory response differs')
+        current=inventory['current_document_id']
+        if not documents:
+            require(current is None,'empty document inventory retained a current document')
+            return False
+        require(count==1 and isinstance(documents[0],dict),'unexpected documents in final inventory')
+        remaining=documents[0]
+        require(remaining.get('document_id')==source['document_id'] and type(remaining.get('path')) is str
+                and Path(remaining['path'])==Path(source['path']) and type(remaining.get('type')) is int
+                and remaining['type']==1 and remaining.get('modified') is False and current in (None,source['document_id']),
+                'final inventory did not contain the exact clean source')
+        return True
+
+    @staticmethod
+    def require_document_closed(result, document):
+        descriptor=result.get('document')
+        require(result.get('ok') is True and result.get('action')=='document.close'
+                and result.get('closed') is True and result.get('discard') is False
+                and isinstance(descriptor,dict) and descriptor.get('document_id')==document['document_id']
+                and type(descriptor.get('path')) is str and Path(descriptor['path'])==Path(document['path']),
+                'exact document close not proven')
+
+    def finish_source(self, index, source):
+        prefix='p%d-final-'%index
+        def inventory(suffix):
+            return self.request(prefix+suffix,'sdk','document.list',{})
+        if self.source_remains(inventory('document-list'),source):
+            self.require_document_closed(self.close_doc(prefix+'source-close',source),source)
+            require(not self.source_remains(inventory('empty-document-list'),source),
+                    'source survived its one planned close')
 
     def phase(self,index,previous=None):
         from swcli.host_processes import solidworks_process_ids
@@ -232,9 +282,9 @@ class PublicGate:
                 ids=[t['target_id'] for t in first['targets']]
                 self.targets('p1-sdk-validate','sdk',doc,lease,snapshot=first['snapshot_id'],ids=ids)
                 self.targets('p1-mcp-subset','mcp',doc,lease,snapshot=first['snapshot_id'],ids=ids[:2])
-                self.targets('p1-wrong-kind','cli',doc,lease,snapshot=first['snapshot_id'],ids=['e-abc123'],expected='client-refusal')
+                self.targets('p1-wrong-kind','cli',doc,lease,snapshot=first['snapshot_id'],ids=['e-abc123'],expected='ValueError')
                 reference_hash=first['census']['components'][0]['faces'][0]['reference_sha256']
-                self.targets('p1-reference-hash-as-handle','cli',doc,lease,snapshot=first['snapshot_id'],ids=[reference_hash],expected='client-refusal')
+                self.targets('p1-reference-hash-as-handle','cli',doc,lease,snapshot=first['snapshot_id'],ids=[reference_hash],expected='ValueError')
                 part_lease=self.lease('p1-part-lease',source)
                 self.targets('p1-cross-document','sdk',source,part_lease,snapshot=first['snapshot_id'],ids=ids[:1],expected='AssemblyTargetNotFound')
                 self.release('p1-part-release',part_lease)
@@ -270,7 +320,7 @@ class PublicGate:
                 self.targets('p2-prior-worker-snapshot','mcp',doc,lease,snapshot=previous['snapshot_id'],ids=old_ids[:1],expected='AssemblyTargetNotFound')
                 self.targets('p2-prior-worker-target','cli',doc,lease,snapshot=fresh['snapshot_id'],ids=old_ids[:1],expected='AssemblyTargetNotFound')
                 self.close_doc('p2-final-assembly-close',doc,lease)
-            self.close_doc('p%d-final-source-close'%index,source)
+            self.finish_source(index,source)
             closed,stop_cli=self.cli('p%d-public-stop'%index,['daemon','stop'],endpoint=self.endpoint)
             require(type(stop_cli['exit_code']) is int and stop_cli['exit_code']==0,'shutdown CLI exit is not0')
             require(closed.get('success') is True and closed.get('result',{}).get('stopping') is True,'public shutdown was not the one live daemon stop')
@@ -366,10 +416,66 @@ class PublicGate:
             add('p2-prior-worker-target',freshdoc,lease('p2-lease'),dict(snapshot_id=fresh['snapshot_id'],target_ids=newids[:1]))
         return expected
 
+    def audit_document_cleanup(self, index, rows, journal, native_events):
+        prefix='p%d-'%index
+        by_label={row['id']:row for row in rows}
+        source=by_label[prefix+'open-source']['response']['result']['document']
+        first=prefix+'final-document-list'
+        close=prefix+'final-source-close'
+        empty=prefix+'final-empty-document-list'
+        require(first in by_label,'final document inventory missing')
+        remains=self.source_remains(by_label[first]['response']['result'],source)
+        assembly_open=prefix+('reopen-assembly' if index==1 else 'open-assembly')
+        assembly_lease=prefix+('reopen-lease' if index==1 else 'lease')
+        assembly=by_label[assembly_open]['response']['result']['document']
+        lease=by_label[assembly_lease]['response']['result']['lease']['lease_id']
+        closes={prefix+'final-assembly-close':(assembly,lease)}
+        if index==1:
+            isolated=by_label['p1-open-isolated']['response']['result']['document']
+            closes['p1-final-isolated-close']=(isolated,None)
+        cleanup=[*closes,first]
+        if remains:
+            closes[close]=(source,None)
+            cleanup.extend((close,empty))
+        require([r['id'] for r in rows[-len(cleanup):]]==cleanup
+                and [r['id'] for r in rows if r['operation']=='document.list']
+                    ==([first,empty] if remains else [first])
+                and (close in by_label)==remains,'final document inventory/close order differs')
+        ordered=[(e['event'],e.get('id')) for e in journal if e.get('id') in cleanup]
+        require(ordered==[(event,label) for label in cleanup for event in ('request-intent','request-reply')],
+                'final document inventory/close journal order differs')
+        for label in cleanup:
+            row=by_label[label]
+            is_close=label in closes
+            operation='document.close' if is_close else 'document.list'
+            request=dict(api_version='swcli/v1',request_id=row['request_id'],operation=operation,
+                         parameters={'discard':False} if is_close else {},session_id='assembly-public-owner')
+            if is_close:
+                document,lease=closes[label]
+                request['document_id']=document['document_id']
+                if lease is not None:request['lease_id']=lease
+            require(row['request']==request and row['operation']==operation and row['transport']=='sdk'
+                    and row['expected']=='success' and row['response'].get('success') is True,
+                    'final document inventory/close request or response differs')
+            call='SldWorks.CloseDoc' if is_close else 'GetDocuments'
+            trace=[e for e in native_events if e['request_id']==row['request_id']]
+            observed=[e['phase'] for e in trace if e['call']==call]
+            require(observed==['begin','end'] and not any(e['phase']=='error' for e in trace),
+                    'final document inventory/close native proof differs')
+            if is_close:self.require_document_closed(row['response']['result'],document)
+        if remains:
+            require(not self.source_remains(by_label[empty]['response']['result'],source),
+                    'final document inventory is not empty')
+        return 'closed-exact-source' if remains else 'already-absent'
+
     def audit_phase(self, index, *, persist=True):
         """A is fully audited before B can launch any daemon/native host."""
         phase=self.report['phases'][index-1]
-        require(phase['success'] is True and not self.report['cleanup_errors'],'phase lifecycle/cleanup incomplete')
+        require(phase['success'] is True and not self.report['cleanup_errors']
+                and type(phase.get('host_exit')) is int and phase['host_exit']==0
+                and type(phase.get('daemon_exit')) is int and phase['daemon_exit']==0
+                and phase.get('native_before')==phase.get('native_after')==[],
+                'phase lifecycle/cleanup incomplete')
         sample=trace_budget([self.output/('phase%d'%index)/'daemon.stderr'],group_started=self.started,clock=self.clock)
         require(not sample['pending'],'phase native trace has incomplete calls')
         all_rows=self.report['cases']
@@ -390,10 +496,10 @@ class PublicGate:
         require(sum(actual.values())==sum(r['owner_reads'] for r in planned.values()),'phase total native owner attempts differs')
         require(len(workers)==1,'phase used multiple/no owning workers')
         expected_requests=self.expected_target_requests()
-        events=[json.loads(line) for line in (self.output/'events.jsonl').read_bytes().split(b'\n')[:-1]]
+        journal=[json.loads(line) for line in (self.output/'events.jsonl').read_bytes().split(b'\n')[:-1]]
         for row in rows:
-            begins=[e for e in events if e.get('event')=='request-intent' and e.get('request_id')==row['request_id']]
-            replies=[e for e in events if e.get('event')=='request-reply' and e.get('request_id')==row['request_id']]
+            begins=[e for e in journal if e.get('event')=='request-intent' and e.get('request_id')==row['request_id']]
+            replies=[e for e in journal if e.get('event')=='request-reply' and e.get('request_id')==row['request_id']]
             require(len(begins)==len(replies)==1 and begins[0]['id']==replies[0]['id']==row['id']
                     and begins[0]['operation']==row['operation'] and begins[0]['parameters']==row['request']['parameters']
                     and replies[0]['response']==row['response'],'phase original intent/reply journal differs')
@@ -406,9 +512,13 @@ class PublicGate:
                 require(response.get('success') is True,'planned positive wire response failed')
                 validate_operation_result(row['operation'],response['result'])
                 require(response['result']['census']['face_count']==6,'fixed fixture complete six-face response missing')
-            elif row['expected']!='client-refusal':
+            else:
                 require(response.get('success') is False and response.get('error',{}).get('code')==row['expected']
                         and not any(k in response.get('result',{}) for k in ('snapshot_id','targets','target_ids','census','unchanged')),'planned refusal response differs/publishes partial handles')
+                if row['expected']=='ValueError':
+                    require(response['error'].get('message')==HANDLE_PATTERN_REFUSAL
+                            and not any(e['request_id']==row['request_id'] for e in sample['events']),
+                            'malformed-handle refusal reason or pre-worker boundary differs')
             request={key:value for key,value in row['request'].items() if key!='request_id'}
             require(request==expected_requests[label],'target parameters/context differ from original source wire responses')
             require(row['transport']==expected['transport'] and row['expected']==expected['expected']
@@ -424,7 +534,7 @@ class PublicGate:
                 require(not any(e['request_id']==row['request_id'] and e['call']=='SldWorks.CommandInProgress.enter'
                                 for e in sample['events']),'known refusal touched command setter')
         wire=Path(phase['wire_directory'])
-        expected_wire={r['request_id']:r for r in rows if r['expected']!='client-refusal'}
+        expected_wire={r['request_id']:r for r in rows}
         require({p.name for p in wire.iterdir()}==set(expected_wire),'missing/extra phase wire requests')
         for request_id,row in expected_wire.items():
             directory=wire/request_id
@@ -440,6 +550,7 @@ class PublicGate:
             require(json.loads((presentation/'protocol.json').read_text())==response
                     and json.loads((presentation/'presentation.json').read_text())==row['presentation'],'phase client presentation not durable')
             require(not (directory/'failure.json').exists(),'phase wire forwarding failed')
+        source_cleanup=self.audit_document_cleanup(index,rows,journal,sample['events'])
         for row in rows:
             if row['transport']!='cli':continue
             directory=self.output/row['id']
@@ -448,7 +559,7 @@ class PublicGate:
             require(type(outcome.get('exit_code')) is int and outcome['exit_code']==(0 if row['expected']=='success' else 1)
                     and outcome.get('unknown') is False,'CLI raw exit differs from planned outcome')
             from swcli.cli import _typed_payload
-            original_presentation=row['response'] if row['expected']=='client-refusal' else _typed_payload(row['operation'],row['response'])
+            original_presentation=_typed_payload(row['operation'],row['response'])
             require(stdout==original_presentation,'CLI raw stdout differs from original protocol/presentation')
             from swcli.cli import build_parser,_typed_operation
             argv=json.loads((directory/'command.json').read_text())['argv']
@@ -461,7 +572,8 @@ class PublicGate:
                     'raw CLI argv differs from planned request')
         self.check_files()
         require(not intent_budget(self.output/'events.jsonl',group_started=self.started,clock=self.clock),'phase public intent incomplete')
-        phase.update(audited=True,worker_pid=next(iter(workers)),trace_events=len(sample['events']),wire_requests=len(expected_wire))
+        phase.update(audited=True,worker_pid=next(iter(workers)),trace_events=len(sample['events']),
+                     wire_requests=len(expected_wire),source_cleanup=source_cleanup,final_documents=0)
         if persist:durable(self.output/('phase%d-audit.json'%index),phase)
         return phase
 

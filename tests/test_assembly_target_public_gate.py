@@ -193,7 +193,7 @@ class PublicGateOfflineTests(unittest.TestCase):
         value.proxy=NS(endpoint='127.0.0.1:1',directory=output/'wire')
         return value
 
-    def fake_phase_a(self, label='audit'):
+    def fake_phase_a(self, label='audit', *, source_retained=False):
         """Control-plane fixture: real files/wire formats, synthetic native trace."""
         from swcli.cli import _typed_payload
         value=self.make_gate(label);wire=value.output/'wire';wire.mkdir()
@@ -230,7 +230,7 @@ class PublicGateOfflineTests(unittest.TestCase):
         ids=[t['target_id'] for t in baseline['targets']];newids=[t['target_id'] for t in newer['targets']]
         leases={name:'l-'+chr(97+i)*12 for i,name in enumerate(['main','part','other','short','renewed','reopen'])}
         rows=[];native=[];journal=[]
-        def record(label,transport,operation,parameters,result,*,doc=None,lease=None,session='assembly-public-owner',stamp=None,expected='success',owners=None,client=False):
+        def record(label,transport,operation,parameters,result,*,doc=None,lease=None,session='assembly-public-owner',stamp=None,expected='success',owners=None,native_call=None):
             request_id='r-'+str(len(rows)+1);begin=1+len(rows)*2
             request=dict(api_version='swcli/v1',request_id=request_id,operation=operation,parameters=parameters,session_id=session)
             if doc is not None:
@@ -238,17 +238,17 @@ class PublicGateOfflineTests(unittest.TestCase):
                 if operation.startswith('assembly.targets.'):
                     request['expected_update_stamp']=doc['update_stamp'] if stamp is None else stamp
             if lease is not None:request['lease_id']=lease
-            if client:raw=dict(ok=False,action=operation,error=dict(type='ValueError',message='typed handle pattern refused'))
-            elif expected=='success':raw=dict(api_version='swcli/v1',request_id=request_id,success=True,duration_ms=1,result=result)
-            else:raw=dict(api_version='swcli/v1',request_id=request_id,success=False,duration_ms=1,error=dict(code=expected,message='planned refusal'))
+            if expected=='success':raw=dict(api_version='swcli/v1',request_id=request_id,success=True,duration_ms=1,result=result)
+            else:
+                reason=plan.HANDLE_PATTERN_REFUSAL if expected=='ValueError' else 'planned refusal'
+                raw=dict(api_version='swcli/v1',request_id=request_id,success=False,duration_ms=1,error=dict(code=expected,message=reason))
             row=dict(id=label,request_id=request_id,transport=transport,operation=operation,expected=expected,
                 expected_owner_reads=owners,request=request,response=raw,presentation=raw)
             rows.append(row)
-            if not client:
-                path=wire/request_id;path.mkdir()
-                req=json.dumps({**request,'timeout_ms':600000}).encode()+b'\n';res=json.dumps(raw).encode()+b'\n'
-                (path/'request.bin').write_bytes(req);(path/'response.bin').write_bytes(res)
-                (path/'receipt.json').write_text(json.dumps(dict(forward_attempts=1,request_sha256=hashlib.sha256(req).hexdigest(),response_sha256=hashlib.sha256(res).hexdigest())))
+            path=wire/request_id;path.mkdir()
+            req=json.dumps({**request,'timeout_ms':600000}).encode()+b'\n';res=json.dumps(raw).encode()+b'\n'
+            (path/'request.bin').write_bytes(req);(path/'response.bin').write_bytes(res)
+            (path/'receipt.json').write_text(json.dumps(dict(forward_attempts=1,request_sha256=hashlib.sha256(req).hexdigest(),response_sha256=hashlib.sha256(res).hexdigest())))
             presented=value.phase_directory/('presentation-'+label);presented.mkdir()
             row['presentation_directory']=str(presented)
             (presented/'protocol.json').write_text(json.dumps(raw));(presented/'presentation.json').write_text(json.dumps(raw))
@@ -258,12 +258,17 @@ class PublicGateOfflineTests(unittest.TestCase):
                 for terminal,stamp_value in [('begin',begin+.1),('end',begin+.2)]:
                     native.append(dict(event='swcli.native-call',worker_pid=42,request_id=request_id,sequence=i,
                         stage='read',call='GetComponent',phase=terminal,monotonic_seconds=stamp_value))
+            if native_call is not None:
+                for terminal,stamp_value in [('begin',begin+.1),('end',begin+.2)]:
+                    native.append(dict(event='swcli.native-call',worker_pid=42,request_id=request_id,sequence=1,
+                        stage='read' if native_call=='GetDocuments' else 'document-close',
+                        call=native_call,phase=terminal,monotonic_seconds=stamp_value))
             if transport=='cli':
                 args=['assembly','targets','list',*plan.NAMES] if 'components' in parameters else ['assembly','targets','validate',parameters['snapshot_id'],*parameters['target_ids']]
                 argv=[sys.executable,'-I','-m','swcli','--endpoint','127.0.0.1:1','--session',session,'--request-id',request_id,'--request-timeout','600',*args,
                       '--document',doc['document_id'],'--if-update-stamp',str(request['expected_update_stamp']),'--lease',lease,'--json']
                 path=value.output/label;path.mkdir();(path/'command.json').write_text(json.dumps(dict(argv=argv)))
-                (path/'stdout.bin').write_text(json.dumps(raw if client else _typed_payload(operation,raw)))
+                (path/'stdout.bin').write_text(json.dumps(_typed_payload(operation,raw)))
                 (path/'outcome.json').write_text(json.dumps(dict(exit_code=0 if expected=='success' else 1,unknown=False)))
             return row
         for label,doc_value in [('p1-open-source',source),('p1-open-assembly',assembly),('p1-open-isolated',isolated),('p1-reopen-assembly',reopened)]:
@@ -295,11 +300,106 @@ class PublicGateOfflineTests(unittest.TestCase):
                 result.update(target_ids=params['target_ids'],unchanged=True)
             record(label,item['transport'],item['operation'],params,result,doc=document_value,lease=leases[key],
                 stamp=8 if label=='p1-wrong-stamp' else None,session='assembly-public-other' if label=='p1-cross-session' else 'assembly-public-owner',
-                expected=item['expected'],owners=item['owner_reads'],client=item['expected']=='client-refusal')
+                expected=item['expected'],owners=item['owner_reads'])
+        def record_close(label, document, lease=None):
+            record(label,'sdk','document.close',dict(discard=False),self.closed_document(document),
+                   doc=document,lease=lease,native_call='SldWorks.CloseDoc')
+        record_close('p1-final-assembly-close',reopened,leases['reopen'])
+        record_close('p1-final-isolated-close',isolated)
+        record('p1-final-document-list','sdk','document.list',{},self.document_inventory([source] if source_retained else []),
+               native_call='GetDocuments')
+        if source_retained:
+            record_close('p1-final-source-close',source)
+            record('p1-final-empty-document-list','sdk','document.list',{},self.document_inventory([]),
+                   native_call='GetDocuments')
         value.report['cases']=rows
         (value.phase_directory/'daemon.stderr').write_bytes(b''.join(json.dumps(r).encode()+b'\n' for r in native))
         value.events.write(''.join(json.dumps(r)+'\n' for r in journal));value.events.flush()
         return value,{r['id']:r for r in rows}
+
+    @staticmethod
+    def document_inventory(documents):
+        return dict(ok=True,action='document.list',session_id='assembly-public-owner',
+                    documents=documents,count=len(documents),current_document_id=None)
+
+    @staticmethod
+    def closed_document(document):
+        return dict(ok=True,action='document.close',closed=True,discard=False,
+                    document={**document,'current':False,'active':False})
+
+    def test_source_cleanup_uses_one_catalog_and_never_retries_a_failed_close(self):
+        value=self.make_gate('source-cleanup')
+        source=dict(document_id='d-cccccc',path=str(value.fixture_dir/'coincident-aligned-component.SLDPRT'),
+                    type=1,modified=False)
+        empty=self.document_inventory([])
+        remains=self.document_inventory([source])
+        close=self.closed_document(source)
+        list_call=mock.call('p1-final-document-list','sdk','document.list',{})
+        close_call=mock.call('p1-final-source-close','sdk','document.close',dict(discard=False),
+                             document=source['document_id'],lease=None)
+        empty_call=mock.call('p1-final-empty-document-list','sdk','document.list',{})
+        failed_close=RuntimeError('DocumentNotFound from exact source close')
+        for name,replies,calls,error in [
+            ('already-absent',[empty],[list_call],None),
+            ('still-open',[remains,close,empty],[list_call,close_call,empty_call],None),
+            ('changed-id',[self.document_inventory([{**source,'document_id':'d-dddddd'}])],[list_call],'exact clean source'),
+            ('changed-path',[self.document_inventory([{**source,'path':'other.SLDPRT'}])],[list_call],'exact clean source'),
+            ('dirty',[self.document_inventory([{**source,'modified':True}])],[list_call],'exact clean source'),
+            ('extra',[self.document_inventory([source,source])],[list_call],'unexpected documents'),
+            ('bool-count',[{**empty,'count':False}],[list_call],'inventory response differs'),
+            ('stale-current',[{**empty,'current_document_id':source['document_id']}],[list_call],'retained a current'),
+            ('close-error',[remains,failed_close],[list_call,close_call],'DocumentNotFound'),
+            ('close-result',[remains,{**close,'closed':False}],[list_call,close_call],'close not proven'),
+            ('survives-close',[remains,close,remains],[list_call,close_call,empty_call],'survived')]:
+            with self.subTest(name=name):
+                value.request=mock.Mock(side_effect=replies)
+                if error:
+                    with self.assertRaisesRegex(RuntimeError,error) as caught:value.finish_source(1,source)
+                    if name=='close-error':self.assertIs(caught.exception,failed_close)
+                else:value.finish_source(1,source)
+                self.assertEqual(value.request.call_args_list,calls)
+
+    def test_phase_a_reaudits_original_empty_catalog_and_native_close_or_refuses(self):
+        for retained in (False,True):
+            with self.subTest(retained=retained):
+                value,rows=self.fake_phase_a('cleanup-audit-'+str(retained),source_retained=retained)
+                final_label='p1-final-empty-document-list' if retained else 'p1-final-document-list'
+                audited=value.audit_phase(1,persist=False)
+                self.assertEqual(audited['source_cleanup'],'closed-exact-source' if retained else 'already-absent')
+                self.assertEqual(audited['final_documents'],0)
+                trace=value.phase_directory/'daemon.stderr'
+                events=[json.loads(line) for line in trace.read_bytes().splitlines()]
+                trace.write_bytes(b''.join(json.dumps(e).encode()+b'\n' for e in events
+                    if e['request_id']!=rows[final_label]['request_id']))
+                with self.assertRaisesRegex(RuntimeError,'inventory/close native proof differs'):
+                    value.audit_phase(1,persist=False)
+                value.report['phases'][0]['host_exit']=None
+                with self.assertRaisesRegex(RuntimeError,'phase lifecycle/cleanup incomplete'):
+                    value.audit_phase(1,persist=False)
+
+    def test_malformed_cli_handles_require_daemon_receipt_and_zero_worker_trace(self):
+        from swcli.daemon.server import validate_request
+        for label in ('p1-wrong-kind','p1-reference-hash-as-handle'):
+            with self.subTest(label=label):
+                value,rows=self.fake_phase_a('ingress-'+label)
+                row=rows[label]
+                wire=Path(value.report['phases'][0]['wire_directory'])/row['request_id']
+                request=json.loads((wire/'request.bin').read_bytes())
+                with self.assertRaises(ValueError) as caught:validate_request(request)
+                self.assertEqual(str(caught.exception),plan.HANDLE_PATTERN_REFUSAL)
+                self.assertTrue(value.audit_phase(1,persist=False)['audited'])
+                trace=value.phase_directory/'daemon.stderr'
+                original=trace.read_bytes()
+                call=dict(event='swcli.native-call',worker_pid=42,request_id=row['request_id'],sequence=1,
+                          stage='read',call='GetDocuments',monotonic_seconds=1)
+                trace.write_bytes(original+b''.join(json.dumps({**call,'phase':phase}).encode()+b'\n'
+                                                    for phase in ('begin','end')))
+                with self.assertRaisesRegex(RuntimeError,'pre-worker boundary differs'):
+                    value.audit_phase(1,persist=False)
+                trace.write_bytes(original)
+                missing=wire.parent.parent/'missing-wire';wire.rename(missing)
+                with self.assertRaisesRegex(RuntimeError,'missing/extra phase wire requests'):
+                    value.audit_phase(1,persist=False)
 
     def test_A_audit_validates_real_files_and_blocks_B_on_duplicate_unknown_or_bad_context(self):
         valid,_=self.fake_phase_a('valid');self.assertTrue(valid.audit_phase(1)['audited'])

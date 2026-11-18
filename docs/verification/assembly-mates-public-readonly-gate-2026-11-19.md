@@ -50,3 +50,15 @@ root独立用 Event 屏障复现并批准最小 test-only 修复 `28d5f2c`：两
 native37 的生产观察 core、reader、adapter 三份与原始1b5cbdc逐字不变，observation 测试也不变；两份测试存在明确例外：main9f4a2d1/fdea8fa 的 Windows chmod644-before-unlink，以及28d5f2c的测试镜像线程收尾。不得再声称六份私有源文件全部不变。native37 原包15份冻结文件只读重核，未更改、重跑或扩展其验收声明。
 
 最终完整 portable：3081项、39skip、110.656秒，原始退出0；SDK strict六个源文件通过，38条消费者拒绝通过。运行前526项清单与运行后文件逐字一致。MCP依赖在该离线环境不可用，39skip保留原样，不将portable假对象覆盖当作真实三传输/native通过。
+
+## 44367787267 源件生命周期修复
+
+运行 `44367787267` 在 `7377529ce6410955b0f4cdaa1131117689b39d8a` 通过 Windows 的原字节准入并进入阶段 A。原 artifact `14459855901` SHA256 为 `a900a8c262f04fdb7f7a40538f9bc73adee4019718b1e05368cba44c12445590`。31 条业务回执中有 14 项目标用例，4 次六面 census 与 24 次 owner 读取。阶段 A 没完成，阶段 B 没启动，公共 native 验收仍待完成。
+
+源件 `d-58y265` 最迟在最后关闭装配后的下一次 registry sync 已从原生目录缺席。按 `DocumentRegistry.sync` 对每个文档两次读取 key，以及关闭 handler 的一次选中文档 descriptor，尾部三次 `GetDocuments` 可复核为 3 → 1 → 0。第一次后已调用原生 CloseDoc 关闭装配，第二次只剩可由请求 ID 解析的隔离件，随后成功关闭。第三次目录为空，`85f4c988-a0e0-419c-8535-682047390730` 在 resolve 返回 `DocumentNotFound`，没有实际调用源件的原生 CloseDoc。旧 ID 最后一次正面核到是 `p1-part-lease`，`p1-part-release` 回显同一个租约。trace 没记录早前枚举对象的路径或 IsSame 值，无法区分旧 ID 是在装配 reopen 时换代，还是在最终同步时与源件一起被回收。原生目录的卸载边界已可定位，现有证据不支持修改产品的 `DocumentNotFound` 语义。
+
+补丁只改验收。每阶段的既定关闭之后做一次 SDK `document.list`，以成功回执、`documents=[]`、`count=0`、无 current ID 证明空目录和原路径/ID 缺席。如果唯一剩余项是原路径、原 ID、未修改的源件，则只调用一次确切 ID 的 `document.close(discard=false)`，再要求第二次公开 list 为空。新 ID、错路径、其它文档、未证实关闭和任何失败均停止。阶段审计复核原始意图顺序、wire 请求与响应、同 worker 上 `GetDocuments` / `CloseDoc` 的配对及持有句柄证据。17 项目标用例及 600/1800/1840 秒预算保持原值。
+
+原失败后没发公开 daemon stop，没读到 held host/daemon 退出码，也没有 gate 的 native after 快照。supervisor 的 Python parent 退出是整数 1，`resource_released=false` 是证据未成立。外围 disposable runner 清理 PASS 属于另一路径，不能代替 held host 与 daemon 的正常退出证据。
+
+同一原件的后续审计还发现两条 CLI 错误句柄确实通过 TCP 到达 daemon，分别为 part face handle 和持久引用摘要。daemon ingress 按请求 schema 返回 `ValueError`，两条都没有 worker trace。旧审计错误地排除了它们的真实 wire 原件。本次按原件要求各有一次 wire 请求与精确错误，CLI 真实退出 1，stdout 对应 wire 响应，worker trace 为空。重放原件通过了 14 条目标意图、6 条 CLI argv/stdout/原始退出、两条 ingress 拒绝与两条确切关闭回执。原运行缺成功的最终目录和退出证明，仍不能通过阶段 A 审计。

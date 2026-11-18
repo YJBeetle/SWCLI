@@ -29,7 +29,7 @@
     "scripts/ci/fixtures/rectangle-origin-bound.SLDPRT": "0cea2c4681bb6fe98ea8aea8c72790742faf1df5b50df88b9932ca7b9f08ce98",
     "scripts/ci/gate_support/__init__.py": "613cb54f1182c9fb524cf8978d3ce01900845370037765f6e2fdb42caed4a0a3",
     "scripts/ci/gate_support/assembly_target_public_evidence.py": "6175feaa0985a3503736f6abb568c8893b01b51c9f9821dc5f9adaf4479a6f84",
-    "scripts/ci/gate_support/assembly_target_public_plan.py": "98133db54fb4983838d140a6b04581fb97a4ca7153a7ce6623ce6f7b692b9336",
+    "scripts/ci/gate_support/assembly_target_public_plan.py": "5bb172ced20cf2fe5de02525cf8bd89e1eb8dc554ebdc6d8b792618546849398",
     "scripts/ci/gate_support/dimension_box.py": "dc9612e6daab4dce9b31ca57ec92ed2cae37c43ecea7137042408e1cc0f14d84",
     "scripts/ci/gate_support/document_property_templates.py": "bd2fb125f1893d88980f7985cab9165284af65dec6a4ef908c82f791821eef13",
     "scripts/ci/gate_support/drawing_checks.py": "73f182c798eb50ea4b602c6ed6d52b35d45a22845dba2657e5f71019d26fc45f",
@@ -83,7 +83,7 @@
     "scripts/ci/validate-native-profile.py": "ecdda09fa350ae3e0db808acf742ea476d54f71ab535f9fdd7d21463f0472cde",
     "scripts/ci/validate-units-route.py": "796135e2440d1ec5861d6cf6f3ad2f48fb39a70885f61ba93bbd43887d69449d",
     "scripts/ci/verify-assemblies.py": "1b2016cbc7d4918b74fa39782045ad74d23a31a0cd3fd1294d0825a1c892f10b",
-    "scripts/ci/verify-assembly-targets-public.py": "60be8d4aca4e9a99a740c761dfc2777980c4f4b3d42a7a64d009b115534d000b",
+    "scripts/ci/verify-assembly-targets-public.py": "442dcd2849b87a840500a9c321b225987237aaf2ffe2b7229aff39acfbb8efad",
     "scripts/ci/verify-center-constraints.py": "5720536635bd1e6358ff894fed1ac5a4c2409b47d29349163e02960046cdde3a",
     "scripts/ci/verify-detailing-calibration.py": "506535834834f4285cfbc78f12d6dc77a8b6b90bf61586b95992e5dd33533926",
     "scripts/ci/verify-detailing-public.py": "900dfcf2b1f13dcfb82ecbd3a0c731ece7708c852242e56d321d850ecc676b6d",
@@ -316,7 +316,7 @@
     "tests/test_annotation_ci_wiring.py": "32a46c45ef85fd40172849bef13a1021c5df473fa7526d089127c06148281fea",
     "tests/test_annotation_fixtures.py": "9d5b0eae5a30ce672c53c644b2ecd7fe465d1735931313d0aeb67d0513cb1e4a",
     "tests/test_assembly_target_operations.py": "7b60f55c59c2d8ca8df35fef488b43d76c08f492126f49fa216883c7bb5928ed",
-    "tests/test_assembly_target_public_gate.py": "8d6f5a40b19a1b73993b0b015f992a444c712947b40b1b473f103a95086c1474",
+    "tests/test_assembly_target_public_gate.py": "31882a013a793312411ffe403e2777e756bfb37bfbc93ef9f80353499a9ac245",
     "tests/test_background_runtime.py": "7df841aff79a10d6d613b144df351aee53f5497332afa0dbe71f4a89e0ee4bcf",
     "tests/test_capability_discovery.py": "b92ba97c5fbaffa4ba3e7e3bdf46cbee741ca4eab63b9021e744fd4c1e337549",
     "tests/test_cli.py": "94414701d9cbf986175de9262cb9876d526c8dadc140ecef00221dc956f16817",
@@ -555,7 +555,7 @@
     "root_related_passed": true,
     "full_portable_for_this_ci_selector_not_yet_claimed": true
   },
-  "reviewed_by": "coordinator personally",
+  "reviewed_by": "Prior CI route reviewed by coordinator; lifecycle candidate pending coordinator review",
   "workflow_binding": "Coordinator verifies full final Git head and workflow bytes before dispatch, then verifies run head/event; runtime grant records actual GITHUB_SHA and actual workflow SHA",
   "private_native37_sources_unchanged": {
     "src/swcli/hosts/windows_assembly_target_observation.py": "6e0dcdb6d893c40c9bf072b31ba48225381e88199a07618dd68604b0bfdcfe82",
@@ -591,5 +591,42 @@
   "created_before_native_dispatch": true,
   "public_native_acceptance": false,
   "write_authorized": false,
-  "release_authorized": false
+  "release_authorized": false,
+  "lifecycle_delta": {
+    "failed_run": 44367787267,
+    "failed_head": "7377529ce6410955b0f4cdaa1131117689b39d8a",
+    "prior_ci_manifest_sha256": "0e8f73db74af3d919b0babe551f7a4d9dccf31ccf920758ef9b917f1f72a46ee",
+    "failed_artifact": 14459855901,
+    "failed_artifact_sha256": "a900a8c262f04fdb7f7a40538f9bc73adee4019718b1e05368cba44c12445590",
+    "original_phase1_trace_sha256": "22806553b7f3b5ebad59b3fe203dc8d29f3d40f4c2621ad3fea4cd6892f769f2",
+    "first_failure": "p1-final-source-close: DocumentNotFound d-58y265 before native CloseDoc",
+    "observed_registry_catalog_counts": [
+      3,
+      1,
+      0
+    ],
+    "phase_a_complete_censuses": 4,
+    "phase_a_owner_reads": 24,
+    "parent_exit": 1,
+    "gate_host_exit": null,
+    "gate_daemon_exit": null,
+    "gate_resource_released": false,
+    "changed_execution_sources": [
+      "scripts/ci/gate_support/assembly_target_public_plan.py",
+      "scripts/ci/verify-assembly-targets-public.py",
+      "tests/test_assembly_target_public_gate.py"
+    ],
+    "prior_changed_execution_source_sha256": {
+      "scripts/ci/gate_support/assembly_target_public_plan.py": "98133db54fb4983838d140a6b04581fb97a4ca7153a7ce6623ce6f7b692b9336",
+      "scripts/ci/verify-assembly-targets-public.py": "60be8d4aca4e9a99a740c761dfc2777980c4f4b3d42a7a64d009b115534d000b",
+      "tests/test_assembly_target_public_gate.py": "8d6f5a40b19a1b73993b0b015f992a444c712947b40b1b473f103a95086c1474"
+    },
+    "target_case_count": 17,
+    "planned_complete_censuses": 5,
+    "planned_owner_reads": 30,
+    "related_portable_tests": 94,
+    "related_portable_log_sha256": "62bcc6f5bc7aa65ae43f7c974a5d79126e1c06f70dea93a0d6b474357b8c635a",
+    "original_target_replay_sha256": "dc62b3a855289db77d2326ddde74066c3097c5a6b12ee0fda1ef5592a2c2c30c",
+    "scope": "Gate lifecycle and raw daemon-ingress refusals only. No product change and no new native acceptance."
+  }
 }

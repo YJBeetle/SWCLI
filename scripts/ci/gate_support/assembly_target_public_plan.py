@@ -18,6 +18,7 @@ FILES = {
     'concentric-aligned-component.SLDPRT': '9b6d73c3a85a5ae7df9bf0b24bdded7f6eb7bf760033b9921f5c7ce3f01bdf66',
 }
 NAMES = ['coincident-aligned-component-1', 'coincident-aligned-component-2']
+HANDLE_PATTERN_REFUSAL = 'target_ids[0] must match ^at-[0-9a-f]{32}$'
 
 
 def require(condition, message):
@@ -91,8 +92,8 @@ def cases():
         ('p1-cli-list', 'cli', 'assembly.targets.list', 'success', 6),
         ('p1-sdk-validate', 'sdk', 'assembly.targets.validate', 'success', 6),
         ('p1-mcp-subset', 'mcp', 'assembly.targets.validate', 'success', 6),
-        ('p1-wrong-kind', 'cli', 'assembly.targets.validate', 'client-refusal', 0),
-        ('p1-reference-hash-as-handle', 'cli', 'assembly.targets.validate', 'client-refusal', 0),
+        ('p1-wrong-kind', 'cli', 'assembly.targets.validate', 'ValueError', 0),
+        ('p1-reference-hash-as-handle', 'cli', 'assembly.targets.validate', 'ValueError', 0),
         ('p1-cross-document', 'sdk', 'assembly.targets.validate', 'AssemblyTargetNotFound', 0),
         ('p1-cross-session', 'mcp', 'assembly.targets.validate', 'AssemblyTargetNotFound', 0),
         ('p1-expired-lease', 'sdk', 'assembly.targets.validate', 'DocumentLeaseNotFound', 0),
@@ -128,4 +129,5 @@ def execution_plan():
         forbidden=['CreateMate','Save','SaveAs','Select','ActivateDoc','Rebuild','private fixture construction','marking-jig files','CAD process termination'],
         raw_receipts='CLI stdout/stderr + parsed SDK/MCP presentation + exact proxy request/response bytes; fsync intent before one forwarding attempt',
         failure_policy='Persist first error immediately; no next business request; no native recovery; unknown outcome skips CAD cleanup and remains resource-uncertain for coordinator',
-        lifecycle='Read OS inventory before each phase; public document.open readonly and public close/discard=false only; public daemon.serve once per phase; hold OS handle without terminate rights; public shutdown once with empty catalog; wait only remaining group budget')
+        final_document_inventory='After planned assembly and isolated closes, list once. If the catalog is empty, the source ID and path are absent. If only the original clean source remains, close that exact ID once with discard=false and require a second empty list. Any other inventory or close failure stops the phase.',
+        lifecycle='Read OS inventory before each phase; public readonly open and document inventory, public close/discard=false; public daemon.serve once per phase; hold OS handle without terminate rights; public shutdown once with proven empty catalog; wait only remaining group budget')

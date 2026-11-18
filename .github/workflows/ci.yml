@@ -759,7 +759,7 @@ jobs:
           # Root externally pins full head/workflow bytes before dispatch and
           # verifies run.head_sha afterwards; only source-manifest SHA is frozen here.
           $actualHead = $env:GITHUB_SHA
-          $reviewedManifest = '0e8f73db74af3d919b0babe551f7a4d9dccf31ccf920758ef9b917f1f72a46ee'
+          $reviewedManifest = '13c274051a0b678a83b12c547f4142a17a87de79cd0009513a416ffbf798c6d0'
           if ($actualHead -notmatch '^[0-9a-f]{40}$') { throw "Unknown actual run head" }
           python -m pip --no-cache-dir install "mcp>=1.30,<2" "Pillow>=10.4"
           if ($LASTEXITCODE -ne 0) { throw "Public MCP dependencies missing" }
