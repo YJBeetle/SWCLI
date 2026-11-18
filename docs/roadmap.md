@@ -63,6 +63,20 @@ rollback or repeat a native write merely to recover delivery. Keep previous
 version evidence unchanged. A Wine-specific issue does not block Windows
 publication unless traced to shared SWCLI code.
 
+### GLB export
+
+Use the native SOLIDWORKS GLB exporter and retain content validation. GLB
+acceptance covers assembly fixtures. SOLIDWORKS 2025 SP5 exported a standalone
+part GLB with a nonzero buffer declaration and an empty BIN chunk. Revisit part
+coverage when a newer SOLIDWORKS version has evidence of a valid native export.
+
+Keep `.gltf` plus its external `.bin` as a fallback design option. For one
+reproduced part, the external buffer contained the full mesh and repacking it
+into a GLB preserved the geometry and imported in Blender. The original glTF
+also needed its GBK-encoded buffer URI normalized to UTF-8. Adoption would
+require an explicit conversion path with verified buffer lengths, mesh data and
+materials. This option is deferred. The current series uses native GLB.
+
 ## Current bounded Document Properties batch
 
 The existing series includes overall annotation font (seven writable fields), grid/virtual-sharp/plane display (ten model fields, five drawing fields), and 36 GB-to-named-standard round trips on the verified native 2025 SP5 host. See [batch scope](design/document-preferences-batch.md) and [page inventory](design/document-properties-coverage.md). These groups do not complete the whole Document Properties UI. Units, table defaults, STEP, assembly mates and modern API migration remain under separate evidence review. Finish this existing series before version freeze and owner publication approval; do not open another expansion.
