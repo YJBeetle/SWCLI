@@ -1,5 +1,7 @@
 # Phase B 公共只读门禁：离线候选与 CI 接线提案
 
+接线补记（统筹）：下文离线记录冻结于 `45a06e8`。此后已在候选分支应用所述 CI 路由，仍未执行公共 native 验收。新的执行清单为 `docs/verification/assembly-mates-public-readonly-ci-inputs-2026-11-19.json`（SHA256 `0e8f73db74af3d919b0babe551f7a4d9dccf31ccf920758ef9b917f1f72a46ee`）；原526项离线清单保留原字节。执行源码仅新增 CI selector 分支，102项关联测试通过；原3081项完整结果仍明确属于接线前候选，当前 selector 的完整 CI 结果待证。最终 Git head 与 workflow 字节由统筹外部核验，未把自身 commit SHA 写进 workflow。
+
 本轮只完成源码、portable 测试、固定样件校验及一次性执行计划。未使用 VM/COM/CAD，未 dispatch 或轮询 CI，未写真实执行许可，未推送、合并或修改真实工作流。公共 native 验收仍未完成；private native37 的通过只属于其原始冻结候选。公共写入、mate 树 CAS、writable-read、save/reopen 写后持久性均未实现或验证。
 
 ## 文件与固定样件
