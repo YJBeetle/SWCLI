@@ -207,26 +207,48 @@ class ExecutionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             options=self.options(Path(temporary));process=Process();process.terminate.side_effect=lambda:None;now=[0.]
             def pending(paths):now[0]=1800.;return {}
-            with mock.patch.object(execution,'verify_options',return_value=dict(source_files={})), \
-                 mock.patch.object(execution,'python_identity',return_value=dict(pid=42,sha256=execution.reader.PYTHON_SHA,created=100)), \
-                 mock.patch.object(execution.time,'time',return_value=100),mock.patch.object(execution,'pending_calls',side_effect=pending),mock.patch('sys.stderr',io.StringIO()):
-                self.assertEqual(execution.supervisor(options,popen=lambda *a,**k:process,clock=lambda:now[0],sleep=lambda s:None),1)
-            state=json.loads((options.run_root/'supervisor-report.json').read_text())
-            self.assertEqual(state['first_error']['message'],'group-budget-1800');self.assertIsNone(state['host_exit_code'])
-            self.assertTrue(state['parent_exit_unconfirmed']);process.wait.assert_not_called();process.terminate.assert_called_once()
+            mirrors=[];original_mirror=execution.MirrorWorker
+            def mirror_factory(*args):
+                worker=original_mirror(*args);mirrors.append(worker);return worker
+            try:
+                with mock.patch.object(execution,'verify_options',return_value=dict(source_files={})), \
+                     mock.patch.object(execution,'python_identity',return_value=dict(pid=42,sha256=execution.reader.PYTHON_SHA,created=100)), \
+                     mock.patch.object(execution.time,'time',return_value=100),mock.patch.object(execution,'pending_calls',side_effect=pending),mock.patch.object(execution,'MirrorWorker',side_effect=mirror_factory),mock.patch('sys.stderr',io.StringIO()):
+                    self.assertEqual(execution.supervisor(options,popen=lambda *a,**k:process,clock=lambda:now[0],sleep=lambda s:None),1)
+                state=json.loads((options.run_root/'supervisor-report.json').read_text())
+                self.assertEqual(state['first_error']['message'],'group-budget-1800');self.assertIsNone(state['host_exit_code'])
+                self.assertTrue(state['parent_exit_unconfirmed']);process.wait.assert_not_called();process.terminate.assert_called_once()
+            finally:
+                # The controller must not spend any exhausted CAD/group budget
+                # waiting for the mirror. Test-owned filesystem teardown still
+                # drains that thread before TemporaryDirectory removes its root.
+                for worker in mirrors:
+                    if worker.thread is not None:worker.thread.join(5)
+                self.assertTrue(all(worker.thread is None or not worker.thread.is_alive() for worker in mirrors))
 
     def test_outer_1840_stops_only_exact_python_handles_and_no_extra_wait(self):
         with tempfile.TemporaryDirectory() as temporary:
             options=self.options(Path(temporary));process=Process();now=[0.];handle=NS(stop=mock.Mock(),close=mock.Mock())
+            mirrors=[];original_mirror=execution.MirrorWorker
+            def mirror_factory(*args):
+                worker=original_mirror(*args);mirrors.append(worker);return worker
             def spawn(*args,**kwargs):
+                options.artifact_dir.mkdir()  # Real supervisor creates its artifact before manager ticks.
                 options.run_root.mkdir();(options.run_root/'supervisor-report.json').write_text(json.dumps(dict(parent_pid=43,parent_python_identity=dict(pid=43,sha256=execution.reader.PYTHON_SHA,created=100))))
                 now[0]=1840.;return process
-            with mock.patch.object(execution,'verify_options'),mock.patch.object(execution.time,'time',return_value=100), \
-                 mock.patch.object(execution,'python_identity',return_value=dict(pid=42,sha256=execution.reader.PYTHON_SHA,created=100)):
-                self.assertEqual(execution.manager(options,popen=spawn,clock=lambda:now[0],sleep=lambda s:None,handle_factory=lambda pid,identity:handle),1)
-            state=json.loads((options.run_root.parent/'run-manager/manager-report.json').read_text())
-            self.assertEqual(state['first_error']['message'],'outer-budget-1840');handle.stop.assert_called_once();handle.close.assert_called_once()
-            process.terminate.assert_called_once();process.wait.assert_not_called()
+            try:
+                with mock.patch.object(execution,'verify_options'),mock.patch.object(execution.time,'time',return_value=100), \
+                     mock.patch.object(execution,'python_identity',return_value=dict(pid=42,sha256=execution.reader.PYTHON_SHA,created=100)),mock.patch.object(execution,'MirrorWorker',side_effect=mirror_factory):
+                    self.assertEqual(execution.manager(options,popen=spawn,clock=lambda:now[0],sleep=lambda s:None,handle_factory=lambda pid,identity:handle),1)
+                state=json.loads((options.run_root.parent/'run-manager/manager-report.json').read_text())
+                self.assertEqual(state['first_error']['message'],'outer-budget-1840');handle.stop.assert_called_once();handle.close.assert_called_once()
+                process.terminate.assert_called_once();process.wait.assert_not_called()
+            finally:
+                # Drain only test-created filesystem threads, after the SUT has
+                # returned without any additional native/process wait budget.
+                for worker in mirrors:
+                    if worker.thread is not None:worker.thread.join(5)
+                self.assertTrue(all(worker.thread is None or not worker.thread.is_alive() for worker in mirrors))
 
     def test_uncertain_cleanup_uses_only_os_state_and_preserves_unknown(self):
         for exited,code in ((False,None),(True,17),(True,0)):
