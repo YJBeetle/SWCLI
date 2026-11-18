@@ -2,8 +2,25 @@
   "schema": "swcli.assembly-targets.public-b.offline-inputs.v1",
   "base_head": "d8922aa907ea66385d0f786db6114182b2074c2a",
   "scope": "public readonly typed handles and complete target-census compare; excludes mate tree/write authority",
-  "source_scope": "Complete Git src/scripts/tests plus these five new sources; exact path set and byte hashes; excludes generated egg-info/cache",
-  "source_count": 520,
+  "test_environment": {
+    "python": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115/test-env/bin/python",
+    "version": "3.15.2 (main, Oct 25 2026, 16:57:51) [Clang 17.0.0 (clang-1700.6.4.2)]",
+    "cli": "/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI/src/swcli/cli.py",
+    "dependencies": {
+      "jsonschema": "4.26.0",
+      "PyYAML": "6.0.3",
+      "mypy": "1.20.2",
+      "setuptools": "84.2.1"
+    },
+    "mcp_available": false,
+    "dependency_source": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/integration-venv/lib/python3.15/site-packages",
+    "dependency_pth_executed": false,
+    "VM": false,
+    "CI": false
+  },
+  "artifact_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115",
+  "source_scope": "Complete exact Git src/scripts/tests including six new gate/portable sources; excludes generated egg-info/cache; docs and workflow excluded to avoid self reference",
+  "source_count": 526,
   "source_files": {
     "scripts/ci/analyze-step-wire-evidence.py": "53eb16c519ccfefb05b6594ce64ff7dd8b03267793f2ec697ef361a7bdecd89e",
     "scripts/ci/audit-line-font-calibration.py": "4ce2d1e8094f0f3a990f54bc4dd6b03c2b55e219ab15de6acf9e59849957b70a",
@@ -24,10 +41,13 @@
     "scripts/ci/diagnose-native-drawing.py": "a1bad87094bd60257dc050ff96c7fac861b03a883de79ea32bf0bc1cf2a3bd1c",
     "scripts/ci/diagnose-step-import-data.py": "11bd5dbd5c5201ded05972b82f8cd85ac83e86e8c172eba73a30ecddd718c9b5",
     "scripts/ci/diagnose-step-wire-import-once.py": "b92230ac85873850c96609624b1bc9a8d9888e18214aa2a7d0be82ffee968c1a",
+    "scripts/ci/fetch-assembly-targets-public-fixture.py": "6a36161fad2a561666b64c3b0385c5de9175320df17b043e1589ead9b971b58c",
     "scripts/ci/fixtures/README.md": "6ee16c28d0c13ec933e7f0e4b2b19fb8a36935258fa1333ba82e805d3cfbeea2",
     "scripts/ci/fixtures/generate-origin-fixture.py": "1d142126783e2bd6fa5cfd2c216384a9850631d094c16333a8fe4bcb24a0f407",
     "scripts/ci/fixtures/rectangle-origin-bound.SLDPRT": "0cea2c4681bb6fe98ea8aea8c72790742faf1df5b50df88b9932ca7b9f08ce98",
     "scripts/ci/gate_support/__init__.py": "613cb54f1182c9fb524cf8978d3ce01900845370037765f6e2fdb42caed4a0a3",
+    "scripts/ci/gate_support/assembly_target_public_evidence.py": "6175feaa0985a3503736f6abb568c8893b01b51c9f9821dc5f9adaf4479a6f84",
+    "scripts/ci/gate_support/assembly_target_public_plan.py": "98133db54fb4983838d140a6b04581fb97a4ca7153a7ce6623ce6f7b692b9336",
     "scripts/ci/gate_support/dimension_box.py": "dc9612e6daab4dce9b31ca57ec92ed2cae37c43ecea7137042408e1cc0f14d84",
     "scripts/ci/gate_support/document_property_templates.py": "bd2fb125f1893d88980f7985cab9165284af65dec6a4ef908c82f791821eef13",
     "scripts/ci/gate_support/drawing_checks.py": "73f182c798eb50ea4b602c6ed6d52b35d45a22845dba2657e5f71019d26fc45f",
@@ -66,6 +86,7 @@
     "scripts/ci/gate_support/unit_public_transports.py": "5d1e9c3285ac96770590f4d859c86269431229ab5a6069637a59190a6e5c3f77",
     "scripts/ci/inspect-step-loadfile4-metadata.py": "9392b7f7383f77f995251839adf75914d9065705b57588c023c8096c09ce45ff",
     "scripts/ci/prepare-annotation-fixtures.py": "6f84e498ae15cae4258ab3c428337496dfb0a14c7c09d0ded33ec9f5251812b0",
+    "scripts/ci/prepare-assembly-targets-public.py": "99b1467d47ed745c304eeb9528659f6f3470d520d26980c29e17eb0382ebafe4",
     "scripts/ci/prepare-step-import-original.py": "746e5c61b099c22cefd04e5e78a5a5a7123e987062d6e5b729467d991766735d",
     "scripts/ci/recover-release.py": "09055faa7f5b6b27ab39b2379b8cd0576d40863a4d1b5affa00dff69b41d766e",
     "scripts/ci/run-detailing-calibration.py": "2af6447dd1f3f84c1fd81d296256ef782ead319f800cc1539e5d589f3bd2ac69",
@@ -80,6 +101,7 @@
     "scripts/ci/validate-native-profile.py": "0ae8dae2f94826ac2eeef6aca1ba2b567ca09d0a16647ed6bdd6e26b7afe79c3",
     "scripts/ci/validate-units-route.py": "796135e2440d1ec5861d6cf6f3ad2f48fb39a70885f61ba93bbd43887d69449d",
     "scripts/ci/verify-assemblies.py": "1b2016cbc7d4918b74fa39782045ad74d23a31a0cd3fd1294d0825a1c892f10b",
+    "scripts/ci/verify-assembly-targets-public.py": "60be8d4aca4e9a99a740c761dfc2777980c4f4b3d42a7a64d009b115534d000b",
     "scripts/ci/verify-center-constraints.py": "5720536635bd1e6358ff894fed1ac5a4c2409b47d29349163e02960046cdde3a",
     "scripts/ci/verify-detailing-calibration.py": "506535834834f4285cfbc78f12d6dc77a8b6b90bf61586b95992e5dd33533926",
     "scripts/ci/verify-detailing-public.py": "900dfcf2b1f13dcfb82ecbd3a0c731ece7708c852242e56d321d850ecc676b6d",
@@ -181,8 +203,8 @@
     "src/swcli/cut_termination.py": "b4ada88e18baa32f1497316c02191b72d3f731a06b9924eaa9fa2000be664d13",
     "src/swcli/daemon/__init__.py": "e2899b7281e2928da1713efe6e4a24aa2060be0b74020b86ada8d10941f95583",
     "src/swcli/daemon/__main__.py": "954eaddc192523ee47f44769ae571e58baf451c0e67d752edd3874b6393600d0",
-    "src/swcli/daemon/assembly_target_operations.py": "e2b7d0b5eeba5ba94dc4fbd513db2a29e1587babc953c501e3bd6687bb1d532e",
-    "src/swcli/daemon/assembly_targets.py": "ae5019be37a7418f82d68b238b3dd8f30f240ba80df1f13c8604843a34b5e529",
+    "src/swcli/daemon/assembly_target_operations.py": "7ea2f98131dca5cdb529384666d07673527c4b941621d401f156b08c0ce6a989",
+    "src/swcli/daemon/assembly_targets.py": "533c6779b9ab1faa2b244a69ed5cb0efc0b9c71613d6b5f7e2af072170625174",
     "src/swcli/daemon/client.py": "2b4bedc5892c61e7eaec3eec6efb9f26a02899e6599d4a1b76c96475444d1e98",
     "src/swcli/daemon/documents.py": "facee1c95d349489d2ff62118e9e38c9b75336bb4034251f4bea0404fefbbf0b",
     "src/swcli/daemon/entities.py": "7363cb021bf4b1354ee6f9a34d4a1896debcf57c82b3032e730c51fa82b188f6",
@@ -306,12 +328,13 @@
     "src/swcli/windows_tray.py": "0557085049440234ff0235ffb7824c23d370d8e22c9dd5152bf2594d8e181eae",
     "src/swcli/workspace.py": "3f9c97bad95cf3bdfa8973209609ac56e950eed7adcbeef123079c2e4835c670",
     "tests/preference_guard_fakes.py": "87d93a5e42aaa7c1ea1cde2661ad6bad36531134c9157b20060433ae521c6056",
-    "tests/test_active_assembly_target_execution.py": "eb121a56554040e39c7194b08ec90835a3b70cf7c25769350e3b9f93729e2189",
-    "tests/test_active_assembly_target_gate.py": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd",
+    "tests/test_active_assembly_target_execution.py": "ddf2fddf966bb7a8af9cbdd9ce207c1c596b5120eb28479a61562a5fd161f066",
+    "tests/test_active_assembly_target_gate.py": "032400328ef9b8496327dd81d990ee65fe193981c7e3ba2751020ae0d5174d70",
     "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b",
     "tests/test_annotation_ci_wiring.py": "32a46c45ef85fd40172849bef13a1021c5df473fa7526d089127c06148281fea",
     "tests/test_annotation_fixtures.py": "9d5b0eae5a30ce672c53c644b2ecd7fe465d1735931313d0aeb67d0513cb1e4a",
-    "tests/test_assembly_target_operations.py": "92f69edf72df8c3da12eceb54c1e1444f296906ec2cc7d96dae33f457933c92b",
+    "tests/test_assembly_target_operations.py": "7b60f55c59c2d8ca8df35fef488b43d76c08f492126f49fa216883c7bb5928ed",
+    "tests/test_assembly_target_public_gate.py": "8d6f5a40b19a1b73993b0b015f992a444c712947b40b1b473f103a95086c1474",
     "tests/test_background_runtime.py": "7df841aff79a10d6d613b144df351aee53f5497332afa0dbe71f4a89e0ee4bcf",
     "tests/test_capability_discovery.py": "b92ba97c5fbaffa4ba3e7e3bdf46cbee741ca4eab63b9021e744fd4c1e337549",
     "tests/test_cli.py": "94414701d9cbf986175de9262cb9876d526c8dadc140ecef00221dc956f16817",
@@ -526,13 +549,29 @@
     "tests/typing_sdk/accepted.py": "b48df60920064a807f65be7c743f6eb2197ce402256e4ea18ec6be9d87cc39c6",
     "tests/typing_sdk/rejected.py": "5a13182167b9bcc33d4a86b0738aab2a3e948ea47fa67ef88292d80cb00ffb8d"
   },
+  "source_head_before_final_run": "28d5f2c97af2cded20b297975ce2902ae33fb8af",
+  "historical_d80727e_manifest": {
+    "path": "docs/verification/assembly-mates-public-readonly-phase-b-inputs-d80727e-original-2026-11-15.json",
+    "sha256": "583785fbdfb369ae15a61618270c13317d3f62002c8a3047868b64ec663bcf2e",
+    "scope": "historical 520-file source and portable validation only"
+  },
   "private_native37_sources_unchanged": {
     "src/swcli/hosts/windows_assembly_target_observation.py": "6e0dcdb6d893c40c9bf072b31ba48225381e88199a07618dd68604b0bfdcfe82",
     "scripts/diagnostics/observe-active-assembly-target-census.py": "878d652f323da38c0f0bf101d34dcdc0d477743d2be2ddf8b5645cf0b481914e",
     "scripts/diagnostics/run-active-assembly-target-census.py": "c0b4f97b1b7ea5ad5b474f0046028e4b7870c3cc5b81e9da6390bb5e86ffa0a7",
-    "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b",
-    "tests/test_active_assembly_target_gate.py": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd",
-    "tests/test_active_assembly_target_execution.py": "eb121a56554040e39c7194b08ec90835a3b70cf7c25769350e3b9f93729e2189"
+    "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b"
+  },
+  "private_native37_test_only_exceptions": {
+    "tests/test_active_assembly_target_gate.py": {
+      "native37_sha256": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd",
+      "current_sha256": "032400328ef9b8496327dd81d990ee65fe193981c7e3ba2751020ae0d5174d70",
+      "change": "Windows chmod644 before unlink; main9f4a2d1 cherry-picked fdea8fa"
+    },
+    "tests/test_active_assembly_target_execution.py": {
+      "native37_sha256": "eb121a56554040e39c7194b08ec90835a3b70cf7c25769350e3b9f93729e2189",
+      "current_sha256": "ddf2fddf966bb7a8af9cbdd9ce207c1c596b5120eb28479a61562a5fd161f066",
+      "change": "28d5f2c test-only mirror thread drain AFTER SUT return; no production or native budget change"
+    }
   },
   "private_native37_package_manifest_sha256": "bcb78c71973ddf40f6b682e4dc35b42e11abd1bacb0bc9a776a50fdca2001303",
   "private_native37_frozen_files_unchanged": 15,
@@ -543,55 +582,57 @@
   "Save": 0,
   "VM_executed": false,
   "CI_dispatched": false,
+  "CI_patch_applied": false,
   "validation": {
-    "portable_tests": 3047,
+    "portable_tests": 3081,
     "portable_skipped": 39,
-    "portable_seconds": 108.609,
+    "portable_seconds": 110.656,
     "portable_exit_code": 0,
+    "run_start_source_frozen": true,
+    "runtime_bytes_unchanged_since_run_start": true,
     "sdk_types_exit_code": 0,
     "sdk_consumer_refusals": 38,
     "changed_python39_grammar": true,
-    "diff_check": true
+    "ci_patch_apply_check": true,
+    "ci_semantics": "portable test checks proposed or already-applied tree; 25 inputs; original part route; exact independent B branch; mixed-route rejection; no head self-reference",
+    "diff_check": true,
+    "post_full_patch_format_check": "Only three blank context lines encoded as equivalent delete/add; rendered workflow/profile bytes unchanged and dedicated CI semantic test passed after full; runtime526 unchanged"
   },
-  "test_environment": {
-    "python": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115/test-env/bin/python",
-    "version": "3.15.2 (main, Oct 25 2026, 16:57:51) [Clang 17.0.0 (clang-1700.6.4.2)]",
-    "cli": "/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI/src/swcli/cli.py",
-    "dependencies": {
-      "jsonschema": "4.26.0",
-      "PyYAML": "6.0.3",
-      "mypy": "1.20.2",
-      "setuptools": "84.2.1"
-    },
-    "mcp_available": false,
-    "dependency_source": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/integration-venv/lib/python3.15/site-packages",
-    "dependency_pth_executed": false,
-    "VM": false,
-    "CI": false
-  },
-  "artifact_directory": "/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115",
   "evidence_sha256": {
-    "complete-portable.log": "3e71544d4c220e8c49f51745b56e180cb76e12daa3f78b65cccf535adac10838",
-    "sdk-types.log": "afcacf19e2dd4b5de24b7ae1f5d878c14220291e4f1f04edd7e7a25f9ad73026",
-    "test-environment.json": "63f6e85eb641ea560cda240d914ea31d0b1f2f5ef03a7c8a7f47e2eea7918ae7",
-    "test-env-install.log": "2deacab12510b459b06097ba722af4630a07c9e75ba0a7f7aabe8767b5ecd8e9",
-    "initial-portable.log": "fb084e17b64c42ada5a05fa8876859366b9801225c9bc7c5e240095458976cc2",
-    "initial-related.log": "101bc6cc7d4612c8289750ec450cbac52e86e151d81405d5d0dd8a96a0e11733",
-    "initial-sdk-types.log": "afcacf19e2dd4b5de24b7ae1f5d878c14220291e4f1f04edd7e7a25f9ad73026",
-    "initial-environment-recheck.log": "77105801a5b288a1f52acb88c104d0203fcd64c234059367daf497f32792b15f",
-    "initial-source-bootstrap.log": "3c5fcb08ce55c6fa2fe8f21f6c71d5d63995ad7233a58d6d3d94861740f0043b"
+    "review-20261119-final-complete-portable.log": "c5b4b65e6b2c94862ad9eee0c60a6caf7cb452ab099bfae5af1a0742a41b2e4d",
+    "review-20261119-final-sdk-types.log": "afcacf19e2dd4b5de24b7ae1f5d878c14220291e4f1f04edd7e7a25f9ad73026",
+    "review-20261119-final-run-start-source.json": "d4fc9e362006518394f5b5c768eff2df3f79e5831949280035179fe3a7e70afc",
+    "review-20261119-complete-portable.log": "6ad4501659d46d8ea30ce707355d4d0de4fd56798c025a46713c68c3affedbfa",
+    "review-20261119-current-source-snapshot.json": "ad6580a247c3cd8dc6e2ddeeb275a5e9f34f29159146fc6b21e98c9d03c13ed5",
+    "review-20261119-mirror-teardown.log": "c84575221c84e130beb770f155849e1b03e3a62a3aadd0822a31178cbe68fff2",
+    "review-20261119-related.log": "0f4d5c640e401834f094b5d2268f79786f93349b0ee40cbfb65e46bb2a265e7d",
+    "review-20261119-gate-tests.log": "fa335a82e895f2e6b453fca371ee1396a517424a58a64fac7474d9ba457ab1f5",
+    "artifact-metadata-20261119.json": "549d89276d6405baa33377e612bac5e955b2c462e8c6288038b33c2bfea79e3d",
+    "prepared-20261119/once-only-plan.json": "8ef06fd3a4038d1c5d1f3609869dde74b08eb52d53e2aa5e99e5ef4d18dd1cfd",
+    "prepared-20261119/artifact-metadata.json": "0e24f77855dca43e55b681515a480715ad22a350ea4e45c0f7ef38cd9eb5e7e9",
+    "proposed-20261119-ci.yml": "66f405485e1c4286dbac48d0f73f8082bab78f349ecb6ed6fe49513b539a0ef1",
+    "proposed-20261119-validate-native-profile.py": "ecdda09fa350ae3e0db808acf742ea476d54f71ab535f9fdd7d21463f0472cde",
+    "review-20261119-final-ci-proposal.log": "6acb66048824f4ef397daeced712332e20297409188a1845462376f2b5a00799"
   },
-  "initial_full_failure": {
-    "tests": 3046,
-    "skipped": 32,
-    "failures": 1,
-    "errors": 19,
-    "product_regression": "new module top-level jsonschema import breaks source-only -I -S --help; fixed by lazy validation import",
-    "environment_errors": [
-      "PyYAML absent in old 3.14 lane venv",
-      "-I frontend loaded old lane editable CLI; guard correctly refused identity mismatch"
-    ],
-    "temporary_environment_recheck": "adding global site packages admitted an unrelated regular tests package; one namespace import failure; abandoned for persistent isolated 3.15 candidate environment"
+  "prior_full_failure": {
+    "tests": 3079,
+    "skipped": 39,
+    "seconds": 108.389,
+    "errors": 1,
+    "log_sha256": "6ad4501659d46d8ea30ce707355d4d0de4fd56798c025a46713c68c3affedbfa",
+    "failure": "TemporaryDirectory teardown raced with real test mirror thread after successful deadline business assertions",
+    "fix_commit": "28d5f2c97af2cded20b297975ce2902ae33fb8af",
+    "scope": "test-only finally drain for group and outer deadlines; original diagnostics/production unchanged",
+    "run_start_untracked_hashes_available": false,
+    "later_snapshot_is_not_run_start": true
   },
-  "integration_note": "main9f4a2d1 test-only readonly unlink preparation is outside this exact d8922aa baseline; preserve it in later main integration, no need to modify native37 source proof"
+  "fixed_artifact": {
+    "id": 13535673155,
+    "metadata_refreshed": "2026-11-19",
+    "expired": false,
+    "expires_at": "2026-11-20T19:49:09Z",
+    "zip_sha256": "5d5a85844241e6db86d2074e832659340c3c30a7564b65aa0089db581d4095c7",
+    "prepared_plan_authorized_to_execute": false
+  },
+  "integration_note": "Private production three files and observation test match native37; explicit Windows-unlink and mirror-teardown test exceptions. Applying CI proposal changes validate-native-profile.py and requires manifest regeneration plus reviewed constant replacement and coordinator external full-head/workflow review before any dispatch."
 }

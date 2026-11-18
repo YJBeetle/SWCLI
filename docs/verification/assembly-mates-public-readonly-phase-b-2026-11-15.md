@@ -34,10 +34,10 @@ worker在 native_api_sequence 的 CommandInProgress setter之前执行协议/lea
 
 持久独立环境位于 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115/test-env`，Python3.15.2，jsonschema4.26.0、PyYAML6.0.3、mypy1.20.2、setuptools84.2.1。仅把root测试依赖目录作为普通路径读取，未执行其editable .pth映射；用 `--no-cache-dir --no-deps --no-build-isolation --ignore-installed --editable .` 在新env安装当前候选，`-I` 实测cli.__file__精确指向此worktree。未修改root/旧lane环境，未安装新网络依赖。
 
-完整命令为 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src <上述env>/bin/python -B -m unittest discover -s tests`：3047项、39skip，108.609秒，真实退出0。较原3018项新增29项公共反例；57项公共/bootstrap定向回归和此前164项关联亦通过。`scripts/ci/verify-sdk-types.py` 在新env退出0：生成器一致，SDK strict通过，38条消费者类型拒绝精确通过。修改Python均按3.9语法解析，diff-check通过。
+最初 d80727e 候选的完整命令为 `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src <上述env>/bin/python -B -m unittest discover -s tests`：3047项、39skip，108.609秒，真实退出0。较原3018项新增29项公共反例；57项公共/bootstrap定向回归和此前164项关联亦通过。`scripts/ci/verify-sdk-types.py` 在新env退出0：生成器一致，SDK strict通过，38条消费者类型拒绝精确通过。修改Python均按3.9语法解析，diff-check通过。
 
 第一次完整运行保留为 `initial-portable.log`：3046项/32skip，1failure+19errors。唯一新增产品回归是契约模块顶层jsonschema导入破坏无site-package的源码-only帮助入口，已改延迟导入并用原断言复测；其它错误来自旧3.14env缺PyYAML和-I子进程正确拒绝旧editable CLI身份。中间tmp环境尝试引入系统site目录时，又碰到外部regular tests包遮蔽本仓库namespace的一项错误，该环境放弃。未改这些身份、源码-only或测试断言来消除错误。最终完整通过使用上面独立、无系统site目录的持久env。
 
-全部520项src/scripts/tests精确清单、六份37私有源码不变证明、原包15项冻结不变证明、环境与最终/首跑日志SHA见同轮 inputs JSON。原始日志在 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115`，不是native证据。
+最初520项清单及当时六份源码不变证明已原字节归档为 inputs-d80727e-original；最终526项清单、两项测试例外、原包15项冻结不变证明和最终日志SHA见更新后的同轮 inputs JSON。原始日志在 `/Users/YJBeetle/.codex/task-artifacts/document-properties-parallel/mates-public-b-offline-20261115`，不是native证据。
 
-main后续 `9f4a2d1ab6c346bc14d38541325c02e31f0cec8b` 只有既有Windows测试readonly unlink准备修复；本路按主协调要求不修改该文件，后续整合必须保留main那一处。此候选不覆盖它，也不把本地portable成功外推成该Windows job或公共native成功。
+main `9f4a2d1` 的 Windows readonly unlink 测试准备修复已按协调要求 cherry-pick 为 `fdea8fa`；后续 `28d5f2c` 只收束两个 deadline 测试的镜像线程。生产观察 core/reader/adapter 原字节不变，详情及最终门禁边界见 [2026-11-19 离线门禁说明](assembly-mates-public-readonly-gate-2026-11-19.md)。
