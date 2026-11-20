@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import time
 
-from .revolve_direction import durable, require
+from .revolve_direction import durable, require, require_clean_reopen, require_native_ok
 
 
 def load_script(name, path):
@@ -105,7 +105,8 @@ class NativeBackend:
         from swcli.hosts.windows_sketches import _features
         observed["reopen"],self.document = open_windows_document_with_handle(saved["path"],app=self.app,read_only=True)
         self.close_attempted = False
-        require(observed["reopen"]["ok"] is True and self.document is not None, "saved direction open failed")
+        require_clean_reopen(observed["reopen"])
+        require(self.document is not None, "saved direction open did not return a document handle")
         features = [f for f in _features(self.document) if self.value(f,"GetTypeName2") == "Revolution"]
         observed["feature_count"] = len(features)
         require(len(features)==1, "saved model lacks exactly one native Revolution")
@@ -131,6 +132,7 @@ class NativeBackend:
             observed["definition"],angle_deg=case["angle_deg"],expected_axis_points_mm=creation["candidate"]["axis_points_mm"])
         observed["body_count"] = len(tuple(self.document.GetBodies2(-1,False) or ()))
         observed["measurement"] = measure_part_windows(document=self.document)
+        require_native_ok(observed["measurement"], "reopened direction measurement")
         observed["diagnostics"] = _diagnose_features(self.document,500)
         configuration = self.value(self.value(self.document,"ConfigurationManager"),"ActiveConfiguration")
         observed["state"] = dict(read_only=self.value(self.document,"IsOpenedReadOnly"),

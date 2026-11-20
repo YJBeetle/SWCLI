@@ -102,6 +102,24 @@ class DirectionProtocolTests(unittest.TestCase):
         self.assertFalse(report["success"])
         self.assertEqual(disk["reopened"]["measurement"]["metrics"]["volume_mm3"],500*math.pi+1)
         self.assertEqual(self.backend.calls.count("create"),1)
+    def test_failed_reopen_measurement_preserves_native_error_without_metrics(self):
+        reopen = self.backend.reopen
+        failed = dict(ok=False, error=dict(type="MeasurementUnavailable", message="native mass properties missing"))
+
+        def fail(*args):
+            reopen(*args)
+            args[-1]["measurement"] = failed
+
+        self.backend.reopen = fail
+        self.backend.cleanup_errors = [dict(stage="ExitApp", error="secondary cleanup failure")]
+        self.run_case()
+        disk = json.loads((self.output / "report.json").read_text())
+        self.assertFalse(disk["success"])
+        self.assertEqual(disk["reopened"]["measurement"], failed)
+        self.assertEqual(disk["failure"]["type"], "MeasurementUnavailable")
+        self.assertEqual(disk["failure"]["message"], "native mass properties missing")
+        self.assertEqual(disk["cleanup_errors"][0]["stage"], "ExitApp")
+
     def test_definition_angle_axis_and_state_drift_each_fail_closed(self):
         original=self.backend.reopen
         mutations=(lambda r:r["definition"].update(angle_rad=math.pi),

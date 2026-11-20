@@ -19,6 +19,28 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+class NativeReceiptError(RuntimeError):
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+def require_native_ok(receipt, stage):
+    if receipt.get("ok") is True:
+        return
+    error = receipt.get("error") or {}
+    raise NativeReceiptError(error.get("type") or "DirectionNativeReceiptFailed",
+                             error.get("message") or f"{stage} did not report success")
+
+
+def require_clean_reopen(receipt):
+    require_native_ok(receipt, "read-only reopen")
+    for member in ("api_errors", "api_warnings"):
+        value = receipt.get(member)
+        require(type(value) is int and value == 0,
+                f"read-only reopen returned {member}={value!r}")
+
+
 def json_ready(value):
     if isinstance(value, float) and not math.isfinite(value):
         return dict(nonfinite_float=repr(value))
@@ -135,8 +157,7 @@ def validate_creation(creation, retained, case):
 
 
 def validate_reopened(observed, saved, creation, case, expected, configuration):
-    require(observed["reopen"]["ok"] is True and observed["reopen"]["api_errors"] == 0 and
-            observed["reopen"]["api_warnings"] == 0, "saved direction reopen failed")
+    require_clean_reopen(observed["reopen"])
     require(observed["feature_count"] == 1 and observed["profile_count"] == 1 and
             observed["body_count"] == 1, "reopened direction feature/profile/body count differs")
     require(len(observed["bounds_mm"]) == 4 and all(math.isclose(a,b,rel_tol=0,abs_tol=1e-6)
@@ -144,8 +165,9 @@ def validate_reopened(observed, saved, creation, case, expected, configuration):
     require(front_frame(observed["model_to_sketch_transform"]), "saved direction frame differs")
     require(points_match(observed["axis_points_mm"],creation["candidate"]["axis_points_mm"]), "saved ordered axis differs")
     validate_definition(observed["definition"],case,observed["axis_points_mm"])
-    verify_sector_metrics(observed["measurement"]["metrics"], expected)
-    require(observed["measurement"]["ok"] is True, "reopened direction measurement unavailable")
+    measurement = observed["measurement"]
+    require_native_ok(measurement, "reopened direction measurement")
+    verify_sector_metrics(measurement["metrics"], expected)
     require(observed["diagnostics"]["healthy"] is True and observed["diagnostics"]["truncated"] is False,
             "reopened direction diagnostics unhealthy or incomplete")
     require(observed["state"] == dict(read_only=True, modified=False, editing=False, selected=0,
@@ -182,7 +204,8 @@ def run_direction(backend, evidence, source_commit):
             save()  # Retain actual response, even on failure, before assertions.
             expected = validate_creation(report["creation"], report["feature_handle_retained"], report["case"])
             saved = observe("saved", backend.save)
-            require(saved["save"]["ok"] is True and saved["file_size_bytes"] > 0, "save direction model failed")
+            require_native_ok(saved["save"], "save direction model")
+            require(saved["file_size_bytes"] > 0, "saved direction model is empty")
             evidence.call("close-before-reopen", backend.close)
             report["reopened"] = {}
             evidence.call("reopen-read-only", lambda: backend.reopen(saved, report["creation"], deepcopy(report["case"]), report["reopened"]))
