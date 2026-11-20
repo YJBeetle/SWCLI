@@ -1,3 +1,10 @@
+# 字体 next Windows 看门狗与安装交接
+
+- 实现 `9d0240cce88eaf656eeb66e15a220aad9da062b9` 固定 scoped Windows 的真实子进程身份，并提供同路径无 COM 探针。
+- [首跑安装命令、wheel/源码原始 SHA-256 和剩余验收](docs/handoffs/font-scopes-next-windows-supervision.md)。
+
+---
+
 # 字体 next 自建工程图夹具准备
 
 - 实现 `39a0fe842d6be06591c4f738a9d3017c35b02278` 已补齐 General 1×2 表格的 owned 生成入口，尺寸采用手工自建清单和带摘要的只读资格检查。未运行 Windows/COM 或 CI。
