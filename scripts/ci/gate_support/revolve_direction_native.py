@@ -16,8 +16,9 @@ def load_script(name, path):
 
 
 class NativeBackend:
-    def __init__(self, output, swconst, sldworks):
+    def __init__(self, output, swconst, sldworks, *, installation=None):
         self.output, self.swconst, self.sldworks = Path(output), Path(swconst), Path(sldworks)
+        self.installation = installation
         self.app = self.document = self.process = self.feature = None
         self.initialized = self.owned = self.close_attempted = False
         self.call = None
@@ -41,15 +42,22 @@ class NativeBackend:
         self.initialized = True
         original = load_script("_revolve_full_turn_typelib_reader", Path(__file__).parents[1]/"verify-revolve-calibration.py")
         typelib = original.read_type_libraries(pythoncom, self.swconst, self.sldworks)
+        capture_options = {}
+        if self.installation is not None:
+            expected_libraries = {record["path"]: record["sha256"]
+                                  for record in self.installation["libraries"].values()}
+            require(typelib["libraries"] == expected_libraries,
+                    "installed type library content changed since the local preflight")
+            capture_options["expected_image"] = self.installation["executable"]
         self.launched = time.time()
         self.app, self.owned = acquire_resident_app(client, visible=False)
         require(self.owned, "direction singleton must own exactly one fresh host")
         pid = _com_value(self.app,"GetProcessID")
         require(type(pid) is int and pid > 0 and pid not in prior, "owned native PID is unavailable")
         self.owned_native = load_script("_revolve_owned_native", Path(__file__).with_name("unit_owned_native.py"))
-        self.process, identity = self.owned_native.capture(pid, self.launched,
+        self.process, identity = self.owned_native.capture(pid, self.launched, **capture_options,
             observe=lambda observation: durable(self.output/"host-identity-observation.json",observation))
-        durable(self.output/"owned-host.json", dict(identity=identity,launch_timestamp=self.launched))
+        durable(self.output/"owned-host.json", dict(identity=identity, launch_timestamp=self.launched, **capture_options))
         require(solidworks_process_ids() == [pid], "fresh host PID inventory is not exclusive")
         wait_windows_host_ready(self.app, timeout_seconds=120)
         require(not tuple(_com_value(self.app,"GetDocuments") or ()), "fresh host catalog is not empty")

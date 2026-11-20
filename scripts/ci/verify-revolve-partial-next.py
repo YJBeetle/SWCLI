@@ -101,29 +101,83 @@ def exact_source(expected_head, *, local_wheel=None, wheel_sha256=None):
     return proof
 
 
+def registered_local_executable():
+    import winreg
+    from swcli.hosts.windows import PROG_ID, _command_executable
+
+    root = winreg.HKEY_CLASSES_ROOT
+    # Use the registry view of the interpreter that will activate this ProgID.
+    with winreg.OpenKey(root, PROG_ID + r"\CLSID") as key:
+        clsid, _ = winreg.QueryValueEx(key, "")
+    require(isinstance(clsid, str) and re.fullmatch(
+        r"\{[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\}", clsid),
+        "SldWorks.Application has no valid registered CLSID")
+    class_key = "CLSID\\" + clsid
+    with winreg.OpenKey(root, class_key) as key:
+        try:
+            winreg.QueryValueEx(key, "LocalService")
+        except FileNotFoundError:
+            pass
+        else:
+            raise RuntimeError("SldWorks.Application must register a local executable, not LocalService")
+    with winreg.OpenKey(root, class_key + r"\LocalServer32") as key:
+        command, kind = winreg.QueryValueEx(key, "")
+        if kind == winreg.REG_EXPAND_SZ and isinstance(command, str):
+            command = winreg.ExpandEnvironmentStrings(command)
+        try:
+            server_executable, executable_kind = winreg.QueryValueEx(key, "ServerExecutable")
+        except FileNotFoundError:
+            server_executable = None
+        else:
+            require(executable_kind == winreg.REG_SZ and isinstance(server_executable, str)
+                    and bool(server_executable), "invalid registered SOLIDWORKS ServerExecutable")
+    require(kind in (winreg.REG_SZ, winreg.REG_EXPAND_SZ) and isinstance(command, str),
+            "invalid registered SOLIDWORKS LocalServer32 command")
+    candidate = _command_executable(command)
+    require(candidate is not None, "SldWorks.Application LocalServer32 has no executable")
+    path = Path(candidate)
+    require(path.is_absolute() and path.name.casefold() == "sldworks.exe" and path.is_file(),
+            "SldWorks.Application LocalServer32 does not identify an installed SLDWORKS.exe")
+    executable = path.resolve(strict=True)
+    require(executable.name.casefold() == "sldworks.exe", "registered SOLIDWORKS executable resolves to a different name")
+    if server_executable is not None:
+        named = Path(server_executable)
+        require(named.is_absolute() and named.is_file() and named.samefile(executable),
+                "registered ServerExecutable differs from LocalServer32")
+    return clsid, executable
+
+
 def require_local_installation(swconst, sldworks):
-    from gate_support.unit_owned_native import EXPECTED_CI_IMAGE
-
-    executable = Path(EXPECTED_CI_IMAGE)
-    require(executable.is_file(), "local SOLIDWORKS is missing from " + str(executable))
-    for typelib, filename in ((swconst, "swconst.tlb"), (sldworks, "sldworks.tlb")):
+    clsid, executable = registered_local_executable()
+    libraries = {}
+    for supplied, filename in ((swconst, "swconst.tlb"), (sldworks, "sldworks.tlb")):
         expected = executable.with_name(filename)
-        require(expected.is_file() and typelib.samefile(expected),
-                "local verification requires the installed type library " + str(expected))
+        require(expected.is_file(), "registered SOLIDWORKS installation is missing " + str(expected))
+        installed = expected.resolve(strict=True)
+        require(installed.parent == executable.parent and installed.name.casefold() == filename,
+                "installed type library resolves outside its registered location: " + str(expected))
+        if supplied is not None:
+            require(supplied.is_file() and supplied.samefile(installed),
+                    "local verification requires the installed type library " + str(expected))
+        libraries[filename] = dict(path=str(installed), sha256=hashlib.sha256(installed.read_bytes()).hexdigest())
+    return dict(clsid=clsid, executable=str(executable), libraries=libraries)
 
 
-def stop_owned_after_timeout(output):
-    """Never search for replacement hosts; admit only the recorded exact identity."""
+def stop_owned_after_timeout(output, *, expected_image=None):
+    """Recheck the recorded process against this run's preflight installation."""
     manifest=Path(output)/"owned-host.json"
     if not manifest.is_file():
         return dict(terminated=False,reason="no proven owned host identity; no host termination")
     from gate_support.revolve_direction_native import load_script
     owner=load_script("_direction_timeout_owner",CI/"gate_support/unit_owned_native.py")
     saved=json.loads(manifest.read_text())
+    require(saved.get("expected_image") == expected_image,
+            "recorded native host installation differs from supervisor preflight")
+    capture_options = {"expected_image": expected_image} if expected_image is not None else {}
     handle=None
     try:
         handle,identity=owner.capture(saved["identity"]["pid"],saved["launch_timestamp"],
-            observe=lambda observed:durable(Path(output)/"timeout-identity-observation.json",observed))
+            **capture_options, observe=lambda observed:durable(Path(output)/"timeout-identity-observation.json",observed))
         require(identity==saved["identity"],"recorded native process identity changed; never terminate replacement")
         owner.terminate(handle,identity)
         import win32event
@@ -133,7 +187,8 @@ def stop_owned_after_timeout(output):
         if handle is not None:handle.Close()
 
 
-def supervise(command, output):
+def supervise(command, output, *, expected_image=None):
+    capture_options = {"expected_image": expected_image} if expected_image is not None else {}
     with (output/"stdout.log").open("wb") as stdout,(output/"stderr.log").open("wb") as stderr:
         child=subprocess.Popen(command,stdout=stdout,stderr=stderr,env={**os.environ,"SWCLI_TRACE_NATIVE_CALLS":"1"})
         try:
@@ -144,7 +199,7 @@ def supervise(command, output):
             except BaseException as error:timeout["initial_evidence_error"]=str(error)
             try:child.kill();child.wait(timeout=10)
             except BaseException as error:timeout["worker_cleanup_error"]=str(error)
-            try:timeout["owned_cleanup"]=stop_owned_after_timeout(output)
+            try:timeout["owned_cleanup"]=stop_owned_after_timeout(output, **capture_options)
             except BaseException as error:timeout["cleanup_error"]=dict(type=type(error).__name__,message=str(error))
             try:durable(output/"group-timeout.json",timeout)
             except BaseException as error:
@@ -162,7 +217,7 @@ def supervise(command, output):
             # A 600s os._exit watchdog bypasses worker finally; retain its first
             # report and clean only a separately reverified recorded process.
             cleanup={}
-            try:cleanup=stop_owned_after_timeout(output)
+            try:cleanup=stop_owned_after_timeout(output, **capture_options)
             except BaseException as error:cleanup=dict(cleanup_error=str(error))
             durable(output/"supervisor-failure-cleanup.json",cleanup)
         return code
@@ -172,8 +227,8 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-head",required=True)
     parser.add_argument("--output-dir",required=True,type=Path)
-    parser.add_argument("--swconst",required=True,type=Path)
-    parser.add_argument("--sldworks",required=True,type=Path)
+    parser.add_argument("--swconst",type=Path,help="installed swconst.tlb (required in CI)")
+    parser.add_argument("--sldworks",type=Path,help="installed sldworks.tlb (required in CI)")
     parser.add_argument("--local-windows", action="store_true", help="verify from a local installed Windows checkout")
     parser.add_argument("--wheel", type=Path, help="original wheel used to install SWCLI in local mode")
     parser.add_argument("--wheel-sha256", help="SHA256 of the prepared wheel in local mode")
@@ -181,6 +236,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     if re.fullmatch(r"[0-9a-f]{40}",args.expected_head) is None:parser.error("full lowercase commit SHA required")
     local_args = []
+    installation = None
     if args.local_windows:
         if args.wheel is None or re.fullmatch(r"[0-9a-fA-F]{64}", args.wheel_sha256 or "") is None:
             parser.error("--local-windows requires --wheel and its full SHA256 in --wheel-sha256")
@@ -192,15 +248,22 @@ def main(argv=None):
         if args.wheel is not None or args.wheel_sha256 is not None:
             parser.error("wheel arguments require --local-windows")
         proof = exact_source(args.expected_head)
-    require(args.swconst.is_file() and args.sldworks.is_file(),"both installed official type libraries are required")
     if args.local_windows:
-        require_local_installation(args.swconst, args.sldworks)
+        installation = require_local_installation(args.swconst, args.sldworks)
+        proof["installation"] = installation
+        swconst, sldworks = (Path(installation["libraries"][name]["path"])
+                             for name in ("swconst.tlb", "sldworks.tlb"))
+    else:
+        if args.swconst is None or args.sldworks is None:
+            parser.error("CI requires --swconst and --sldworks")
+        swconst, sldworks = args.swconst, args.sldworks
+        require(swconst.is_file() and sldworks.is_file(), "both installed official type libraries are required")
     if args.worker:
         parent_proof = json.loads((args.output_dir / "source-proof-parent.json").read_text(encoding="utf-8"))
         require(proof == parent_proof, "worker provenance differs from the supervisor preflight")
         from gate_support.revolve_direction_native import NativeBackend
         durable(args.output_dir/"source-proof.json",proof)
-        report=run_direction(NativeBackend(args.output_dir,args.swconst,args.sldworks),Evidence(args.output_dir),args.expected_head)
+        report=run_direction(NativeBackend(args.output_dir, swconst, sldworks, installation=installation),Evidence(args.output_dir),args.expected_head)
         print(json.dumps(dict(success=report["success"],failure=report.get("failure"),public_acceptance=False)))
         return 0 if report["success"] else 1
     output=args.output_dir.resolve()
@@ -211,8 +274,8 @@ def main(argv=None):
             subprocess.run([sys.executable, "-I", str(CI / "verify-installed.py")],
                            check=True, stdout=receipt, stderr=subprocess.STDOUT)
     command=[sys.executable,"-I",str(Path(__file__).resolve()),"--worker","--expected-head",args.expected_head,
-        "--output-dir",str(output),"--swconst",str(args.swconst.resolve()),"--sldworks",str(args.sldworks.resolve()), *local_args]
-    return supervise(command,output)
+        "--output-dir",str(output),"--swconst",str(swconst.resolve()),"--sldworks",str(sldworks.resolve()), *local_args]
+    return supervise(command, output, expected_image=installation["executable"] if installation else None)
 
 
 if __name__=="__main__":raise SystemExit(main())

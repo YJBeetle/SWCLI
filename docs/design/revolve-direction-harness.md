@@ -120,7 +120,7 @@ GitHub 已登记独立 workflow `417704126`（active）。既有 push 路由 run
 Git checkout 保留源码字节，`git clone` 时使用 `-c core.autocrlf=false`。
 
 ```powershell
-$root = 'C:\SWCLI-validation\revolve-direction'
+$root = 'C:\Workspace\revolve-direction'
 $pkg = Join-Path $root 'package'
 $manifest = Get-Content (Join-Path $pkg 'manifest.json') -Raw | ConvertFrom-Json
 $bundle = Join-Path $pkg $manifest.git_bundle.file
@@ -136,21 +136,29 @@ $python = Join-Path $root 'venv\Scripts\python.exe'
 if ($LASTEXITCODE -ne 0) { throw 'Prepared wheel installation failed' }
 ```
 
-准备完成后，在排定的 VM 窗口执行一次：
+VM 当前已观察到的 exe 与 `swconst.tlb` 位于 `C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS`。
+下面的只读检查确认同目录三件文件，包括此前尚未确认的 `sldworks.tlb`：
+
+```powershell
+$install = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS'
+Get-Item -LiteralPath @((Join-Path $install 'SLDWORKS.exe'), (Join-Path $install 'swconst.tlb'), (Join-Path $install 'sldworks.tlb')) -ErrorAction Stop | Select-Object FullName, Length
+```
+
+准备完成后，在排定的 VM 窗口执行一次。命令从注册表解析同目录的类型库：
 
 ```powershell
 & $python -I (Join-Path $root 'source\scripts\ci\verify-revolve-partial-next.py') `
   --local-windows --expected-head $manifest.head --wheel $wheel --wheel-sha256 $manifest.wheel.sha256 `
-  --output-dir (Join-Path $root 'run-001') `
-  --swconst 'C:\Program Files\SOLIDWORKS\swconst.tlb' `
-  --sldworks 'C:\Program Files\SOLIDWORKS\sldworks.tlb'
+  --output-dir (Join-Path $root 'run-001')
 ```
 
 本地入口核对 checkout 与本地候选分支的完整 SHA、干净的源码与脚本、wheel 的 SHA256 与 pip 安装来源，以及
 源码、wheel、安装目录的包文件集合和字节。入口运行已安装产品核验，worker 再核对 supervisor 保存的来源回执。
-本地命令要求 SOLIDWORKS 2025 SP5 原生 Windows 安装，类型库来自 `C:\Program Files\SOLIDWORKS\SLDWORKS.exe`
-所在目录。先确保 VM 中没有运行中的 SOLIDWORKS 进程。原有 GitHub 手动事件、分支和 SHA 检查仍适用于 CI 入口，
-本地入口拒绝 GitHub 路由变量。
+本地命令从当前 Python 的 Windows 注册表视图读取 `SldWorks.Application` 的 CLSID 和 `LocalServer32`。
+它要求原生 SOLIDWORKS 33.5.0，且 `swconst.tlb` 和 `sldworks.tlb` 与注册的 `SLDWORKS.exe` 同目录。
+如果显式给出类型库参数，文件身份必须与安装文件一致。父子进程核对注册结果和两份类型库的 SHA256，
+实际宿主及超时清理核对进程映像身份。先确保 VM 中没有运行中的 SOLIDWORKS 进程。GitHub 入口沿用原有的
+手动事件、分支、SHA 和 CI 安装路径。本地入口只接受普通 Windows shell。
 
 本地沿用同一方向假设、独占宿主流程、保存及只读重开断言和清理。单例与各原生边界最多 600 秒，worker 最多
 1800 秒。`run-001` 必须是新目录。交接该目录的 `source-proof-parent.json`、`source-proof.json`、

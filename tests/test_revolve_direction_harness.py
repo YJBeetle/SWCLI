@@ -1,4 +1,5 @@
 """Offline direction harness/route controls; never a native execution."""
+from contextlib import nullcontext
 from copy import deepcopy
 import hashlib
 import importlib.util
@@ -276,46 +277,73 @@ class LocalDirectionAdmissionTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "install SWCLI from the declared wheel"):
                     entry.verify_local_wheel(root, "a" * 40, installed, path, digest)
 
-    def test_local_installation_requires_the_installs_own_type_libraries(self):
-        from gate_support import unit_owned_native
+    def test_local_installation_uses_registered_exe_and_rejects_missing_or_substitute_tlb(self):
+        clsid = "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}"
+        local_server = "CLSID\\" + clsid + r"\LocalServer32"
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            executable, swconst, sldworks = (root / name for name in ("SLDWORKS.exe", "swconst.tlb", "sldworks.tlb"))
+            install = Path(temp).resolve() / "Program Files" / "SOLIDWORKS Corp" / "SOLIDWORKS"
+            install.mkdir(parents=True)
+            executable, swconst, sldworks = (install / name for name in ("SLDWORKS.exe", "swconst.tlb", "sldworks.tlb"))
             for path in (executable, swconst, sldworks):
-                path.touch()
-            unrelated = root / "copied-swconst.tlb"
-            unrelated.touch()
-            with mock.patch.object(unit_owned_native, "EXPECTED_CI_IMAGE", str(executable)):
-                entry.require_local_installation(swconst, sldworks)
-                with self.assertRaisesRegex(RuntimeError, "requires the installed type library"):
-                    entry.require_local_installation(unrelated, sldworks)
+                path.write_bytes(path.name.encode())
+            registry = SimpleNamespace(HKEY_CLASSES_ROOT=object(), REG_SZ=1, REG_EXPAND_SZ=2)
+            values = {(r"SldWorks.Application\CLSID", ""): (clsid, 1),
+                      (local_server, ""): (f'"{executable}" /Embedding', 1),
+                      (local_server, "ServerExecutable"): (str(executable), 1)}
 
-    def test_local_parent_passes_explicit_wheel_to_supervisor_and_worker_rechecks_proof(self):
+            def read(key, member):
+                try:
+                    return values[key, member]
+                except KeyError:
+                    raise FileNotFoundError(member) from None
+
+            registry.OpenKey = lambda root, key: nullcontext(key)
+            registry.QueryValueEx = read
+            alternative = install.parent / "sldworks.tlb"
+            alternative.write_bytes(sldworks.read_bytes())
+            with mock.patch.dict(sys.modules, winreg=registry):
+                result = entry.require_local_installation(None, None)
+                self.assertEqual(result["executable"], str(executable))
+                self.assertEqual(result["libraries"]["sldworks.tlb"],
+                                 dict(path=str(sldworks), sha256=hashlib.sha256(sldworks.read_bytes()).hexdigest()))
+                with self.assertRaisesRegex(RuntimeError, "requires the installed type library"):
+                    entry.require_local_installation(swconst, alternative)
+                alternate_exe = install.parent / "SLDWORKS.exe"
+                alternate_exe.touch()
+                values[local_server, "ServerExecutable"] = (str(alternate_exe), 1)
+                with self.assertRaisesRegex(RuntimeError, "ServerExecutable differs"):
+                    entry.require_local_installation(None, None)
+                del values[local_server, "ServerExecutable"]
+                sldworks.unlink()
+                with self.assertRaisesRegex(RuntimeError, "is missing .*sldworks.tlb"):
+                    entry.require_local_installation(None, None)
+
+    def test_local_parent_passes_registered_install_to_worker_and_supervisor(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
-            swconst, sldworks = root / "swconst.tlb", root / "sldworks.tlb"
-            swconst.touch()
-            sldworks.touch()
+            swconst, sldworks, executable = (root/name for name in ("swconst.tlb", "sldworks.tlb", "SLDWORKS.exe"))
             output = root / "result"
             wheel = root / "swcli.whl"
             head, digest = "a" * 40, "b" * 64
             args = ["--local-windows", "--wheel", str(wheel), "--wheel-sha256", digest,
-                    "--expected-head", head, "--output-dir", str(output),
-                    "--swconst", str(swconst), "--sldworks", str(sldworks)]
+                    "--expected-head", head, "--output-dir", str(output)]
             proof = dict(source_commit=head, entrypoint="local-windows", wheel_sha256=digest)
-            with mock.patch.object(entry, "exact_source", return_value=proof) as exact, \
-                 mock.patch.object(entry, "require_local_installation") as installation, \
+            install = dict(executable=str(executable), libraries={path.name: {"path": str(path)}
+                                                                 for path in (swconst, sldworks)})
+            with mock.patch.object(entry, "exact_source", side_effect=lambda *a, **kw: dict(proof)) as exact, \
+                 mock.patch.object(entry, "require_local_installation", return_value=install) as installation, \
                  mock.patch.object(entry.subprocess, "run") as installed_check, \
                  mock.patch.object(entry, "supervise", return_value=0) as supervise:
                 self.assertEqual(entry.main(args), 0)
                 exact.assert_called_once_with(head, local_wheel=wheel, wheel_sha256=digest)
-                installation.assert_called_once_with(swconst, sldworks)
+                installation.assert_called_once_with(None, None)
                 self.assertTrue(installed_check.call_args.args[0][-1].endswith("verify-installed.py"))
                 command = supervise.call_args.args[0]
                 self.assertIn("--local-windows", command)
-                self.assertEqual(command[command.index("--wheel-sha256")+1], digest)
-                self.assertEqual(json.loads((output / "source-proof-parent.json").read_text()), proof)
-                exact.return_value = dict(proof, wheel_sha256="c" * 64)
+                self.assertEqual(supervise.call_args.kwargs, {"expected_image": str(executable)})
+                self.assertEqual(command[command.index("--sldworks")+1], str(sldworks))
+                self.assertEqual(json.loads((output / "source-proof-parent.json").read_text()), dict(proof, installation=install))
+                installation.return_value = dict(install, executable=str(root / "another" / "SLDWORKS.exe"))
                 with self.assertRaisesRegex(RuntimeError, "worker provenance differs"):
                     entry.main(["--worker", *args])
                 self.assertFalse((output / "source-proof.json").exists())
@@ -408,6 +436,26 @@ class DirectionFailureCompletionTests(unittest.TestCase):
             with mock.patch.object(revolve_direction_native,"load_script",return_value=owner):
                 with self.assertRaisesRegex(RuntimeError,"identity changed"):entry.stop_owned_after_timeout(output)
             owner.terminate.assert_not_called();handle.Close.assert_called_once()
+    def test_local_timeout_only_recaptures_the_parent_confirmed_registered_executable(self):
+        from gate_support import revolve_direction_native
+        image = r"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp)
+            identity = dict(pid=7, creation_timestamp=1, image=image)
+            protocol.durable(output / "owned-host.json", dict(identity=identity, launch_timestamp=0, expected_image=image))
+            handle = mock.Mock()
+            owner = SimpleNamespace(capture=mock.Mock(return_value=(handle, identity)), terminate=mock.Mock())
+            event = SimpleNamespace(WaitForSingleObject=mock.Mock(return_value=0), WAIT_OBJECT_0=0)
+            with mock.patch.object(revolve_direction_native, "load_script", return_value=owner), \
+                 mock.patch.dict(sys.modules, win32event=event):
+                with self.assertRaisesRegex(RuntimeError, "installation differs"):
+                    entry.stop_owned_after_timeout(output, expected_image=r"C:\Other\SLDWORKS.exe")
+                owner.capture.assert_not_called()
+                self.assertTrue(entry.stop_owned_after_timeout(output, expected_image=image)["terminated"])
+            self.assertEqual(owner.capture.call_args.kwargs["expected_image"], image)
+            owner.terminate.assert_called_once_with(handle, identity)
+            event.WaitForSingleObject.assert_called_once_with(handle, 10000)
+
     def test_zero_exit_without_report_is_refused_and_completed_failure_needs_no_second_host_cleanup(self):
         with tempfile.TemporaryDirectory() as temp:
             output=Path(temp);child=mock.Mock(pid=12);child.wait.return_value=0
