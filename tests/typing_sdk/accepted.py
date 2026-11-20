@@ -90,3 +90,14 @@ def document_preferences(client: Client, font: DocumentAnnotationFontResultFont,
     initial_grid: bool = display_set.require_result()["before"]["grid.display"]["native_value"]
     profile: str = read_standard.require_result()["observed_defaults"]["profile"]
     standard_set.require_result()["before"]["observed_defaults"]["annotation_font"]["font"]["height_points"]
+
+
+def compare_assembly_readonly_targets(client: Client) -> bool:
+    observed = client.assembly.targets.list(
+        components=["anchor-1", "moving-1"], document_id="d-ab12cd",
+        expected_update_stamp=7, lease_id="l-ab12cd34ef56").require_result()
+    targets = [target["target_id"] for target in observed["targets"]]
+    compared = client.assembly.targets.validate(snapshot_id=observed["snapshot_id"],
+        target_ids=targets, document_id="d-ab12cd", expected_update_stamp=7,
+        lease_id="l-ab12cd34ef56").require_result()
+    return compared["read_gate"]["write_authorized"]

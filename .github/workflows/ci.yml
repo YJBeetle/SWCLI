@@ -111,7 +111,7 @@ on:
         default: false
         type: boolean
       native_topology_targeted:
-        description: Run only bounded topology reference calibration on its development branch
+        description: "Bounded readonly topology: original part-reference branch or assembly-targets-readonly-public (exact branch only)"
         required: false
         default: false
         type: boolean
@@ -407,13 +407,16 @@ jobs:
         run: python scripts/ci/validate-units-route.py
 
   solidworks-e2e:
-    name: ${{ inputs.units_write_calibration && inputs.units_public_acceptance && 'Public finite units write acceptance' || inputs.units_write_calibration && 'Private finite units write calibration' || inputs.units_calibration && inputs.units_public_acceptance && 'Public units read/CAS acceptance' || inputs.units_calibration && 'Bounded units read/CAS calibration' || inputs.native_topology_targeted && 'Targeted topology reference verification' || inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Document Image Quality calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
+    name: ${{ needs.native-profile.outputs.profile == 'assembly-targets-readonly-public' && 'assembly-targets-readonly-public (CLI SDK MCP)' || inputs.units_write_calibration && inputs.units_public_acceptance && 'Public finite units write acceptance' || inputs.units_write_calibration && 'Private finite units write calibration' || inputs.units_calibration && inputs.units_public_acceptance && 'Public units read/CAS acceptance' || inputs.units_calibration && 'Bounded units read/CAS calibration' || inputs.native_topology_targeted && 'Targeted topology reference verification' || inputs.image_quality_public_acceptance && 'Public document Image Quality acceptance' || inputs.image_quality_calibration && 'Internal Document Image Quality calibration' || inputs.line_font_public && 'Public drawing Line Font acceptance' || inputs.line_font_calibration && 'Internal drawing Line Font calibration' || inputs.stl_options_public && 'Public isolated STL options acceptance (bounded scope)' || inputs.stl_options_targeted && 'Isolated STL options calibration (not full acceptance)' || needs.native-profile.outputs.profile == 'tolerances-public' && 'Public document tolerance acceptance' || needs.native-profile.outputs.profile == 'tolerances-calibration' && 'Internal document tolerance calibration' || inputs.native_revolve_public && 'Bounded revolve public CLI acceptance' || inputs.native_revolve_calibration && 'Internal bounded revolve calibration' || 'Complete SOLIDWORKS functional verification' }}
     needs: [test, package, tag-policy, native-profile, units-route]
-    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && (github.event_name != 'workflow_dispatch' || needs.units-route.result == 'success') && ((github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references') || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'image_quality_calibration' || needs.native-profile.outputs.profile == 'image_quality_public_acceptance')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
+    if: ${{ always() && github.repository == 'YJBeetle/SWCLI' && needs.native-profile.result == 'success' && needs.test.result == 'success' && needs.package.result == 'success' && (github.event_name != 'workflow_dispatch' || needs.units-route.result == 'success') && ((github.event_name == 'workflow_dispatch' && needs.native-profile.outputs.profile == 'assembly-targets-readonly-public' && github.ref == 'refs/heads/codex/swcli-assembly-mates-active') || (github.event_name == 'workflow_dispatch' && inputs.units_calibration && github.ref == 'refs/heads/codex/docprops-units-expanded') || (github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references') || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'full' || (github.ref == 'refs/heads/codex/docprops-tolerances' && (needs.native-profile.outputs.profile == 'tolerances-public' || needs.native-profile.outputs.profile == 'tolerances-calibration')))) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'image_quality_calibration' || needs.native-profile.outputs.profile == 'image_quality_public_acceptance')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'line_font_public' || needs.native-profile.outputs.profile == 'line_font_calibration')) || (github.event_name == 'workflow_dispatch' && (needs.native-profile.outputs.profile == 'stl_options_public' || needs.native-profile.outputs.profile == 'stl_options_targeted')) || (github.event_name == 'workflow_dispatch' && (inputs.native_revolve_calibration || inputs.native_revolve_public) && github.ref == 'refs/heads/codex/swcli-revolve-feature') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && needs.tag-policy.result == 'success')) }}
     runs-on: windows-2025
+    permissions:
+      contents: read
+      actions: read
     timeout-minutes: 120
     concurrency:
-      group: ${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
+      group: ${{ github.event_name == 'workflow_dispatch' && inputs.units_calibration && format('swcli-units-read-cas-{0}', github.ref) || needs.native-profile.outputs.profile == 'assembly-targets-readonly-public' && format('swcli-assembly-targets-readonly-public-{0}', github.ref) || inputs.native_topology_targeted && format('swcli-topology-targeted-{0}', github.ref) || inputs.image_quality_calibration && format('swcli-image-quality-{0}', github.ref) || inputs.image_quality_public_acceptance && format('swcli-image-quality-public-{0}', github.ref) || inputs.line_font_public && format('swcli-line-font-public-{0}', github.ref) || inputs.line_font_calibration && format('swcli-line-font-calibration-{0}', github.ref) || inputs.stl_options_public && format('swcli-stl-options-public-{0}', github.ref) || inputs.stl_options_targeted && format('swcli-stl-options-{0}', github.ref) || startsWith(needs.native-profile.outputs.profile, 'tolerances-') && format('swcli-tolerance-calibration-{0}', github.ref) || inputs.native_revolve_public && format('swcli-revolve-public-{0}', github.ref) || inputs.native_revolve_calibration && format('swcli-revolve-calibration-{0}', github.ref) || 'swcli-hosted-windows-solidworks' }}
       cancel-in-progress: false
     env:
       SWCLI_NATIVE_PROFILE: ${{ needs.native-profile.outputs.profile }}
@@ -447,6 +450,17 @@ jobs:
           "RCLONE_LOG_FILE=$env:RUNNER_TEMP\swcli-hosted-media\rclone.log" >> $env:GITHUB_ENV
           "RCLONE_CACHE_DIR=$env:RUNNER_TEMP\swcli-hosted-media\vfs-cache" >> $env:GITHUB_ENV
           "SWCLI_SMOKE_ROOT=$env:RUNNER_TEMP\swcli-native-smoke" >> $env:GITHUB_ENV
+
+      - name: Verify fixed assembly artifact before private setup
+        if: ${{ needs.native-profile.outputs.profile == 'assembly-targets-readonly-public' }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -I scripts/ci/fetch-assembly-targets-public-fixture.py --output-dir "$env:SWCLI_SMOKE_ROOT\assembly-targets-public\fixed-artifact"
+          if ($LASTEXITCODE -ne 0) { throw "Fixed artifact metadata/digest failed; do not construct fixtures or start CAD" }
+          python -I scripts/ci/prepare-assembly-targets-public.py --metadata-json "$env:SWCLI_SMOKE_ROOT\assembly-targets-public\fixed-artifact\artifact-metadata.json" --internal-zip "$env:SWCLI_SMOKE_ROOT\assembly-targets-public\fixed-artifact\internal.zip" --output-dir "$env:SWCLI_SMOKE_ROOT\assembly-targets-public\prepared"
+          if ($LASTEXITCODE -ne 0) { throw "Original three readonly fixtures failed byte/ZIP checks" }
 
       - name: Measure disposable runner disk
         shell: powershell
@@ -729,6 +743,28 @@ jobs:
         run: |
           scripts/ci/windows/smoke-solidworks.ps1 -Workspace "$env:SWCLI_SMOKE_ROOT\image-quality-public" -Hidden -ImageQualityPublicAcceptance
 
+      - name: assembly-targets-readonly-public through CLI SDK MCP
+        id: assembly_targets_public
+        if: ${{ needs.native-profile.outputs.profile == 'assembly-targets-readonly-public' && github.ref == 'refs/heads/codex/swcli-assembly-mates-active' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          # Root externally pins full head/workflow bytes before dispatch and
+          # verifies run.head_sha afterwards; only source-manifest SHA is frozen here.
+          $actualHead = $env:GITHUB_SHA
+          $reviewedManifest = '13c274051a0b678a83b12c547f4142a17a87de79cd0009513a416ffbf798c6d0'
+          if ($actualHead -notmatch '^[0-9a-f]{40}$') { throw "Unknown actual run head" }
+          python -m pip --no-cache-dir install "mcp>=1.30,<2" "Pillow>=10.4"
+          if ($LASTEXITCODE -ne 0) { throw "Public MCP dependencies missing" }
+          $base = "$env:SWCLI_SMOKE_ROOT\assembly-targets-public"
+          $manifest = 'docs/verification/assembly-mates-public-readonly-ci-inputs-2026-11-19.json'
+          if ((Get-FileHash -Algorithm SHA256 $manifest).Hash.ToLowerInvariant() -ne $reviewedManifest) { throw "Unreviewed source manifest" }
+          # Root reviews this exact once-only authority after source freeze.
+          $grant = @{authorized=$true;root_reviewed=$true;write_permission=$false;phase_count=2;group_seconds=1800;native_seconds=600;outer_seconds=1840;artifact_id=13535673155;source_commit=$actualHead;review_scope='frozen execution manifest; workflow and full head verified externally by coordinator';actual_workflow_sha256=(Get-FileHash -Algorithm SHA256 '.github/workflows/ci.yml').Hash.ToLowerInvariant();source_manifest_sha256=$reviewedManifest;plan_sha256=(Get-FileHash -Algorithm SHA256 "$base\prepared\once-only-plan.json").Hash.ToLowerInvariant();host_executable_sha256=(Get-FileHash -Algorithm SHA256 'C:\Program Files\SOLIDWORKS\SLDWORKS.exe').Hash.ToLowerInvariant();host_type_library_sha256=(Get-FileHash -Algorithm SHA256 'C:\Program Files\SOLIDWORKS\sldworks.tlb').Hash.ToLowerInvariant()}
+          [IO.File]::WriteAllText("$base\coordinator-grant.json", ($grant | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+          python -I scripts/ci/verify-assembly-targets-public.py --prepared-dir "$base\prepared" --output-dir "$base\execution" --expected-host-image 'C:\Program Files\SOLIDWORKS\SLDWORKS.exe' --grant-json "$base\coordinator-grant.json" --source-manifest $manifest --source-manifest-sha $reviewedManifest
+          if ($LASTEXITCODE -ne 0) { throw "Public readonly gate failed; preserve first error and raw receipts, no restart/CAD retry" }
+
       - name: Run targeted topology reference calibration and public proof
         id: topology_targeted
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.native_topology_targeted && !inputs.native_full && github.ref == 'refs/heads/codex/swcli-topology-references' }}
@@ -826,6 +862,10 @@ jobs:
               --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" `
               --stage "stl-options-internal=${{ steps.stl_options_targeted.outcome }}" `
               --stage "cleanup=${{ steps.native_cleanup.outcome }}"
+            exit $LASTEXITCODE
+          }
+          if ($env:SWCLI_NATIVE_PROFILE -eq "assembly-targets-readonly-public") {
+            python scripts/ci/summarize-tests.py --evidence-root "$env:SWCLI_SMOKE_ROOT\assembly-targets-public" --output-dir "$env:RUNNER_TEMP\swcli-test-summary" --host windows --scope assembly-targets-readonly-public --source-commit "$env:GITHUB_SHA" --client-version "$clientVersion" --stage "assembly-targets-public=${{ steps.assembly_targets_public.outcome }}" --stage "cleanup=${{ steps.native_cleanup.outcome }}"
             exit $LASTEXITCODE
           }
           if ($env:SWCLI_NATIVE_PROFILE -eq "native_topology_targeted") {
