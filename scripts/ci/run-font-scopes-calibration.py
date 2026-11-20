@@ -13,6 +13,7 @@ NATIVE_TIMEOUT_SECONDS = 600
 GROUP_TIMEOUT_SECONDS = 1800
 WORKERS = {
     "internal": "verify-font-scopes-calibration.py",
+    "next-fixture": "prepare-font-scopes-next-fixture.py",
     "inheritance-seed": "verify-font-scopes-inheritance.py",
     "inheritance-observe": "verify-font-scopes-inheritance.py",
 }
@@ -23,8 +24,10 @@ def worker_command(args, output):
     if profile not in WORKERS:
         raise ValueError("unsupported font calibration profile")
     scope = getattr(args, "scope", None)
-    if scope is not None and (profile != "internal" or scope not in ("dimensions", "tables")):
-        raise ValueError("a next font scope requires the internal dimensions/tables profile")
+    if scope is not None and (profile not in ("internal", "next-fixture") or scope not in ("dimensions", "tables")):
+        raise ValueError("a next font scope requires internal or next-fixture and dimensions/tables")
+    if profile == "next-fixture" and scope is None:
+        raise ValueError("next fixture preparation requires a dimensions/tables scope")
     command = [sys.executable, "-I", str(Path(__file__).with_name(WORKERS[profile])),
                "--output-dir", str(output / "native"), "--swconst", str(args.swconst),
                "--drawing-template", str(args.drawing_template)]
@@ -35,7 +38,9 @@ def worker_command(args, output):
         if scope is None or drawing is None or not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
             raise ValueError("inheritance requires one next scope, a drawing and its exact SHA-256")
         command.extend(["--inheritance-drawing", str(drawing.resolve()), "--inheritance-sha256", digest])
-    if profile != "internal":
+    if profile == "next-fixture" and scope == "dimensions" and drawing is None:
+        raise ValueError("dimensions requires a manually generated drawing and its SHA-256")
+    if profile in ("inheritance-seed", "inheritance-observe"):
         command.extend(["--phase", "seed" if profile == "inheritance-seed" else "observe"])
     if profile == "inheritance-observe":
         if args.fixture_dir is None or args.gate_dir is None:
@@ -111,11 +116,14 @@ def main(argv=None):
     command = worker_command(args, output)
     output.mkdir(parents=True, exist_ok=False)
     record = {"evidence_kind": ("internal-native-calibration" if args.profile == "internal" else
-                                "native-fixture-seed" if args.profile == "inheritance-seed" else
+                                "native-fixture-seed" if args.profile in ("inheritance-seed", "next-fixture") else
                                 "native-observer-of-public-output"), "profile": args.profile, "public_acceptance": False,
               "source_head": head, "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
               "group_timeout_seconds": GROUP_TIMEOUT_SECONDS, "retry_count": 0, "host_restart_count": 0,
               "automatic_rollback": False, "success": False}
+    if args.profile == "next-fixture":
+        record["preparation_only"] = True
+        record["inheritance_acceptance"] = False
     if args.inheritance_drawing is not None:
         record["inheritance_fixture_sha256"] = args.inheritance_sha256
         record["inheritance_acceptance"] = False  # independent limited witness is in the worker report

@@ -70,12 +70,17 @@ def collect_dimensions(view, enum):
     return by_role
 
 
-def collect_table(view, enum):
+def general_table(view, enum):
     table = _com_value(view, "GetFirstTableAnnotation2")
     require(table is not None and _com_value(table, "GetNext") is None, "drawing needs exactly one table")
     require(_com_value(table, "Type") == enum, "inheritance fixture must contain one General table")
     require((_com_value(table, "RowCount"), _com_value(table, "ColumnCount")) == (1, 2),
             "General table fixture must be one data row by two columns")
+    return table
+
+
+def collect_table(view, enum):
+    table = general_table(view, enum)
     annotation = _com_value(table, "GetAnnotation")
     name = _com_value(annotation, "GetName")
     require(isinstance(name, str) and bool(name), "General table identity is unreadable")
@@ -87,7 +92,7 @@ def collect_table(view, enum):
     return dict(name=name, table=whole, **cells)
 
 
-def read_drawing(app, document, constants, scope):
+def read_drawing(app, document, constants, scope, *, expected_open_documents=2):
     foreground = _com_value(app, "ActiveDoc")
     original = guard._state(document)
     identity = (_com_value(document, "GetPathName"), _com_value(document, "GetTitle"))
@@ -95,14 +100,14 @@ def read_drawing(app, document, constants, scope):
     front_state = guard._other_foreground_snapshot(app, document, foreground)
     require(original[0] == 3 and _com_value(document, "GetSheetCount") == 1,
             "inheritance fixture must be a single-sheet drawing")
-    require(_com_value(app, "GetDocumentCount") == 2, "unexpected open documents beside fixture and foreground")
+    require(_com_value(app, "GetDocumentCount") == expected_open_documents, "unexpected open document count for inheritance fixture")
     view = _com_value(document, "GetFirstView")
     require(view is not None and _com_value(view, "GetReferencedModelName") == ""
             and _com_value(view, "GetNextView") is None, "inheritance fixture requires a sheet without model views")
     enum = constants[ENUM[scope]]
     observed = collect_dimensions(view, enum) if scope == "dimensions" else collect_table(view, enum)
     guard._verify_identity(app, document, foreground, edit, original, identity, front_state)
-    require(_com_value(app, "GetDocumentCount") == 2, "inheritance read changed the open document count")
+    require(_com_value(app, "GetDocumentCount") == expected_open_documents, "inheritance read changed the open document count")
     return observed
 
 
