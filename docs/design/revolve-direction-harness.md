@@ -8,7 +8,7 @@
 
 - `native_revolve_direction` 默认 false；开启时只接受 `workflow_dispatch`、
   `refs/heads/codex/swcli-revolve-feature-next`、`revolve_direction_head` 的完整40位小写SHA与所选 `GITHUB_SHA` 精确一致。
-  `native-profile` 无secret前置先拒绝错误ref/head及任何其他已知native/units组合，之后才能进入私有安装流程。
+  `route` 作业在安装前检查分支与 SHA。路由验证器也拒绝与其他已知原生配置混用。
 - 独立 `.github/workflows/revolve-direction-next.yml` 复用既有安装/清理脚本与原件约定，主 `ci.yml` 原文不变，单例有独立 `swcli-revolve-direction-${github.ref}` 并发组，
   `cancel-in-progress=false`。普通push只运行无secret的route job，prepare/native均被手动条件挡住；full/tag/旧360°路径与原并发组保持原条件。
   独立workflow只有两个dispatch输入，现有CI的25输入不增，仓库权限只有contents:read，没有release job。
@@ -18,17 +18,18 @@
   90°、局部从+X转向-Z（rotation_sign=-1、axis_direction=+1）。这是预声明数学假设，尚非SW实测结论。
   在host获取前fsync落盘；无参数可切换符号/角度/平面，无矩阵循环。若轴实际反向或质心不符，停止并保留原件。
 
-统筹后续明确许可运行后，才可在上述分支以精确**最终head**选择：
+统筹排定窗口后，从当前候选分支用完整 SHA 启动单例。将 `FINAL_HEAD` 替换成统筹确认的远端提交：
 
-```
-workflow: revolve-direction-next.yml
-native_revolve_direction: true
-revolve_direction_head: <完整最终head>
-native_full: false
+```sh
+gh workflow run 417704126 --repo YJBeetle/SWCLI \
+  --ref codex/swcli-revolve-feature-next \
+  -f native_revolve_direction=true \
+  -f revolve_direction_head=FINAL_HEAD
 ```
 
-其他native/units输入保持false；本轮没有执行该dispatch。单例原件成功并经过统筹亲审后，
-才另外准备四角度×三平面以及拒写/partial的原生矩阵；当前没有矩阵入口，也没有公共写入开放。
+这两个字段是独立 workflow 的全部手动输入。取得 run ID 后，核对 `event=workflow_dispatch` 与 `head_sha`，
+再审阅 `revolve-direction-<run_id>-<attempt>` 里的 ZIP 摘要、已安装模块摘要、方向假设、创建和只读重开回执、
+SLDPRT 哈希及进程退出。单例原件审阅完成后，由统筹另行安排后续原生验收。
 
 ## 执行与证据协议
 
@@ -80,3 +81,33 @@ backend的重开定义错误用普通对象验证ReleaseSelectionAccess及部分
 精确源守护以editable安装做纯文件正向检查，118个Python模块摘要匹配；不能把该结果当成原生wheel或COM验收。
 摘要、被测文件与日志SHA256见 [准备证据](../evidence/revolve-direction-preparation-2026-11-14.json)，
 原日志在 `evidence/revolve-partial-next/direction-harness-preparation/`（ignored）。
+
+
+## 2026-11-21 排程前复核
+
+核对了当时远端 `main` 的 `7400b2c615da5017f819ab8c13c194b4445fd75b`。旋转相关产品接口、宿主实现、
+单例依赖的安装/清理脚本及类型库读取器相对共同基线 `31ad9c2` 没有上游改动。现行 `main` 的公开请求只接受
+`angle_deg=360`。候选允许提交 `0 < angle_deg <= 360` 的请求；对绑定正确的部分角度请求，返回
+`RevolveNotCalibrated` 和三个 false 的 mutation 字段，拒绝发生在临时文档激活前。两边请求均要求 `sketch_id`、
+`expected_profile_mm`、`axis_mm`、`angle_deg`，并要求 `document_id` 和 `expected_update_stamp`，可携带 `lease_id`。
+`rotation_sign` 和 `axis_direction` 只用于固定的内部单例。
+
+GitHub 已登记独立 workflow `417704126`（active）。既有 push 路由 run `43500557520` 的 `route` 成功，
+`prepare` 和 `native` 跳过；普通 push run `43500557421` 已成功。GitHub 查询仍没有这条独立 workflow 的手动运行，
+且默认分支没有该文件。排程时应先核实 API 接受上面的命令，再以实际 run 与原件为准。
+如 GitHub 因默认分支缺少 workflow 拒绝，保留响应，由统筹选择 Windows 执行计划。
+
+建议为一次安装型 run 预留 **35–45 分钟**，排队时间另计。参考整圈原生 run `42273047248` 的 Windows job，
+从分配 runner 到结束为 **23 分 37 秒**，其中 SOLIDWORKS 安装步骤约 **6 分 36 秒**。
+本次方向单例的 CI 硬上限为 route 5 分钟、prepare 15 分钟、native job 120 分钟。原生步骤最多 31 分钟，
+其中 worker 总预算 1800 秒，单例及各原生边界最多 600 秒。不同验证线使用独立并发组，资源窗口由统筹错开。
+
+离线补齐了保存与只读重开回执处理。测量失败时首因沿用原生回执里的错误类型和消息；回执缺少 `metrics` 时，
+依然能落盘原始回执及清理错误。持久复核目录为 `evidence/revolve-partial-next/readiness-2026-11-21/`。
+
+便携复核使用重启后在持久目录重建的 Python 3.14.10 环境。harness 修复提交为
+`b03a2a2a50ff81f66246e2d080c4b21c66ff636d`，全量运行 3003 项（31 跳过），旋转专项 63 项，
+原生路由专项 4 项与 SDK 33 项负向类型检查通过。安装后的 wheel 通过资源入口核验和 118 个 Python 模块逐文件哈希检查。
+`summary.json`、`portable-final.log`、`wheel-source-proof.json` 位于上述持久目录。
+整圈 run `42273047248` 的原始 ZIP SHA256 复核为
+`13c3a4695603e33875acb9a64c639baec056c48bdb7416b75b65664b89a29365`。

@@ -934,3 +934,18 @@ SDK生成/严格类型/33负消费通过；Python3.9语法6文件及全部workfl
 [准备证据及SHA256](docs/evidence/revolve-direction-preparation-2026-11-14.json)；
 原件在 `evidence/revolve-partial-next/direction-harness-preparation/`。
 CI仅push轻量注册与常规portable，不等待、不轮询；原生单例需统筹另行排程许可，后续矩阵与当前发布边界不变。
+
+
+## 旋转 next：2026-11-21 排程前复核
+
+现行远端 main `7400b2c615da5017f819ab8c13c194b4445fd75b` 没有改变相关旋转输入与单例运行依赖。
+候选的部分角度公开写入继续在临时激活前返回 `RevolveNotCalibrated`，无 mutation。方向单例保留 front、90°、+Y 轴、
+从 +X 转向 −Z 的预声明假设。修复 `b03a2a2a50ff81f66246e2d080c4b21c66ff636d` 保留原生测量失败回执与首因。
+
+重启后从持久目录构建并安装候选 wheel。全量 3003 项（31 跳过）、旋转专项 63 项、路由专项 4 项及 SDK 检查通过。
+wheel 的 118 个 Python 模块 SHA256 与源码一致，原始 360° ZIP 哈希复核一致。新证据位于
+`evidence/revolve-partial-next/readiness-2026-11-21/`，入口与资源窗口见 [方向单例验收命令](docs/design/revolve-direction-harness.md)。
+
+GitHub 已登记 workflow `417704126`，`main` 尚无该文件，手动 dispatch 尚未验证。单次安装型原生验证预留 35–45 分钟
+（队列另计），worker 总预算 1800 秒，单例与各原生边界上限 600 秒。下一次执行由统筹安排。部分角度公开验收仍待原生原件，
+本轮没有执行 Windows VM、COM 或手动原生 CI，也未纳入当前发版。
