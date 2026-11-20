@@ -30,6 +30,11 @@ def worker_command(args, output):
                "--drawing-template", str(args.drawing_template)]
     if scope is not None:
         command.extend(["--scope", scope])
+    drawing, digest = getattr(args, "inheritance_drawing", None), getattr(args, "inheritance_sha256", None)
+    if drawing is not None or digest is not None:
+        if scope is None or drawing is None or not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise ValueError("inheritance requires one next scope, a drawing and its exact SHA-256")
+        command.extend(["--inheritance-drawing", str(drawing.resolve()), "--inheritance-sha256", digest])
     if profile != "internal":
         command.extend(["--phase", "seed" if profile == "inheritance-seed" else "observe"])
     if profile == "inheritance-observe":
@@ -96,6 +101,8 @@ def main(argv=None):
     parser.add_argument("--profile", choices=tuple(WORKERS), default="internal")
     parser.add_argument("--source-head", help="exact next checkout head; must match GITHUB_SHA when set")
     parser.add_argument("--scope", choices=("dimensions", "tables"), help="internal next candidate only")
+    parser.add_argument("--inheritance-drawing", type=Path, help="isolated owned drawing fixture for one scope")
+    parser.add_argument("--inheritance-sha256", help="SHA-256 of the supplied inheritance drawing")
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--gate-dir", type=Path)
     args = parser.parse_args(argv)
@@ -109,6 +116,9 @@ def main(argv=None):
               "source_head": head, "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
               "group_timeout_seconds": GROUP_TIMEOUT_SECONDS, "retry_count": 0, "host_restart_count": 0,
               "automatic_rollback": False, "success": False}
+    if args.inheritance_drawing is not None:
+        record["inheritance_fixture_sha256"] = args.inheritance_sha256
+        record["inheritance_acceptance"] = False  # independent limited witness is in the worker report
     record_path = output / "watchdog.json"
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     with (output / "worker.stdout.log").open("xb") as stdout, (output / "worker.stderr.log").open("xb") as stderr:

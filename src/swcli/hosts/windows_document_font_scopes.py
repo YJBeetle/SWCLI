@@ -28,13 +28,17 @@ class DocumentFontScopeNotCalibrated(RuntimeError):
     """The selected scope/runtime/revision is outside the audited native profile."""
 
 
-def read_font_constants(pythoncom, path, *, candidate_scope=None):
+def read_font_constants(pythoncom, path, *, candidate_scope=None, witness_enum=None):
     """Resolve symbolic IDs from the official swconst type library, never guess."""
     wanted = {name for pair in FONT_SCOPES.values() for name in pair}
     if candidate_scope is not None:
         if candidate_scope not in NEXT_FONT_LINKED_READS:
             raise ValueError("unknown next font scope")
         wanted.update(name for pair in NEXT_FONT_LINKED_READS[candidate_scope].values() for name in pair)
+    if witness_enum is not None:
+        if witness_enum not in ("swDisplayDimension", "swTableAnnotation_General"):
+            raise ValueError("unknown font inheritance enum")
+        wanted.add(witness_enum)
     found = {}
     library = pythoncom.LoadTypeLib(str(path))
     for index in range(library.GetTypeInfoCount()):

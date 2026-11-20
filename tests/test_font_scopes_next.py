@@ -217,8 +217,10 @@ class NextFontScopesTests(unittest.TestCase):
                                        '--drawing-template',str(template),'--scope',scope])
                     self.assertEqual(result,0)
                     self.assertEqual(run.call_args.kwargs['diagnostic_case'],'font-scopes-next-'+scope)
-                    with patch.object(module,'calibrate_case',return_value='probe') as case:
-                        self.assertEqual(run.call_args.kwargs['case_runner'](None,None,{}),'probe')
+                    with patch.object(module,'calibrate_case',return_value='probe') as case, \
+                            patch.object(adapter, '_native_windows_runtime', return_value=True):
+                        app = SimpleNamespace(RevisionNumber='33.5.0')
+                        self.assertEqual(run.call_args.kwargs['case_runner'](app,None,{},profile_kind='drawing'),'probe')
                         self.assertEqual(case.call_args.kwargs['selected_scopes'],(scope,))
                         self.assertIs(case.call_args.kwargs['candidate_setter'],adapter._calibrate_next_document_font_scope)
 

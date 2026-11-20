@@ -39,22 +39,31 @@ _geometry_support = importlib.util.module_from_spec(_geometry_spec)
 _geometry_spec.loader.exec_module(_geometry_support)
 same_geometry = _geometry_support.same_geometry
 
+# verify-modeling.py has set up the local gate_support path under python -I.
+from gate_support import font_inheritance
+
 
 def close(app, document, call):
     title = _com_value(document, "GetTitle")
     call("close-generated-document", lambda: app.CloseDoc(title))
 
 
-def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template, selected_scopes=WRITABLE_FONT_SCOPES, candidate_setter=None):
+def calibrate_case(app, output, constants, plane, reverse, call, case, report, live, *, profile_kind, drawing_template, selected_scopes=WRITABLE_FONT_SCOPES, candidate_setter=None,
+                   inheritance_input=None):
     require(selected_scopes and all(scope in WRITABLE_FONT_SCOPES for scope in selected_scopes), "invalid calibration scopes")
     candidate_setter = candidate_setter or adapter._calibrate_set_document_font_scope
     case["selected_scopes"] = list(selected_scopes)
-    # Prepared sources are native generated fixtures, with unchanged geometry
-    # assertions inherited verbatim from the established annotation harness.
-    fixtures.prepare_case(app, output, constants, plane, reverse, call,
-                          case.setdefault("fixture", {}), report, live,
-                          profile_kind=profile_kind, drawing_template=drawing_template)
-    source = Path(case["fixture"]["path"])
+    witness_scope = selected_scopes[0] if inheritance_input is not None else None
+    if inheritance_input is None:
+        fixtures.prepare_case(app, output, constants, plane, reverse, call,
+                              case.setdefault("fixture", {}), report, live,
+                              profile_kind=profile_kind, drawing_template=drawing_template)
+        source = Path(case["fixture"]["path"])
+    else:
+        path, digest = inheritance_input
+        source = call("stage-hashed-inheritance-drawing", lambda: font_inheritance.stage_drawing(path, digest, output))
+        case["fixture"] = dict(path=str(source), input_sha256=digest)
+        case["inheritance_witness"] = dict(scope=witness_scope, success=False, observations=[])
     source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     opened, document = call("open-font-source", lambda: open_windows_document_with_handle(str(source), app=app))
     live["document"] = document
@@ -131,6 +140,54 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
 
     linked_readback(current, "initial")
 
+    def observe_inheritance(current, boundary, *, baseline=None):
+        if witness_scope is None:
+            return
+        observed = call("read-drawing-inheritance." + boundary,
+            lambda: font_inheritance.read_drawing(app, document, constants, witness_scope))
+        default = current["fonts"][witness_scope]
+        evidence = case["inheritance_witness"]["observations"]
+        row = dict(boundary=boundary, objects=observed, scope_default=default, checked=False)
+        evidence.append(row)
+        if witness_scope == "tables":
+            # A General table and its cells use the type-specific default.
+            row["general_default"] = case["linked_font_observations"][-1]["after"]["general"]
+            default = row["general_default"]["font"]
+        if baseline is not None:
+            require(_com_value(document, "IsOpenedReadOnly") is True,
+                    "persisted inheritance witness requires a native read-only document")
+            if witness_scope == "tables":
+                require(font_inheritance.effective(default) == font_inheritance.effective(row["scope_default"]),
+                        "General table default did not follow the total table font")
+        unchanged = read()
+        require(unchanged["fonts"] == current["fonts"] and unchanged["document"] == current["document"],
+                "inheritance observation changed guarded document state")
+        font_inheritance.verify_observation(witness_scope, observed, default, baseline)
+        row["checked"] = True
+        return observed
+
+    baseline = observe_inheritance(current, "baseline")
+
+    def reopen_background(path, mode, *, read_only):
+        reopened, target = call("reopen-font-" + mode, lambda: open_windows_document_with_handle(
+            str(path), app=app, read_only=read_only))
+        live["document"] = target
+        require(reopened["ok"] and reopened["api_errors"] == reopened["api_warnings"] == 0
+                and reopened["read_only"] is read_only and not _com_value(target, "GetSaveFlag"),
+                "font copy did not reopen with exact clean access mode")
+        # Setup only. The document font operation itself does not activate.
+        import pythoncom
+        from win32com.client import VARIANT
+        errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
+        # swDontRebuildActiveDoc = 1. The default option can prompt.
+        call("restore-generated-foreground",
+             lambda: app.ActivateDoc3(_com_value(foreground, "GetTitle"), False, 1, errors))
+        require(errors.value == 0, "failed to restore generated foreground")
+        registry.sync()
+        reopened_entry = registry.register(target)
+        return target, reopened_entry, registry.acquire_lease(
+            reopened_entry, session_id="font-scopes-calibration", ttl_seconds=1800)
+
     def next_noop(current, scope, field, value):
         if candidate_setter is not adapter._calibrate_next_document_font_scope:
             return
@@ -190,22 +247,8 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             close(app, document, call)
             live["document"] = None
-            reopened, document = call("reopen-font-" + mode, lambda: open_windows_document_with_handle(str(path), app=app, read_only=mode == "points"))
-            live["document"] = document
-            require(reopened["ok"] and reopened["api_errors"] == reopened["api_warnings"] == 0
-                    and not _com_value(document, "GetSaveFlag"), "font copy did not reopen cleanly")
-            # Open may change foreground; use the explicit activation only here,
-            # outside font operations, and restore the same generated front.
-            import pythoncom
-            from win32com.client import VARIANT
-            errors = VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
-            # Official swRebuildOnActivation_e.swDontRebuildActiveDoc = 1;
-            # 0 is swUserDecision and may prompt in a hidden host.
-            call("restore-generated-foreground", lambda: app.ActivateDoc3(_com_value(foreground, "GetTitle"), False, 1, errors))
-            require(errors.value == 0, "failed to restore generated foreground")
-            registry.sync()
-            entry = registry.register(document)
-            lease = registry.acquire_lease(entry, session_id="font-scopes-calibration", ttl_seconds=1800)
+            document, entry, lease = reopen_background(
+                path, mode, read_only=witness_scope is not None or mode == "points")
             current = read()
             require(current["fonts"] == expected, "complete font snapshots did not persist after reopen")
             require(all(current["fonts"][scope]["height_mode"] == mode for scope in selected_scopes), "font unit mode was lost")
@@ -213,6 +256,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                 measured = case["geometry_reopened_" + mode] = fixtures.part_geometry(document, call)
                 same_geometry(case["geometry_before"], measured)
             linked_readback(current, "reopened-" + mode)
+            observe_inheritance(current, "reopened-" + mode, baseline=baseline)
             case["reopened_" + mode] = current
             case["sha256_" + mode] = digest
             if mode == "points":
@@ -222,12 +266,26 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
                         and refused["mutation"] == {"attempted": False, "may_have_changed": False}, "read-only font edit reached mutation")
                 require(read() == current, "read-only refusal changed font or document state")
             require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, "font readback changed the saved file")
+            if witness_scope is not None and mode == "millimeters":
+                close(app, document, call)
+                live["document"] = None
+                document, entry, lease = reopen_background(path, "millimeters-write-continuation", read_only=False)
+                current = read()
+                require(current["fonts"] == expected, "writable continuation changed persisted fonts")
     require(hashlib.sha256(source.read_bytes()).hexdigest() == source_hash, "font calibration changed its source fixture")
     close(app, document, call)
     live["document"] = None
     close(app, foreground, call)
     require(_com_value(app, "GetDocumentCount") == 0, "font case left generated documents open")
-    case.update(kind=profile_kind, success=True, inheritance_status="per-object inheritance not calibrated; public writes remain closed")
+    if witness_scope is not None:
+        input_path, input_digest = inheritance_input
+        require(font_inheritance.file_digest(input_path) == input_digest, "original inheritance input bytes changed")
+        for mode in ("millimeters", "points"):
+            saved_path = output / ("changed-fonts-" + mode + source.suffix)
+            require(font_inheritance.file_digest(saved_path) == case["sha256_" + mode],
+                    "saved inheritance output bytes changed after observation")
+        case["inheritance_witness"]["success"] = True
+    case.update(kind=profile_kind, success=True)
 
 
 def main(argv=None):
@@ -236,18 +294,28 @@ def main(argv=None):
     parser.add_argument("--swconst", required=True, type=Path)
     parser.add_argument("--drawing-template", required=True, type=Path)
     parser.add_argument("--scope", choices=NEXT_FONT_SCOPES, help="probe only one next candidate; public writes remain closed")
+    parser.add_argument("--inheritance-drawing", type=Path)
+    parser.add_argument("--inheritance-sha256")
     args = parser.parse_args(argv)
+    font_inheritance.validate_drawing_input(args.scope, args.inheritance_drawing, args.inheritance_sha256)
     args.output_dir.mkdir()
     require(args.swconst.is_file() and args.drawing_template.is_file(), "official swconst and drawing template required")
     original_reader = harness.read_constants
     def read_constants(pythoncom, path):
-        return {**original_reader(pythoncom, path), **adapter.read_font_constants(pythoncom, path, candidate_scope=args.scope)}
+        return {**original_reader(pythoncom, path), **adapter.read_font_constants(pythoncom, path, candidate_scope=args.scope,
+                    witness_enum=font_inheritance.ENUM[args.scope] if args.inheritance_drawing is not None else None)}
     harness.read_constants = read_constants
     def runner(app, output, constants, *arguments, **keywords):
+        if args.scope is not None:
+            require(adapter._native_windows_runtime() and _com_value(app, "RevisionNumber") == "33.5.0",
+                    "next calibration requires native Windows SOLIDWORKS 33.5.0")
+        inheritance_input = (args.inheritance_drawing, args.inheritance_sha256) if (
+            args.inheritance_drawing is not None and keywords["profile_kind"] == "drawing") else None
         with patch.object(adapter, "_installed_constants", lambda: constants):
             return calibrate_case(app, output, constants, *arguments, **keywords, drawing_template=args.drawing_template,
                 selected_scopes=(args.scope,) if args.scope else WRITABLE_FONT_SCOPES,
-                candidate_setter=adapter._calibrate_next_document_font_scope if args.scope else None)
+                candidate_setter=adapter._calibrate_next_document_font_scope if args.scope else None,
+                inheritance_input=inheritance_input)
     return harness.run(args.output_dir.resolve(), args.swconst.resolve(), False, case_runner=runner,
                        case_plan=[(kind, "front", False) for kind in fixtures.KINDS], diagnostic_case="font-scopes-next-" + args.scope if args.scope else "font-scopes-internal-calibration")
 
