@@ -708,9 +708,10 @@ _RESULT_FIELDS = {
             "output": STRING,
             "document_before": DOCUMENT,
             "api_saved": BOOL,
+            "save_attempted": BOOL, "finalization_error": ERROR,
             "save_errors": INTEGER,
             "save_error_names": STRING_LIST,
-            "save_warnings": {"type": "null"},
+            "save_warnings": INTEGER,
             "file_verification": _object(
                 {"non_empty": BOOL, "minimum_size_valid": BOOL},
                 ("non_empty", "minimum_size_valid"),
@@ -791,7 +792,8 @@ _RESULT_FIELDS = {
         ),
     ),
     "document.export": (
-        {"output": STRING, "artifact": ARTIFACT,
+        {"output": STRING, "artifact": ARTIFACT, "api_saved": BOOL,
+         "save_attempted": BOOL, "finalization_error": ERROR, "save_errors": INTEGER, "save_warnings": INTEGER,
          "stl_source_state": _object({"before": {"type": "object"}, "after": {"type": "object"},
                                       "unchanged": BOOL, "observation_error": ERROR}, ("before", "unchanged")),
          "stl_preferences": _object({
@@ -822,7 +824,7 @@ _RESULT_FIELDS = {
                                  "geometry": {"enum": ["solid-surface", "wireframe", "wireframe-sketches"]},
                                  "file_schema": STRING, "entity_types": STRING_LIST},
                                 ("protocol", "geometry", "file_schema", "entity_types"))},
-        ("output", "artifact"),
+        ("output", "artifact", "api_saved", "save_errors", "save_warnings"),
     ),
     "part.create-box": (
         {
@@ -859,8 +861,9 @@ _RESULT_FIELDS = {
                 ),
             ),
             "save_errors": INTEGER,
-            "save_warnings": {"type": ["integer", "null"]},
+            "save_warnings": INTEGER,
             "saved": BOOL,
+            "api_saved": BOOL, "save_attempted": BOOL, "finalization_error": ERROR,
             "feature": _object({"name": STRING, "type": STRING}, ("name", "type")),
         },
         (
@@ -874,6 +877,7 @@ _RESULT_FIELDS = {
             "save_errors",
             "save_warnings",
             "saved",
+            "api_saved",
             "document",
             "feature",
         ),
@@ -1798,6 +1802,8 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
         "document.lease.release",
     ):
         schema["then"]["properties"] = {"lease": {"required": ["lease_id"]}}
+    if name == "part.create-box":
+        schema["then"]["properties"] = {"api_saved": {"const": True}, "saved": {"const": True}, "save_errors": {"const": 0}}
     if name == "document.save-as":
         schema["then"]["properties"] = {
             "api_saved": {"const": True},
@@ -2119,6 +2125,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     if name in ("document.render", "document.export"):
         if name == "document.export":
             schema["then"]["properties"] = {
+                "api_saved": {"const": True}, "save_errors": {"const": 0},
                 "stl_preferences": {"required": ["before", "requested", "readback", "after", "constants",
                                                    "mutation_attempted", "restored", "cleanup_errors"],
                                     "properties": {"restored": {"const": True}, "cleanup_errors": {"maxItems": 0}}},

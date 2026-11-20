@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import io
 import json
 import os
@@ -181,6 +182,28 @@ class NativeSequenceTests(unittest.TestCase):
             server._worker_main(mock.Mock(), responses, lifecycle, True, 120, not owned)
         pythoncom.CoUninitialize.assert_called_once()
         return responses, lifecycle, wait
+
+    def test_late_restore_failure_retains_modern_save_receipt_and_first_error(self):
+        for operation in ("document.save-as", "document.export", "part.create-box"):
+            with self.subTest(operation=operation):
+                app = SimpleNamespace(GetProcessID=lambda: 1234, RevisionNumber="33.5.0", ActiveDoc=object())
+                request = dict(request_id="modern-save-once", operation=operation, parameters={})
+                receipt = dict(ok=False, action=operation, save_attempted=True,
+                    api_saved=False, save_errors=32, save_warnings=4,
+                    error=dict(type="SaveFailed", message="first native failure"))
+                @contextmanager
+                def sequence(*args, **kwargs):
+                    yield
+                    raise NativeCommandRestoreFailed(RuntimeError("late restore"), None)
+                with mock.patch.object(server, "native_api_sequence", sequence):
+                    responses, lifecycle, wait = self.run_worker(app, False, lambda *a, **k: receipt, [request, None])
+                reply = responses.put.call_args.args[0]
+                self.assertEqual(reply["error"]["code"], "NativeCommandRestoreFailed")
+                self.assertEqual(reply["result"]["error"], receipt["error"])
+                self.assertEqual(reply["result"]["save_errors"], 32)
+                self.assertEqual(reply["result"]["save_warnings"], 4)
+                self.assertTrue(reply["result"]["save_attempted"])
+                self.assertEqual(wait.call_count, 1)
 
     def test_worker_restores_before_next_request_and_shutdown(self):
         exited = []

@@ -523,6 +523,7 @@ class ResultSchemaTests(unittest.TestCase):
             "ok": True,
             "action": "document.export",
             "output": "part.STEP",
+            "api_saved": True, "save_errors": 0, "save_warnings": 0,
             "artifact": {
                 "kind": "cad-export",
                 "path": "part.STEP",

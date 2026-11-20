@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tests.save_as_fixture import save_as_fixture
+
 from swcli.hosts import windows_step_export as step, windows_documents as docs
 from swcli.operation_schemas import validate_operation_request, OPERATION_CATALOG
 from swcli.result_schemas import validate_operation_result
@@ -200,13 +202,18 @@ class StepExportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "part.step"
             path.write_bytes(b"old output")
-            document = SimpleNamespace(ClearSelection2=mock.Mock(), SaveAs3=lambda name, *_: (Path(name).write_bytes(payload("ap203")), 0)[1])
+            def save(name, version, options, export_data, advanced_options, errors, warnings):
+                Path(name).write_bytes(payload("ap203"))
+                errors.value = warnings.value = 0
+                return True
+            document = SimpleNamespace(ClearSelection2=mock.Mock(), Extension=SimpleNamespace(), SaveAs3=save)
             win32 = ModuleType("win32com"); win32.client = ModuleType("win32com.client")
             with mock.patch.object(docs.sys, "platform", "win32"), \
                     mock.patch.dict("sys.modules", {"pythoncom": ModuleType("pythoncom"), "win32com": win32, "win32com.client": win32.client}), \
                     mock.patch.object(docs, "_export_source_state", return_value={"document": {"type": 1, "path": "source.SLDPRT"}}), \
                     mock.patch.object(docs, "_export_source_warnings", return_value=[]), \
-                    mock.patch.object(docs, "step_preferences", return_value=ExitStack()):
+                    mock.patch.object(docs, "step_preferences", return_value=ExitStack()), \
+                    mock.patch.object(docs, "save_as3", side_effect=save_as_fixture):
                 result = docs.export_active_windows_document(str(path), app=self.app, document=document,
                     overwrite=True, step_protocol="ap214", step_geometry="solid-surface")
             self.assertFalse(result["ok"])
@@ -433,6 +440,7 @@ class StepExportTests(unittest.TestCase):
         from swcli.daemon import server
         original={"ok":True,"action":"document.export","output":"output.step",
                   "mutation":{"attempted":True,"may_have_changed":True}, "unrecognized":"invalid",
+                  "api_saved":True, "save_attempted":True, "save_errors":0, "save_warnings":0,
                   "step_preferences":{"before":{"swStepAP":203,"swStepExportPreference":0},
                       "requested":{"swStepAP":214,"swStepExportPreference":1},
                       "after":{"swStepAP":203,"swStepExportPreference":0},"restored":True}}
@@ -444,6 +452,9 @@ class StepExportTests(unittest.TestCase):
         self.assertEqual(receipt["mutation"],original["mutation"])
         self.assertEqual(receipt["step_preferences"],original["step_preferences"])
         self.assertNotIn("unrecognized",receipt)
+        self.assertIs(receipt["api_saved"], True)
+        self.assertIs(receipt["save_attempted"], True)
+        self.assertEqual((receipt["save_errors"], receipt["save_warnings"]), (0, 0))
         validate_operation_result("document.export",receipt)
 
 

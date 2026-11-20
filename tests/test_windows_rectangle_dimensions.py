@@ -4,6 +4,7 @@ import json
 import math
 from types import SimpleNamespace
 import unittest
+from dimension_configuration_values import single_configuration_values
 from unittest import mock
 
 from swcli.hosts import windows_rectangle_dimensions as rectangles
@@ -59,7 +60,7 @@ class RectangleDimensionTests(unittest.TestCase):
                 GetType=lambda: 0,
                 GetFeatureOwner=lambda: self.feature,
                 IsDesignTableDimension=lambda: False,
-                GetSystemValue2=lambda config, k=kind: self.native_values[k],
+                GetSystemValue3=single_configuration_values(lambda config, k=kind: self.native_values[k]),
                 SetSystemValue3=mock.Mock(
                     side_effect=lambda value, config, names, k=kind: self.set_value(
                         k, value
@@ -274,7 +275,7 @@ class RectangleDimensionTests(unittest.TestCase):
         for value in (None, True, False, "0.04", math.nan, math.inf, 0, -1):
             with self.subTest(value=value):
                 self.setUp()
-                self.native["width"].GetSystemValue2 = lambda config: value
+                self.native["width"].GetSystemValue3 = single_configuration_values(lambda config: value)
                 result, handles = self.call()
                 self.assert_failed(result, "DimensionObservationUnavailable")
                 self.assertIs(handles["width"], self.native["width"])

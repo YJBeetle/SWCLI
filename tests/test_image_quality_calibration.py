@@ -95,7 +95,7 @@ class QualityCLI(FakeCLI):
             target=self.directory/PureWindowsPath(args.output).name
             target.write_bytes(bytes(1024))
             document.update(path=args.output,modified=False); self.saved[args.output]=deepcopy(document)
-            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=None,document=self.descriptor(document,args.session),
+            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=0,document=self.descriptor(document,args.session),
                 artifact=dict(format="SLDPRT",path=args.output,size_bytes=target.stat().st_size))
         result=super().dispatch(args)
         if action == "daemon":

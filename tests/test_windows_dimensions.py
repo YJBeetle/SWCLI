@@ -1,6 +1,7 @@
 import json
 import math
 import unittest
+from dimension_configuration_values import single_configuration_values
 from types import SimpleNamespace
 from unittest import mock
 
@@ -53,7 +54,7 @@ class DiameterFixture:
             DrivenState=2,
             ReadOnly=False,
             FullName="D1@renamed-sketch@part.Part",
-            GetSystemValue2=lambda name: self.radius * 2,
+            GetSystemValue3=single_configuration_values(lambda name: self.radius * 2),
             SetSystemValue3=mock.Mock(side_effect=self.set_value),
             GetFeatureOwner=lambda: self.feature,
             IsDesignTableDimension=lambda: False,
@@ -162,7 +163,7 @@ class LengthDescriptorTests(DiameterFixture, unittest.TestCase):
         for kind in ("width", "height"):
             for value in INVALID_NATIVE_VALUES + (10**1000,):
                 with self.subTest(kind=kind, value=str(value)[:20]):
-                    self.dimension.GetSystemValue2 = lambda name: value
+                    self.dimension.GetSystemValue3 = single_configuration_values(lambda name: value)
                     with self.assertRaises(dimensions._DimensionError) as caught:
                         dimensions._descriptor(
                             self.document, self.dimension, kind=kind
@@ -171,7 +172,7 @@ class LengthDescriptorTests(DiameterFixture, unittest.TestCase):
                         caught.exception.code, "DimensionObservationUnavailable"
                     )
                     self.assertIn(f"native {kind} value", str(caught.exception))
-        self.dimension.GetSystemValue2 = lambda name: 0.01
+        self.dimension.GetSystemValue3 = single_configuration_values(lambda name: 0.01)
         for member, values in INVALID_METADATA[:3]:
             for value in values:
                 with self.subTest(member=member, value=value):
@@ -419,13 +420,13 @@ class DiameterCreationTests(DiameterFixture, unittest.TestCase):
         self.assertIsNone(self.manager.ActiveSketch)
 
     def test_false_success_value_and_geometry_are_checked_independently(self):
-        self.dimension.GetSystemValue2 = lambda name: 0.020
+        self.dimension.GetSystemValue3 = single_configuration_values(lambda name: 0.020)
         result, handle = self.call()
         self.assertEqual(result["error"]["type"], "DimensionVerificationFailed")
         self.assertIs(handle, self.dimension)
         self.setUp()
         self.dimension.SetSystemValue3.side_effect = lambda *args: 0
-        self.dimension.GetSystemValue2 = lambda name: 0.016
+        self.dimension.GetSystemValue3 = single_configuration_values(lambda name: 0.016)
         result, _ = self.call()
         self.assertEqual(result["error"]["type"], "DimensionVerificationFailed")
         self.assertFalse(result["geometry_verification"]["passed"])
@@ -433,7 +434,7 @@ class DiameterCreationTests(DiameterFixture, unittest.TestCase):
     def test_nonfinite_native_value_is_not_leaked_to_wire_json(self):
         def corrupted_readback(value, configuration, names):
             self.set_value(value, configuration, names)
-            self.dimension.GetSystemValue2 = lambda name: math.nan
+            self.dimension.GetSystemValue3 = single_configuration_values(lambda name: math.nan)
             return 0
 
         self.dimension.SetSystemValue3.side_effect = corrupted_readback
@@ -493,7 +494,7 @@ class DiameterCreationTests(DiameterFixture, unittest.TestCase):
         for value in INVALID_NATIVE_VALUES:
             with self.subTest(value=value):
                 self.setUp()
-                self.dimension.GetSystemValue2 = lambda name: value
+                self.dimension.GetSystemValue3 = single_configuration_values(lambda name: value)
                 result, handle = self.call()
                 self.assertEqual(
                     result["error"]["type"], "DimensionObservationUnavailable"
@@ -1100,7 +1101,7 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
                     self.set_circle_member(member, value)
                     return self.radius * 2
 
-                self.dimension.GetSystemValue2 = changed_circle
+                self.dimension.GetSystemValue3 = single_configuration_values(changed_circle)
                 result = self.inspect()
                 self.assertFalse(result["ok"], result)
                 self.assertEqual(
@@ -1176,7 +1177,7 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
         self.dimension.SetSystemValue3.assert_called_once()
 
     def test_preexisting_dimension_geometry_mismatch_prevents_mutation(self):
-        self.dimension.GetSystemValue2 = lambda configuration: 0.016
+        self.dimension.GetSystemValue3 = single_configuration_values(lambda configuration: 0.016)
         result = self.inspect()
         self.assertTrue(result["ok"])
         self.assertFalse(result["geometry_verification"]["passed"])
@@ -1200,10 +1201,10 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
                 def false_success(value, configuration, names):
                     self.radius = 0.008
                     if defect == "value":
-                        self.dimension.GetSystemValue2 = lambda name: 0.020
+                        self.dimension.GetSystemValue3 = single_configuration_values(lambda name: 0.020)
                     elif defect == "radius":
                         self.radius = 0.006
-                        self.dimension.GetSystemValue2 = lambda name: 0.016
+                        self.dimension.GetSystemValue3 = single_configuration_values(lambda name: 0.016)
                     elif defect == "center":
                         self.arc.GetCenterPoint2 = lambda: SimpleNamespace(
                             X=0.006, Y=0.004, Z=0
@@ -1325,7 +1326,7 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
                 self.assertEqual(result["native_status"], 0)
 
     def test_nonfinite_value_never_leaks_nan_and_inspect_never_rebuilds(self):
-        self.dimension.GetSystemValue2 = lambda configuration: math.nan
+        self.dimension.GetSystemValue3 = single_configuration_values(lambda configuration: math.nan)
         result = self.inspect()
         self.assertEqual(result["error"]["type"], "DimensionObservationUnavailable")
         json.dumps(result, allow_nan=False)
@@ -1384,7 +1385,7 @@ class DiameterObservationTests(DiameterFixture, unittest.TestCase):
         for value in INVALID_NATIVE_VALUES:
             with self.subTest(value=value):
                 self.setUp()
-                self.dimension.GetSystemValue2 = lambda name: value
+                self.dimension.GetSystemValue3 = single_configuration_values(lambda name: value)
                 for result in (self.inspect(), self.set()):
                     self.assertEqual(
                         result["error"]["type"], "DimensionObservationUnavailable"

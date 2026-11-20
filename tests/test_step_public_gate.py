@@ -218,6 +218,7 @@ class StepPublicGateTests(unittest.TestCase):
     def test_cli_transport_metadata_is_retained_but_not_confused_with_native_schema(self):
         module = script("verify-step-export-public.py")
         result = {"ok": True, "action": "document.export", "output": "part.step",
+                  "api_saved": True, "save_errors": 0, "save_warnings": 0,
                   "artifact": {"kind": "cad-export", "format": "STEP", "path": "part.step", "size_bytes": 100},
                   "request_id": "recorded-request", "replayed": False}
         module.validate_public_result("document.export", result)

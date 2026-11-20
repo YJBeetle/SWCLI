@@ -33,13 +33,13 @@ class DocumentTableTests(unittest.TestCase):
         self.document = SimpleNamespace(
             GetType=lambda: self.kind, GetTitle=lambda: self.title, GetPathName=lambda: self.path,
             GetSaveFlag=lambda: self.modified, GetUpdateStamp=lambda: self.stamp,
-            GetActiveConfiguration=lambda: self.configuration, IsOpenedReadOnly=lambda: False,
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration), IsOpenedReadOnly=lambda: False,
             IsOpenedViewOnly=lambda: False, SketchManager=SimpleNamespace(ActiveSketch=None),
             Extension=self.extension, SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)))
         self.foreground_modified = False
         self.foreground = SimpleNamespace(GetType=lambda: 1, GetTitle=lambda: "Peer", GetPathName=lambda: "",
             GetSaveFlag=lambda: self.foreground_modified, GetUpdateStamp=lambda: 8,
-            GetActiveConfiguration=lambda: SimpleNamespace(Name="Default"), Extension=SimpleNamespace(),
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default")), Extension=SimpleNamespace(),
             IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False,
             SketchManager=SimpleNamespace(ActiveSketch=None))
         self.app = SimpleNamespace(ActiveDoc=self.foreground, GetDocuments=lambda: (self.document, self.foreground),

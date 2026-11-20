@@ -559,6 +559,7 @@ class FakeCLI:
                 target.write_bytes(b"truncated")
             if subcommand == "export":
                 result = {"ok": True, "action": "document.export", "output": args.output,
+                          "api_saved": True, "save_errors": 0, "save_warnings": 0,
                           "artifact": {"kind": "cad-export", "path": args.output,
                                        "format": format_name, "size_bytes": target.stat().st_size}}
                 if target.stem.endswith("-export"):

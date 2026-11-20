@@ -305,7 +305,7 @@ def run(gate,fixtures,prior_pids):
             public.evidence.record_exact_geometry(case['geometry_before'],case['geometry_after_write'],case,'comparison_after_write',lambda:gate.checkpoint('unit-write-geometry'),'public unit write changed geometry')
         copy=gate.directory/('public-write-%03d.%s'%(index+1,path.suffix[1:]))
         saved=case['save']=gate.write('document','save-as',str(copy),document=document)
-        require(saved['api_saved'] is True and saved['save_errors']==0 and saved['save_warnings'] is None
+        require(saved['api_saved'] is True and saved['save_errors']==0 and saved['save_warnings'] == 0
                 and saved['document']['modified'] is False and PureWindowsPath(saved['document']['path'])==PureWindowsPath(str(copy)),
                 'public changed copy save failed')
         digest=case['saved_sha256']=hashlib.sha256(copy.read_bytes()).hexdigest()

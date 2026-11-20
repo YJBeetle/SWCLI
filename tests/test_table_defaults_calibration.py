@@ -168,7 +168,7 @@ class TableCalibrationTests(unittest.TestCase):
         def save(path, **kwargs):
             Path(path).write_bytes(b'b' * 512)
             fake.modified = False
-            return dict(ok=True, api_saved=True, save_errors=0, save_warnings=None)
+            return dict(ok=True, api_saved=True, save_errors=0, save_warnings=0)
 
         case, calls = {}, []
         def call(name, function):

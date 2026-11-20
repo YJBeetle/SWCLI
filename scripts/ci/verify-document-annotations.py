@@ -239,7 +239,7 @@ def save_copy(gate, document, filename, suffix):
     host_path = str(PureWindowsPath(gate.host_directory) / filename)
     require(not path.exists(), "annotation output already exists")
     result = gate.write("document", "save-as", host_path, document=document)
-    require(result["api_saved"] is True and result["save_errors"] == 0 and result["save_warnings"] is None
+    require(result["api_saved"] is True and result["save_errors"] == 0 and result["save_warnings"] == 0
             and result["document"]["modified"] is False
             and PureWindowsPath(result["document"]["path"]) == PureWindowsPath(host_path)
             and path.is_file() and path.stat().st_size >= 512
