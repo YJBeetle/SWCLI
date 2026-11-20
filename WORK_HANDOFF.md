@@ -1,3 +1,11 @@
+# 字体 next 工程图继承验收准备（2026-11-21）
+
+- 实现 `7ce0e90980ea22f0d1bce2ae1043b62cc023a306` 补齐尺寸、General 表格与单元格的工程图只读继承门禁。两份带 SHA-256 的夹具由统筹排程时准备。
+- 与远端 main `7400b2c615da5017f819ab8c13c194b4445fd75b` 的隔离组合回归 3,049 项 OK（39 跳过），字体专项 95 项与 SDK 通过。新双源码包 1,053 个文件逐字节一致。
+- [继承门禁命令、证据与资源窗口](docs/handoffs/font-scopes-next-inheritance.md)。每 scope 预留一个 30 分钟窗口，两组串行。当前仅便携与离线结果，原生、公开和继承待验收。本路排除当前发版。
+
+---
+
 # 字体 next 离线准备增量
 
 - `codex/docprops-font-scopes-next` 实现 `c108af1ca97b9f07c7379a0d2dfa0f41dc00f4d6` 已完成持久 witness、完整只读前台指针守护、精确 Git 提交源码包和离线 CLI/SDK/MCP 请求门禁；首轮候选/原件保留。
