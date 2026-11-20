@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import time
 
-from .revolve_direction import durable, require, require_clean_reopen, require_native_ok
+from .revolve_direction import case_name, durable, require, require_clean_reopen, require_native_ok
 
 
 def load_script(name, path):
@@ -84,16 +84,16 @@ class NativeBackend:
     def create(self, case):
         from swcli.hosts.native_trace import trace_native_request
         from swcli.hosts.windows_revolves import _calibrate_revolve_windows_with_handle
-        with trace_native_request("revolve-direction-singleton", "feature.revolve.internal-direction"):
+        with trace_native_request(case_name(case), "feature.revolve.internal-direction"):
             result,self.feature = _calibrate_revolve_windows_with_handle(app=self.app,document=self.document,
                 sketch_feature=self.sketch,expected_profile_mm=case["bounds_mm"],axis_mm=case["axis_mm"],
                 angle_deg=case["angle_deg"],constants=self.constants,
                 rotation_sign=case["rotation_sign"],axis_direction=case["axis_direction"])
         return result,self.feature is not None
 
-    def save(self):
+    def save(self, case):
         from swcli.hosts.windows_native_files import save_as_native_windows
-        path = self.output/"front-direction-90.SLDPRT"
+        path = self.output / (case_name(case) + ".SLDPRT")
         require(not path.exists(), "never overwrite native direction evidence")
         result = save_as_native_windows(str(path),document=self.document)
         return dict(path=str(path),save=result,file_size_bytes=path.stat().st_size if path.is_file() else 0,
@@ -103,7 +103,7 @@ class NativeBackend:
         self.close_attempted = True
         self.app.CloseDoc(self.value(self.document,"GetTitle"))
         require(not tuple(self.value(self.app,"GetDocuments") or ()), "owned direction document did not close")
-        self.document = None
+        self.document = self.sketch = self.feature = None
 
     def reopen(self, saved, creation, case, observed):
         from swcli.hosts.windows_documents import open_windows_document_with_handle, _diagnose_features

@@ -1,4 +1,7 @@
-# 部分角度方向单例：准备完成，原生未执行
+# 部分角度方向单例：前视 90° 原生证据与运行入口
+
+前视 90° 已在 `116de8e8d1699ce72521dd5f38cf1701c0b110e1` 的 Windows VM 单次执行中通过。
+[单例证据和后续矩阵](revolve-partial-next.md)记录精确范围。以下保留历史准备过程。
 
 此增量沿用 `codex/swcli-revolve-feature-next`，承接首轮
 `02e55ca7a77ec5abb216648c23efc43a3b21f4ee`。仅补充 harness、定向路由、离线失败控制，
@@ -136,8 +139,8 @@ $python = Join-Path $root 'venv\Scripts\python.exe'
 if ($LASTEXITCODE -ne 0) { throw 'Prepared wheel installation failed' }
 ```
 
-VM 当前已观察到的 exe 与 `swconst.tlb` 位于 `C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS`。
-下面的只读检查确认同目录三件文件，包括此前尚未确认的 `sldworks.tlb`：
+单例原件确认注册的 exe 与两份 `.tlb` 位于 `C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS`。
+在新窗口可用下列命令复核三件文件：
 
 ```powershell
 $install = 'C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS'

@@ -37,25 +37,27 @@ class FakeBackend:
     def start(self):self.calls.append("start");return dict(revision="33.5.0")
     def fixture(self,case):self.calls.append("fixture");return dict(configuration="Default")
     def definition(self):
-        return dict(angle_rad=math.pi/2,reverse=False,kind=0,boss=True,thin=False,merge=True,
+        return dict(angle_rad=math.radians(self.case["angle_deg"]),reverse=False,kind=0,boss=True,thin=False,merge=True,
             axis_type=10,contour_count=0,axis_matches=True,axis_points_mm=deepcopy(self.points),cleanup_errors=[])
     def create(self,case):
         self.calls.append("create")
-        metrics=protocol.sector_expectation(case["bounds_mm"],protocol.IDENTITY,case["angle_deg"],rotation_sign=case["rotation_sign"])
-        self.creation=dict(ok=True,angle_deg=90,axis_mm=case["axis_mm"],expected_profile_mm=case["bounds_mm"],
+        self.case = deepcopy(case)
+        frame = list(protocol.PLANES[case["plane"]])
+        metrics=protocol.sector_expectation(case["bounds_mm"],frame,case["angle_deg"],rotation_sign=case["rotation_sign"])
+        self.creation=dict(ok=True,angle_deg=case["angle_deg"],axis_mm=case["axis_mm"],expected_profile_mm=case["bounds_mm"],
             mutation=dict(attempted=True,creation_returned=True,may_have_changed=True),
             candidate=dict(rotation_sign=-1,axis_direction=1,axis_points_mm=deepcopy(self.points)),
             feature=dict(name="Revolve",type="Revolution"),definition=self.definition(),
-            model_to_sketch_transform=protocol.IDENTITY[:],expected_metrics=deepcopy(metrics),metrics=metrics,
+            model_to_sketch_transform=frame,expected_metrics=deepcopy(metrics),metrics=metrics,
             verified=True,diagnostics=dict(healthy=True,truncated=False),cleanup_errors=[])
         if self.fault:self.fault(self.creation)
         return self.creation,True
-    def save(self):self.calls.append("save");return dict(save=dict(ok=True),file_size_bytes=42,file_sha256="abc",path="fake.SLDPRT")
+    def save(self,case):self.calls.append("save");return dict(save=dict(ok=True),file_size_bytes=42,file_sha256="abc",path="fake.SLDPRT")
     def close(self):self.calls.append("close")
     def reopen(self,saved,creation,case,observed):
         self.calls.append("reopen")
         observed.update(reopen=dict(ok=True,api_errors=0,api_warnings=0),feature_count=1,profile_count=1,body_count=1,
-            bounds_mm=case["bounds_mm"][:],axis_points_mm=deepcopy(self.points),model_to_sketch_transform=protocol.IDENTITY[:],
+            bounds_mm=case["bounds_mm"][:],axis_points_mm=deepcopy(self.points),model_to_sketch_transform=list(protocol.PLANES[case["plane"]]),
             definition=self.definition(),measurement=dict(ok=True,metrics=deepcopy(creation["metrics"])),
             diagnostics=dict(healthy=True,truncated=False),file_sha256="abc",
             state=dict(read_only=True,modified=False,editing=False,selected=0,foreground_same=1,
@@ -168,6 +170,68 @@ class DirectionProtocolTests(unittest.TestCase):
             timer.call_args.args[1]()
             stop.assert_called_once_with(124)
             self.assertEqual(json.loads((self.output/"native-timeout.json").read_text())["seconds"],600)
+
+
+class DirectionMatrixTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.output = Path(temp.name)
+        self.evidence = protocol.Evidence(self.output)
+        self.backend = FakeBackend()
+
+    def run_plane(self, plane):
+        return protocol.run_direction(self.backend, self.evidence, "a" * 40, matrix_plane=plane)
+
+    def test_preregisters_all_four_before_host_and_uses_one_host(self):
+        start = self.backend.start
+
+        def preregistered_start():
+            dry_report = json.loads((self.output / "report.json").read_text())
+            self.assertEqual([c["angle_deg"] for c in dry_report["planned_cases"]], [90,45,180,270])
+            self.assertEqual(dry_report["cases"], [])
+            return start()
+
+        self.backend.start = preregistered_start
+        report = self.run_plane("top")
+        self.assertTrue(report["success"], report.get("failure"))
+        self.assertFalse(report["public_acceptance"])
+        self.assertEqual(report["public_write_gate"], "closed")
+        self.assertEqual(self.backend.calls.count("start"), 1)
+        self.assertEqual(self.backend.calls.count("create"), 4)
+        self.assertEqual(self.backend.calls.count("close"), 8)
+        self.assertEqual(self.backend.calls.count("cleanup"), 1)
+        centroid = report["cases"][0]["creation"]["metrics"]["centroid_mm"]
+        self.assertAlmostEqual(centroid["x"], 40/(3*math.pi))
+        self.assertAlmostEqual(centroid["y"], -40/(3*math.pi))
+        self.assertAlmostEqual(centroid["z"], -5)
+
+    def test_first_case_with_wrong_plane_stops_before_next_fixture(self):
+        self.backend.fault = lambda result: result.update(model_to_sketch_transform=protocol.IDENTITY)
+        report = self.run_plane("right")
+        self.assertFalse(report["success"])
+        self.assertEqual(report["failed_case"], "right-direction-90")
+        self.assertIn("frame differs", report["failure"]["message"])
+        self.assertEqual(len(report["planned_cases"]), 4)
+        self.assertEqual(len(report["cases"]), 1)
+        self.assertEqual(self.backend.calls, ["start","fixture","create","cleanup"])
+
+    def test_matrix_host_success_requires_all_four_exact_cases(self):
+        report = self.run_plane("front")
+        child = mock.Mock()
+        child.wait.return_value = 0
+        with mock.patch.object(entry.subprocess, "Popen", return_value=child):
+            self.assertEqual(entry.supervise(["fake"], self.output, matrix_plane="front"), 0)
+            report["cases"].pop()
+            protocol.durable(self.output / "report.json", report)
+            with self.assertRaisesRegex(RuntimeError, "all scheduled"):
+                entry.supervise(["fake"], self.output, matrix_plane="front")
+
+    def test_ci_entry_rejects_matrix_argument_before_route_or_host(self):
+        with mock.patch.object(entry, "exact_source") as proof:
+            with self.assertRaises(SystemExit), mock.patch.object(sys, "stderr"):
+                entry.main(["--matrix-plane", "top", "--output-dir", "evidence", "--expected-head", "a"*40])
+        proof.assert_not_called()
 
 
 class DirectionRouteAndSupervisorTests(unittest.TestCase):

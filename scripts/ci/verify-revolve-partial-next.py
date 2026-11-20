@@ -13,7 +13,7 @@ from zipfile import ZipFile
 
 CI = Path(__file__).resolve().parent
 sys.path.insert(0,str(CI))
-from gate_support.revolve_direction import Evidence, durable, require, run_direction
+from gate_support.revolve_direction import PLANES, Evidence, durable, plane_plan, require, run_direction
 
 NEXT_REF = "refs/heads/codex/swcli-revolve-feature-next"
 
@@ -187,7 +187,7 @@ def stop_owned_after_timeout(output, *, expected_image=None):
         if handle is not None:handle.Close()
 
 
-def supervise(command, output, *, expected_image=None):
+def supervise(command, output, *, expected_image=None, matrix_plane=None):
     capture_options = {"expected_image": expected_image} if expected_image is not None else {}
     with (output/"stdout.log").open("wb") as stdout,(output/"stderr.log").open("wb") as stderr:
         child=subprocess.Popen(command,stdout=stdout,stderr=stderr,env={**os.environ,"SWCLI_TRACE_NATIVE_CALLS":"1"})
@@ -211,8 +211,15 @@ def supervise(command, output, *, expected_image=None):
         except (OSError,ValueError):report={}
         if code == 0:
             require(report.get("success") is True and report.get("owned_cleanup_completed") is True and
-                    report.get("public_acceptance") is False and report.get("matrix_enabled") is False,
-                    "worker exited zero without complete direction-only evidence")
+                    report.get("public_acceptance") is False and report.get("matrix_enabled") is (matrix_plane is not None),
+                    "worker exited zero without complete direction evidence")
+            if matrix_plane is not None:
+                planned = plane_plan(matrix_plane)
+                cases = report.get("cases", [])
+                require(report.get("matrix_plane") == matrix_plane and report.get("planned_cases") == planned
+                        and [entry.get("case") for entry in cases] == planned
+                        and all(entry.get("success") is True for entry in cases),
+                        "worker exited zero without all scheduled matrix cases")
         if code != 0 and not report.get("owned_cleanup_completed"):
             # A 600s os._exit watchdog bypasses worker finally; retain its first
             # report and clean only a separately reverified recorded process.
@@ -230,6 +237,7 @@ def main(argv=None):
     parser.add_argument("--swconst",type=Path,help="installed swconst.tlb (required in CI)")
     parser.add_argument("--sldworks",type=Path,help="installed sldworks.tlb (required in CI)")
     parser.add_argument("--local-windows", action="store_true", help="verify from a local installed Windows checkout")
+    parser.add_argument("--matrix-plane", choices=tuple(PLANES), help="run the four fixed angles on one local plane")
     parser.add_argument("--wheel", type=Path, help="original wheel used to install SWCLI in local mode")
     parser.add_argument("--wheel-sha256", help="SHA256 of the prepared wheel in local mode")
     parser.add_argument("--worker",action="store_true",help=argparse.SUPPRESS)
@@ -237,12 +245,16 @@ def main(argv=None):
     if re.fullmatch(r"[0-9a-f]{40}",args.expected_head) is None:parser.error("full lowercase commit SHA required")
     local_args = []
     installation = None
+    if args.matrix_plane is not None and not args.local_windows:
+        parser.error("--matrix-plane requires --local-windows")
     if args.local_windows:
         if args.wheel is None or re.fullmatch(r"[0-9a-fA-F]{64}", args.wheel_sha256 or "") is None:
             parser.error("--local-windows requires --wheel and its full SHA256 in --wheel-sha256")
         args.wheel = args.wheel.resolve()
         args.wheel_sha256 = args.wheel_sha256.lower()
         local_args = ["--local-windows", "--wheel", str(args.wheel), "--wheel-sha256", args.wheel_sha256]
+        if args.matrix_plane is not None:
+            local_args.extend(("--matrix-plane", args.matrix_plane))
         proof = exact_source(args.expected_head, local_wheel=args.wheel, wheel_sha256=args.wheel_sha256)
     else:
         if args.wheel is not None or args.wheel_sha256 is not None:
@@ -251,6 +263,8 @@ def main(argv=None):
     if args.local_windows:
         installation = require_local_installation(args.swconst, args.sldworks)
         proof["installation"] = installation
+        if args.matrix_plane is not None:
+            proof["matrix_plane"] = args.matrix_plane
         swconst, sldworks = (Path(installation["libraries"][name]["path"])
                              for name in ("swconst.tlb", "sldworks.tlb"))
     else:
@@ -263,7 +277,7 @@ def main(argv=None):
         require(proof == parent_proof, "worker provenance differs from the supervisor preflight")
         from gate_support.revolve_direction_native import NativeBackend
         durable(args.output_dir/"source-proof.json",proof)
-        report=run_direction(NativeBackend(args.output_dir, swconst, sldworks, installation=installation),Evidence(args.output_dir),args.expected_head)
+        report=run_direction(NativeBackend(args.output_dir, swconst, sldworks, installation=installation),Evidence(args.output_dir), args.expected_head, matrix_plane=args.matrix_plane)
         print(json.dumps(dict(success=report["success"],failure=report.get("failure"),public_acceptance=False)))
         return 0 if report["success"] else 1
     output=args.output_dir.resolve()
@@ -275,7 +289,9 @@ def main(argv=None):
                            check=True, stdout=receipt, stderr=subprocess.STDOUT)
     command=[sys.executable,"-I",str(Path(__file__).resolve()),"--worker","--expected-head",args.expected_head,
         "--output-dir",str(output),"--swconst",str(swconst.resolve()),"--sldworks",str(sldworks.resolve()), *local_args]
-    return supervise(command, output, expected_image=installation["executable"] if installation else None)
+    supervisor_options = {"matrix_plane": args.matrix_plane} if args.matrix_plane is not None else {}
+    return supervise(command, output, expected_image=installation["executable"] if installation else None,
+                     **supervisor_options)
 
 
 if __name__=="__main__":raise SystemExit(main())

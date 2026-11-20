@@ -949,3 +949,16 @@ wheel 的 118 个 Python 模块 SHA256 与源码一致，原始 360° ZIP 哈希
 GitHub 已登记 workflow `417704126`，`main` 尚无该文件，手动 dispatch 尚未验证。单次安装型原生验证预留 35–45 分钟
 （队列另计），worker 总预算 1800 秒，单例与各原生边界上限 600 秒。下一次执行由统筹安排。部分角度公开验收仍待原生原件，
 本轮没有执行 Windows VM、COM 或手动原生 CI，也未纳入当前发版。
+
+
+## 旋转 next：方向单例原生通过与矩阵准备
+
+2026-11-21 统筹在原生 Windows SW 33.5.0 对 `116de8e8d1699ce72521dd5f38cf1701c0b110e1` 单次确认
+前视 90°、轴 +Y、朝局部 −Z 扫掠。一次 `FeatureRevolve2`，创建与只读重开物性相同，SLDPRT 字节 SHA256
+`2c6dc1ab25627a80c1aa3a3619863237104d08197ab0361739d837e85532664b`，独占进程退出。原生 report/stdout 成功。
+外层 zsh 在收集 guest 文件后遇只读 `status`，没有传输退出码。原件已逐字节复制至
+`evidence/revolve-partial-next/native-singleton-2026-11-21/`，见 [证据摘要](docs/evidence/revolve-direction-vm-2026-11-21.json)。
+
+本地 `--matrix-plane` 已准备固定 45/90/180/270° × front/top/right，每次仅一组同平面四例，按 90°、45°、180°、270°。
+继续用独占宿主、每角度独立空 part、600/1800 秒预算、首错停止、逐例保存与只读重开。CI 仍为单例。
+矩阵 尚未原生运行，原生拒写/partial 对照后置于矩阵原件，公开部分角度写域继续关闭。

@@ -1,0 +1,126 @@
+{
+  "scope": "one native front 90 degree direction singleton",
+  "source_commit": "116de8e8d1699ce72521dd5f38cf1701c0b110e1",
+  "native_report_success": true,
+  "public_acceptance": false,
+  "public_write_gate": "closed",
+  "matrix_enabled": false,
+  "revision": "33.5.0",
+  "case": {
+    "plane": "front",
+    "bounds_mm": [
+      0,
+      -5,
+      10,
+      15
+    ],
+    "axis_mm": [
+      0,
+      -5,
+      0,
+      15
+    ],
+    "angle_deg": 90,
+    "axis_direction": 1,
+    "rotation_sign": -1
+  },
+  "registered_installation": {
+    "clsid": "{6af263bb-eb9f-4176-89e9-4f892eb0ca3d}",
+    "executable": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\SLDWORKS.exe",
+    "libraries": {
+      "swconst.tlb": {
+        "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\swconst.tlb",
+        "sha256": "95e36f79890b9dcfb6048218af1f46e2244df60e689a7fba62091e37d47005d6"
+      },
+      "sldworks.tlb": {
+        "path": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\sldworks.tlb",
+        "sha256": "585e008c1322754e313dfb23d34b681b40fe4664a9c32d2c00f6250cb8741159"
+      }
+    }
+  },
+  "installed_wheel_sha256": "92ba76b47f98141111edb4cf2874d9c406bc0c31e6b557dc8d7c17939b665ae5",
+  "creation_metrics": {
+    "solid_body_count": 1,
+    "volume_mm3": 1570.7963267948967,
+    "surface_area_mm2": 871.238898038469,
+    "centroid_mm": {
+      "x": 4.2441318157838746,
+      "y": 4.999999999999999,
+      "z": -4.2441318157838746
+    }
+  },
+  "reopened_metrics": {
+    "solid_body_count": 1,
+    "volume_mm3": 1570.7963267948967,
+    "surface_area_mm2": 871.238898038469,
+    "centroid_mm": {
+      "x": 4.2441318157838746,
+      "y": 4.999999999999999,
+      "z": -4.2441318157838746
+    }
+  },
+  "recovered_definition": {
+    "cleanup_errors": [],
+    "angle_rad": 1.5707963267948966,
+    "reverse": false,
+    "kind": 0,
+    "boss": true,
+    "thin": false,
+    "merge": true,
+    "axis_type": 10,
+    "contour_count": 0,
+    "axis_matches": true,
+    "axis_points_mm": [
+      [
+        0.0,
+        -4.999999999999998,
+        0.0
+      ],
+      [
+        0.0,
+        15.0,
+        0.0
+      ]
+    ]
+  },
+  "reopened_state": {
+    "read_only": true,
+    "modified": false,
+    "editing": false,
+    "selected": 0,
+    "foreground_same": 1,
+    "configurations": [
+      "默认"
+    ],
+    "active_configuration": "默认"
+  },
+  "model_sha256": "2c6dc1ab25627a80c1aa3a3619863237104d08197ab0361739d837e85532664b",
+  "model_bytes": 60670,
+  "owned_cleanup_completed": true,
+  "owned_processes_after": [],
+  "native_create_count": 1,
+  "boundary_count": 14,
+  "elapsed_seconds": 23.049,
+  "outer_transport": {
+    "exit_recorded": false,
+    "issue": "zsh readonly status in outer wrapper after guest artifact collection"
+  },
+  "archive_path": "evidence/revolve-partial-next/native-singleton-2026-11-21",
+  "artifact_sha256": {
+    "guest/boundaries.jsonl": "13f72c733225dc60554d7b63a28d182b7c60dc05d0ed42328aa4c9bc1a5738e5",
+    "guest/front-direction-90.SLDPRT": "2c6dc1ab25627a80c1aa3a3619863237104d08197ab0361739d837e85532664b",
+    "guest/host-identity-observation.json": "02627c05463fdcd183f4cf88cdff0c3dda4be8a020b563caba4d69ed75172b57",
+    "guest/owned-host.json": "8d27900008f8f847cb361db25299485c98fb5f367b5c2b34b2c9a0ca5b07a386",
+    "guest/report.json": "953c4d1bd228390e605da99bef5f4dc9aca8466422fb8c47e9993fa965f2aed0",
+    "guest/source-proof-parent.json": "c16d884e8ca07d904c029b9e7c6cf3d14ff406952ac871d819eca2581b7943ec",
+    "guest/source-proof.json": "c16d884e8ca07d904c029b9e7c6cf3d14ff406952ac871d819eca2581b7943ec",
+    "guest/stderr.log": "12e9ebc71ac560ffa5db02006159004bd870fdecf3cb89e61a8dbe4756abe2fa",
+    "guest/stdout.log": "425ea21e8132066ee19fa2c304244c1ca1513277cc31b844e5477f577ce8b2ec",
+    "guest/verify-installed.log": "a681f11115d509144bfbca4c5fe29952ab9ddc5c49639d0fdee176fc18afb2b8",
+    "independent-audit.json": "0c4d1a4e88d2800d84c2adf7d30ac29379738044e897b66c6867e9ca6839bca3",
+    "lane.ps1": "9f7223bae0c5df67beb664f41522280e4dde9fbbbbe934c80f9a2b9e000e5066",
+    "processes-after.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "run.log": "99138845aac2b92ea7cb1318324218bb199c96e95ec06aa95cd5f327252c3cca",
+    "swcli-revolve-local-116de8e.zip": "c69bc0dd7451988339fe86567ccc96c73648c816b6dba8a1b5b53c4a0bf9b7ca"
+  }
+}
