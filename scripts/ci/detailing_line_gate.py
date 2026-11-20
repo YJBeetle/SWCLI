@@ -7,6 +7,7 @@ It never changes the production allowlist or promotes an internal result.
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import time
 
@@ -74,6 +75,10 @@ def check_trace(envelope, operation, getters, setters):
             "unclosed operation trace")
     require(all("UserPreference" not in call or call in (GETTER, SETTER) for call in calls),
             "unrelated preference API appeared in trace")
+    preferences = [call for call in calls if call in (GETTER, SETTER, DIRTY)]
+    if setters:
+        expected_order = [GETTER] * 4 + [SETTER] + [GETTER] * 4 + [DIRTY] * calls.count(DIRTY) + [GETTER] * 4
+        require(preferences == expected_order, "setter or dirty call is out of order")
     require(calls.count(GETTER) == getters and calls.count(SETTER) == setters
             and calls.count(DIRTY) <= setters, "unexpected preference getter/setter/dirty counts")
 
@@ -119,7 +124,10 @@ class Gate:
                            native_timeout_seconds=600, group_timeout_seconds=1800, writes=[])
 
     def persist(self):
-        (self.output / "report.json").write_text(json.dumps(self.report, indent=2) + "\n", encoding="utf-8")
+        output = self.output / "report.json"
+        pending = self.output / "report.json.pending"
+        pending.write_text(json.dumps(self.report, indent=2) + "\n", encoding="utf-8")
+        pending.replace(output)
 
     def step(self, name, function, record, key):
         # Persist the slot before invoking: a failure keeps earlier receipts and
@@ -194,7 +202,7 @@ class Gate:
                         changed=True, getters=12, cas=edge["before"])
             require(record["write"]["result"].get("before") == edge["before"], "write CAS was not full current snapshot")
             after = self.observe(record, "state_after")
-            require(after["document_id"] == before["document_id"] and after["layout"] == before["layout"]
+            require(all(after[key] == before[key] for key in ("document_id", "path", "title", "layout"))
                     and after["foreground"] == before["foreground"] and after["modified"] is True,
                     "write changed identity/layout/foreground or failed to mark dirty")
             self.unchanged_files()
@@ -229,6 +237,8 @@ class Gate:
                 require(opened.get("ok") is True and opened.get("api_errors") == opened.get("api_warnings") == 0
                         and opened.get("read_only") is readonly, "drawing reopen failed or warned")
                 state = self.observe(record, label + "_state", readonly=readonly)
+                require(state["path"] and os.path.samefile(state["path"], path),
+                        "reopened native document is not the saved drawing")
                 require(state["document_id"] not in used_ids, "reopened drawing reused retired document identity")
                 used_ids.add(state["document_id"])
                 require(state["modified"] is False and state["layout"] == initial_state["layout"]

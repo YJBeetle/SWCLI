@@ -18,7 +18,9 @@ def timeout_reason(started, now, records):
         if row.get("phase") == "begin":
             pending[key] = row["time"]
         elif row.get("phase") in ("end", "error"):
-            pending.pop(key, None)
+            began = pending.pop(key, None)
+            if began is not None and row["time"] - began >= 600:
+                return "600-second native boundary budget exceeded"
     if any(now - value >= 600 for value in pending.values()):
         return "600-second native boundary budget exceeded"
     if now - max((r["time"] for r in records), default=started) >= 600:
@@ -48,6 +50,7 @@ def main(argv=None):
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--drawing-template", type=Path, required=True)
     parser.add_argument("--source-head", required=True)
+    parser.add_argument("--wheel", type=Path, help="exact wheel installed in this Python environment")
     parser.add_argument("--execute-owned-native", action="store_true")
     args = parser.parse_args(argv)
     if not args.execute_owned_native or sys.platform != "win32":
@@ -59,6 +62,8 @@ def main(argv=None):
         "--output-dir", str(evidence), "--swconst", str(args.swconst.resolve()),
         "--drawing-template", str(args.drawing_template.resolve()), "--source-head", args.source_head,
         "--execute-owned-native", "--watchdog-pid", str(os.getpid())]
+    if args.wheel is not None:
+        command += ["--wheel", str(args.wheel.resolve())]
     receipt = dict(profile="drawing-detailing-lines-v1", source_commit=args.source_head,
         success=False, native_accepted=False, public_acceptance=False,
         native_timeout_seconds=600, group_timeout_seconds=1800)
@@ -80,15 +85,29 @@ def main(argv=None):
             if failure:
                 receipt["failure"] = failure
                 persist()
-                subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                try:
+                    terminated = subprocess.run(
+                        ["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False,
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
+                    )
+                    receipt["taskkill_returncode"] = terminated.returncode
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    receipt["termination_error"] = str(exc)
                 try:
                     process.wait(timeout=30)
                 except subprocess.TimeoutExpired:
                     receipt["termination_unconfirmed"] = True
                 break
             time.sleep(1)
-    receipt.update(returncode=process.poll(), elapsed_seconds=time.monotonic() - started)
+    finished = time.monotonic()
+    receipt.update(returncode=process.poll(), elapsed_seconds=finished - started)
+    if process.returncode == 0 and "failure" not in receipt:
+        try:
+            failure = timeout_reason(started, finished, progress_records(evidence / "progress.jsonl"))
+        except Exception as exc:
+            failure = "invalid terminal progress evidence: " + str(exc)
+        if failure:
+            receipt["failure"] = failure
     receipt["success"] = process.returncode == 0 and "failure" not in receipt
     persist()
     return 0 if receipt["success"] else 1

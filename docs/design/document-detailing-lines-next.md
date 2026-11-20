@@ -13,6 +13,8 @@
 
 依据：[官方 DP_Detailing API 映射](https://help.solidworks.com/2024/english/api/swconst/DP_Detailing.htm)、[2025 产品帮助](https://help.solidworks.com/2025/English/SolidWorks/sldworks/HIDD_OPTIONS_DETAILING_NEW.htm?id=9c8376d44748461faca7f4583f830216)。2025 帮助说明，大装配设置/组件数量阈值可能阻止自动插入中心线。因此本轮只讨论默认值存储，不把开关 true 当成实际视图生成结果保证，也不调整全局大装配设置。
 
+参数值和返回值都是布尔，但语义需要分开核对。[2025 setter 文档](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SetUserPreferenceToggle.html) 把返回值描述为 on/off，候选目前要求实际 COM 返回严格 `True` 才继续读回。首次 false 边可能返回 `False`，届时记录目标值、原始返回与 partial 回执并停止，留待核实实际行为后再决定是否修订合约。仅凭文档描述无法为这两个字段放行。
+
 槽/装配中心标记开关暂缓；视图标签需另核具体 API，不纳入该两字段一致子集。字体、尺寸格式、公差、总体标准、表格均不在本轮范围；没有具体视图/实体/中心标记插入操作。
 
 ## 加法合同，保留旧验收范围
@@ -61,15 +63,22 @@ SDK 新方法 `document.detailing_line_options` / `document.detailing_line_optio
 - `scripts/ci/run-detailing-lines-calibration.py`：唯一有界入口。子进程校验 parent PID，全部阶段和未命名启动/清理均受 600s 限制，组上限 1800s；使用系统单调时钟。超时只终止该子进程树并记录失败，不重试、不重启或 dispatch CI；超时退出不等于确认 SOLIDWORKS 退出，原件/owned PID 留给统筹检查。
 - `tests/test_detailing_line_gate.py`：假宿主覆盖全部 16 种四布尔初始组合，每个组合 8 次写入/16 次重开；注入部分修改、旧保护值漂移、前台/布局/dirty 异常、缺字段、假 native return、缺/借用 trace、调用计数/期限错误、保存/关闭/重开/持久化/文件损坏及旧身份复用。另通过真实 registry/handler/adapter/result schema 配合模拟对象验证 trace、CAS、stamp 和 lease 拒绝；不会实例化真实 COM。
 
-每条边必须有完整四值 CAS、strict true native return、12 getter/1 setter/至多1 dirty、同值 4/0、旧保护值 CAS 冲突 4/0、stamp/lease/只读拒绝 0 setter。每次写后保存独立 SLDDRW；关闭需证明 native catalog 仅余前台零件且旧 ID 已失效；只读及可写重开均须获得从未使用的新 ID、完整四值不变、干净状态、相同布局/前台。观察和拒绝后再次核字节 hash，并持续复核之前所有原件。第一失败终止计划，保留 raw result/trace/partial；API 第一业务错误和后续校验/清理错误分别记录。
+每条边必须有完整四值 CAS、strict true native return、12 getter/1 setter/至多1 dirty、同值 4/0、旧保护值 CAS 冲突 4/0、stamp/lease/只读拒绝 0 setter。每次写后保存独立 SLDDRW；关闭需证明 native catalog 仅余前台零件且旧 ID 已失效；只读及可写重开均须核对原生文档路径对应同一保存文件，并获得从未使用的新 ID、完整四值不变、干净状态、相同布局/前台。轨迹须证明先读四值、执行一次 setter、读回四值、可选 dirty、再读四值。观察和拒绝后再次核字节 hash，并持续复核之前所有原件。第一失败终止计划，保留 raw result/trace/partial；API 第一业务错误和后续校验/清理错误分别记录。
 
-未来仅在统筹明确授权后执行（本轮未执行）：
+统筹排程时，使用干净候选 checkout、由同一 head 构建的 wheel 与 Windows Python 3.14。先在独立 venv 安装 wheel。准备全新证据目录及其已存在的持久父目录。
 
 ```powershell
-python -I scripts/ci/run-detailing-lines-calibration.py `
-  --output-dir <全新证据目录> --source-head <统筹批准的精确已提交head> `
-  --swconst <安装的官方swconst.tlb> --drawing-template <显式GB-A4工程图模板> `
-  --execute-owned-native
+$gatePython = 'D:\swcli-detailing-venv\Scripts\python.exe'
+$wheel = 'D:\swcli-evidence\packages\swcli-0.2.4-py3-none-any.whl'
+& $gatePython -m pip install $wheel
+if ($LASTEXITCODE -ne 0) { throw 'wheel installation failed' }
+& $gatePython -I scripts/ci/run-detailing-lines-calibration.py `
+  --output-dir 'D:\swcli-evidence\detailing-lines-internal-01' `
+  --source-head '<统筹批准的精确候选提交>' --wheel $wheel `
+  --swconst '<SOLIDWORKS 2025 安装的 swconst.tlb>' `
+  --drawing-template '<GB A4 工程图模板>' --execute-owned-native
 ```
 
-要求该 Windows Python 已安装本 checkout 的运行代码，internal gate 拒绝用另一份 installed wheel 冒充当前源码。此 gate 直接执行 registry/handler/adapter，用于内部原生 API 证明；不证明已安装公开 CLI→daemon→worker、SDK/MCP 或 worker 恢复的真实原生行为，后者仍需另行公开链路门禁。即使内部计划全部完成，报告仍保留 `native_accepted=false`、`public_acceptance=false` 和 `full_acceptance_eligible=false`，不自动修改生产白名单。只有统筹独立审查新 head 原件后，才可决定下一阶段。
+门禁核对 wheel 中完整 `swcli` 包清单和 checkout 内容，核对实际安装字节并记录摘要。跨平台文本换行差异仅在 checkout 与 wheel 比对时归一化。门禁直接执行 registry、handler 与 adapter。安装型公开 CLI→daemon→worker、SDK/MCP 和 worker 恢复仍需独立验收。内部成功报告保留 `native_accepted=false`、`public_acceptance=false` 和 `full_acceptance_eligible=false`，供统筹独立审查。
+
+预计预留 35–40 分钟独占 Windows 资源窗口，其中原生组硬上限 30 分钟，余量用于启动前安装核对、原件归档及退出确认。启动前确认其他路线已释放宿主，使用同一个本机 SOLIDWORKS 2025 进程完成计划。原样归档整个输出目录，含 `watchdog.json`、`stdout.log`、`stderr.log`、`internal/report.json`、进度与原生 JSONL 轨迹及实际产生的 SLDDRW。另记录归档摘要、wheel 摘要、精确 head 与宿主 revision。超时或首错时保存当时原件，确认所属进程状态后再释放资源窗口。

@@ -30,7 +30,7 @@ class FakeBackend:
     def __init__(self, failure=None, initial=None):
         self.values = deepcopy(initial) if initial is not None else dict(zip(gate.DETAILING_LINE_SNAPSHOT_FIELDS, (True, False, False, True)))
         self.state = dict(document_id="d-fake00", update_stamp=10, modified=False, read_only=False,
-                         active=False, current=False, normal_sheet=True, layout={"sheet": [1, 2]},
+                         active=False, current=False, normal_sheet=True, path="", title="fixture", layout={"sheet": [1, 2]},
                          foreground={"id": "d-front", "configuration": "default"})
         self.failure, self.enabled, self.writes, self.reopens, self.calls = failure, False, 0, 0, []
         self.saved = {}
@@ -89,7 +89,11 @@ class FakeBackend:
                     self.state["layout"] = {"sheet": [3, 4]}
                 if self.failure == "dirty" and self.writes == 3:
                     self.state["modified"] = False
-        for sequence, call in enumerate([gate.GETTER] * getters + [gate.SETTER] * setters, 1):
+        calls = ([gate.GETTER] * 4 + [gate.SETTER] + [gate.GETTER] * 8
+                 if setters else [gate.GETTER] * getters)
+        if self.failure == "setter-order" and self.writes == 3 and setters:
+            calls[3], calls[4] = calls[4], calls[3]
+        for sequence, call in enumerate(calls, 1):
             rows.extend([row(sequence, call, "begin"), row(sequence, call, "end")])
         rows.append(row(0, operation, "end"))
         if self.failure == "borrowed-trace" and self.writes == 3:
@@ -112,7 +116,9 @@ class FakeBackend:
     def reopen(self, path, readonly):
         self.reopens += 1
         self.values = deepcopy(self.saved[str(path)])
-        self.state.update(read_only=readonly, modified=False)
+        self.state.update(read_only=readonly, modified=False, path=str(path))
+        if self.failure == "wrong-file" and self.writes == 3:
+            self.state["path"] = next(iter(self.saved))
         if self.failure != "reuse-id" or self.writes != 3:
             self.state["document_id"] = "d-fake%02d" % self.reopens
         if self.failure == "persistence" and self.writes == 3:
@@ -153,7 +159,7 @@ class DetailingLineGateTests(unittest.TestCase):
 
     def test_first_fault_stops_without_retry_and_preserves_original_result(self):
         for failure in ("partial", "old-guard", "foreground", "layout", "dirty", "borrowed-trace",
-                        "save", "close", "reuse-id", "persistence", "hash"):
+                        "save", "close", "reuse-id", "persistence", "hash", "wrong-file", "setter-order"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as folder:
                 engine, backend, report = self.run_fake(folder, failure)
                 with self.assertRaises(RuntimeError):
@@ -212,6 +218,8 @@ class DetailingLineGateTests(unittest.TestCase):
                 {"call": "nested", "phase": "end", "time": 104}]
         self.assertIsNone(watchdog.timeout_reason(0, 604, rows))
         self.assertIn("600-second", watchdog.timeout_reason(0, 605, rows))
+        rows.append({"call": "write", "phase": "end", "time": 605})
+        self.assertIn("600-second", watchdog.timeout_reason(0, 606, rows))
         self.assertIn("1800-second", watchdog.timeout_reason(0, 1800, []))
 
     def test_bounded_wrapper_times_out_only_its_child_and_never_retries(self):
@@ -221,7 +229,7 @@ class DetailingLineGateTests(unittest.TestCase):
             process.poll.side_effect = [None, -9]
             with mock.patch.object(watchdog.sys, "platform", "win32"), \
                     mock.patch.object(watchdog.subprocess, "Popen", return_value=process) as spawn, \
-                    mock.patch.object(watchdog.subprocess, "run") as kill, \
+                    mock.patch.object(watchdog.subprocess, "run", return_value=mock.Mock(returncode=0)) as kill, \
                     mock.patch.object(watchdog.time, "monotonic", side_effect=[0, 1800, 1801]):
                 code = watchdog.main(["--output-dir", str(output), "--swconst", "unused", "--drawing-template", "unused",
                                       "--source-head", "a"*40, "--execute-owned-native"])

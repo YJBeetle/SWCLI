@@ -30,7 +30,7 @@
 ## 未验收与所需排程
 
 - 新枚举的真实 ID、原生 getter/真假 setter 返回语义、完整四值独立持久化及真实公开链路均未验证；写入继续关闭。
-- 原生计划为单 host/worker，8 条新布尔有向转换、旧两个标量不变、逐次独立保存/只读重开，600 秒 native/1800 秒组预算，首失败原件保留。详见设计文档；统筹批准排程后再补目标脚本/入口。
+- 原生计划为单 host/worker，8 条新布尔有向转换、旧两个标量不变、逐次独立保存/只读重开，600 秒 native/1800 秒组预算，首失败原件保留。详见设计文档；独立目标脚本已在后续增量补齐。
 - 无新的 run/artifact/digest；上一批 run/原件只证明旧两项，不得借用来放行新字段。
 - 不验证具体视图/实体自动标记效果；大装配条件的实际插线行为、其他字段/版本/Wine、完整发布均在范围外。
 
@@ -46,3 +46,10 @@
 当前 `NATIVE_ACCEPTED=false`、`MERGE_READY=false` 和排除当前发布范围不变。下一步由统筹亲审新增门禁，并决定未来是否授权执行；本轮不等待 CI，也不创建自动化。
 
 门禁准备代码 head：`6945b23d5b9b1cf57e731cc3a5afdf0cdba2c973`；生产候选仍为 `32fc9ff0797e224795415e03a343746516462cc8`。增量 patch `artifacts/detailing-next/gate-preparation.patch`，SHA256 `c48c6257d05dc8145f3926aa0de6b2c2526888ea1c7cab71cff9cbdcf1be922a`；本轮日志和源文件摘要记录在 `artifacts/detailing-next/portable/gate-receipt.json`。四个新增 Python 文件均通过 Python 3.9 语法解析，两个入口的 isolated `--help` 通过；未调用原生入口。旧两份原 ZIP 摘要再次核同。
+
+
+## 2026-11-21 现行基线复审
+
+候选已纳入远端 main `7400b2c615da5017f819ab8c13c194b4445fd75b`，保留此前分支提交和原件。门禁支持将实际安装的 wheel、候选 checkout 和报告绑定到同一份包内容。每次重开另用原生文档路径核对同一保存文件，轨迹按实际 getter、setter 和 dirty 顺序核验，报告采用原子替换保存。首个诊断故障保留操作结果和 partial 回执，watchdog 同时核对已完成的阶段耗时。
+
+两个新默认选项写入仍关闭。官方 2025 文档将 setter 返回值描述为 on/off，原生阶段须重点核实 false 方向。候选遇到非严格 True 会在首个失败点停止并保留返回及回执。安装型内部命令、证据归档要求和预计 35–40 分钟独占窗口见[设计与验证计划](../design/document-detailing-lines-next.md)。

@@ -15,6 +15,7 @@ import subprocess
 import sys
 import traceback
 from uuid import uuid4
+from zipfile import ZipFile
 
 # Loaded by file, including under -I; never depend on scripts being on sys.path.
 def load(name, filename):
@@ -26,6 +27,44 @@ def load(name, filename):
 
 gate = load("_detailing_lines_gate", "detailing_line_gate.py")
 require = gate.require
+
+
+def runtime_proof(root, installed, wheel):
+    """Bind the imported package to the checkout and, optionally, its wheel."""
+    source = root / "src/swcli"
+    installed = installed.resolve()
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "src/swcli"], cwd=root,
+    ).decode("utf-8").split("\0")
+    paths = {Path(name).relative_to("src/swcli").as_posix() for name in tracked if name}
+    require("__init__.py" in paths, "tracked SWCLI package unavailable")
+    if wheel is None:
+        require(installed == source, "use an editable checkout or pass its installed wheel")
+        return {"mode": "editable", "package": str(installed)}
+    require(installed != source, "--wheel requires a wheel installation, not an editable checkout")
+    # Worktree line endings can differ from the wheel built on Linux.
+    def checkout_bytes(path, wheel_bytes):
+        local = (source / path).read_bytes()
+        if path.endswith((".py", ".json", ".md")):
+            return local.replace(b"\r\n", b"\n") == wheel_bytes.replace(b"\r\n", b"\n")
+        return local == wheel_bytes
+
+    with ZipFile(wheel) as archive:
+        members = [name[len("swcli/"):] for name in archive.namelist()
+                   if name.startswith("swcli/") and not name.endswith("/")]
+        require(len(members) == len(paths) and set(members) == paths, "wheel package inventory differs from checkout")
+        files = {}
+        for name in sorted(paths):
+            payload = archive.read("swcli/" + name)
+            require(checkout_bytes(name, payload), "wheel differs from checkout: " + name)
+            require((installed / name).read_bytes() == payload, "installed package differs from wheel: " + name)
+            files[name] = hashlib.sha256(payload).hexdigest()
+    # Extra modules could shadow canonical modules even if each expected file exists.
+    present = {path.relative_to(installed).as_posix() for path in installed.rglob("*")
+               if path.is_file() and "__pycache__" not in path.relative_to(installed).parts}
+    require(present == paths, "installed package inventory differs from wheel")
+    return {"mode": "wheel", "package": str(installed), "wheel": str(wheel.resolve()),
+            "wheel_sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(), "installed_files": files}
 
 
 class NativeBackend:
@@ -136,11 +175,15 @@ class NativeBackend:
                     result = execute_operation(self.app, operation, parameters, documents=self.registry, **context)
                 except Exception as exc:
                     raised = dict(type=type(exc).__name__, message=str(exc))
-        with trace_path.open("rb") as stream:
-            stream.seek(offset)
-            rows = [json.loads(line) for line in stream.read().decode("utf-8").splitlines()]
-        return dict(request_id=request, request=dict(operation=operation, parameters=parameters, **context),
-                    mode=mode, result=result, raised=raised, trace=rows)
+        envelope = dict(request_id=request, request=dict(operation=operation, parameters=parameters, **context),
+                        mode=mode, result=result, raised=raised, trace=[])
+        try:
+            with trace_path.open("rb") as stream:
+                stream.seek(offset)
+                envelope["trace"] = [json.loads(line) for line in stream.read().decode("utf-8").splitlines()]
+        except (OSError, UnicodeError, ValueError) as exc:
+            envelope["trace_error"] = str(exc)
+        return envelope
 
     @staticmethod
     def validate(operation, result):
@@ -191,6 +234,7 @@ def main(argv=None):
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--drawing-template", type=Path, required=True)
     parser.add_argument("--source-head", required=True)
+    parser.add_argument("--wheel", type=Path, help="exact wheel installed in this Python environment")
     parser.add_argument("--execute-owned-native", action="store_true")
     parser.add_argument("--watchdog-pid", type=int, required=True)
     args = parser.parse_args(argv)
@@ -205,19 +249,20 @@ def main(argv=None):
             parser.error("requires existing official swconst and explicit drawing template")
     import swcli
     root = Path(__file__).resolve().parents[2]
-    require(Path(swcli.__file__).resolve() == root / "src/swcli/__init__.py", "internal gate requires this checkout's runtime")
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     require(args.source_head == head and len(head) == 40, "source head mismatch")
     require(not subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal", "--", "src", "scripts/ci"],
                                         cwd=root, text=True).strip(), "gate/runtime sources must be committed and clean")
+    runtime = runtime_proof(root, Path(swcli.__file__).parent, args.wheel)
     args.output_dir.mkdir()
     output = args.output_dir.resolve()
     manifest = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in sorted((root / "src/swcli").rglob("*.py"))}
-    for filename in ("detailing_line_gate.py", "verify-detailing-lines-calibration.py", "run-detailing-lines-calibration.py"):
+    for filename in ("detailing_line_gate.py", "verify-detailing-lines-calibration.py",
+                     "run-detailing-lines-calibration.py", "verify-through-all-calibration.py"):
         path = Path(__file__).with_name(filename)
         manifest[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
-    report = dict(success=False, profile=gate.PROFILE, source_commit=head, source_files=manifest, native_accepted=False,
+    report = dict(success=False, profile=gate.PROFILE, source_commit=head, source_files=manifest, runtime=runtime, native_accepted=False,
                   public_acceptance=False, full_acceptance_eligible=False, cleanup_errors=[])
     engine = gate.Gate(None, output, report)
     engine.persist()
@@ -231,12 +276,17 @@ def main(argv=None):
         import win32com.client as client
         from swcli.daemon.server import acquire_resident_app
         from swcli.hosts.windows import _com_value, wait_windows_host_ready
+        from swcli.hosts.windows_document_detailing import _native_windows
+        require(_native_windows(), "requires native Windows before host acquisition")
         pythoncom.CoInitialize()
         initialized = True
         app, owned = engine.step("acquire_owned_hidden_host", lambda: acquire_resident_app(client, visible=False), {}, "acquire")
         require(owned, "must never attach to an existing host")
         engine.step("wait_owned_ready", lambda: wait_windows_host_ready(app, timeout_seconds=120), {}, "ready")
-        report["host"] = dict(process_id=_com_value(app, "GetProcessID"), revision=_com_value(app, "RevisionNumber"), owned=True, visible=False)
+        report["host"] = dict(process_id=_com_value(app, "GetProcessID"),
+                              revision=_com_value(app, "RevisionNumber"), owned=True,
+                              visible=_com_value(app, "Visible"))
+        require(report["host"]["visible"] is False, "owned host did not start hidden")
         handle = helpers.capture_process(report["host"]["process_id"])
         require(_com_value(app, "GetDocumentCount") == 0, "owned host is not empty")
         backend = NativeBackend(app, output, args.drawing_template.resolve(), args.swconst.resolve(), report)
@@ -266,7 +316,7 @@ def main(argv=None):
             if needed:
                 try:
                     # Cleanup failures remain separate from the first business error.
-                    function()
+                    engine.step("cleanup:" + label, function, {}, label)
                     report.setdefault("cleanup_completed", []).append(label)
                 except BaseException as exc:
                     report["cleanup_errors"].append(dict(stage=label, type=type(exc).__name__, message=str(exc)))
