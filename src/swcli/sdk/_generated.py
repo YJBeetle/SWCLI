@@ -10,6 +10,25 @@ class Dispatcher(Protocol):
     def _execute(self, operation: str, parameters: Optional[Dict[str, object]] = None, *, request_id: Optional[str] = None, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None) -> Response[JSONValue]: ...
 
 
+class AssemblyTargetsOperations:
+    def __init__(self, client: Dispatcher) -> None:
+        self._client = client
+
+    def list(self, *, components: List[str], document_id: str, expected_update_stamp: int, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyTargetsListResult]:
+        """assembly.targets.list; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['components'] = components
+        return cast("Response[models.AssemblyTargetsListResult]", self._client._execute('assembly.targets.list', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
+    def validate(self, *, snapshot_id: str, target_ids: List[str], document_id: str, expected_update_stamp: int, lease_id: str, request_id: Optional[str] = None) -> Response[models.AssemblyTargetsValidateResult]:
+        """assembly.targets.validate; runtime validation enforces bounds, conditions and context."""
+        parameters: Dict[str, object] = {}
+        parameters['snapshot_id'] = snapshot_id
+        parameters['target_ids'] = target_ids
+        return cast("Response[models.AssemblyTargetsValidateResult]", self._client._execute('assembly.targets.validate', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
+
+
 class DocumentLeaseOperations:
     def __init__(self, client: Dispatcher) -> None:
         self._client = client
@@ -45,6 +64,7 @@ class DocumentLeaseOperations:
 class AssemblyOperations:
     def __init__(self, client: Dispatcher) -> None:
         self._client = client
+        self.targets = AssemblyTargetsOperations(client)
 
     def add_component(self, *, path: str, configuration: Union[str, Unset] = UNSET, x_mm: Union[float, Unset] = UNSET, y_mm: Union[float, Unset] = UNSET, z_mm: Union[float, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, lease_id: Optional[str] = None, request_id: Optional[str] = None) -> Response[models.AssemblyAddComponentResult]:
         """assembly.add-component; runtime validation enforces bounds, conditions and context."""

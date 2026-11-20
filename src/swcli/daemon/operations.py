@@ -180,6 +180,7 @@ class OperationContext:
     document_id: Optional[str]
     lease_id: Optional[str]
     entry: Optional[DocumentEntry] = None
+    expected_update_stamp: Optional[int] = None
 
 
 _HANDLERS = {}
@@ -1152,6 +1153,18 @@ def _register_entities(context: OperationContext, result, bindings, kind):
 
 
 @_register_handler
+def assembly_targets_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from .assembly_target_operations import run
+    return run(context, values)
+
+
+@_register_handler
+def assembly_targets_validate(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
+    from .assembly_target_operations import run
+    return run(context, values)
+
+
+@_register_handler
 def entity_list(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     kind = values.get("kind", "face")
     result, bindings = _observe_entities(context, kind, values.get(f"max_{kind}s", 64))
@@ -1774,8 +1787,11 @@ def execute_operation(
     if spec.handler is None:
         raise ValueError(f"operation belongs to the supervisor: {operation}")
     context = OperationContext(
-        app, operation, documents, session_id, document_id, lease_id
+        app, operation, documents, session_id, document_id, lease_id,
+        expected_update_stamp=expected_update_stamp
     )
+    if operation in ("assembly.targets.list", "assembly.targets.validate"):
+        return _HANDLERS[spec.handler](context, values)
     if spec.selected_document and documents is not None:
         context.entry = documents.resolve(document_id, session_id=session_id)
         if expected_update_stamp is not None:

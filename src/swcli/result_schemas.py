@@ -1618,6 +1618,8 @@ _RESULT_FIELDS["dimension.set"] = (
 
 
 _RESULT_FIELDS.update(entity_result_fields())
+from .assembly_target_contracts import result_fields as assembly_target_result_fields
+_RESULT_FIELDS.update(assembly_target_result_fields())
 from .topology_references import reference_result_fields
 from .entity_contracts import _ENTITY, _OBSERVATION
 _RESULT_FIELDS.update(reference_result_fields(_ENTITY, _OBSERVATION))
@@ -3243,6 +3245,12 @@ def validate_operation_result(name: str, result: Any) -> None:
         from .topology_references import validate_reference_result
         try:
             validate_reference_result(name, result)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise OperationResultInvalid(name + ": " + str(exc)) from exc
+    if name in ("assembly.targets.list", "assembly.targets.validate"):
+        from .assembly_target_contracts import validate_result
+        try:
+            validate_result(name, result)
         except (ValueError, KeyError, TypeError) as exc:
             raise OperationResultInvalid(name + ": " + str(exc)) from exc
     if name in ("entity.list", "entity.inspect"):

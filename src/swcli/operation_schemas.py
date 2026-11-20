@@ -707,6 +707,25 @@ OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
 )
 OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 
+# Append new operations so generated existing SDK model names stay stable.
+OPERATION_CATALOG.update({
+    "assembly.targets.list": _operation(
+        "assembly.targets.list",
+        {"components": {"type": "array", "items": _string(minLength=1, pattern=r"\S"),
+                        "minItems": 2, "maxItems": 2, "uniqueItems": True}},
+        required=("components",), document_id="required", expected_update_stamp="required", lease_id="optional",
+        description="SOLIDWORKS 2025 33.5.0 only: target ASM already active, saved clean READONLY ASM/sources, two fixed/floating resolved parts, all plane/cylinder faces. No activation or writes.",
+    ),
+    "assembly.targets.validate": _operation(
+        "assembly.targets.validate",
+        {"snapshot_id": {"type": "string", "pattern": "^as-[0-9a-f]{32}$"},
+         "target_ids": {"type": "array", "items": {"type": "string", "pattern": "^at-[0-9a-f]{32}$"},
+                        "minItems": 1, "maxItems": 128, "uniqueItems": True}},
+        required=("snapshot_id", "target_ids"), document_id="required", expected_update_stamp="required", lease_id="required",
+        description="Readonly complete-census compare of old session/document/worker typed handles. Requires already-active clean READONLY ASM/sources and a live lease. No replacement tokens; excludes mate tree and grants no write authority.",
+    ),
+})
+
 OPERATION_SCHEMAS = {name: spec.parameters for name, spec in OPERATION_CATALOG.items()}
 OPERATIONS = tuple(OPERATION_CATALOG)
 
@@ -861,6 +880,17 @@ def validate_operation_request(
                 raise ValueError("drawing creation requires explicit template and projection")
         elif "projection" in parameters:
             raise ValueError("projection is only supported for drawing creation")
+    if operation in ("assembly.targets.list", "assembly.targets.validate"):
+        import re
+        if type(document_id) is not str or re.fullmatch(r"d-[a-z0-9]{6}", document_id) is None:
+            raise ValueError("assembly targets require an explicit d-... document_id")
+        if type(expected_update_stamp) is not int or expected_update_stamp < 0:
+            raise ValueError("assembly targets require a nonnegative integer expected_update_stamp")
+        if lease_id is not None and (type(lease_id) is not str or re.fullmatch(r"l-[a-z0-9]{12}", lease_id) is None):
+            raise ValueError("assembly targets require an exact l-... lease token")
+        array = parameters.get("components", parameters.get("target_ids", []))
+        if len(set(array)) != len(array):
+            raise ValueError("assembly target names/handles must be unique")
     if operation == "entity.reference-resolve":
         decode_reference(parameters["reference"])
     if operation == "entity.list":
