@@ -1,0 +1,7 @@
+# The public assembly gate hashes these files as raw Git blob bytes.
+# Keep them identical in Windows checkouts and in the Ubuntu-built wheel.
+/src/** -text
+/scripts/** -text
+/tests/** -text
+/docs/verification/assembly-mates-public-readonly-ci-inputs-2026-11-19.json -text
+/.github/workflows/ci.yml -text

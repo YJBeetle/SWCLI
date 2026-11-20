@@ -40,3 +40,9 @@ The [usage guide](usage.md) contains the concrete workflows and schema examples.
   guide's drawing workflow. It needs an explicit A4 DRWDOT, projection and a
   saved clean source/configuration. Do not infer drawing creation from PDF/DWG
   export support or save/modify the source to bypass a refusal.
+- For `assembly.targets.list/validate`, read [the target contract](assembly-targets.md)
+  first. Use exact `at-` assembly-face IDs and their `as-` snapshot in the issuing
+  session/worker/document. The ASM must already be active and all documents clean
+  readonly; the daemon never activates it. Validate compares every target and
+  grants no write authority. Do not reuse part IDs, refresh a stale token silently,
+  or treat readonly/native37 evidence as a mate-tree CAS or write/save-reopen gate.

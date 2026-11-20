@@ -506,21 +506,27 @@ def _worker_main(
                         _success_response(request_id, {"stopping": True})
                     )
                     break
-                with trace_native_request(request_id, str(request["operation"])), \
-                        native_api_sequence(app, enabled=owned_by_daemon), \
-                        step_host_scope(app, isolated=owned_by_daemon and not visible):
-                    result = execute_operation(
-                        app,
-                        str(request["operation"]),
-                        dict(request["parameters"]),
-                        documents=documents,
-                        session_id=str(
-                            request.get("session_id") or DEFAULT_SESSION_ID
-                        ),
-                        document_id=request.get("document_id"),
-                        expected_update_stamp=request.get("expected_update_stamp"),
-                        lease_id=request.get("lease_id"),
-                    )
+                with trace_native_request(request_id, str(request["operation"])):
+                    if request["operation"] in ("assembly.targets.list", "assembly.targets.validate"):
+                        from .assembly_target_operations import prepare_request
+                        prepare_request(app, str(request["operation"]), dict(request["parameters"]),
+                            documents=documents, session_id=str(request.get("session_id") or DEFAULT_SESSION_ID),
+                            document_id=request.get("document_id"), expected_update_stamp=request.get("expected_update_stamp"),
+                            lease_id=request.get("lease_id"))
+                    with native_api_sequence(app, enabled=owned_by_daemon), \
+                            step_host_scope(app, isolated=owned_by_daemon and not visible):
+                        result = execute_operation(
+                            app,
+                            str(request["operation"]),
+                            dict(request["parameters"]),
+                            documents=documents,
+                            session_id=str(
+                                request.get("session_id") or DEFAULT_SESSION_ID
+                            ),
+                            document_id=request.get("document_id"),
+                            expected_update_stamp=request.get("expected_update_stamp"),
+                            lease_id=request.get("lease_id"),
+                        )
                 command_state_failed = bool(result.get("preference_restore_errors"))
                 validate_operation_result(str(request["operation"]), result)
                 preference_state = result.get("stl_preferences", {})
@@ -544,9 +550,13 @@ def _worker_main(
                     )
             except Exception as exc:
                 command_state_failed = command_state_failed or isinstance(exc, NativeCommandRestoreFailed)
+                code = type(exc).__name__
+                if request["operation"] in ("assembly.targets.list", "assembly.targets.validate"):
+                    from .assembly_target_operations import error_code
+                    code = error_code(exc)
                 response = _error_response(
                     request_id,
-                    type(exc).__name__,
+                    code,
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
