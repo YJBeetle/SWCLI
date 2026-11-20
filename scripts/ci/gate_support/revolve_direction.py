@@ -265,18 +265,22 @@ def run_direction(backend, evidence, source_commit, *, matrix_plane=None):
         if matrix and case_report is not report:
             report["failed_case"] = case_name(case_report["case"])
     finally:
-        try:
-            report["cleanup_errors"].extend(evidence.call("owned-cleanup", backend.cleanup, required=False))
-        except BaseException as error:
-            report["cleanup_errors"].append(dict(stage="owned-cleanup", error=str(error)))
-        report["owned_cleanup_completed"] = not report["cleanup_errors"]
-        if report["cleanup_errors"] and "failure" not in report:
-            report["failure"] = dict(type="DirectionCleanupFailed",message=report["cleanup_errors"][0]["error"])
-        report["evidence_errors"].extend(evidence.errors)
-        report["success"] = report["success"] and not report["cleanup_errors"] and not report["evidence_errors"]
-        try:
-            evidence.save(report)
-        except BaseException as error:
-            report["success"] = False
-            report["evidence_errors"].append(dict(stage="final-checkpoint", error=str(error)))
+        finish_run(backend, evidence, report)
     return report
+
+
+def finish_run(backend, evidence, report):
+    try:
+        report["cleanup_errors"].extend(evidence.call("owned-cleanup", backend.cleanup, required=False))
+    except BaseException as error:
+        report["cleanup_errors"].append(dict(stage="owned-cleanup", error=str(error)))
+    report["owned_cleanup_completed"] = not report["cleanup_errors"]
+    if report["cleanup_errors"] and "failure" not in report:
+        report["failure"] = dict(type="DirectionCleanupFailed",message=report["cleanup_errors"][0]["error"])
+    report["evidence_errors"].extend(evidence.errors)
+    report["success"] = report["success"] and not report["cleanup_errors"] and not report["evidence_errors"]
+    try:
+        evidence.save(report)
+    except BaseException as error:
+        report["success"] = False
+        report["evidence_errors"].append(dict(stage="final-checkpoint", error=str(error)))

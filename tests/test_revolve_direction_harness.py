@@ -52,7 +52,7 @@ class FakeBackend:
             verified=True,diagnostics=dict(healthy=True,truncated=False),cleanup_errors=[])
         if self.fault:self.fault(self.creation)
         return self.creation,True
-    def save(self,case):self.calls.append("save");return dict(save=dict(ok=True),file_size_bytes=42,file_sha256="abc",path="fake.SLDPRT")
+    def save(self,case,*,filename=None):self.calls.append("save");return dict(save=dict(ok=True),file_size_bytes=42,file_sha256="abc",path="fake.SLDPRT")
     def close(self):self.calls.append("close")
     def reopen(self,saved,creation,case,observed):
         self.calls.append("reopen")
@@ -231,6 +231,113 @@ class DirectionMatrixTests(unittest.TestCase):
         with mock.patch.object(entry, "exact_source") as proof:
             with self.assertRaises(SystemExit), mock.patch.object(sys, "stderr"):
                 entry.main(["--matrix-plane", "top", "--output-dir", "evidence", "--expected-head", "a"*40])
+        proof.assert_not_called()
+
+
+class DirectionControlTests(unittest.TestCase):
+    class Backend(FakeBackend):
+        def prepare_refusal(self, name, case):
+            self.control = name
+            return self.fixture(case)
+
+        def snapshot(self):
+            return dict(foreground_same=True, editing=False, selected=0, stamp=4,
+                        read_only=self.control == 'private-read-only',
+                        body_count=1 if self.control == 'private-existing-solid' else 0)
+
+        def refusal(self, name, case, row):
+            from gate_support import revolve_controls as controls
+            row.update(receipt=dict(ok=False, error=dict(type=dict(controls.REFUSALS)[name]),
+                                    mutation=dict(controls.ZERO_MUTATION)),
+                       feature_handle_retained=False,
+                       dispatcher_exception=name in ('public-stale-stamp','public-wrong-lease','public-missing-sketch'))
+
+        def create_partial(self, case, row):
+            from gate_support import revolve_controls as controls
+            created, retained = self.create(case)
+            created.update(ok=False, error=dict(type='RuntimeError', message=controls.INJECTED_MESSAGE))
+            row.update(creation=created, feature_handle_retained=retained)
+
+        def preserved_partial(self):
+            return dict(exact_handle_matches=True, body_count=1, diagnostics=dict(healthy=True, truncated=False),
+                        measurement=dict(ok=True, metrics=self.creation['metrics']))
+
+    def setUp(self):
+        from gate_support import revolve_controls as controls
+        self.controls = controls
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.path = Path(temp.name)
+        self.backend = self.Backend()
+
+    def run_controls(self):
+        return self.controls.run_controls(self.backend, protocol.Evidence(self.path), 'a'*40)
+
+    def test_ordered_refusals_and_one_partial_save_reopen(self):
+        report = self.run_controls()
+        self.assertTrue(report['success'], report.get('failure'))
+        self.assertEqual([row['name'] for row in report['controls']], self.controls.control_plan())
+        self.assertEqual(self.backend.calls.count('create'), 1)
+        self.assertEqual(self.backend.calls.count('reopen'), 1)
+        self.assertEqual(self.backend.calls.count('cleanup'), 1)
+        self.assertFalse(report['public_acceptance'])
+        self.assertEqual(report['controls'][-1]['creation']['mutation'], self.controls.PARTIAL_MUTATION)
+
+    def test_state_mutation_on_refusal_stops_before_later_fixtures(self):
+        before = dict(foreground_same=True, editing=False, selected=0, read_only=False, body_count=0, stamp=4)
+        self.backend.snapshot = mock.Mock(side_effect=[before, dict(before, stamp=5)])
+        report = self.run_controls()
+        self.assertEqual(report['failed_control'], 'public-closed-angle')
+        self.assertIn('changed live document', report['failure']['message'])
+        self.assertEqual(self.backend.calls, ['start', 'fixture', 'cleanup'])
+        raw = json.loads((self.path/'report.json').read_text())
+        self.assertEqual(raw['controls'][0]['after']['stamp'], 5)
+
+    def test_partial_first_failure_survives_cleanup_error(self):
+        self.backend.cleanup_errors = [dict(stage='ExitApp', error='secondary cleanup failure')]
+        report = self.run_controls()
+        self.assertFalse(report['success'])
+        self.assertEqual(report['controls'][-1]['creation']['error']['message'], self.controls.INJECTED_MESSAGE)
+        self.assertEqual(report['failure']['type'], 'DirectionCleanupFailed')
+        self.assertEqual(report['cleanup_errors'][0]['error'], 'secondary cleanup failure')
+
+    def test_trace_requires_one_creation_after_refusals_and_logged_observation_error(self):
+        path = self.path / 'stderr.log'
+        events = []
+        def add(request_id, stage, call, phase, **extra):
+            events.append(dict(event='swcli.native-call', request_id=request_id,
+                               stage=stage, call=call, phase=phase, **extra))
+        for name, _ in self.controls.REFUSALS:
+            add(name,'operation','feature.revolve.refusal-control','begin')
+            add(name,'operation','feature.revolve.refusal-control','end')
+        partial_id = protocol.case_name(protocol.CASE)
+        add(partial_id,'operation','feature.revolve.internal-direction','begin')
+        add(partial_id,'revolve','FeatureRevolve2','begin')
+        add(partial_id,'revolve','FeatureRevolve2','end')
+        add(partial_id,'revolve','read-definition','begin')
+        add(partial_id,'revolve','read-definition','error',exception_type='RuntimeError')
+        add(partial_id,'operation','feature.revolve.internal-direction','end')
+        def write_trace():
+            path.write_text('\n'.join(json.dumps(event) for event in events)+'\n')
+        write_trace()
+        self.controls.verify_control_trace(path)
+        add('public-closed-angle','revolve','FeatureRevolve2','begin')
+        write_trace()
+        with self.assertRaisesRegex(RuntimeError, 'exactly one native creation'):
+            self.controls.verify_control_trace(path)
+
+    def test_supervisor_rejects_incomplete_controls_and_ci_route_rejects_option(self):
+        report = self.run_controls()
+        report['controls'].pop()
+        protocol.durable(self.path/'report.json', report)
+        child = mock.Mock()
+        child.wait.return_value=0
+        with mock.patch.object(entry.subprocess,'Popen',return_value=child):
+            with self.assertRaisesRegex(RuntimeError, 'all scheduled refusal'):
+                entry.supervise(['fake'],self.path,controls=True)
+        with mock.patch.object(entry,'exact_source') as proof, mock.patch.object(sys,'stderr'):
+            with self.assertRaises(SystemExit):
+                entry.main(['--controls','--output-dir','evidence','--expected-head','a'*40])
         proof.assert_not_called()
 
 

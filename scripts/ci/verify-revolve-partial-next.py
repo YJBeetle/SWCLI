@@ -187,7 +187,7 @@ def stop_owned_after_timeout(output, *, expected_image=None):
         if handle is not None:handle.Close()
 
 
-def supervise(command, output, *, expected_image=None, matrix_plane=None):
+def supervise(command, output, *, expected_image=None, matrix_plane=None, controls=False):
     capture_options = {"expected_image": expected_image} if expected_image is not None else {}
     with (output/"stdout.log").open("wb") as stdout,(output/"stderr.log").open("wb") as stderr:
         child=subprocess.Popen(command,stdout=stdout,stderr=stderr,env={**os.environ,"SWCLI_TRACE_NATIVE_CALLS":"1"})
@@ -220,6 +220,15 @@ def supervise(command, output, *, expected_image=None, matrix_plane=None):
                         and [entry.get("case") for entry in cases] == planned
                         and all(entry.get("success") is True for entry in cases),
                         "worker exited zero without all scheduled matrix cases")
+            if controls:
+                from gate_support.revolve_controls import control_plan, verify_control_trace
+                rows = report.get("controls", [])
+                require(report.get("profile") == "internal-revolve-direction-controls-v1"
+                        and report.get("planned_controls") == control_plan()
+                        and [row.get("name") for row in rows] == control_plan()
+                        and all(row.get("success") is True for row in rows),
+                        "worker exited zero without all scheduled refusal and partial controls")
+                verify_control_trace(output / "stderr.log")
         if code != 0 and not report.get("owned_cleanup_completed"):
             # A 600s os._exit watchdog bypasses worker finally; retain its first
             # report and clean only a separately reverified recorded process.
@@ -237,7 +246,9 @@ def main(argv=None):
     parser.add_argument("--swconst",type=Path,help="installed swconst.tlb (required in CI)")
     parser.add_argument("--sldworks",type=Path,help="installed sldworks.tlb (required in CI)")
     parser.add_argument("--local-windows", action="store_true", help="verify from a local installed Windows checkout")
-    parser.add_argument("--matrix-plane", choices=tuple(PLANES), help="run the four fixed angles on one local plane")
+    profiles = parser.add_mutually_exclusive_group()
+    profiles.add_argument("--matrix-plane", choices=tuple(PLANES), help="run the four fixed angles on one local plane")
+    profiles.add_argument("--controls", action="store_true", help="run the fixed local refusal and partial controls")
     parser.add_argument("--wheel", type=Path, help="original wheel used to install SWCLI in local mode")
     parser.add_argument("--wheel-sha256", help="SHA256 of the prepared wheel in local mode")
     parser.add_argument("--worker",action="store_true",help=argparse.SUPPRESS)
@@ -245,8 +256,8 @@ def main(argv=None):
     if re.fullmatch(r"[0-9a-f]{40}",args.expected_head) is None:parser.error("full lowercase commit SHA required")
     local_args = []
     installation = None
-    if args.matrix_plane is not None and not args.local_windows:
-        parser.error("--matrix-plane requires --local-windows")
+    if (args.matrix_plane is not None or args.controls) and not args.local_windows:
+        parser.error("matrix and controls profiles require --local-windows")
     if args.local_windows:
         if args.wheel is None or re.fullmatch(r"[0-9a-fA-F]{64}", args.wheel_sha256 or "") is None:
             parser.error("--local-windows requires --wheel and its full SHA256 in --wheel-sha256")
@@ -255,6 +266,8 @@ def main(argv=None):
         local_args = ["--local-windows", "--wheel", str(args.wheel), "--wheel-sha256", args.wheel_sha256]
         if args.matrix_plane is not None:
             local_args.extend(("--matrix-plane", args.matrix_plane))
+        if args.controls:
+            local_args.append("--controls")
         proof = exact_source(args.expected_head, local_wheel=args.wheel, wheel_sha256=args.wheel_sha256)
     else:
         if args.wheel is not None or args.wheel_sha256 is not None:
@@ -265,6 +278,8 @@ def main(argv=None):
         proof["installation"] = installation
         if args.matrix_plane is not None:
             proof["matrix_plane"] = args.matrix_plane
+        if args.controls:
+            proof["controls"] = True
         swconst, sldworks = (Path(installation["libraries"][name]["path"])
                              for name in ("swconst.tlb", "sldworks.tlb"))
     else:
@@ -275,9 +290,17 @@ def main(argv=None):
     if args.worker:
         parent_proof = json.loads((args.output_dir / "source-proof-parent.json").read_text(encoding="utf-8"))
         require(proof == parent_proof, "worker provenance differs from the supervisor preflight")
-        from gate_support.revolve_direction_native import NativeBackend
         durable(args.output_dir/"source-proof.json",proof)
-        report=run_direction(NativeBackend(args.output_dir, swconst, sldworks, installation=installation),Evidence(args.output_dir), args.expected_head, matrix_plane=args.matrix_plane)
+        evidence = Evidence(args.output_dir)
+        if args.controls:
+            from gate_support.revolve_controls import run_controls
+            from gate_support.revolve_controls_native import NativeControlsBackend
+            backend = NativeControlsBackend(args.output_dir, swconst, sldworks, installation=installation)
+            report = run_controls(backend, evidence, args.expected_head)
+        else:
+            from gate_support.revolve_direction_native import NativeBackend
+            backend = NativeBackend(args.output_dir, swconst, sldworks, installation=installation)
+            report = run_direction(backend, evidence, args.expected_head, matrix_plane=args.matrix_plane)
         print(json.dumps(dict(success=report["success"],failure=report.get("failure"),public_acceptance=False)))
         return 0 if report["success"] else 1
     output=args.output_dir.resolve()
@@ -290,6 +313,8 @@ def main(argv=None):
     command=[sys.executable,"-I",str(Path(__file__).resolve()),"--worker","--expected-head",args.expected_head,
         "--output-dir",str(output),"--swconst",str(swconst.resolve()),"--sldworks",str(sldworks.resolve()), *local_args]
     supervisor_options = {"matrix_plane": args.matrix_plane} if args.matrix_plane is not None else {}
+    if args.controls:
+        supervisor_options["controls"] = True
     return supervise(command, output, expected_image=installation["executable"] if installation else None,
                      **supervisor_options)
 

@@ -91,9 +91,9 @@ class NativeBackend:
                 rotation_sign=case["rotation_sign"],axis_direction=case["axis_direction"])
         return result,self.feature is not None
 
-    def save(self, case):
+    def save(self, case, *, filename=None):
         from swcli.hosts.windows_native_files import save_as_native_windows
-        path = self.output / (case_name(case) + ".SLDPRT")
+        path = self.output / (filename or (case_name(case) + ".SLDPRT"))
         require(not path.exists(), "never overwrite native direction evidence")
         result = save_as_native_windows(str(path),document=self.document)
         return dict(path=str(path),save=result,file_size_bytes=path.stat().st_size if path.is_file() else 0,
