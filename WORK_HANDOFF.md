@@ -6,6 +6,7 @@
 - 未验收：没有新原生 COM/VM/CI 证据，所有新 set/no-op 仍 fail closed；当前不具备 merge-ready 条件。
 - 门禁准备增量：已补独立 internal-only 原生门禁源码及离线失败注入，8 条有向边/旧值不变/逐次保存重开/全新身份，代码 head `6945b23d5b9b1cf57e731cc3a5afdf0cdba2c973`，新增 11 项、关联 49 项通过，完整便携 2995 项/39 跳过；没有执行原生入口，详见 next 交接。
 - 后续边界：本轮只完成源码/便携检查与目标原生计划，交 root 排程；不混入当前发布，不合 main、改版本或 tag/release。旧分支/验收原件已保留。
+- 2026-11-21 复审代码 head `02fd2802082a64b15427d5a65a6c9cf58fcd63a4`，基线 `2e18509d1bc055bb630f63b43a5a81cd23123679`。独立门禁支持已安装 wheel，逐次绑定重开路径与保存原件。预计原生独占窗口 35–40 分钟，组预算 30 分钟，原生执行由统筹安排。
 - 详细进度、精确 head 与排程需求见 [出详图 next 交接](docs/handoffs/detailing-next.md) 和 [设计/目标原生计划](docs/design/document-detailing-lines-next.md)。
 
 ---
