@@ -16,6 +16,7 @@ from swcli.hosts.windows_native_files import save_as_native_windows
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gate_support import font_inheritance as witness
+from gate_support import font_worker_process
 
 spec = importlib.util.spec_from_file_location(
     "_owned_font_fixture_harness", Path(__file__).with_name("verify-through-all-calibration.py"))
@@ -189,7 +190,12 @@ def main(argv=None):
     parser.add_argument("--scope", choices=tuple(witness.ENUM), required=True)
     parser.add_argument("--inheritance-drawing", type=Path, help="self-built synthetic input for read-only staging")
     parser.add_argument("--inheritance-sha256")
+    font_worker_process.add_worker_options(parser)
     args = parser.parse_args(argv)
+    supervision = font_worker_process.verify_worker_launch(args, parser)
+    if args.supervision_probe:
+        font_worker_process.write_worker_output(args.output_dir, supervision)
+        return 0
     require(re.fullmatch(r"[0-9a-f]{40}", os.environ.get("GITHUB_SHA", "")) is not None,
             "use the font watchdog with an exact source commit")
     witness.validate_drawing_input(args.scope, args.inheritance_drawing, args.inheritance_sha256)
@@ -199,7 +205,7 @@ def main(argv=None):
             and args.drawing_template.resolve().name.casefold() == "gb.drwdot"
             and not args.drawing_template.is_symlink(), "installed GB.drwdot and official swconst are required")
     require(fonts._native_windows_runtime(), "fixture preparation requires native Windows")
-    args.output_dir.mkdir()
+    font_worker_process.write_worker_output(args.output_dir, supervision)
     original = harness.read_constants
 
     def constants(pythoncom, path):

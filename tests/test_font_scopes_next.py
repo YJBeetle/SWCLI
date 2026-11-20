@@ -212,7 +212,9 @@ class NextFontScopesTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 base=Path(tmp); library=base/'swconst.tlb'; template=base/'gb.drwdot'
                 library.touch(); template.touch()
-                with patch.object(module.harness,'read_constants'),patch.object(module.harness,'run',return_value=0) as run:
+                with patch.object(module.harness,'read_constants'), \
+                        patch.object(module.font_worker_process,'verify_worker_launch',return_value=None), \
+                        patch.object(module.harness,'run',return_value=0) as run:
                     result=module.main(['--output-dir',str(base/'out'),'--swconst',str(library),
                                        '--drawing-template',str(template),'--scope',scope])
                     self.assertEqual(result,0)

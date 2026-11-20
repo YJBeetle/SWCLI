@@ -116,6 +116,7 @@ class FontDrawingWitnessTests(unittest.TestCase):
             self.assertEqual(command[-4:], ["--inheritance-drawing", str(source.resolve()), "--inheritance-sha256", digest])
             with patch.object(worker.harness, "run", return_value=0) as run, \
                     patch.object(worker.harness, "read_constants"), \
+                    patch.object(worker.font_worker_process, "verify_worker_launch", return_value=None), \
                     patch.object(worker.adapter, "_native_windows_runtime", return_value=True), \
                     patch.object(worker, "calibrate_case") as case:
                 with self.assertRaisesRegex(RuntimeError, "SHA-256"):

@@ -40,7 +40,7 @@ _geometry_spec.loader.exec_module(_geometry_support)
 same_geometry = _geometry_support.same_geometry
 
 # verify-modeling.py has set up the local gate_support path under python -I.
-from gate_support import font_inheritance
+from gate_support import font_inheritance, font_worker_process
 
 
 def close(app, document, call):
@@ -299,10 +299,15 @@ def main(argv=None):
     parser.add_argument("--scope", choices=NEXT_FONT_SCOPES, help="probe only one next candidate; public writes remain closed")
     parser.add_argument("--inheritance-drawing", type=Path)
     parser.add_argument("--inheritance-sha256")
+    font_worker_process.add_worker_options(parser)
     args = parser.parse_args(argv)
+    supervision = font_worker_process.verify_worker_launch(args, parser)
+    if args.supervision_probe:
+        font_worker_process.write_worker_output(args.output_dir, supervision)
+        return 0
     font_inheritance.validate_drawing_input(args.scope, args.inheritance_drawing, args.inheritance_sha256)
-    args.output_dir.mkdir()
     require(args.swconst.is_file() and args.drawing_template.is_file(), "official swconst and drawing template required")
+    font_worker_process.write_worker_output(args.output_dir, supervision)
     original_reader = harness.read_constants
     def read_constants(pythoncom, path):
         return {**original_reader(pythoncom, path), **adapter.read_font_constants(pythoncom, path, candidate_scope=args.scope,

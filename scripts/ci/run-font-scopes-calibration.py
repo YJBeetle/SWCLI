@@ -9,6 +9,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gate_support import font_worker_process as supervision
+
 NATIVE_TIMEOUT_SECONDS = 600
 GROUP_TIMEOUT_SECONDS = 1800
 WORKERS = {
@@ -110,10 +113,23 @@ def main(argv=None):
     parser.add_argument("--inheritance-sha256", help="SHA-256 of the supplied inheritance drawing")
     parser.add_argument("--fixture-dir", type=Path)
     parser.add_argument("--gate-dir", type=Path)
+    parser.add_argument("--supervision-probe", action="store_true", help="verify the scoped Windows launch without COM")
     args = parser.parse_args(argv)
     head = source_head(args, os.environ)
     output = args.output_dir.resolve()
     command = worker_command(args, output)
+    bound = sys.platform == "win32" and args.scope is not None
+    if args.supervision_probe and not bound:
+        parser.error("--supervision-probe requires a scoped Windows worker")
+    env = {**os.environ, **({"GITHUB_SHA": head} if head else {}), "SWCLI_TRACE_NATIVE_CALLS": "1"}
+    launch = {}
+    if bound:
+        executable, env = supervision.base_launch(env)
+        command[0] = executable
+        command.extend(["--watchdog-pid", str(os.getpid()), "--watchdog-prefix", sys.prefix])
+        if args.supervision_probe:
+            command.append("--supervision-probe")
+        launch = {"executable": executable, "stdin": subprocess.PIPE}
     output.mkdir(parents=True, exist_ok=False)
     record = {"evidence_kind": ("internal-native-calibration" if args.profile == "internal" else
                                 "native-fixture-seed" if args.profile in ("inheritance-seed", "next-fixture") else
@@ -121,21 +137,44 @@ def main(argv=None):
               "source_head": head, "requested_scope": args.scope, "native_timeout_seconds": NATIVE_TIMEOUT_SECONDS,
               "group_timeout_seconds": GROUP_TIMEOUT_SECONDS, "retry_count": 0, "host_restart_count": 0,
               "automatic_rollback": False, "success": False}
+    if args.supervision_probe:
+        record.update(evidence_kind="windows-process-supervision-probe", native_executed=False)
     if args.profile == "next-fixture":
         record["preparation_only"] = True
         record["inheritance_acceptance"] = False
     if args.inheritance_drawing is not None:
         record["inheritance_fixture_sha256"] = args.inheritance_sha256
         record["inheritance_acceptance"] = False  # independent limited witness is in the worker report
+    if bound:
+        record.update(supervisor_pid=os.getpid(), launch_executable=executable, supervisor_prefix=sys.prefix,
+                      supervision_probe=args.supervision_probe, supervision_verified=False)
     record_path = output / "watchdog.json"
     record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     with (output / "worker.stdout.log").open("xb") as stdout, (output / "worker.stderr.log").open("xb") as stderr:
-        process = subprocess.Popen(command, stdout=stdout, stderr=stderr,
-                                   env={**os.environ, **({"GITHUB_SHA": head} if head else {}), "SWCLI_TRACE_NATIVE_CALLS": "1"})
-        record["worker_pid"] = process.pid
-        record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        process = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, **launch)
         try:
+            record["worker_pid"] = process.pid
+            record_path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            if bound:
+                try:
+                    with process.stdin as pipe:
+                        pipe.write(f"{process.pid}\n".encode("ascii"))
+                except OSError as exc:
+                    record["supervision_pipe_error"] = str(exc)
             record.update(monitor(process, output))
+            if bound:
+                try:
+                    supervision.check_worker_proof(
+                        output / "native/supervision.json", worker_pid=process.pid, parent_pid=os.getpid(),
+                        executable=executable, prefix=sys.prefix)
+                    record["supervision_verified"] = True
+                except (OSError, KeyError, TypeError, ValueError) as exc:
+                    record["supervision_error"] = str(exc)
+                if args.supervision_probe and record.get("worker_exit_code") == 0:
+                    record["success"] = not any((output / "native" / name).exists()
+                                                for name in ("report.json", "trace.jsonl"))
+                record["success"] = (record["success"] and record["supervision_verified"]
+                                     and "supervision_pipe_error" not in record)
         finally:
             if process.poll() is None:
                 process.kill()
