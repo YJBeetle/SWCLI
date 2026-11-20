@@ -24,7 +24,8 @@ require = support.require
 
 
 class DetailingTrace:
-    def __init__(self, path):
+    def __init__(self, path, *, snapshot_width=2):
+        self.snapshot_width = snapshot_width
         self.path, self.requests, self.worker = path, set(), None
         self.proofs = []
 
@@ -65,16 +66,16 @@ class DetailingTrace:
         observed_getters = names.count("IModelDocExtension.GetUserPreferenceToggle")
         observed_setters = names.count("IModelDocExtension.SetUserPreferenceToggle")
         require(observed_getters == getters and observed_setters == setters
-                and names.count("IModelDoc2.SetSaveFlag") <= 1, "native getter/setter/dirty count differs")
+                and names.count("IModelDoc2.SetSaveFlag") <= setters, "native getter/setter/dirty count differs")
         require(not any("SetUserPreference" in name and name != "IModelDocExtension.SetUserPreferenceToggle"
                         for name in names), "public detailing operation reached an unrequested preference setter")
         preference_calls = [name for name in names if "UserPreference" in name or name == "IModelDoc2.SetSaveFlag"]
-        expected = (["IModelDocExtension.GetUserPreferenceToggle"] * 2 if not setters else
-                    ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+        expected = (["IModelDocExtension.GetUserPreferenceToggle"] * self.snapshot_width if not setters else
+                    ["IModelDocExtension.GetUserPreferenceToggle"] * self.snapshot_width
                     + ["IModelDocExtension.SetUserPreferenceToggle"]
-                    + ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+                    + ["IModelDocExtension.GetUserPreferenceToggle"] * self.snapshot_width
                     + ["IModelDoc2.SetSaveFlag"] * names.count("IModelDoc2.SetSaveFlag")
-                    + ["IModelDocExtension.GetUserPreferenceToggle"] * 2)
+                    + ["IModelDocExtension.GetUserPreferenceToggle"] * self.snapshot_width)
         if getters == 0:
             expected = []
         require(preference_calls == expected, "native preference lifecycle ordering differs")
@@ -228,17 +229,9 @@ def run(gate, trace, template):
     gate.record.update(state="completed", success=True, elapsed_seconds=time.monotonic() - gate.group_started)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--drawing-template", required=True)
-    args = parser.parse_args()
-    directory = args.output_dir.resolve()
-    directory.mkdir()
-    endpoint = "127.0.0.1:18496"
+def run_owned_public(gate, template, *, run_gate=run, snapshot_width=2, confirm_exit=None):
+    directory, endpoint = gate.directory, gate.endpoint
     trace_path = directory / "trace.jsonl"
-    gate = support.AnnotationSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
-    gate.record_path = directory / "public-detailing.json"
     gate.record["success"] = False
     # ModelingSmoke checkpoints atomically replace an existing file and retain
     # its mode. Establish that durable failure record before starting a host.
@@ -248,7 +241,7 @@ def main():
     startup = []
     with (directory / "daemon.stdout.log").open("wb") as stdout, trace_path.open("wb") as stderr:
         try:
-            daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--port", "18496",
+            daemon = subprocess.Popen([sys.executable, "-I", "-m", "swcli", "daemon", "serve", "--port", endpoint.rsplit(":", 1)[1],
                 "--startup-timeout", "120", "--tray", "off"], stdout=stdout, stderr=stderr,
                 env={**os.environ, "SWCLI_TRACE_NATIVE_CALLS": "1"})
             started = time.monotonic()
@@ -265,9 +258,9 @@ def main():
                 require(payload.get("error", {}).get("code") in ("ConnectionRefusedError", "Starting", "TimeoutError", "ConnectionResetError")
                         and time.monotonic() - started < 180, "daemon startup failed or timed out")
                 time.sleep(1)
-            trace = DetailingTrace(trace_path)
+            trace = DetailingTrace(trace_path, snapshot_width=snapshot_width)
             gate.record["native_call_proofs"] = trace.proofs
-            run(gate, trace, args.drawing_template)
+            run_gate(gate, trace, template)
             gate.record["native_call_proofs"] = trace.proofs
             gate.record["trace_prefix"] = dict(size_bytes=trace_path.stat().st_size,
                 sha256=hashlib.sha256(trace_path.read_bytes()).hexdigest())
@@ -283,10 +276,28 @@ def main():
                     require(daemon.returncode == 0, "owned daemon did not exit cleanly")
                 except Exception as exc:
                     gate.record["cleanup_errors"].append(dict(stage="daemon-stop", error=str(exc)))
+            if confirm_exit is not None:
+                try:
+                    confirm_exit(gate, daemon)
+                except Exception as exc:
+                    gate.record["cleanup_errors"].append(dict(stage="confirm-owned-exit", error=str(exc)))
             if gate.record["cleanup_errors"] or gate.checkpoint_error is not None:
                 gate.record["success"] = False
             gate.checkpoint("public-detailing-final")
     return 0 if gate.record["success"] else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--drawing-template", required=True)
+    args = parser.parse_args()
+    directory = args.output_dir.resolve()
+    directory.mkdir()
+    endpoint = "127.0.0.1:18496"
+    gate = support.AnnotationSmoke(directory=directory, host_directory=str(directory), endpoint=endpoint)
+    gate.record_path = directory / "public-detailing.json"
+    return run_owned_public(gate, args.drawing_template)
 
 
 if __name__ == "__main__":

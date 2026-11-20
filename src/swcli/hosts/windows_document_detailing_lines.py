@@ -8,9 +8,13 @@ from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_custom_properties import _require_writable
 
-# No native evidence exists for these fields. Do not inherit the legacy
-# center-mark allowlist, and do not expose a wire/environment bypass.
-CALIBRATED_LINE_REVISIONS = frozenset()
+# Internal Windows proof for these two fields: docs/evidence/detailing-lines-internal-20261121.json.
+CALIBRATED_LINE_REVISIONS = frozenset({"33.5.0"})
+
+
+def _calibrated_guards(options):
+    return (options["auto_center_marks.part_holes"] is True
+            and options["auto_center_marks.part_fillets"] is False)
 
 
 def _write_enabled(app):
@@ -28,7 +32,7 @@ def read_document_detailing_line_options_windows(*, app, document):
         snapshot = detailing._snapshot(app, document)
         constants = detailing._constants(app, fields=DETAILING_LINE_SNAPSHOT_FIELDS)
         options = _options(document, constants)
-        enabled = _write_enabled(app)
+        enabled = _write_enabled(app) and _calibrated_guards(options)
         detailing._verify(app, document, snapshot)
         result.update(ok=True, options=options, write_enabled=enabled)
     except Exception as exc:
@@ -49,6 +53,9 @@ def set_document_detailing_line_option_windows(*, app, document, field, value, e
         constants = detailing._constants(app, fields=DETAILING_LINE_SNAPSHOT_FIELDS)
         before = _options(document, constants)
         result.update(field=field, before=before)
+        if not _calibrated_guards(before):
+            result["write_enabled"] = False
+            raise ValueError("drawing line default writes are calibrated with part holes on and part fillets off")
         if before != expected_options:
             raise ValueError("drawing line defaults no longer match the complete expected_options snapshot")
         detailing._verify(app, document, snapshot)

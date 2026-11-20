@@ -65,3 +65,9 @@ Python 3.14.10/macOS 便携回归 3113 项完成，31 项跳过。关联 49 项�
 候选按 CPython Windows multiprocessing 的启动方式直接创建基础解释器，保留 venv 路径初始化。worker 核对实际和声明的父 PID、管道中的 Popen PID 与自身 PID，以及 Windows 报告的实际进程映像。缺少启动管道时拒绝直接执行。正式门禁与无 COM 的 `--supervision-probe` 使用同一校验。仍按 600 秒阶段、1800 秒组上限执行。
 
 macOS 关联离线测试 51 项通过，Windows 进程专测 1 项跳过。首跑一项离线夹具缺少管道上下文管理器，修正后重跑通过。下一次验证须使用新候选 head 和新的证据目录。产品写入仍关闭。
+
+## Windows 内部验收通过与公开候选准备
+
+统筹单次执行精确 `34baf8e862eaf2d991b3d1082407eb660581a872`，独立复核实机报告和原件。Windows SOLIDWORKS `33.5.0`，监督器生命周期约 57.60 秒，正常退出。八次 setter 都返回 True，四次写入 false；八份原图各作只读和可写重开，四值一致，16 个身份各不相同，经重算 SHA256 与原报告和独立审计一致。旧孔标记 true、旧圆角标记 false。摘要见 [实测清单](../evidence/detailing-lines-internal-20261121.json)。原件保留独立的 `batch-02/detailing/guest`，不覆盖上次 pre-COM 错误。
+
+公开候选在此独立分支按上述精确 revision 和旧值组合启用两个 scoped setter。所有其他旧值组合、其他 revision 及 Wine 仍拒绝。联合四值 CAS、原生调用严格 True、部分修改回执均保留。新增 `--public-gate`，通过安装型 CLI 做八次写入和保存重开，通过 SDK/MCP 检查读取、能力及同值请求。实机公共门禁由统筹分配 Windows 资源。证据和执行方式在[设计与验收计划](../design/document-detailing-lines-next.md)中，本候选排除当前发布。

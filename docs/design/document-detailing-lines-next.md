@@ -1,6 +1,6 @@
 # 出详图 next：自动中心线与中心标记连接线默认值
 
-状态：后续批次候选，**不纳入当前发版，不是原生验收通过**。基线 SOLIDWORKS 2025；新写入白名单为空。
+状态：后续批次候选。内部 Windows SOLIDWORKS 2025 已实测通过，安装型公开验收待排程。本批独立于当前发布。
 
 ## 官方映射与有界选择
 
@@ -35,7 +35,7 @@ swcli document detailing-line-option-set auto_center_lines.enabled true \
   --document d-ab12cd --if-update-stamp 103 --lease l-ab12cd34ef56 --json
 ```
 
-当前新 reader 可按合同读取，但没有原生证据；`write_enabled=false`。**所有新 set，包括同值 no-op，均拒绝**；不会继承旧两项的校准白名单，没有 wire 或环境变量绕过。只有后续受控校准临时允许的精确宿主才会进入候选 setter 路径。
+精确内部候选 `34baf8e862eaf2d991b3d1082407eb660581a872` 通过原生 33.5.0 的八条有向转换。启用下一版候选写入需匹配原生 Windows、revision `33.5.0`、旧孔中心标记为 true、旧圆角中心标记为 false。其余旧值组合和 revision 返回 `write_enabled=false`，请求在 setter 前拒绝。四值 CAS 仍要求请求提交全部当前值。读取支持保留的四项。
 
 候选路径保留完整四值 CAS、read-only/view-only、普通图纸模式、前后台/身份/dirty/stamp 和单字段读回检查；未请求的旧/新字段一旦变化就返回部分 mutation 失败，不重试或回滚。最多一次 setter、最多一次 SetSaveFlag，最终只读观察不能悄悄修复状态。descriptor/CommandInProgress 恢复/late validator 异常保留本请求可信 mutation 和第一业务错误；恢复失败退休 worker。
 
@@ -84,3 +84,21 @@ if ($LASTEXITCODE -ne 0) { throw 'wheel installation failed' }
 门禁核对 wheel 中完整 `swcli` 包清单和 checkout 内容，核对实际安装字节并记录摘要。跨平台文本换行差异仅在 checkout 与 wheel 比对时归一化。门禁直接执行 registry、handler 与 adapter。安装型公开 CLI→daemon→worker、SDK/MCP 和 worker 恢复仍需独立验收。内部成功报告保留 `native_accepted=false`、`public_acceptance=false` 和 `full_acceptance_eligible=false`，供统筹独立审查。
 
 预计预留 35–40 分钟独占 Windows 资源窗口，其中原生组硬上限 30 分钟，余量用于启动前安装核对、原件归档及退出确认。启动前确认其他路线已释放宿主，使用同一个本机 SOLIDWORKS 2025 进程完成计划。原样归档整个输出目录，含 `watchdog.json`、`stdout.log`、`stderr.log`、`internal/report.json`、进度与原生 JSONL 轨迹及实际产生的 SLDDRW。另记录归档摘要、wheel 摘要、精确 head 与宿主 revision。超时或首错时保存当时原件，确认所属进程状态后再释放资源窗口。
+
+
+## 安装型公开候选
+
+内部原件已重新核对八份 SLDDRW 的 SHA256、两种访问模式下的四值读回、十六个重开身份和原生退出。八次 setter 原样返回 `True`，包括四次写入 `false`。旧孔和圆角值分别固定为 true 和 false。摘要和八份原件索引见 [内部实测记录](../evidence/detailing-lines-internal-20261121.json)。历史内部验收可使用 `34baf8e862eaf2d991b3d1082407eb660581a872` 重放。
+
+公开门禁使用相同的受监督 Windows 入口，随后只通过一台已安装 wheel 启动的独占、隐藏 native daemon 验收。CLI 负责全部八条变更边及保存重开，SDK 核对读取和 no-op，MCP bridge 核对发现契约和 no-op。每一条边核 trace 调用次序、旧 guard CAS 拒绝、前台文档不变、原文件摘要和退役 ID 拒绝。另核 lease、stamp 和只读拒绝。预期 12 getter/1 setter/至多 1 dirty，每种拒绝或 no-op 为 0 setter。结束须证明 daemon 正常退出及持有的 SOLIDWORKS 进程句柄已结束。
+
+统筹协调独占窗口后，将同 head wheel 安装到独立 Windows venv。使用干净的候选 checkout 和全新证据目录。
+
+```powershell
+& $gatePython -I scripts/ci/run-detailing-lines-calibration.py `
+  --output-dir $freshEvidence --source-head $candidateHead --wheel $wheel `
+  --swconst $swconst --drawing-template $gbA4Template `
+  --public-gate --execute-owned-native
+```
+
+阶段限制 600 秒，整组 1800 秒。归档整个输出目录，内含监督回执、`public/public-detailing-lines.json`、启动日志、trace 和八份原始 SLDDRW。只有真实安装型报告与原件确认后，才能记为公开验收。该公共门禁的 SDK/MCP 只测读契约和不变更路径，八条原生写入边由 CLI 覆盖。

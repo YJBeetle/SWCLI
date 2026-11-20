@@ -67,15 +67,17 @@ def main(argv=None):
     parser.add_argument("--wheel", type=Path, help="exact wheel installed in this Python environment")
     parser.add_argument("--execute-owned-native", action="store_true")
     parser.add_argument("--supervision-probe", action="store_true", help="prove parent/child identity without COM")
+    parser.add_argument("--public-gate", action="store_true", help="verify the installed public transport")
     args = parser.parse_args(argv)
     if sys.platform != "win32" or args.execute_owned_native == args.supervision_probe:
         parser.error("native Windows and exactly one of --execute-owned-native or --supervision-probe required")
     args.output_dir.mkdir()
     output = args.output_dir.resolve()
-    evidence = output / "internal"
+    evidence = output / ("public" if args.public_gate else "internal")
     base, env = worker_python()
     supervisor_pid = os.getpid()
-    command = [base, "-I", str(Path(__file__).with_name("verify-detailing-lines-calibration.py")),
+    script = "verify-detailing-lines-public.py" if args.public_gate else "verify-detailing-lines-calibration.py"
+    command = [base, "-I", str(Path(__file__).with_name(script)),
         "--output-dir", str(evidence), "--swconst", str(args.swconst.resolve()),
         "--drawing-template", str(args.drawing_template.resolve()), "--source-head", args.source_head,
         "--supervision-probe" if args.supervision_probe else "--execute-owned-native",
@@ -85,7 +87,7 @@ def main(argv=None):
     receipt = dict(profile="drawing-detailing-lines-v1", source_commit=args.source_head,
         success=False, native_accepted=False, public_acceptance=False,
         supervisor_pid=supervisor_pid, launch_executable=base, supervisor_executable=sys.executable,
-        supervisor_prefix=sys.prefix, supervision_probe=args.supervision_probe,
+        supervisor_prefix=sys.prefix, supervision_probe=args.supervision_probe, public_gate=args.public_gate,
         native_timeout_seconds=600, group_timeout_seconds=1800)
     def persist():
         (output / "watchdog.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")

@@ -1,0 +1,207 @@
+{
+  "scope": "installed wheel internal Windows handler/adapter only",
+  "source_commit": "34baf8e862eaf2d991b3d1082407eb660581a872",
+  "revision": "33.5.0",
+  "native_runtime": {
+    "windows": true,
+    "wine": false,
+    "major": 33
+  },
+  "legacy_guards": {
+    "auto_center_marks.part_holes": true,
+    "auto_center_marks.part_fillets": false
+  },
+  "official_constants": {
+    "swDetailingAutoInsertCenterLines": 190,
+    "swDetailingAutoInsertCenterMarksForHoles": 308,
+    "swDetailingAutoInsertCenterMarksForFillets": 309,
+    "swDetailingConnectionLinesHolePatternsCenterMarks": 599,
+    "swDetailingNoOptionSpecified": 0
+  },
+  "edges": [
+    {
+      "index": 1,
+      "field": "auto_center_lines.enabled",
+      "value": true,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "setter_return": true,
+      "filename": "line-defaults-01.SLDDRW",
+      "size_bytes": 25486,
+      "sha256": "2a92079eec9a95c799e3cd10ea177ff71009743ea85dd7d2c15a1aed03fd1da1"
+    },
+    {
+      "index": 2,
+      "field": "auto_center_marks.hole_pattern_connection_lines",
+      "value": false,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "setter_return": true,
+      "filename": "line-defaults-02.SLDDRW",
+      "size_bytes": 25741,
+      "sha256": "e76ac3502162627d959603b17080f9689a651d24f96c78f12ad8bc528eb5a22e"
+    },
+    {
+      "index": 3,
+      "field": "auto_center_lines.enabled",
+      "value": false,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "setter_return": true,
+      "filename": "line-defaults-03.SLDDRW",
+      "size_bytes": 25072,
+      "sha256": "497f5124d0d3225eef5d766afefeb0c37129983108b1cfa1cae196a51dcb29ee"
+    },
+    {
+      "index": 4,
+      "field": "auto_center_marks.hole_pattern_connection_lines",
+      "value": true,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "setter_return": true,
+      "filename": "line-defaults-04.SLDDRW",
+      "size_bytes": 26062,
+      "sha256": "94be085fbbfdd7c18399ae03dc00de3a54707fb457faa8df70d68aa140c67c41"
+    },
+    {
+      "index": 5,
+      "field": "auto_center_marks.hole_pattern_connection_lines",
+      "value": false,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "setter_return": true,
+      "filename": "line-defaults-05.SLDDRW",
+      "size_bytes": 26463,
+      "sha256": "045c6eb62be0005caa896825075003837699ce407ce876235eb64d0286ea0cb0"
+    },
+    {
+      "index": 6,
+      "field": "auto_center_lines.enabled",
+      "value": true,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "setter_return": true,
+      "filename": "line-defaults-06.SLDDRW",
+      "size_bytes": 26022,
+      "sha256": "56cf668f036736b0e0d6f6a6fc2cda17cebd94354188e0e031c2ff0ff3bb2d1a"
+    },
+    {
+      "index": 7,
+      "field": "auto_center_marks.hole_pattern_connection_lines",
+      "value": true,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": false
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "setter_return": true,
+      "filename": "line-defaults-07.SLDDRW",
+      "size_bytes": 26750,
+      "sha256": "3cdbde65111be9c9d904a2340fb8708975aeb4ede8e17a08f6d808c873c5cc5c"
+    },
+    {
+      "index": 8,
+      "field": "auto_center_lines.enabled",
+      "value": false,
+      "before": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": true,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "after": {
+        "auto_center_marks.part_holes": true,
+        "auto_center_marks.part_fillets": false,
+        "auto_center_lines.enabled": false,
+        "auto_center_marks.hole_pattern_connection_lines": true
+      },
+      "setter_return": true,
+      "filename": "line-defaults-08.SLDDRW",
+      "size_bytes": 26017,
+      "sha256": "afde895a6e7fd3fb7003c418161409d8a5e625fd9d763740c1da9694146db479"
+    }
+  ],
+  "owned_exit_confirmed": true,
+  "watchdog_seconds": 57.60147741700007,
+  "budgets": {
+    "native_timeout_seconds": 600,
+    "group_timeout_seconds": 1800
+  },
+  "public_acceptance": false,
+  "artifact_sha256": {
+    "independent-audit.json": "33282d13007ce89e6ee89d1ce3c5b6607519e038fde201a641e80b113c7f3199",
+    "guest/evidence/internal/report.json": "3b41bb0d2b230de0c30d8251527aebe160a0ae79ce05283a26046a19908e66da",
+    "guest/evidence/watchdog.json": "6a24cfea47ee6ecca73b69cfcb70e574d70d58aee5887a5ab5762ad0b3b7a5d4",
+    "guest/evidence/internal/supervision.json": "4ea4f7452be56fa1b29212e5f4913c514ab9aaf1ff06a86af377a90882207624",
+    "guest/evidence/internal/native-trace.jsonl": "1cb420be3ba2b7a2b7168e51489e3ed656a9f384ec817b34d5f7d49b9a36402a",
+    "guest/evidence/internal/progress.jsonl": "0d850fa829100e528e51deb819324b4020585e1fd7035117755331a482742d0a"
+  },
+  "wheel_sha256": "ad850389fdcfd2c704b821befee180295552a3e4bda9c12f25b0377f82dd3a32"
+}

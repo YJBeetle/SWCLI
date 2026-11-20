@@ -35,7 +35,7 @@ class DetailingLineTests(unittest.TestCase):
         self.fields = tuple(DETAILING_LINE_FIELDS)
         # Arbitrary portable IDs; never substitute these for official swconst.
         self.fx.constants.update(dict(zip(DETAILING_LINE_FIELDS.values(), (903, 904))))
-        self.fx.native.update({903: False, 904: True})
+        self.fx.native.update({901: True, 902: False, 903: False, 904: True})
 
     def options(self):
         return {field: self.fx.native[self.fx.constants[symbol]] for field, symbol in DETAILING_LINE_SNAPSHOT_FIELDS.items()}
@@ -68,7 +68,7 @@ class DetailingLineTests(unittest.TestCase):
         self.fx.assert_untouched()
 
     def test_every_unproven_set_including_noop_is_closed_without_native_preferences(self):
-        self.fx.app.RevisionNumber = lambda: "33.5.0"
+        self.fx.app.RevisionNumber = lambda: "33.5.1"
         with mock.patch.object(legacy, "CALIBRATED_REVISIONS", frozenset({"33.5.0"})), \
                 mock.patch.dict("os.environ", {"SWCLI_DETAILING_LINE_WRITES": "1"}):
             for value in (False, True):
@@ -79,6 +79,18 @@ class DetailingLineTests(unittest.TestCase):
                 validate_operation_result(SET, result)
         self.fx.extension.GetUserPreferenceToggle.assert_not_called()
         self.fx.assert_untouched()
+
+    def test_exact_candidate_revision_and_guard_pair(self):
+        self.fx.app.RevisionNumber = lambda: "33.5.0"
+        self.assertTrue(self.call()["write_enabled"])
+        for holes, fillets in ((False, False), (False, True), (True, True)):
+            self.fx.native.update({901: holes, 902: fillets})
+            self.assertFalse(self.call()["write_enabled"])
+            result = self.call(SET, self.parameters())
+            self.assertFalse(result["ok"])
+            self.assertFalse(result["write_enabled"])
+            self.assertFalse(result["mutation"]["attempted"])
+        self.fx.extension.SetUserPreferenceToggle.assert_not_called()
 
     def test_fake_proven_both_values_noop_and_legacy_guards_preserved(self):
         original = {key: self.options()[key] for key in DETAILING_FIELDS}
@@ -259,7 +271,7 @@ class DetailingLineTests(unittest.TestCase):
             result = self.call(SET, self.parameters())
         for defect in ("guard", "enabled", "mutation"):
             bad = deepcopy(result)
-            if defect == "guard": bad["options"][next(iter(DETAILING_FIELDS))] = True
+            if defect == "guard": bad["options"][next(iter(DETAILING_FIELDS))] = False
             elif defect == "enabled": bad["write_enabled"] = False
             else: bad["mutation"]["attempted"] = False
             with self.assertRaises(OperationResultInvalid):

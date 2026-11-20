@@ -258,8 +258,8 @@ def supervision_identity(claimed_parent, expected_prefix, stream):
                 process_image=image, prefix=sys.prefix, isolated=True)
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+def supervised_worker(description, argv=None):
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--swconst", type=Path, required=True)
     parser.add_argument("--drawing-template", type=Path, required=True)
@@ -281,18 +281,27 @@ def main(argv=None):
     args.output_dir.mkdir()
     output = args.output_dir.resolve()
     (output / "supervision.json").write_text(json.dumps(supervision, indent=2) + "\n", encoding="utf-8")
-    if args.supervision_probe:
-        return 0
-    for path in (args.swconst, args.drawing_template):
-        if not path.is_file():
-            parser.error("requires existing official swconst and explicit drawing template")
+    return args, output, supervision
+
+
+def candidate_runtime(args):
     import swcli
     root = Path(__file__).resolve().parents[2]
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     require(args.source_head == head and len(head) == 40, "source head mismatch")
     require(not subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal", "--", "src", "scripts/ci"],
                                         cwd=root, text=True).strip(), "gate/runtime sources must be committed and clean")
-    runtime = runtime_proof(root, Path(swcli.__file__).parent, args.wheel)
+    return root, head, runtime_proof(root, Path(swcli.__file__).parent, args.wheel)
+
+
+def main(argv=None):
+    args, output, supervision = supervised_worker(__doc__, argv)
+    if args.supervision_probe:
+        return 0
+    for path in (args.swconst, args.drawing_template):
+        if not path.is_file():
+            raise ValueError("requires existing official swconst and explicit drawing template")
+    root, head, runtime = candidate_runtime(args)
     manifest = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in sorted((root / "src/swcli").rglob("*.py"))}
     for filename in ("detailing_line_gate.py", "verify-detailing-lines-calibration.py",

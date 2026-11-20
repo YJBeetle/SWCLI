@@ -336,7 +336,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
     ),
     "document.detailing-line-options": _operation(
         "document.detailing-line-options", **_DOCUMENT_READ_CONTEXT,
-        description="Candidate line defaults plus two legacy center-mark guards; not native accepted.",
+        description="Drawing line defaults plus two legacy center-mark guards.",
     ),
     "document.detailing-line-option-set": _operation(
         "document.detailing-line-option-set",
@@ -344,7 +344,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
          "expected_options": detailing_line_options_schema()},
         required=("field", "value", "expected_options"),
         document_id="required", expected_update_stamp="required", lease_id="required",
-        description="Uncalibrated candidate: every set/no-op is disabled until field-specific native evidence.",
+        description="Writes require native SOLIDWORKS 33.5.0 with part hole marks on and part fillet marks off.",
     ),
     "document.tolerances": _operation("document.tolerances", **_DOCUMENT_READ_CONTEXT),
     "document.tolerance-set": _operation(
