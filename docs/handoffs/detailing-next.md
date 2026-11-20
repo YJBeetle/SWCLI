@@ -55,3 +55,13 @@
 两个新默认选项写入仍关闭。官方 2025 文档将 setter 返回值描述为 on/off，原生阶段须重点核实 false 方向。候选遇到非严格 True 会在首个失败点停止并保留返回及回执。安装型内部命令、证据归档要求和预计 35–40 分钟独占窗口见[设计与验证计划](../design/document-detailing-lines-next.md)。
 
 Python 3.14.10/macOS 便携回归 3113 项完成，31 项跳过。关联 49 项、SDK 严格检查及 43 个类型拒绝用例、Python 3.9 语法和隔离入口帮助检查通过。最终 wheel 的 138 个包内文件与 checkout 和安装字节一致，离线注入额外文件或错误内容均被拒绝。初次全量因重建环境缺少 PyYAML 出现 5 项环境错误，补装主线 CI 所需依赖后全量通过。日志、候选差异和轮包摘要存于 `artifacts/detailing-next/review-20261121/`。本次候选仍需 Windows 原生证据，生产写入白名单为空。
+
+## Windows 首次启动诊断与监督修复
+
+首次尝试使用 `2f56038f2ad785b95816cb2330e656755c16fe5e`。原 `watchdog.json` 记录 `Popen.pid=7796`、worker 退出码 2、耗时约 1.04 秒。原 stderr 来自 COM 前的直接父 PID 检查，进程退出后没有 SOLIDWORKS 残留。原始证据位于 `document-properties-parallel/vm-native-20261121/detailing/guest/evidence/`。原报告未记录当次完整 PID 链。
+
+随后单独的 Windows 只读启动探针记录了监督器 PID 5252、由 Popen 启动的 venv 重定向器 PID 6464，以及父 PID 为 6464 的实际 worker PID 4324。两个解释器均保留了相同的 venv。原探针 `vm-native-20261121/parent-pid-probe.log` 的 SHA256 为 `8ba4043da67c59dfef577dcecb9fb2d03fcd10be89585c9326dc235a118d0b29`。
+
+候选按 CPython Windows multiprocessing 的启动方式直接创建基础解释器，保留 venv 路径初始化。worker 核对实际和声明的父 PID、管道中的 Popen PID 与自身 PID，以及 Windows 报告的实际进程映像。缺少启动管道时拒绝直接执行。正式门禁与无 COM 的 `--supervision-probe` 使用同一校验。仍按 600 秒阶段、1800 秒组上限执行。
+
+macOS 关联离线测试 51 项通过，Windows 进程专测 1 项跳过。首跑一项离线夹具缺少管道上下文管理器，修正后重跑通过。下一次验证须使用新候选 head 和新的证据目录。产品写入仍关闭。

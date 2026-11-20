@@ -228,6 +228,36 @@ class NativeBackend:
         return result
 
 
+def windows_process_image():
+    import ctypes
+    from ctypes import wintypes
+    get_module_file_name = ctypes.WinDLL("kernel32", use_last_error=True).GetModuleFileNameW
+    get_module_file_name.argtypes = (wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD)
+    get_module_file_name.restype = wintypes.DWORD
+    path = ctypes.create_unicode_buffer(32768)
+    length = get_module_file_name(None, path, len(path))
+    if not 0 < length < len(path):
+        raise OSError("Windows failed to report the worker process image")
+    return path.value
+
+
+def supervision_identity(claimed_parent, expected_prefix, stream):
+    parent, worker = os.getppid(), os.getpid()
+    if claimed_parent <= 0 or claimed_parent != parent:
+        raise ValueError(f"worker parent PID {parent} does not match watchdog PID {claimed_parent}")
+    if not sys.flags.isolated or os.path.normcase(sys.prefix) != os.path.normcase(expected_prefix):
+        raise ValueError("worker did not retain the watchdog Python environment in isolated mode")
+    spawned = stream.readline(32)
+    if spawned != f"{worker}\n".encode("ascii"):
+        raise ValueError("watchdog launch pipe did not identify this worker PID")
+    image = windows_process_image()
+    if not os.path.samefile(image, sys._base_executable):
+        raise ValueError("worker image is not its base Python executable")
+    return dict(parent_pid=parent, claimed_parent_pid=claimed_parent, worker_pid=worker,
+                spawned_pid=int(spawned), executable=sys.executable, base_executable=sys._base_executable,
+                process_image=image, prefix=sys.prefix, isolated=True)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -236,14 +266,23 @@ def main(argv=None):
     parser.add_argument("--source-head", required=True)
     parser.add_argument("--wheel", type=Path, help="exact wheel installed in this Python environment")
     parser.add_argument("--execute-owned-native", action="store_true")
+    parser.add_argument("--supervision-probe", action="store_true")
     parser.add_argument("--watchdog-pid", type=int, required=True)
+    parser.add_argument("--watchdog-prefix", required=True)
     args = parser.parse_args(argv)
-    if not args.execute_owned_native:
-        parser.error("execution requires separately authorized --execute-owned-native")
-    if args.watchdog_pid != os.getppid():
-        parser.error("must run through the bounded run-detailing-lines-calibration.py parent")
-    if sys.platform != "win32":
-        parser.error("requires native Windows; offline tests never invoke main")
+    if sys.platform != "win32" or args.execute_owned_native == args.supervision_probe:
+        parser.error("native Windows and exactly one of --execute-owned-native or --supervision-probe required")
+    if sys.stdin is None or sys.stdin.isatty():
+        parser.error("worker needs the bounded watchdog launch pipe")
+    try:
+        supervision = supervision_identity(args.watchdog_pid, args.watchdog_prefix, sys.stdin.buffer)
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
+    args.output_dir.mkdir()
+    output = args.output_dir.resolve()
+    (output / "supervision.json").write_text(json.dumps(supervision, indent=2) + "\n", encoding="utf-8")
+    if args.supervision_probe:
+        return 0
     for path in (args.swconst, args.drawing_template):
         if not path.is_file():
             parser.error("requires existing official swconst and explicit drawing template")
@@ -254,16 +293,15 @@ def main(argv=None):
     require(not subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=normal", "--", "src", "scripts/ci"],
                                         cwd=root, text=True).strip(), "gate/runtime sources must be committed and clean")
     runtime = runtime_proof(root, Path(swcli.__file__).parent, args.wheel)
-    args.output_dir.mkdir()
-    output = args.output_dir.resolve()
     manifest = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in sorted((root / "src/swcli").rglob("*.py"))}
     for filename in ("detailing_line_gate.py", "verify-detailing-lines-calibration.py",
                      "run-detailing-lines-calibration.py", "verify-through-all-calibration.py"):
         path = Path(__file__).with_name(filename)
         manifest[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
-    report = dict(success=False, profile=gate.PROFILE, source_commit=head, source_files=manifest, runtime=runtime, native_accepted=False,
-                  public_acceptance=False, full_acceptance_eligible=False, cleanup_errors=[])
+    report = dict(success=False, profile=gate.PROFILE, source_commit=head, source_files=manifest,
+                  runtime=runtime, supervision=supervision, native_accepted=False, public_acceptance=False,
+                  full_acceptance_eligible=False, cleanup_errors=[])
     engine = gate.Gate(None, output, report)
     engine.persist()
     app = handle = backend = pythoncom = None

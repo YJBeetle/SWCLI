@@ -2,12 +2,16 @@
 
 from copy import deepcopy
 from contextlib import redirect_stderr
-from io import StringIO
+from io import BytesIO, StringIO
 import importlib.util
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -225,7 +229,7 @@ class DetailingLineGateTests(unittest.TestCase):
     def test_bounded_wrapper_times_out_only_its_child_and_never_retries(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)/"bounded"
-            process = mock.Mock(pid=1234, returncode=-9)
+            process = mock.Mock(pid=1234, returncode=-9, stdin=mock.MagicMock())
             process.poll.side_effect = [None, -9]
             with mock.patch.object(watchdog.sys, "platform", "win32"), \
                     mock.patch.object(watchdog.subprocess, "Popen", return_value=process) as spawn, \
@@ -235,6 +239,9 @@ class DetailingLineGateTests(unittest.TestCase):
                                       "--source-head", "a"*40, "--execute-owned-native"])
             self.assertEqual(code, 1)
             self.assertEqual(spawn.call_count, 1)
+            self.assertEqual(spawn.call_args.args[0][0], sys._base_executable)
+            self.assertEqual(spawn.call_args.kwargs["executable"], sys._base_executable)
+            process.stdin.__enter__().write.assert_called_once_with(b"1234\n")
             self.assertEqual(kill.call_args.args[0], ["taskkill", "/PID", "1234", "/T", "/F"])
             receipt = json.loads((output/"watchdog.json").read_text())
             self.assertFalse(receipt["success"])
@@ -281,10 +288,66 @@ class DetailingLineGateTests(unittest.TestCase):
         with mock.patch.object(native, "NativeBackend") as backend, mock.patch.object(watchdog.subprocess, "Popen") as spawn:
             for module in (native, watchdog):
                 argv = ["--output-dir", "/unused", "--swconst", "/unused", "--drawing-template", "/unused", "--source-head", "0"*40]
-                if module is native: argv += ["--watchdog-pid", "0"]
+                if module is native: argv += ["--watchdog-pid", "0", "--watchdog-prefix", sys.prefix]
                 with redirect_stderr(StringIO()), self.assertRaises(SystemExit): module.main(argv)
             backend.assert_not_called()
             spawn.assert_not_called()
+
+
+class WatchdogIdentityTests(unittest.TestCase):
+    def test_base_launch_uses_explicit_venv_context_and_no_stale_override(self):
+        with mock.patch.object(sys, "executable", "/fixture/venv/Scripts/python.exe"), \
+                mock.patch.dict(os.environ, {"__PYVENV_LAUNCHER__": "unexpected"}):
+            base, env = watchdog.worker_python()
+            self.assertEqual(base, sys._base_executable)
+            self.assertEqual(env["__PYVENV_LAUNCHER__"], sys.executable)
+        with mock.patch.object(sys, "executable", sys._base_executable), \
+                mock.patch.dict(os.environ, {"__PYVENV_LAUNCHER__": "unexpected"}):
+            self.assertNotIn("__PYVENV_LAUNCHER__", watchdog.worker_python()[1])
+
+    def test_parent_and_popen_pid_must_match_before_reading_image(self):
+        with mock.patch.object(native.os, "getppid", return_value=5252), \
+                mock.patch.object(native.os, "getpid", return_value=4324), \
+                mock.patch.object(native.sys, "flags", SimpleNamespace(isolated=1)), \
+                mock.patch.object(native, "windows_process_image", return_value=sys._base_executable) as image:
+            for parent, prefix, pipe, message in (
+                (6464, sys.prefix, b"4324\n", "parent PID"),
+                (5252, "/other/prefix", b"4324\n", "Python environment"),
+                (5252, sys.prefix, b"6464\n", "worker PID"),
+                (5252, sys.prefix, b"", "worker PID"),
+            ):
+                with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+                    native.supervision_identity(parent, prefix, BytesIO(pipe))
+            image.assert_not_called()
+            proof = native.supervision_identity(5252, sys.prefix, BytesIO(b"4324\n"))
+            self.assertEqual((proof["parent_pid"], proof["worker_pid"], proof["spawned_pid"]), (5252, 4324, 4324))
+            self.assertEqual(proof["process_image"], sys._base_executable)
+            image.return_value = __file__
+            with self.assertRaisesRegex(ValueError, "worker image"):
+                native.supervision_identity(5252, sys.prefix, BytesIO(b"4324\n"))
+
+    @unittest.skipUnless(sys.platform == "win32", "requires Windows process identity")
+    def test_real_windows_supervision_probe_and_direct_worker_refusal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "probe"
+            args = ["--swconst", "unused", "--drawing-template", "unused", "--source-head", "a"*40]
+            subprocess.run([sys.executable, "-I", watchdog.__file__, "--output-dir", str(output),
+                            "--supervision-probe", *args], check=True, timeout=45)
+            watchdog_report = json.loads((output / "watchdog.json").read_text(encoding="utf-8"))
+            worker_report = json.loads((output / "internal/supervision.json").read_text(encoding="utf-8"))
+            self.assertTrue(watchdog_report["supervision_verified"])
+            self.assertEqual(watchdog_report["supervisor_pid"], worker_report["parent_pid"])
+            self.assertEqual(watchdog_report["process_id"], worker_report["worker_pid"])
+            self.assertFalse((output / "internal/report.json").exists())
+            direct = Path(folder) / "direct"
+            base, env = watchdog.worker_python()
+            result = subprocess.run([base, "-I", native.__file__, "--output-dir", str(direct),
+                                     "--execute-owned-native", "--watchdog-pid", str(os.getpid()),
+                                     "--watchdog-prefix", sys.prefix, *args],
+                                    env=env, input=b"", capture_output=True, timeout=15)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn(b"launch pipe", result.stderr)
+            self.assertFalse(direct.exists())
 
 
 class NativeBackendPortableTests(unittest.TestCase):

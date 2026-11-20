@@ -60,7 +60,7 @@ SDK 新方法 `document.detailing_line_options` / `document.detailing_line_optio
 
 - `scripts/ci/detailing_line_gate.py`：不导入 COM 的计划和断言。由实际初始四值出发，依次翻转新字段 A/B/A/B/B/A/B/A；这条闭合路径恰好覆盖 8 条单字段有向边，不需要额外写入来摆放初始状态。旧两值始终是 CAS/读回保护值。
 - `scripts/ci/verify-detailing-lines-calibration.py`：独立 internal-only 原生后端。要求本 checkout 的已提交干净源码、精确 `--source-head`、原生 Windows SW2025、全新 hidden owned host、显式图纸模板及四字段官方 swconst 完整解析；记录源码文件摘要、模板/TLB 摘要和真实枚举。不消费任何旧成功报告。复用旧通用脚本的内容仅为 OpenProcess/WaitForSingleObject 生命周期 helper。
-- `scripts/ci/run-detailing-lines-calibration.py`：唯一有界入口。子进程校验 parent PID，全部阶段和未命名启动/清理均受 600s 限制，组上限 1800s；使用系统单调时钟。超时只终止该子进程树并记录失败，不重试、不重启或 dispatch CI；超时退出不等于确认 SOLIDWORKS 退出，原件/owned PID 留给统筹检查。
+- `scripts/ci/run-detailing-lines-calibration.py`：唯一有界入口。监督器使用基础 Python 映像直接创建子进程，并保留同一隔离 venv。worker 在 COM 前核对 Windows 实际父 PID、管道传递的 Popen PID 和 Windows 进程映像。全部阶段和未命名启动/清理均受 600s 限制，组上限 1800s；使用系统单调时钟。超时只终止该子进程树并记录失败，不重试、不重启或 dispatch CI；超时退出不等于确认 SOLIDWORKS 退出，原件/owned PID 留给统筹检查。
 - `tests/test_detailing_line_gate.py`：假宿主覆盖全部 16 种四布尔初始组合，每个组合 8 次写入/16 次重开；注入部分修改、旧保护值漂移、前台/布局/dirty 异常、缺字段、假 native return、缺/借用 trace、调用计数/期限错误、保存/关闭/重开/持久化/文件损坏及旧身份复用。另通过真实 registry/handler/adapter/result schema 配合模拟对象验证 trace、CAS、stamp 和 lease 拒绝；不会实例化真实 COM。
 
 每条边必须有完整四值 CAS、strict true native return、12 getter/1 setter/至多1 dirty、同值 4/0、旧保护值 CAS 冲突 4/0、stamp/lease/只读拒绝 0 setter。每次写后保存独立 SLDDRW；关闭需证明 native catalog 仅余前台零件且旧 ID 已失效；只读及可写重开均须核对原生文档路径对应同一保存文件，并获得从未使用的新 ID、完整四值不变、干净状态、相同布局/前台。轨迹须证明先读四值、执行一次 setter、读回四值、可选 dirty、再读四值。观察和拒绝后再次核字节 hash，并持续复核之前所有原件。第一失败终止计划，保留 raw result/trace/partial；API 第一业务错误和后续校验/清理错误分别记录。
@@ -78,6 +78,8 @@ if ($LASTEXITCODE -ne 0) { throw 'wheel installation failed' }
   --swconst '<SOLIDWORKS 2025 安装的 swconst.tlb>' `
   --drawing-template '<GB A4 工程图模板>' --execute-owned-native
 ```
+
+同一入口可将 `--execute-owned-native` 换成 `--supervision-probe`，使用另一全新证据目录单独验证启动链。探针返回前保存 `watchdog.json` 与 `internal/supervision.json`，包括监督器 PID、Popen PID、实际父子 PID、进程映像及 venv。探针在 COM 及校准包检查前退出。正式运行会再次生成相同的身份回执。
 
 门禁核对 wheel 中完整 `swcli` 包清单和 checkout 内容，核对实际安装字节并记录摘要。跨平台文本换行差异仅在 checkout 与 wheel 比对时归一化。门禁直接执行 registry、handler 与 adapter。安装型公开 CLI→daemon→worker、SDK/MCP 和 worker 恢复仍需独立验收。内部成功报告保留 `native_accepted=false`、`public_acceptance=false` 和 `full_acceptance_eligible=false`，供统筹独立审查。
 
