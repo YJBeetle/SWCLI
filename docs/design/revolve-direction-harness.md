@@ -111,3 +111,47 @@ GitHub 已登记独立 workflow `417704126`（active）。既有 push 路由 run
 `summary.json`、`portable-final.log`、`wheel-source-proof.json` 位于上述持久目录。
 整圈 run `42273047248` 的原始 ZIP SHA256 复核为
 `13c3a4695603e33875acb9a64c639baec056c48bdb7416b75b65664b89a29365`。
+
+
+## 已安装 Windows 的本地单例入口
+
+本地入口使用 `--local-windows`，要求用 `python -I` 运行。准备包包含 Git bundle、SWCLI wheel、带 SHA256 的
+`manifest.json` 和可直接使用的原生命令。将包解压到 Windows VM 的持久目录，为 wheel 创建单独的 Python 环境。
+Git checkout 保留源码字节，`git clone` 时使用 `-c core.autocrlf=false`。
+
+```powershell
+$root = 'C:\SWCLI-validation\revolve-direction'
+$pkg = Join-Path $root 'package'
+$manifest = Get-Content (Join-Path $pkg 'manifest.json') -Raw | ConvertFrom-Json
+$bundle = Join-Path $pkg $manifest.git_bundle.file
+$wheel = Join-Path $pkg $manifest.wheel.file
+if ((Get-FileHash $bundle -Algorithm SHA256).Hash -ne $manifest.git_bundle.sha256 -or
+    (Get-FileHash $wheel -Algorithm SHA256).Hash -ne $manifest.wheel.sha256) { throw 'Preparation package hash mismatch' }
+git clone -c core.autocrlf=false --branch codex/swcli-revolve-feature-next $bundle (Join-Path $root 'source')
+if ($LASTEXITCODE -ne 0) { throw 'Candidate checkout failed' }
+py -3.14 -m venv (Join-Path $root 'venv')
+if ($LASTEXITCODE -ne 0) { throw 'Virtual environment creation failed' }
+$python = Join-Path $root 'venv\Scripts\python.exe'
+& $python -m pip install $wheel
+if ($LASTEXITCODE -ne 0) { throw 'Prepared wheel installation failed' }
+```
+
+准备完成后，在排定的 VM 窗口执行一次：
+
+```powershell
+& $python -I (Join-Path $root 'source\scripts\ci\verify-revolve-partial-next.py') `
+  --local-windows --expected-head $manifest.head --wheel $wheel --wheel-sha256 $manifest.wheel.sha256 `
+  --output-dir (Join-Path $root 'run-001') `
+  --swconst 'C:\Program Files\SOLIDWORKS\swconst.tlb' `
+  --sldworks 'C:\Program Files\SOLIDWORKS\sldworks.tlb'
+```
+
+本地入口核对 checkout 与本地候选分支的完整 SHA、干净的源码与脚本、wheel 的 SHA256 与 pip 安装来源，以及
+源码、wheel、安装目录的包文件集合和字节。入口运行已安装产品核验，worker 再核对 supervisor 保存的来源回执。
+本地命令要求 SOLIDWORKS 2025 SP5 原生 Windows 安装，类型库来自 `C:\Program Files\SOLIDWORKS\SLDWORKS.exe`
+所在目录。先确保 VM 中没有运行中的 SOLIDWORKS 进程。原有 GitHub 手动事件、分支和 SHA 检查仍适用于 CI 入口，
+本地入口拒绝 GitHub 路由变量。
+
+本地沿用同一方向假设、独占宿主流程、保存及只读重开断言和清理。单例与各原生边界最多 600 秒，worker 最多
+1800 秒。`run-001` 必须是新目录。交接该目录的 `source-proof-parent.json`、`source-proof.json`、
+`verify-installed.log`、`report.json`、原始日志及生成的 `.SLDPRT`。失败时保留首次运行目录及原始回执。

@@ -1,10 +1,13 @@
 """Offline direction harness/route controls; never a native execution."""
 from copy import deepcopy
+import hashlib
 import importlib.util
 import json
 import math
 import os
 from pathlib import Path
+from types import SimpleNamespace
+from zipfile import ZipFile
 import subprocess
 import sys
 import tempfile
@@ -224,6 +227,98 @@ class DirectionRouteAndSupervisorTests(unittest.TestCase):
         self.assertIn("--expected-head $env:SWCLI_REVOLVE_DIRECTION_HEAD",step["run"])
         self.assertNotIn("--matrix",step["run"])
         self.assertNotIn("release",workflow["jobs"])
+
+
+class LocalDirectionAdmissionTests(unittest.TestCase):
+    def test_local_route_refuses_non_windows_non_isolated_and_github_shell(self):
+        windows = SimpleNamespace(platform="win32", flags=SimpleNamespace(isolated=1))
+        with mock.patch.object(entry, "sys", windows), mock.patch.dict(os.environ, {}, clear=True):
+            entry.require_local_route()
+            with mock.patch.dict(os.environ, {"GITHUB_EVENT_NAME": "workflow_dispatch"}):
+                with self.assertRaisesRegex(RuntimeError, "without GitHub"):
+                    entry.require_local_route()
+            windows.flags.isolated = 0
+            with self.assertRaisesRegex(RuntimeError, "python -I"):
+                entry.require_local_route()
+            windows.platform = "darwin"
+            with self.assertRaisesRegex(RuntimeError, "requires Windows"):
+                entry.require_local_route()
+
+    def test_local_wheel_checks_archive_provenance_and_installed_resource_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            source = root / "src/swcli"
+            installed = root / "site/swcli"
+            members = {"__init__.py": b"# module", "py.typed": b""}
+            for package in (source, installed):
+                package.mkdir(parents=True)
+                for name, content in members.items():
+                    (package / name).write_bytes(content)
+            path = root / "swcli-1-py3-none-any.whl"
+            with ZipFile(path, "w") as wheel:
+                for name, content in members.items():
+                    wheel.writestr("swcli/" + name, content)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            dist = mock.Mock(version="1")
+            dist.locate_file.return_value = installed
+            dist.read_text.return_value = json.dumps({"archive_info": {"hashes": {"sha256": digest}}})
+            ls_tree = b"src/swcli/__init__.py\0src/swcli/py.typed\0"
+            with mock.patch.object(entry, "distribution", return_value=dist), \
+                 mock.patch.object(entry.subprocess, "check_output", return_value=ls_tree):
+                proof = entry.verify_local_wheel(root, "a" * 40, installed, path, digest)
+                self.assertEqual(proof["package_files_verified"], 2)
+                with self.assertRaisesRegex(RuntimeError, "archive SHA256"):
+                    entry.verify_local_wheel(root, "a" * 40, installed, path, "b" * 64)
+                (installed / "py.typed").write_text("changed")
+                with self.assertRaisesRegex(RuntimeError, "installed package differ: swcli/py.typed"):
+                    entry.verify_local_wheel(root, "a" * 40, installed, path, digest)
+                dist.read_text.return_value = '{"dir_info":{"editable":true}}'
+                with self.assertRaisesRegex(RuntimeError, "install SWCLI from the declared wheel"):
+                    entry.verify_local_wheel(root, "a" * 40, installed, path, digest)
+
+    def test_local_installation_requires_the_installs_own_type_libraries(self):
+        from gate_support import unit_owned_native
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            executable, swconst, sldworks = (root / name for name in ("SLDWORKS.exe", "swconst.tlb", "sldworks.tlb"))
+            for path in (executable, swconst, sldworks):
+                path.touch()
+            unrelated = root / "copied-swconst.tlb"
+            unrelated.touch()
+            with mock.patch.object(unit_owned_native, "EXPECTED_CI_IMAGE", str(executable)):
+                entry.require_local_installation(swconst, sldworks)
+                with self.assertRaisesRegex(RuntimeError, "requires the installed type library"):
+                    entry.require_local_installation(unrelated, sldworks)
+
+    def test_local_parent_passes_explicit_wheel_to_supervisor_and_worker_rechecks_proof(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            swconst, sldworks = root / "swconst.tlb", root / "sldworks.tlb"
+            swconst.touch()
+            sldworks.touch()
+            output = root / "result"
+            wheel = root / "swcli.whl"
+            head, digest = "a" * 40, "b" * 64
+            args = ["--local-windows", "--wheel", str(wheel), "--wheel-sha256", digest,
+                    "--expected-head", head, "--output-dir", str(output),
+                    "--swconst", str(swconst), "--sldworks", str(sldworks)]
+            proof = dict(source_commit=head, entrypoint="local-windows", wheel_sha256=digest)
+            with mock.patch.object(entry, "exact_source", return_value=proof) as exact, \
+                 mock.patch.object(entry, "require_local_installation") as installation, \
+                 mock.patch.object(entry.subprocess, "run") as installed_check, \
+                 mock.patch.object(entry, "supervise", return_value=0) as supervise:
+                self.assertEqual(entry.main(args), 0)
+                exact.assert_called_once_with(head, local_wheel=wheel, wheel_sha256=digest)
+                installation.assert_called_once_with(swconst, sldworks)
+                self.assertTrue(installed_check.call_args.args[0][-1].endswith("verify-installed.py"))
+                command = supervise.call_args.args[0]
+                self.assertIn("--local-windows", command)
+                self.assertEqual(command[command.index("--wheel-sha256")+1], digest)
+                self.assertEqual(json.loads((output / "source-proof-parent.json").read_text()), proof)
+                exact.return_value = dict(proof, wheel_sha256="c" * 64)
+                with self.assertRaisesRegex(RuntimeError, "worker provenance differs"):
+                    entry.main(["--worker", *args])
+                self.assertFalse((output / "source-proof.json").exists())
 
 
 class DirectionNativeBackendOfflineTests(unittest.TestCase):
