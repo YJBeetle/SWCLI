@@ -285,6 +285,9 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             require(font_inheritance.file_digest(saved_path) == case["sha256_" + mode],
                     "saved inheritance output bytes changed after observation")
         case["inheritance_witness"]["success"] = True
+        case["inheritance_status"] = "bounded internal drawing witness passed; public writes remain closed"
+    else:
+        case["inheritance_status"] = "per-object inheritance not calibrated; public writes remain closed"
     case.update(kind=profile_kind, success=True)
 
 
