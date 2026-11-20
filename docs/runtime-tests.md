@@ -357,8 +357,10 @@ reopens, fresh IDs and unchanged configuration/feature signatures and hashes.
 No official-sample modified-state exception applies to this generated model.
 See [native assembly save boundaries](design/assembly-native-save.md).
 
-The saved PRT and ASM each strictly export STL, 3MF, AMF and GLB in that same
-daemon/SOLIDWORKS instance. Eight `model_exports` receipts record artifact
+The saved PRT and ASM each strictly export STL, 3MF and AMF in that same
+daemon/SOLIDWORKS instance. The ASM also strictly exports GLB. SOLIDWORKS 2025
+SP5 can write an empty BIN chunk for standalone parts, so native GLB acceptance
+covers the ASM fixture. Seven `model_exports` receipts record artifact
 metadata, bounded container/basic-geometry checks, unchanged source state and
 native-file hashes. Outputs stay in the modeling evidence directory, not the
 six formal DockerSW delivery artifacts. A missing translator, invalid output,

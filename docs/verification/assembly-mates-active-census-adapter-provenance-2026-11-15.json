@@ -1,0 +1,163 @@
+{
+  "schema": "active-census-private-adapter-function-provenance-v1",
+  "source_commit": "b2e7e4b81306977de8f9c40ada915d1507cd6dd4",
+  "source_path": "scripts/diagnostics/run-assembly-mate-owner-diagnostic.py",
+  "source_blob_sha256": "e54560067645a653fb7e1569d70a775ae6b34c7cf42ef63e2a6121fbf05a8667",
+  "candidate_path": "scripts/diagnostics/run-active-assembly-target-census.py",
+  "candidate_sha256": "c0b4f97b1b7ea5ad5b474f0046028e4b7870c3cc5b81e9da6390bb5e86ffa0a7",
+  "functions": {
+    "atomic_json": {
+      "original_symbol_sha256": "cc2b675b37a443c1999cf4c82faa742dd050133d1e5dd00ed088ce515abc2070",
+      "candidate_symbol_sha256": "cc2b675b37a443c1999cf4c82faa742dd050133d1e5dd00ed088ce515abc2070",
+      "adaptation": "Retained atomic/fsync JSON primitive."
+    },
+    "failure": {
+      "original_symbol_sha256": "b8e09a6b192accd13966bdd4d471910d14afa58c24d11958e6219a307aa72ccc",
+      "candidate_symbol_sha256": "b8e09a6b192accd13966bdd4d471910d14afa58c24d11958e6219a307aa72ccc",
+      "adaptation": "Retained first-error serialization."
+    },
+    "Journal": {
+      "original_symbol_sha256": "b6b81168fc0879d814a9d93c8fe50ac692ed80b8fe1b13d1ca27b303d230cf1f",
+      "candidate_symbol_sha256": "d61a1d10f9340648560781293c4887b461340194933c37c1c5d83ea950d23208",
+      "adaptation": "Added deadline/clock before calls and secondary-error retention; no changed CAD reader."
+    },
+    "readonly_open": {
+      "original_symbol_sha256": "4c46f4904db2f0bc4071ddae96d9f3c748bd2ad0f60060f6f6a62b4b577aa6f4",
+      "candidate_symbol_sha256": "af7701d67753b3f7bd62fd228dd2be7af0c635218e6b316d0ece9eeda2371c13",
+      "adaptation": "Only new reader _com_value alias; same single OpenDoc7 typed flags/Error/Warning receipt."
+    },
+    "pending_calls": {
+      "original_symbol_sha256": "7d1b2f23807639fa7c7daed2c91240c437937ad4112cb053f28bc46de5901ef6",
+      "candidate_symbol_sha256": "f3db1522c6b0a0124a2f7e88dc84b51281755dbef99346ea307c977374301073",
+      "adaptation": "Retain full nested pending; key includes stage/call, complete newline only; preserve completed spans for final 600 check."
+    },
+    "budget_failure": {
+      "original_symbol_sha256": "c70feedd738820b10e32244039407e1309d314140f8234b3d219399bb84e94d8",
+      "candidate_symbol_sha256": "a43a79fd2fdb3d72d97eec3f4ce6d846fa92371c86aa4b33e8eabe0f3d8f06cd",
+      "adaptation": "Preserve read-before-now flow and strict future/no tolerance; additionally check group clock and completed native spans."
+    },
+    "budget_sample_snapshot": {
+      "original_symbol_sha256": "935f20bc328d8890171a613d51fe88546c746da5138f7a164ed35c9357646d46",
+      "candidate_symbol_sha256": "c07e55979ada19a8c49239315ddbe71b63d0d71955e112e6ffdd1d261bcf9b94",
+      "adaptation": "Retain actual sample, add stage/call and completed timestamps without coercing validation inputs."
+    },
+    "mirror": {
+      "original_symbol_sha256": "42b10cd490a9098450f6c35cef3f82456595b08e26c089fff7ef06904b042e06",
+      "candidate_symbol_sha256": "42b10cd490a9098450f6c35cef3f82456595b08e26c089fff7ef06904b042e06",
+      "adaptation": "Retained async copy primitive, new local is_link adapter."
+    },
+    "MirrorWorker": {
+      "original_symbol_sha256": "ae64faf2b0edb47dae982c8fa4ab0782cc07252c61ae6c04cc8d447ef60215ba",
+      "candidate_symbol_sha256": "ae64faf2b0edb47dae982c8fa4ab0782cc07252c61ae6c04cc8d447ef60215ba",
+      "adaptation": "Retained nonblocking copy lifecycle; 1800/1840 remaining budgets passed by caller."
+    },
+    "child_environment": {
+      "original_symbol_sha256": "5c08858d2e2ed38b0aeec17f974acfb32f90ca960ee08139c12ace1bb9cbf158",
+      "candidate_symbol_sha256": "5c08858d2e2ed38b0aeec17f974acfb32f90ca960ee08139c12ace1bb9cbf158",
+      "adaptation": "Retained process-local PYTHONPATH/trace only, points to this new root."
+    },
+    "python_identity": {
+      "original_symbol_sha256": "6569cc7deb5201f946ca954adeda59f376241f9b04137209bee70edf8c8b53f2",
+      "candidate_symbol_sha256": "4628cc8162f62062d5728d2d2c8de975f6e502bbaf300934def998415fd084c9",
+      "adaptation": "Add OS PID to image/creation/SHA receipt; caller verifies exact Popen PID/time window."
+    },
+    "WindowsBackend.exit_state": {
+      "original_symbol_sha256": "8ba3f7d0dd8c97b7c36879b66ac1ea80345be7bf7e13f5611bae5a1f8505230a",
+      "candidate_symbol_sha256": "d51455edad25a9b47c81eeb1cc9f7122a18b2ab1a5a9d3e0f50041e25910bcd0",
+      "adaptation": "Same zero-wait held handle state; no process lookup or CAD termination."
+    },
+    "WindowsBackend.exit_code": {
+      "original_symbol_sha256": "b7240a9d91d93154acf0708d8dc468e4d4be8349ff3c7590606fbafda3ab8e37",
+      "candidate_symbol_sha256": "d768838d36ffe4d0a8523bc15d33e20ba9ac7658008728fa94bd4a1248276b77",
+      "adaptation": "Same explicit ctypes GetExitCodeProcess BOOL/DWORD signature; raw value preserved."
+    },
+    "OwnedPythonHandle": {
+      "original_symbol": "ObserverProcessHandle",
+      "original_symbol_sha256": "02ef9e5ff163bd12e52b7946e41a8ab15f46b78de73047099ac9ec7f8fcfbc12",
+      "candidate_symbol_sha256": "eeac31c490e48a34242a6a0ca10d411eddb424ae9930442cbd7f1eba77a45da6",
+      "adaptation": "Only parent Python handle at outer 1840; exact PID/image/SHA/creation, no CAD handle or wait extension."
+    },
+    "is_link": {
+      "original_symbol_sha256": "434d6fd9d14e6dc728f07f3f96c5f05c09f27fdcc00411609fa3d3e38de84083",
+      "candidate_symbol_sha256": "37dfd3c504d75dcf0a06f82508f45d866bcc67fb38deec7894e8ec6a105de8ac",
+      "adaptation": "Small link probe adapted to bound path method; no model or host discovery."
+    },
+    "prepare_copies": {
+      "original_symbol_sha256": "f6244ea88f97360d54fc2056d2461bf03ff7052249fee4a65f7567fe6209e264",
+      "candidate_symbol_sha256": "d262f220b5e8bbb045d1934308ea17649336fb7799a75f63099598076b855091",
+      "adaptation": "Fixed ZIP extraction retained; only new reader.verify_files(directory) signature; no source/old runtime imports."
+    },
+    "WindowsBackend.initialize": {
+      "original_symbol_sha256": "17260385a3e78f4d947e7b80f38eb0be90ff9ed4030d7fffe99a07e48f8817a2",
+      "candidate_symbol_sha256": "a95bdb7669211db19dbe7851edb47a0d85ac6a5949c8e7c0b50948403375256f",
+      "adaptation": "Existing interactive-session/non-SYSTEM/empty-occupancy admission; records owning thread before current main factory."
+    },
+    "WindowsBackend.acquire": {
+      "original_symbol_sha256": "5a24bae40d0f4ccaea74d86a8eeb400f09ef1d08491ccaee3f8645eac60a771e",
+      "candidate_symbol_sha256": "108e69ed3f4019e32a765adbe81a11332b117a5ea344231800c1e2007a6774be",
+      "adaptation": "Rebuilt around current main factory and unit_owned_native.capture(terminate_right=False); no old backend acquisition import."
+    },
+    "WindowsBackend.identity": {
+      "original_symbol_sha256": "3cc9104a756e8f92f00d33255b615ab9e0989a636c6687388ba3ac3574c0c950",
+      "candidate_symbol_sha256": "f2870e58445d1ad7f658d70bdaa0027578cb3b4e51139a31898d398da323723e",
+      "adaptation": "Rebuilt using same retained current-main identity and immutable approved EXE digest; no filename guessing."
+    },
+    "WindowsBackend.cleanup": {
+      "original_symbol_sha256": "b81b953617d7994390b8f014dea02c150de6bbe95bb507a51866e33aa34f4da6",
+      "candidate_symbol_sha256": "3de59a3801be1c41502cbe7b80d0956139aa92611e1f36f971213d6dfd6831be",
+      "adaptation": "Adapted strict held exit with remaining group budget and uncertainty/stop preservation; no extra CAD wait."
+    },
+    "WindowsBackend.release": {
+      "original_symbol_sha256": "5b1bb6f2f59b367357cc8f4078b267f0a844c739ec481916b46a0de8798db1ef",
+      "candidate_symbol_sha256": "57824a8f1c2dd79aa817d454e3d581da43b1006a16e325e46afcedd301704a68",
+      "adaptation": "Same release responsibility, now GC before COM uninitialize and independent secondary errors."
+    },
+    "parent": {
+      "original_symbol_sha256": "940467f82d1ca36f7686ecfa0cbba4bdb69343cedfd258eb869e0f448071bbcc",
+      "candidate_symbol_sha256": "6e7ce1627d146c879c0525e17cb18ecaf45f8b4341faca3396217b6c9c7aa73f",
+      "adaptation": "Structural reference only; rebuilt one active readonly case/new reader, no old mode routes/model code; proxy/traceback lifetime guarded."
+    },
+    "supervisor": {
+      "original_symbol_sha256": "31c5c668c2930f3c15fcd489f7321617bc2fe9b586c64f6eb590559e3be9909e",
+      "candidate_symbol_sha256": "1e29ddb5754d6b1f28b0595db287af74fcdf6f3646a7d988a2055b3a7e1c90da",
+      "adaptation": "Structural reference plus retained watchdog primitives; new current-manifest/Python identity and terminal completed-span validation; no child observer."
+    }
+  },
+  "new_or_rebuilt": [
+    "single readonly same-STA parent",
+    "current main factory and capture integration",
+    "600/1800 supervisor with terminal trace checks",
+    "1840 zero-COM manager and separate persistent receipt",
+    "single fixed ZIP-copy routine and role CLI"
+  ],
+  "current_main_functions": {
+    "commit": "31ad9c256a5a106bc94a627cd41dfd6277bb6f00",
+    "owned_factory": "src/swcli/daemon/server.py:acquire_resident_app",
+    "owned_handle_capture": "scripts/ci/gate_support/unit_owned_native.py:capture(terminate_right=False)",
+    "identity": "scripts/ci/gate_support/unit_owned_native.py:process_identity",
+    "symbol_hashes": {
+      "src/swcli/daemon/server.py": {
+        "acquire_resident_app": "2ffb1716ed4223449e4e10fc8eb474b99172c986093d5d55f6e42a50e3f3bdaf"
+      },
+      "scripts/ci/gate_support/unit_owned_native.py": {
+        "capture": "7e248693d6c9a78aa74ef20642d17bb7c1c233f977026bb9562ab1fa6e9b3972",
+        "process_identity": "c1b9b970c63a8f693415b9c6cb47de55e38c02f346ccc53555268cbf949a6a06",
+        "image_path_identity": "c7226d83fdb19a6f7dbd26e9cb4a694502770620f70cf3776dca5250e2ed8d77",
+        "validate_identity": "92f70d68ebb195089608b018995e8beb833df325bac64ea38709824bb137cb6b"
+      }
+    }
+  },
+  "excluded": [
+    "all old mate public src/schema/SDK/operations",
+    "frozen old observer runtime",
+    "ROT observer/child reader/marshal routes",
+    "CAD TerminateProcess/taskkill trees"
+  ],
+  "constants": {
+    "native_seconds": 600,
+    "group_seconds": 1800,
+    "outer_seconds": 1840
+  },
+  "executed_native": false,
+  "public_acceptance": false
+}

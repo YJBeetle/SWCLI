@@ -1478,18 +1478,18 @@ class ModelingSmokeTests(unittest.TestCase):
         self.assertTrue(any(event["result"].get("documents") == []
                             for event in events[closed_assembly + 1:first_reopen]))
 
-    def test_generated_model_exports_cover_all_mesh_formats_on_part_and_assembly(self):
+    def test_generated_model_exports_verify_glb_only_on_assembly(self):
         smoke = self.generated_gate()
         proofs = smoke.record["model_exports"]
         self.assertEqual([(proof["document_type"], proof["artifact"]["format"])
                           for proof in proofs],
                          [(kind, format_name) for kind in (1, 2)
-                          for format_name in ("STL", "3MF", "AMF", "GLB")])
+                          for format_name in ("STL", "3MF", "AMF")] + [(2, "GLB")])
         self.assertTrue(all(proof["strict"] and proof["source_state_unchanged"]
                             and proof["source_bytes_unchanged"] for proof in proofs))
         export_calls = [call for call in self.fake.calls
                         if call.command == "document" and call.document_command == "export"]
-        self.assertEqual(len(export_calls), 8)
+        self.assertEqual(len(export_calls), 7)
         self.assertTrue(all(call.strict and call.document_id for call in export_calls))
         self.assertEqual(len({call.document_id for call in export_calls}), 2)
         self.assertFalse(any(call.command == "daemon" and call.daemon_command in
