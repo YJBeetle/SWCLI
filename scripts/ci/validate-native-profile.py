@@ -21,6 +21,8 @@ FEATURE_REFS = {
     "native_revolve_public": "refs/heads/codex/swcli-revolve-feature",
 }
 FLAGS = ("native_full", *FEATURE_REFS)
+DETAILING_LINES_REF = "refs/heads/codex/docprops-detailing-next"
+UNITS_FLAGS = ("units_calibration", "units_write_calibration", "units_public_acceptance")
 
 
 def enabled(value):
@@ -49,11 +51,14 @@ def resolve(event, ref, inputs):
     if not selected:
         return "portable"
     scope = selected[0]
+    if scope == "detailing_public_gate" and ref == DETAILING_LINES_REF:
+        if any(enabled(inputs.get(key, False)) for key in UNITS_FLAGS):
+            raise ValueError("drawing line defaults public scope is exclusive")
+        return "detailing-lines-public"
     # Explicit second branch of the bounded readonly topology selector. The
     # original part-topology branch/profile remains unchanged below.
     if scope == "native_topology_targeted" and ref == "refs/heads/codex/swcli-assembly-mates-active":
-        if any(enabled(inputs.get(key, False)) for key in
-               ("units_calibration", "units_write_calibration", "units_public_acceptance")):
+        if any(enabled(inputs.get(key, False)) for key in UNITS_FLAGS):
             raise ValueError("assembly readonly public scope is exclusive")
         return "assembly-targets-readonly-public"
     if scope in FEATURE_REFS and ref != FEATURE_REFS[scope]:

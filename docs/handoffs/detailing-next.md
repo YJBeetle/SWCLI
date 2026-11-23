@@ -71,3 +71,12 @@ macOS 关联离线测试 51 项通过，Windows 进程专测 1 项跳过。首�
 统筹单次执行精确 `34baf8e862eaf2d991b3d1082407eb660581a872`，独立复核实机报告和原件。Windows SOLIDWORKS `33.5.0`，监督器生命周期约 57.60 秒，正常退出。八次 setter 都返回 True，四次写入 false；八份原图各作只读和可写重开，四值一致，16 个身份各不相同，经重算 SHA256 与原报告和独立审计一致。旧孔标记 true、旧圆角标记 false。摘要见 [实测清单](../evidence/detailing-lines-internal-20261121.json)。原件保留独立的 `batch-02/detailing/guest`，不覆盖上次 pre-COM 错误。
 
 公开候选在此独立分支按上述精确 revision 和旧值组合启用两个 scoped setter。所有其他旧值组合、其他 revision 及 Wine 仍拒绝。联合四值 CAS、原生调用严格 True、部分修改回执均保留。新增 `--public-gate`，通过安装型 CLI 做八次写入和保存重开，通过 SDK/MCP 检查读取、能力及同值请求。实机公共门禁由统筹分配 Windows 资源。证据和执行方式在[设计与验收计划](../design/document-detailing-lines-next.md)中，本候选排除当前发布。
+
+
+## v0.2.5 基线后的独立 CI 路由
+
+`v0.2.5` 指向 main `8408b8a657b6fdfb05dd47422cd5cdea9010a056`。本工作树从 `5d04370` 快进到统筹整合候选 `f0d00d18e9c5837091732eb9111726d30c9d4327`，随后追加 CI 路由。两项设置仍按内部实测的 Windows `33.5.0` 与固定旧保护值组合开放候选写入。
+
+使用现有 `CI` workflow 和 `detailing_public_gate=true`。仅 `codex/docprops-detailing-next` 上的手动触发映射到 `detailing-lines-public`，其余专项、单位旗标和全量旗标须关闭。旧 `codex/docprops-detailing` 的公开与内部路由保持原入口。新路由复用既有 Windows 安装、清理和证据归档，在独立 venv 安装该次 checkout 构建的唯一 wheel，绑定实际 `GITHUB_SHA` 后仅运行出详图线公开验收。分支 push 只触发便携工作。
+
+统筹调度前确认远端候选 ref 与本次交接的精确提交一致。Windows 安装 job 上限 120 分钟，公开步骤上限 31 分钟，内部 watchdog 1800 秒。归档本次 run 原始 `swcli-detailing-<run>-<attempt>` 和 `swcli-detailing-lines-wheel-<run>-<attempt>`，独立比对 run head、wheel、trace 以及八份保存重开原件，再判定公开验收。VM 继续由统筹排程。
