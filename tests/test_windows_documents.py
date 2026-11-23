@@ -4,10 +4,16 @@ from pathlib import Path
 from types import ModuleType
 from unittest import mock
 
+from tests.save_as_fixture import save_as_fixture
 from swcli.hosts import windows_documents
 
 
 class WindowsDocumentTests(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(windows_documents, "save_as3", side_effect=save_as_fixture)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_standard_view_ids_match_solidworks_enum(self):
         self.assertEqual(
             windows_documents.STANDARD_VIEW_IDS,
@@ -262,9 +268,11 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 Path(path).write_bytes(b"%PDF-1.7\n")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         app = mock.Mock(ActiveDoc=Document())
         before = {
@@ -383,9 +391,11 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 Path(path).write_bytes(b"%PDF-1.7\n")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
         description = {
@@ -438,10 +448,12 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 self.export_path = Path(path)
                 self.export_path.write_bytes(b"not a PDF")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
         document = Document()
@@ -496,9 +508,11 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 Path(path).write_bytes(b"not a PDF")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
         description = {
@@ -554,10 +568,12 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 self.export_path = Path(path)
                 self.export_path.write_bytes(b"partial export")
-                return 1
+                errors.value = 1
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
         document = Document()
@@ -615,10 +631,12 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 self.export_path = Path(path)
                 self.export_path.write_bytes(b"%PDF-1.7\nnew artifact")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
         document = Document()
@@ -675,10 +693,12 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 self.export_path = Path(path)
                 self.export_path.write_bytes(b"%PDF-1.7\n")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
 
@@ -735,10 +755,12 @@ class WindowsDocumentTests(unittest.TestCase):
             def ClearSelection2(self, clear_all):
                 self.clear_all = clear_all
 
-            def SaveAs3(self, path, version, options):
+            def SaveAs3(self, path, version, options, export_data, advanced_options, errors, warnings):
                 self.export_path = Path(path)
                 self.export_path.write_bytes(b"%PDF-1.7\nnew")
-                return 0
+                errors.value = 0
+                warnings.value = 0
+                return errors.value == 0
 
         Document.Extension = Extension()
 

@@ -36,6 +36,7 @@ from .operations import (
     UPDATE_STAMP_OPERATIONS,
     execute_operation,
     preserve_image_quality_finalization_failure,
+    preserve_save_finalization_failure,
 )
 from .timeouts import validate_timeout
 
@@ -397,7 +398,8 @@ def _preserve_step_receipt(response, request, result, exc):
         # native error. Retain each additional field only if its schema permits.
         minimum = {"ok": False, "action": "document.export", "mutation": receipt["mutation"],
                    "error": receipt["error"], "warnings": [warning]}
-        for field in ("output", "step_preferences", "preference_restore_errors", "step_output", "document", "artifact"):
+        for field in ("output", "api_saved", "save_attempted", "save_errors", "save_warnings", "finalization_error",
+                      "step_preferences", "preference_restore_errors", "step_output", "document", "artifact"):
             if field in receipt:
                 candidate = {**minimum, field: receipt[field]}
                 try:
@@ -504,21 +506,27 @@ def _worker_main(
                         _success_response(request_id, {"stopping": True})
                     )
                     break
-                with trace_native_request(request_id, str(request["operation"])), \
-                        native_api_sequence(app, enabled=owned_by_daemon), \
-                        step_host_scope(app, isolated=owned_by_daemon and not visible):
-                    result = execute_operation(
-                        app,
-                        str(request["operation"]),
-                        dict(request["parameters"]),
-                        documents=documents,
-                        session_id=str(
-                            request.get("session_id") or DEFAULT_SESSION_ID
-                        ),
-                        document_id=request.get("document_id"),
-                        expected_update_stamp=request.get("expected_update_stamp"),
-                        lease_id=request.get("lease_id"),
-                    )
+                with trace_native_request(request_id, str(request["operation"])):
+                    if request["operation"] in ("assembly.targets.list", "assembly.targets.validate"):
+                        from .assembly_target_operations import prepare_request
+                        prepare_request(app, str(request["operation"]), dict(request["parameters"]),
+                            documents=documents, session_id=str(request.get("session_id") or DEFAULT_SESSION_ID),
+                            document_id=request.get("document_id"), expected_update_stamp=request.get("expected_update_stamp"),
+                            lease_id=request.get("lease_id"))
+                    with native_api_sequence(app, enabled=owned_by_daemon), \
+                            step_host_scope(app, isolated=owned_by_daemon and not visible):
+                        result = execute_operation(
+                            app,
+                            str(request["operation"]),
+                            dict(request["parameters"]),
+                            documents=documents,
+                            session_id=str(
+                                request.get("session_id") or DEFAULT_SESSION_ID
+                            ),
+                            document_id=request.get("document_id"),
+                            expected_update_stamp=request.get("expected_update_stamp"),
+                            lease_id=request.get("lease_id"),
+                        )
                 command_state_failed = bool(result.get("preference_restore_errors"))
                 validate_operation_result(str(request["operation"]), result)
                 preference_state = result.get("stl_preferences", {})
@@ -542,9 +550,13 @@ def _worker_main(
                     )
             except Exception as exc:
                 command_state_failed = command_state_failed or isinstance(exc, NativeCommandRestoreFailed)
+                code = type(exc).__name__
+                if request["operation"] in ("assembly.targets.list", "assembly.targets.validate"):
+                    from .assembly_target_operations import error_code
+                    code = error_code(exc)
                 response = _error_response(
                     request_id,
-                    type(exc).__name__,
+                    code,
                     str(exc),
                     duration_ms=(time.monotonic() - started_at) * 1000.0,
                 )
@@ -581,6 +593,10 @@ def _worker_main(
                         session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
                 if _preserve_step_receipt(response, request, result, exc):
                     command_state_failed = True
+                elif request["operation"] in ("document.save-as", "document.export", "part.create-box") and isinstance(result, dict):
+                    response["result"] = preserve_save_finalization_failure(
+                        str(request["operation"]), result, exc,
+                        session_id=str(request.get("session_id") or DEFAULT_SESSION_ID))
             response_queue.put(response)
             if command_state_failed:
                 lifecycle_queue.put(

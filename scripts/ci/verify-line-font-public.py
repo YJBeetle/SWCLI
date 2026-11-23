@@ -27,7 +27,7 @@ OBSERVATION_CALLS = {
     "GetDocuments", "GetEditSheet", "GetFirstView", "GetName", "GetName2", "GetPathName",
     "GetReferencedModelName", "GetSaveFlag", "GetSketch", "GetTemplateSketch", "GetTitle",
     "GetType", "GetUpdateStamp", "IsOpenedReadOnly", "IsOpenedViewOnly", "SketchManager",
-    "RevisionNumber", "GetActiveConfiguration", "Name",
+    "RevisionNumber", "ConfigurationManager", "ActiveConfiguration", "Name",
 }
 
 

@@ -29,7 +29,7 @@ class DocumentAnnotationTests(unittest.TestCase):
                     mock.Mock(side_effect=self.apply))
         self.document = SimpleNamespace(
             GetType=lambda: 1, GetSaveFlag=lambda: self.modified, GetUpdateStamp=lambda: 7,
-            GetActiveConfiguration=lambda: self.configuration, GetTitle=lambda: "Background",
+            ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration), GetTitle=lambda: "Background",
             GetPathName=lambda: "", IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False,
             SketchManager=SimpleNamespace(ActiveSketch=None), Extension=self.extension,
             SetSaveFlag=mock.Mock(side_effect=lambda: setattr(self, "modified", True)),
@@ -82,7 +82,7 @@ class DocumentAnnotationTests(unittest.TestCase):
         self.sheet_view = SimpleNamespace(GetName2=lambda: "Sheet1", GetSketch=lambda: self.sheet_sketch,
                                           GetReferencedModelName=lambda: self.view_model)
         self.document.GetType = lambda: 3
-        self.document.GetActiveConfiguration = lambda: None
+        self.document.ConfigurationManager = SimpleNamespace(ActiveConfiguration=None)
         self.document.SketchManager.ActiveSketch = self.sheet_sketch
         self.document.GetCurrentSheet = lambda: self.sheet
         self.document.GetFirstView = lambda: self.sheet_view

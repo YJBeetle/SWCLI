@@ -52,7 +52,7 @@ class ProfileCLI(UnitsCLI):
             d=self.documents[args.document_id];d['path']=args.output;d['modified']=False
             target=Path(args.output);target.write_bytes(bytes(1024));self.saved[args.output]=deepcopy(d)
             if self.units_defect=='source-changed':(self.fixtures/('units.'+target.suffix[1:])).write_bytes(b'changed')
-            return dict(ok=True,action='document.save-as',document=self.descriptor(d,args.session),api_saved=True,save_errors=0,save_warnings=None)
+            return dict(ok=True,action='document.save-as',document=self.descriptor(d,args.session),api_saved=True,save_errors=0,save_warnings=0)
         result=super().dispatch(args)
         if args.command=='document' and args.document_command=='measure':
             result['metrics']=dict(solid_body_count=1,volume_mm3=12000,surface_area_mm2=3800,centroid_mm=dict(x=0,y=0,z=5))

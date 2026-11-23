@@ -6,6 +6,7 @@ import ntpath
 from pathlib import Path
 from typing import Any, Dict
 
+from .windows_save_as import save_as3
 from .windows import _com_value, _describe_document, _error
 from .windows_documents import _bitmask_names, _SAVE_ERRORS
 
@@ -77,19 +78,16 @@ def save_as_native_windows(output: str, *, document: Any) -> Dict[str, Any]:
             pass
         reserved = True
         document.ClearSelection2(True)
-        error_code = int(document.SaveAs3(str(path), 0, 1))
-        result["api_saved"] = error_code == 0
-        result["save_errors"] = error_code
+        saved = save_as3(document, str(path), receipt=result, stage="native-save-as")
+        error_code = result["save_errors"]
         result["save_error_names"] = _bitmask_names(error_code, _SAVE_ERRORS)
-        # Scalar ModelDoc2.SaveAs3 has no warning output; do not invent zero.
-        result["save_warnings"] = None
-        result["document"] = _describe_document(document)
-        if error_code != 0:
+        if not saved or error_code != 0:
             result["error"] = {
                 "type": "SaveFailed",
                 "message": "SOLIDWORKS failed to save the selected native document",
             }
             return result
+        result["document"] = _describe_document(document)
         size = path.stat().st_size
         # Native SOLIDWORKS formats are version-dependent. Do not assume the
         # legacy compound-file header: current parts use a different container.

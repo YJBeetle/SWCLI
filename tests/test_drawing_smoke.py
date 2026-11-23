@@ -24,6 +24,7 @@ class DrawingSmokeTests(unittest.TestCase):
             structure = {"configurations": {"active": "Default"}, "features": {
                 "count": 1, "truncated": False,
                 "items": [{"name": "Sheet1", "type": "Sheet"}]}}
+            drawing_structure = {**structure, "configurations": {"active": None, "names": [], "count": 0}}
             source = {"document": {"modified": False}, "needs_rebuild": 0,
                       "structure": structure}
             smoke.clean_source = mock.Mock(return_value=source)
@@ -41,7 +42,7 @@ class DrawingSmokeTests(unittest.TestCase):
                 if args[:2] == ("document", "inspect"):
                     return {"document": {"document_id": "blocker", "active": True,
                                          "modified": False, "update_stamp": 5},
-                            "structure": structure}
+                            "structure": drawing_structure if kwargs.get("document") in ("drawing", "reopened") else structure}
                 if args[:2] == ("document", "create"):
                     return {"document": {"document_id": "drawing", "type": 3},
                             "views": [], "sheet": {"projection": "first-angle"}}

@@ -25,7 +25,7 @@ class DimensionFormatTests(unittest.TestCase):
         self.__dict__.update(fixture.__dict__)
         self.fixture = fixture
         self.app.RevisionNumber = "uncalibrated-test"
-        self.foreground.GetActiveConfiguration = lambda: SimpleNamespace(Name="Default")
+        self.foreground.ConfigurationManager = SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Default"))
         self.foreground.Extension = SimpleNamespace()
         self.native.update({43: False, 14: 1, 48: False})
         self.document.GetUnits = lambda: (0, 1, 0, 2, 0)
@@ -188,7 +188,7 @@ class DimensionFormatTests(unittest.TestCase):
                                     ("GetSaveFlag", lambda: True),
                                     ("GetTitle", lambda: "Peer changed"),
                                     ("GetPathName", lambda: "C:\\peer-changed.SLDPRT"),
-                                    ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Other")),
+                                    ("ConfigurationManager", SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Other"))),
                                     ("Extension", object())):
             with self.subTest(member=member):
                 self.setUp()

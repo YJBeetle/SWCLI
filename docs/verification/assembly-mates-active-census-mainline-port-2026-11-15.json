@@ -1,0 +1,53 @@
+{
+  "schema": "active-assembly-census-mainline-port-v1",
+  "base_head": "31ad9c256a5a106bc94a627cd41dfd6277bb6f00",
+  "base_ref": "origin/main verified locally before candidate",
+  "worktree": "/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI",
+  "branch": "codex/swcli-assembly-mates-active",
+  "old_diagnostic_branch": "codex/swcli-assembly-mates",
+  "old_archive_head": "c63c2130664369f2a3b2c716e8bd7c0c00ef680b",
+  "old_native33_source": "b2e7e4b81306977de8f9c40ada915d1507cd6dd4",
+  "mainline_has_no_assembly_mate_API": true,
+  "new_source_files": {
+    "src/swcli/hosts/windows_assembly_target_observation.py": "6e0dcdb6d893c40c9bf072b31ba48225381e88199a07618dd68604b0bfdcfe82",
+    "scripts/diagnostics/observe-active-assembly-target-census.py": "878d652f323da38c0f0bf101d34dcdc0d477743d2be2ddf8b5645cf0b481914e",
+    "tests/test_active_assembly_target_observation.py": "c1bbe9ded1269c09c333211d59025874b11c55aa059b5dff860c565aa861990b",
+    "tests/test_active_assembly_target_gate.py": "76f7f2b6cff7b96f949492db6ddc02dd381de3a8df7ddfbf73de42b86899dbfd",
+    "scripts/diagnostics/run-active-assembly-target-census.py": "c0b4f97b1b7ea5ad5b474f0046028e4b7870c3cc5b81e9da6390bb5e86ffa0a7",
+    "tests/test_active_assembly_target_execution.py": "eb121a56554040e39c7194b08ec90835a3b70cf7c25769350e3b9f93729e2189"
+  },
+  "retained_main_helpers": {
+    "src/swcli/hosts/windows.py": "056689a529b52c67e6b1c07d85121025a77c16e7520dde4e9a1a4882a16fde9f",
+    "src/swcli/hosts/windows_entity_references.py": "ff926e17a384e3826668d769ad98b3e3515a8a36deea0aac0cfc17896bc97a6e",
+    "src/swcli/hosts/windows_entity_observation.py": "5d512296ffdda2e55bf3a47c724acef7ffa3bc716dcb3e3320339497832c5b63",
+    "src/swcli/hosts/windows_entity_geometry.py": "c94e5812e8679684ca8f747270c804f3ca02d38ef9163591e27832aa4134ad0d",
+    "src/swcli/hosts/windows_feature_inspection.py": "27b2588eb994fc05891de905ab35e187a7242df6a5311b2d8552f6798fac1a7e",
+    "src/swcli/hosts/native_sequence.py": "625d848c2c9dea291f6410191399fc54c70866ba82615d622621a208dfadee86",
+    "src/swcli/hosts/native_trace.py": "663a968b8fa9e47481f02344abe491a2cf6819b35b63265a6cc3a9855a0a0170"
+  },
+  "selected_provenance": "Reimplemented private-only owning-installation official QI/pointer retention, original GetCorresponding/one typed ASM resolution/one resolved owner proof from native33; all-face loop and active entry are new offline candidates.",
+  "excluded": [
+    "old assembly_mates.py/public calibrated-write boolean",
+    "old windows_assembly_mates.py add_mate/CreateMate/solver code",
+    "old daemon/CLI/operation/result schemas/SDK overlays",
+    "legacy GetCorrespondingEntity mapping/fallback",
+    "wholesale old parent/observer runtime; selected infrastructure functions only per adapter receipt"
+  ],
+  "public_operations_added": false,
+  "public_capabilities_added": false,
+  "public_handles_added": false,
+  "CAS_implemented": false,
+  "writes_implemented": false,
+  "VM_COM_CAD_CI_run": false,
+  "package_created": false,
+  "push": false,
+  "existing_main_runtime_source_files_modified": [],
+  "existing_main_documents_modified": [
+    "WORK_HANDOFF.md"
+  ],
+  "configuration_contract": "New code uses ConfigurationManager.ActiveConfiguration.Name; deprecated GetActiveConfiguration is forbidden and trapped in tests. Names/count must still prove one exact active configuration.",
+  "execution_adapter_receipt": {
+    "path": "docs/verification/assembly-mates-active-census-adapter-provenance-2026-11-15.json",
+    "sha256": "48cb79d142abff474b6d755c473856f01bf73808a9cc111681bab334669ef83b"
+  }
+}

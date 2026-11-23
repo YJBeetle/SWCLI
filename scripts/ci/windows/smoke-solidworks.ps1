@@ -355,8 +355,7 @@ $previousGlbStagingCalibration = [Environment]::GetEnvironmentVariable("SWCLI_GL
 $previousQualityCalibration = [Environment]::GetEnvironmentVariable("SWCLI_IMAGE_QUALITY_CALIBRATION", "Process")
 $previousNativeTrace = [Environment]::GetEnvironmentVariable("SWCLI_TRACE_NATIVE_CALLS", "Process")
 try {
-    if ($ImageQualityCalibration) { $env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION = "1" }
-    else { Remove-Item Env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION -ErrorAction SilentlyContinue }
+    Remove-Item Env:SWCLI_GLB_PLAIN_STAGING_CALIBRATION -ErrorAction SilentlyContinue
     if ($ImageQualityCalibration) { $env:SWCLI_IMAGE_QUALITY_CALIBRATION = "1" }
     else { Remove-Item Env:SWCLI_IMAGE_QUALITY_CALIBRATION -ErrorAction SilentlyContinue }
     if ($AnnotationFixtureDirectory -or $ToleranceFixtureDirectory -or $DimensionFormatFixtureDirectory -or $ImageQualityCalibration -or $ImageQualityPublicAcceptance) {
@@ -438,25 +437,20 @@ try {
     }
 
     if ($ImageQualityCalibration -or $ImageQualityPublicAcceptance) {
-        # Independent property persistence group precedes the separate GLB
-        # experiment. Both keep their own hard 1800s watchdog, same owned host;
-        # the overall CI step remains capped at 35 minutes.
+        # This gate checks document-property persistence only. The assembly
+        # modeling gate owns GLB export verification.
         $acceptanceArguments = @()
         if ($ImageQualityPublicAcceptance) { $acceptanceArguments = @("--public-acceptance") }
         & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
-            @acceptanceArguments --document-properties --output-dir (Join-Path $Workspace "properties-calibration") `
+            @acceptanceArguments --output-dir (Join-Path $Workspace "properties-calibration") `
             --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
-        if ($LASTEXITCODE -ne 0) { throw "Image-quality document-properties group failed; stop before any GLB experiment" }
+        if ($LASTEXITCODE -ne 0) { throw "Image-quality document-properties group failed; preserve original report and trace" }
         if ($ImageQualityPublicAcceptance) {
             Invoke-SwCliJson -Name "quality-public-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
             Assert-OwnedDaemonExit -Process $daemon -Name "quality-public"
             $started = $false
             return
         }
-        & python -I (Join-Path $PSScriptRoot "../verify-image-quality.py") `
-            --output-dir (Join-Path $Workspace "calibration") `
-            --native-trace $daemonStderr --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb"
-        if ($LASTEXITCODE -ne 0) { throw "Internal image-quality calibration failed; retain first report and trace" }
         Invoke-SwCliJson -Name "quality-stop" -Arguments @("daemon", "stop", "--json") | Out-Null
         Assert-OwnedDaemonExit -Process $daemon -Name "quality"
         $started = $false

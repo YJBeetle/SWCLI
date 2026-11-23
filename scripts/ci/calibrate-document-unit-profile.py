@@ -241,7 +241,7 @@ def worker(args):
                 # Save before observing so no read may hide preexisting dirtiness.
                 path=output/('units.'+suffix)
                 case['save']=call('save-own-fixture',lambda:save_as_native_windows(str(path),document=document));persist()
-                require(case['save']['ok'] and case['save']['save_errors']==0 and case['save']['save_warnings'] is None and not _com_value(document,'GetSaveFlag'),'fixture save failed')
+                require(case['save']['ok'] and case['save']['save_errors']==0 and case['save']['save_warnings'] == 0 and not _com_value(document,'GetSaveFlag'),'fixture save failed')
                 digest=hashlib.sha256(path.read_bytes()).hexdigest();case['file_sha256']=digest;persist()
                 front_result,front=call('create-foreground',lambda:create_part_windows_with_handle(app=app))
                 require(front_result['ok'] and front is not None,'foreground creation failed')

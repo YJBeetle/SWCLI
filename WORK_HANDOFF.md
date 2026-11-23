@@ -38,6 +38,27 @@
 - 后续由 root 排程精确 head 的两组定向原生校准，再核实 public/继承边界；详见交接中的已实现、未验收及原生计划。
 
 ---
+# 2026-11-21 现代 API 集成候选
+
+候选分支 `codex/modern-api-integration` 从 `origin/main` 的 `7400b2c615da5017f819ab8c13c194b4445fd75b` 建立。组合原产品 `0a00751e44823ca46237000479754634bf50a418` 的 SaveAs3、ConfigurationManager.ActiveConfiguration 和 GetSystemValue3，保留主线 STEP 偏好完整恢复、错误回执和 worker 退役边界。主线装配体仍严格验 GLB，零件、装配体仍验 STL/3MF/AMF，图像品质仍只验证文档属性。历史审核分支及原始证据继续保存在原位置。
+
+双配置脚本和测试取自 `d2a8e60`，逐字节一致。该快照包含 B 激活后重绑尺寸、单次 BSTR 数组写入，以及先用真实圆弧几何确认 A/B 预置值，再以现行 Get3 读取的验证顺序。候选分支手工 `native_full=true` 使用现有 Windows job，并在原 full 之前执行装机类型库、合成双配置夹具和已有 STL 保护门禁。工作流的原输入、分派、并发和其余路由保留。装配目标只读路线仍由统筹单独集成。
+
+本轮只做便携和静态验证。真实两配置异值、现代 SaveAs 在 STEP 选项与装配体 GLB 上的行为以及完整原生验收，须按统筹后续协调的精确运行取回原件。MarkingJig 和私有样件均留在仓库及 CI 之外。便携日志和审查 diff 保存于 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261121-integration`。
+
+# 当前组合候选：现代保存、配置观察与尺寸读取
+
+按统筹要求合入getter精确tip e801a95，merge为5c102541e3040a77455d07da6ee64e66ccfe500e。main ce6606fa仅审计文档变化，已读；未修改main。已协调读取getter路线的1cc16f3接线审查，补工程图空配置、前置既有完整直径/矩形组、官方类型库签名/枚举核验及Get3首次返回形状。full仍19组、core不变，无额外CAD安装/样件/保存或失败重试。
+
+最终2172项便携通过、35skip、SDK strict6文件/11拒绝例与actionlint/CI路由通过。唯一必要native_full的精确head/run及一次快照将记录于 `/Users/YJBeetle/.codex/task-artifacts/saveas3-modern/20261108-combined`；详细范围和日志见 `docs/handoffs/saveas3-modern.md` 最后一节。原run42369257219失败及ZIP不改写，GLB仍以实际内容判断。组合原生结论待该次原件，统筹本人最终review/合并。
+
+# 当前任务：SW2025 IModelDocExtension.SaveAs3迁移
+
+当前产品head `5a1b48dd1e6abb43560c63466c7bed2b55bf91d3` 的必要Windows full https://github.com/YJBeetle/SWCLI/actions/runs/42369257219 已完成failure：现代绑定、PRT/ASM/DRW保存重开通过，首失败为零件GLB严格内容检查，真实true/0/0；拒绝原字节未保留，不能对本次断言BIN=0。原ZIP官方SHA256已核，163文件逐一一致；详见 `docs/handoffs/saveas3-modern.md` 与 `docs/evidence/saveas3-modern-native-2026-11-08.json`。后续必要full由统筹协调组合head；未同head重跑、未合并或发布。
+
+首个可审实现为 `89d4119a372b223c3847f2e905ecba2d6eb6f3bf`。初次run https://github.com/YJBeetle/SWCLI/actions/runs/42368723031 已在portable阶段取消，native job无steps。补齐保存与STL恢复双失败首错保护后，2144项回归通过、33skip，SDK11反例通过。新head及其原件审计见现代SaveAs3交接；现代COM绑定已有原生成功证据，GLB仍未解决。
+
+持久worktree `/Users/YJBeetle/.codex/worktrees/saveas3-modern/SWCLI`，新分支 `codex/saveas3-modern`，基线 `2d83afdc6c5c56b1a72157a84d54ee15cde770ab`。实现、绑定、便携/原生校准方案见 [现代SaveAs3交接](docs/handoffs/saveas3-modern.md)。后续旧品质交接为继承历史，原证据保留。
 
 # 逐路集成交接
 
@@ -927,3 +948,22 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 原生能力限定为 Windows 2025 SP5 owned hidden 零件；原生专项通过不等于 main 整套通过，也不等于现代 API/GLB 迁移通过。
 - 合并保留 main 现有 STL、单位、字体、表格、拓扑和 MCP/SDK；专项公共验证入口 step-export.yml 不新增 main 手动参数。历史原件诊断 CI 定义作为只读证据归档，不再加入 main 的手动菜单。
 - 本系列未发布；GLB/旧 API/配合等现有未完成项仍需闭环，发布前由用户最终确认。
+
+## 2026-11-15：主线基线上的active assembly全目标readonly候选
+
+- 新持久worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`，branch codex/swcli-assembly-mates-active，精确origin/main31ad9c2起点；新worktree admin SWCLI20/config.worktree独立core.worktree绝对路径，未改shared/global或旧SWCLI12/mainSWCLI16。旧诊断分支c63c213和evidence保留，33/31有限证据复制JSON/MD，原件hash已复核。
+- 不整体带回旧src/schema/daemon/SDK/校准写开关。仅新增私有完整targets observer、root-owned同STA readonly入口及两份测试；existing main source零改。每面原GetCorresponding→ASM typed reference→resolved IEntity唯一GetComponent非空+精确owner强证明，后台在实体/owner访问前AssemblyNotActive；两组件全部面成功与所有后置通过才返回私有bindings，不发token/CAS/write。
+- 86关联测试通过，日志 /private/tmp/swcli-active-target-census-related-20261115.log；源码AST/diff检查通过。完整Git源码513项manifest SHA `997131942ca450239694c0db42eed3ffa81622fa1369ed96ad7dd03505d770f1`，提交后逐Git blob核验；全readonly原生尚未运行。
+- 前台公共能力/typed句柄与CAS/写save-reopen三阶段设计见 assembly-mates-active-public-stages-2026-11-15.md，具体只读门禁见active-census-proposal；root外部owned parent/supervisor和600/1800需另审冻结，reader不创建资源。无VM/COM/CAD/CI/push/包/grant/main合并。
+
+## 2026-11-15：新候选配置读取改现代属性链
+
+- root亲审f379发现新configuration helper沿用了弃用GetActiveConfiguration；本次仅新候选改为ConfigurationManager.ActiveConfiguration.Name，保留names/count=1与严格值/缺失保护，属性错误原样停止且无旧API fallback。旧getter在fake中调用即失败，完整census/后置及无效配置/原异常反例通过。main已有windows_documents等旧调用不纳入范围。
+- 88项相关通过，日志 /private/tmp/swcli-active-target-modern-configuration-related-20261115.log；AST与Python3.9/diff通过。513项新manifest SHA `e21fa957d3d5cfbb2a3d1f9ee308cbb2ba3144964d02590a577e48f61f0549c3`；旧9971319原字节保存f379023-original。未VM/CI/native33重跑。另已获root明确授权下一独立逻辑提交准备最小私有外层adapter，仍无执行授权。
+
+## 2026-11-15：私有完整census外层adapter离线准备
+
+- root明确授权后新增run-active-assembly-target-census.py及外层测试；按函数粒度来源收据复用b2e的Journal/clock/nested/held-exit基础，不导入旧mate产品或旧observer/runtime。当前main工厂/capture terminate_right=False；manager1840零COM、supervisor600/1800零COM、parent唯一STA/自然PRT→ASM/新reader一次/normal owned cleanup。
+- 原始身份在准入前持久化，strict typed OpenDoc flags/warnings和same STA；deadline后只exact拥有Python，不kill CAD/不加CAD预算。所有原始/next-clock样本、completed-span600/终态完整trace、严格held rawexit和unknown None保留，report/trace/files次错及必要COM释放/traceback GC有反例。两层异步持久mirror和逐fileSHA收据，未知copy不成功。
+- 110相关通过（adapter22+census/reader30+main58），日志 /private/tmp/swcli-active-target-adapter-related-20261115.log；AST/Python3.9/diff通过。新完整515项manifest SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`，旧现代cfg e21fa原字节保留，符号级来源原件SHA见adapter-provenance JSON。提交后逐Git blob核验。
+- 仅本地代码/测试/文档/中文提交，无VM/COM/CAD/CI/push/包/grant或native33重跑；root亲审最终head后统一打包/排期。公共typed句柄/CAS/配合写与保存重开仍未实现/未验证，原31/33有限证据不改。

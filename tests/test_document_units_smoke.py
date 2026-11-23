@@ -80,7 +80,7 @@ class UnitsCLI(FakeCLI):
             if args.document_command == "open" and args.read_only and self.units_defect == "reopen-lost-precision":
                 document["units"] = native_units()
         if args.command == "document" and args.document_command == "save-as":
-            result["save_warnings"] = None
+            result["save_warnings"] = 0
             if self.units_defect == "source-changed":
                 (self.fixtures / "properties.SLDPRT").write_bytes(b"changed")
         return result

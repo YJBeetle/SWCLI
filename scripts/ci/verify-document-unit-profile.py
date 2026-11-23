@@ -99,7 +99,7 @@ def run(gate,fixtures,prior_pids):
         require(after['document']==baseline and typed_key(after['unit_profile'])==typed_key(before['unit_profile']),'refusal changed state or complete profile')
         copy=gate.directory/('public-units.'+suffix)
         saved=case['save_copy']=gate.write('document','save-as',str(copy),document=document)
-        require(saved['api_saved'] is True and saved['save_errors']==0 and saved['save_warnings'] is None and saved['document']['modified'] is False and PureWindowsPath(saved['document']['path'])==PureWindowsPath(str(copy)) and copy.is_file(),'public saved copy failed')
+        require(saved['api_saved'] is True and saved['save_errors']==0 and saved['save_warnings'] == 0 and saved['document']['modified'] is False and PureWindowsPath(saved['document']['path'])==PureWindowsPath(str(copy)) and copy.is_file(),'public saved copy failed')
         copy_digest=case['copy_sha256']=hashlib.sha256(copy.read_bytes()).hexdigest()
         gate.close(document)
         reopened=case['reopen']=gate.command('document','open',str(copy),'--read-only')
