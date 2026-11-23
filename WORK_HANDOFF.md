@@ -1,3 +1,10 @@
+# Hosted 表格字体验证准备
+
+- 同步工程图公开验收基线 5b2a71a。已准备无 COM 探针、表格生成与按 SHA 核对继承的三个 hosted 步骤。
+- [分支守卫、安装机密范围、原件保留和排程交接](docs/handoffs/font-scopes-hosted-tables.md)。
+
+---
+
 # v0.2.5 尺寸与表格字体候选
 
 - 已将发布基线 8408b8a 合入独立候选。生成和继承校准按 SaveAs3 零警告回执核验，便携 Windows 测试覆盖实际 venv 进程链。
