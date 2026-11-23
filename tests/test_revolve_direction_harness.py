@@ -236,9 +236,14 @@ class DirectionMatrixTests(unittest.TestCase):
 
 class DirectionControlTests(unittest.TestCase):
     class Backend(FakeBackend):
-        def prepare_refusal(self, name, case):
+        def prepare_refusal(self, name, case, receipt):
             self.control = name
-            return self.fixture(case)
+            receipt.update(self.fixture(case))
+
+        def save(self, case, *, filename=None):
+            saved = super().save(case, filename=filename)
+            saved['save'].update(save_attempted=True, api_saved=True, save_errors=0, save_warnings=0)
+            return saved
 
         def snapshot(self):
             return dict(foreground_same=True, editing=False, selected=0, stamp=4,
@@ -292,6 +297,38 @@ class DirectionControlTests(unittest.TestCase):
         self.assertEqual(self.backend.calls, ['start', 'fixture', 'cleanup'])
         raw = json.loads((self.path/'report.json').read_text())
         self.assertEqual(raw['controls'][0]['after']['stamp'], 5)
+
+    def test_save_warning_is_preserved_and_stops_before_reopen(self):
+        save = self.backend.save
+
+        def warned(*args, **kwargs):
+            saved = save(*args, **kwargs)
+            saved['save']['save_warnings'] = 2
+            return saved
+
+        self.backend.save = warned
+        report = self.run_controls()
+        self.assertFalse(report['success'])
+        self.assertIn('save_warnings=2', report['failure']['message'])
+        self.assertEqual(report['controls'][-1]['saved']['save']['save_warnings'], 2)
+        self.assertEqual(report['controls'][-1]['creation']['error']['message'], self.controls.INJECTED_MESSAGE)
+        self.assertNotIn('reopen', self.backend.calls)
+
+    def test_read_only_fixture_retains_save_before_failed_reopen(self):
+        prepare = self.backend.prepare_refusal
+
+        def failed_reopen(name, case, receipt):
+            prepare(name, case, receipt)
+            if name == 'private-read-only':
+                receipt['saved'] = self.backend.save(case)
+                raise RuntimeError('first fixture reopen failure')
+
+        self.backend.prepare_refusal = failed_reopen
+        report = self.run_controls()
+        self.assertEqual(report['failed_control'], 'private-read-only')
+        self.assertEqual(report['failure']['message'], 'first fixture reopen failure')
+        self.assertEqual(report['controls'][-1]['fixture']['saved']['save']['save_warnings'], 0)
+        self.assertEqual(self.backend.calls.count('create'), 0)
 
     def test_partial_first_failure_survives_cleanup_error(self):
         self.backend.cleanup_errors = [dict(stage='ExitApp', error='secondary cleanup failure')]

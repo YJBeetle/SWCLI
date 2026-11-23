@@ -1015,3 +1015,10 @@ GitHub 已登记 workflow `417704126`，`main` 尚无该文件，手动 dispatch
 - 原始身份在准入前持久化，strict typed OpenDoc flags/warnings和same STA；deadline后只exact拥有Python，不kill CAD/不加CAD预算。所有原始/next-clock样本、completed-span600/终态完整trace、严格held rawexit和unknown None保留，report/trace/files次错及必要COM释放/traceback GC有反例。两层异步持久mirror和逐fileSHA收据，未知copy不成功。
 - 110相关通过（adapter22+census/reader30+main58），日志 /private/tmp/swcli-active-target-adapter-related-20261115.log；AST/Python3.9/diff通过。新完整515项manifest SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`，旧现代cfg e21fa原字节保留，符号级来源原件SHA见adapter-provenance JSON。提交后逐Git blob核验。
 - 仅本地代码/测试/文档/中文提交，无VM/COM/CAD/CI/push/包/grant或native33重跑；root亲审最终head后统一打包/排期。公共typed句柄/CAS/配合写与保存重开仍未实现/未验证，原31/33有限证据不改。
+
+## 旋转 next：v0.2.5 基线对照就绪复核
+
+候选分支合入 `8408b8a657b6fdfb05dd47422cd5cdea9010a056`，并保留精确 `46a3277` 对照历史与 `ca0ea48` 原生矩阵证据。
+九项拒写和一次部分修改对照在新版上要求现代 SaveAs3 的真实无警告保存回执，重开失败时保留已记录的保存和错误。
+下一次由统筹在空闲独占 Windows 宿主上执行本地 `--controls`，单例边界 600 秒、worker 1800 秒。
+本分支尚待该次原生对照，仍关闭公共部分角度写入。

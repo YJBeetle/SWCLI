@@ -45,6 +45,17 @@ def verify_refusal(row, expected_error):
         require(not row['receipt'].get('cleanup_errors'), "refusal cleanup failed")
 
 
+def require_clean_control_save(saved, stage):
+    receipt = saved['save']
+    require_native_ok(receipt, stage)
+    require(receipt.get('save_attempted') is True and receipt.get('api_saved') is True,
+            f"{stage} lacks a successful native SaveAs3 call")
+    for key in ('save_errors', 'save_warnings'):
+        value = receipt.get(key)
+        require(type(value) is int and value == 0, f"{stage} returned {key}={value!r}")
+    require(saved['file_size_bytes'] > 0, f"{stage} produced an empty native file")
+
+
 def verify_partial_receipt(partial):
     created = partial['creation']
     require(created['ok'] is False and partial['feature_handle_retained'] is True,
@@ -94,7 +105,9 @@ def run_controls(backend, evidence, source_commit):
 
     def refuse(row, expected_error):
         name = row['name']
-        observe(row, 'fixture', lambda: backend.prepare_refusal(name, deepcopy(CASE)))
+        row['fixture'] = {}
+        evidence.call('fixture', lambda: backend.prepare_refusal(name, deepcopy(CASE), row['fixture']))
+        evidence.save(report)
         observe(row, 'before', backend.snapshot)
         evidence.call('request', lambda: backend.refusal(name, deepcopy(CASE), row))
         evidence.save(report)
@@ -116,8 +129,7 @@ def run_controls(backend, evidence, source_commit):
         require_native_ok(preserved['measurement'], 'partial live measurement')
         verify_sector_metrics(preserved['measurement']['metrics'], expected)
         saved = observe(row, 'saved', lambda: backend.save(case, filename='partial-observation-failure.SLDPRT'))
-        require_native_ok(saved['save'], 'partial save')
-        require(saved['file_size_bytes'] > 0, 'partial evidence is empty')
+        require_clean_control_save(saved, 'partial save')
         evidence.call('close-before-reopen', backend.close)
         row['reopened'] = {}
         evidence.call('reopen-read-only', lambda: backend.reopen(saved, row['creation'], case, row['reopened']))

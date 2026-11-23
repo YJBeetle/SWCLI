@@ -4,41 +4,41 @@ import math
 from pathlib import Path
 from unittest import mock
 
-from .revolve_controls import INJECTED_MESSAGE
+from .revolve_controls import INJECTED_MESSAGE, require_clean_control_save
 from .revolve_direction import require, require_clean_reopen, require_native_ok
 from .revolve_direction_native import NativeBackend
 
 
 class NativeControlsBackend(NativeBackend):
-    def prepare_refusal(self, name, case):
+    def prepare_refusal(self, name, case, fixture):
         from swcli.hosts.windows_documents import open_windows_document_with_handle
         from swcli.hosts.windows_features import extrude_sketch_windows_with_handle
         from swcli.hosts.windows_sketches import _features
 
-        fixture = self.fixture(case)
+        fixture.update(self.fixture(case))
         if name == 'private-read-only':
-            saved = self.save(case, filename='read-only-profile.SLDPRT')
-            require_native_ok(saved['save'], 'read-only fixture save')
+            saved = fixture['saved'] = self.save(case, filename='read-only-profile.SLDPRT')
+            require_clean_control_save(saved, 'read-only fixture save')
             self.close()
             opened, self.document = open_windows_document_with_handle(saved['path'], app=self.app, read_only=True)
             self.close_attempted = False
+            fixture['opened'] = opened
             require_clean_reopen(opened)
             require(self.document is not None and self.value(self.document, 'IsOpenedReadOnly') is True,
                     'fixture did not reopen read-only')
             candidates = [f for f in _features(self.document) if self.value(f, 'GetTypeName2') == 'ProfileFeature']
             require(len(candidates) == 1, 'read-only fixture lacks one unabsorbed profile')
             self.sketch = candidates[0]
-            fixture.update(saved=saved, opened=opened)
         elif name == 'private-existing-solid':
             result, extrusion = extrude_sketch_windows_with_handle(
                 app=self.app, document=self.document, sketch_feature=self.sketch, depth_mm=10, merge=False)
+            fixture['extrusion'] = result
             require_native_ok(result, 'solid fixture extrusion')
             require(extrusion is not None and len(tuple(self.document.GetBodies2(0, False) or ())) == 1,
                     'fixture did not create exactly one existing solid')
-            fixture.update(extrusion=result, target_sketch=self.add_rectangle(case))
+            fixture['target_sketch'] = self.add_rectangle(case)
         elif name == 'private-offset-plane':
             fixture['offset_sketch'] = self.offset_rectangle(case)
-        return fixture
 
     def add_rectangle(self, case):
         from swcli.hosts.windows_sketches import create_rectangle_sketch_windows_with_handle
