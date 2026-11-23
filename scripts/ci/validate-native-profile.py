@@ -58,6 +58,13 @@ def resolve(event, ref, inputs, *, head=None):
         if any(enabled(inputs.get(key, False)) for key in
                ("units_calibration", "units_write_calibration", "units_public_acceptance")):
             raise ValueError("revolve direction cannot mix with units profiles")
+    # Explicit second branch of the bounded readonly topology selector. The
+    # original part-topology branch/profile remains unchanged below.
+    if scope == "native_topology_targeted" and ref == "refs/heads/codex/swcli-assembly-mates-active":
+        if any(enabled(inputs.get(key, False)) for key in
+               ("units_calibration", "units_write_calibration", "units_public_acceptance")):
+            raise ValueError("assembly readonly public scope is exclusive")
+        return "assembly-targets-readonly-public"
     if scope in FEATURE_REFS and ref != FEATURE_REFS[scope]:
         raise ValueError("feature profile requires its exact development branch: " + scope)
     return {"native_full": "full", "calibrate_tolerances": "tolerances-calibration",

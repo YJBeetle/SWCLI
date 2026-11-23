@@ -2,6 +2,7 @@
 
 from typing import Any, Optional
 
+from .windows_configurations import active_configuration_name
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_feature_inspection import _same
@@ -87,8 +88,7 @@ def _state(document: Any) -> tuple:
         raise RuntimeError("native document state is unreadable")
     configuration = None
     if kind in (1, 2):
-        active = _com_value(document, "GetActiveConfiguration")
-        configuration = _com_value(active, "Name")
+        configuration = active_configuration_name(document)
         if not isinstance(configuration, str) or not configuration:
             raise RuntimeError("native active configuration is unreadable")
     return kind, stamp, modified, configuration

@@ -20,7 +20,7 @@ class UnitProfileTests(unittest.TestCase):
     def setUp(self):
         legacy.DocumentUnitsTests.setUp(self)
         self.peer_configuration=legacy.SimpleNamespace(Name='Foreground')
-        self.foreground.GetActiveConfiguration=lambda:self.peer_configuration
+        self.foreground.ConfigurationManager=legacy.SimpleNamespace(ActiveConfiguration=self.peer_configuration)
         self.raw = {f: (4 if f == 'system' else 2 if f == 'mass_properties.mass_unit' else 4 if f == 'mass_properties.volume_unit' else 3 if 'precision' in f else 0) for f in FIELDS}
         self.linkage = {n: False if family == 'Toggle' else 0 for n, (family, _) in LINKAGE.items()}
         self.document.Extension = mock.Mock()

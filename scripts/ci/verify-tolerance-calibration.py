@@ -109,7 +109,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
     path=output/("tolerances."+{"part":"SLDPRT","assembly":"SLDASM","drawing":"SLDDRW"}[profile_kind])
     saved=call("save-owned-fixture",lambda:save_as_native_windows(str(path),document=document))
     case["save"]=saved
-    checked(saved["ok"] and saved["api_saved"] and saved["save_errors"]==0 and saved["save_warnings"] is None,"fixture save failed")
+    checked(saved["ok"] and saved["api_saved"] and saved["save_errors"]==0 and saved["save_warnings"] == 0,"fixture save failed")
     digest=hashlib.sha256(path.read_bytes()).hexdigest()
     call("close-target",lambda:app.CloseDoc(_com_value(document,"GetTitle")))
     live["document"]=None

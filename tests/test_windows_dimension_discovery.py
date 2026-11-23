@@ -3,6 +3,7 @@
 import json
 import math
 import unittest
+from dimension_configuration_values import single_configuration_values
 from types import SimpleNamespace
 from unittest import mock
 
@@ -69,7 +70,7 @@ class Dimension(Native):
         self.ReadOnly = False
         self.FullName = "D1@renamed-sketch@part.Part"
         self.table_controlled = False
-        self.GetSystemValue2 = mock.Mock(side_effect=lambda name: self.value)
+        self.GetSystemValue3 = mock.Mock(side_effect=single_configuration_values(lambda name: self.value))
         self.SetSystemValue3 = mock.Mock(side_effect=AssertionError("must not set"))
 
     def GetType(self):
@@ -212,7 +213,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         self.assertEqual(
             result["observation"]["before"], result["observation"]["after"]
         )
-        self.dimension.GetSystemValue2.assert_called_once_with("Current")
+        self.dimension.GetSystemValue3.assert_called_once_with(3, "Current")
 
     def test_absorbed_profile_under_another_root_is_supported(self):
         parent = Feature(99)
@@ -230,8 +231,8 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         result, native = self.call()
         self.assertTrue(result["ok"], result)
         self.assertIs(native, self.dimension)
-        self.dimension.GetSystemValue2.assert_called_once()
-        wrapper.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_called_once()
+        wrapper.GetSystemValue3.assert_not_called()
 
     def test_distinct_native_parameters_with_same_name_are_ambiguous(self):
         second = Dimension(self.feature)
@@ -244,7 +245,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         result = self.assert_failure("DimensionObservationUnavailable")
         self.assertIn("hidden or unloaded persisted", result["error"]["message"])
         self.assertNotIn("dimension", result)
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_nonempty_complete_chain_without_diameter_is_only_observed_not_found(self):
         self.display.Type2 = 5
@@ -280,7 +281,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
     def test_busy_and_unreadable_native_value_fail_closed(self):
         for error in (ComError(0x80010001), RuntimeError("unreadable value")):
             with self.subTest(error=error):
-                self.dimension.GetSystemValue2.side_effect = error
+                self.dimension.GetSystemValue3.side_effect = single_configuration_values(error)
                 self.assert_failure(type(error).__name__)
 
     def test_unsupported_circle_or_nonpart_does_not_publish_handle(self):
@@ -308,7 +309,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                     result = self.assert_failure("DimensionObservationUnavailable")
                     self.assertNotIn("dimension", result)
                     self.assertNotIn("geometry_verification", result)
-                    self.dimension.GetSystemValue2.assert_not_called()
+                    self.dimension.GetSystemValue3.assert_not_called()
 
     def test_unknown_circle_numbers_cannot_publish_a_native_handle(self):
         for member in ("GetRadius", "X", "Y", "Z"):
@@ -319,7 +320,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                     result = self.assert_failure("DimensionObservationUnavailable")
                     self.assertNotIn("dimension", result)
                     self.assertNotIn("geometry_verification", result)
-                    self.dimension.GetSystemValue2.assert_not_called()
+                    self.dimension.GetSystemValue3.assert_not_called()
 
     def test_unreadable_circle_flags_or_geometry_never_publish_a_native_handle(self):
         for member in ("ConstructionGeometry", "GetType", "IsCircle", "GetRadius", "X"):
@@ -337,7 +338,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                     if member not in ("ConstructionGeometry", "X"):
                         setattr(self.arc, member, failing)
                     self.assert_failure(type(error).__name__)
-                    self.dimension.GetSystemValue2.assert_not_called()
+                    self.dimension.GetSystemValue3.assert_not_called()
 
     def test_unknown_later_circle_observation_cannot_hide_behind_unchanged_stamp(self):
         for member, values in INVALID_CIRCLE_FLAGS + tuple(
@@ -351,7 +352,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                         self.set_circle_member(member, value)
                         return self.dimension.value
 
-                    self.dimension.GetSystemValue2.side_effect = changed_circle
+                    self.dimension.GetSystemValue3.side_effect = single_configuration_values(changed_circle)
                     result = self.assert_failure("DimensionObservationUnavailable")
                     self.assertTrue(result["observation"]["unchanged"])
                     self.assertNotIn("geometry_verification", result)
@@ -370,7 +371,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                         setattr(self.arc, member, failing)
                     return self.dimension.value
 
-                self.dimension.GetSystemValue2.side_effect = changed_circle
+                self.dimension.GetSystemValue3.side_effect = single_configuration_values(changed_circle)
                 result = self.assert_failure("ComError")
                 self.assertTrue(result["observation"]["unchanged"])
                 self.assertNotIn("geometry_verification", result)
@@ -388,12 +389,12 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         self.feature.next_root = later
         later.next_root = later
         self.assert_failure("SketchTraversalCycle")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_complete_feature_scan_rejects_later_duplicate_native_id_conflict(self):
         self.feature.next_root = Feature(73)
         self.assert_failure("SketchFeatureIdConflict")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_later_unreadable_feature_is_not_skipped_after_target_match(self):
         later = Feature(99)
@@ -403,17 +404,17 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
         result = self.assert_failure("RuntimeError")
         self.assertEqual(result["error"]["message"], "later feature")
         read.assert_called_once()
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_display_cycle_or_limit_is_not_partial_success(self):
         self.display.next = self.display
         self.assert_failure("DimensionObservationUnavailable")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
         self.display.next = Display(self.dimension)
         self.display.next.next = Display(self.dimension)
         with mock.patch.object(discovery, "_DISPLAY_LIMIT", 2):
             self.assert_failure("DimensionObservationUnavailable")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_unreadable_later_display_is_not_skipped_after_valid_candidate(self):
         self.display.next = Display(self.dimension)
@@ -421,7 +422,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             side_effect=[self.display.next, RuntimeError("later display")]
         )
         self.assert_failure("RuntimeError")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_busy_unknown_and_invalid_identity_results_are_not_success(self):
         for error in (ComError(0x80010001), ComError(0x80004005)):
@@ -450,7 +451,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
                 self.document.GetType = lambda: value
                 self.assert_failure("DimensionObservationUnavailable")
                 self.app.IsSame.assert_not_called()
-                self.dimension.GetSystemValue2.assert_not_called()
+                self.dimension.GetSystemValue3.assert_not_called()
 
     def test_unreadable_display_type_and_constraint_status_fail_closed(self):
         self.display.Type2 = None
@@ -472,7 +473,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             self.configuration.Name = "Other"
             return self.dimension.value
 
-        self.dimension.GetSystemValue2.side_effect = changed_config
+        self.dimension.GetSystemValue3.side_effect = single_configuration_values(changed_config)
         result = self.assert_failure("DimensionObservationUnavailable")
         self.assertEqual(result["observation"]["before"]["configuration"], "Current")
         self.assertEqual(result["observation"]["after"]["configuration"], "Other")
@@ -490,7 +491,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             self.manager.ActiveSketch = Native()
             return self.dimension.value
 
-        self.dimension.GetSystemValue2.side_effect = replaced_edit
+        self.dimension.GetSystemValue3.side_effect = single_configuration_values(replaced_edit)
         result = self.assert_failure("DimensionObservationUnavailable")
         self.assertTrue(result["observation"]["before"]["editing"])
         self.assertTrue(result["observation"]["after"]["editing"])
@@ -501,7 +502,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             self.manager.ActiveSketch = self.sketch
             return self.dimension.value
 
-        self.dimension.GetSystemValue2.side_effect = entered_edit
+        self.dimension.GetSystemValue3.side_effect = single_configuration_values(entered_edit)
         self.assert_failure("DimensionObservationUnavailable")
         self.assertIs(self.manager.ActiveSketch, self.sketch)
 
@@ -575,14 +576,14 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             return self.dimension.value
 
         self.feature.GetFirstDisplayDimension = other_configuration_display
-        self.dimension.GetSystemValue2.side_effect = restore_configuration
+        self.dimension.GetSystemValue3.side_effect = single_configuration_values(restore_configuration)
         result = self.assert_failure("DimensionObservationUnavailable")
         self.assertIn("initial current configuration", result["error"]["message"])
         self.assertEqual(result["observation"]["before"]["configuration"], "Current")
         self.assertEqual(result["observation"]["after"]["configuration"], "Current")
         self.assertFalse(result["observation"]["configuration_matched"])
         self.assertFalse(result["observation"]["unchanged"])
-        self.dimension.GetSystemValue2.assert_called_once_with("Other")
+        self.dimension.GetSystemValue3.assert_called_once_with(3, "Other")
 
     def test_nonnumeric_diameter_value_is_not_coerced_to_length(self):
         for value in (None, True, False, "0.02"):
@@ -606,7 +607,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             with self.subTest(value=value):
                 self.configuration.Name = value
                 self.assert_failure("DimensionObservationUnavailable")
-        self.dimension.GetSystemValue2.assert_not_called()
+        self.dimension.GetSystemValue3.assert_not_called()
 
     def test_equation_count_and_entries_must_be_readable_native_values(self):
         for count in (None, True, 0.9, "0", -1, 10001):
@@ -633,7 +634,7 @@ class CircleDiameterDiscoveryTests(unittest.TestCase):
             self.radius = 0.009
             return self.dimension.value
 
-        self.dimension.GetSystemValue2.side_effect = changed_circle
+        self.dimension.GetSystemValue3.side_effect = single_configuration_values(changed_circle)
         result = self.assert_failure("DimensionVerificationFailed")
         self.assertFalse(result["geometry_verification"]["passed"])
 

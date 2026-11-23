@@ -138,7 +138,7 @@ class Calibration:
         self.persist()
         result = step['save']
         require(result.get('ok') is True and result['save_errors'] == 0
-                and result['save_warnings'] is None and not self.q(self.document, 'GetSaveFlag'),
+                and result['save_warnings'] == 0 and not self.q(self.document, 'GetSaveFlag'),
                 'native changed target save failed')
         return hashlib.sha256(path.read_bytes()).hexdigest()
 

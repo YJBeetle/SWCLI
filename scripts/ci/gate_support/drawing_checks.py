@@ -67,3 +67,10 @@ def standard_layout(snapshot, projection):
                     "model view outlines overlap")
     return {"passed": True, "projection": projection,
             "roles": sorted(classified), "within_sheet": True, "overlap": False}
+
+
+def empty_drawing_configurations(configurations):
+    """Drawing structure must report no part/assembly configuration identity."""
+    require(isinstance(configurations, dict) and configurations.get("active", "missing") is None
+            and configurations.get("names") == [] and type(configurations.get("count")) is int
+            and configurations["count"] == 0, "drawing configurations must be explicitly empty")

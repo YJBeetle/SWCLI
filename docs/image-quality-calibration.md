@@ -1,4 +1,4 @@
-# Part Image Quality and GLB evidence boundary
+# Part Image Quality evidence boundary
 
 The internal part display-quality group passed on SOLIDWORKS 33.5.0 with native
 Windows CPython 3.12.10 x64. Public run 42305767940 passed the same property scope, including installed
@@ -78,7 +78,7 @@ on `codex/docprops-export-options`. Targeted concurrency uses its own profile +
 It reuses the installation job, skips
 property/annotation fixtures and visible/full modeling suites, and invokes one
 owned hidden daemon. It never enables PR-secret workflows. Per request: 600 s;
-whole calibration: external hard 1800 s watchdog, including SDK/decode/cleanup.
+whole calibration: external hard 1800 s watchdog, including SDK and cleanup.
 First failure stops. No API retry, group restart or automatic rollback.
 
 The installed public CLI generates an analytic cylinder (r=10 mm, h=10 mm) and
@@ -89,38 +89,17 @@ The SDK independently reads the same background handle under another session.
 Before its first setter, each fixture is saved, reopened read-only with raw
 quality/geometry/hash checks, and reopened writable; the baseline file is
 retained unchanged even on first-call failure. Each quality level is then saved
-to a distinct native file, strictly exported once,
-closed, reopened with a fresh read-only handle, checked for complete **raw**
-quality persistence and unchanged geometry/file SHA. It then reopens writable
-for the next level, preserving a single host throughout.
+to a distinct native file and reopened with a fresh read-only handle. The gate
+checks complete raw quality persistence, geometry and file SHA. It reopens
+writable for the next level within the same host.
 
-The diagnostic parser inspects actual binary positions/normals/indices and
-triangle/strip/fan modes. Draco requires real `DracoPy` decode with attribute
-IDs from the GLB extension, plus count agreement against accessors; compressed
-byte size is never treated as topology. Unknown required extensions, sparse or
-unsupported attributes, external buffers, invalid indices, nonfinite data and
-incomplete chunks fail closed. Bounds are explicitly **mesh-local**.
+Original reports, CLI stdout/stderr, request journal, native trace, saved parts
+and cleanup receipts are uploaded on success or failure. This group covers
+both property fixtures and both edge-optimization values. Its receipts record
+`covers_glb_mesh=false` and `glb_control_proven=false`. The modeling gate checks
+GLB on assembly fixtures. See the [GLB scope and fallback](roadmap.md#glb-export).
 
-The report records triangle counts and whether differences were observed, even
-if no difference occurs. It compares materials, scene/extensions and options
-observable in the artifact. The six XR preferences cannot yet be independently
-read/fixed, so it records `glb_control_proven=false` even when triangle counts
-differ. This is an association under one unchanged process's defaults, not a
-validated general exporter control. A separate XR API mapping and controlled
-format-option experiment remain required.
-
-Original reports, CLI stdout/stderr, request journal, native trace, saved parts,
-GLBs and cleanup receipts are uploaded on success or failure. Portable fake
-host tests and synthetic/actual Draco parser tests prove gate behavior only.
-They cannot be substituted for Windows evidence or full public acceptance.
-
-
-The property-persistence group is independent of the GLB experiment: it runs
-first with `--document-properties`, covers both fixtures and both boolean
-values, and explicitly records no GLB coverage. Only after it succeeds does the
-strict GLB group start in the same owned host. Each group retains 600/1800 s
-budgets; the whole CI step remains capped at 35 minutes. An exporter failure
-cannot be relabeled as a property API failure or used as property acceptance.
+## Historical GLB experiment
 
 Run 42301795947 completed the property group and stopped at its first GLB
 export. A single `SaveAs3` call with an ASCII staging name produced the exact

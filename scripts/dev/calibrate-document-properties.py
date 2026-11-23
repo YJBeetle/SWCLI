@@ -538,7 +538,7 @@ class Calibration:
         artifact = result.get("artifact", {})
         require(type(artifact.get("size_bytes")) is int and artifact["size_bytes"] == path.stat().st_size,
                 "native save artifact byte count differs from actual file size")
-        # Retain save_warnings exactly as returned. SaveAs3 has no warning out
+        # Retain save_warnings exactly as returned. Legacy IModelDoc2.SaveAs3 had no warning out
         # parameter, so the installed adapter's None must never be replaced by 0.
         row["path"] = str(path)
         self.report_changed()

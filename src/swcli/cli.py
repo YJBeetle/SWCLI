@@ -786,6 +786,20 @@ def build_parser() -> argparse.ArgumentParser:
     add_lease_token(component_parser)
     component_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    targets_parser = assembly_commands.add_parser(
+        "targets", help="read or compare complete targets of an already-active clean READONLY assembly"
+    )
+    targets_commands = targets_parser.add_subparsers(dest="targets_command", required=True)
+    targets_list = targets_commands.add_parser("list", help="issue session-local typed assembly-face handles")
+    targets_list.add_argument("components", nargs=2, help="exact fixed then floating component instance names")
+    targets_validate = targets_commands.add_parser("validate", help="compare a complete readonly snapshot; grants no write authority")
+    targets_validate.add_argument("snapshot_id")
+    targets_validate.add_argument("target_ids", nargs="+")
+    for target_parser in (targets_list, targets_validate):
+        add_document_selector(target_parser, require_stamp=True)
+        add_lease_token(target_parser, required=target_parser is targets_validate)
+        target_parser.add_argument("--json", action="store_true", dest="as_json")
+
     part_parser = subcommands.add_parser("part", help="create and modify part models")
     part_commands = part_parser.add_subparsers(dest="part_command", required=True)
     box_parser = part_commands.add_parser(
@@ -1448,6 +1462,11 @@ def _typed_operation(
             args.lease_id,
         )
     if args.command == "assembly":
+        if args.assembly_command == "targets":
+            parameters = ({"components": args.components} if args.targets_command == "list"
+                          else {"snapshot_id": args.snapshot_id, "target_ids": args.target_ids})
+            return (f"assembly.targets.{args.targets_command}", parameters, args.as_json,
+                    args.document_id, args.expected_update_stamp, args.lease_id)
         return (
             "assembly.add-component",
             {

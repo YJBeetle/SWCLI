@@ -169,7 +169,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
         case["save_defaults"] = saved
         path = saved_path
         checked(saved["ok"] and saved["api_saved"] and saved["save_errors"] == 0
-                and saved["save_warnings"] is None and not _com_value(document, "GetSaveFlag"), "table defaults did not save cleanly")
+                and saved["save_warnings"] == 0 and not _com_value(document, "GetSaveFlag"), "table defaults did not save cleanly")
     finally:
         operations.set_document_table_option_windows = previous_handler
         # Close only the generated peer. The owned harness cleans up the target/host.

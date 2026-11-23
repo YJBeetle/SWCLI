@@ -15,7 +15,7 @@ from swcli import __version__
 from swcli.cli import _typed_operation
 from swcli.document_image_quality import exact_snapshot, quality_snapshot, linked_changes
 from tests.test_document_image_quality import snapshot
-from tests.test_modeling_smoke import FakeCLI, mesh_fixture
+from tests.test_modeling_smoke import FakeCLI
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("_quality_calibration_test", ROOT/"scripts/ci/verify-image-quality.py")
@@ -90,14 +90,12 @@ class QualityCLI(FakeCLI):
                 document=self.descriptor(document,args.session))
             if changed: result.update(native_return=True,observed_quality=deepcopy(quality))
             return result
-        if action == "document" and sub in ("save-as","export"):
+        if action == "document" and sub == "save-as":
             document=self.documents[args.document_id]
             target=self.directory/PureWindowsPath(args.output).name
-            target.write_bytes(mesh_fixture("GLB") if sub=="export" else bytes(1024))
-            if sub=="export":
-                return dict(ok=True,artifact=dict(size_bytes=target.stat().st_size,format="GLB",path=args.output))
+            target.write_bytes(bytes(1024))
             document.update(path=args.output,modified=False); self.saved[args.output]=deepcopy(document)
-            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=None,document=self.descriptor(document,args.session),
+            return dict(ok=True,api_saved=True,save_errors=0,save_warnings=0,document=self.descriptor(document,args.session),
                 artifact=dict(format="SLDPRT",path=args.output,size_bytes=target.stat().st_size))
         result=super().dispatch(args)
         if action == "daemon":
@@ -124,7 +122,7 @@ class CalibrationTests(unittest.TestCase):
         self.swconst=Path(temporary.name)/"swconst.tlb"; self.swconst.write_bytes(b"static")
         self.fake=QualityCLI(self.directory,self.trace)
 
-    def run_gate(self, *, document_properties=False, public_acceptance=False):
+    def run_gate(self, *, public_acceptance=False):
         def sdk(**kwargs):
             def read(**context):
                 quality=deepcopy(self.fake.documents[context["document_id"]]["quality"])
@@ -133,11 +131,10 @@ class CalibrationTests(unittest.TestCase):
             return SimpleNamespace(document=SimpleNamespace(image_quality=read))
         with mock.patch.object(gate.modeling.subprocess,"run",side_effect=self.fake.run), \
                 mock.patch.object(gate,"constants",return_value={}), mock.patch.object(gate,"Client",side_effect=sdk), \
-                mock.patch.object(gate.importlib.metadata,"version",return_value="portable-fake"), \
                 mock.patch.object(gate,"public_mcp_observation",return_value={"scope":"portable gate fixture"}), \
                 mock.patch.dict(gate.os.environ, SWCLI_IMAGE_QUALITY_CALIBRATION="", SWCLI_GLB_PLAIN_STAGING_CALIBRATION=""), \
                 mock.patch("sys.stdout",new=io.StringIO()):
-            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--document-properties"] if document_properties else []), *(["--public-acceptance"] if public_acceptance else [])])
+            return gate.main(["--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace),"--inside-watchdog", *(["--public-acceptance"] if public_acceptance else [])])
 
     def record(self): return json.loads((self.directory/"image-quality.json").read_text())
 
@@ -147,8 +144,6 @@ class CalibrationTests(unittest.TestCase):
         self.assertFalse(record["full_acceptance_eligible"] or record["glb_control_proven"] or record["image_quality_writes_accepted"])
         self.assertEqual([case["shape"] for case in record["cases"]],["cylinder","box"])
         for case in record["cases"]:
-            self.assertEqual(case["triangle_counts"],dict(coarse=1,fine=1,custom=1))
-            self.assertFalse(case["quality_associated_triangle_difference_observed"])
             self.assertTrue(case["baseline_readonly_open"]["read_only"])
             self.assertEqual(case["baseline_reopened_quality"]["quality"],case["initial"]["quality"])
             self.assertTrue(Path(case["baseline_save"]["path"]).is_file())
@@ -159,7 +154,7 @@ class CalibrationTests(unittest.TestCase):
 
     def test_custom_target_is_observed_native_value_not_an_arbitrary_range_interpolation(self):
         self.fake.quality_defect="quantize-unobserved-deviation"
-        self.run_gate(document_properties=True)
+        self.run_gate()
         for case in self.record()["cases"]:
             row=case["levels"][-1]
             self.assertEqual(row["deviation_write"]["quality"]["shaded_deviation_mm"],case["initial"]["quality"]["shaded_deviation_mm"])
@@ -168,7 +163,7 @@ class CalibrationTests(unittest.TestCase):
         self.assertIn("arbitrary in-range values unsupported",self.record()["deviation_write_scope"])
 
     def test_document_properties_is_a_separate_complete_group_without_glb_claims(self):
-        self.run_gate(document_properties=True);record=self.record()
+        self.run_gate();record=self.record()
         self.assertTrue(record["success"])
         self.assertEqual(record["profile"],"document-image-quality-calibration")
         self.assertFalse(record["covers_glb_mesh"] or record["glb_control_proven"] or record["image_quality_writes_accepted"])
@@ -182,7 +177,7 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(self.fake.documents,{})
 
     def test_public_entry_is_distinct_and_cannot_use_calibration_switches(self):
-        self.run_gate(document_properties=True,public_acceptance=True)
+        self.run_gate(public_acceptance=True)
         record=self.record()
         self.assertEqual(record["profile"],"document-image-quality-public")
         self.assertTrue(record["public_acceptance_passed"] and record["image_quality_writes_accepted"])
@@ -190,7 +185,7 @@ class CalibrationTests(unittest.TestCase):
         for name in ("SWCLI_IMAGE_QUALITY_CALIBRATION","SWCLI_GLB_PLAIN_STAGING_CALIBRATION"):
             with mock.patch.dict(gate.os.environ,{name:"1"}), mock.patch.object(gate.subprocess,"run") as native, mock.patch("sys.stderr",new=io.StringIO()):
                 with self.assertRaises(SystemExit):
-                    gate.main(["--public-acceptance","--document-properties","--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace)])
+                    gate.main(["--public-acceptance","--output-dir",str(self.directory),"--swconst",str(self.swconst),"--native-trace",str(self.trace)])
                 native.assert_not_called()
 
     def test_public_mcp_observation_discovers_contract_and_reads_once_without_host_start(self):
@@ -242,7 +237,7 @@ class CalibrationTests(unittest.TestCase):
             smoke.record["cleanup_errors"].append("injected cleanup failure")
         with mock.patch.object(gate.QualitySmoke,"cleanup",fail_cleanup):
             with self.assertRaisesRegex(RuntimeError,"cleanup failed"):
-                self.run_gate(document_properties=True,public_acceptance=True)
+                self.run_gate(public_acceptance=True)
         record=self.record()
         self.assertFalse(record["success"] or record["public_acceptance_passed"] or record["image_quality_writes_accepted"] or record["image_quality_calibration_passed"])
 
@@ -276,12 +271,13 @@ class CalibrationTests(unittest.TestCase):
             block=workflow.split("      - name: "+name,1)[1].split("      - name:",1)[0]
             self.assertIn("needs.native-profile.outputs.profile == 'full'",block)
         wrapper=(ROOT/"scripts/ci/windows/smoke-solidworks.ps1").read_text()
-        block=wrapper.split('    if ($ImageQualityCalibration -or $ImageQualityPublicAcceptance) {\n        # Independent property',1)[1].split('    if ($VisibleSmoke)',1)[0]
+        block=wrapper.split('    if ($ImageQualityCalibration -or $ImageQualityPublicAcceptance) {',1)[1].split('    if ($VisibleSmoke)',1)[0]
         self.assertIn('return',block)
-        self.assertLess(block.index('--document-properties'),block.index('Image-quality document-properties group failed'))
-        self.assertLess(block.index('Image-quality document-properties group failed'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))
+        self.assertEqual(block.count('verify-image-quality.py'),1)
+        self.assertLess(block.index('verify-image-quality.py'),block.index('Image-quality document-properties group failed'))
+        self.assertNotIn('Install internal GLB decoder',workflow)
         self.assertIn('if ($LASTEXITCODE -ne 0)',block)
         self.assertNotIn('restart',block)
-        public_stop=block.split('        if ($ImageQualityPublicAcceptance) {',2)[-1].split('        & python',1)[0]
+        public_stop=block.split('        if ($ImageQualityPublicAcceptance) {',2)[-1].split('        Invoke-SwCliJson -Name "quality-stop"',1)[0]
         self.assertIn('return',public_stop)
-        self.assertLess(block.index('quality-public-stop'),block.index('--output-dir (Join-Path $Workspace \"calibration\")'))
+        self.assertLess(block.index('Image-quality document-properties group failed'),block.index('quality-public-stop'))

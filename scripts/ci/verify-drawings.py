@@ -18,6 +18,7 @@ spec = importlib.util.spec_from_file_location(
 base = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 require = base.require
+from gate_support.drawing_checks import empty_drawing_configurations
 
 
 class DrawingSmoke(base.ModelingSmoke):
@@ -123,6 +124,7 @@ class DrawingSmoke(base.ModelingSmoke):
         native = self.save_native(drawing, stem + ".SLDDRW")
         structure = self.command("document", "inspect", "--detail", "structure",
                                  document=drawing)["structure"]
+        empty_drawing_configurations(structure["configurations"])
         require(self.clean_source(source)["structure"] == before["structure"],
                 "drawing changed source public structure before close")
         self.observe_catalog(stem + ".before-drawing-close", source)
@@ -132,6 +134,7 @@ class DrawingSmoke(base.ModelingSmoke):
         reopened = self.command("document", "open", self.target(native.name))["document"]["document_id"]
         self.observe_catalog(stem + ".after-drawing-reopen", source)
         observed = self.command("document", "inspect", "--detail", "structure", document=reopened)
+        empty_drawing_configurations(observed["structure"]["configurations"])
         require(reopened != drawing and observed["document"]["modified"] is False
                 and self.structure_signature(observed["structure"]) == self.structure_signature(structure),
                 "drawing reopen changed public document structure/state")

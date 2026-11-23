@@ -1434,9 +1434,11 @@ class DocumentSaveAsResult(_DocumentSaveAsResultRequired, total=False):
     output: str
     document_before: DocumentState
     api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
     save_errors: int
     save_error_names: List[str]
-    save_warnings: None
+    save_warnings: int
     file_verification: DocumentSaveAsResultFileVerification
     artifact: DocumentSaveAsResultArtifact
 
@@ -1650,6 +1652,11 @@ class DocumentExportResult(_DocumentExportResultRequired, total=False):
     error: DocumentCreateResultError
     output: str
     artifact: DocumentExportResultArtifact
+    api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
+    save_errors: int
+    save_warnings: int
     stl_source_state: DocumentExportResultStlSourceState
     stl_preferences: DocumentExportResultStlPreferences
     mutation: DrawingStandardViewsResultMutation
@@ -3026,8 +3033,11 @@ class PartCreateBoxResult(_PartCreateBoxResultRequired, total=False):
     bodies: DocumentInspectResultStructureBodies
     geometry_verification: PartCreateBoxResultGeometryVerification
     save_errors: int
-    save_warnings: Union[int, None]
+    save_warnings: int
     saved: bool
+    api_saved: bool
+    save_attempted: bool
+    finalization_error: DocumentCreateResultError
     feature: SketchListResultSketchesItemOwnerVariant2
 
 
@@ -3716,6 +3726,114 @@ WorkspaceDownloadEndParameters = WorkspaceUploadStatusParameters
 
 
 WorkspaceDownloadEndResult = WorkspaceUploadBeginResult
+
+
+class AssemblyTargetsListParameters(TypedDict):
+    components: List[str]
+
+
+class AssemblyTargetsListResultCensusAssembly(TypedDict):
+    configuration: str
+    update_stamp: int
+    path: str
+    modified: Literal[False]
+    readonly: Literal[True]
+    view_only: Literal[False]
+
+
+class AssemblyTargetsListResultCensusComponentsItemFacesItemGeometryVariant1(TypedDict):
+    kind: Literal['face']
+    surface_kind: Literal['plane']
+    area_mm2: float
+    area_accuracy: Literal['approximate']
+    surface_geometry: EntityListResultEntitiesItemVariant1SurfaceGeometry
+
+
+class AssemblyTargetsListResultCensusComponentsItemFacesItemGeometryVariant2(TypedDict):
+    kind: Literal['face']
+    surface_kind: Literal['cylinder']
+    area_mm2: float
+    area_accuracy: Literal['approximate']
+    surface_geometry: EntityListResultEntitiesItemVariant2SurfaceGeometry
+
+
+class AssemblyTargetsListResultCensusComponentsItemFacesItem(TypedDict):
+    index: int
+    geometry: Union[AssemblyTargetsListResultCensusComponentsItemFacesItemGeometryVariant1, AssemblyTargetsListResultCensusComponentsItemFacesItemGeometryVariant2]
+    reference_sha256: str
+    exact_native_owner: Literal[True]
+
+
+class AssemblyTargetsListResultCensusComponentsItem(TypedDict):
+    name: str
+    path: str
+    source_state: AssemblyTargetsListResultCensusAssembly
+    transform: List[float]
+    fixed: bool
+    suppression: Literal[2, 3]
+    source_face_count: int
+    component_face_count: int
+    faces: List[AssemblyTargetsListResultCensusComponentsItemFacesItem]
+
+
+class AssemblyTargetsListResultCensus(TypedDict):
+    assembly: AssemblyTargetsListResultCensusAssembly
+    components: List[AssemblyTargetsListResultCensusComponentsItem]
+    face_count: int
+    all_faces_observed: Literal[True]
+
+
+class AssemblyTargetsListResultReadGate(TypedDict):
+    scope: Literal['complete-readonly-target-census']
+    mate_tree_compared: Literal[False]
+    write_authorized: Literal[False]
+
+
+class AssemblyTargetsListResultTargetsItem(TypedDict):
+    target_id: str
+    kind: Literal['assembly-face']
+    component_name: str
+    face_index: int
+
+
+class _AssemblyTargetsListResultRequired(TypedDict):
+    ok: bool
+    action: Literal['assembly.targets.list']
+
+
+class AssemblyTargetsListResult(_AssemblyTargetsListResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    scope: Literal['active-assembly-readonly-targets-v1']
+    snapshot_id: str
+    census: AssemblyTargetsListResultCensus
+    read_gate: AssemblyTargetsListResultReadGate
+    targets: List[AssemblyTargetsListResultTargetsItem]
+
+
+class AssemblyTargetsValidateParameters(TypedDict):
+    snapshot_id: str
+    target_ids: List[str]
+
+
+class _AssemblyTargetsValidateResultRequired(TypedDict):
+    ok: bool
+    action: Literal['assembly.targets.validate']
+
+
+class AssemblyTargetsValidateResult(_AssemblyTargetsValidateResultRequired, total=False):
+    document: DocumentState
+    session_id: str
+    warnings: List[DocumentCreateResultWarningsItem]
+    error: DocumentCreateResultError
+    scope: Literal['active-assembly-readonly-targets-v1']
+    snapshot_id: str
+    census: AssemblyTargetsListResultCensus
+    read_gate: AssemblyTargetsListResultReadGate
+    target_ids: List[str]
+    unchanged: Literal[True]
 
 
 DocumentAnnotationFontResultFont = DocumentFontScopesResultFontsDimensions

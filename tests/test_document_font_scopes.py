@@ -56,13 +56,13 @@ class FontScopeTests(unittest.TestCase):
         self.extension = SimpleNamespace(GetUserPreferenceTextFormat=Mock(side_effect=self.get_font),
                                          SetUserPreferenceTextFormat=Mock(side_effect=self.commit))
         self.document = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: self.modified,
-            GetUpdateStamp=lambda: self.stamp, GetActiveConfiguration=lambda: self.configuration,
+            GetUpdateStamp=lambda: self.stamp, ConfigurationManager=SimpleNamespace(ActiveConfiguration=self.configuration),
             GetTitle=lambda: "Background", GetPathName=lambda: "", IsOpenedReadOnly=lambda: False,
             IsOpenedViewOnly=lambda: False, SketchManager=SimpleNamespace(ActiveSketch=None),
             Extension=self.extension, SetSaveFlag=Mock(side_effect=lambda: setattr(self, "modified", True)))
         self.front = SimpleNamespace(GetType=lambda: 1, GetSaveFlag=lambda: False, GetUpdateStamp=lambda: 1,
                                      GetTitle=lambda: "Foreground", GetPathName=lambda: "",
-                                     GetActiveConfiguration=lambda: SimpleNamespace(Name="ForegroundDefault"),
+                                     ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="ForegroundDefault")),
                                      SketchManager=SimpleNamespace(ActiveSketch=None),
                                      IsOpenedReadOnly=lambda: False, IsOpenedViewOnly=lambda: False)
         self.app = SimpleNamespace(ActiveDoc=self.front, GetDocuments=lambda: (self.document, self.front),
@@ -185,7 +185,7 @@ class FontScopeTests(unittest.TestCase):
     def test_other_foreground_state_and_identity_changes_reject_success_without_rollback(self):
         changes = (("GetSaveFlag", lambda: True), ("GetTitle", lambda: "Changed foreground"),
                    ("GetUpdateStamp", lambda: 99), ("GetPathName", lambda: "changed.SLDPRT"),
-                   ("GetActiveConfiguration", lambda: SimpleNamespace(Name="Other")),
+                   ("ConfigurationManager", SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name="Other"))),
                    ("IsOpenedReadOnly", lambda: True))
         for name, changed in changes:
             with self.subTest(name=name):
@@ -200,7 +200,8 @@ class FontScopeTests(unittest.TestCase):
                 self.assertFalse(result["ok"], result)
                 self.assertTrue(result["mutation"]["may_have_changed"])
                 self.assertTrue(self.native["notes"]["Bold"])
-                self.assertEqual(getattr(self.front, name)(), changed())
+                self.assertEqual(getattr(self.front, name)() if callable(changed) else getattr(self.front, name),
+                                 changed() if callable(changed) else changed)
                 self.app.ActivateDoc3.assert_not_called()
                 self.extension.SetUserPreferenceTextFormat.assert_called_once()
 

@@ -226,7 +226,7 @@ class TableCLI(FakeCLI):
         if args.command == 'document' and args.document_command == 'measure':
             result['metrics']['centroid_mm'] = dict(x=0, y=0, z=5)
         if args.command == 'document' and args.document_command == 'save-as':
-            result['save_warnings'] = None
+            result['save_warnings'] = 0
         return result
 
     def transport(self, operation, values, **context):

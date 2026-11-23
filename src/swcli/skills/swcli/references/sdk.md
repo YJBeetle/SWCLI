@@ -166,3 +166,13 @@ the complete typed snapshot and context. The daemon admits writes only on the
 calibrated native Windows runtime and checks changed custom values against the
 verified native profiles. MCP uses the same exact operation names
 and payload through `execute`, with no automatic host start or write retry.
+
+`client.assembly.targets.list(components=[fixed_name, floating_name],
+document_id=..., expected_update_stamp=..., lease_id=...)` issues typed
+`assembly-face` targets only for an already-active saved clean readonly ASM and
+readonly part sources. `client.assembly.targets.validate(snapshot_id=...,
+target_ids=[...], document_id=..., expected_update_stamp=..., lease_id=...)`
+requires a live lease and compares the full census, even for a selected subset.
+The result grants no write authority and excludes the mate tree. See
+[the assembly target contract](assembly-targets.md) for scope, lifetime and the
+independent public native acceptance boundary.

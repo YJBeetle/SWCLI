@@ -129,7 +129,7 @@ class NativeFileCases:
         self.close(document)
 
     def model_exports(self, document, stem, native_files):
-        """Exercise all mesh translators against our saved, clean native fixture.
+        """Exercise mesh exports within the verified scope of each document type.
 
         Evidence stays in the modeling directory, outside the host project's
         six formal delivery exports. Structural validation is not a claim of
@@ -144,13 +144,18 @@ class NativeFileCases:
                 "mesh export fixture is not a saved, rebuilt part or assembly")
         source_hashes = {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                          for path in native_files}
-        for format_name in ("STL", "3MF", "AMF", "GLB"):
+        formats = ("STL", "3MF", "AMF")
+        if descriptor["type"] == 2:
+            formats += ("GLB",)
+        for format_name in formats:
             name = f"{stem}-export.{format_name}"
             target = str(PureWindowsPath(self.host_directory) / name)
             artifact_file = self.directory / name
             exported = self.write("document", "export", target, "--strict",
                                   document=document)
             validate_operation_result("document.export", exported)
+            require(exported["api_saved"] is True and exported["save_errors"] == exported["save_warnings"] == 0,
+                    "modern export returned failure or warnings")
             artifact = exported["artifact"]
             require(PureWindowsPath(exported["output"]) == PureWindowsPath(target)
                     and PureWindowsPath(artifact["path"]) == PureWindowsPath(target)

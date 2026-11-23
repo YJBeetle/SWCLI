@@ -73,7 +73,7 @@ class NativeSimulation:
     def doc(self, snapshot, path, readonly=False):
         d = SimpleNamespace(snapshot=deepcopy(snapshot), path=path, modified=False, readonly=readonly)
         d.GetType=lambda:d.snapshot['document_type'];d.GetSaveFlag=lambda:d.modified
-        d.GetUpdateStamp=lambda:7;d.GetActiveConfiguration=lambda:SimpleNamespace(Name='Default')
+        d.GetUpdateStamp=lambda:7;d.ConfigurationManager=SimpleNamespace(ActiveConfiguration=SimpleNamespace(Name='Default'))
         d.GetTitle=lambda:str(d.path.name);d.GetPathName=lambda:str(d.path)
         d.IsOpenedReadOnly=lambda:d.readonly
         return d
@@ -106,7 +106,7 @@ class NativeSimulation:
         path=Path(path);path.write_bytes(json.dumps(document.snapshot).encode())
         self.saved[str(path)]=deepcopy(document.snapshot);document.path=path;document.modified=False
         if self.defect=='source-overwrite':self.initial_path.write_bytes(b'overwritten')
-        return dict(ok=True, save_errors=0, save_warnings=None)
+        return dict(ok=True, save_errors=0, save_warnings=0)
 
     def reopen(self, path, *, app, read_only):
         self.document=self.doc(self.saved[path],Path(path),read_only)

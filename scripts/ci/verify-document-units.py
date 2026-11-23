@@ -133,7 +133,7 @@ def run(gate, fixtures, *, host_fixtures=None):
         saved_path = gate.directory / ("saved-units." + suffix)
         saved_host = str(PureWindowsPath(gate.host_directory) / saved_path.name)
         saved = case["save_copy"] = gate.write("document", "save-as", saved_host, document=document)
-        require(saved["api_saved"] is True and saved["save_errors"] == 0 and saved["save_warnings"] is None
+        require(saved["api_saved"] is True and saved["save_errors"] == 0 and saved["save_warnings"] == 0
                 and not saved["document"]["modified"]
                 and PureWindowsPath(saved["document"]["path"]) == PureWindowsPath(saved_host)
                 and saved_path.is_file() and saved_path.stat().st_size >= 512

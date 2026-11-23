@@ -141,7 +141,7 @@ def calibrate_case(app, output, constants, plane, reverse, call, case, report, l
             saved = call("save-font-" + mode, lambda: save_as_native_windows(str(path), document=document))
             case["save_" + mode] = saved
             require(saved["ok"] and saved["api_saved"] is True and saved["save_errors"] == 0
-                    and saved["save_warnings"] is None and not saved["document"]["modified"]
+                    and saved["save_warnings"] == 0 and not saved["document"]["modified"]
                     and path.is_file() and path.stat().st_size >= 512, "font copy save failed")
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             close(app, document, call)
