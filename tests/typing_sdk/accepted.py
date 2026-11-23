@@ -101,3 +101,13 @@ def compare_assembly_readonly_targets(client: Client) -> bool:
         target_ids=targets, document_id="d-ab12cd", expected_update_stamp=7,
         lease_id="l-ab12cd34ef56").require_result()
     return compared["read_gate"]["write_authorized"]
+
+
+# Candidate drawing line defaults are typed separately from the accepted pair.
+def drawing_line_defaults(client: Client) -> None:
+    client.document.detailing_line_options(document_id="d-ab12cd", expected_update_stamp=0)
+    client.document.detailing_line_option_set(
+        field="auto_center_lines.enabled", value=False,
+        expected_options={"auto_center_marks.part_holes": True, "auto_center_marks.part_fillets": False,
+                          "auto_center_lines.enabled": True, "auto_center_marks.hole_pattern_connection_lines": False},
+        document_id="d-ab12cd", expected_update_stamp=0, lease_id="l-ab12cd34ef56")

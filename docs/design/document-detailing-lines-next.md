@@ -1,0 +1,104 @@
+# 出详图 next：自动中心线与中心标记连接线默认值
+
+状态：后续批次候选。内部 Windows SOLIDWORKS 2025 已实测通过，安装型公开验收待排程。本批独立于当前发布。
+
+## 官方映射与有界选择
+
+| 本轮可写候选字段 | 官方枚举 | 文档 API |
+| --- | --- | --- |
+| `auto_center_lines.enabled` | `swDetailingAutoInsertCenterLines` | `IModelDocExtension.Get/SetUserPreferenceToggle` |
+| `auto_center_marks.hole_pattern_connection_lines` | `swDetailingConnectionLinesHolePatternsCenterMarks` | 同上 |
+
+两者位于 Document Properties → Detailing → Auto insert on view creation，option 为 `swDetailingNoOptionSpecified`。数值仍从宿主旁的官方 `swconst.tlb` 按符号解析，未猜测新字段 ID。
+
+依据：[官方 DP_Detailing API 映射](https://help.solidworks.com/2024/english/api/swconst/DP_Detailing.htm)、[2025 产品帮助](https://help.solidworks.com/2025/English/SolidWorks/sldworks/HIDD_OPTIONS_DETAILING_NEW.htm?id=9c8376d44748461faca7f4583f830216)。2025 帮助说明，大装配设置/组件数量阈值可能阻止自动插入中心线。因此本轮只讨论默认值存储，不把开关 true 当成实际视图生成结果保证，也不调整全局大装配设置。
+
+参数值和返回值都是布尔，但语义需要分开核对。[2025 setter 文档](https://help.solidworks.com/2025/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SetUserPreferenceToggle.html) 把返回值描述为 on/off，候选目前要求实际 COM 返回严格 `True` 才继续读回。首次 false 边可能返回 `False`，届时记录目标值、原始返回与 partial 回执并停止，留待核实实际行为后再决定是否修订合约。仅凭文档描述无法为这两个字段放行。
+
+槽/装配中心标记开关暂缓；视图标签需另核具体 API，不纳入该两字段一致子集。字体、尺寸格式、公差、总体标准、表格均不在本轮范围；没有具体视图/实体/中心标记插入操作。
+
+## 加法合同，保留旧验收范围
+
+已有 `document.detailing-options` / `detailing-option-set` 的两字段合同、已核原件及 `33.5.0` 白名单不扩大。
+
+新增操作：
+
+- `document.detailing-line-options`：返回 `options` 四个布尔值及 `write_enabled`。
+- `document.detailing-line-option-set`：`field` 只允许表中两个新字段；`value` 严格为 boolean；`expected_options` 必须是全部四值。显式 `document_id/expected_update_stamp/lease_id` 均必需。
+- 四值中的 `auto_center_marks.part_holes` 和 `auto_center_marks.part_fillets` 是**只读 CAS/不变保护**，不能通过新 writer 修改。旧接口仍只返回旧两值。
+- 新字段常量按该 profile 单独解析/缓存，不让旧字段读取依赖新枚举的存在。
+
+```sh
+swcli document detailing-line-options --document d-ab12cd --json
+swcli document detailing-line-option-set auto_center_lines.enabled true \
+  --if-options '{"auto_center_marks.part_holes":true,"auto_center_marks.part_fillets":false,"auto_center_lines.enabled":false,"auto_center_marks.hole_pattern_connection_lines":false}' \
+  --document d-ab12cd --if-update-stamp 103 --lease l-ab12cd34ef56 --json
+```
+
+精确内部候选 `34baf8e862eaf2d991b3d1082407eb660581a872` 通过原生 33.5.0 的八条有向转换。启用下一版候选写入需匹配原生 Windows、revision `33.5.0`、旧孔中心标记为 true、旧圆角中心标记为 false。其余旧值组合和 revision 返回 `write_enabled=false`，请求在 setter 前拒绝。四值 CAS 仍要求请求提交全部当前值。读取支持保留的四项。
+
+候选路径保留完整四值 CAS、read-only/view-only、普通图纸模式、前后台/身份/dirty/stamp 和单字段读回检查；未请求的旧/新字段一旦变化就返回部分 mutation 失败，不重试或回滚。最多一次 setter、最多一次 SetSaveFlag，最终只读观察不能悄悄修复状态。descriptor/CommandInProgress 恢复/late validator 异常保留本请求可信 mutation 和第一业务错误；恢复失败退休 worker。
+
+SDK 新方法 `document.detailing_line_options` / `document.detailing_line_option_set` 由 schema 生成；MCP 沿用 capabilities/execute。可发现合同不等于已完成原生验收。
+
+## 首轮交接后由统筹排程的目标原生计划
+
+本轮没有调用 COM、操作 VM 或 dispatch 手动原生 CI。首轮后已按独立代码准备授权补充下述 internal gate 与离线失败注入；没有新增 CI workflow，仍须统筹另行授权排程。现有旧 `detailing_calibration/public_gate` 只覆盖旧两项，**不能当成新字段证明**。新增入口没有公开验收/白名单放行功能，不增加本次发布内容。
+
+1. 新建并独占一个原生 Windows SOLIDWORKS 2025 宿主，使用显式 GB A4 模板生成空工程图和前台零件。禁止 attach 用户实例；固定同一 host/worker，背景目标与当前文档分离。
+2. 从安装的官方 swconst 读取两个新枚举、两个旧枚举与 NoOption；记录符号/实际 ID、revision、host PID、字段原始 boolean、完整四值和状态。缺枚举/非 bool/未知编辑上下文首失败停止。
+3. 内部校准仅在该独占进程中临时设置新字段的 `CALIBRATED_LINE_REVISIONS` 为本次精确 revision，不改变旧 profile，不提供客户端旁路。通过实际 handler/registry/adapter 校准。
+4. 两个新布尔共四种组合，建议遍历 8 条单字段有向边，使每个新字段在邻项 true/false 下均覆盖 true/false。每次变更前给出四值 CAS、lease 和当前 stamp；两个旧值必须保持原样。每次检查原生返回值、完整读回、普通图纸/草图/视图上下文、前台配置及 dirty/stamp、图纸布局/投影不变。
+5. 每次保存到独立 SLDDRW，记录字节数/hash，关闭并只读重开后核四值、状态与文件 hash；禁止复用已退休文档身份。新增 set 的有效 trace 应有 12 个偏好 getter、1 个 setter、至多 1 个 SetSaveFlag；同值为 4 getter/0 setter（只在有临时原生校准的进程里），CAS 冲突 4/0，read-only 与 lease/stamp 拒绝 0 setter。
+6. 单原生调用/请求 600 秒，整组 1800 秒；首个意外失败保留原包、report/journal/trace、部分 mutation 和第一真错，不重试、回滚或组内重启。若连接线字段耦合改变旧中心标记字段，保留失败而不是放宽不变断言；可只交付另一个已证实子集。
+7. 独立核内部 run/head/原 ZIP digest/trace/逐文件保存重开后，才可在本分支开放已证实的精确字段/revision/转换。再准备一次必要的公开 CLI→daemon→worker gate、SDK/MCP 契约和相同持久化检查，公开 head 单独记录。没有证据的新写入继续关闭。
+
+未覆盖实际新建模型视图时的插线效果、复杂工程图、字体/标准/表格、其他 revision/Wine，以及完整发布验收；不为凑齐而扩大本批。
+
+
+## 独立门禁准备增量（仅源码和离线验证）
+
+- `scripts/ci/detailing_line_gate.py`：不导入 COM 的计划和断言。由实际初始四值出发，依次翻转新字段 A/B/A/B/B/A/B/A；这条闭合路径恰好覆盖 8 条单字段有向边，不需要额外写入来摆放初始状态。旧两值始终是 CAS/读回保护值。
+- `scripts/ci/verify-detailing-lines-calibration.py`：独立 internal-only 原生后端。要求本 checkout 的已提交干净源码、精确 `--source-head`、原生 Windows SW2025、全新 hidden owned host、显式图纸模板及四字段官方 swconst 完整解析；记录源码文件摘要、模板/TLB 摘要和真实枚举。不消费任何旧成功报告。复用旧通用脚本的内容仅为 OpenProcess/WaitForSingleObject 生命周期 helper。
+- `scripts/ci/run-detailing-lines-calibration.py`：唯一有界入口。监督器使用基础 Python 映像直接创建子进程，并保留同一隔离 venv。worker 在 COM 前核对 Windows 实际父 PID、管道传递的 Popen PID 和 Windows 进程映像。全部阶段和未命名启动/清理均受 600s 限制，组上限 1800s；使用系统单调时钟。超时只终止该子进程树并记录失败，不重试、不重启或 dispatch CI；超时退出不等于确认 SOLIDWORKS 退出，原件/owned PID 留给统筹检查。
+- `tests/test_detailing_line_gate.py`：假宿主覆盖全部 16 种四布尔初始组合，每个组合 8 次写入/16 次重开；注入部分修改、旧保护值漂移、前台/布局/dirty 异常、缺字段、假 native return、缺/借用 trace、调用计数/期限错误、保存/关闭/重开/持久化/文件损坏及旧身份复用。另通过真实 registry/handler/adapter/result schema 配合模拟对象验证 trace、CAS、stamp 和 lease 拒绝；不会实例化真实 COM。
+
+每条边必须有完整四值 CAS、strict true native return、12 getter/1 setter/至多1 dirty、同值 4/0、旧保护值 CAS 冲突 4/0、stamp/lease/只读拒绝 0 setter。每次写后保存独立 SLDDRW；关闭需证明 native catalog 仅余前台零件且旧 ID 已失效；只读及可写重开均须核对原生文档路径对应同一保存文件，并获得从未使用的新 ID、完整四值不变、干净状态、相同布局/前台。轨迹须证明先读四值、执行一次 setter、读回四值、可选 dirty、再读四值。观察和拒绝后再次核字节 hash，并持续复核之前所有原件。第一失败终止计划，保留 raw result/trace/partial；API 第一业务错误和后续校验/清理错误分别记录。
+
+统筹排程时，使用干净候选 checkout、由同一 head 构建的 wheel 与 Windows Python 3.14。先在独立 venv 安装 wheel。准备全新证据目录及其已存在的持久父目录。
+
+```powershell
+$gatePython = 'D:\swcli-detailing-venv\Scripts\python.exe'
+$wheel = 'D:\swcli-evidence\packages\swcli-0.2.4-py3-none-any.whl'
+& $gatePython -m pip install $wheel
+if ($LASTEXITCODE -ne 0) { throw 'wheel installation failed' }
+& $gatePython -I scripts/ci/run-detailing-lines-calibration.py `
+  --output-dir 'D:\swcli-evidence\detailing-lines-internal-01' `
+  --source-head '<统筹批准的精确候选提交>' --wheel $wheel `
+  --swconst '<SOLIDWORKS 2025 安装的 swconst.tlb>' `
+  --drawing-template '<GB A4 工程图模板>' --execute-owned-native
+```
+
+同一入口可将 `--execute-owned-native` 换成 `--supervision-probe`，使用另一全新证据目录单独验证启动链。探针返回前保存 `watchdog.json` 与 `internal/supervision.json`，包括监督器 PID、Popen PID、实际父子 PID、进程映像及 venv。探针在 COM 及校准包检查前退出。正式运行会再次生成相同的身份回执。
+
+门禁核对 wheel 中完整 `swcli` 包清单和 checkout 内容，核对实际安装字节并记录摘要。跨平台文本换行差异仅在 checkout 与 wheel 比对时归一化。门禁直接执行 registry、handler 与 adapter。安装型公开 CLI→daemon→worker、SDK/MCP 和 worker 恢复仍需独立验收。内部成功报告保留 `native_accepted=false`、`public_acceptance=false` 和 `full_acceptance_eligible=false`，供统筹独立审查。
+
+预计预留 35–40 分钟独占 Windows 资源窗口，其中原生组硬上限 30 分钟，余量用于启动前安装核对、原件归档及退出确认。启动前确认其他路线已释放宿主，使用同一个本机 SOLIDWORKS 2025 进程完成计划。原样归档整个输出目录，含 `watchdog.json`、`stdout.log`、`stderr.log`、`internal/report.json`、进度与原生 JSONL 轨迹及实际产生的 SLDDRW。另记录归档摘要、wheel 摘要、精确 head 与宿主 revision。超时或首错时保存当时原件，确认所属进程状态后再释放资源窗口。
+
+
+## 安装型公开候选
+
+内部原件已重新核对八份 SLDDRW 的 SHA256、两种访问模式下的四值读回、十六个重开身份和原生退出。八次 setter 原样返回 `True`，包括四次写入 `false`。旧孔和圆角值分别固定为 true 和 false。摘要和八份原件索引见 [内部实测记录](../evidence/detailing-lines-internal-20261121.json)。历史内部验收可使用 `34baf8e862eaf2d991b3d1082407eb660581a872` 重放。
+
+公开门禁使用相同的受监督 Windows 入口，随后只通过一台已安装 wheel 启动的独占、隐藏 native daemon 验收。CLI 负责全部八条变更边及保存重开，SDK 核对读取和 no-op，MCP bridge 核对发现契约和 no-op。每一条边核 trace 调用次序、旧 guard CAS 拒绝、前台文档不变、原文件摘要和退役 ID 拒绝。另核 lease、stamp 和只读拒绝。预期 12 getter/1 setter/至多 1 dirty，每种拒绝或 no-op 为 0 setter。结束须证明 daemon 正常退出及持有的 SOLIDWORKS 进程句柄已结束。
+
+统筹协调独占窗口后，将同 head wheel 安装到独立 Windows venv。使用干净的候选 checkout 和全新证据目录。
+
+```powershell
+& $gatePython -I scripts/ci/run-detailing-lines-calibration.py `
+  --output-dir $freshEvidence --source-head $candidateHead --wheel $wheel `
+  --swconst $swconst --drawing-template $gbA4Template `
+  --public-gate --execute-owned-native
+```
+
+阶段限制 600 秒，整组 1800 秒。归档整个输出目录，内含监督回执、`public/public-detailing-lines.json`、启动日志、trace 和八份原始 SLDDRW。只有真实安装型报告与原件确认后，才能记为公开验收。该公共门禁的 SDK/MCP 只测读契约和不变更路径，八条原生写入边由 CLI 覆盖。

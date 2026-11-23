@@ -50,7 +50,7 @@ on:
           - "8"
           - "12"
       detailing_public_gate:
-        description: Run only public drawing-default CLI/daemon acceptance on codex/docprops-detailing
+        description: Public drawing defaults on codex/docprops-detailing or line defaults on codex/docprops-detailing-next
         required: false
         default: false
         type: boolean
@@ -973,8 +973,8 @@ jobs:
 
   detailing-calibration:
     needs: [native-profile]
-    name: ${{ inputs.detailing_public_gate && 'Detailing public CLI/daemon gate' || 'Detailing internal calibration' }}
-    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/docprops-detailing' && (inputs.detailing_calibration || inputs.detailing_public_gate) && !(inputs.detailing_calibration && inputs.detailing_public_gate) }}
+    name: ${{ needs.native-profile.outputs.profile == 'detailing-lines-public' && 'Drawing line defaults public CLI/daemon gate' || inputs.detailing_public_gate && 'Detailing public CLI/daemon gate' || 'Detailing internal calibration' }}
+    if: ${{ github.repository == 'YJBeetle/SWCLI' && github.event_name == 'workflow_dispatch' && needs.native-profile.result == 'success' && ((github.ref == 'refs/heads/codex/docprops-detailing' && (needs.native-profile.outputs.profile == 'detailing_calibration' || needs.native-profile.outputs.profile == 'detailing_public_gate')) || (github.ref == 'refs/heads/codex/docprops-detailing-next' && needs.native-profile.outputs.profile == 'detailing-lines-public')) }}
     runs-on: windows-2025
     timeout-minutes: 120
     concurrency:
@@ -988,13 +988,42 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - name: Install branch client and run associated portable tests
+      - name: Build and install the exact drawing line defaults candidate wheel
+        if: ${{ needs.native-profile.outputs.profile == 'detailing-lines-public' }}
+        shell: powershell
+        run: |
+          $dist = Join-Path $env:RUNNER_TEMP "swcli-detailing-lines-wheel"
+          $venv = Join-Path $env:RUNNER_TEMP "swcli-detailing-lines-venv"
+          python -m pip wheel --no-deps --wheel-dir $dist .
+          if ($LASTEXITCODE -ne 0) { throw "Candidate wheel build failed" }
+          $wheels = @(Get-ChildItem -LiteralPath $dist -Filter *.whl -File)
+          if ($wheels.Count -ne 1) { throw "Expected one candidate wheel" }
+          $wheel = $wheels[0].FullName
+          python -m venv $venv
+          if ($LASTEXITCODE -ne 0) { throw "Candidate venv creation failed" }
+          $gatePython = Join-Path $venv "Scripts\python.exe"
+          & $gatePython -m pip install $wheel
+          if ($LASTEXITCODE -ne 0) { throw "Candidate wheel install failed" }
+          & $gatePython -I scripts/ci/verify-installed.py
+          if ($LASTEXITCODE -ne 0) { throw "Installed candidate preflight failed" }
+          "SWCLI_DETAILING_LINES_PYTHON=$gatePython" >> $env:GITHUB_ENV
+          "SWCLI_DETAILING_LINES_WHEEL=$wheel" >> $env:GITHUB_ENV
+
+      - name: Install legacy branch client
+        if: ${{ needs.native-profile.outputs.profile != 'detailing-lines-public' }}
         shell: powershell
         run: |
           python -m pip install .
           if ($LASTEXITCODE -ne 0) { throw "Branch client install failed" }
-          python -m unittest discover -s tests -p "*detailing*.py" -v
+
+      - name: Run associated portable detailing tests
+        shell: powershell
+        run: |
+          $testPython = "python"
+          if ($env:SWCLI_DETAILING_LINES_PYTHON) { $testPython = $env:SWCLI_DETAILING_LINES_PYTHON }
+          & $testPython -m unittest discover -s tests -p "*detailing*.py" -v
           if ($LASTEXITCODE -ne 0) { throw "Portable detailing tests failed" }
+
       - name: Initialize private paths
         shell: powershell
         run: |
@@ -1106,7 +1135,8 @@ jobs:
             -AssetsRoot "$env:PRIVATE_ROOT\assets" `
             -StateDirectory "$env:PRIVATE_ROOT\state"
 
-      - name: Run only the selected bounded detailing validation
+      - name: Run only the selected bounded legacy detailing validation
+        if: ${{ needs.native-profile.outputs.profile != 'detailing-lines-public' }}
         id: detailing
         timeout-minutes: 31
         shell: powershell
@@ -1122,6 +1152,22 @@ jobs:
           if ("${{ inputs.detailing_public_gate }}" -eq "true") { $validationArguments += "--public-gate" }
           python @validationArguments
           if ($LASTEXITCODE -ne 0) { throw "Detailing validation failed; retain first-failure evidence" }
+      - name: Run only the installed drawing line defaults public gate
+        if: ${{ needs.native-profile.outputs.profile == 'detailing-lines-public' }}
+        timeout-minutes: 31
+        shell: powershell
+        run: |
+          $gatePython = $env:SWCLI_DETAILING_LINES_PYTHON
+          $drawingTemplate = & $gatePython -I scripts/ci/gate_support/drawing_template.py --program-data $env:ProgramData --installation "C:\Program Files\SOLIDWORKS"
+          if ($LASTEXITCODE -ne 0) { throw "Drawing fixture discovery failed" }
+          New-Item -ItemType Directory -Force -Path $env:SWCLI_SMOKE_ROOT | Out-Null
+          & $gatePython -I scripts/ci/run-detailing-lines-calibration.py `
+            --output-dir "$env:SWCLI_SMOKE_ROOT\detailing" `
+            --source-head $env:GITHUB_SHA --wheel $env:SWCLI_DETAILING_LINES_WHEEL `
+            --swconst "C:\Program Files\SOLIDWORKS\swconst.tlb" `
+            --drawing-template $drawingTemplate --public-gate --execute-owned-native
+          if ($LASTEXITCODE -ne 0) { throw "Drawing line defaults public gate failed; retain first-failure evidence" }
+
       - name: Retain original installer logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
@@ -1134,6 +1180,14 @@ jobs:
         if: always()
         shell: powershell
         run: scripts/ci/windows/cleanup-hosted-solidworks.ps1 -PrivateRoot $env:PRIVATE_ROOT -ProbeRoot $env:PROBE_ROOT
+      - name: Retain original drawing line defaults wheel
+        if: ${{ always() && needs.native-profile.outputs.profile == 'detailing-lines-public' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: swcli-detailing-lines-wheel-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}\swcli-detailing-lines-wheel\*.whl
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Retain original detailing validation evidence
         if: always()
         uses: actions/upload-artifact@v7
