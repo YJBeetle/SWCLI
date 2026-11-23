@@ -187,7 +187,15 @@ class FontSourceBundleTests(unittest.TestCase):
         self.assertEqual(first['source_archive_sha256'],second['source_archive_sha256'])
         self.assertFalse(first['plan']['native_executed'])
         self.assertFalse(first['plan']['public_acceptance'])
-        self.assertEqual([g['scope'] for g in first['plan']['groups']],['dimensions','tables'])
+        dimensions, tables = first['plan']['groups']
+        self.assertEqual([dimensions['scope'], tables['scope']], ['dimensions', 'tables'])
+        self.assertIn('<synthetic-dimensions.SLDDRW>', dimensions['fixture'])
+        self.assertNotIn('--inheritance-drawing', tables['fixture'])
+        for group in (dimensions, tables):
+            self.assertIn('--supervision-probe', group['probe'])
+            self.assertEqual(group['command'][-4:], [
+                '--inheritance-drawing', '<qualified-case.path>',
+                '--inheritance-sha256', '<qualified-case.file_sha256>'])
         self.builder.verify(self.root/'first',self.head)
 
     def test_dirty_checkout_wrong_head_or_existing_destination_is_refused(self):

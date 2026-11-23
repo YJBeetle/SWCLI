@@ -102,9 +102,11 @@ class FontFixturePreparationTests(unittest.TestCase):
         made = dict(ok=True, views=[], template={"path": str(self.template)})
         baseline = dict(native_defaults={"four": "original"}, linked_defaults={"five": "original"})
 
+        warning = 0
+
         def save(path, **context):
             Path(path).write_bytes(b"synthetic" * 100)
-            return dict(ok=True, api_saved=True, save_errors=0, save_warnings=None,
+            return dict(ok=True, api_saved=True, save_errors=0, save_warnings=warning,
                         document=dict(modified=False, path=path))
 
         def changed(app, path, digest, constants, scope, call, case, live, *, generated):
@@ -125,6 +127,18 @@ class FontFixturePreparationTests(unittest.TestCase):
             self.assertTrue(self.case["save_verified"])
             self.assertFalse(self.case["success"])
             self.assertEqual(self.case["save"]["document"]["path"], self.case["path"])
+
+            for warning in (None, 1):
+                with self.subTest(save_warnings=warning):
+                    output = self.output / ("warning-" + str(warning))
+                    output.mkdir()
+                    case = {}
+                    reopen.reset_mock()
+                    with self.assertRaisesRegex(RuntimeError, "native fixture save did not produce a clean file"):
+                        worker.run_case(app, output, self.enums, call, case, {},
+                                        scope="tables", template=self.template, manual=None)
+                    reopen.assert_not_called()
+                    self.assertFalse(case["save_verified"])
 
     def test_unexpected_writable_reopen_cannot_qualify_a_fixture(self):
         original = self.output / "manual.SLDDRW"

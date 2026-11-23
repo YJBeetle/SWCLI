@@ -9,6 +9,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+import venv
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,10 +66,17 @@ class FontWindowsSupervisionTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "win32", "requires the Windows process image")
     def test_windows_probe_binds_real_child_and_leaves_no_native_report(self):
         with tempfile.TemporaryDirectory() as folder:
+            prefix = Path(sys.prefix)
+            python = sys.executable
+            if sys.prefix == sys.base_prefix:
+                prefix = Path(folder) / "venv"
+                # Inherit the already installed SWCLI and dependencies without invoking pip.
+                venv.EnvBuilder(system_site_packages=True).create(prefix)
+                python = str(prefix / "Scripts/python.exe")
             output = Path(folder) / "probe"
             common = ["--scope", "tables", "--swconst", "unused.tlb", "--drawing-template", "unused.drwdot"]
             env = {k: v for k, v in os.environ.items() if k != "GITHUB_SHA"}
-            completed = subprocess.run([sys.executable, "-I", str(RUNNER), "--profile", "next-fixture",
+            completed = subprocess.run([python, "-I", str(RUNNER), "--profile", "next-fixture",
                 "--output-dir", str(output), "--source-head", "a" * 40, "--supervision-probe", *common],
                 capture_output=True, timeout=60, env=env)
             self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -76,11 +84,15 @@ class FontWindowsSupervisionTests(unittest.TestCase):
             proof = json.loads((output / "native/supervision.json").read_text(encoding="utf-8"))
             self.assertTrue(receipt["success"])
             self.assertTrue(receipt["supervision_verified"])
+            self.assertIs(receipt["native_executed"], False)
+            self.assertTrue(os.path.samefile(proof["prefix"], prefix))
+            self.assertTrue(os.path.samefile(receipt["supervisor_prefix"], prefix))
+            self.assertFalse(os.path.samefile(proof["prefix"], sys.base_prefix))
             self.assertEqual(receipt["worker_pid"], proof["worker_pid"])
             self.assertEqual(receipt["supervisor_pid"], proof["parent_pid"])
             self.assertFalse((output / "native/report.json").exists())
             direct = Path(folder) / "direct"
-            done = subprocess.run([sys.executable, "-I", str(RUNNER.with_name("prepare-font-scopes-next-fixture.py")),
+            done = subprocess.run([python, "-I", str(RUNNER.with_name("prepare-font-scopes-next-fixture.py")),
                 "--output-dir", str(direct), "--supervision-probe", *common], input=b"", capture_output=True, timeout=30)
             self.assertEqual(done.returncode, 2, done.stderr)
             self.assertIn(b"watchdog launch pipe", done.stderr)

@@ -1,3 +1,10 @@
+# v0.2.5 尺寸与表格字体候选
+
+- 已将发布基线 8408b8a 合入独立候选。生成和继承校准按 SaveAs3 零警告回执核验，便携 Windows 测试覆盖实际 venv 进程链。
+- [有效 CI 路由、样件缺口、排程命令与证据清单](docs/handoffs/font-scopes-v025.md)。
+
+---
+
 # 字体 next Windows 看门狗与安装交接
 
 - 实现 `9d0240cce88eaf656eeb66e15a220aad9da062b9` 固定 scoped Windows 的真实子进程身份，并提供同路径无 COM 探针。

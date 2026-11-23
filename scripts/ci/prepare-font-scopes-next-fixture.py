@@ -163,7 +163,7 @@ def run_case(app, output, constants, call, case, live, *, scope, template, manua
         case["save_attempted"] = True
         saved = case["save"] = call("save-fixture-copy", lambda: save_as_native_windows(str(path), document=document))
         require(saved["ok"] and saved["api_saved"] is True and saved["save_errors"] == 0
-                and saved["save_warnings"] is None and saved["document"]["modified"] is False
+                and saved["save_warnings"] == 0 and saved["document"]["modified"] is False
                 and Path(saved["document"]["path"]).resolve() == path.resolve()
                 and path.is_file() and path.stat().st_size >= 512, "native fixture save did not produce a clean file")
         case["save_verified"] = True

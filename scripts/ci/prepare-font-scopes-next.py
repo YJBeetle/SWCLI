@@ -59,6 +59,22 @@ def tree_hash(files):
 
 
 def plan(head):
+    groups = []
+    runner = ['python', '-I', 'scripts/ci/run-font-scopes-calibration.py']
+    for scope in SCOPES:
+        common = ['--scope', scope, '--source-head', head, '--swconst', '<registered-swconst.tlb>',
+                  '--drawing-template', '<installed-GB.drwdot>']
+        manual = ['--inheritance-drawing', '<synthetic-dimensions.SLDDRW>',
+                  '--inheritance-sha256', '<independently-recorded-sha256>'] if scope == 'dimensions' else []
+        groups.append(dict(
+            scope=scope,
+            probe=runner + ['--profile', 'next-fixture', '--supervision-probe',
+                            '--output-dir', '<fresh-probe-' + scope + '>'] + common + manual,
+            fixture=runner + ['--profile', 'next-fixture', '--output-dir', '<fresh-fixture-' + scope + '>']
+                + common + manual,
+            command=runner + ['--profile', 'internal', '--output-dir', '<fresh-internal-' + scope + '>']
+                + common + ['--inheritance-drawing', '<qualified-case.path>',
+                            '--inheritance-sha256', '<qualified-case.file_sha256>']))
     return dict(evidence_kind='offline-next-preparation', native_executed=False,
         public_acceptance=False, inheritance_acceptance=False, public_new_scopes_enabled=False,
         runtime='native-windows', solidworks_revision='33.5.0', document_types=[1,2,3],
@@ -69,12 +85,10 @@ def plan(head):
         native_timeout_seconds=600, group_timeout_seconds=1800,
         retry_count=0, host_restart_count=0, automatic_rollback=False,
         offline_gate=['python', '-I', 'scripts/ci/verify-font-scopes-next-offline.py', '--source-head', head],
-        groups=[dict(scope=scope, command=['python', '-I', 'scripts/ci/run-font-scopes-calibration.py',
-            '--profile', 'internal', '--scope', scope, '--source-head', head,
-            '--output-dir', '<fresh-evidence-' + scope + '>', '--swconst', '<registered-swconst.tlb>',
-            '--drawing-template', '<installed-GB.drwdot>']) for scope in SCOPES],
+        groups=groups,
         required_evidence=['watchdog.json', 'worker.stdout.log', 'worker.stderr.log',
-            'native/report.json', 'native/trace.jsonl', 'native/*.SLD*', 'native/linked-fonts-*.jsonl'],
+            'native/supervision.json', 'native/report.json', 'native/trace.jsonl',
+            'native/*.SLD*', 'native/linked-fonts-*.jsonl'],
         execution_authorization='not granted by this bundle; root scheduling required',
         dependencies='source only; dependency wheels and SOLIDWORKS runtime are not bundled')
 
