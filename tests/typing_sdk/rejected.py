@@ -52,3 +52,10 @@ client.assembly.targets.validate(snapshot_id="as-test", target_ids=["at-test"], 
 client.assembly.targets.validate(snapshot_id="as-test", target_ids="at-test", document_id="d-ab12cd", expected_update_stamp=7, lease_id="l-ab12cd34ef56")  # E: arg-type
 client.assembly.targets.list(components=["anchor-1", "moving-1"], document_id="d-ab12cd", expected_update_stamp=7, writable=True)  # E: call-arg
 assembly_write_authorized: str = client.assembly.targets.list(components=["anchor-1", "moving-1"], document_id="d-ab12cd", expected_update_stamp=7).require_result()["read_gate"]["write_authorized"]  # E: assignment
+
+
+client.document.detailing_line_option_set(field="auto_center_marks.part_holes", value=True, expected_options={}, document_id="d-ab12cd", expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: arg-type
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value="true", expected_options={}, document_id="d-ab12cd", expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: arg-type
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, expected_update_stamp=0, lease_id="l-ab12cd34ef56")  # E: call-arg
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, document_id="d-ab12cd", lease_id="l-ab12cd34ef56")  # E: call-arg
+client.document.detailing_line_option_set(field="auto_center_lines.enabled", value=True, expected_options={}, document_id="d-ab12cd", expected_update_stamp=0)  # E: call-arg

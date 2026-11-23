@@ -20,6 +20,10 @@ spec.loader.exec_module(gate)
 
 
 class DetailingCLI(AnnotationsCLI):
+    initial_detailing = dict(zip(DETAILING_FIELDS, (False, True)))
+    read_command = "detailing-options"
+    supports_write_enabled = False
+
     def __init__(self, directory, trace):
         super().__init__(directory, directory, trace)
         self.detailing_calls = []
@@ -28,12 +32,15 @@ class DetailingCLI(AnnotationsCLI):
 
     def dispatch(self, args):
         if args.command == "document" and args.document_command.startswith("detailing-"):
+            getters = ["IModelDocExtension.GetUserPreferenceToggle"] * len(self.initial_detailing)
             self.detailing_calls = []
             document = self.documents[args.document_id]
             result = dict(ok=True, action="document." + args.document_command, session_id=args.session,
                           document=self.descriptor(document, args.session))
-            if args.document_command == "detailing-options":
-                self.detailing_calls = ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+            if self.supports_write_enabled:
+                result["write_enabled"] = True
+            if args.document_command == self.read_command:
+                self.detailing_calls = getters.copy()
                 return {**result, "options": deepcopy(document["detailing"])}
             if document["lease"]["session"] != args.session:
                 return self.failure("DocumentLeaseConflict")
@@ -43,7 +50,7 @@ class DetailingCLI(AnnotationsCLI):
             if document["read_only"]:
                 return {**result, **self.failure("ValueError"), "mutation": mutation}
             _, values, *_ = _typed_operation(args)
-            self.detailing_calls = ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+            self.detailing_calls = getters.copy()
             before = deepcopy(document["detailing"])
             if values["expected_options"] != before:
                 return {**result, **self.failure("ValueError"), "mutation": mutation, "field": args.field, "before": before}
@@ -54,11 +61,11 @@ class DetailingCLI(AnnotationsCLI):
                 if self.detailing_defect == "setter-failed":
                     return {**result, **self.failure("RuntimeError"), "mutation": {"attempted": True, "may_have_changed": True}}
                 document["detailing"][args.field] = values["value"]
-                self.detailing_calls += ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+                self.detailing_calls += getters
                 if not document["modified"]:
                     self.detailing_calls += ["IModelDoc2.SetSaveFlag"]
                 document["modified"] = True
-                self.detailing_calls += ["IModelDocExtension.GetUserPreferenceToggle"] * 2
+                self.detailing_calls += getters
             result.update(field=args.field, before=before, options=deepcopy(document["detailing"]), changed=changed,
                           mutation={"attempted": changed, "may_have_changed": changed},
                           document=self.descriptor(document, args.session))
@@ -74,9 +81,9 @@ class DetailingCLI(AnnotationsCLI):
                 document["type"] = 3
                 result["document"]["type"] = 3
                 result["views"] = []
-            document.setdefault("detailing", dict(zip(DETAILING_FIELDS, (False, True))))
+            document.setdefault("detailing", deepcopy(self.initial_detailing))
             if args.document_command == "open" and args.read_only and self.detailing_defect == "persistence-lost":
-                document["detailing"] = dict(zip(DETAILING_FIELDS, (False, True)))
+                document["detailing"] = deepcopy(self.initial_detailing)
         return result
 
     def run(self, command, **keywords):
