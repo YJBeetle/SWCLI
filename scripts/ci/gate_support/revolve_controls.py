@@ -89,7 +89,7 @@ def verify_control_trace(path):
 
 def run_controls(backend, evidence, source_commit):
     report = dict(success=False, profile='internal-revolve-direction-controls-v1', source_commit=source_commit,
-        public_acceptance=False, full_acceptance_eligible=False, public_write_gate='closed', matrix_enabled=False,
+        public_acceptance=False, full_acceptance_eligible=False, public_write_gate='calibrated-scope-only', matrix_enabled=False,
         planned_controls=control_plan(), controls=[], native_timeout_seconds=600, group_timeout_seconds=1800,
         case=deepcopy(CASE), cleanup_errors=[], evidence_errors=[])
     backend.call = evidence.call

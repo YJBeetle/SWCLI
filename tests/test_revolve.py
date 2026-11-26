@@ -317,12 +317,12 @@ class DaemonGuardTests(unittest.TestCase):
         retire.assert_called_once()
 
     def test_partial_refusal_precedes_activation_adapter_and_entity_retirement(self):
-        values = dict(VALUES, angle_deg=90)
+        values = dict(VALUES, angle_deg=60)
         with mock.patch.object(worker, 'create_revolve_windows_with_handle') as adapter, \
              mock.patch.object(self.entry.entities, 'retire_scope') as retire:
             result = self.call(values=values)
         validate_operation_result('feature.revolve', result)
-        self.assertEqual(result['angle_deg'], 90)
+        self.assertEqual(result['angle_deg'], 60)
         self.assertEqual(result['error']['type'], 'RevolveNotCalibrated')
         self.assertFalse(any(result['mutation'].values()))
         self.activate.assert_not_called()
@@ -334,7 +334,7 @@ class DaemonGuardTests(unittest.TestCase):
     def test_partial_refusal_preserves_lease_stamp_and_reference_guards(self):
         from swcli.daemon.operations import DocumentUpdateConflict
         from swcli.daemon.documents import DocumentLeaseConflict
-        values = dict(VALUES, angle_deg=180)
+        values = dict(VALUES, angle_deg=60)
         with self.assertRaises(DocumentUpdateConflict):
             self.call(values=values, expected_update_stamp=13)
         self.resolve.side_effect = ValueError('unknown sketch')

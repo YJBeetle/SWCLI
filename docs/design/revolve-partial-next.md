@@ -131,3 +131,23 @@ V/S 保持 rel_tol=1e-8、abs_tol=1e-6，质心 abs_tol=1e-6 mm，不放宽旧�
 
 Windows 包使用独立的 `C:\Workspace\revolve-controls-v025`，按包内 `WINDOWS.md` 安装并运行本地 `--controls`。
 独立 GitHub 原生 workflow 仍只提供原先的方向单例，不纳入本次对照环境的排程。
+
+## 2026-11-27 对照原件与公开 CLI 候选
+
+候选 `656f1ea` 的十项原生对照已在 Windows SOLIDWORKS 33.5.0 通过并复核。
+九个拒绝前后状态相同，trace 无旋转选择或创建。末例实际调用一次 `FeatureRevolve2`，
+在读取定义时触发预设错误，保留同一原生特征。实际 `SaveAs3` 成功，错误、警告均为整数 0。
+只读重开验证定义、轴顺序、单体物性和原文件 SHA256，宿主 6916 正常退出。
+[对照原件摘要及哈希](../evidence/revolve-controls-vm-2026-11-27.json)
+
+公开 CLI 候选只接受前视、上视、右视三个原点平面上的 45°、90°、180°、270° 离散部分角度，
+草图须为左边界 X=0、右边界 X=10、Y=-5..15 mm 的 10 × 20 mm 中心矩形，局部轴从下到上为 +Y，
+单向扫掠从局部 +X 朝 −Z。仅限原生 Windows SOLIDWORKS 33.5.0、单配置、无已有实体的可写零件。
+公开成功回执核对真实角度、轴端点顺序、平面、单体物性和诊断。其他部分角度或尺寸在激活前返回
+`RevolveNotCalibrated` 和零 mutation。已有 360° 路径沿用原有范围。
+
+使用同一安装 wheel 调用 `verify-revolve-public.py --partial-plane front|top|right`，每组使用独立输出目录
+及一个独占 daemon/宿主。按 90°、45°、180°、270° 各新建空零件，通过公开 CLI 挑战文档、lease、stamp、
+未知角度、未校准尺寸及实际草图 CAS，随后核原生定义、轴端点、质量属性、保存、只读重开、可编辑特征、
+吸收草图和哈希。每组要求恰好四次原生创建和空的退出进程清单。组内首错停止。
+公开 CLI Windows 验收尚待统筹排程，既有 12 例和十项对照分别保留各自的原生来源。

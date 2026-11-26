@@ -690,7 +690,8 @@ for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
 
 OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
-    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; writes calibrated for 360 degrees only)"
+    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; "
+    "360 degrees or 45/90/180/270 degrees for bounds [0, -5, 10, 15] mm)"
 )
 OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 

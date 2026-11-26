@@ -7,7 +7,10 @@ No retries, rollback, save, implicit sketch edit or preference changes.
 import math
 
 from ..revolve_geometry import (validate_revolve_intent, cylinder_expectation,
-                                verify_cylinder_metrics, sector_expectation, verify_sector_metrics)
+                                verify_cylinder_metrics, sector_expectation, verify_sector_metrics,
+                                PARTIAL_REVOLVE_ANGLES, PARTIAL_REVOLVE_AXIS_DIRECTION,
+                                PARTIAL_REVOLVE_ROTATION_SIGN, calibrated_revolve_frame,
+                                public_revolve_intent_supported)
 from .native_trace import native_call
 from .windows import _com_value, _error
 from .windows_documents import _diagnose_features
@@ -25,11 +28,6 @@ from .windows_sketches import _unabsorbed_profile
 # sha256:69aca5b8480ed3f14547ba36e85a23730b042068c32854b6e87541fa1eeb3ac1.
 _CALIBRATED_CONSTANTS = {"swEndCondBlind": 0, "swThinWallOneDirection": 0,
                          "swRevolveTypeOneDirection": 0, "swSelSKETCHSEGS": 10}
-_CALIBRATED_FRAMES = (
-    (1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0),
-    (1,0,0,0,0,1,0,-1,0,0,0,0,1,0,0,0),
-    (0,0,1,0,1,0,-1,0,0,0,0,0,1,0,0,0),
-)
 
 
 def _native_constants(app):
@@ -111,21 +109,20 @@ def observe_revolve_definition(app, document, feature, axis, constants, evidence
 
 
 def partial_revolve_refusal(expected_profile_mm, axis_mm, angle_deg):
-    """Public closed-domain receipt; callable before foreground activation."""
+    """Refusal receipt for an unevidenced public intent, before foreground activation."""
     validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg)
     return dict(ok=False, action="feature.revolve", expected_profile_mm=list(expected_profile_mm),
         axis_mm=list(axis_mm), angle_deg=angle_deg,
         mutation=dict(attempted=False, creation_returned=False, may_have_changed=False),
         cleanup_errors=[], error=dict(type="RevolveNotCalibrated",
-        message="partial-angle revolve has no native direction/save-reopen evidence; public writes remain closed"))
+        message="partial revolve requires 45, 90, 180 or 270 degrees and bounds [0, -5, 10, 15] mm"))
 
 
 def create_revolve_windows_with_handle(*, app, document, sketch_feature,
         expected_profile_mm, axis_mm, angle_deg):
     """Use only the version/platform and profile proven by native calibration."""
     validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg)
-    # Partial-angle public allowlist is empty. Refuse before any COM observation.
-    if angle_deg != 360:
+    if not public_revolve_intent_supported(expected_profile_mm, angle_deg):
         return partial_revolve_refusal(expected_profile_mm, axis_mm, angle_deg), None
     constants = _native_constants(app)
     if constants is None:
@@ -133,10 +130,16 @@ def create_revolve_windows_with_handle(*, app, document, sketch_feature,
             mutation=dict(attempted=False, creation_returned=False, may_have_changed=False),
             cleanup_errors=[], error=dict(type="RevolveNotCalibrated",
             message="bounded revolve is calibrated only for native Windows SOLIDWORKS revision 33.5.0")), None)
-    return _calibrate_revolve_windows_with_handle(
+    result, feature = _calibrate_revolve_windows_with_handle(
         app=app, document=document, sketch_feature=sketch_feature,
         expected_profile_mm=expected_profile_mm, axis_mm=axis_mm, angle_deg=angle_deg,
-        constants=constants)
+        constants=constants, rotation_sign=PARTIAL_REVOLVE_ROTATION_SIGN,
+        axis_direction=PARTIAL_REVOLVE_AXIS_DIRECTION)
+    result.pop("candidate", None)
+    points = result.get("definition", {}).get("axis_points_mm")
+    if points is not None:
+        result["definition"]["axis_points_mm"] = [list(point) for point in points]
+    return result, feature
 
 
 def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
@@ -160,7 +163,7 @@ def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
     try:
         validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg)
         if angle_deg != 360:
-            _require(angle_deg in (45, 90, 180, 270) and
+            _require(angle_deg in PARTIAL_REVOLVE_ANGLES and
                      type(rotation_sign) is int and rotation_sign in (-1, 1) and
                      type(axis_direction) is int and axis_direction in (-1, 1),
                      "UnsupportedRevolveCalibration",
@@ -207,8 +210,7 @@ def _calibrate_revolve_windows_with_handle(*, app, document, sketch_feature,
             _require((observed_axis[1][1] - observed_axis[0][1]) * axis_direction > 0,
                      "RevolveAxisMismatch", "ordered axis disagrees with preregistered direction")
         transform = list(_com_value(_com_value(sketch, "ModelToSketchTransform"), "ArrayData"))
-        _require(len(transform) == 16 and any(all(math.isclose(a, b, rel_tol=0, abs_tol=1e-12)
-                     for a, b in zip(transform, frame)) for frame in _CALIBRATED_FRAMES),
+        _require(calibrated_revolve_frame(transform),
                  "UnsupportedRevolvePlane", "only the three calibrated origin-plane frames are supported")
         expected = (cylinder_expectation(expected_profile_mm, transform) if angle_deg == 360 else
                     sector_expectation(expected_profile_mm, transform, angle_deg, rotation_sign=rotation_sign))

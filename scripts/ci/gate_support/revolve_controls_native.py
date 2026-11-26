@@ -128,7 +128,7 @@ class NativeControlsBackend(NativeBackend):
         if name == 'public-missing-sketch':
             sketch_id = 's-000000' if sketch_id != 's-000000' else 's-000001'
         values = dict(sketch_id=sketch_id, expected_profile_mm=case['bounds_mm'], axis_mm=case['axis_mm'],
-                      angle_deg=case['angle_deg'])
+                      angle_deg=60 if name == 'public-closed-angle' else case['angle_deg'])
         row.update(feature_handle_retained=False, dispatcher_exception=False)
         try:
             receipt = execute_operation(self.app, 'feature.revolve', values, documents=registry,

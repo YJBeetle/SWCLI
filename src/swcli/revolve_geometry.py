@@ -3,6 +3,29 @@
 import math
 
 TOLERANCE_MM = 1e-6
+PARTIAL_REVOLVE_ANGLES = (45, 90, 180, 270)
+PARTIAL_REVOLVE_BOUNDS_MM = (0, -5, 10, 15)
+PARTIAL_REVOLVE_AXIS_DIRECTION = 1
+PARTIAL_REVOLVE_ROTATION_SIGN = -1
+CALIBRATED_REVOLVE_FRAMES = (
+    (1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0),
+    (1,0,0,0,0,1,0,-1,0,0,0,0,1,0,0,0),
+    (0,0,1,0,1,0,-1,0,0,0,0,0,1,0,0,0),
+)
+
+
+def public_revolve_intent_supported(bounds_mm, angle_deg):
+    """Supported subset of already validated requests."""
+    return angle_deg == 360 or (
+        angle_deg in PARTIAL_REVOLVE_ANGLES and tuple(bounds_mm) == PARTIAL_REVOLVE_BOUNDS_MM
+    )
+
+
+def calibrated_revolve_frame(transform):
+    return len(transform) == 16 and any(
+        all(math.isclose(a, b, rel_tol=0, abs_tol=1e-12) for a, b in zip(transform, frame))
+        for frame in CALIBRATED_REVOLVE_FRAMES
+    )
 
 
 def validate_revolve_intent(expected_profile_mm, axis_mm, angle_deg):

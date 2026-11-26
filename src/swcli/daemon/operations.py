@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from ..revolve_geometry import public_revolve_intent_supported
 from ..operation_schemas import (
     OPERATIONS,
     OPERATION_SCHEMAS,
@@ -1847,7 +1848,9 @@ def execute_operation(
                 raise UnsupportedDimensionKind(
                     "unsupported native dimension/profile binding"
                 )
-    if operation == "feature.revolve" and values["angle_deg"] != 360:
+    if operation == "feature.revolve" and not public_revolve_intent_supported(
+        values["expected_profile_mm"], values["angle_deg"]
+    ):
         from ..hosts.windows_revolves import partial_revolve_refusal
 
         result = partial_revolve_refusal(values["expected_profile_mm"], values["axis_mm"], values["angle_deg"])

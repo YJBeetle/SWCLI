@@ -9,7 +9,7 @@ from swcli.hosts import windows_revolves as worker
 from swcli.operation_schemas import validate_operation_request
 from swcli.result_schemas import validate_operation_result, OperationResultInvalid
 from swcli.revolve_geometry import (validate_revolve_intent, cylinder_expectation,
-                                   sector_expectation, verify_sector_metrics)
+                                   sector_expectation, verify_sector_metrics, CALIBRATED_REVOLVE_FRAMES)
 import test_revolve as base
 from test_revolve import IDENTITY, VALUES
 
@@ -33,7 +33,7 @@ class SectorOracleTests(unittest.TestCase):
     def test_all_origin_frames_transform_the_signed_centroid(self):
         d = 40/(3*math.pi)
         centers = ((d,5,d), (d,d,-5), (d,5,-d))
-        for frame, center in zip(worker._CALIBRATED_FRAMES, centers):
+        for frame, center in zip(CALIBRATED_REVOLVE_FRAMES, centers):
             expected = sector_expectation([0,-5,10,15], frame, 90, rotation_sign=1)
             for axis, value in zip('xyz', center):
                 self.assertAlmostEqual(expected['centroid_mm'][axis], value)
@@ -66,9 +66,11 @@ class SectorOracleTests(unittest.TestCase):
 
 
 class PublicPartialGateTests(unittest.TestCase):
-    def test_all_partial_requests_close_even_with_a_proven_native_version(self):
-        for angle in (1e-10,45,90,123.456,180,270,math.nextafter(360,0)):
-            values = dict(VALUES, angle_deg=angle)
+    def test_unevidenced_partial_requests_refuse_before_native_version_or_selection(self):
+        intent = [dict(VALUES, angle_deg=angle)
+                  for angle in (1e-10, 60, 123.456, math.nextafter(360,0))]
+        intent.append(dict(VALUES, angle_deg=90, expected_profile_mm=[0,-5,11,15]))
+        for values in intent:
             validate_operation_request('feature.revolve', values, document_id='d-ab12cd', expected_update_stamp=1)
             with mock.patch.object(worker,'_native_constants',side_effect=AssertionError('COM platform read')), \
                  mock.patch.object(worker,'_calibrate_revolve_windows_with_handle') as candidate:
@@ -82,7 +84,7 @@ class PublicPartialGateTests(unittest.TestCase):
             self.assertEqual(result['error']['type'],'RevolveNotCalibrated')
             candidate.assert_not_called()
 
-    def test_partial_cannot_be_promoted_to_public_success(self):
+    def test_public_success_requires_evidenced_bounds_frame_direction_and_matching_geometry(self):
         from test_result_schemas import DOCUMENT
         from test_windows_features import DIAGNOSTICS
         result = dict(ok=True,action='feature.revolve',document=DOCUMENT,**VALUES,
@@ -94,9 +96,27 @@ class PublicPartialGateTests(unittest.TestCase):
             expected_metrics=cylinder_expectation([0,-5,10,15],IDENTITY),
             metrics=cylinder_expectation([0,-5,10,15],IDENTITY))
         validate_operation_result('feature.revolve',result)
-        result['angle_deg'] = 90
-        with self.assertRaises(OperationResultInvalid):
-            validate_operation_result('feature.revolve',result)
+        for frame in CALIBRATED_REVOLVE_FRAMES:
+            for angle in (45, 90, 180, 270):
+                expected = sector_expectation(VALUES['expected_profile_mm'], frame, angle, rotation_sign=-1)
+                confirmed = deepcopy(result)
+                confirmed.update(angle_deg=angle, model_to_sketch_transform=list(frame),
+                                 expected_metrics=expected, metrics=deepcopy(expected))
+                confirmed['definition'].update(angle_rad=math.radians(angle),
+                                               axis_points_mm=[[0,-5,0],[0,15,0]])
+                validate_operation_result('feature.revolve',confirmed)
+        for break_evidence in (
+                lambda r: r.update(angle_deg=60),
+                lambda r: r.update(expected_profile_mm=[0,-5,11,15]),
+                lambda r: r.update(model_to_sketch_transform=[-1,*IDENTITY[1:]]),
+                lambda r: r['definition'].pop('axis_points_mm'),
+                lambda r: r['definition']['axis_points_mm'].reverse(),
+                lambda r: r['definition'].update(angle_rad=math.pi),
+                lambda r: r['metrics']['centroid_mm'].update(z=3)):
+            altered = deepcopy(confirmed)
+            break_evidence(altered)
+            with self.assertRaises(OperationResultInvalid):
+                validate_operation_result('feature.revolve',altered)
 
 
 class PartialCandidateTests(unittest.TestCase):
@@ -109,6 +129,26 @@ class PartialCandidateTests(unittest.TestCase):
         self.definition.GetRevolutionAngle = lambda forward: math.radians(angle)
         worker.measure_part_windows.return_value = dict(ok=True,
             metrics=sector_expectation([0,-5,10,15],IDENTITY,angle,rotation_sign=sign))
+
+    def test_public_adapter_preserves_verified_axis_and_post_creation_failure(self):
+        for injected_failure in (None, RuntimeError('first definition observation failure')):
+            self.document.GetBodies2.return_value=()
+            self.prepare(sign=-1)
+            with mock.patch.object(worker,'_native_constants',return_value=base.CONSTANTS):
+                if injected_failure:
+                    self.definition.AccessSelections.side_effect=injected_failure
+                result,feature=worker.create_revolve_windows_with_handle(
+                    app=self.app,document=self.document,sketch_feature=self.sketch_feature,
+                    expected_profile_mm=VALUES['expected_profile_mm'],axis_mm=VALUES['axis_mm'],angle_deg=90)
+            self.assertIs(feature,self.feature)
+            self.assertNotIn('candidate',result)
+            self.assertTrue(all(result['mutation'].values()))
+            self.assertEqual(result['ok'],injected_failure is None)
+            if injected_failure is None:
+                self.assertEqual(result['definition']['axis_points_mm'],[[0,-5,0],[0,15,0]])
+            else:
+                self.assertEqual(result['error'],dict(type='RuntimeError',message=str(injected_failure)))
+        self.assertEqual(self.create.call_count,2)
 
     def test_discrete_candidates_use_exact_radians_and_ordered_axis_readback(self):
         for angle in (45,90,180,270):
