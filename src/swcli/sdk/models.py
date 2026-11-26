@@ -2849,6 +2849,7 @@ class FeatureRevolveResultFeature(TypedDict, total=False):
 
 class FeatureRevolveResultDefinition(TypedDict, total=False):
     cleanup_errors: List[DocumentCreateResultCleanupErrorsItem]
+    axis_points_mm: List[List[float]]
     angle_rad: Union[float, None]
     reverse: Union[bool, None]
     kind: Union[int, None]

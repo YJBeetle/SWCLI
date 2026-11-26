@@ -909,6 +909,94 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 合并保留 main 现有 STL、单位、字体、表格、拓扑和 MCP/SDK；专项公共验证入口 step-export.yml 不新增 main 手动参数。历史原件诊断 CI 定义作为只读证据归档，不再加入 main 的手动菜单。
 - 本系列未发布；GLB/旧 API/配合等现有未完成项仍需闭环，发布前由用户最终确认。
 
+
+## 旋转 next：部分角度首轮（原生未执行）
+
+基于统筹指定 `31ad9c256a5a106bc94a627cd41dfd6277bb6f00` 新建
+`codex/swcli-revolve-feature-next`。只扩展现有矩形/左边轴旋转的部分角度候选。
+解析 sector V/S/带符号质心、私有45/90/180/270°参数与轴顺序/定义回读、公开零mutation拒写已实现。
+公共成功合同仍仅360°；部分角度在临时激活前关闭。未改原默认CI、旧360°报告、版本或发布范围。
+
+本轮只做 portable；没有操作本地VM、COM、手动原生dispatch，没有新增原生模型或save/reopen证据。
+方向映射、四离散角度×三原点平面、保存只读重开、原生拒写/partial与公共端到端仍待后续排期与原件审阅，
+不宣称 merge-ready。详见 [部分角度设计与定向排期](docs/design/revolve-partial-next.md)。
+
+
+首轮实现提交 `f900b05a9b52191cec6e1df3981c4af4966fcaf8`。
+已安装当前worktree的临时Python3.15.2环境：完整portable **2980项通过、39跳过**（115.916秒），
+旋转专项40项通过；SDK生成/严格实现类型/33项负消费通过，8文件通过Python3.9语法解析，diff检查通过。
+初次未安装包导致的1失败/14错误及SDK缺包检查已保留，安装后完整重跑通过；没有为此修改产品行为。
+日志原件在 `evidence/revolve-partial-next/portable-first-pass/`（ignored），
+摘要与被测文件/日志SHA256在 [首轮便携证据](docs/evidence/revolve-partial-next-portable-2026-11-14.json)。
+
+下一步须由统筹安排：先准备新分支精确head的独立有界原生harness/默认关闭路由，再跑预声明方向单例；
+通过并审阅后才排离散角度/平面、保存只读重开与partial controls。现有CI旧分支开关不能作为next原生入口。
+本路不会自行dispatch；公共部分角度仍拒写，不具备merge-ready或发布结论。
+
+
+## 旋转 next：独立方向单例准备增量（未执行原生）
+
+按统筹后续授权，在同一next分支补齐 `verify-revolve-partial-next.py`、独立可注入协议/native backend、
+默认false的 `native_revolve_direction` 路由和完整 `revolve_direction_head` 守护。
+只允许next分支手动单例，前置拒绝错误head/ref及其他scope混选，独立 `revolve-direction-next.yml` 复用既有安装/清理脚本和原件约定，独立并发组。
+主ci.yml原文保持不变，其25个dispatch输入不增；新workflow只读权限且没有release job。
+唯一预声明front/90°/+Y轴/向-Z旋转；先落盘再启动host，创建一次，保存只读重开，600/1800预算。
+
+离线新增控制验证首因、partial、actual先落盘、磁盘异常、cleanup、PID复用、超时与空绿拒绝；
+产品 `src/swcli/` 没有本轮改动，公开部分角度写白名单仍为空。
+详见 [方向单例harness](docs/design/revolve-direction-harness.md)。没有连接VM/COM、没有原生dispatch，
+矩阵入口未接入，等待统筹亲审及单独运行排程；旋转后续能力仍排除当前发布。
+
+
+方向单例准备实现提交 `b841ef451a0aa671454c6bfee8c05c86bf275596`。
+最终portable **3002项通过/39跳过**（120.001秒），旋转专项62项，CI回归56项/8skip和旧units并发15项通过，
+SDK生成/严格类型/33负消费通过；Python3.9语法6文件及全部workflow YAML解析通过。
+精确源守护的纯文件正向检查通过118个Python模块（当前editable安装，不能替代native wheel证据）。
+首次共享workflow27输入/旧并发顺序的3项失败已保留，最终独立两输入workflow、主CI原文恢复、旧测试未放宽。
+[准备证据及SHA256](docs/evidence/revolve-direction-preparation-2026-11-14.json)；
+原件在 `evidence/revolve-partial-next/direction-harness-preparation/`。
+CI仅push轻量注册与常规portable，不等待、不轮询；原生单例需统筹另行排程许可，后续矩阵与当前发布边界不变。
+
+
+## 旋转 next：2026-11-21 排程前复核
+
+现行远端 main `7400b2c615da5017f819ab8c13c194b4445fd75b` 没有改变相关旋转输入与单例运行依赖。
+候选的部分角度公开写入继续在临时激活前返回 `RevolveNotCalibrated`，无 mutation。方向单例保留 front、90°、+Y 轴、
+从 +X 转向 −Z 的预声明假设。修复 `b03a2a2a50ff81f66246e2d080c4b21c66ff636d` 保留原生测量失败回执与首因。
+
+重启后从持久目录构建并安装候选 wheel。全量 3003 项（31 跳过）、旋转专项 63 项、路由专项 4 项及 SDK 检查通过。
+wheel 的 118 个 Python 模块 SHA256 与源码一致，原始 360° ZIP 哈希复核一致。新证据位于
+`evidence/revolve-partial-next/readiness-2026-11-21/`，入口与资源窗口见 [方向单例验收命令](docs/design/revolve-direction-harness.md)。
+
+GitHub 已登记 workflow `417704126`，`main` 尚无该文件，手动 dispatch 尚未验证。单次安装型原生验证预留 35–45 分钟
+（队列另计），worker 总预算 1800 秒，单例与各原生边界上限 600 秒。下一次执行由统筹安排。部分角度公开验收仍待原生原件，
+本轮没有执行 Windows VM、COM 或手动原生 CI，也未纳入当前发版。
+
+
+## 旋转 next：方向单例原生通过与矩阵准备
+
+2026-11-21 统筹在原生 Windows SW 33.5.0 对 `116de8e8d1699ce72521dd5f38cf1701c0b110e1` 单次确认
+前视 90°、轴 +Y、朝局部 −Z 扫掠。一次 `FeatureRevolve2`，创建与只读重开物性相同，SLDPRT 字节 SHA256
+`2c6dc1ab25627a80c1aa3a3619863237104d08197ab0361739d837e85532664b`，独占进程退出。原生 report/stdout 成功。
+外层 zsh 在收集 guest 文件后遇只读 `status`，没有传输退出码。原件已逐字节复制至
+`evidence/revolve-partial-next/native-singleton-2026-11-21/`，见 [证据摘要](docs/evidence/revolve-direction-vm-2026-11-21.json)。
+
+本地 `--matrix-plane` 已准备固定 45/90/180/270° × front/top/right，每次仅一组同平面四例，按 90°、45°、180°、270°。
+继续用独占宿主、每角度独立空 part、600/1800 秒预算、首错停止、逐例保存与只读重开。CI 仍为单例。
+矩阵 尚未原生运行，原生拒写/partial 对照后置于矩阵原件，公开部分角度写域继续关闭。
+
+
+## 旋转 next：三平面矩阵通过与拒写对照准备
+
+统筹在 `ca0ea488a04137fe33a733ca69d26c3845cad166` / SW 33.5.0 跑完三平面四角度，共 12 个原生模型。
+复核了逐例定义、方向、体积、表面积、质心、只读重开和模型 SHA256，驱动/传输六个退出码均为 0。
+60 个原件归档在 `evidence/revolve-partial-next/native-matrix-2026-11-21/`，见 [矩阵摘要](docs/evidence/revolve-matrix-vm-2026-11-21.json)。
+
+本地 `--controls` 离线就绪，含 9 个预声明拒写及 1 个已创建后观察异常、保存/只读重开的对照。
+公开操作分派检查闭域、stamp、lease、引用。私有候选检查轮廓 CAS、只读、已有实体、偏移面、轴方向。
+前后快照和原生 trace 要求拒写零创建、partial 恰好一次创建。600/1800 秒预算与终止规则沿用。
+尚待统筹排程和原件审核，公共部分角度写域与本次发布范围继续保持原边界。
+
 ## 2026-11-15：主线基线上的active assembly全目标readonly候选
 
 - 新持久worktree `/Users/YJBeetle/.codex/worktrees/swcli-assembly-mates-active/SWCLI`，branch codex/swcli-assembly-mates-active，精确origin/main31ad9c2起点；新worktree admin SWCLI20/config.worktree独立core.worktree绝对路径，未改shared/global或旧SWCLI12/mainSWCLI16。旧诊断分支c63c213和evidence保留，33/31有限证据复制JSON/MD，原件hash已复核。
@@ -927,3 +1015,10 @@ public总1355.766s/原600-1800边界，SW PID9208 raw短名33真实展开expecte
 - 原始身份在准入前持久化，strict typed OpenDoc flags/warnings和same STA；deadline后只exact拥有Python，不kill CAD/不加CAD预算。所有原始/next-clock样本、completed-span600/终态完整trace、严格held rawexit和unknown None保留，report/trace/files次错及必要COM释放/traceback GC有反例。两层异步持久mirror和逐fileSHA收据，未知copy不成功。
 - 110相关通过（adapter22+census/reader30+main58），日志 /private/tmp/swcli-active-target-adapter-related-20261115.log；AST/Python3.9/diff通过。新完整515项manifest SHA `a67792386c45ca0c9eb5dc11fe2e9850f16c45c2cee04963878379a17e5ea219`，旧现代cfg e21fa原字节保留，符号级来源原件SHA见adapter-provenance JSON。提交后逐Git blob核验。
 - 仅本地代码/测试/文档/中文提交，无VM/COM/CAD/CI/push/包/grant或native33重跑；root亲审最终head后统一打包/排期。公共typed句柄/CAS/配合写与保存重开仍未实现/未验证，原31/33有限证据不改。
+
+## 旋转 next：v0.2.5 基线对照就绪复核
+
+候选分支合入 `8408b8a657b6fdfb05dd47422cd5cdea9010a056`，并保留精确 `46a3277` 对照历史与 `ca0ea48` 原生矩阵证据。
+九项拒写和一次部分修改对照在新版上要求现代 SaveAs3 的真实无警告保存回执，重开失败时保留已记录的保存和错误。
+下一次由统筹在空闲独占 Windows 宿主上执行本地 `--controls`，单例边界 600 秒、worker 1800 秒。
+本分支尚待该次原生对照，仍关闭公共部分角度写入。

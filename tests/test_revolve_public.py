@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 import tempfile
@@ -39,6 +40,33 @@ class SavedProfileOracleTests(unittest.TestCase):
             changed=profile();edit(changed)
             with self.subTest(edit=edit),self.assertRaises(RuntimeError):
                 gate.verify_saved_profile(changed,[0,-5,10,15],IDENTITY)
+
+    def test_saved_partial_profile_keeps_native_axis_order(self):
+        saved = profile()  # This fixture closes the rectangle from top-left to bottom-left.
+        axis = [[0,-5,0],[0,15,0]]
+        with self.assertRaisesRegex(RuntimeError,'ordered left-edge axis'):
+            gate.verify_saved_profile(saved,[0,-5,10,15],IDENTITY,directed_axis=axis)
+        left = saved['segments'][3]['geometry']
+        left['start_mm'],left['end_mm'] = left['end_mm'],left['start_mm']
+        gate.verify_saved_profile(saved,[0,-5,10,15],IDENTITY,directed_axis=axis)
+
+    def test_partial_trace_rejects_missing_duplicate_or_refused_native_creation(self):
+        rows = [dict(event='swcli.native-call', operation='feature.revolve',
+                     request_id=str(index),call=call,phase=phase)
+                for index in range(4)
+                for call in ('Sketch.Select2','Axis.Select4','FeatureRevolve2','read-definition')
+                for phase in ('begin','end')]
+        refused = dict(rows[0],request_id='refused')
+        with tempfile.TemporaryDirectory() as directory:
+            trace = Path(directory)/'daemon.log'
+            def write(events):
+                trace.write_text(''.join(json.dumps(row)+'\n' for row in events))
+            write(rows)
+            self.assertEqual(gate.verify_partial_trace(trace),['0','1','2','3'])
+            for bad in (rows[:-1], rows+rows[:2], [refused]+rows):
+                write(bad)
+                with self.assertRaises(RuntimeError):
+                    gate.verify_partial_trace(trace)
 
     def test_shutdown_failure_preserves_the_first_group_error(self):
         first=RuntimeError('first startup failure')

@@ -1,5 +1,9 @@
 # 有界旋转凸台：第一步候选与校准
 
+> 本文保留第一步的历史阶段记录。360°最终公开验收结论见 [旋转交接](../handoffs/revolve.md)；
+> 下一阶段部分角度实现与尚未执行的原生计划见 [部分角度设计](revolve-partial-next.md)。
+> next 分支接受部分角度请求并零mutation拒写，公共成功写入范围仍仅360°。
+
 状态：内部原生校准及独立原始产物核验通过，公共写入仅对原生 Windows / SOLIDWORKS
 `33.5.0` 开放以下范围；Wine、其他版本或不可辨认平台返回 `RevolveNotCalibrated`。
 公开 CLI/daemon 原生验收待执行，merge-ready=false。内部成功不等于公开验收。

@@ -1,0 +1,65 @@
+{
+  "kind": "portable-only-revolve-partial-next",
+  "branch": "codex/swcli-revolve-feature-next",
+  "baseline": "31ad9c256a5a106bc94a627cd41dfd6277bb6f00",
+  "source_commit": "f900b05a9b52191cec6e1df3981c4af4966fcaf8",
+  "python": "3.15.2",
+  "portable": {
+    "tests": 2980,
+    "skipped": 39,
+    "seconds": 115.916,
+    "success": true
+  },
+  "revolve_targeted": {
+    "tests": 40,
+    "success": true
+  },
+  "sdk": {
+    "generator_check": true,
+    "strict_source_files": 6,
+    "negative_consumers": 33,
+    "success": true
+  },
+  "python39_syntax_files": 8,
+  "public_partial_write_allowlist": [],
+  "private_candidate_angles_deg": [
+    45,
+    90,
+    180,
+    270
+  ],
+  "native_execution": false,
+  "vm_used": false,
+  "manual_native_dispatch": false,
+  "native_save_reopen_evidence": false,
+  "initial_environment_failure": {
+    "cause": "current package not installed in temporary venv; isolated -I child imports failed and mypy ignored missing imports",
+    "portable_failures": 1,
+    "portable_errors": 14,
+    "resolved_by": "install current worktree editable, then rerun complete suite and SDK checks"
+  },
+  "logs": {
+    "evidence/revolve-partial-next/portable-first-pass/initial-uninstalled-portable.log": "ae5089bda8010fbddf2371f3f7710ae88d2553297553ec3531b19d1825a2fa68",
+    "evidence/revolve-partial-next/portable-first-pass/initial-uninstalled-sdk.log": "b0db9fe228cb33d2ac99e4e1854ee772470b7c29b92772bf8720d0aa6a85b33b",
+    "evidence/revolve-partial-next/portable-first-pass/portable-installed.log": "da9d9854b0fb1c8ef4b4141b7e2dbaec9eb7dc50ce9a344157a8c13ccd1f3eb6",
+    "evidence/revolve-partial-next/portable-first-pass/sdk-installed.log": "a7dc61ae1411503643173af4f2bf40d54c209af02234cd4a67cc3e151f0476d1",
+    "evidence/revolve-partial-next/portable-first-pass/targeted.log": "8b15db6bb5855dd8f08993c725164cd7c3fe0140731dc17e10e6833aa9c27f5e"
+  },
+  "tested_files_sha256": {
+    "src/swcli/cli.py": "2d618ae20dad1bf9939ea329c93abda6eba78b1e18b8c35b4b05f19e7fc8aefe",
+    "src/swcli/daemon/operations.py": "c1c4375cbe631203517541f04e2ca4c10647e322d859702abe208b6256df48a8",
+    "src/swcli/hosts/windows_revolves.py": "7fcc602131f54a375f123f2da06a3f9e0927e33bcb49f40f866f7646b537e3a1",
+    "src/swcli/operation_schemas.py": "ee6f46870a19ea171a45ea95757900a594ac55a892a22cd1e69e0a1e5454dff8",
+    "src/swcli/result_schemas.py": "57ff12a806281df0b73eb53e861469dcb86c9d4200f92d8e9f0f1a2b07dfaf53",
+    "src/swcli/revolve_geometry.py": "2002ca785f35f63f1cf7f7ec68120500964f1180d413ee79f5bffc5f8ee9d896",
+    "tests/test_revolve.py": "be6576b8d26b53f50ffec23578548947819cf5bf0b2af8043285d4a5223b092f",
+    "tests/test_revolve_partial.py": "dcc589fd39f45982a244c0aaf6f6b3c321a6318b463ef402294b82740bf48927"
+  },
+  "pending": [
+    "native ordered-axis/rotation-direction mapping",
+    "targeted harness and default-off route preparation after scheduling",
+    "45/90/180/270 degrees across front/top/right native mass/definition proof",
+    "native save/readonly-reopen and partial persistence",
+    "public CLI/daemon native acceptance; public allowlist remains empty"
+  ]
+}
