@@ -223,6 +223,57 @@ class StepExportTests(unittest.TestCase):
             self.assertEqual(list(Path(directory).iterdir()), [path])
             validate_operation_result("document.export", result)
 
+    def test_step_final_save_flag_change_is_ignored_unless_rebuild_state_changes(self):
+        before = {"document": {"type": 1, "path": "source.SLDPRT", "modified": False},
+                  "needs_rebuild": 0}
+
+        def save(path, version, options, export_data, advanced_options, errors, warnings):
+            Path(path).write_bytes(payload())
+            errors.value = warnings.value = 0
+            return True
+
+        self.document.Extension = SimpleNamespace()
+        self.document.ClearSelection2 = mock.Mock()
+        self.document.SaveAs3 = save
+        win32 = ModuleType("win32com")
+        win32.client = ModuleType("win32com.client")
+        modules = {"pythoncom": ModuleType("pythoncom"), "win32com": win32, "win32com.client": win32.client}
+
+        for needs_rebuild in (0, 1):
+            with self.subTest(needs_rebuild=needs_rebuild), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "part.step"
+                path.write_bytes(b"existing output")
+                after = {"document": {**before["document"], "modified": True},
+                         "needs_rebuild": needs_rebuild}
+                with (
+                    mock.patch.object(docs.sys, "platform", "win32"),
+                    mock.patch.dict("sys.modules", modules),
+                    mock.patch.object(docs, "_export_source_state", side_effect=[before, after]),
+                    mock.patch.object(docs, "save_as3", side_effect=save_as_fixture),
+                    step.step_host_scope(self.app, isolated=True, calibration=True),
+                ):
+                    result = docs.export_active_windows_document(
+                        str(path), app=self.app, document=self.document, overwrite=True,
+                        step_protocol="ap214", step_geometry="solid-surface",
+                    )
+
+                if needs_rebuild:
+                    self.assertFalse(result["ok"])
+                    self.assertEqual(result["error"]["type"], "SourceStateChanged", result)
+                    self.assertEqual(
+                        [violation["code"] for violation in result["error"]["violations"]],
+                        ["source-rebuild-state-changed"],
+                    )
+                    self.assertEqual(path.read_bytes(), b"existing output")
+                else:
+                    self.assertTrue(result["ok"], result)
+                    self.assertNotIn("warnings", result)
+                    self.assertEqual(path.read_bytes(), payload())
+                self.assertTrue(result["step_preferences"]["restored"])
+                self.assertEqual(self.values, {999: 203, 777: 0})
+                self.assertEqual(list(path.parent.iterdir()), [path])
+                validate_operation_result("document.export", result)
+
     def test_worker_quarantines_host_after_preference_restore_failure(self):
         from test_native_sequence import NativeSequenceTests
         from swcli.daemon import server
