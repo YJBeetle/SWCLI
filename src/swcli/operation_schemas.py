@@ -8,6 +8,7 @@ from math import isfinite
 from re import search
 from typing import Any, Dict, Optional
 
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES, open_mode_conditions, validate_open_mode
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
@@ -201,8 +202,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "path": _string(minLength=1),
             "read_only": _boolean(),
             "configuration": _string(),
+            "mode": _string(enum=list(OPEN_MODES)),
+            **{name: _boolean() for name in ASSEMBLY_OPEN_OPTIONS},
         },
         required=("path",),
+        parameter_conditions=open_mode_conditions(),
     ),
     "document.list": _operation("document.list"),
     "document.use": _operation(
@@ -834,6 +838,12 @@ def validate_operation_request(
     if operation not in _DOCUMENT_PREFERENCE_OPERATIONS:
         for name, value in parameters.items():
             _validate_parameter(name, value, properties[name])
+    if operation == "document.open":
+        validate_open_mode(
+            parameters["path"], parameters.get("mode"),
+            {name: parameters[name] for name in ASSEMBLY_OPEN_OPTIONS if name in parameters},
+            configuration=parameters.get("configuration", ""),
+        )
     if operation == "document.tolerance-set":
         validate_value(parameters["field"], parameters["value"])
     if operation == "document.font-scope-set":

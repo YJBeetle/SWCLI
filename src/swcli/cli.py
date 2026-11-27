@@ -30,6 +30,7 @@ from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, vali
 from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES
 from .document_detailing_lines import DETAILING_LINE_FIELDS
 from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
 from .document_display_options import DISPLAY_FIELDS
@@ -203,6 +204,12 @@ def build_parser() -> argparse.ArgumentParser:
     open_parser.add_argument("path")
     open_parser.add_argument("--read-only", action="store_true")
     open_parser.add_argument("--configuration", default="")
+    open_parser.add_argument("--mode", choices=OPEN_MODES, help="explicit native document opening mode")
+    for name in ASSEMBLY_OPEN_OPTIONS:
+        open_parser.add_argument(
+            "--" + name.replace("_", "-"), action=argparse.BooleanOptionalAction,
+            help="assembly only, requires resolved or lightweight mode",
+        )
     open_parser.add_argument("--json", action="store_true", dest="as_json")
     list_parser = document_commands.add_parser(
         "list", help="list open documents and their short-lived IDs"
@@ -1506,6 +1513,8 @@ def _typed_operation(
                     "path": args.path,
                     "read_only": args.read_only,
                     "configuration": args.configuration,
+                    **{name: getattr(args, name) for name in ("mode", *ASSEMBLY_OPEN_OPTIONS)
+                       if getattr(args, name) is not None},
                 },
                 args.as_json,
                 None,
@@ -1869,5 +1878,8 @@ def _print_action_result(payload: dict, as_json: bool) -> None:
         return
     state = "ok" if payload["ok"] else "failed"
     print(f"SWCLI {payload['action']}: {state}")
+    if payload.get("open_mode"):
+        mode = payload["open_mode"]
+        print(f"Open mode: {mode['actual']} (requested: {mode['requested']})")
     if payload.get("error"):
         print(f"{payload['error']['type']}: {payload['error']['message']}")

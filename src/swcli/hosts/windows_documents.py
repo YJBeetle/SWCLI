@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from ..artifact_content import capture_content
+from ..document_open_modes import validate_open_mode
+from .windows_open_modes import OpenModeError, open_explicit_document
 from .windows_save_as import save_as3
 from .windows_configurations import active_configuration_name
 from .native_trace import native_call
@@ -300,8 +302,12 @@ def open_windows_document_with_handle(
     read_only: bool = False,
     configuration: str = "",
     app: Any = None,
+    mode: Optional[str] = None,
+    load_hidden_components: Optional[bool] = None,
+    use_speedpak: Optional[bool] = None,
+    use_large_assembly_settings: Optional[bool] = None,
 ) -> tuple[Dict[str, Any], Optional[Any]]:
-    """Open a native document and retain the exact COM object returned by OpenDoc6."""
+    """Open a native document and retain the exact COM object returned by SOLIDWORKS."""
 
     if sys.platform != "win32":
         return _unsupported("document.open"), None
@@ -329,6 +335,19 @@ def open_windows_document_with_handle(
         }
         return result, None
 
+    open_options = {
+        name: value for name, value in {
+            "load_hidden_components": load_hidden_components,
+            "use_speedpak": use_speedpak,
+            "use_large_assembly_settings": use_large_assembly_settings,
+        }.items() if value is not None
+    }
+    try:
+        validate_open_mode(str(document_path), mode, open_options, configuration=configuration)
+    except ValueError as exc:
+        result["error"] = {"type": "UnsupportedOpenOptions", "message": str(exc)}
+        return result, None
+
     import pythoncom
     import win32com.client
 
@@ -347,33 +366,47 @@ def open_windows_document_with_handle(
                 }
                 return result, None
 
-        errors = win32com.client.VARIANT(
-            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
-        )
-        warnings = win32com.client.VARIANT(
-            pythoncom.VT_BYREF | pythoncom.VT_I4, 0
-        )
-        options = _OPEN_SILENT | (_OPEN_READ_ONLY if read_only else 0)
-        document = native_call(
-            "document-open", "SldWorks.OpenDoc6",
-            lambda: app.OpenDoc6(
-                str(document_path), document_type, options, configuration, errors, warnings,
-            ),
-        )
-        result["api_errors"] = int(errors.value)
-        result["api_warnings"] = int(warnings.value)
+        if mode is not None:
+            document = open_explicit_document(
+                app, document_path, document_type, mode, open_options, read_only, configuration, result,
+            )
+        else:
+            errors = win32com.client.VARIANT(
+                pythoncom.VT_BYREF | pythoncom.VT_I4, 0
+            )
+            warnings = win32com.client.VARIANT(
+                pythoncom.VT_BYREF | pythoncom.VT_I4, 0
+            )
+            options = _OPEN_SILENT | (_OPEN_READ_ONLY if read_only else 0)
+            document = native_call(
+                "document-open", "SldWorks.OpenDoc6",
+                lambda: app.OpenDoc6(
+                    str(document_path), document_type, options, configuration, errors, warnings,
+                ),
+            )
+            result["api_errors"] = int(errors.value)
+            result["api_warnings"] = int(warnings.value)
         if document is None:
             result["error"] = {
                 "type": "OpenFailed",
-                "message": "SOLIDWORKS OpenDoc6 returned no document",
+                "message": f"SOLIDWORKS {'OpenDoc7' if mode is not None else 'OpenDoc6'} returned no document",
             }
             return result, None
 
         result["document"] = native_call(
             "document-open", "describeDocument", lambda: _describe_document(document),
         )
+        if result.get("preference_restore_errors"):
+            result["error"] = {
+                "type": "OpenPreferenceRestoreFailed",
+                "message": "large assembly settings could not be restored",
+            }
+            return result, None
         result["ok"] = True
         return result, document
+    except OpenModeError as exc:
+        result["error"] = {"type": exc.code, "message": str(exc)}
+        return result, None
     except Exception as exc:
         result["error"] = _error(exc)
         return result, None
@@ -388,6 +421,10 @@ def open_windows_document(
     read_only: bool = False,
     configuration: str = "",
     app: Any = None,
+    mode: Optional[str] = None,
+    load_hidden_components: Optional[bool] = None,
+    use_speedpak: Optional[bool] = None,
+    use_large_assembly_settings: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Open a native SOLIDWORKS document silently and report API status codes."""
 
@@ -396,6 +433,10 @@ def open_windows_document(
         read_only=read_only,
         configuration=configuration,
         app=app,
+        mode=mode,
+        load_hidden_components=load_hidden_components,
+        use_speedpak=use_speedpak,
+        use_large_assembly_settings=use_large_assembly_settings,
     )
     return result
 

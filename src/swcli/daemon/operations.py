@@ -14,6 +14,7 @@ from ..operation_schemas import (
     OPERATION_CATALOG,
     validate_operation_request,
 )
+from ..document_open_modes import ASSEMBLY_OPEN_OPTIONS
 from ..hosts.windows_documents import (
     open_windows_document_with_handle,
     close_active_windows_document,
@@ -262,6 +263,7 @@ def document_open(context: OperationContext, values: Dict[str, Any]) -> Dict[str
         read_only=bool(values.get("read_only", False)),
         configuration=str(values.get("configuration", "")),
         app=context.app,
+        **{name: values[name] for name in ("mode", *ASSEMBLY_OPEN_OPTIONS) if name in values},
     )
     if context.documents is not None and result.get("ok"):
         if opened_document is None:

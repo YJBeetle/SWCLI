@@ -10,6 +10,7 @@ from typing import Any, Dict
 
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES
 from .document_tolerances import TOLERANCE_FIELDS
 from .document_font_scopes import FONT_SCOPES, font_scopes_schema, validate_font_scopes
 from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match
@@ -526,6 +527,28 @@ _RESULT_FIELDS = {
             "configuration": NULLABLE_STRING,
             "api_errors": INTEGER,
             "api_warnings": INTEGER,
+            "preference_restore_errors": {"type": "array", "items": ERROR},
+            "open_mode": _object({
+                "requested": {"type": "string", "enum": list(OPEN_MODES)},
+                "actual": {"type": "string", "enum": [*OPEN_MODES, "mixed", "unknown"]},
+                "matches_request": {"type": ["boolean", "null"]},
+                "view_only": BOOL,
+                "actual_read_only": BOOL,
+                "large_design_review_state": INTEGER,
+                "detailing_mode": BOOL,
+                "lightweight_count": INTEGER,
+                "resolved_count": INTEGER,
+                "suppressed_count": INTEGER,
+                "unloaded_count": INTEGER,
+                "speedpak_count": INTEGER,
+                "has_unloaded_components": BOOL,
+                "observation_error": ERROR,
+                "options": _object({name: BOOL for name in ASSEMBLY_OPEN_OPTIONS}),
+                "large_assembly_settings": _object({
+                    "before": BOOL, "during_open": BOOL, "after_open": BOOL,
+                    "restored": BOOL,
+                }, ("before", "restored")),
+            }, ("requested", "actual", "matches_request", "options")),
         },
         (
             "document",
