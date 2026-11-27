@@ -537,7 +537,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument(
         "--strict",
         action="store_true",
-        help="require a saved, rebuilt source and preserve its state",
+        help="require a saved, rebuilt source and preserve its identity and rebuild state",
     )
     export_parser.add_argument("--stl-encoding", choices=("binary", "ascii"))
     export_parser.add_argument("--stl-unit", choices=("mm", "cm", "m", "inch", "foot"))

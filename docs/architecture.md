@@ -523,10 +523,14 @@ Neutral and drawing exports are explicit artifact operations. Format choices
 are constrained by the selected document type, selection is cleared before export,
 and success requires a native zero error code, a non-empty output, and a
 matching file signature. Default export is permissive and reports structured
-warnings only when the source needs saving, needs rebuilding, or changes during
-export. Strict export rejects those conditions. Both modes write through a
-temporary file in the destination directory so the requested output is
-replaced only after file verification and all applicable checks pass.
+warnings if the source needs saving or rebuilding before export, or if its
+identity or rebuild state changes during export. Strict export rejects those
+same conditions. The SOLIDWORKS save flag can change during export when no
+source file was written. The final export check disregards that flag.
+Explicit STEP and STL options retain their separate state checks.
+Both modes write through a temporary file in the destination directory so the
+requested output is replaced only after file verification and applicable checks
+pass.
 
 The core export primitive selects STEP, GLB, PDF, or DWG solely from the
 explicit output extension and selected document type. Source-file naming and

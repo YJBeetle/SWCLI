@@ -273,15 +273,6 @@ def _export_source_change_warnings(
                 "fields": changed_identity,
             }
         )
-    if before_document["modified"] != after_document["modified"]:
-        warnings.append(
-            {
-                "code": "source-modified-by-export",
-                "message": "export changed the source document modified state",
-                "before": before_document["modified"],
-                "after": after_document["modified"],
-            }
-        )
     if before["needs_rebuild"] != after["needs_rebuild"]:
         warnings.append(
             {
