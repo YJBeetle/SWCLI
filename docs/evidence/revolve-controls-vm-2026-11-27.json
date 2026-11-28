@@ -1,0 +1,114 @@
+{
+  "source_commit": "656f1eab721b291a759cd8c73f25e2c695b47b30",
+  "profile": "internal-revolve-direction-controls-v1",
+  "public_acceptance": false,
+  "host_revision": "33.5.0",
+  "host_pid": 6916,
+  "driver_exit": 0,
+  "transport_exit": 0,
+  "process_ids_before": [],
+  "process_ids_after": [],
+  "source_wheel_sha256": "7b7bf752d1a3b4a0fb0a324dc09c7bf0009a8deb5843b38b40d7731efbae2d11",
+  "verified_wheel_files": 139,
+  "refusals": [
+    {
+      "name": "public-closed-angle",
+      "error_type": "RevolveNotCalibrated",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    },
+    {
+      "name": "public-stale-stamp",
+      "error_type": "DocumentUpdateConflict",
+      "zero_document_change": true,
+      "has_mutation_receipt": false
+    },
+    {
+      "name": "public-wrong-lease",
+      "error_type": "DocumentLeaseConflict",
+      "zero_document_change": true,
+      "has_mutation_receipt": false
+    },
+    {
+      "name": "public-missing-sketch",
+      "error_type": "SketchNotFound",
+      "zero_document_change": true,
+      "has_mutation_receipt": false
+    },
+    {
+      "name": "private-stale-profile",
+      "error_type": "RevolveProfileConflict",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    },
+    {
+      "name": "private-read-only",
+      "error_type": "DocumentReadOnly",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    },
+    {
+      "name": "private-existing-solid",
+      "error_type": "UnsupportedRevolveBodyScope",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    },
+    {
+      "name": "private-offset-plane",
+      "error_type": "UnsupportedRevolvePlane",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    },
+    {
+      "name": "private-reversed-axis",
+      "error_type": "RevolveAxisMismatch",
+      "zero_document_change": true,
+      "has_mutation_receipt": true
+    }
+  ],
+  "native_create_calls": 1,
+  "first_creation_error": {
+    "type": "RuntimeError",
+    "message": "injected 90-degree definition observation failure after native creation"
+  },
+  "partial_feature_handle_retained": true,
+  "native_save": {
+    "save_attempted": true,
+    "api_saved": true,
+    "save_errors": 0,
+    "save_warnings": 0
+  },
+  "reopened_metrics": {
+    "solid_body_count": 1,
+    "volume_mm3": 1570.7963267948965,
+    "surface_area_mm2": 871.238898038469,
+    "centroid_mm": {
+      "x": 4.244131815783875,
+      "y": 5.0,
+      "z": -4.2441318157838746
+    }
+  },
+  "native_part_sha256": "e69a97fa058398fed5d999fc1ea606f59b27e3a6e82939c93d167c4f72133abd",
+  "original_directory": "evidence/revolve-partial-next/native-controls-2026-11-27",
+  "originals_sha256": {
+    "guest/evidence-controls/boundaries.jsonl": "37d78404b735218878d17bf46f3d00af364393601ff3f2ef5769c02922d55419",
+    "guest/evidence-controls/host-identity-observation.json": "df678e20040291a8a3079b0b2262d78e7189e50a892757b8fc95ad5b8d107c97",
+    "guest/evidence-controls/owned-host.json": "8a6100f75ba929e098c7046db78e3f22de64d8e5b8158ba5f259ba498ad4c35e",
+    "guest/evidence-controls/partial-observation-failure.SLDPRT": "e69a97fa058398fed5d999fc1ea606f59b27e3a6e82939c93d167c4f72133abd",
+    "guest/evidence-controls/read-only-profile.SLDPRT": "ee2b76eafd025621beec8e21227f84b0c4e24c2ffb8ae3ad2795e1ed7c12b970",
+    "guest/evidence-controls/report.json": "cca1b57fdd124f1996888a3cdfca307276987ca2a8f3a40a34a3c2e8741bcb80",
+    "guest/evidence-controls/source-proof-parent.json": "407295a529a8785c9dcc0963505d98a898c7a9af7d2144da4767fb56a5a5bcba",
+    "guest/evidence-controls/source-proof.json": "407295a529a8785c9dcc0963505d98a898c7a9af7d2144da4767fb56a5a5bcba",
+    "guest/evidence-controls/stderr.log": "ef09e0b6bac2defaa4bd098c3f879ad785addd79f3361a4d5b9d6ca04715dac2",
+    "guest/evidence-controls/stdout.log": "425ea21e8132066ee19fa2c304244c1ca1513277cc31b844e5477f577ce8b2ec",
+    "guest/evidence-controls/verify-installed.log": "a681f11115d509144bfbca4c5fe29952ab9ddc5c49639d0fdee176fc18afb2b8",
+    "guest/execution/driver-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "guest/execution/processes-after.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "guest/execution/processes-before.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "idle-disable.log": "c809f8c99325f1f6bd36032f0e7f23be7c81fe9d3fd26c700647bde5b19ca13c",
+    "idle-restore.log": "c809f8c99325f1f6bd36032f0e7f23be7c81fe9d3fd26c700647bde5b19ca13c",
+    "independent-audit.json": "d562f1ce80441e603123b418cc5fbc4d0b67a026a9d0c4d7a2c2ea54aff07d8f",
+    "transport.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "transport.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

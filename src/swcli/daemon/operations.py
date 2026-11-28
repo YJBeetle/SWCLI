@@ -7,12 +7,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from ..revolve_geometry import public_revolve_intent_supported
 from ..operation_schemas import (
     OPERATIONS,
     OPERATION_SCHEMAS,
     OPERATION_CATALOG,
     validate_operation_request,
 )
+from ..document_open_modes import ASSEMBLY_OPEN_OPTIONS
 from ..hosts.windows_documents import (
     open_windows_document_with_handle,
     close_active_windows_document,
@@ -261,6 +263,7 @@ def document_open(context: OperationContext, values: Dict[str, Any]) -> Dict[str
         read_only=bool(values.get("read_only", False)),
         configuration=str(values.get("configuration", "")),
         app=context.app,
+        **{name: values[name] for name in ("mode", *ASSEMBLY_OPEN_OPTIONS) if name in values},
     )
     if context.documents is not None and result.get("ok"):
         if opened_document is None:
@@ -1866,6 +1869,16 @@ def execute_operation(
                 raise UnsupportedDimensionKind(
                     "unsupported native dimension/profile binding"
                 )
+    if operation == "feature.revolve" and not public_revolve_intent_supported(
+        values["expected_profile_mm"], values["angle_deg"]
+    ):
+        from ..hosts.windows_revolves import partial_revolve_refusal
+
+        result = partial_revolve_refusal(values["expected_profile_mm"], values["axis_mm"], values["angle_deg"])
+        result["sketch_id"] = values["sketch_id"]
+        if documents is not None and context.entry is not None:
+            return _with_document(result, documents, context.entry, session_id=session_id)
+        return result
     activation = (
         documents.temporarily_activate(context.entry)
         if spec.temporary_activation

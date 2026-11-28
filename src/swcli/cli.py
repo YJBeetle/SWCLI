@@ -30,6 +30,7 @@ from .document_image_quality import IMAGE_QUALITY_FIELDS, validate_quality, vali
 from .document_unit_profile import FIELDS as UNIT_PROFILE_FIELDS
 from .document_annotations import ANNOTATION_FIELDS
 from .document_detailing import DETAILING_FIELDS
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES
 from .document_detailing_lines import DETAILING_LINE_FIELDS
 from .document_annotation_fonts import ANNOTATION_FONT_WRITABLE_FIELDS
 from .document_display_options import DISPLAY_FIELDS
@@ -203,6 +204,12 @@ def build_parser() -> argparse.ArgumentParser:
     open_parser.add_argument("path")
     open_parser.add_argument("--read-only", action="store_true")
     open_parser.add_argument("--configuration", default="")
+    open_parser.add_argument("--mode", choices=OPEN_MODES, help="explicit native document opening mode")
+    for name in ASSEMBLY_OPEN_OPTIONS:
+        open_parser.add_argument(
+            "--" + name.replace("_", "-"), action=argparse.BooleanOptionalAction,
+            help="assembly only, requires resolved or lightweight mode",
+        )
     open_parser.add_argument("--json", action="store_true", dest="as_json")
     list_parser = document_commands.add_parser(
         "list", help="list open documents and their short-lived IDs"
@@ -548,7 +555,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument(
         "--strict",
         action="store_true",
-        help="require a saved, rebuilt source and preserve its state",
+        help="require a saved, rebuilt source and preserve its identity and rebuild state",
     )
     export_parser.add_argument("--stl-encoding", choices=("binary", "ascii"))
     export_parser.add_argument("--stl-unit", choices=("mm", "cm", "m", "inch", "foot"))
@@ -745,14 +752,15 @@ def build_parser() -> argparse.ArgumentParser:
     fillet_parser.add_argument("--json", action="store_true", dest="as_json")
 
     revolve_parser = feature_commands.add_parser(
-        "revolve", help="revolve a center rectangle 360 degrees about its explicit left edge (native Windows SW 33.5.0)"
+        "revolve", help="revolve a center rectangle about its explicit left edge (native Windows SW 33.5.0)"
     )
     revolve_parser.add_argument("sketch_id")
     revolve_parser.add_argument("--expected-profile-mm", type=float, nargs=4, required=True,
                                 metavar=("MIN_X", "MIN_Y", "MAX_X", "MAX_Y"))
     revolve_parser.add_argument("--axis-mm", type=float, nargs=4, required=True,
                                 metavar=("X1", "Y1", "X2", "Y2"))
-    revolve_parser.add_argument("--angle-deg", type=float, required=True)
+    revolve_parser.add_argument("--angle-deg", type=float, required=True,
+                               help="360, or 45/90/180/270 for exact profile bounds [0, -5, 10, 15] mm")
     add_document_selector(revolve_parser)
     add_lease_token(revolve_parser)
     revolve_parser.add_argument("--json", action="store_true", dest="as_json")
@@ -1505,6 +1513,8 @@ def _typed_operation(
                     "path": args.path,
                     "read_only": args.read_only,
                     "configuration": args.configuration,
+                    **{name: getattr(args, name) for name in ("mode", *ASSEMBLY_OPEN_OPTIONS)
+                       if getattr(args, name) is not None},
                 },
                 args.as_json,
                 None,
@@ -1868,5 +1878,8 @@ def _print_action_result(payload: dict, as_json: bool) -> None:
         return
     state = "ok" if payload["ok"] else "failed"
     print(f"SWCLI {payload['action']}: {state}")
+    if payload.get("open_mode"):
+        mode = payload["open_mode"]
+        print(f"Open mode: {mode['actual']} (requested: {mode['requested']})")
     if payload.get("error"):
         print(f"{payload['error']['type']}: {payload['error']['message']}")

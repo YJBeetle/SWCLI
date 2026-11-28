@@ -1,0 +1,420 @@
+{
+  "source_commit": "ca0ea488a04137fe33a733ca69d26c3845cad166",
+  "revision": "33.5.0",
+  "angle_order": [
+    90,
+    45,
+    180,
+    270
+  ],
+  "groups": {
+    "front": {
+      "cases": [
+        {
+          "angle_deg": 90,
+          "model": "front-direction-90.SLDPRT",
+          "bytes": 61060,
+          "sha256": "ab5d7f38e978e1fecf26154d7d9c5dd013803961e5b4d55edb1582d564ae0bd2",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948967,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": 4.2441318157838746,
+              "y": 4.999999999999999,
+              "z": -4.2441318157838746
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948965,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": 4.244131815783875,
+              "y": 5.0,
+              "z": -4.2441318157838746
+            }
+          }
+        },
+        {
+          "angle_deg": 45,
+          "model": "front-direction-45.SLDPRT",
+          "bytes": 57493,
+          "sha256": "431b001003af23b55a88f76dcc10bb2c0fbf37d6c6637fc81add5d208c785379",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974483,
+            "surface_area_mm2": 635.6194490192346,
+            "centroid_mm": {
+              "x": 6.002108774380708,
+              "y": 4.999999999999999,
+              "z": -2.486154857187045
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974483,
+            "surface_area_mm2": 635.6194490192346,
+            "centroid_mm": {
+              "x": 6.002108774380708,
+              "y": 4.999999999999999,
+              "z": -2.486154857187045
+            }
+          }
+        },
+        {
+          "angle_deg": 180,
+          "model": "front-direction-180.SLDPRT",
+          "bytes": 62742,
+          "sha256": "08b28c143efeb9be1a249fbdff1b476c6277627c430727e79412ad0958f4d35d",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.5926535897934,
+            "surface_area_mm2": 1342.477796076938,
+            "centroid_mm": {
+              "x": 1.0438315488017801e-16,
+              "y": 5.000000000000001,
+              "z": -4.244131815783875
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.5926535897934,
+            "surface_area_mm2": 1342.477796076938,
+            "centroid_mm": {
+              "x": 1.0438315488017801e-16,
+              "y": 5.000000000000001,
+              "z": -4.244131815783875
+            }
+          }
+        },
+        {
+          "angle_deg": 270,
+          "model": "front-direction-270.SLDPRT",
+          "bytes": 65009,
+          "sha256": "1662d3d978c462e8171cf5e135664e7fab7ac65702b8f5236c3b4a3dc8073c59",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.414710605261292,
+              "y": 5.000000000000001,
+              "z": -1.4147106052612923
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.414710605261292,
+              "y": 5.000000000000001,
+              "z": -1.4147106052612926
+            }
+          }
+        }
+      ],
+      "report_sha256": "bab23f3ce007aedff0f0ea31bf9b134c206d6b44640c7fd2c7be65eea1fece6e",
+      "driver_exit": 0,
+      "transport_exit": 0,
+      "owned_processes_after": [],
+      "boundary_count": 35,
+      "elapsed_seconds": 29.218
+    },
+    "top": {
+      "cases": [
+        {
+          "angle_deg": 90,
+          "model": "top-direction-90.SLDPRT",
+          "bytes": 74526,
+          "sha256": "7506804287797e8cf85fbf9a616676eea79c23f3a1698cf96eb9acb8272d99e3",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948967,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": 4.244131815783875,
+              "y": -4.2441318157838746,
+              "z": -5.000000000000001
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948967,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": 4.244131815783875,
+              "y": -4.2441318157838746,
+              "z": -5.000000000000001
+            }
+          }
+        },
+        {
+          "angle_deg": 45,
+          "model": "top-direction-45.SLDPRT",
+          "bytes": 79955,
+          "sha256": "a911152e7b9e0c2802b87a91608a1f8af4d4b8c4d05347da4a5b1c7b86ae0a4b",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974486,
+            "surface_area_mm2": 635.6194490192345,
+            "centroid_mm": {
+              "x": 6.0021087743807096,
+              "y": -2.486154857187045,
+              "z": -5.000000000000002
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974485,
+            "surface_area_mm2": 635.6194490192345,
+            "centroid_mm": {
+              "x": 6.0021087743807096,
+              "y": -2.486154857187045,
+              "z": -5.000000000000001
+            }
+          }
+        },
+        {
+          "angle_deg": 180,
+          "model": "top-direction-180.SLDPRT",
+          "bytes": 75744,
+          "sha256": "ac443e0ee26525ecd04b799c8a70574814051469b10fd4ee5c3b48a1a11e4759",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.592653589793,
+            "surface_area_mm2": 1342.4777960769377,
+            "centroid_mm": {
+              "x": 2.622310586860671e-16,
+              "y": -4.244131815783876,
+              "z": -5.0
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.592653589793,
+            "surface_area_mm2": 1342.4777960769377,
+            "centroid_mm": {
+              "x": 2.622310586860671e-16,
+              "y": -4.244131815783876,
+              "z": -5.0
+            }
+          }
+        },
+        {
+          "angle_deg": 270,
+          "model": "top-direction-270.SLDPRT",
+          "bytes": 75393,
+          "sha256": "e80d7a1846fcdf4eb16fb26226f970d8b7e272b61b9b22da9e049bbac0dfd68a",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.4147106052612923,
+              "y": -1.4147106052612923,
+              "z": -5.000000000000001
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.4147106052612923,
+              "y": -1.4147106052612923,
+              "z": -5.000000000000001
+            }
+          }
+        }
+      ],
+      "report_sha256": "ed3bff485c77bd604c6d2f6cf8f1c81fa45a31fa310b5775787b7f0faab5d4a0",
+      "driver_exit": 0,
+      "transport_exit": 0,
+      "owned_processes_after": [],
+      "boundary_count": 35,
+      "elapsed_seconds": 27.828
+    },
+    "right": {
+      "cases": [
+        {
+          "angle_deg": 90,
+          "model": "right-direction-90.SLDPRT",
+          "bytes": 60249,
+          "sha256": "3ba715aab16dcabbba11d254caaecba87f55b27938f20993850aec9e0f012a6e",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948967,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": -4.2441318157838746,
+              "y": 4.999999999999999,
+              "z": -4.244131815783875
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 1570.7963267948967,
+            "surface_area_mm2": 871.238898038469,
+            "centroid_mm": {
+              "x": -4.2441318157838746,
+              "y": 4.999999999999999,
+              "z": -4.244131815783875
+            }
+          }
+        },
+        {
+          "angle_deg": 45,
+          "model": "right-direction-45.SLDPRT",
+          "bytes": 55971,
+          "sha256": "ea03cf82e0f9ab9e4200ffe48ab095bf884f50e526d99227c435f05043155b0b",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974486,
+            "surface_area_mm2": 635.6194490192346,
+            "centroid_mm": {
+              "x": -2.486154857187045,
+              "y": 5.000000000000002,
+              "z": -6.0021087743807096
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 785.3981633974485,
+            "surface_area_mm2": 635.6194490192346,
+            "centroid_mm": {
+              "x": -2.486154857187045,
+              "y": 5.000000000000001,
+              "z": -6.0021087743807096
+            }
+          }
+        },
+        {
+          "angle_deg": 180,
+          "model": "right-direction-180.SLDPRT",
+          "bytes": 61286,
+          "sha256": "906e6fb518e84cf2a4f4d278ffbdad4994c815747b23dc150fa4fb2f7294765f",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.592653589793,
+            "surface_area_mm2": 1342.4777960769377,
+            "centroid_mm": {
+              "x": -4.244131815783876,
+              "y": 5.0,
+              "z": -2.622310586860671e-16
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 3141.592653589793,
+            "surface_area_mm2": 1342.4777960769377,
+            "centroid_mm": {
+              "x": -4.244131815783876,
+              "y": 5.0,
+              "z": -2.622310586860671e-16
+            }
+          }
+        },
+        {
+          "angle_deg": 270,
+          "model": "right-direction-270.SLDPRT",
+          "bytes": 63311,
+          "sha256": "7d45c033be2dd9971f528ac2c2a05d0e6d2c040dbbb22637ee3cc65f887c27dc",
+          "created_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.4147106052612923,
+              "y": 5.000000000000001,
+              "z": 1.4147106052612923
+            }
+          },
+          "reopened_metrics": {
+            "solid_body_count": 1,
+            "volume_mm3": 4712.38898038469,
+            "surface_area_mm2": 1813.716694115407,
+            "centroid_mm": {
+              "x": -1.4147106052612923,
+              "y": 5.000000000000001,
+              "z": 1.4147106052612923
+            }
+          }
+        }
+      ],
+      "report_sha256": "d564bb7c5040d85d0ca153f12acb099babdf3a4def61af1cda3518d3ccc3520c",
+      "driver_exit": 0,
+      "transport_exit": 0,
+      "owned_processes_after": [],
+      "boundary_count": 35,
+      "elapsed_seconds": 26.566
+    }
+  },
+  "native_models": 12,
+  "public_acceptance": false,
+  "public_write_gate": "closed",
+  "archive_path": "evidence/revolve-partial-next/native-matrix-2026-11-21",
+  "artifact_sha256": {
+    "right.transport-exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "audit.py": "7823af45c5a19f2dd262b58fd9415b9d1ac28185c3ab91eadb24787cd959d3da",
+    "front.log": "782ea62743c54ee9fda2b80f50d42688b052c569ef6a4c7c3165d160391344b5",
+    "right.log": "782ea62743c54ee9fda2b80f50d42688b052c569ef6a4c7c3165d160391344b5",
+    "top.log": "782ea62743c54ee9fda2b80f50d42688b052c569ef6a4c7c3165d160391344b5",
+    "swcli-revolve-matrix-ca0ea48.zip": "ae3ad4313eb924cb2c240064a24fcaac7535a9edf7230653a1b99880341644a9",
+    "top.transport-exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "run.sh": "cdeefd9d1fcc695d10cff3da4cb4e5be55e77ee4ef10e7ddad3a0500f0a30d99",
+    "plane.ps1": "799c8ad92836eb7c11debd334776edf9123c6830ef1c70853e97f9d8b33dc78c",
+    "prepare.log": "df89838efc57b9926e9b1bb7efc8e7c7e9f0d43bb869430a3020da936e0f3578",
+    "front.transport-exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "prepare.ps1": "d9c0d47ca7586cc7f8caefc891a83b65beb70720162a44fad659e4f50ea650c5",
+    "top/audit.json": "2b6928b181a2ea5c83c675e080e766362569f8d989c4e091b146c6b203ddb58d",
+    "top/processes-after.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "top/driver-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "right/audit.json": "759117c7a5457b4dfa3bc8f61d3ae65ca609046c36b45f88a10dc682e68912ce",
+    "right/processes-after.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "right/driver-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "front/audit.json": "00097af44437a8f9d2c4c3edc47ca99ea9f827d065b59be39165239937c6510a",
+    "front/processes-after.json": "285386bcbda5b2338822b19266a2b90c6d87e9da18401f9148c69e469c11bcb7",
+    "front/driver-exit.txt": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+    "front/guest/front-direction-180.SLDPRT": "08b28c143efeb9be1a249fbdff1b476c6277627c430727e79412ad0958f4d35d",
+    "front/guest/front-direction-270.SLDPRT": "1662d3d978c462e8171cf5e135664e7fab7ac65702b8f5236c3b4a3dc8073c59",
+    "front/guest/stderr.log": "cd5c2436b719b3d1939acaf8063452847d17337c3a3a75c038529b01f7cfa1e1",
+    "front/guest/report.json": "bab23f3ce007aedff0f0ea31bf9b134c206d6b44640c7fd2c7be65eea1fece6e",
+    "front/guest/owned-host.json": "a5ca9bfdd6b9237056e288032b6f66d8502285f7715bf62a8ac007e680268a84",
+    "front/guest/host-identity-observation.json": "3a796a0f600cc18b38bcd4b24c5fa7c284d842176e804b8ba0175f3e1934b975",
+    "front/guest/stdout.log": "425ea21e8132066ee19fa2c304244c1ca1513277cc31b844e5477f577ce8b2ec",
+    "front/guest/source-proof.json": "c342b4b23999398f103e670408c298421478ee26a6a9625d198c1a08ccad0c2a",
+    "front/guest/verify-installed.log": "a681f11115d509144bfbca4c5fe29952ab9ddc5c49639d0fdee176fc18afb2b8",
+    "front/guest/front-direction-45.SLDPRT": "431b001003af23b55a88f76dcc10bb2c0fbf37d6c6637fc81add5d208c785379",
+    "front/guest/source-proof-parent.json": "c342b4b23999398f103e670408c298421478ee26a6a9625d198c1a08ccad0c2a",
+    "front/guest/boundaries.jsonl": "fb2a9a8221240fe4a1f3ca06ff95bd1a570845e373115c6c97508cf4235b43ad",
+    "front/guest/front-direction-90.SLDPRT": "ab5d7f38e978e1fecf26154d7d9c5dd013803961e5b4d55edb1582d564ae0bd2",
+    "right/guest/stderr.log": "46434f5a1fbda1e551f26af27d1be6c9c6dfd36446da20776aebe2c25ac02dc1",
+    "right/guest/report.json": "d564bb7c5040d85d0ca153f12acb099babdf3a4def61af1cda3518d3ccc3520c",
+    "right/guest/owned-host.json": "da2bebc807c458fb4b4a6dafe8c71254bd7060523357796eeaf1b159483d6196",
+    "right/guest/right-direction-45.SLDPRT": "ea03cf82e0f9ab9e4200ffe48ab095bf884f50e526d99227c435f05043155b0b",
+    "right/guest/host-identity-observation.json": "99c9d069e1e792b892c22e9b7afd349b799503db365164c8f44cfc4b7aa553df",
+    "right/guest/right-direction-90.SLDPRT": "3ba715aab16dcabbba11d254caaecba87f55b27938f20993850aec9e0f012a6e",
+    "right/guest/stdout.log": "425ea21e8132066ee19fa2c304244c1ca1513277cc31b844e5477f577ce8b2ec",
+    "right/guest/right-direction-180.SLDPRT": "906e6fb518e84cf2a4f4d278ffbdad4994c815747b23dc150fa4fb2f7294765f",
+    "right/guest/right-direction-270.SLDPRT": "7d45c033be2dd9971f528ac2c2a05d0e6d2c040dbbb22637ee3cc65f887c27dc",
+    "right/guest/source-proof.json": "bddeca07f283d8670864a8bfe6c6aa89d40646e30a9085166cf1865a59fedc0e",
+    "right/guest/verify-installed.log": "a681f11115d509144bfbca4c5fe29952ab9ddc5c49639d0fdee176fc18afb2b8",
+    "right/guest/source-proof-parent.json": "bddeca07f283d8670864a8bfe6c6aa89d40646e30a9085166cf1865a59fedc0e",
+    "right/guest/boundaries.jsonl": "6d42eb12d7e4c1e2a632017708f9dbf6c2b5e121a1546491443d5fd7d4ab8c30",
+    "top/guest/stderr.log": "55f8daf76e2787a4f7355b9b4cf99763900619c223acdee0e932ea24c1f7baf9",
+    "top/guest/report.json": "ed3bff485c77bd604c6d2f6cf8f1c81fa45a31fa310b5775787b7f0faab5d4a0",
+    "top/guest/owned-host.json": "f60a1d12879f893c9bce9296e4d7f25c3ff6045cc68e497698abf938b503e8dd",
+    "top/guest/host-identity-observation.json": "60f2889125e66073c84ed9fd79f2ab8f885ece1630d058618201688598a00684",
+    "top/guest/stdout.log": "425ea21e8132066ee19fa2c304244c1ca1513277cc31b844e5477f577ce8b2ec",
+    "top/guest/top-direction-180.SLDPRT": "ac443e0ee26525ecd04b799c8a70574814051469b10fd4ee5c3b48a1a11e4759",
+    "top/guest/top-direction-270.SLDPRT": "e80d7a1846fcdf4eb16fb26226f970d8b7e272b61b9b22da9e049bbac0dfd68a",
+    "top/guest/source-proof.json": "3d4a8257a59166264d026e40ac941e20bf4c2aa632fc2a9e42d34426e00b9fb4",
+    "top/guest/top-direction-90.SLDPRT": "7506804287797e8cf85fbf9a616676eea79c23f3a1698cf96eb9acb8272d99e3",
+    "top/guest/verify-installed.log": "a681f11115d509144bfbca4c5fe29952ab9ddc5c49639d0fdee176fc18afb2b8",
+    "top/guest/source-proof-parent.json": "3d4a8257a59166264d026e40ac941e20bf4c2aa632fc2a9e42d34426e00b9fb4",
+    "top/guest/boundaries.jsonl": "13d4b417818d502b25b58934aa6a814d70f156cd8bcf675bc31ee0b11f55b80c",
+    "top/guest/top-direction-45.SLDPRT": "a911152e7b9e0c2802b87a91608a1f8af4d4b8c4d05347da4a5b1c7b86ae0a4b"
+  }
+}

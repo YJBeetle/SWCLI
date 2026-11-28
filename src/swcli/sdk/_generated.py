@@ -163,7 +163,7 @@ class DocumentOperations:
         return cast("Response[models.DocumentCreateResult]", self._client._execute('document.create', parameters, request_id=request_id))
 
 
-    def open(self, *, path: str, read_only: Union[bool, Unset] = UNSET, configuration: Union[str, Unset] = UNSET, request_id: Optional[str] = None) -> Response[models.DocumentOpenResult]:
+    def open(self, *, path: str, read_only: Union[bool, Unset] = UNSET, configuration: Union[str, Unset] = UNSET, mode: Union[Literal['resolved', 'lightweight', 'large-design-review', 'detailing', 'quick-view'], Unset] = UNSET, load_hidden_components: Union[bool, Unset] = UNSET, use_speedpak: Union[bool, Unset] = UNSET, use_large_assembly_settings: Union[bool, Unset] = UNSET, request_id: Optional[str] = None) -> Response[models.DocumentOpenResult]:
         """document.open; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
         parameters['path'] = path
@@ -171,6 +171,14 @@ class DocumentOperations:
             parameters['read_only'] = read_only
         if configuration is not UNSET:
             parameters['configuration'] = configuration
+        if mode is not UNSET:
+            parameters['mode'] = mode
+        if load_hidden_components is not UNSET:
+            parameters['load_hidden_components'] = load_hidden_components
+        if use_speedpak is not UNSET:
+            parameters['use_speedpak'] = use_speedpak
+        if use_large_assembly_settings is not UNSET:
+            parameters['use_large_assembly_settings'] = use_large_assembly_settings
         return cast("Response[models.DocumentOpenResult]", self._client._execute('document.open', parameters, request_id=request_id))
 
 

@@ -251,7 +251,7 @@ class WindowsDocumentTests(unittest.TestCase):
             ["xml-invalid"],
         )
 
-    def test_permissive_export_reports_only_source_state_problems(self):
+    def test_export_ignores_post_export_save_flag_in_both_modes(self):
         pythoncom = ModuleType("pythoncom")
         pythoncom.CoInitialize = mock.Mock()
         pythoncom.CoUninitialize = mock.Mock()
@@ -283,43 +283,37 @@ class WindowsDocumentTests(unittest.TestCase):
         }
         after = {**before, "modified": True}
 
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            output = Path(temporary_directory) / "drawing.PDF"
-            with (
-                mock.patch.object(windows_documents.sys, "platform", "win32"),
-                mock.patch.dict(
-                    "sys.modules",
-                    {
-                        "pythoncom": pythoncom,
-                        "win32com": win32com,
-                        "win32com.client": win32com_client,
-                    },
-                ),
-                mock.patch.object(
-                    windows_documents,
-                    "_describe_document",
-                    side_effect=[before, after],
-                ),
-            ):
-                result = windows_documents.export_active_windows_document(
-                    str(output), app=app
-                )
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    output = Path(temporary_directory) / "drawing.PDF"
+                    with (
+                        mock.patch.object(windows_documents.sys, "platform", "win32"),
+                        mock.patch.dict(
+                            "sys.modules",
+                            {
+                                "pythoncom": pythoncom,
+                                "win32com": win32com,
+                                "win32com.client": win32com_client,
+                            },
+                        ),
+                        mock.patch.object(
+                            windows_documents,
+                            "_describe_document",
+                            side_effect=[before, after],
+                        ),
+                    ):
+                        result = windows_documents.export_active_windows_document(
+                            str(output), app=app, strict=strict
+                        )
+                    self.assertEqual(output.read_bytes(), b"%PDF-1.7\n")
 
-        self.assertTrue(result["ok"])
-        self.assertEqual(
-            result["warnings"],
-            [
-                {
-                    "code": "source-modified-by-export",
-                    "message": "export changed the source document modified state",
-                    "before": False,
-                    "after": True,
-                }
-            ],
-        )
-        self.assertEqual(result["artifact"]["format"], "PDF")
-        self.assertNotIn("document", result)
-        self.assertNotIn("verification", result)
+                self.assertTrue(result["ok"])
+                self.assertNotIn("warnings", result)
+                self.assertEqual(result["artifact"]["format"], "PDF")
+                self.assertNotIn("document", result)
+                self.assertNotIn("verification", result)
+
         pythoncom.CoInitialize.assert_not_called()
         pythoncom.CoUninitialize.assert_not_called()
 
@@ -771,7 +765,7 @@ class WindowsDocumentTests(unittest.TestCase):
             "type": 3,
             "modified": False,
         }
-        after = {**before, "modified": True}
+        after = {**before, "path": "other.SLDDRW", "modified": True}
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             output = Path(temporary_directory) / "drawing.PDF"
@@ -805,8 +799,8 @@ class WindowsDocumentTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"]["type"], "SourceStateChanged")
         self.assertEqual(
-            result["error"]["violations"][0]["code"],
-            "source-modified-by-export",
+            [violation["code"] for violation in result["error"]["violations"]],
+            ["source-document-changed"],
         )
 
     def test_inspect_reports_save_and_rebuild_state(self):

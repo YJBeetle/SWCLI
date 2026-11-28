@@ -8,19 +8,12 @@ from pathlib import Path
 
 from .drawing_geometry import numbers, require, standard_layout
 from .native_trace import native_call
-from .windows import _com_value, _describe_document, _error
+from .windows import _com_value, _describe_document, _dispatch, _error
 from .windows_documents import _diagnose_features
 
 
 def _get(obj, name):
     return native_call("drawing", name, lambda: _com_value(obj, name))
-
-
-def _dispatch(obj):
-    if hasattr(obj, "_oleobj_"):
-        return obj
-    import win32com.client
-    return win32com.client.Dispatch(obj)
 
 
 def _sheet(document):

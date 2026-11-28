@@ -8,6 +8,7 @@ from math import isfinite
 from re import search
 from typing import Any, Dict, Optional
 
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES, open_mode_conditions, validate_open_mode
 from .cut_termination import cut_termination_fields, cut_termination_conditions, resolve_cut_termination
 from .hosts.windows_documents import RENDER_VIEWS
 from .hosts.windows_document_summary import EDITABLE_SUMMARY_FIELDS
@@ -201,8 +202,11 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "path": _string(minLength=1),
             "read_only": _boolean(),
             "configuration": _string(),
+            "mode": _string(enum=list(OPEN_MODES)),
+            **{name: _boolean() for name in ASSEMBLY_OPEN_OPTIONS},
         },
         required=("path",),
+        parameter_conditions=open_mode_conditions(),
     ),
     "document.list": _operation("document.list"),
     "document.use": _operation(
@@ -638,7 +642,7 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
                                     "items": _number(minimum=-1e6, maximum=1e6)},
             "axis_mm": {"type": "array", "minItems": 4, "maxItems": 4,
                         "items": _number(minimum=-1e6, maximum=1e6)},
-            "angle_deg": _number(minimum=360, maximum=360),
+            "angle_deg": _number(exclusiveMinimum=0, maximum=360),
         },
         required=("sketch_id", "expected_profile_mm", "axis_mm", "angle_deg"),
         temporary_activation=True,
@@ -703,7 +707,8 @@ for _name, (_properties, _required) in workspace_definitions().items():
     OPERATION_CATALOG[_name] = _operation(_name, _properties, required=_required)
 
 OPERATION_CATALOG["feature.revolve"].parameters["title"] = (
-    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; 360 degrees)"
+    "SWCLI feature.revolve parameters (native Windows SW 33.5.0; rectangle left-edge axis; "
+    "360 degrees or 45/90/180/270 degrees for bounds [0, -5, 10, 15] mm)"
 )
 OPERATION_CATALOG["document.font-scope-set"].parameters["x-swcli-font-write-profiles"] = deepcopy(NATIVE_FONT_WRITE_PROFILES)
 
@@ -833,6 +838,12 @@ def validate_operation_request(
     if operation not in _DOCUMENT_PREFERENCE_OPERATIONS:
         for name, value in parameters.items():
             _validate_parameter(name, value, properties[name])
+    if operation == "document.open":
+        validate_open_mode(
+            parameters["path"], parameters.get("mode"),
+            {name: parameters[name] for name in ASSEMBLY_OPEN_OPTIONS if name in parameters},
+            configuration=parameters.get("configuration", ""),
+        )
     if operation == "document.tolerance-set":
         validate_value(parameters["field"], parameters["value"])
     if operation == "document.font-scope-set":

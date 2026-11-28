@@ -3,12 +3,14 @@
 from copy import deepcopy
 from functools import lru_cache
 import json
-from math import isclose, dist
+from math import isclose, dist, radians
 from .polygon_geometry import TOLERANCE_MM, validate_polygon
+from .revolve_geometry import PARTIAL_REVOLVE_ANGLES, PARTIAL_REVOLVE_BOUNDS_MM
 from typing import Any, Dict
 
 from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
+from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES
 from .document_tolerances import TOLERANCE_FIELDS
 from .document_font_scopes import FONT_SCOPES, font_scopes_schema, validate_font_scopes
 from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match
@@ -525,6 +527,28 @@ _RESULT_FIELDS = {
             "configuration": NULLABLE_STRING,
             "api_errors": INTEGER,
             "api_warnings": INTEGER,
+            "preference_restore_errors": {"type": "array", "items": ERROR},
+            "open_mode": _object({
+                "requested": {"type": "string", "enum": list(OPEN_MODES)},
+                "actual": {"type": "string", "enum": [*OPEN_MODES, "mixed", "unknown"]},
+                "matches_request": {"type": ["boolean", "null"]},
+                "view_only": BOOL,
+                "actual_read_only": BOOL,
+                "large_design_review_state": INTEGER,
+                "detailing_mode": BOOL,
+                "lightweight_count": INTEGER,
+                "resolved_count": INTEGER,
+                "suppressed_count": INTEGER,
+                "unloaded_count": INTEGER,
+                "speedpak_count": INTEGER,
+                "has_unloaded_components": BOOL,
+                "observation_error": ERROR,
+                "options": _object({name: BOOL for name in ASSEMBLY_OPEN_OPTIONS}),
+                "large_assembly_settings": _object({
+                    "before": BOOL, "during_open": BOOL, "after_open": BOOL,
+                    "restored": BOOL,
+                }, ("before", "restored")),
+            }, ("requested", "actual", "matches_request", "options")),
         },
         (
             "document",
@@ -1665,7 +1689,7 @@ _RESULT_FIELDS["feature.revolve"] = (
         "sketch_id": {"type": "string", "pattern": "^s-[a-z0-9]{6}$"},
         "expected_profile_mm": _REVOLVE_COORDINATES,
         "axis_mm": _REVOLVE_COORDINATES,
-        "angle_deg": {"type": "number", "minimum": 360, "maximum": 360},
+        "angle_deg": {"type": "number", "exclusiveMinimum": 0, "maximum": 360},
         "mutation": _object({key: BOOL for key in ("attempted", "creation_returned", "may_have_changed")},
                             ("attempted", "creation_returned", "may_have_changed")),
         "cleanup_errors": _REVOLVE_CLEANUP,
@@ -1674,6 +1698,8 @@ _RESULT_FIELDS["feature.revolve"] = (
         # Null native readbacks are failure evidence, not a reason to discard
         # the first error/partial mutation. Success constraints remain strict.
         "definition": _object({"cleanup_errors": _REVOLVE_CLEANUP,
+            "axis_points_mm": {"type": "array", "minItems": 2, "maxItems": 2, "items": {
+                "type": "array", "minItems": 3, "maxItems": 3, "items": NUMBER}},
             **{key: {"anyOf": [schema, {"type": "null"}]} for key, schema in {
                 "angle_rad": NUMBER, "reverse": BOOL, "kind": INTEGER, "boss": BOOL,
                 "thin": BOOL, "merge": BOOL, "axis_type": INTEGER, "contour_count": INTEGER,
@@ -1752,6 +1778,7 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
     if name == "feature.revolve":
         schema["required"].extend(["sketch_id", "mutation", "cleanup_errors"])
         schema["then"]["properties"] = {
+            "angle_deg": {"enum": [*PARTIAL_REVOLVE_ANGLES, 360]},
             "feature": {"required": ["name", "type", "feature_id"], "properties": {"type": {"const": "Revolution"}}},
             "verified": {"const": True}, "cleanup_errors": {"maxItems": 0},
             "mutation": {"properties": {key: {"const": True} for key in
@@ -1765,6 +1792,13 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
             "diagnostics": {"properties": {"healthy": {"const": True}, "truncated": {"const": False},
                                             "issue_count": {"const": 0}, "issues": {"maxItems": 0}}},
         }
+        schema["then"]["allOf"] = [{
+            "if": {"properties": {"angle_deg": {"enum": list(PARTIAL_REVOLVE_ANGLES)}}},
+            "then": {"properties": {
+                "expected_profile_mm": {"const": list(PARTIAL_REVOLVE_BOUNDS_MM)},
+                "definition": {"required": ["axis_points_mm"]},
+            }},
+        }]
     if name in ("entity.reference-create", "entity.reference-resolve"):
         schema["then"]["properties"] = {
             "observation": {"required": ["after"],
@@ -3232,14 +3266,33 @@ def validate_operation_result(name: str, result: Any) -> None:
             and any(result["mutation"].values())):
         raise OperationResultInvalid("feature.revolve: unsupported native scope cannot report a mutation")
     if name == "feature.revolve" and result["ok"] is True:
-        from .revolve_geometry import validate_revolve_intent, cylinder_expectation, verify_cylinder_metrics
+        from .revolve_geometry import (
+            validate_revolve_intent, cylinder_expectation, verify_cylinder_metrics,
+            calibrated_revolve_frame, PARTIAL_REVOLVE_ROTATION_SIGN, sector_expectation,
+            verify_sector_metrics,
+        )
         try:
-            validate_revolve_intent(result["expected_profile_mm"], result["axis_mm"], result["angle_deg"])
-            expected = cylinder_expectation(result["expected_profile_mm"], result["model_to_sketch_transform"])
-            verify_cylinder_metrics(result["metrics"], expected)
-            verify_cylinder_metrics(result["expected_metrics"], expected)
-            if result["document"]["type"] != 1 or not isclose(result["definition"]["angle_rad"],
-                    2 * 3.141592653589793, rel_tol=0, abs_tol=1e-12):
+            bounds, axis, angle = (result[key] for key in ("expected_profile_mm", "axis_mm", "angle_deg"))
+            validate_revolve_intent(bounds, axis, angle)
+            transform = result["model_to_sketch_transform"]
+            definition = result["definition"]
+            if angle == 360:
+                expected = cylinder_expectation(bounds, transform)
+                verify_metrics = verify_cylinder_metrics
+            else:
+                if not calibrated_revolve_frame(transform):
+                    raise ValueError("partial revolve requires a calibrated origin-plane frame")
+                wanted = ((axis[0], axis[1], 0), (axis[2], axis[3], 0))
+                if not all(isclose(a, b, rel_tol=0, abs_tol=TOLERANCE_MM)
+                           for point, target in zip(definition["axis_points_mm"], wanted)
+                           for a, b in zip(point, target)):
+                    raise ValueError("partial revolve ordered axis endpoints differ from +Y intent")
+                expected = sector_expectation(bounds, transform, angle, rotation_sign=PARTIAL_REVOLVE_ROTATION_SIGN)
+                verify_metrics = verify_sector_metrics
+            verify_metrics(result["metrics"], expected)
+            verify_metrics(result["expected_metrics"], expected)
+            if result["document"]["type"] != 1 or not isclose(definition["angle_rad"],
+                    radians(angle), rel_tol=0, abs_tol=1e-12):
                 raise ValueError("native revolve angle/document evidence is inconsistent")
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
             raise OperationResultInvalid("feature.revolve: " + str(exc)) from exc

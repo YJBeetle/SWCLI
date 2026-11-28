@@ -1,0 +1,86 @@
+{
+  "source_commit": "98b5081d21bc29d8d409f7aed452ea28757e3530",
+  "source_wheel_sha256": "8056884874921377fcd49d59630776a75523594b9884195d6fc1c7638c8b00d5",
+  "independent_audit_sha256": "5b13c05f19adaca6093f8d13282b32ce40f5ff5103afeab760b303badc7df51d",
+  "integration_base": "5b2a71a43bbf33cf1b0b4e3f48def8feab045d45",
+  "host": "Windows SOLIDWORKS 2025 SP5",
+  "host_revision": "33.5.0",
+  "scope": "discrete-partial-revolve-public",
+  "bounds_mm": [
+    0,
+    -5,
+    10,
+    15
+  ],
+  "ordered_axis_mm": [
+    0,
+    -5,
+    0,
+    15
+  ],
+  "angles_deg": [
+    45,
+    90,
+    180,
+    270
+  ],
+  "case_count": 12,
+  "request_timeout_seconds": 600,
+  "plane_budget_seconds": 1800,
+  "planes": {
+    "front": {
+      "host_pid": 9156,
+      "daemon_exit": 0,
+      "angles_deg": [
+        90,
+        45,
+        180,
+        270
+      ],
+      "saved_files_sha256": {
+        "front-90-public.SLDPRT": "f7adf8ef6319c6508b546f9b64dd35b4279b5408d8564c81b6f50d6ed9459bce",
+        "front-45-public.SLDPRT": "09ce945d6214a6751a4ec66da7c6c3f55baa9d2a52e4ee08b39393ec0cabd4f8",
+        "front-180-public.SLDPRT": "e963561ee16bfa11832857c4b3dd8a84e340fc8d3afd4df82c40a735a8f2c5a0",
+        "front-270-public.SLDPRT": "2d4ac38139f4fb154be97ea6c32f5b6bf9af38e7576f9e4ad6b4d333cdb0d00a"
+      }
+    },
+    "top": {
+      "host_pid": 5376,
+      "daemon_exit": 0,
+      "angles_deg": [
+        90,
+        45,
+        180,
+        270
+      ],
+      "saved_files_sha256": {
+        "top-90-public.SLDPRT": "829ade3d6cfc03d1d0e0750264ef894fcbcac7e98bf8371ddb3f80759f5af034",
+        "top-45-public.SLDPRT": "25604af89c4d72a9d1f6d2b15b1e7db69ef6254e16ff87fe3ad745deef1b4862",
+        "top-180-public.SLDPRT": "d477c5b579787bd722f7b793cf2faa3dbdcfcc7a2b9b961876d0d4b57a4719e8",
+        "top-270-public.SLDPRT": "8de3cafeb0effa5a6dcdc8efd500dc5ba072f895701f36e23821d79edcb9b247"
+      }
+    },
+    "right": {
+      "host_pid": 3336,
+      "daemon_exit": 0,
+      "angles_deg": [
+        90,
+        45,
+        180,
+        270
+      ],
+      "saved_files_sha256": {
+        "right-90-public.SLDPRT": "f3bf12e9e9cfc2f3a3023f747df42946db6f03ac65288a6e7fd27569006382d2",
+        "right-45-public.SLDPRT": "2325fb28db62e255806d613f1eb8b0e7699fb2db6cba9b4da939fedd0c38b5c8",
+        "right-180-public.SLDPRT": "61f9c3970e21f36313201ff6293c5031eee2483ff53b160ae8dc76afcec1768d",
+        "right-270-public.SLDPRT": "37133eed90cd1bea41ef79639cf1d7d960a5440fc75232503ddddbca61240ab9"
+      }
+    }
+  },
+  "local_integration_tests": {
+    "run": 3252,
+    "passed": 3220,
+    "skipped": 32
+  },
+  "hosted_direction_workflow_registered": false
+}
