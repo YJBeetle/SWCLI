@@ -47,6 +47,8 @@ def refuse_preferences(font: DocumentAnnotationFontResultFont, snapshot: Documen
 client.document.export(output="part.step", step_protocol="ap242")  # E: arg-type
 client.document.export(output="part.step", step_geometry="solid")  # E: arg-type
 
+client.document.export(output="periodic.step", step_split_periodic_faces=0)  # E: arg-type
+client.document.export(output="periodic.step", step_protocol="ap242")  # E: arg-type
 client.assembly.targets.list(components="anchor-1", document_id="d-ab12cd", expected_update_stamp=7)  # E: arg-type
 client.assembly.targets.validate(snapshot_id="as-test", target_ids=["at-test"], document_id="d-ab12cd", expected_update_stamp=7)  # E: call-arg
 client.assembly.targets.validate(snapshot_id="as-test", target_ids="at-test", document_id="d-ab12cd", expected_update_stamp=7, lease_id="l-ab12cd34ef56")  # E: arg-type

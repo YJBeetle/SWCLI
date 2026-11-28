@@ -1030,7 +1030,7 @@ def document_export(
     }
     if "stl_options" in values:
         kwargs["stl_options"] = values["stl_options"]
-    for name in ("step_protocol", "step_geometry"):
+    for name in ("step_protocol", "step_geometry", "step_split_periodic_faces"):
         if name in values:
             kwargs[name] = values[name]
     if "include_content" in values:

@@ -19,8 +19,8 @@ from .native_trace import native_call
 from .windows_stl_options import stl_preferences, StlOptionsError
 from .export_validation import export_file_valid
 import struct
-from .windows_step_export import (StepExportError, step_preferences,
-                                  validate_step_options, verify_step_output)
+from .windows_step_export import (StepExportError, step_preferences, validate_step_options,
+                                  verify_periodic_step_output, verify_step_output)
 from .windows import PROG_ID, _com_value, _describe_document, _error
 
 
@@ -769,6 +769,7 @@ def export_active_windows_document(
     stl_options: Optional[Dict[str, Any]] = None,
     step_protocol: Optional[str] = None,
     step_geometry: Optional[str] = None,
+    step_split_periodic_faces: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Export a selected document to a verified neutral or drawing format."""
 
@@ -782,7 +783,7 @@ def export_active_windows_document(
         "output": str(output_path),
     }
     try:
-        if validate_step_options(output, step_protocol, step_geometry):
+        if validate_step_options(output, step_protocol, step_geometry, step_split_periodic_faces):
             result["mutation"] = {"attempted": False, "may_have_changed": False}
     except StepExportError as exc:
         result["error"] = {"type": exc.code, "message": str(exc)}
@@ -891,7 +892,9 @@ def export_active_windows_document(
         else:
             preference_scope = _stl_single_file(
                 app, export_format == "STL" and before["document"]["type"] == 2)
-        with step_preferences(app, document, step_protocol, step_geometry, result), preference_scope:
+        with step_preferences(app, document, step_protocol, step_geometry, result,
+                              **({"split_periodic_faces": step_split_periodic_faces}
+                                 if step_split_periodic_faces is not None else {})), preference_scope:
             if step_protocol is not None:
                 result["mutation"] = {"attempted": True, "may_have_changed": True}
             document.ClearSelection2(True)
@@ -948,7 +951,8 @@ def export_active_windows_document(
             if is_binary != (stl_options["encoding"] == "binary"):
                 raise StlOptionsError("ExportVerificationFailed", "actual STL encoding differs from requested encoding")
         if step_protocol is not None:
-            result["step_output"] = verify_step_output(export_path, step_protocol, step_geometry)
+            verify = verify_step_output if step_split_periodic_faces is None else verify_periodic_step_output
+            result["step_output"] = verify(export_path, step_protocol, step_geometry)
 
         after = _export_source_state(document)
         if stl_options is not None:

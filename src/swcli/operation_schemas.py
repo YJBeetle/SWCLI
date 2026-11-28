@@ -466,14 +466,17 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
             "include_content": _boolean(),
             "step_protocol": _string(enum=["ap203", "ap214"]),
             "step_geometry": _string(enum=["solid-surface", "wireframe", "wireframe-sketches"]),
+            "step_split_periodic_faces": _boolean(),
             "stl_options": deepcopy(STL_OPTIONS_SCHEMA),
         },
         required=("output",),
         parameter_conditions=[{
-            "if": {"anyOf": [{"required": ["step_protocol"]}, {"required": ["step_geometry"]}]},
+            "if": {"anyOf": [{"required": ["step_protocol"]}, {"required": ["step_geometry"]}, {"required": ["step_split_periodic_faces"]}]},
             "then": {"required": ["step_protocol", "step_geometry"],
                      "properties": {"output": {"pattern": "\\.[sS][tT]([eE][pP]|[pP])$"}}},
-        }, {"if": {"required": ["stl_options"]}, "then": {
+        }, {"if": {"required": ["step_split_periodic_faces"]}, "then": {
+            "properties": {"step_geometry": {"const": "solid-surface"}}}},
+        {"if": {"required": ["stl_options"]}, "then": {
             "properties": {"output": {"pattern": "\\.[sS][tT][lL]$"}}}}],
         temporary_activation=True,
         **_DOCUMENT_WRITE_CONTEXT,
@@ -871,9 +874,9 @@ def validate_operation_request(
     if operation == "document.unit-profile-set":
         unit_profile_target(parameters["field"], parameters["value"])
         validate_unit_profile(parameters["expected_snapshot"])
-    if operation == "document.export" and {"step_protocol", "step_geometry"}.intersection(parameters):
+    if operation == "document.export" and {"step_protocol", "step_geometry", "step_split_periodic_faces"}.intersection(parameters):
         from .hosts.windows_step_export import validate_step_options
-        validate_step_options(parameters["output"], parameters.get("step_protocol"), parameters.get("step_geometry"))
+        validate_step_options(parameters["output"], parameters.get("step_protocol"), parameters.get("step_geometry"), parameters.get("step_split_periodic_faces"))
         if expected_update_stamp is None or lease_id is None:
             raise ValueError("STEP options require expected_update_stamp and lease_id")
     if operation == "document.annotation-option-set":

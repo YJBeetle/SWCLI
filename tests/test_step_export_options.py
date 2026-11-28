@@ -156,6 +156,51 @@ class StepExportTests(unittest.TestCase):
                 with self.assertRaises(step.StepExportError):
                     step.verify_step_output(path, "ap214", "solid-surface")
 
+    def test_periodic_and_legacy_accept_ascii_complex_units_with_identical_summary(self):
+        prefix, suffix = payload().rsplit(b"ENDSEC;", 1)
+        raw = prefix + b"#90=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));ENDSEC;" + suffix
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fixture.step"
+            path.write_bytes(raw)
+            legacy = step.verify_step_output(path, "ap214", "solid-surface")
+            self.assertEqual(step.verify_periodic_step_output(path, "ap214", "solid-surface"), legacy)
+            path.write_bytes(raw.replace(b"MANIFOLD_SOLID_BREP('',", "MANIFOLD_SOLID_BREP('圆柱',".encode()))
+            with self.assertRaises(UnicodeDecodeError):
+                step.verify_step_output(path, "ap214", "solid-surface")
+            self.assertEqual(step.verify_periodic_step_output(path, "ap214", "solid-surface"), legacy)
+
+    def test_part21_allows_utf8_only_inside_quoted_text(self):
+        label = "圆柱'' DATA; ENDSEC; #2=GEOMETRIC_CURVE_SET(); #3=MANIFOLD_SOLID_BREP();".encode("utf-8")
+        raw = payload().replace(
+            b"HEADER;", b"HEADER;FILE_NAME('" + label + b"'); /* DATA; ENDSEC; */"
+        ).replace(b"('',());", b"('" + label + b"',());")
+        rejected = {
+            "invalid_quoted_utf8": raw.replace("圆".encode("utf-8"), b"\xe6"),
+            "entity_identifier": raw.replace(b"#1=MANIFOLD", "#１=MANIFOLD".encode("utf-8")),
+            "schema_identifier": raw.replace(b"AUTOMOTIVE_DESIGN", "AUTOMOTIVE_DESIGNé".encode("utf-8")),
+            "schema_substring": raw.replace(b"AUTOMOTIVE_DESIGN", b"NOT_AUTOMOTIVE_DESIGN"),
+            "structural_utf8_whitespace": raw.replace(b"#1=", "#1\u00a0=".encode("utf-8")),
+            "missing_literal_close": raw.replace(b"',());", b",());"),
+            "byte_control": raw.replace(b"#1=", b"#1\x00="),
+            "fake_body_in_label": raw.replace(b"#1=MANIFOLD_SOLID_BREP", b"#1=PRODUCT"),
+            "fake_body_in_comment": raw.replace(b"#1=MANIFOLD_SOLID_BREP", b"/* #1=MANIFOLD_SOLID_BREP('',()); */ #1=PRODUCT"),
+            "bare_text_record": raw.replace(b"HEADER;", b"HEADER;'" + label + b"';"),
+            "duplicate_schema": raw.replace(b"ENDSEC;\nDATA", b"FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));ENDSEC;\nDATA"),
+            "fake_schema_in_name": raw.replace(b"FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));",
+                b"FILE_NAME('FILE_SCHEMA((''AUTOMOTIVE_DESIGN''));');"),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "part.step"
+            path.write_bytes(raw)
+            result = step.verify_periodic_step_output(path, "ap214", "solid-surface")
+            self.assertEqual(result["entity_types"], ["MANIFOLD_SOLID_BREP"])
+            self.assertEqual(path.read_bytes(), raw)
+            for name, invalid in rejected.items():
+                with self.subTest(name=name), self.assertRaises(step.StepExportError) as error:
+                    path.write_bytes(invalid)
+                    step.verify_periodic_step_output(path, "ap214", "solid-surface")
+                self.assertEqual(error.exception.code, "StepOutputMismatch")
+
     def test_contract_requires_pair_extension_lease_stamp_and_no_ap242(self):
         valid = {"output": "part.STP", "step_protocol": "ap214", "step_geometry": "wireframe"}
         context = {"lease_id": "l-ab12cd34ef56", "expected_update_stamp": 5}

@@ -91,6 +91,7 @@ def document_preferences(client: Client, font: DocumentAnnotationFontResultFont,
     profile: str = read_standard.require_result()["observed_defaults"]["profile"]
     standard_set.require_result()["before"]["observed_defaults"]["annotation_font"]["font"]["height_points"]
 
+    client.document.export(output="periodic.step", step_protocol="ap214", step_geometry="solid-surface", step_split_periodic_faces=False, document_id="d-ab12cd", lease_id="l-ab12cd34ef56", expected_update_stamp=0)
 
 def compare_assembly_readonly_targets(client: Client) -> bool:
     observed = client.assembly.targets.list(

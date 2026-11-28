@@ -553,6 +553,8 @@ def build_parser() -> argparse.ArgumentParser:
                                help="STEP protocol; requires a calibrated owned hidden host and writable part")
     export_parser.add_argument("--step-geometry", choices=("solid-surface", "wireframe", "wireframe-sketches"),
                                help="STEP geometry; specify together with --step-protocol, lease and update stamp")
+    export_parser.add_argument("--step-split-periodic-faces", action=argparse.BooleanOptionalAction, default=None,
+                               help="periodic-face splitting for AP203/AP214 solid-surface on an owned English native Windows SOLIDWORKS 2025 SP5 host")
     export_parser.add_argument("--overwrite", action="store_true")
     export_parser.add_argument(
         "--strict",
@@ -1818,6 +1820,7 @@ def _typed_operation(
                               for key in ("encoding", "unit", "deviation_mm", "angle_degrees")) else {}),
                     **({"step_protocol": args.step_protocol} if args.step_protocol is not None else {}),
                     **({"step_geometry": args.step_geometry} if args.step_geometry is not None else {}),
+                    **({"step_split_periodic_faces": args.step_split_periodic_faces} if args.step_split_periodic_faces is not None else {}),
                 },
                 args.as_json,
                 args.document_id,

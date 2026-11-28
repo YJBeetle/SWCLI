@@ -848,9 +848,16 @@ _RESULT_FIELDS = {
          }),
          "mutation": METADATA_MUTATION,
          "step_preferences": _object({
-             "before": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
-             "requested": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
-             "after": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER}, ("swStepAP", "swStepExportPreference")),
+             "setter_returns": {"type": "array", "items": _object({
+                 "phase": STRING, "preference": STRING, "return_type": STRING,
+                 "value": {"type": ["boolean", "null"]},
+             }, ("phase", "preference", "return_type"))},
+             "stages": {"type": "array", "items": _object({"phase": STRING, "values": _object({
+                 "swStepAP": INTEGER, "swStepExportPreference": INTEGER, "swStepExportSplitPeriodic": BOOL,
+             }, ("swStepAP", "swStepExportPreference", "swStepExportSplitPeriodic"))}, ("phase", "values"))},
+             "before": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER, "swStepExportSplitPeriodic": BOOL}, ("swStepAP", "swStepExportPreference")),
+             "requested": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER, "swStepExportSplitPeriodic": BOOL}, ("swStepAP", "swStepExportPreference")),
+             "after": _object({"swStepAP": INTEGER, "swStepExportPreference": INTEGER, "swStepExportSplitPeriodic": BOOL}, ("swStepAP", "swStepExportPreference")),
              "restored": BOOL,
          }, ("before", "requested", "restored")),
          "preference_restore_errors": {"type": "array", "minItems": 1, "items": _object(
@@ -2168,6 +2175,17 @@ def operation_result_schema(name: str) -> Dict[str, Any]:
                      "properties": {"step_preferences": {"required": ["after"],
                                     "properties": {"restored": {"const": True}}}},
                      "not": {"required": ["preference_restore_errors"]}},
+        })
+    if name == "document.export":
+        schema.setdefault("allOf", []).append({
+            "if": {"required": ["step_preferences"], "properties": {
+                "ok": {"const": True}, "step_preferences": {"properties": {
+                    "before": {"required": ["swStepExportSplitPeriodic"]}}}}},
+            "then": {"properties": {"step_preferences": {"required": ["stages"], "properties": {
+                "requested": {"required": ["swStepExportSplitPeriodic"]},
+                "after": {"required": ["swStepExportSplitPeriodic"]},
+                "stages": {"minItems": 4},
+            }}}},
         })
     if name in ("document.render", "document.export"):
         if name == "document.export":

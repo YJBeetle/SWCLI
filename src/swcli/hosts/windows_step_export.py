@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 from .native_trace import native_call
+from .step_part21 import file_schema, read_exchange
 from .windows import _com_value
 from .windows_custom_properties import _require_writable, _state, _verify_metadata_state
 
@@ -35,6 +36,37 @@ def step_host_scope(app, *, isolated, calibration=False):
         yield
     finally:
         _HOST_SCOPE.reset(token)
+
+
+def resolve_step_swconst(app):
+    """Use the owning SOLIDWORKS installation, as drawing preference readers do."""
+    try:
+        executable = _com_value(app, "GetExecutablePath")
+        if type(executable) is not str or not executable:
+            raise ValueError("missing SOLIDWORKS executable path")
+        location = Path(executable)
+        if not location.is_absolute():
+            raise ValueError("SOLIDWORKS executable path is not absolute")
+        if location.suffix.lower() == ".exe":
+            if location.name.lower() != "sldworks.exe":
+                raise ValueError("unexpected SOLIDWORKS executable name")
+            directory = location.parent.resolve(strict=True)
+            image = location
+        else:
+            directory = location.resolve(strict=True)
+            image = directory / "SLDWORKS.exe"
+        library = directory / "swconst.tlb"
+        if not image.is_file() or not library.is_file():
+            raise ValueError("SOLIDWORKS executable or sibling swconst.tlb is missing")
+        if (image.resolve(strict=True) != directory / image.name
+                or library.resolve(strict=True) != library):
+            raise ValueError("SOLIDWORKS installation file points outside its expected path")
+        return library
+    except Exception as exc:
+        raise StepExportError(
+            "StepTypeLibraryUnavailable",
+            "could not locate swconst.tlb beside the owning SOLIDWORKS executable",
+        ) from exc
 
 
 def read_step_constants(path=None):
@@ -70,7 +102,9 @@ def _read_native_enum_constants(path, wanted):
         raise StepExportError("StepTypeLibraryUnavailable", "installed preference enums are incomplete")
     return found
 
-def validate_step_options(output, protocol, geometry):
+def validate_step_options(output, protocol, geometry, split_periodic_faces=None):
+    if split_periodic_faces is not None and (type(split_periodic_faces) is not bool or geometry != "solid-surface"):
+        raise StepExportError("InvalidStepOptions", "periodic-face option requires a strict boolean and solid-surface geometry")
     if protocol is None and geometry is None:
         return False
     if (not isinstance(protocol, str) or not isinstance(geometry, str)
@@ -126,7 +160,10 @@ def _foreground_state(document):
 
 
 @contextmanager
-def step_preferences(app, document, protocol, geometry, result):
+def step_preferences(app, document, protocol, geometry, result, *, split_periodic_faces=None):
+    if split_periodic_faces is not None:
+        if type(split_periodic_faces) is not bool or protocol not in STEP_PROTOCOLS or geometry != "solid-surface":
+            raise StepExportError("InvalidStepOptions", "periodic-face option requires AP203/AP214 solid-surface and a strict boolean")
     if protocol is None and geometry is None:
         yield
         return
@@ -138,6 +175,17 @@ def step_preferences(app, document, protocol, geometry, result):
         raise StepExportError("StepCalibrationRequired", "STEP option writes await native/public calibration for this revision")
     if not scope[1] and not _native_windows_runtime():
         raise StepExportError("StepNativePlatformRequired", "calibrated STEP options currently require native Windows")
+    if split_periodic_faces is not None:
+        if revision != "33.5.0" or (scope[1] and not _native_windows_runtime()):
+            raise StepExportError("StepNativePlatformRequired", "periodic-face writes require native Windows SOLIDWORKS 2025 SP5")
+        if not scope[1]:
+            message = "periodic-face writes require an English SOLIDWORKS session"
+            try:
+                language = _com_value(app, "GetCurrentLanguage")
+            except Exception as exc:
+                raise StepExportError("StepSplitLanguageUnsupported", message) from exc
+            if type(language) is not str or language != "english":
+                raise StepExportError("StepSplitLanguageUnsupported", message)
     _require_writable(document)
     state = _state(document)
     if state[0] != 1:
@@ -150,6 +198,17 @@ def step_preferences(app, document, protocol, geometry, result):
         _verify_metadata_state(app, document, state, foreground, changed=False)
         if _foreground_state(foreground) != foreground_before:
             raise StepExportError("StepPeerStateChanged", "foreground document state changed during STEP export")
+    if split_periodic_faces is not None:
+        from .windows_step_periodic import periodic_preferences
+        swconst = resolve_step_swconst(app)
+        constants = read_step_constants(swconst)
+        keys = {name: constants[name] for name in ("swStepAP", "swStepExportPreference")}
+        desired = {"swStepAP": STEP_PROTOCOLS[protocol],
+                   "swStepExportPreference": constants[STEP_GEOMETRIES[geometry]]}
+        with periodic_preferences(app, keys, desired, tuple(constants[name] for name in STEP_GEOMETRIES.values()),
+                                  split_periodic_faces, verify_context, result, swconst=swconst):
+            yield
+        return
     constants = read_step_constants()
     keys = {name: constants[name] for name in ("swStepAP", "swStepExportPreference")}
     before = _snapshot(app, keys)
@@ -235,4 +294,36 @@ def verify_step_output(path, protocol, geometry):
     if geometry != "solid-surface" and "MANIFOLD_SOLID_BREP" in entities:
         raise StepExportError("StepOutputMismatch", "wireframe STEP unexpectedly contains solid bodies")
     return {"protocol": protocol, "geometry": geometry, "file_schema": schema[1],
+            "entity_types": sorted(entities)}
+
+
+_STEP_DATA_RECORD = re.compile(
+    r"\s*#\d+\s*=\s*(?:([A-Z][A-Z0-9_]*)\s*)?\(.*\)\s*", re.S | re.ASCII
+)
+
+
+def verify_periodic_step_output(path, protocol, geometry):
+    """Check actual Part 21 schema, termination and requested entity family."""
+    try:
+        _, header, data = read_exchange(path.read_bytes())
+        schema, names = file_schema(header)
+        entities = set()
+        for _, syntax in data.statements():
+            record = _STEP_DATA_RECORD.fullmatch(syntax)
+            if record is None:
+                raise ValueError("malformed Part 21 DATA statement")
+            if record[1] is not None:
+                entities.add(record[1])
+    except ValueError as exc:
+        raise StepExportError("StepOutputMismatch", str(exc)) from exc
+    marker = "CONFIG_CONTROL_DESIGN" if protocol == "ap203" else "AUTOMOTIVE_DESIGN"
+    if marker not in names:
+        raise StepExportError("StepOutputMismatch", "STEP file schema does not match the requested protocol")
+    expected = ({"MANIFOLD_SOLID_BREP", "SHELL_BASED_SURFACE_MODEL"} if geometry == "solid-surface"
+                else {"GEOMETRIC_CURVE_SET", "GEOMETRIC_SET", "EDGE_BASED_WIREFRAME_MODEL"})
+    if not entities.intersection(expected):
+        raise StepExportError("StepOutputMismatch", "STEP file lacks the requested geometry entity family")
+    if geometry != "solid-surface" and "MANIFOLD_SOLID_BREP" in entities:
+        raise StepExportError("StepOutputMismatch", "wireframe STEP unexpectedly contains solid bodies")
+    return {"protocol": protocol, "geometry": geometry, "file_schema": schema,
             "entity_types": sorted(entities)}

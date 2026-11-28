@@ -1645,6 +1645,7 @@ class DocumentExportParameters(_DocumentExportParametersRequired, total=False):
     include_content: bool
     step_protocol: Literal['ap203', 'ap214']
     step_geometry: Literal['solid-surface', 'wireframe', 'wireframe-sketches']
+    step_split_periodic_faces: bool
     stl_options: DocumentExportParametersStlOptions
 
 
@@ -1697,9 +1698,34 @@ class DocumentExportResultStlPreferences(TypedDict, total=False):
     setter_returns: List[DocumentExportResultStlPreferencesSetterReturnsItem]
 
 
-class DocumentExportResultStepPreferencesBefore(TypedDict):
+class _DocumentExportResultStepPreferencesSetterReturnsItemRequired(TypedDict):
+    phase: str
+    preference: str
+    return_type: str
+
+
+class DocumentExportResultStepPreferencesSetterReturnsItem(_DocumentExportResultStepPreferencesSetterReturnsItemRequired, total=False):
+    value: Union[bool, None]
+
+
+class DocumentExportResultStepPreferencesStagesItemValues(TypedDict):
     swStepAP: int
     swStepExportPreference: int
+    swStepExportSplitPeriodic: bool
+
+
+class DocumentExportResultStepPreferencesStagesItem(TypedDict):
+    phase: str
+    values: DocumentExportResultStepPreferencesStagesItemValues
+
+
+class _DocumentExportResultStepPreferencesBeforeRequired(TypedDict):
+    swStepAP: int
+    swStepExportPreference: int
+
+
+class DocumentExportResultStepPreferencesBefore(_DocumentExportResultStepPreferencesBeforeRequired, total=False):
+    swStepExportSplitPeriodic: bool
 
 
 class _DocumentExportResultStepPreferencesRequired(TypedDict):
@@ -1709,6 +1735,8 @@ class _DocumentExportResultStepPreferencesRequired(TypedDict):
 
 
 class DocumentExportResultStepPreferences(_DocumentExportResultStepPreferencesRequired, total=False):
+    setter_returns: List[DocumentExportResultStepPreferencesSetterReturnsItem]
+    stages: List[DocumentExportResultStepPreferencesStagesItem]
     after: DocumentExportResultStepPreferencesBefore
 
 
