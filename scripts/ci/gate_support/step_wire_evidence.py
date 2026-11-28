@@ -113,6 +113,27 @@ def parse(raw):
     return text, entities
 
 
+def parse_periodic(raw):
+    """Parse the strict explicit-periodic profile without altering legacy audit_wire."""
+    from swcli.hosts.step_part21 import file_schema, read_exchange
+
+    text, header, data = read_exchange(raw)
+    file_schema(header)
+    entities = {}
+    for statement, _ in data.statements():
+        match = re.fullmatch(r'\s*#(\d+)\s*=\s*(.*)', statement, re.S | re.ASCII)
+        if not match:
+            raise ValueError('malformed DATA statement')
+        identity = int(match[1])
+        if identity in entities:
+            raise ValueError('duplicate entity ID')
+        entities[identity] = expression(match[2].strip())
+    dangling = sorted({r for value in entities.values() for r in references(value)} - entities.keys())
+    if dangling:
+        raise ValueError('dangling entity references: ' + str(dangling))
+    return text, entities
+
+
 def audit_wire(raw):
     text, entities = parse(raw)
     def node(identity, kind=None):

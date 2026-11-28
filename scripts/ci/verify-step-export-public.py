@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import socket
 import subprocess
@@ -17,13 +18,14 @@ import time
 import traceback
 import uuid
 
-from swcli.hosts.windows_step_export import verify_step_output
+from swcli.hosts.windows_step_export import _native_windows_runtime, verify_step_output
 from swcli.result_schemas import validate_operation_result
 from swcli.sdk import Client
 from swcli.mcp import DaemonBridge
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gate_support.step_fixture_checks import verify_source_sketch
+from gate_support import step_periodic_public as periodic
 
 
 def checked(value, message):
@@ -45,10 +47,30 @@ def document_context(document, lease, stamp):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--periodic-host", choices=(periodic.ENGLISH_HOST, periodic.CHINESE_HOST),
+                        help="separately scheduled STEP periodic public gate")
+    parser.add_argument("--periodic-legacy-only", action="store_true",
+                        help="separate omitted-parameter control on the English host")
+    parser.add_argument("--source-commit", help="exact installed candidate head for the periodic gate")
     args = parser.parse_args(argv)
+    if args.periodic_legacy_only and args.periodic_host != periodic.ENGLISH_HOST:
+        parser.error("--periodic-legacy-only requires --periodic-host english")
+    if args.periodic_host:
+        if not re.fullmatch("[0-9a-f]{40}", args.source_commit or ""):
+            parser.error("the periodic gate requires the exact candidate --source-commit")
+        if os.environ.get("GITHUB_SHA") not in (None, args.source_commit):
+            parser.error("periodic candidate differs from GITHUB_SHA")
+        if not _native_windows_runtime():
+            parser.error("the public periodic gate requires native Windows")
+    elif args.source_commit:
+        parser.error("--source-commit is only used with --periodic-host")
     output = args.output_dir.resolve()
     output.mkdir()
-    report = dict(success=False, source_commit=os.environ.get("GITHUB_SHA"), evidence_scope="step-public-cli-daemon", events=[], outputs=[], cleanup_errors=[])
+    scope = "step-public-cli-daemon"
+    if args.periodic_host:
+        scope = periodic.LEGACY_SCOPE if args.periodic_legacy_only else periodic.WRITER_SCOPE
+    report = dict(success=False, source_commit=args.source_commit or os.environ.get("GITHUB_SHA"),
+                  evidence_scope=scope, events=[], outputs=[], cleanup_errors=[])
     session = "step-public-" + uuid.uuid4().hex[:12]
     report["session_id"] = session
     documents = {}
@@ -147,78 +169,85 @@ def main(argv=None):
         report["host"] = host
         checked(host["owned_by_daemon"] and not host["visible"] and not host["shared_interactive"],
                 "public gate requires an owned hidden host")
-        source = output / "public-source.SLDPRT"
-        made = cli("create-box", "part", "create-box", str(source), "--width-mm", "40", "--height-mm", "30",
-                   "--depth-mm", "10", operation="part.create-box")
-        document = made["document"]["document_id"]
-        documents[document] = None
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()
-        lease = cli("source-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
-        documents[document] = lease
-        listing = cli("list-source-sketch", "sketch", "list", "--document", document, operation="sketch.list")
-        checked(listing["count"] == 1, "public box fixture must have one source sketch")
-        observed_sketch = cli("inspect-source-sketch", "sketch", "inspect", listing["sketches"][0]["sketch_id"],
-                              "--document", document, operation="sketch.inspect")
-        report["source_sketch_oracle"] = verify_source_sketch(observed_sketch)
-        foreground = cli("create-foreground", "document", "create", "--type", "part")["document"]["document_id"]
-        documents[foreground] = None
-        report["foreground_before"] = cli("foreground-before", "document", "inspect", "--document", foreground,
-                                          operation="document.inspect")["document"]
-        for protocol in ("ap203", "ap214"):
-            for geometry in ("solid-surface", "wireframe", "wireframe-sketches"):
-                path = output / (protocol + "-" + geometry + ".step")
-                value = cli(protocol + "-" + geometry, "document", "export", str(path),
-                    "--step-protocol", protocol, "--step-geometry", geometry,
-                    *document_context(document, lease, stamp(document)), operation="document.export")
-                verify_output(path, protocol, geometry, value, "cli")
-        # Independent public frontends use the same daemon/worker, never COM.
-        client = Client(endpoint=endpoint, session_id=session, timeout_seconds=600)
-        path = output / "sdk-ap214-solid-surface.STP"
-        receipt = client.document.export(output=str(path), step_protocol="ap214", step_geometry="solid-surface",
-            document_id=document, lease_id=lease, expected_update_stamp=stamp(document))
-        report["sdk_reply"] = dict(receipt.raw)
-        persist()
-        value = receipt.require_result()
-        verify_output(path, "ap214", "solid-surface", value, "sdk")
-        path = output / "mcp-ap203-wireframe.step"
-        reply = DaemonBridge(endpoint=endpoint, session_id=session, timeout_seconds=600).call("execute", dict(
-            operation="document.export", parameters=dict(output=str(path), step_protocol="ap203",
-                step_geometry="wireframe", include_content=False), document_id=document,
-                lease_id=lease, expected_update_stamp=stamp(document)))
-        report["mcp_reply"] = reply
-        persist()
-        checked(reply["success"], "MCP public STEP export failed")
-        verify_output(path, "ap203", "wireframe", reply["result"], "mcp")
-        report["foreground_after"] = cli("foreground-after", "document", "inspect", "--document", foreground,
-                                         operation="document.inspect")["document"]
-        checked(report["foreground_before"] == report["foreground_after"], "foreground peer state changed during public exports")
-        base = ["document", "export", str(output / "rejected.step"), "--step-protocol", "ap214",
-                "--step-geometry", "solid-surface"]
-        cli("stale-cas", *base, *document_context(document, lease, stamp(document) + 1), error="DocumentUpdateConflict")
-        cli("foreign-lease", *base, *document_context(document, lease, stamp(document)),
-            chosen_session=session + "-contender", error="DocumentLeaseConflict")
-        cli("illegal-protocol", "document", "export", str(output / "rejected.step"), "--step-protocol", "ap242", parse_error=True)
-        checked(not (output / "rejected.step").exists(), "rejected export created output")
-        cli("close-source", "document", "close", "--document", document, "--lease", lease)
-        del documents[document]
-        reopened = cli("reopen-readonly", "document", "open", str(source), "--read-only", operation="document.open")
-        document = reopened["document"]["document_id"]
-        documents[document] = None  # Retain cleanup ownership even if status validation fails.
-        checked(reopened["api_errors"] == reopened["api_warnings"] == 0
-                and reopened["read_only"] is True and reopened["document"]["modified"] is False,
-                "public source readonly reopen returned native errors/warnings or modified state")
-        measured = cli("measure-reopened-source", "document", "measure", "--document", document, operation="document.measure")
-        for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
-            checked(math.isclose(measured["metrics"][key], expected, rel_tol=1e-7, abs_tol=1e-5),
-                    "saved/reopened source geometry mismatch")
-        checked(hashlib.sha256(source.read_bytes()).hexdigest() == digest, "source native file bytes changed")
-        report["source_sha256"] = digest
-        lease = cli("readonly-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
-        documents[document] = lease
-        cli("readonly-export-rejected", *base, *document_context(document, lease, stamp(document)), error="ValueError")
-        checked(not (output / "rejected.step").exists(), "readonly export created output")
+        if args.periodic_host:
+            periodic.check_host(host, args.periodic_host)
+            periodic.run_writer(output, report, cli, stamp, document_context, documents, persist,
+                                legacy_only=args.periodic_legacy_only)
+        else:
+            source = output / "public-source.SLDPRT"
+            made = cli("create-box", "part", "create-box", str(source), "--width-mm", "40", "--height-mm", "30",
+                       "--depth-mm", "10", operation="part.create-box")
+            document = made["document"]["document_id"]
+            documents[document] = None
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            lease = cli("source-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
+            documents[document] = lease
+            listing = cli("list-source-sketch", "sketch", "list", "--document", document, operation="sketch.list")
+            checked(listing["count"] == 1, "public box fixture must have one source sketch")
+            observed_sketch = cli("inspect-source-sketch", "sketch", "inspect", listing["sketches"][0]["sketch_id"],
+                                  "--document", document, operation="sketch.inspect")
+            report["source_sketch_oracle"] = verify_source_sketch(observed_sketch)
+            foreground = cli("create-foreground", "document", "create", "--type", "part")["document"]["document_id"]
+            documents[foreground] = None
+            report["foreground_before"] = cli("foreground-before", "document", "inspect", "--document", foreground,
+                                              operation="document.inspect")["document"]
+            for protocol in ("ap203", "ap214"):
+                for geometry in ("solid-surface", "wireframe", "wireframe-sketches"):
+                    path = output / (protocol + "-" + geometry + ".step")
+                    value = cli(protocol + "-" + geometry, "document", "export", str(path),
+                        "--step-protocol", protocol, "--step-geometry", geometry,
+                        *document_context(document, lease, stamp(document)), operation="document.export")
+                    verify_output(path, protocol, geometry, value, "cli")
+            # Independent public frontends use the same daemon/worker, never COM.
+            client = Client(endpoint=endpoint, session_id=session, timeout_seconds=600)
+            path = output / "sdk-ap214-solid-surface.STP"
+            receipt = client.document.export(output=str(path), step_protocol="ap214", step_geometry="solid-surface",
+                document_id=document, lease_id=lease, expected_update_stamp=stamp(document))
+            report["sdk_reply"] = dict(receipt.raw)
+            persist()
+            value = receipt.require_result()
+            verify_output(path, "ap214", "solid-surface", value, "sdk")
+            path = output / "mcp-ap203-wireframe.step"
+            reply = DaemonBridge(endpoint=endpoint, session_id=session, timeout_seconds=600).call("execute", dict(
+                operation="document.export", parameters=dict(output=str(path), step_protocol="ap203",
+                    step_geometry="wireframe", include_content=False), document_id=document,
+                    lease_id=lease, expected_update_stamp=stamp(document)))
+            report["mcp_reply"] = reply
+            persist()
+            checked(reply["success"], "MCP public STEP export failed")
+            verify_output(path, "ap203", "wireframe", reply["result"], "mcp")
+            report["foreground_after"] = cli("foreground-after", "document", "inspect", "--document", foreground,
+                                             operation="document.inspect")["document"]
+            checked(report["foreground_before"] == report["foreground_after"], "foreground peer state changed during public exports")
+            base = ["document", "export", str(output / "rejected.step"), "--step-protocol", "ap214",
+                    "--step-geometry", "solid-surface"]
+            cli("stale-cas", *base, *document_context(document, lease, stamp(document) + 1), error="DocumentUpdateConflict")
+            cli("foreign-lease", *base, *document_context(document, lease, stamp(document)),
+                chosen_session=session + "-contender", error="DocumentLeaseConflict")
+            cli("illegal-protocol", "document", "export", str(output / "rejected.step"), "--step-protocol", "ap242", parse_error=True)
+            checked(not (output / "rejected.step").exists(), "rejected export created output")
+            cli("close-source", "document", "close", "--document", document, "--lease", lease)
+            del documents[document]
+            reopened = cli("reopen-readonly", "document", "open", str(source), "--read-only", operation="document.open")
+            document = reopened["document"]["document_id"]
+            documents[document] = None  # Retain cleanup ownership even if status validation fails.
+            checked(reopened["api_errors"] == reopened["api_warnings"] == 0
+                    and reopened["read_only"] is True and reopened["document"]["modified"] is False,
+                    "public source readonly reopen returned native errors/warnings or modified state")
+            measured = cli("measure-reopened-source", "document", "measure", "--document", document, operation="document.measure")
+            for key, expected in (("volume_mm3", 12000), ("surface_area_mm2", 3800)):
+                checked(math.isclose(measured["metrics"][key], expected, rel_tol=1e-7, abs_tol=1e-5),
+                        "saved/reopened source geometry mismatch")
+            checked(hashlib.sha256(source.read_bytes()).hexdigest() == digest, "source native file bytes changed")
+            report["source_sha256"] = digest
+            lease = cli("readonly-lease", "document", "lease", "acquire", "--ttl-seconds", "1800", "--document", document)["lease"]["lease_id"]
+            documents[document] = lease
+            cli("readonly-export-rejected", *base, *document_context(document, lease, stamp(document)), error="ValueError")
+            checked(not (output / "rejected.step").exists(), "readonly export created output")
         after = cli("host-after", "daemon", "status")["result"]["host"]
         checked(after["process_id"] == host["process_id"] and after["revision"] == host["revision"], "native host changed")
+        if args.periodic_host:
+            periodic.check_host(after, args.periodic_host)
         report["host_after"] = after
         report["success"] = True
     except BaseException as exc:
@@ -237,11 +266,15 @@ def main(argv=None):
             try:
                 cli("daemon-stop", "daemon", "stop")
                 daemon.wait(timeout=20)
+                if args.periodic_host:
+                    report["daemon_returncode"] = daemon.returncode
                 checked(daemon.returncode == 0, "daemon did not exit cleanly")
                 if host_handle is not None:
                     import win32event
                     checked(win32event.WaitForSingleObject(host_handle, 10000) == win32event.WAIT_OBJECT_0,
                             "owned SOLIDWORKS process exit was not confirmed")
+                    if args.periodic_host:
+                        report["owned_exit_confirmed"] = True
             except Exception as exc:
                 report["cleanup_errors"].append(dict(stage="daemon-stop", error=repr(exc)))
                 if daemon.poll() is None:
@@ -252,6 +285,16 @@ def main(argv=None):
         stdout_file.close()
         stderr_file.close()
         report["success"] = report["success"] and not report["cleanup_errors"]
+        if args.periodic_host and report["success"]:
+            try:
+                trace_path = output / "daemon.stderr.log"
+                trace_bytes = trace_path.read_bytes()
+                report["daemon_trace_sha256"] = hashlib.sha256(trace_bytes).hexdigest()
+                report["trace_observations"] = [periodic.check_export_trace(trace_bytes, row)
+                                                for row in report["trace_cases"]]
+            except Exception as exc:
+                report["success"] = False
+                report["failure"] = dict(type=type(exc).__name__, message=str(exc), stage="public-trace-audit")
         persist()
     return 0 if report["success"] else 1
 

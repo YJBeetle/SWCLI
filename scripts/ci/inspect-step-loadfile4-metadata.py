@@ -23,7 +23,7 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
-def typelib(raw):
+def typelib(raw, method_names=('LoadFile4','GetImportFileData')):
     check(digest(raw) == TLB_SHA and raw[:4] == b'MSFT', 'Expected pinned actual TLB')
     u = lambda pos: struct.unpack_from('<I', raw, pos)[0]
     count = u(32)
@@ -37,7 +37,7 @@ def typelib(raw):
         check(href%100 == 0 and href//100 < count, 'Unsupported external type reference')
         pos = segments[0][0]+href
         return dict(name=name(u(pos+52)),guid=str(uuid.UUID(bytes_le=raw[segments[5][0]+u(pos+44):segments[5][0]+u(pos+44)+16])))
-    vartypes = {3:'VT_I4',8:'VT_BSTR',9:'VT_DISPATCH',25:'VT_HRESULT'}
+    vartypes = {3:'VT_I4',8:'VT_BSTR',9:'VT_DISPATCH',11:'VT_BOOL',25:'VT_HRESULT'}
     def datatype(encoded, depth=0):
         check(depth<5,'Unexpected type recursion')
         if encoded & 0x80000000:
@@ -65,7 +65,7 @@ def typelib(raw):
         check(cursor == mem+4+u(mem),'Function region size differs')
         for number,(rec,size) in enumerate(records):
             method_name = name(u(cursor+4*n+4*number))
-            if method_name not in ('LoadFile4','GetImportFileData'):continue
+            if method_name not in method_names:continue
             argc,opt = struct.unpack_from('<HH',raw,rec+20)
             parameters = []
             for param in range(argc):
