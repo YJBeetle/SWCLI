@@ -153,6 +153,31 @@ until TTL expiry. Leases are per daemon, not distributed/file locks. Reads and
 human GUI actions are not prevented. A stamp conflict means re-inspect and
 re-plan; do not blindly replace the stamp to force the original action.
 
+### Native document open modes
+
+Omit `--mode` to keep the host's existing open behavior. To choose a mode, use
+`swcli document open PATH --mode MODE --json` on a closed document.
+
+| Input | Allowed modes |
+| --- | --- |
+| SLDPRT | `resolved`, `quick-view` |
+| SLDDRW | `resolved`, `lightweight`, `detailing` |
+| SLDASM | `resolved`, `lightweight`, `large-design-review` |
+
+With `resolved` or `lightweight` assemblies, `--[no-]load-hidden-components`,
+`--[no-]use-speedpak` and `--[no-]use-large-assembly-settings` map to the
+corresponding native options. Unspecified options use native defaults. The large
+assembly option temporarily changes an application preference on a daemon-owned
+host and reports its restoration. A missing SpeedPak or an ineligible model can
+limit what SOLIDWORKS loads.
+
+The JSON response includes `open_mode.requested`, `open_mode.actual` and
+`open_mode.matches_request`. If SOLIDWORKS mixes lightweight and resolved
+components or views, the actual mode is `mixed`. `unknown` and a null match
+indicate that the native state could not be determined, such as an assembly
+without any loaded components. A successful open supplies the document ID even
+if the native mode differs. Native errors and warnings remain in the open receipt.
+
 ## Model and verify
 
 On hosts advertising these operations:

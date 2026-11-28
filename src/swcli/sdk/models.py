@@ -378,6 +378,48 @@ class _DocumentOpenParametersRequired(TypedDict):
 class DocumentOpenParameters(_DocumentOpenParametersRequired, total=False):
     read_only: bool
     configuration: str
+    mode: Literal['resolved', 'lightweight', 'large-design-review', 'detailing', 'quick-view']
+    load_hidden_components: bool
+    use_speedpak: bool
+    use_large_assembly_settings: bool
+
+
+class DocumentOpenResultOpenModeOptions(TypedDict, total=False):
+    load_hidden_components: bool
+    use_speedpak: bool
+    use_large_assembly_settings: bool
+
+
+class _DocumentOpenResultOpenModeLargeAssemblySettingsRequired(TypedDict):
+    before: bool
+    restored: bool
+
+
+class DocumentOpenResultOpenModeLargeAssemblySettings(_DocumentOpenResultOpenModeLargeAssemblySettingsRequired, total=False):
+    during_open: bool
+    after_open: bool
+
+
+class _DocumentOpenResultOpenModeRequired(TypedDict):
+    requested: Literal['resolved', 'lightweight', 'large-design-review', 'detailing', 'quick-view']
+    actual: Literal['resolved', 'lightweight', 'large-design-review', 'detailing', 'quick-view', 'mixed', 'unknown']
+    matches_request: Union[bool, None]
+    options: DocumentOpenResultOpenModeOptions
+
+
+class DocumentOpenResultOpenMode(_DocumentOpenResultOpenModeRequired, total=False):
+    view_only: bool
+    actual_read_only: bool
+    large_design_review_state: int
+    detailing_mode: bool
+    lightweight_count: int
+    resolved_count: int
+    suppressed_count: int
+    unloaded_count: int
+    speedpak_count: int
+    has_unloaded_components: bool
+    observation_error: DocumentCreateResultError
+    large_assembly_settings: DocumentOpenResultOpenModeLargeAssemblySettings
 
 
 class _DocumentOpenResultRequired(TypedDict):
@@ -395,6 +437,8 @@ class DocumentOpenResult(_DocumentOpenResultRequired, total=False):
     configuration: Union[str, None]
     api_errors: int
     api_warnings: int
+    preference_restore_errors: List[DocumentCreateResultError]
+    open_mode: DocumentOpenResultOpenMode
 
 
 DocumentListParameters = DaemonHealthParameters

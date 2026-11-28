@@ -182,6 +182,15 @@ def _com_value(obj: Any, name: str) -> Any:
     return native_call("read", name, read_member)
 
 
+def _dispatch(obj: Any) -> Any:
+    """Wrap raw IDispatch objects returned in native SAFEARRAYs."""
+    if hasattr(obj, "_oleobj_"):
+        return obj
+    import win32com.client
+
+    return win32com.client.Dispatch(obj)
+
+
 def _describe_document(document: Any) -> Dict[str, Any]:
     try:
         update_stamp = int(_com_value(document, "GetUpdateStamp"))

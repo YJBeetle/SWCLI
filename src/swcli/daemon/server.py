@@ -29,6 +29,7 @@ from ..operation_schemas import OPERATION_CATALOG, validate_operation_request
 from ..result_schemas import validate_operation_result
 from ..hosts.windows_documents import supported_export_formats
 from ..hosts.windows_step_export import step_host_scope
+from ..hosts.windows_open_modes import open_modes_host_scope
 from .documents import DEFAULT_SESSION_ID, DocumentRegistry
 from .operations import (
     LEASE_TOKEN_OPERATIONS,
@@ -514,7 +515,8 @@ def _worker_main(
                             document_id=request.get("document_id"), expected_update_stamp=request.get("expected_update_stamp"),
                             lease_id=request.get("lease_id"))
                     with native_api_sequence(app, enabled=owned_by_daemon), \
-                            step_host_scope(app, isolated=owned_by_daemon and not visible):
+                            step_host_scope(app, isolated=owned_by_daemon and not visible), \
+                            open_modes_host_scope(owned_by_daemon):
                         result = execute_operation(
                             app,
                             str(request["operation"]),
