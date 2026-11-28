@@ -12,8 +12,8 @@ from .artifact_content import MAX_ARTIFACT_BYTES, MAX_BASE64_CHARS
 from .protocol import load_schema
 from .document_open_modes import ASSEMBLY_OPEN_OPTIONS, OPEN_MODES
 from .document_tolerances import TOLERANCE_FIELDS
-from .document_font_scopes import FONT_SCOPES, font_scopes_schema, validate_font_scopes
-from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match
+from .document_font_scopes import FONT_SCOPES, font_schema, font_scopes_schema, validate_font_scopes
+from .font_snapshot import FONT_WRITABLE_FIELDS, font_unrequested_fields_match, validate_font_snapshot
 from .document_line_font import LINE_FONT_FIELDS, LINE_FONT_SNAPSHOT
 from .document_dimension_format import DIMENSION_FORMAT_FIELDS, format_schema
 from .document_image_quality import IMAGE_QUALITY_FIELDS, exact_snapshot, linked_changes, quality_schema, validate_quality
@@ -601,7 +601,7 @@ _RESULT_FIELDS = {
     "document.property-set": PROPERTY_EDIT_RESULT,
     "document.property-delete": PROPERTY_EDIT_RESULT,
     "document.font-scopes": (
-        {"fonts": font_scopes_schema()}, ("session_id", "document", "fonts"),
+        {"fonts": font_scopes_schema(), "linear": font_schema()}, ("session_id", "document", "fonts"),
     ),
     "document.font-scope-set": (
         {"scope": {"enum": ["dimensions", "notes", "tables"]}, "field": {"enum": list(FONT_WRITABLE_FIELDS)},
@@ -3117,6 +3117,11 @@ def validate_operation_result(name: str, result: Any) -> None:
                     validate_font_scopes(result[key])
                 except ValueError as exc:
                     raise OperationResultInvalid(str(exc)) from exc
+    if name == "document.font-scopes" and "linear" in result:
+        try:
+            validate_font_snapshot(result["linear"])
+        except ValueError as exc:
+            raise OperationResultInvalid(str(exc)) from exc
     if name == "document.font-scope-set" and result["ok"] is True:
         before, after = result["before"], result["fonts"]
         scope, field = result["scope"], result["field"]

@@ -257,9 +257,11 @@ class DocumentOperations:
         return cast("Response[models.DocumentPropertyDeleteResult]", self._client._execute('document.property-delete', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp, lease_id=lease_id))
 
 
-    def font_scopes(self, *, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentFontScopesResult]:
+    def font_scopes(self, *, include_linear: Union[bool, Unset] = UNSET, document_id: Optional[str] = None, expected_update_stamp: Optional[int] = None, request_id: Optional[str] = None) -> Response[models.DocumentFontScopesResult]:
         """document.font-scopes; runtime validation enforces bounds, conditions and context."""
         parameters: Dict[str, object] = {}
+        if include_linear is not UNSET:
+            parameters['include_linear'] = include_linear
         return cast("Response[models.DocumentFontScopesResult]", self._client._execute('document.font-scopes', parameters, request_id=request_id, document_id=document_id, expected_update_stamp=expected_update_stamp))
 
 

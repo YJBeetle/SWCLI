@@ -9,7 +9,8 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 
-from ..document_font_scopes import FONT_SCOPES, NATIVE_FONT_WRITE_PROFILES, validate_font_scopes, validate_font_edit
+from ..document_font_scopes import (FONT_SCOPES, LINEAR_FONT_SCOPE, NATIVE_FONT_WRITE_PROFILES,
+                                   validate_font_scopes, validate_font_edit)
 from ..font_snapshot import (FONT_MEMBERS, font_snapshot, font_requested_value_matches,
                              font_native_normalizations)
 from .native_trace import native_call
@@ -27,9 +28,11 @@ class DocumentFontScopeNotCalibrated(RuntimeError):
     """The selected scope/runtime/revision is outside the audited native profile."""
 
 
-def read_font_constants(pythoncom, path):
+def read_font_constants(pythoncom, path, *, include_linear=False):
     """Resolve symbolic IDs from the official swconst type library, never guess."""
     wanted = {name for pair in FONT_SCOPES.values() for name in pair}
+    if include_linear:
+        wanted.update(LINEAR_FONT_SCOPE)
     found = {}
     library = pythoncom.LoadTypeLib(str(path))
     for index in range(library.GetTypeInfoCount()):
@@ -49,8 +52,8 @@ def read_font_constants(pythoncom, path):
     return found
 
 
-@lru_cache(maxsize=1)
-def _installed_constants():
+@lru_cache(maxsize=2)
+def _installed_constants(*, include_linear=False):
     import pythoncom
     import winreg
     registration = _discover_com_registration(winreg)
@@ -60,7 +63,7 @@ def _installed_constants():
     library = Path(executable).parent / "swconst.tlb"
     if not library.is_file():
         raise RuntimeError("registered SOLIDWORKS swconst.tlb is unavailable")
-    return read_font_constants(pythoncom, library)
+    return read_font_constants(pythoncom, library, include_linear=include_linear)
 
 
 def _read_member(font, member):
@@ -70,17 +73,21 @@ def _read_member(font, member):
     return native_call("document-font-scopes", "ITextFormat." + member + ".get", read)
 
 
+def _read_font(extension, constants, binding, label):
+    preference, option = binding
+    obj = native_call("document-font-scopes", "IModelDocExtension.GetUserPreferenceTextFormat",
+                      lambda: extension.GetUserPreferenceTextFormat(constants[preference], constants[option]))
+    if obj is None:
+        raise RuntimeError("native font scope unavailable: " + label)
+    native = {member: _read_member(obj, member) for member in FONT_MEMBERS.values()}
+    return obj, font_snapshot(native), native
+
+
 def _read_fonts(document, constants):
     extension = _com_value(document, "Extension")
     objects, fonts, native = {}, {}, {}
-    for scope, (preference, option) in FONT_SCOPES.items():
-        obj = native_call("document-font-scopes", "IModelDocExtension.GetUserPreferenceTextFormat",
-                          lambda: extension.GetUserPreferenceTextFormat(constants[preference], constants[option]))
-        if obj is None:
-            raise RuntimeError("native font scope unavailable: " + scope)
-        objects[scope] = obj
-        native[scope] = {member: _read_member(obj, member) for member in FONT_MEMBERS.values()}
-        fonts[scope] = font_snapshot(native[scope])
+    for scope, binding in FONT_SCOPES.items():
+        objects[scope], fonts[scope], native[scope] = _read_font(extension, constants, binding, scope)
     return objects, fonts, native
 
 
@@ -119,15 +126,22 @@ def _verify_identity(app, document, foreground, edit, state, identity, foregroun
     _verify_other_foreground(app, foreground, foreground_snapshot)
 
 
-def read_document_font_scopes_windows(*, app, document):
+def read_document_font_scopes_windows(*, app, document, include_linear=False):
     result = {"ok": False, "action": "document.font-scopes"}
     try:
         foreground, edit, state = _com_value(app, "ActiveDoc"), _edit_context(document), _state(document)
         identity = (_com_value(document, "GetPathName"), _com_value(document, "GetTitle"))
         foreground_snapshot = _other_foreground_snapshot(app, document, foreground)
-        _, fonts, _ = _read_fonts(document, _installed_constants())
+        if include_linear and (not _native_windows_runtime() or _com_value(app, "RevisionNumber") != "33.5.0"
+                               or _com_value(document, "GetType") != 3):
+            raise DocumentFontScopeNotCalibrated("Linear font read requires a native Windows 33.5.0 drawing")
+        constants = _installed_constants(include_linear=True) if include_linear else _installed_constants()
+        _, fonts, _ = _read_fonts(document, constants)
+        observed = {"fonts": fonts}
+        if include_linear:
+            _, observed["linear"], _ = _read_font(_com_value(document, "Extension"), constants, LINEAR_FONT_SCOPE, "linear")
         _verify_identity(app, document, foreground, edit, state, identity, foreground_snapshot)
-        result.update(ok=True, fonts=fonts)
+        result.update(ok=True, **observed)
     except Exception as exc:
         result["error"] = _error(exc)
     return result

@@ -329,6 +329,8 @@ def build_parser() -> argparse.ArgumentParser:
     tolerance_editor.add_argument("--json", action="store_true", dest="as_json")
     font_scopes = document_commands.add_parser("font-scopes", help="read complete document default fonts for four scopes")
     add_document_selector(font_scopes)
+    font_scopes.add_argument("--include-linear", action="store_true",
+                             help="include the separate Linear default on native Windows 33.5.0 drawings")
     font_scopes.add_argument("--json", action="store_true", dest="as_json")
     font_editor = document_commands.add_parser("font-scope-set", help="edit audited native Windows 33.5.0 Notes defaults; other scopes remain closed")
     add_document_selector(font_editor)
@@ -1589,7 +1591,8 @@ def _typed_operation(
                     "expected_options": json.loads(args.if_options)}, args.as_json, args.document_id,
                     args.expected_update_stamp, args.lease_id)
         if command == "font-scopes":
-            return ("document.font-scopes", {}, args.as_json, args.document_id,
+            parameters = {"include_linear": True} if args.include_linear else {}
+            return ("document.font-scopes", parameters, args.as_json, args.document_id,
                     args.expected_update_stamp, None)
         if command == "font-scope-set":
             return ("document.font-scope-set", {"scope": args.scope, "field": args.field,

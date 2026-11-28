@@ -490,7 +490,7 @@ def document_table_option_set(context: OperationContext, values: Dict[str, Any])
 def document_font_scopes(context: OperationContext, values: Dict[str, Any]) -> Dict[str, Any]:
     if context.documents is None or context.entry is None:
         raise RuntimeError("document registry is unavailable")
-    result = read_document_font_scopes_windows(app=context.app, document=context.entry.document)
+    result = read_document_font_scopes_windows(app=context.app, document=context.entry.document, **values)
     return _with_document(result, context.documents, context.entry, session_id=context.session_id)
 
 

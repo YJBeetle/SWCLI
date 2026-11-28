@@ -806,6 +806,12 @@ guard scope. `height_mm` uses millimeters; `height_points` is an integer;
 `height_mode` identifies the active representation. A document default does not
 prove a locally formatted annotation or table inherits that font.
 
+On native Windows with SOLIDWORKS 33.5.0, add `--include-linear` for a drawing
+to read its independent Linear dimension default in the top-level `linear`
+field. It has the same 17 fields as the other defaults. The four entries in
+`fonts` keep their existing meanings and are the complete write CAS payload.
+Linear has no public write profile.
+
 `document.font-scope-set` requires explicit document, lease, update stamp and
 `expected_fonts` containing all four complete snapshots (`--if-fonts` in CLI).
 The finite write profile currently permits `notes` only on native Windows,

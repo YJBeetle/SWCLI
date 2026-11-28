@@ -88,6 +88,16 @@ class MCPBridgeTests(unittest.TestCase):
                 self.assertEqual(self.call.call_args.kwargs["lease_id"], "l-ab12cd34ef56")
         self.manager.start.assert_not_called()
 
+    def test_mcp_forwards_explicit_linear_observation_without_changing_operation(self):
+        operation = "document.font-scopes"
+        parameters = {"include_linear": True}
+        self.assertTrue(self.bridge.call("execute", {"operation": operation, "parameters": parameters,
+            "document_id": "d-ab12cd", "expected_update_stamp": 7, "session_id": "fonts"})["success"])
+        self.assertEqual(self.call.call_args.args, (operation, parameters))
+        self.assertEqual(self.call.call_args.kwargs["expected_update_stamp"], 7)
+        self.assertEqual(self.call.call_args.kwargs["session_id"], "fonts")
+        self.manager.start.assert_not_called()
+
     def test_status_capability_and_cad_calls_never_start_a_host(self):
         self.assertFalse(self.bridge.call("status",{})["result"]["daemon_running"])
         self.manager.status.assert_called_once_with()

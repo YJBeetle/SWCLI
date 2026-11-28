@@ -4,6 +4,8 @@ from contextlib import nullcontext, redirect_stderr
 import json
 import os
 from io import StringIO
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -119,6 +121,98 @@ class FontScopeTests(unittest.TestCase):
         self.assertTrue(all(len(font) == 17 for font in result["fonts"].values()))
         self.assertFalse(result["document"]["active"])
         self.assert_no_mutation()
+
+    def prepare_linear_drawing(self):
+        self.document.GetType = lambda: 3
+        self.document.GetPathName = lambda: "fixture.SLDDRW"
+        sheet = SimpleNamespace(GetName=lambda: "Sheet1", GetTemplateSketch=lambda: None)
+        view = SimpleNamespace(GetName2=lambda: "Sheet1", GetSketch=lambda: None, GetReferencedModelName=lambda: "")
+        self.document.GetCurrentSheet = lambda: sheet
+        self.document.GetFirstView = lambda: view
+        self.document.GetEditSheet = lambda: True
+        self.document.ActiveDrawingView = None
+        self.app.RevisionNumber = lambda: "33.5.0"
+        self.entry = self.registry.register(self.document)
+        self.constants["swDetailingLinearDimension"] = 999
+        linear_binding = (self.constants["swDetailingDimensionTextFormat"], 999)
+        self.pairs[linear_binding] = "linear"
+        self.native["linear"] = {**self.native["dimensions"], "TypeFaceName": "Century Gothic"}
+        return linear_binding
+
+    def test_explicit_linear_read_uses_separate_option_and_preserves_old_cas(self):
+        linear_binding = self.prepare_linear_drawing()
+        with patch.object(adapter, "_native_windows_runtime", return_value=True), \
+                patch.object(adapter, "_installed_constants", return_value=self.constants) as constants:
+            plain = self.operation("document.font-scopes", stamp=7)
+            constants.assert_called_once_with()
+            old_keys = set(plain)
+            self.assertNotIn("linear", plain)
+            self.assertEqual(set(plain["fonts"]), set(FONT_SCOPES))
+            self.assertNotIn(linear_binding, [call.args for call in self.extension.GetUserPreferenceTextFormat.call_args_list])
+            self.extension.GetUserPreferenceTextFormat.reset_mock()
+            explicit = self.operation("document.font-scopes", {"include_linear": True}, stamp=7)
+            constants.assert_called_with(include_linear=True)
+        validate_operation_result("document.font-scopes", explicit)
+        self.assertEqual(set(explicit), old_keys | {"linear"})
+        self.assertEqual(explicit["fonts"], plain["fonts"])
+        self.assertEqual(explicit["linear"], font_snapshot(self.native["linear"]))
+        self.assertEqual([call.args for call in self.extension.GetUserPreferenceTextFormat.call_args_list], list(self.pairs))
+        self.assertFalse(explicit["document"]["active"])
+        invalid = deepcopy(explicit)
+        del invalid["linear"]["vertical"]
+        with self.assertRaises(OperationResultInvalid):
+            validate_operation_result("document.font-scopes", invalid)
+        with self.assertRaisesRegex(ValueError, "scope"):
+            validate_operation_request("document.font-scope-set", dict(
+                scope="linear", field="typeface", value="Arial", expected_fonts=plain["fonts"]))
+        with self.assertRaisesRegex(ValueError, "complete scope snapshots"):
+            validate_font_scopes({**plain["fonts"], "linear": explicit["linear"]})
+        self.assert_no_mutation()
+
+    def test_candidate_diagnostic_uses_real_dispatcher_and_lease_guards(self):
+        self.prepare_linear_drawing()
+        self.app.ActiveDoc = self.document
+        source = Path(__file__).resolve().parents[1] / "scripts/ci/gate_support/font_linear_route.py"
+        spec = spec_from_file_location("font_linear_route", source)
+        diagnostic = module_from_spec(spec)
+        spec.loader.exec_module(diagnostic)
+        path = Path("fixture.SLDDRW")
+        with patch.object(adapter, "_native_windows_runtime", return_value=True), \
+                patch.object(adapter, "_installed_constants", return_value=self.constants):
+            case = diagnostic.LinearRoute(self.app, self.document, path, read_only=False)
+            plain = case.read(7, include_linear=False)
+            explicit = case.read(7, include_linear=True)
+            controls = case.negative_controls(7, plain["fonts"])
+            case.guard_write(self.document, path, 7)
+            with self.assertRaisesRegex(RuntimeError, "update stamp"):
+                case.guard_write(self.document, path, 8)
+        self.assertEqual(explicit["linear"]["typeface"], "Century Gothic")
+        self.assertEqual(explicit["fonts"], plain["fonts"])
+        self.assertEqual(controls, {
+            "stale_stamp": "DocumentUpdateConflict", "wrong_session": "DocumentLeaseConflict",
+            "missing_lease": "DocumentLeaseConflict", "linear_public_write": "ValueError",
+            "total_public_write": {"attempted": False, "may_have_changed": False},
+        })
+        self.assert_no_mutation()
+
+    def test_linear_read_fails_closed_for_part_and_does_not_affect_legacy_read(self):
+        self.app.RevisionNumber = lambda: "33.5.0"
+        with patch.object(adapter, "_native_windows_runtime", return_value=True):
+            denied = self.operation("document.font-scopes", {"include_linear": True})
+            self.assertFalse(denied["ok"])
+            self.assertEqual(denied["error"]["type"], "DocumentFontScopeNotCalibrated")
+            self.extension.GetUserPreferenceTextFormat.assert_not_called()
+        plain = self.operation("document.font-scopes", {"include_linear": False})
+        self.assertTrue(plain["ok"])
+        self.assertNotIn("linear", plain)
+        self.assert_no_mutation()
+
+    def test_linear_cli_is_opt_in(self):
+        parser = build_parser()
+        command = ["document", "font-scopes", "--document", self.entry.document_id, "--json"]
+        self.assertEqual(_typed_operation(parser.parse_args(command))[1], {})
+        self.assertEqual(_typed_operation(parser.parse_args(command + ["--include-linear"]))[1],
+                         {"include_linear": True})
 
     def test_public_setter_cannot_be_enabled_by_protocol(self):
         result = self.edit()

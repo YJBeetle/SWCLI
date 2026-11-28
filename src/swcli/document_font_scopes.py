@@ -8,6 +8,7 @@ FONT_SCOPES = {
     "tables": ("swDetailingTableTextFormat", "swDetailingNoOptionSpecified"),
     "annotations": ("swDetailingAnnotationTextFormat", "swDetailingNoOptionSpecified"),
 }
+LINEAR_FONT_SCOPE = ("swDetailingDimensionTextFormat", "swDetailingLinearDimension")
 WRITABLE_FONT_SCOPES = ("dimensions", "notes", "tables")
 
 # Internal native evidence is audited independently from public CLI acceptance.

@@ -81,6 +81,18 @@ class GeneratedSDKTests(unittest.TestCase):
             self.assertEqual(wire.call_args.kwargs["lease_id"], "l-ab12cd34ef56")
             self.assertEqual(wire.call_args.kwargs["request_id"], "write-once")
 
+    def test_font_scopes_only_sends_linear_when_selected(self):
+        client = Client(session_id="chosen")
+        def call(operation, parameters, **kw):
+            return envelope({"ok": True}, request_id=kw["request_id"])
+        with patch("swcli.sdk.client.call_daemon", side_effect=call) as wire, \
+                patch("swcli.sdk.client.validate_operation_result"):
+            client.document.font_scopes(document_id="d-ab12cd")
+            self.assertEqual(wire.call_args.args, ("document.font-scopes", {}))
+            client.document.font_scopes(include_linear=True, document_id="d-ab12cd", expected_update_stamp=0)
+            self.assertEqual(wire.call_args.args, ("document.font-scopes", {"include_linear": True}))
+            self.assertEqual(wire.call_args.kwargs["expected_update_stamp"], 0)
+
     def test_bad_bounds_context_unknown_fields_and_nonfinite_values_fail_before_io(self):
         client = Client()
         calls = [lambda: client.document.units_set(decimal_places=-1),

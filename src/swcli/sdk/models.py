@@ -775,8 +775,8 @@ class DocumentPropertyDeleteResult(_DocumentPropertyDeleteResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-class DocumentFontScopesParameters(TypedDict):
-    pass
+class DocumentFontScopesParameters(TypedDict, total=False):
+    include_linear: bool
 
 
 class DocumentFontScopesResultFontsDimensions(TypedDict):
@@ -817,6 +817,7 @@ class DocumentFontScopesResult(_DocumentFontScopesResultRequired, total=False):
     warnings: List[DocumentCreateResultWarningsItem]
     error: DocumentCreateResultError
     fonts: DocumentFontScopesResultFonts
+    linear: DocumentFontScopesResultFontsDimensions
 
 
 class DocumentFontScopeSetParameters(TypedDict):
@@ -845,7 +846,8 @@ class DocumentFontScopeSetResult(_DocumentFontScopeSetResultRequired, total=Fals
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentLineFontParameters = DocumentFontScopesParameters
+class DocumentLineFontParameters(TypedDict):
+    pass
 
 
 class _DocumentLineFontResultRequired(TypedDict):
@@ -885,7 +887,7 @@ class DocumentLineFontSetResult(_DocumentLineFontSetResultRequired, total=False)
     finalization_error: DocumentCreateResultError
 
 
-DocumentImageQualityParameters = DocumentFontScopesParameters
+DocumentImageQualityParameters = DocumentLineFontParameters
 
 
 class DocumentImageQualityResultQualityNative(TypedDict):
@@ -981,7 +983,7 @@ class DocumentImageQualitySetResult(_DocumentImageQualitySetResultRequired, tota
     linked_changes: List[Union[DocumentImageQualitySetResultLinkedChangesItemVariant1, DocumentImageQualitySetResultLinkedChangesItemVariant2]]
 
 
-DocumentTableOptionsParameters = DocumentFontScopesParameters
+DocumentTableOptionsParameters = DocumentLineFontParameters
 
 
 class _DocumentTableOptionsResultRequired(TypedDict):
@@ -1021,7 +1023,7 @@ class DocumentTableOptionSetResult(_DocumentTableOptionSetResultRequired, total=
     native_returned: bool
 
 
-DocumentAnnotationOptionsParameters = DocumentFontScopesParameters
+DocumentAnnotationOptionsParameters = DocumentLineFontParameters
 
 
 class _DocumentAnnotationOptionsResultRequired(TypedDict):
@@ -1060,7 +1062,7 @@ class DocumentAnnotationOptionSetResult(_DocumentAnnotationOptionSetResultRequir
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentDetailingOptionsParameters = DocumentFontScopesParameters
+DocumentDetailingOptionsParameters = DocumentLineFontParameters
 
 
 class _DocumentDetailingOptionsResultRequired(TypedDict):
@@ -1100,7 +1102,7 @@ class DocumentDetailingOptionSetResult(_DocumentDetailingOptionSetResultRequired
     native_return: Union[bool, None]
 
 
-DocumentDetailingLineOptionsParameters = DocumentFontScopesParameters
+DocumentDetailingLineOptionsParameters = DocumentLineFontParameters
 
 
 class _DocumentDetailingLineOptionsResultRequired(TypedDict):
@@ -1142,7 +1144,7 @@ class DocumentDetailingLineOptionSetResult(_DocumentDetailingLineOptionSetResult
     native_return: Union[bool, None]
 
 
-DocumentTolerancesParameters = DocumentFontScopesParameters
+DocumentTolerancesParameters = DocumentLineFontParameters
 
 
 class _DocumentTolerancesResultRequired(TypedDict):
@@ -1184,7 +1186,7 @@ class DocumentToleranceSetResult(_DocumentToleranceSetResultRequired, total=Fals
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentDimensionFormatParameters = DocumentFontScopesParameters
+DocumentDimensionFormatParameters = DocumentLineFontParameters
 
 
 class DocumentDimensionFormatResultFormat(TypedDict):
@@ -1230,7 +1232,7 @@ class DocumentDimensionFormatSetResult(_DocumentDimensionFormatSetResultRequired
     native_return: bool
 
 
-DocumentUnitProfileParameters = DocumentFontScopesParameters
+DocumentUnitProfileParameters = DocumentLineFontParameters
 
 
 class DocumentUnitProfileResultUnitProfileNativeUnits(TypedDict):
@@ -1309,7 +1311,7 @@ class DocumentUnitProfileSetResult(_DocumentUnitProfileSetResultRequired, total=
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentUnitsParameters = DocumentFontScopesParameters
+DocumentUnitsParameters = DocumentLineFontParameters
 
 
 class DocumentUnitsResultUnitsNativeUnits(TypedDict):
@@ -1362,7 +1364,7 @@ class DocumentUnitsSetResult(_DocumentUnitsSetResultRequired, total=False):
     mutation: DrawingStandardViewsResultMutation
 
 
-DocumentSummaryParameters = DocumentFontScopesParameters
+DocumentSummaryParameters = DocumentLineFontParameters
 
 
 class DocumentSummaryResultFields(TypedDict):
@@ -3128,7 +3130,7 @@ class PartCreateBoxResult(_PartCreateBoxResultRequired, total=False):
     feature: SketchListResultSketchesItemOwnerVariant2
 
 
-DocumentAnnotationFontParameters = DocumentFontScopesParameters
+DocumentAnnotationFontParameters = DocumentLineFontParameters
 
 
 class DocumentAnnotationFontResultNativeFont(TypedDict):
@@ -3246,7 +3248,7 @@ class DocumentAnnotationFontSetResult(_DocumentAnnotationFontSetResultRequired, 
     native_normalizations: List[Union[DocumentAnnotationFontSetResultNativeNormalizationsItemVariant1, DocumentAnnotationFontSetResultNativeNormalizationsItemVariant2]]
 
 
-DocumentDisplayOptionsParameters = DocumentFontScopesParameters
+DocumentDisplayOptionsParameters = DocumentLineFontParameters
 
 
 class DocumentDisplayOptionsResultOptionsVariant1GridDisplay(TypedDict):
@@ -3411,7 +3413,7 @@ class DocumentDisplayOptionSetResult(_DocumentDisplayOptionSetResultRequired, to
     changed: bool
 
 
-DocumentDraftingStandardParameters = DocumentFontScopesParameters
+DocumentDraftingStandardParameters = DocumentLineFontParameters
 
 
 class DocumentDraftingStandardResultStandardVariant1(TypedDict):

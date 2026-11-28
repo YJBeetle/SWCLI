@@ -263,7 +263,12 @@ OPERATION_CATALOG: Dict[str, OperationSpec] = {
         {**_PROPERTY_TARGET, "expected_value": _string()},
         required=("name",), **_DOCUMENT_WRITE_CONTEXT,
     ),
-    "document.font-scopes": _operation("document.font-scopes", **_DOCUMENT_READ_CONTEXT),
+    "document.font-scopes": _operation(
+        "document.font-scopes", {"include_linear": _boolean()},
+        description="Read four document font defaults. On native Windows 33.5.0 drawings, include_linear adds "
+                    "the independent Linear dimension default to the result.",
+        **_DOCUMENT_READ_CONTEXT,
+    ),
     "document.font-scope-set": _operation(
         "document.font-scope-set",
         {"scope": _string(enum=list(WRITABLE_FONT_SCOPES)),
