@@ -19,4 +19,15 @@
 - 简中显式拒绝。`verify-step-export-public.py --periodic-host chinese-simplified --source-commit FULL_SHA --output-dir CHINESE`。核对两个值的专用拒绝、实际 trace、零偏好、零 SaveAs3 及已有输出不变。
 - 单独的英文旧路径。`verify-step-export-public.py --periodic-host english --periodic-legacy-only --source-commit FULL_SHA --output-dir LEGACY`。同一环境分别确证 `8d49069` 和集成候选，记录默认 TLB 是否存在。可用集成候选的 gate 脚本运行已安装的精确基线 wheel，源码标签使用基线 SHA。若默认 TLB 缺失，分别保留真实拒绝，禁止复制或伪造安装路径。旧路径和显式四项各有独立终态。
 
-候选尚未进行原生复验。发布线和 CI 调度保持原状。
+## 集成候选复验结果
+
+`207eaa387ba9a3732bea2020824530ce8e32acf1` 的 Windows 复验通过。英文四项
+均通过公开导出、独立原生导入、保存和只读重开。简中两个显式请求均在偏好和
+SaveAs3 前拒绝，已有输出字节保持。原语言已重启读回复原，各测试宿主均已退出。
+
+同一 VM 缺少旧默认 TLB。基线和集成候选的旧请求均返回
+`StepTypeLibraryUnavailable`，调用 trace 相同，未生成 STEP。
+本次旧路径对照覆盖相同故障条件。
+
+复验审计 SHA-256 为 `e675c9e2601291480cce27b4706df1d72c87f4917587183970a475f51a626dd1`，
+253 个原件的终态清单 SHA-256 为 `5b83880a88ad89a1ca6cadf65f1e6ea9f7bc30059c4ff6f60f6a7fea44706b80`。
